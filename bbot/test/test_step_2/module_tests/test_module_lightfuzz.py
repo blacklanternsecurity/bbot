@@ -2474,13 +2474,15 @@ class Test_Lightfuzz_crypto_error(ModuleTestBase):
         },
     }
 
+    canonical_value = "08a5a2cea9c5a5576e6e5314edcba581d21c7111c9c0c06990327b9127058d67"
+
     def request_handler(self, request):
         qs = str(request.query_string.decode())
 
-        parameter_block = """
+        parameter_block = f"""
         <section class=secret>
             <form action=/ method=GET>
-                <input type=text value='08a5a2cea9c5a5576e6e5314edcba581d21c7111c9c0c06990327b9127058d67' name=secret>
+                <input type=text value='{self.canonical_value}' name=secret>
                 <button type=submit class=button>Secret Submit</button>
             </form>
         </section>
@@ -2492,7 +2494,11 @@ class Test_Lightfuzz_crypto_error(ModuleTestBase):
         </section>
         """
         if "secret=" in qs:
-            value = qs.split("=")[1]
+            value = qs.split("=", 1)[1].split("&")[0]
+            # Canonical ciphertext decrypts cleanly → normal page; any other value
+            # (truncation, mutation, garbage) → padding error.
+            if value == self.canonical_value:
+                return Response(parameter_block, status=200)
             if value:
                 return Response(crypto_block, status=200)
 
@@ -4316,4 +4322,75 @@ class Test_Lightfuzz_cookie_refresh(ModuleTestBase):
         assert secret_seen, (
             "URL_UNVERIFIED for /secret-endpoint not emitted — cookie refresh failed; "
             "lightfuzz POST likely used the spider's stale TESTSESSION token."
+        )
+
+
+# End-to-end test for the crypto submodule's baseline_probe path.
+#
+# Routes through baseline_probe (crypto's "what does the canonical page render
+# look like" reference fetch), which is a separate code path from the
+# compare_baseline flow exercised by sqli / cmdi / path. Server only reveals
+# /crypto-baseline-secret when the POST carries the real form body (name +
+# value of the parameter being fuzzed); a bare POST with no body returns a
+# generic page. If baseline_probe submits the form properly, excavate mines
+# /crypto-baseline-secret out of the emitted HTTP_RESPONSE and we see the
+# URL_UNVERIFIED. If baseline_probe fires a body-less request, the URL is
+# never revealed and the assertion fails.
+class Test_Lightfuzz_baseline_probe_form_submission(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            # Crypto is the submodule that calls baseline_probe(); other submodules
+            # go through compare_baseline.
+            "lightfuzz": {"enabled_submodules": ["crypto"]},
+        },
+    }
+
+    # High-entropy hex value so crypto's likely_crypto gate accepts it (≥ 4.5 bits).
+    canonical_value = "08a5a2cea9c5a5576e6e5314edcba581d21c7111c9c0c06990327b9127058d67"
+
+    @property
+    def landing_page(self):
+        return f"""
+        <html><body>
+            <form action="/crypto-form" method="post">
+                <input type="hidden" name="token" value="{self.canonical_value}">
+                <input type="submit" value="go">
+            </form>
+        </body></html>
+        """
+
+    async def setup_after_prep(self, module_test):
+        canonical = self.canonical_value
+
+        def handler(request):
+            if request.method == "GET":
+                return Response(self.landing_page, status=200, content_type="text/html")
+            # POST: only reveal the secret link when the request body includes
+            # the form's actual field (`token=<canonical>`). A bare POST with no
+            # body returns a generic page, which is what baseline_probe would
+            # produce if it weren't building the request via prepare_request.
+            token = request.form.get("token", "")
+            if token == canonical:
+                body = '<html><body><a href="/crypto-baseline-secret">authenticated</a></body></html>'
+            else:
+                body = "<html><body>missing form fields</body></html>"
+            return Response(body, status=200, content_type="text/html")
+
+        module_test.set_expect_requests_handler(
+            expect_args=re.compile(".*"),
+            request_handler=handler,
+        )
+
+    def check(self, module_test, events):
+        secret_url = "http://127.0.0.1:8888/crypto-baseline-secret"
+        secret_seen = any(
+            e.type == "URL_UNVERIFIED" and str(getattr(e, "data", {}).get("url", "") or e.data) == secret_url
+            for e in events
+        )
+        assert secret_seen, (
+            "URL_UNVERIFIED for /crypto-baseline-secret not emitted — baseline_probe "
+            "did not submit the form properly (request body missing the token field)."
         )

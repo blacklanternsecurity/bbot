@@ -218,26 +218,28 @@ class BaseLightfuzz:
 
     async def baseline_probe(self, cookies, emit_http_response=True):
         """
-        Executes a baseline probe to establish a baseline for comparison.
+        Executes a baseline probe by submitting the form the way a browser
+        would: POSTs carry the parameter's original_value plus every sibling
+        field from ``additional_params``; GETs carry them in the querystring;
+        headers/cookies inject them on the wire. Uses ``prepare_request()`` so
+        the request shape matches what ``compare_baseline`` would build.
 
         When ``emit_http_response`` is true and the lightfuzz config allows it,
         the response is also emitted as an HTTP_RESPONSE event so excavate can
         re-mine the canonical page rendering for new params/URLs.
         """
-        if self.event.data.get("type") in ["POSTPARAM", "BODYJSON"]:
-            method = "POST"
-        else:
-            method = "GET"
-
-        response = await self.lightfuzz.helpers.request(
-            method=method,
-            cookies=cookies,
-            url=self.event.url,
-            allow_redirects=False,
-            retries=1,
-            timeout=10,
+        probe_value = self.incoming_probe_value(populate_empty=False)
+        additional_params = copy.deepcopy(self.event.data.get("additional_params", {}))
+        request_params = self.prepare_request(
+            self.event.data.get("type", "GETPARAM"),
+            probe_value,
+            cookies,
+            additional_params,
         )
+        request_params.update({"allow_redirects": False, "retries": 1, "timeout": 10})
+        response = await self.lightfuzz.helpers.request(**request_params)
         if emit_http_response and response is not None:
+            method = request_params.get("method", "GET")
             await self.lightfuzz.emit_baseline_response(response, self.event, method=method)
         return response
 
