@@ -94,7 +94,9 @@ class TestShodan_IDB(ModuleTestBase):
 
         # CVEDB should be hit exactly once per unique CVE; the duplicate CVE-2021-26857
         # in vulns must hit the cache rather than triggering a second request.
-        cvedb_requests = [r for r in module_test.httpx_mock.get_requests() if "cvedb.shodan.io" in str(r.url)]
+        cvedb_requests = [
+            r for r in module_test.httpx_mock.get_requests() if r.url.host and r.url.host == "cvedb.shodan.io"
+        ]
         assert len(cvedb_requests) == 2, f"expected 2 CVEDB requests, got {len(cvedb_requests)}"
         assert sorted(str(r.url) for r in cvedb_requests) == [
             "https://cvedb.shodan.io/cve/CVE-2021-26855",
