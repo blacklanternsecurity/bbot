@@ -9,6 +9,36 @@ from urllib.parse import unquote, quote
 _compiled_rules_cache = None
 
 
+def _xor_bytes(a, b):
+    """XOR two bytestrings truncated to the shorter length."""
+    n = min(len(a), len(b))
+    return bytes(x ^ y for x, y in zip(a[:n], b[:n]))
+
+
+def _leading_zero_run(b):
+    """Number of leading 0x00 bytes in b."""
+    n = 0
+    for byte in b:
+        if byte == 0:
+            n += 1
+        else:
+            break
+    return n
+
+
+def _ascii_xor_score(b):
+    """Fraction of bytes <= 0x60.
+
+    XOR of two printable-ASCII strings overwhelmingly lands in [0x00, 0x60]
+    (letters XOR letters yield 0x00-0x3F, digits XOR digits 0x00-0x3F, etc.).
+    Truly random bytes land in this range only ~38% of the time. A high score
+    is the classic "many-time-pad smell."
+    """
+    if not b:
+        return 0.0
+    return sum(1 for x in b if x <= 0x60) / len(b)
+
+
 class crypto(BaseLightfuzz):
     """
     Detects the use of cryptography in web parameters, and probes for some cryptographic vulnerabilities
@@ -218,6 +248,107 @@ class crypto(BaseLightfuzz):
             if ciphertext_length % block_size == 0 and num_blocks >= 2:
                 possible_sizes.append(block_size)
         return possible_sizes
+
+    def _collect_keystream_candidates(self, probe_value):
+        """Return [(label, raw, bytes)] for every hex/base64-shaped candidate worth pairwise-XORing.
+
+        Sources, in order:
+          1. The current parameter's value (probe_value).
+          2. Every value in ``event.data["additional_params"]`` (siblings on the same form/URL).
+          3. Every value in ``event.data["same_param_values"]`` (other observed values for the
+             same param name seen on the same HTTP_RESPONSE, e.g. a results page with many
+             ``<a href="?SortBy=<hex>">`` links — populated by excavate's parameter extractor).
+        """
+        param_name = self.event.data.get("name", "")
+        sources = [(param_name, probe_value)]
+        additional_params = self.event.data.get("additional_params") or {}
+        for k, v in additional_params.items():
+            sources.append((k, v))
+        for v in self.event.data.get("same_param_values") or []:
+            sources.append((param_name, v))
+
+        seen_bytes = set()
+        candidates = []
+        for label, value in sources:
+            if not value or not isinstance(value, str):
+                continue
+            decoded, encoding = self.format_agnostic_decode(value)
+            if encoding == "unknown":
+                continue
+            if len(decoded) < 3:
+                continue
+            if decoded in seen_bytes:
+                continue
+            seen_bytes.add(decoded)
+            candidates.append((label, value, decoded))
+            if len(candidates) >= 50:
+                break
+        return candidates
+
+    def detect_keystream_reuse(self, probe_value):
+        """Detect "many-time-pad" / keystream-reuse weakness across multiple ciphertexts.
+
+        When the same keystream is reused across encryptions (e.g. ColdFusion's legacy
+        CFMX_COMPAT, hand-rolled XOR ciphers with no IV), XOR-ing any two ciphertexts
+        yields the XOR of their plaintexts. If the plaintexts share a prefix, the XOR
+        result starts with zero bytes; for natural-language / identifier plaintexts the
+        result lands almost entirely in [0x00, 0x60] (the "many-time-pad smell").
+
+        Runs before the entropy gate because the very plaintexts this catches (short
+        ASCII identifiers like ``skillcd``) often produce ciphertext below the 4.5-bit
+        entropy threshold the gate uses.
+        """
+        candidates = self._collect_keystream_candidates(probe_value)
+        if len(candidates) < 2:
+            return
+
+        best = None
+        for i in range(len(candidates)):
+            for j in range(i + 1, len(candidates)):
+                label_a, raw_a, bytes_a = candidates[i]
+                label_b, raw_b, bytes_b = candidates[j]
+                xored = _xor_bytes(bytes_a, bytes_b)
+                if len(xored) < 3:
+                    continue
+                zero_run = _leading_zero_run(xored)
+                ascii_score = _ascii_xor_score(xored)
+                # At least 2 leading zero bytes OR ≥90% of bytes in ASCII-XOR-ASCII range
+                if zero_run < 2 and ascii_score < 0.9:
+                    continue
+                pair_score = (zero_run, ascii_score)
+                if best is None or pair_score > (best[0], best[1]):
+                    best = (zero_run, ascii_score, label_a, raw_a, label_b, raw_b, xored)
+
+        if best is None:
+            return
+
+        zero_run, ascii_score, label_a, raw_a, label_b, raw_b, xored = best
+        if zero_run >= 5:
+            severity, confidence = "HIGH", "CONFIRMED"
+        elif zero_run >= 3 or ascii_score >= 0.95:
+            severity, confidence = "HIGH", "PROBABLE"
+        else:
+            severity, confidence = "MEDIUM", "PROBABLE"
+
+        description = (
+            "Stream Cipher Keystream Reuse (Many-Time-Pad). "
+            f"Two parameter values XOR to a {zero_run}-byte leading-zero run: "
+            f"[{label_a}]={raw_a} XOR [{label_b}]={raw_b} = {xored.hex()}. "
+            f"{self.metadata()}"
+        )
+        context = (
+            "Lightfuzz Cryptographic Probe Submodule detected stream-cipher "
+            f"keystream reuse across parameters [{label_a}] and [{label_b}]"
+        )
+        self.results.append(
+            {
+                "name": "Stream Cipher Keystream Reuse",
+                "severity": severity,
+                "confidence": confidence,
+                "description": description,
+                "context": context,
+            }
+        )
 
     def detect_ecb(self, probe_value):
         """
@@ -520,6 +651,11 @@ class crypto(BaseLightfuzz):
                 f"The Cryptography Probe Submodule requires original value, aborting [{self.event.data['type']}] [{self.event.data['name']}]"
             )
             return
+
+        # Cross-value: detect keystream-reuse / many-time-pad. Runs before the entropy gate
+        # because the short ASCII identifier plaintexts this catches often produce ciphertext
+        # below the 4.5-bit threshold the gate uses. Zero HTTP requests.
+        self.detect_keystream_reuse(probe_value)
 
         # obtain the baseline probe to compare against
         baseline_probe = await self.baseline_probe(cookies)

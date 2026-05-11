@@ -4149,3 +4149,171 @@ class Test_Lightfuzz_baseline_to_excavate_chain(ModuleTestBase):
         assert role_param.data.get("original_value") == "admin", (
             f"select picker chose the wrong option: expected 'admin', got {role_param.data.get('original_value')!r}"
         )
+
+        # The HTTP_RESPONSE that lightfuzz emitted should carry the `from-lightfuzz`
+        # tag so downstream consumers can distinguish baseline-emission events from
+        # primary recon HTTP_RESPONSEs.
+        lightfuzz_responses = [
+            e for e in events if e.type == "HTTP_RESPONSE" and str(getattr(e, "module", "")) == "lightfuzz"
+        ]
+        assert lightfuzz_responses, "Expected at least one HTTP_RESPONSE emitted by lightfuzz"
+        assert all("from-lightfuzz" in e.tags for e in lightfuzz_responses), (
+            "lightfuzz-emitted HTTP_RESPONSE events missing 'from-lightfuzz' tag"
+        )
+
+        # `from-lightfuzz` should propagate down the parent chain (parallel to
+        # `from-wayback` / `affiliate`). The URL_UNVERIFIED that excavate mined out
+        # of the lightfuzz-emitted body should carry it too.
+        secret_event = next(
+            (
+                e
+                for e in events
+                if e.type == "URL_UNVERIFIED" and str(getattr(e, "data", {}).get("url", "") or e.data) == secret_url
+            ),
+            None,
+        )
+        assert secret_event is not None, "URL_UNVERIFIED for /secret-endpoint not found in events"
+        assert "from-lightfuzz" in secret_event.tags, (
+            f"`from-lightfuzz` tag did not propagate to URL_UNVERIFIED child, got tags: {secret_event.tags}"
+        )
+
+
+# End-to-end test for keystream-reuse detection.
+#
+# Multiple <a href="/sort?SortBy=<hex>"> links carry distinct hex-shaped values
+# that share a plaintext prefix (the canonical "many-time-pad" signature).
+# Excavate's parameter extractor consolidates the values into one WEB_PARAMETER
+# via the new same_param_values field; lightfuzz crypto's keystream-reuse check
+# then pairwise-XORs them and emits a HIGH/CONFIRMED FINDING.
+class Test_Lightfuzz_keystream_reuse(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {
+                "enabled_submodules": ["crypto"],
+            },
+        },
+    }
+
+    # Two real ciphertexts from the bug report: their 7-byte XOR yields a
+    # 5-byte leading-zero run (plaintexts share their first 5 bytes).
+    landing_page = """
+    <html><body>
+        <h1>Results</h1>
+        <a href="/sort?SortBy=4E4CDA8A93F87A">Skill Code</a>
+        <a href="/sort?SortBy=4E4CDA8A93FF7B8584EEDB4C8D59A9C3567657">Program Type/Program Name</a>
+    </body></html>
+    """
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"},
+            respond_args={"response_data": self.landing_page, "status": 200},
+        )
+
+    def check(self, module_test, events):
+        keystream_finding = next(
+            (
+                e
+                for e in events
+                if e.type == "FINDING" and "Stream Cipher Keystream Reuse" in e.data.get("description", "")
+            ),
+            None,
+        )
+        assert keystream_finding is not None, "Expected a Stream Cipher Keystream Reuse FINDING from lightfuzz crypto"
+        assert keystream_finding.data.get("severity") == "HIGH", (
+            f"expected HIGH severity, got {keystream_finding.data.get('severity')!r}"
+        )
+
+        # Sanity check: WEB_PARAMETER for SortBy should carry the second ciphertext
+        # via same_param_values (the new field excavate populates for collapsed dupes).
+        sortby_param = next(
+            (e for e in events if e.type == "WEB_PARAMETER" and e.data.get("name") == "SortBy"),
+            None,
+        )
+        assert sortby_param is not None, "WEB_PARAMETER for 'SortBy' was not emitted"
+        same_param_values = sortby_param.data.get("same_param_values") or []
+        assert same_param_values, "Expected same_param_values to carry the second ciphertext, got empty/None"
+
+
+# End-to-end test for assigned_cookies refresh.
+#
+# The cookies excavate originally captured on the spider's GET are often stale
+# by the time lightfuzz fuzzes (cycled tokens, expired sessions). Lightfuzz's
+# connectivity-test GET re-issues a fresh Set-Cookie; we merge those values into
+# event.data["assigned_cookies"] so baseline POSTs go out with the current
+# session, not a stale one.
+#
+# This server cycles `TESTSESSION` on every GET / and only reveals
+# /secret-endpoint when the POST carries the most-recently-issued token. The
+# spider's GET issues token-1 (stale by the time lightfuzz runs); lightfuzz's
+# own connectivity GET issues token-2, which the merge logic substitutes in,
+# letting the baseline POST succeed.
+class Test_Lightfuzz_cookie_refresh(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {
+                "enabled_submodules": ["sqli"],
+            },
+        },
+    }
+
+    # Stateful: counter cycles per GET, current_token tracks the latest one issued.
+    _token_state = {"counter": 0, "current": None}
+
+    landing_page = """
+    <html><body>
+        <form action="/cookie-login" method="post">
+            <input type="hidden" name="csrf" value="abc">
+            <input type="submit" value="go">
+        </form>
+    </body></html>
+    """
+
+    async def setup_after_prep(self, module_test):
+        state = self._token_state
+
+        def combined_handler(request):
+            # GET / → serve the form, cycle the TESTSESSION cookie to a fresh token.
+            # POST /cookie-login → reveal the secret only if the request carries the
+            # most-recently-issued TESTSESSION (the post-refresh token).
+            if request.method == "GET":
+                state["counter"] += 1
+                state["current"] = f"token-{state['counter']}"
+                resp = Response(self.landing_page, status=200, content_type="text/html")
+                resp.set_cookie("TESTSESSION", state["current"], path="/")
+                return resp
+            else:  # POST
+                cookie = request.cookies.get("TESTSESSION", "")
+                if cookie and cookie == state["current"]:
+                    body = '<html><body><a href="/secret-endpoint">Authorized</a></body></html>'
+                else:
+                    body = "<html><body><h2>Session expired</h2></body></html>"
+                return Response(body, status=200, content_type="text/html")
+
+        # Single regex covers both GET / and POST /cookie-login; dispatcher inside
+        # the handler routes by method.
+        module_test.set_expect_requests_handler(
+            expect_args=re.compile(".*"),
+            request_handler=combined_handler,
+        )
+
+    def check(self, module_test, events):
+        # /secret-endpoint only appears in the body the server returns when the
+        # POST carries the current (post-refresh) token. If the stale spider-era
+        # cookie had been used, the server would have returned "Session expired"
+        # and excavate would have nothing to extract.
+        secret_url = "http://127.0.0.1:8888/secret-endpoint"
+        secret_seen = any(
+            e.type == "URL_UNVERIFIED" and str(getattr(e, "data", {}).get("url", "") or e.data) == secret_url
+            for e in events
+        )
+        assert secret_seen, (
+            "URL_UNVERIFIED for /secret-endpoint not emitted — cookie refresh failed; "
+            "lightfuzz POST likely used the spider's stale TESTSESSION token."
+        )

@@ -178,6 +178,7 @@ class lightfuzz(BaseModule):
             j,
             "HTTP_RESPONSE",
             event,
+            tags=["from-lightfuzz"],
             context="{module} emitted baseline response from canonical fuzzing probe",
         )
 
@@ -256,6 +257,18 @@ class lightfuzz(BaseModule):
             connectivity_test = await self.helpers.request(event.url, timeout=10)
 
             if connectivity_test:
+                # Refresh assigned_cookies from the connectivity GET. The cookies excavate
+                # originally captured may be stale by the time we fuzz (cycled tokens,
+                # expired sessions); the connectivity probe just hit the server, so its
+                # Set-Cookie response is the freshest state we can get without an extra
+                # request. Fresh values win on conflict; cookies the GET didn't re-issue
+                # (e.g. an auth cookie originally seen elsewhere) are preserved.
+                fresh_cookies = dict(getattr(connectivity_test, "cookies", {}) or {})
+                if fresh_cookies:
+                    merged = dict(event.data.get("assigned_cookies") or {})
+                    merged.update(fresh_cookies)
+                    event.data["assigned_cookies"] = merged
+
                 try:
                     original_type = event.data["type"]
 
