@@ -1,8 +1,12 @@
 """
-Subprocess script for web crawl memory benchmark.
+Subprocess script for the deep-chain memory benchmark.
 
-Launches a local HTTP server with NUM_PAGES pages (each BODY_SIZE bytes),
-runs a BBOT scan against it, and prints peak tracemalloc memory to stdout.
+Spawns a local HTTP server that serves a strict linear chain — page N
+links only to page N+1, no siblings — and runs a BBOT scan that follows
+the entire chain. The discovery pipeline produces a deep parent lineage
+(each hop adds URL → HTTP_RESPONSE → URL_UNVERIFIED → URL → … to the
+chain), exposing chain-retention pathology that the wide-and-shallow
+``_scan_memory_web_crawl.py`` workload masks.
 
 Invoked by test_scan_memory.py — not meant to be run directly.
 """
@@ -27,28 +31,37 @@ from bbot.test.benchmarks._memory_helpers import (
     emit_metrics_json,
 )
 
-NUM_PAGES = int(sys.argv[1])
+CHAIN_LENGTH = int(sys.argv[1])
 BODY_SIZE = int(sys.argv[2])
-CHECKPOINT_EVERY = 200  # mid-scan census cadence (events seen)
+CHECKPOINT_EVERY = 25  # mid-scan census cadence (events seen)
 
 HTTP_MODULE = "httpx" if importlib.util.find_spec("bbot.modules.httpx") else "http"
 
 
 class H(BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path == "/":
-            links = "".join(f'<a href="/page{i}">page{i}</a>' for i in range(NUM_PAGES))
-            body = "<html><body>" + links + "</body></html>"
-        elif self.path.startswith("/page"):
-            i = self.path.replace("/page", "")
-            links = f'<a href="/data{i}/info">info</a><a href="/data{i}/details">details</a>'
-            body = "<html><body><h1>Page " + i + "</h1>" + links + "A" * BODY_SIZE + "</body></html>"
-        elif self.path.startswith("/data"):
-            body = "<html><body>data endpoint</body></html>"
+        path = self.path.rstrip("/")
+        if path in ("", "/"):
+            i = 0
+        elif path.startswith("/page"):
+            try:
+                i = int(path[len("/page") :])
+            except ValueError:
+                self.send_response(404)
+                self.end_headers()
+                return
         else:
             self.send_response(404)
             self.end_headers()
             return
+
+        # Strict chain: page i links only to page i+1; the last page has no link.
+        if i + 1 < CHAIN_LENGTH:
+            link = f'<a href="/page{i + 1}">next</a>'
+        else:
+            link = ""
+        body = f"<html><body><h1>Page {i}</h1>{link}{'A' * BODY_SIZE}</body></html>"
+
         self.send_response(200)
         self.send_header("Content-Type", "text/html")
         self.end_headers()
@@ -62,6 +75,8 @@ server = HTTPServer(("127.0.0.1", 0), H)
 port = server.server_address[1]
 threading.Thread(target=server.serve_forever, daemon=True).start()
 
+# spider_distance/depth must exceed chain length so the spider follows
+# the full chain. spider_links_per_page=1 matches the server (one link).
 scan = Scanner(
     f"http://127.0.0.1:{port}/",
     modules=[HTTP_MODULE],
@@ -69,7 +84,11 @@ scan = Scanner(
     config={
         "dns": {"disable": True},
         "scope": {"search_distance": 0},
-        "web": {"spider_distance": 10, "spider_depth": 10, "spider_links_per_page": NUM_PAGES},
+        "web": {
+            "spider_distance": CHAIN_LENGTH + 5,
+            "spider_depth": CHAIN_LENGTH + 5,
+            "spider_links_per_page": 2,
+        },
         "speculate": True,
         "excavate": True,
         "aggregate": False,
@@ -116,7 +135,7 @@ async def run():
 
     emit_metrics_json(
         peak_tracemalloc_mb=round(peak / 1024 / 1024, 2),
-        num_pages=NUM_PAGES,
+        chain_length=CHAIN_LENGTH,
         body_size=BODY_SIZE,
         events_collected=events_seen,
         rss=sampler.metrics(),
