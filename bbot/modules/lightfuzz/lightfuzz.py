@@ -10,7 +10,7 @@ from bbot.core.helpers.web.response_event import response_to_event_dict
 
 class lightfuzz(BaseModule):
     watched_events = ["URL", "WEB_PARAMETER"]
-    produced_events = ["FINDING"]
+    produced_events = ["FINDING", "HTTP_RESPONSE"]
     flags = ["active", "loud", "web-heavy", "invasive"]
 
     options = {
