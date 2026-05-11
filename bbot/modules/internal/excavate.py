@@ -372,11 +372,13 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         "yara_max_match_data": 2000,
         "custom_yara_rules": "",
         "speculate_params": False,
+        "max_form_bytes": 262144,
     }
     options_desc = {
         "yara_max_match_data": "Sets the maximum amount of text that can extracted from a YARA regex",
         "custom_yara_rules": "Include custom Yara rules",
         "speculate_params": "Enable speculative parameter extraction from JSON and XML content",
+        "max_form_bytes": "Maximum byte slice of the response body searched for a single <form> body. YARA only locates form openings; the bounded slice is what the Python re-based extractor scans for fields. Caps worst-case extraction work per form match.",
     }
     scope_distance_modifier = None
     accept_dupes = False
@@ -427,9 +429,36 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             async def extract(self):
                 pass
 
-            def __init__(self, excavate, result):
+            def __init__(self, excavate, result, response_body=None, match_offset=0):
+                # response_body + match_offset are used by form discovery rules:
+                # YARA matches only the opening <form> tag (avoiding its ~4 KB
+                # `.*` regex cliff), and extract() slices the surrounding body
+                # to feed the Python re-based extraction regex with a region
+                # large enough to contain a real-world form.
                 self.excavate = excavate
                 self.result = result
+                self.response_body = response_body
+                self.match_offset = match_offset
+
+            def form_body_slice(self):
+                """Return a bounded slice of the response body anchored at the YARA match
+                offset. Form-extraction rules call this to scan a region big enough to
+                contain `</form>` even on forms with multi-KB `<select>`s.
+
+                YARA's offset is a byte index into the utf-8-encoded body, so the
+                slicing happens in bytes; the decoded string is what the Python re
+                extractor wants. For ASCII-only bodies the round-trip is a no-op.
+
+                If a form's body exceeds ``max_form_bytes``, the slice cuts before
+                `</form>` and the anchored extraction regex finds no match — the
+                form is skipped entirely. That's a defensive cap, not best-effort
+                partial extraction."""
+                if not self.response_body:
+                    return str(self.result)
+                max_bytes = getattr(self.excavate, "max_form_bytes", 262144)
+                body_bytes = self.response_body.encode("utf-8", errors="replace")
+                end = min(len(body_bytes), self.match_offset + max_bytes)
+                return body_bytes[self.match_offset : end].decode("utf-8", errors="replace")
 
         class GetJquery(ParameterExtractorRule):
             name = "GET jquery"
@@ -550,7 +579,13 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
         class GetForm(ParameterExtractorRule):
             name = "GET Form"
-            discovery_regex = r'/<form[^>]*\bmethod=["\']?get["\']?[^>]*>.*<\/form>/s nocase'
+            # YARA matches only the opening <form ...> tag — its regex engine has a
+            # hardcoded ceiling (~4 KB) on `.*` between anchors, so any rule of the
+            # form `<form...>.*</form>` silently fails to match large forms (a
+            # `<select>` with a few hundred options is enough). The Python
+            # `extraction_regex` below runs on a bounded slice of the response body
+            # anchored at this match offset (see ParameterExtractorRule.form_body_slice).
+            discovery_regex = r'/<form[^>]*\bmethod=["\']?get["\']?[^>]*>/s nocase'
             form_content_regexes = {
                 "input_tag_regex": bbot_regexes.input_tag_regex,
                 "input_tag_regex2": bbot_regexes.input_tag_regex2,
@@ -566,7 +601,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             output_type = "GETPARAM"
 
             async def extract(self):
-                forms = await self.excavate.helpers.re.findall(self.extraction_regex, str(self.result))
+                forms = await self.excavate.helpers.re.findall(self.extraction_regex, self.form_body_slice())
                 for form_action, form_content in forms:
                     if not form_action or form_action == "#":
                         form_action = None
@@ -618,7 +653,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
         class PostForm(GetForm):
             name = "POST Form"
-            discovery_regex = r'/<form[^>]*\bmethod=["\']?post["\']?[^>]*>.*<\/form>/s nocase'
+            discovery_regex = r'/<form[^>]*\bmethod=["\']?post["\']?[^>]*>/s nocase'
             extraction_regex = bbot_regexes.post_form_regex
             output_type = "POSTPARAM"
 
@@ -632,7 +667,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         # underscore ensure generic forms runs last, so it doesn't cause dedupe to stop full form detection
         class _GenericForm(GetForm):
             name = "Generic Form"
-            discovery_regex = r"/<form[^>]*>.*<\/form>/s nocase"
+            discovery_regex = r"/<form[^>]*>/s nocase"
 
             extraction_regex = bbot_regexes.generic_form_regex
             output_type = "GETPARAM"
@@ -651,6 +686,42 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 rf'rule parameter_extraction {{meta: description = "contains Parameter" strings: {regexes_component} condition: any of them}}'
             )
 
+        async def preprocess(self, r, event, discovery_context):
+            # Override the base class flattener so each YARA hit retains its offset.
+            # Form rules need (matched_data, offset) per instance because they
+            # reconstruct the form body from a bounded slice of the response body
+            # anchored at the match offset — YARA's regex engine can't span the
+            # opening tag to `</form>` reliably on forms larger than ~4 KB.
+            description = ""
+            tags = []
+            emit_match = False
+            severity = "INFO"
+            confidence = "UNKNOWN"
+            if "description" in r.meta.keys():
+                description = r.meta["description"]
+            if "tags" in r.meta.keys():
+                tags = self.excavate.helpers.chain_lists(r.meta["tags"])
+            if "emit_match" in r.meta.keys():
+                emit_match = True
+            if "severity" in r.meta.keys():
+                severity = r.meta["severity"]
+            if "confidence" in r.meta.keys():
+                confidence = r.meta["confidence"]
+            yara_rule_settings = YaraRuleSettings(description, tags, emit_match, severity, confidence)
+
+            yara_results = {}
+            for h in r.strings:
+                instances = []
+                seen_offsets = set()
+                for i in h.instances:
+                    offset = getattr(i, "offset", 0)
+                    if offset in seen_offsets:
+                        continue
+                    seen_offsets.add(offset)
+                    instances.append((i.matched_data.decode("utf-8", errors="ignore"), offset))
+                yara_results[h.identifier.lstrip("$")] = instances
+            await self.process(yara_results, event, yara_rule_settings, discovery_context)
+
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
             # Two-pass: collect every yielded tuple across all YARA results for an
             # identifier (YARA matches each <a> tag separately, so values for the
@@ -661,14 +732,18 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             # surviving the WEB_PARAMETER dedup that would otherwise discard them.
             # Cross-value detectors (e.g. lightfuzz crypto's keystream-reuse check)
             # read same_param_values.
+            response_body = event.data.get("body", "") if isinstance(event.data, dict) else ""
             for identifier, results in yara_results.items():
                 if identifier not in self.parameterExtractorCallbackDict.keys():
                     raise ExcavateError("ParameterExtractor YaraRule identified reference non-existent submodule")
                 grouped = {}
                 submodule_name = None
-                for result in results:
+                for matched_data, match_offset in results:
                     parameterExtractorSubModule = self.parameterExtractorCallbackDict[identifier](
-                        self.excavate, result
+                        self.excavate,
+                        matched_data,
+                        response_body=response_body,
+                        match_offset=match_offset,
                     )
                     submodule_name = parameterExtractorSubModule.name
                     async for (
@@ -1113,6 +1188,9 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         self.parameter_extraction = bool(modules_WEB_PARAMETER)
         self.speculate_params = bool(self.config.get("speculate_params", False))
         self.remove_querystring = self.scan.config.get("url_querystring_remove", True)
+        # Bounded slice of the response body searched for a form's body, anchored
+        # at each YARA form-opening match. Caps worst-case Python re work per form.
+        self.max_form_bytes = int(self.config.get("max_form_bytes", 262144))
 
         for module in self.scan.modules.values():
             if not str(module).startswith("_"):
