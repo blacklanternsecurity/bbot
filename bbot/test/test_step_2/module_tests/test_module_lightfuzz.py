@@ -4053,3 +4053,99 @@ class Test_Lightfuzz_static_url_filter(ModuleTestBase):
         assert not sqli_finding_emitted, (
             "SQLi finding should NOT be emitted for WEB_PARAMETER on a static-asset URL (.pdf)"
         )
+
+
+# End-to-end test for the baseline → HTTP_RESPONSE → excavate chain.
+#
+# Validates two features in one pass:
+# 1. excavate's <select> picker prefers the `selected` option over the empty first one
+# 2. lightfuzz emits the canonical baseline response as an HTTP_RESPONSE event,
+#    which excavate then mines for new URLs
+#
+# The target page hosts a POST form with a <select> whose first option is empty
+# and second option is `<option value="admin" selected>`. The server reveals
+# `<a href="/secret-endpoint">` only when the POST body has `role=admin` (and
+# the CSRF field intact). If any link in the chain breaks — picker chooses the
+# empty option, lightfuzz doesn't fire the baseline POST, the baseline response
+# isn't emitted, or excavate doesn't see it — the URL_UNVERIFIED never appears.
+class Test_Lightfuzz_baseline_to_excavate_chain(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {
+                # sqli is enough to drive one baseline through compare_baseline()
+                "enabled_submodules": ["sqli"],
+            },
+        },
+    }
+
+    landing_page = """
+    <html><body>
+        <h1>Login</h1>
+        <form action="/login" method="post">
+            <select name="role">
+                <option value="">-- choose a role --</option>
+                <option value="admin" selected>Admin</option>
+                <option value="guest">Guest</option>
+            </select>
+            <input type="hidden" name="csrf" value="abc">
+            <input type="submit" value="go">
+        </form>
+    </body></html>
+    """
+
+    async def setup_after_prep(self, module_test):
+        # GET / serves the form
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"},
+            respond_args={"response_data": self.landing_page, "status": 200},
+        )
+
+        # POST /login only reveals the secret link on a properly-formed submission
+        # (role == "admin" and csrf == "abc"). Otherwise a vanilla page.
+        def login_handler(request):
+            form = request.form
+            role = form.get("role", "")
+            csrf = form.get("csrf", "")
+            if role == "admin" and csrf == "abc":
+                body = (
+                    '<html><body><h2>Logged in as admin</h2><a href="/secret-endpoint">Admin console</a></body></html>'
+                )
+            else:
+                body = "<html><body><h2>Login failed</h2></body></html>"
+            return Response(body, status=200, content_type="text/html")
+
+        module_test.set_expect_requests_handler(
+            expect_args=re.compile("/login"),
+            request_handler=login_handler,
+        )
+
+    def check(self, module_test, events):
+        # The chain succeeded iff a URL_UNVERIFIED for /secret-endpoint exists.
+        # That single event proves: select picker chose "admin" (otherwise the
+        # server wouldn't have revealed it), lightfuzz fired a properly-formed
+        # POST baseline, the response was emitted as HTTP_RESPONSE, and excavate
+        # mined the new URL out of the body.
+        secret_url = "http://127.0.0.1:8888/secret-endpoint"
+        secret_seen = any(
+            e.type == "URL_UNVERIFIED" and str(getattr(e, "data", {}).get("url", "") or e.data) == secret_url
+            for e in events
+        )
+        assert secret_seen, (
+            "URL_UNVERIFIED for /secret-endpoint not emitted — the lightfuzz baseline → "
+            "excavate chain failed somewhere (select-picker, baseline POST shape, "
+            "HTTP_RESPONSE emission, or excavate URL extraction)."
+        )
+
+        # The role parameter should have been emitted with original_value="admin"
+        # (proving the select picker preferred `selected` over the empty first option).
+        role_param = next(
+            (e for e in events if e.type == "WEB_PARAMETER" and e.data.get("name") == "role"),
+            None,
+        )
+        assert role_param is not None, "WEB_PARAMETER for 'role' was not emitted"
+        assert role_param.data.get("original_value") == "admin", (
+            f"select picker chose the wrong option: expected 'admin', got {role_param.data.get('original_value')!r}"
+        )

@@ -79,7 +79,11 @@ class sqli(BaseLightfuzz):
         for i in range(rounds):
             try:
                 fresh_compare = self.compare_baseline(
-                    self.event.data["type"], probe_value, cookies, additional_params_populate_empty=True
+                    self.event.data["type"],
+                    probe_value,
+                    cookies,
+                    additional_params_populate_empty=True,
+                    emit_http_response=False,
                 )
                 sq = await self.compare_probe(
                     fresh_compare,

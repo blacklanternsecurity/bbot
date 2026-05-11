@@ -21,6 +21,7 @@ class HttpCompare:
         headers=None,
         cookies=None,
         timeout=10,
+        on_baseline_ready=None,
     ):
         self.parent_helper = parent_helper
         self.baseline_url = baseline_url
@@ -33,6 +34,10 @@ class HttpCompare:
         self.headers = headers
         self.cookies = cookies
         self.timeout = 10
+        # Optional async callback fired once after baseline_1 is established.
+        # Receives the baseline_1 response and the bound request_params. Used by
+        # lightfuzz to emit HTTP_RESPONSE events from canonical baseline pages.
+        self.on_baseline_ready = on_baseline_ready
 
     @staticmethod
     def merge_dictionaries(headers1, headers2):
@@ -130,6 +135,12 @@ class HttpCompare:
 
             self.baseline_ignore_headers += [x.lower() for x in dynamic_headers]
             self._baselined = True
+
+            if self.on_baseline_ready is not None:
+                try:
+                    await self.on_baseline_ready(baseline_1)
+                except Exception as e:
+                    log.debug(f"on_baseline_ready callback raised: {e}")
 
     def gen_cache_buster(self):
         return {self.parent_helper.rand_string(6): "1"}

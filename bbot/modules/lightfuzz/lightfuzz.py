@@ -1,8 +1,11 @@
 import importlib
+from urllib.parse import urlparse
+
 from bbot.modules.base import BaseModule
 
 from bbot.errors import InteractshError
 from bbot.core.helpers.misc import get_waf_strings
+from bbot.core.helpers.web.response_event import response_to_event_dict
 
 
 class lightfuzz(BaseModule):
@@ -17,6 +20,7 @@ class lightfuzz(BaseModule):
         "try_post_as_get": False,
         "try_get_as_post": False,
         "avoid_wafs": True,
+        "emit_baseline_responses": True,
     }
     options_desc = {
         "force_common_headers": "Force emit commonly exploitable parameters that may be difficult to detect",
@@ -25,10 +29,11 @@ class lightfuzz(BaseModule):
         "try_post_as_get": "For each POSTPARAM, also fuzz it as a GETPARAM (in addition to normal POST fuzzing).",
         "try_get_as_post": "For each GETPARAM, also fuzz it as a POSTPARAM (in addition to normal GET fuzzing).",
         "avoid_wafs": "Avoid running against confirmed WAFs, which are likely to block lightfuzz requests",
+        "emit_baseline_responses": "Emit canonical baseline responses as HTTP_RESPONSE events so excavate can mine them for new params/URLs.",
     }
 
     meta = {
-        "description": "Find Web Parameters and Lightly Fuzz them using a heuristic based scanner",
+        "description": "BBOT's DAST module — lightly fuzz web parameters discovered during recon for common vulnerability classes",
         "author": "@liquidsec",
         "created_date": "2024-06-28",
     }
@@ -48,7 +53,13 @@ class lightfuzz(BaseModule):
         self.enabled_submodules = self.config.get("enabled_submodules")
         self.interactsh_disable = self.scan.config.get("interactsh_disable", False)
         self.avoid_wafs = self.scan.config.get("avoid_wafs", True)
+        self.emit_baseline_responses = self.config.get("emit_baseline_responses", True)
         self.submodules = {}
+        # Per-WEB_PARAMETER baseline cache: {event.id: {request_sig: HttpCompare}}.
+        # Identical baselines across submodules (sqli, cmdi, path on a POSTPARAM
+        # with no envelopes) share one HttpCompare — and therefore one network
+        # baseline pair and one HTTP_RESPONSE emission. Cleared at end of handle_event.
+        self._baseline_cache = {}
 
         if not self.enabled_submodules:
             return False, "Lightfuzz enabled without any submodules. Must enable at least one submodule."
@@ -116,15 +127,82 @@ class lightfuzz(BaseModule):
                 # this is likely caused by something trying to resolve the base domain first and can be ignored
                 self.debug("skipping result because subdomain tag was missing")
 
+    @staticmethod
+    def _baseline_request_signature(request_params):
+        """Stable hashable signature of a baseline request (URL + method + body + cookies + headers)."""
+
+        def _freeze(d):
+            if not d:
+                return ()
+            try:
+                return tuple(sorted((str(k), str(v)) for k, v in d.items()))
+            except AttributeError:
+                return (str(d),)
+
+        return (
+            request_params.get("method", "GET"),
+            request_params.get("url", ""),
+            _freeze(request_params.get("data")),
+            _freeze(request_params.get("json")),
+            _freeze(request_params.get("cookies")),
+            _freeze(request_params.get("headers")),
+        )
+
+    def get_cached_baseline(self, event, signature):
+        """Return a cached HttpCompare for (event, signature) if present, else None."""
+        return self._baseline_cache.get(event.id, {}).get(signature)
+
+    def store_cached_baseline(self, event, signature, http_compare):
+        """Store an HttpCompare in the per-event baseline cache."""
+        self._baseline_cache.setdefault(event.id, {})[signature] = http_compare
+
+    async def emit_baseline_response(self, response, event, method):
+        """Emit a baseline blasthttp Response as an HTTP_RESPONSE event with `event` as parent.
+
+        Excavate consumes the resulting event and can discover new URLs/params
+        rendered only by the canonical POST/GET (forms behind a submit, redirect
+        targets, confirmation pages).
+        """
+        if not self.emit_baseline_responses:
+            return
+        if response is None:
+            return
+        try:
+            parsed = urlparse(str(response.url))
+            url_input = parsed.netloc or str(response.url)
+            j = response_to_event_dict(response, url_input, method=method)
+        except Exception as e:
+            self.debug(f"Failed to build HTTP_RESPONSE dict from lightfuzz baseline: {e}")
+            return
+        await self.emit_event(
+            j,
+            "HTTP_RESPONSE",
+            event,
+            context="{module} emitted baseline response from canonical fuzzing probe",
+        )
+
     def _outgoing_dedup_hash(self, event):
+        # FINDING events use a rich dedup key; other event types (e.g. HTTP_RESPONSE,
+        # which has no "description") fall through to a sensible default keyed on
+        # url + method so identical baselines never re-emit.
+        if event.type == "FINDING":
+            return hash(
+                (
+                    "lightfuzz",
+                    str(event.host),
+                    event.url,
+                    event.data.get("description", ""),
+                    event.data.get("type", ""),
+                    event.data.get("name", ""),
+                )
+            )
         return hash(
             (
                 "lightfuzz",
+                event.type,
                 str(event.host),
                 event.url,
-                event.data["description"],
-                event.data.get("type", ""),
-                event.data.get("name", ""),
+                event.data.get("method", "") if isinstance(event.data, dict) else "",
             )
         )
 
@@ -178,29 +256,33 @@ class lightfuzz(BaseModule):
             connectivity_test = await self.helpers.request(event.url, timeout=10)
 
             if connectivity_test:
-                original_type = event.data["type"]
+                try:
+                    original_type = event.data["type"]
 
-                # Normal fuzzing pass (skipped for POSTPARAM if disable_post is True)
-                if not (self.disable_post and original_type == "POSTPARAM"):
-                    for submodule_name, submodule in self.submodules.items():
-                        self.debug(f"Starting {submodule_name} fuzz()")
-                        await self.run_submodule(submodule, event)
+                    # Normal fuzzing pass (skipped for POSTPARAM if disable_post is True)
+                    if not (self.disable_post and original_type == "POSTPARAM"):
+                        for submodule_name, submodule in self.submodules.items():
+                            self.debug(f"Starting {submodule_name} fuzz()")
+                            await self.run_submodule(submodule, event)
 
-                # Additional pass: try POSTPARAM as GETPARAM
-                if self.try_post_as_get and original_type == "POSTPARAM":
-                    event.data["type"] = "GETPARAM"
-                    event.data["converted_from_post"] = True
-                    for submodule_name, submodule in self.submodules.items():
-                        self.debug(f"Starting {submodule_name} fuzz() (try_post_as_get)")
-                        await self.run_submodule(submodule, event)
+                    # Additional pass: try POSTPARAM as GETPARAM
+                    if self.try_post_as_get and original_type == "POSTPARAM":
+                        event.data["type"] = "GETPARAM"
+                        event.data["converted_from_post"] = True
+                        for submodule_name, submodule in self.submodules.items():
+                            self.debug(f"Starting {submodule_name} fuzz() (try_post_as_get)")
+                            await self.run_submodule(submodule, event)
 
-                # Additional pass: try GETPARAM as POSTPARAM
-                if self.try_get_as_post and original_type == "GETPARAM":
-                    event.data["type"] = "POSTPARAM"
-                    event.data["converted_from_get"] = True
-                    for submodule_name, submodule in self.submodules.items():
-                        self.debug(f"Starting {submodule_name} fuzz() (try_get_as_post)")
-                        await self.run_submodule(submodule, event)
+                    # Additional pass: try GETPARAM as POSTPARAM
+                    if self.try_get_as_post and original_type == "GETPARAM":
+                        event.data["type"] = "POSTPARAM"
+                        event.data["converted_from_get"] = True
+                        for submodule_name, submodule in self.submodules.items():
+                            self.debug(f"Starting {submodule_name} fuzz() (try_get_as_post)")
+                            await self.run_submodule(submodule, event)
+                finally:
+                    # Drop the per-event baseline cache once all submodules have run.
+                    self._baseline_cache.pop(event.id, None)
             else:
                 self.debug(f"WEB_PARAMETER URL {event.url} failed connectivity test, aborting")
 

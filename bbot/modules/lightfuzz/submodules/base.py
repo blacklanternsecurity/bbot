@@ -161,9 +161,22 @@ class BaseLightfuzz:
         skip_urlencoding=False,
         parameter_name_suffix="",
         parameter_name_suffix_additional_params="",
+        emit_http_response=True,
     ):
         """
         Compares the baseline using prepared request parameters.
+
+        Shares one HttpCompare across submodules whose baselines collapse to the
+        same request signature (URL + method + body + cookies + headers). The
+        first call for a given (event, signature) creates the HttpCompare and
+        registers a one-shot callback that emits the canonical baseline response
+        as an HTTP_RESPONSE event (when ``emit_http_response`` is true). Later
+        callers with the same signature reuse the cached HttpCompare — no extra
+        baseline pair, no duplicate emission.
+
+        ``emit_http_response=False`` suppresses HTTP_RESPONSE emission for
+        confirmation rounds and FP-killer baselines whose responses are not
+        useful page renderings.
         """
         additional_params = copy.deepcopy(self.event.data.get("additional_params", {}))
 
@@ -184,18 +197,39 @@ class BaseLightfuzz:
             skip_urlencoding,
         )
         request_params.update({"include_cache_buster": False})
-        return self.lightfuzz.helpers.http_compare(**request_params)
 
-    async def baseline_probe(self, cookies):
+        signature = self.lightfuzz._baseline_request_signature(request_params)
+        cached = self.lightfuzz.get_cached_baseline(self.event, signature)
+        if cached is not None:
+            return cached
+
+        if emit_http_response and self.lightfuzz.emit_baseline_responses:
+            request_method = request_params.get("method", "GET")
+            event = self.event
+
+            async def _on_ready(baseline_response):
+                await self.lightfuzz.emit_baseline_response(baseline_response, event, method=request_method)
+
+            request_params["on_baseline_ready"] = _on_ready
+
+        http_compare = self.lightfuzz.helpers.http_compare(**request_params)
+        self.lightfuzz.store_cached_baseline(self.event, signature, http_compare)
+        return http_compare
+
+    async def baseline_probe(self, cookies, emit_http_response=True):
         """
         Executes a baseline probe to establish a baseline for comparison.
+
+        When ``emit_http_response`` is true and the lightfuzz config allows it,
+        the response is also emitted as an HTTP_RESPONSE event so excavate can
+        re-mine the canonical page rendering for new params/URLs.
         """
         if self.event.data.get("type") in ["POSTPARAM", "BODYJSON"]:
             method = "POST"
         else:
             method = "GET"
 
-        return await self.lightfuzz.helpers.request(
+        response = await self.lightfuzz.helpers.request(
             method=method,
             cookies=cookies,
             url=self.event.url,
@@ -203,6 +237,9 @@ class BaseLightfuzz:
             retries=1,
             timeout=10,
         )
+        if emit_http_response and response is not None:
+            await self.lightfuzz.emit_baseline_response(response, self.event, method=method)
+        return response
 
     async def compare_probe(
         self,
