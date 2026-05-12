@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.arx6gcad.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.vlz67v5c.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -991,21 +991,7 @@ If you need to modify an existing event, use <code>update_event()</code> instead
 </ul>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/event/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2102</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2103</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2104</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2105</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2106</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2107</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2108</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2109</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2110</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2111</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2112</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2113</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2114</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2115</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2116</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2116</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2117</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2118</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2119</span>
@@ -1092,7 +1078,21 @@ If you need to modify an existing event, use <code>update_event()</code> instead
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2200</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2201</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2202</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2203</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">make_event</span><span style="color: #E6EDF3">(</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2203</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2204</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2205</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2206</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2207</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2208</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2209</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2210</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2211</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2212</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2213</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2214</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2215</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2216</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2217</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">make_event</span><span style="color: #E6EDF3">(</span>
     <span style="color: #E6EDF3">data,</span>
     <span style="color: #E6EDF3">event_type</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
     <span style="color: #E6EDF3">parent</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
@@ -1247,21 +1247,7 @@ if required keys are missing. Make sure to validate the JSON input beforehand.</
 </details>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/event/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2206</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2207</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2208</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2209</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2210</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2211</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2212</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2213</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2214</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2215</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2216</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2217</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2218</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2219</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2220</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2220</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2221</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2222</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2223</span>
@@ -1314,7 +1300,21 @@ if required keys are missing. Make sure to validate the JSON input beforehand.</
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2270</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2271</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2272</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2273</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">event_from_json</span><span style="color: #E6EDF3">(j):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2273</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2274</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2275</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2276</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2277</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2278</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2279</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2280</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2281</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2282</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2283</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2284</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2285</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2286</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2287</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">event_from_json</span><span style="color: #E6EDF3">(j):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Creates an event object from a JSON dictionary.</span>
 
@@ -1604,8 +1604,8 @@ top of the base class.</p>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">"parent"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"OPEN_TCP_PORT:cf7e6a937b161217eaed99f0c566eae045d094c7"</span><span style="color: #E6EDF3">,</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">"tags"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"in-scope"</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"distance-0"</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"dir"</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"status-301"</span><span style="color: #E6EDF3">],</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">"http_title"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"301 Moved Permanently"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">    </span><span style="color: #7EE787">"module"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"httpx"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">    </span><span style="color: #7EE787">"module_sequence"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"httpx"</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">"module"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"http"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">"module_sequence"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"http"</span>
 <span style="color: #E6EDF3">}</span>
 </code></pre></div>
 <details class="mkdocstrings-source">
@@ -2599,7 +2599,11 @@ top of the base class.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1039</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1040</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1041</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1042</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">BaseEvent</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1042</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1043</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1044</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1045</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1046</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">BaseEvent</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Represents a piece of data discovered during a BBOT scan.</span>
 
@@ -2651,8 +2655,8 @@ top of the base class.</p>
 <span style="color: #A5D6FF">            "parent": "OPEN_TCP_PORT:cf7e6a937b161217eaed99f0c566eae045d094c7",</span>
 <span style="color: #A5D6FF">            "tags": ["in-scope", "distance-0", "dir", "status-301"],</span>
 <span style="color: #A5D6FF">            "http_title": "301 Moved Permanently",</span>
-<span style="color: #A5D6FF">            "module": "httpx",</span>
-<span style="color: #A5D6FF">            "module_sequence": "httpx"</span>
+<span style="color: #A5D6FF">            "module": "http",</span>
+<span style="color: #A5D6FF">            "module_sequence": "http"</span>
 <span style="color: #A5D6FF">        }</span>
 <span style="color: #A5D6FF">        ```</span>
 <span style="color: #A5D6FF">    """</span>
@@ -3252,6 +3256,10 @@ top of the base class.</p>
 <span style="color: #A5D6FF">        process this event, heavy payload data is stripped to free memory.</span>
 <span style="color: #A5D6FF">        """</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_module_consumers</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">max(</span><span style="color: #A5D6FF">0</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_module_consumers</span> <span style="color: #FF7B72; font-weight: bold">-</span> <span style="color: #A5D6FF">1</span><span style="color: #E6EDF3">)</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_module_consumers</span> <span style="color: #FF7B72; font-weight: bold">&lt;=</span> <span style="color: #A5D6FF">0</span><span style="color: #E6EDF3">:</span>
+            <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">dns_children</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">{}</span>
+            <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">raw_dns_records</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">{}</span>
+            <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_resolved_hosts</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set()</span>
 
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">clone</span><span style="color: #E6EDF3">(self):</span>
         <span style="color: #8B949E; font-style: italic"># Create a shallow copy of the event first</span>
@@ -3997,11 +4005,7 @@ Additional specific attributes can be serialized based on the mode specified.</p
 </ul>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/event/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">832</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">833</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">834</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">835</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">836</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">836</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">837</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">838</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">839</span>
@@ -4085,7 +4089,11 @@ Additional specific attributes can be serialized based on the mode specified.</p
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">917</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">918</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">919</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">920</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">json</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">mode</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"json"</span><span style="color: #E6EDF3">):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">920</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">921</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">922</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">923</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">924</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">json</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">mode</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"json"</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Serializes the event object to a JSON-compatible dictionary.</span>
 
@@ -4212,11 +4220,7 @@ Additional specific attributes can be serialized based on the mode specified.</p
 </ul>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/event/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">922</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">923</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">924</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">925</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">926</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">926</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">927</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">928</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">929</span>
@@ -4225,7 +4229,11 @@ Additional specific attributes can be serialized based on the mode specified.</p
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">932</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">933</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">934</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">935</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@staticmethod</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">935</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">936</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">937</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">938</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">939</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@staticmethod</span>
 <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">from_json</span><span style="color: #E6EDF3">(j):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Convenience shortcut to create an Event object from a JSON-compatible dictionary.</span>

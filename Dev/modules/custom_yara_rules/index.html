@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.arx6gcad.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.vlz67v5c.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -932,7 +932,7 @@
 <p>Through the <code>excavate</code> internal module, BBOT supports searching through HTTP response data using custom YARA rules.</p>
 <p>This feature can be utilized with the command line option <code>--custom-yara-rules</code> or <code>-cy</code>, followed by a file containing the YARA rules.</p>
 <p>Example:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot -m httpx --custom-yara-rules=test.yara -t http://example.com/
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot -m http --custom-yara-rules=test.yara -t http://example.com/
 </code></pre></div>
 <p>Where <code>test.yara</code> is a file on the filesystem. The file can contain multiple YARA rules, separated by lines.</p>
 <p>YARA rules can be quite simple, the simplest example being a single string search:</p>
@@ -1032,7 +1032,7 @@
 </code></pre></div>
 Confidence and Severity levels will be assigned to the FINDING event produced if there is a match.</p>
 <p>When run against the Black Lantern Security homepage with the following BBOT command:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot -m httpx --custom-yara-rules=substack.yara -t http://www.blacklanternsecurity.com/
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot -m http --custom-yara-rules=substack.yara -t http://www.blacklanternsecurity.com/
 </code></pre></div>
 <p>We get the following result. Note that the finding now contains the actual title tag that was identified with the regex.</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>[FINDING] {"description": "Custom Yara Rule [ContainsTitle] with description: [Contains an HTML title] Matched via identifier [title_value] and extracted [&lt;title&gt;Black Lantern Security&lt;/title&gt;]", "host": "www.blacklanternsecurity.com", "url": "https://www.blacklanternsecurity.com/"} excavate    (cdn-github, cdn-ip)

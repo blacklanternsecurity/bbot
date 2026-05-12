@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.arx6gcad.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.vlz67v5c.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1551,7 +1551,7 @@ Defaults to True for passive modules, False otherwise. Can be explicitly set to 
               (<code><span title="bool">bool</span></code>)
           –
           <div class="doc-md-description">
-<p>Whether to disable automatic module dependencies. This is useful e.g. if the module consumes URLs, but you don't want to automatically enable the httpx module. Default is False.</p>
+<p>Whether to disable automatic module dependencies. This is useful e.g. if the module consumes URLs, but you don't want to automatically enable the blasthttp module. Default is False.</p>
 </div>
 </li>
 <li class="doc-section-item field-body">
@@ -3393,8 +3393,7 @@ Defaults to True for passive modules, False otherwise. Can be explicitly set to 
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1814</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1815</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1816</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1817</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1818</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">BaseModule</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1817</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">BaseModule</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""The base class for all BBOT modules.</span>
 
 <span style="color: #A5D6FF">    Attributes:</span>
@@ -3457,7 +3456,7 @@ Defaults to True for passive modules, False otherwise. Can be explicitly set to 
 
 <span style="color: #A5D6FF">        _stats_exclude (bool): Whether to exclude this module from scan statistics. Default is False.</span>
 
-<span style="color: #A5D6FF">        _disable_auto_module_deps (bool): Whether to disable automatic module dependencies. This is useful e.g. if the module consumes URLs, but you don't want to automatically enable the httpx module. Default is False.</span>
+<span style="color: #A5D6FF">        _disable_auto_module_deps (bool): Whether to disable automatic module dependencies. This is useful e.g. if the module consumes URLs, but you don't want to automatically enable the blasthttp module. Default is False.</span>
 
 <span style="color: #A5D6FF">        _qsize (int): Outgoing queue size (0 for infinite). Default is 0.</span>
 
@@ -4046,7 +4045,8 @@ Defaults to True for passive modules, False otherwise. Can be explicitly set to 
             <span style="color: #FF7B72">try</span><span style="color: #E6EDF3">:</span>
                 <span style="color: #E6EDF3">event</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">incoming_event_queue</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get_nowait()</span>
                 <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">debug(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Got {</span><span style="color: #E6EDF3">event</span><span style="color: #A5D6FF">} from {</span><span style="color: #E6EDF3">getattr(event,</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">'module'</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">'unknown_module'</span><span style="color: #E6EDF3">)</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
-                <span style="color: #E6EDF3">acceptable,</span> <span style="color: #E6EDF3">reason</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_event_postcheck(event)</span>
+                <span style="color: #FF7B72">async</span> <span style="color: #FF7B72">with</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_task_counter</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">count(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"event_postcheck({</span><span style="color: #E6EDF3">event</span><span style="color: #A5D6FF">})"</span><span style="color: #E6EDF3">):</span>
+                    <span style="color: #E6EDF3">acceptable,</span> <span style="color: #E6EDF3">reason</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_event_postcheck(event)</span>
                 <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">acceptable:</span>
                     <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">type</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #A5D6FF">"FINISHED"</span><span style="color: #E6EDF3">:</span>
                         <span style="color: #E6EDF3">finish</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">True</span>
@@ -4177,8 +4177,6 @@ Defaults to True for passive modules, False otherwise. Can be explicitly set to 
                         <span style="color: #FF7B72">finally</span><span style="color: #E6EDF3">:</span>
                             <span style="color: #E6EDF3">event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_minimize()</span>
         <span style="color: #FF7B72">except</span> <span style="color: #E6EDF3">asyncio</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">CancelledError:</span>
-            <span style="color: #8B949E; font-style: italic"># this trace was used for debugging leaked CancelledErrors from inside httpx</span>
-            <span style="color: #8B949E; font-style: italic"># self.log.trace("Worker cancelled")</span>
             <span style="color: #FF7B72">raise</span>
         <span style="color: #FF7B72">except</span> <span style="color: #F0883E; font-weight: bold">RuntimeError</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">e:</span>
             <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">trace(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"RuntimeError in module {</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">name</span><span style="color: #A5D6FF">}: {</span><span style="color: #E6EDF3">e</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
@@ -4788,7 +4786,7 @@ Defaults to True for passive modules, False otherwise. Can be explicitly set to 
 <span style="color: #A5D6FF">            **requests_kwargs: Arbitrary keyword arguments that will be forwarded to the HTTP request function.</span>
 
 <span style="color: #A5D6FF">        Yields:</span>
-<span style="color: #A5D6FF">            dict or httpx.Response: If 'json' is True, yields a dictionary containing the parsed JSON data. Otherwise, yields the raw HTTP response.</span>
+<span style="color: #A5D6FF">            dict or Response: If 'json' is True, yields a dictionary containing the parsed JSON data. Otherwise, yields the raw HTTP response.</span>
 
 <span style="color: #A5D6FF">        Note:</span>
 <span style="color: #A5D6FF">            The loop will continue indefinitely unless manually stopped. Make sure to break out of the loop once the last page has been received.</span>
@@ -5591,7 +5589,8 @@ indicating that there are ongoing tasks in the module.</p>
 <p>A wrapper around the <code>download()</code> web helper that incorporates API key cycling.</p>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1345</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1344</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1345</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1346</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1347</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1348</span>
@@ -5606,8 +5605,7 @@ indicating that there are ongoing tasks in the module.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1357</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1358</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1359</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1360</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1361</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">api_download</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">url,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1360</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">api_download</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">url,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    A wrapper around the `download()` web helper that incorporates API key cycling.</span>
 <span style="color: #A5D6FF">    """</span>
@@ -5710,7 +5708,7 @@ It is well-suited for APIs that provide paginated results.</p>
 <li class="doc-section-item field-body">
           –
           <div class="doc-md-description">
-<p>dict or httpx.Response: If 'json' is True, yields a dictionary containing the parsed JSON data. Otherwise, yields the raw HTTP response.</p>
+<p>dict or Response: If 'json' is True, yields a dictionary containing the parsed JSON data. Otherwise, yields the raw HTTP response.</p>
 </div>
 </li>
 </ul>
@@ -5731,7 +5729,8 @@ It is well-suited for APIs that provide paginated results.</p>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1390</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1389</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1390</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1391</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1392</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1393</span>
@@ -5791,8 +5790,7 @@ It is well-suited for APIs that provide paginated results.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1447</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1448</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1449</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1450</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1451</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">api_page_iter</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">url,</span> <span style="color: #E6EDF3">page_size</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">100</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">_json</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">next_key</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">iter_key</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">requests_kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1450</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">api_page_iter</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">url,</span> <span style="color: #E6EDF3">page_size</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">100</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">_json</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">next_key</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">iter_key</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">requests_kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    An asynchronous generator function for iterating through paginated API data.</span>
 
@@ -5809,7 +5807,7 @@ It is well-suited for APIs that provide paginated results.</p>
 <span style="color: #A5D6FF">        **requests_kwargs: Arbitrary keyword arguments that will be forwarded to the HTTP request function.</span>
 
 <span style="color: #A5D6FF">    Yields:</span>
-<span style="color: #A5D6FF">        dict or httpx.Response: If 'json' is True, yields a dictionary containing the parsed JSON data. Otherwise, yields the raw HTTP response.</span>
+<span style="color: #A5D6FF">        dict or Response: If 'json' is True, yields a dictionary containing the parsed JSON data. Otherwise, yields the raw HTTP response.</span>
 
 <span style="color: #A5D6FF">    Note:</span>
 <span style="color: #A5D6FF">        The loop will continue indefinitely unless manually stopped. Make sure to break out of the loop once the last page has been received.</span>
@@ -5878,7 +5876,8 @@ It is well-suited for APIs that provide paginated results.</p>
 </details>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1292</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1291</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1292</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1293</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1294</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1295</span>
@@ -5928,8 +5927,7 @@ It is well-suited for APIs that provide paginated results.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1339</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1340</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1341</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1342</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1343</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">api_request</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1342</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">api_request</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Makes an HTTP request while automatically:</span>
 <span style="color: #A5D6FF">        - avoiding rate limits (sleep/retry)</span>
@@ -6080,7 +6078,8 @@ It is well-suited for APIs that provide paginated results.</p>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1762</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1761</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1762</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1763</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1764</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1765</span>
@@ -6093,8 +6092,7 @@ It is well-suited for APIs that provide paginated results.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1772</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1773</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1774</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1775</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1776</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">critical</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #E6EDF3">trace</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1775</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">critical</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #E6EDF3">trace</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""Logs a whole message in emboldened red text, and optionally the stack trace of the most recent exception.</span>
 
 <span style="color: #A5D6FF">    Args:</span>
@@ -6154,7 +6152,8 @@ It is well-suited for APIs that provide paginated results.</p>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1582</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1581</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1582</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1583</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1584</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1585</span>
@@ -6167,8 +6166,7 @@ It is well-suited for APIs that provide paginated results.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1592</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1593</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1594</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1595</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1596</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">debug</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #E6EDF3">trace</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1595</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">debug</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #E6EDF3">trace</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""Logs debug messages and optionally the stack trace of the most recent exception.</span>
 
 <span style="color: #A5D6FF">    Args:</span>
@@ -6407,7 +6405,8 @@ Then, the event is queued for outgoing distribution using <code>self.queue_outgo
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1726</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1725</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1726</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1727</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1728</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1729</span>
@@ -6420,8 +6419,7 @@ Then, the event is queued for outgoing distribution using <code>self.queue_outgo
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1736</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1737</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1738</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1739</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1740</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">error</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #E6EDF3">trace</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1739</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">error</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #E6EDF3">trace</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""Logs an error message, and optionally the stack trace of the most recent exception.</span>
 
 <span style="color: #A5D6FF">    Args:</span>
@@ -6596,7 +6594,8 @@ Then, the event is queued for outgoing distribution using <code>self.queue_outgo
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1193</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1192</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1193</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1194</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1195</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1196</span>
@@ -6612,8 +6611,7 @@ Then, the event is queued for outgoing distribution using <code>self.queue_outgo
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1206</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1207</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1208</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1209</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1210</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">get_per_domain_hash</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">event):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1209</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">get_per_domain_hash</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">event):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Computes a per-domain hash value for a given event. This method may be optionally overridden in subclasses.</span>
 
@@ -6670,7 +6668,8 @@ Then, the event is queued for outgoing distribution using <code>self.queue_outgo
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1151</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1150</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1151</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1152</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1153</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1154</span>
@@ -6685,8 +6684,7 @@ Then, the event is queued for outgoing distribution using <code>self.queue_outgo
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1163</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1164</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1165</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1166</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1167</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">get_per_host_hash</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">event):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1166</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">get_per_host_hash</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">event):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Computes a per-host hash value for a given event. This method may be optionally overridden in subclasses.</span>
 
@@ -6743,7 +6741,8 @@ The hash value is used for distinguishing events related to the same host.</p>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1169</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1168</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1169</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1170</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1171</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1172</span>
@@ -6764,8 +6763,7 @@ The hash value is used for distinguishing events related to the same host.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1187</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1188</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1189</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1190</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1191</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">get_per_hostport_hash</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">event):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1190</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">get_per_hostport_hash</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">event):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Computes a per-host:port hash value for a given event. This method may be optionally overridden in subclasses.</span>
 
@@ -6995,7 +6993,8 @@ The hash value is used for distinguishing events related to the same host.</p>
 This includes the module's description, metadata, events, flags, and available options.</p>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1778</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1777</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1778</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1779</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1780</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1781</span>
@@ -7034,8 +7033,7 @@ This includes the module's description, metadata, events, flags, and available o
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1814</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1815</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1816</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1817</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1818</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@classmethod</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1817</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@classmethod</span>
 <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">help_text</span><span style="color: #E6EDF3">(self):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Returns a string containing help text for the module.</span>
@@ -7121,7 +7119,8 @@ This includes the module's description, metadata, events, flags, and available o
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1646</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1645</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1646</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1647</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1648</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1649</span>
@@ -7134,8 +7133,7 @@ This includes the module's description, metadata, events, flags, and available o
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1656</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1657</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1658</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1659</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1660</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">hugeinfo</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #E6EDF3">trace</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1659</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">hugeinfo</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #E6EDF3">trace</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""Logs a whole message in emboldened blue text, and optionally the stack trace of the most recent exception.</span>
 
 <span style="color: #A5D6FF">    Args:</span>
@@ -7195,7 +7193,8 @@ This includes the module's description, metadata, events, flags, and available o
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1678</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1677</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1678</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1679</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1680</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1681</span>
@@ -7208,8 +7207,7 @@ This includes the module's description, metadata, events, flags, and available o
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1688</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1689</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1690</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1691</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1692</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">hugesuccess</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #E6EDF3">trace</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1691</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">hugesuccess</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #E6EDF3">trace</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""Logs a whole message in emboldened green text, and optionally the stack trace of the most recent exception.</span>
 
 <span style="color: #A5D6FF">    Args:</span>
@@ -7269,7 +7267,8 @@ This includes the module's description, metadata, events, flags, and available o
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1614</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1613</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1614</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1615</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1616</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1617</span>
@@ -7282,8 +7281,7 @@ This includes the module's description, metadata, events, flags, and available o
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1624</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1625</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1626</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1627</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1628</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">hugeverbose</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #E6EDF3">trace</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1627</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">hugeverbose</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #E6EDF3">trace</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""Logs a whole message in emboldened white text, and optionally the stack trace of the most recent exception.</span>
 
 <span style="color: #A5D6FF">    Args:</span>
@@ -7343,7 +7341,8 @@ This includes the module's description, metadata, events, flags, and available o
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1710</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1709</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1710</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1711</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1712</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1713</span>
@@ -7356,8 +7355,7 @@ This includes the module's description, metadata, events, flags, and available o
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1720</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1721</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1722</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1723</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1724</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">hugewarning</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #E6EDF3">trace</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1723</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">hugewarning</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #E6EDF3">trace</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""Logs a whole message in emboldened orange text, and optionally the stack trace of the most recent exception.</span>
 
 <span style="color: #A5D6FF">    Args:</span>
@@ -7417,7 +7415,8 @@ This includes the module's description, metadata, events, flags, and available o
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1630</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1629</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1630</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1631</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1632</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1633</span>
@@ -7430,8 +7429,7 @@ This includes the module's description, metadata, events, flags, and available o
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1640</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1641</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1642</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1643</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1644</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">info</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #E6EDF3">trace</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1643</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">info</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #E6EDF3">trace</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""Logs informational messages and optionally the stack trace of the most recent exception.</span>
 
 <span style="color: #A5D6FF">    Args:</span>
@@ -7491,7 +7489,8 @@ of the table as an info-level log. If a table_name is provided, it also writes t
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1539</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1538</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1539</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1540</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1541</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1542</span>
@@ -7521,8 +7520,7 @@ of the table as an info-level log. If a table_name is provided, it also writes t
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1566</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1567</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1568</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1569</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1570</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">log_table</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1569</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">log_table</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""Logs a table to the console and optionally writes it to a file.</span>
 
 <span style="color: #A5D6FF">    This function generates a table using `self.helpers.make_table`, then logs each line</span>
@@ -7843,7 +7841,8 @@ of the table as an info-level log. If a table_name is provided, it also writes t
 <p>Prepare an API request by adding the necessary authentication - header, bearer token, etc.</p>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1281</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1280</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1281</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1282</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1283</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1284</span>
@@ -7851,8 +7850,7 @@ of the table as an info-level log. If a table_name is provided, it also writes t
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1286</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1287</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1288</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1289</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1290</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">prepare_api_request</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">url,</span> <span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1289</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">prepare_api_request</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">url,</span> <span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Prepare an API request by adding the necessary authentication - header, bearer token, etc.</span>
 <span style="color: #A5D6FF">    """</span>
@@ -7913,7 +7911,8 @@ If the event passes the check, it is put into the <code>incoming_event_queue</co
 </ul>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1002</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1001</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1002</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1003</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1004</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1005</span>
@@ -7950,8 +7949,7 @@ If the event passes the check, it is put into the <code>incoming_event_queue</co
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1036</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1037</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1038</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1039</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1040</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">queue_event</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">event):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1039</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">queue_event</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">event):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Asynchronously queues an incoming event to the module's event queue for further processing.</span>
 
@@ -8048,7 +8046,8 @@ If it's not possible due to the current state of the module, an AttributeError i
 </ul>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1042</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1041</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1042</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1043</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1044</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1045</span>
@@ -8070,8 +8069,7 @@ If it's not possible due to the current state of the module, an AttributeError i
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1061</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1062</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1063</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1064</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1065</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">queue_outgoing_event</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">event,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1064</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">queue_outgoing_event</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">event,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Queues an outgoing event to the module's outgoing event queue for further processing.</span>
 
@@ -8255,15 +8253,15 @@ If it's not possible due to the current state of the module, an AttributeError i
 <p>This lets us keep a detailed module status and selectively cancel tasks when needed, like when handle_event exceeds its max runtime.</p>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">972</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">971</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">972</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">973</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">974</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">975</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">976</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">977</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">978</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">979</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">980</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">run_task</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">coro,</span> <span style="color: #E6EDF3">name,</span> <span style="color: #E6EDF3">n</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">1</span><span style="color: #E6EDF3">):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">979</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">run_task</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">coro,</span> <span style="color: #E6EDF3">name,</span> <span style="color: #E6EDF3">n</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">1</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Start a task while tracking it in the module's task counter.</span>
 
@@ -8323,7 +8321,8 @@ It also clears the incoming event queue to prevent further processing and update
 </details>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1067</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1066</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1067</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1068</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1069</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1070</span>
@@ -8366,8 +8365,7 @@ It also clears the incoming event queue to prevent further processing and update
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1107</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1108</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1109</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1110</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1111</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">set_error_state</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">message</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">clear_outgoing_queue</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">critical</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1110</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">set_error_state</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">message</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">clear_outgoing_queue</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">critical</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Puts the module into an errored state where it cannot accept new events. Optionally logs a warning message.</span>
 
@@ -8615,7 +8613,8 @@ succeed (i.e., returns <code>None</code> or <code>False</code>).</li>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1662</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1661</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1662</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1663</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1664</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1665</span>
@@ -8628,8 +8627,7 @@ succeed (i.e., returns <code>None</code> or <code>False</code>).</li>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1672</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1673</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1674</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1675</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1676</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">success</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #E6EDF3">trace</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1675</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">success</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #E6EDF3">trace</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""Logs a success message, and optionally the stack trace of the most recent exception.</span>
 
 <span style="color: #A5D6FF">    Args:</span>
@@ -8666,7 +8664,8 @@ succeed (i.e., returns <code>None</code> or <code>False</code>).</li>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1742</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1741</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1742</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1743</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1744</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1745</span>
@@ -8683,8 +8682,7 @@ succeed (i.e., returns <code>None</code> or <code>False</code>).</li>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1756</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1757</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1758</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1759</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1760</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">trace</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">msg</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1759</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">trace</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">msg</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""Logs the stack trace of the most recently caught exception.</span>
 
 <span style="color: #A5D6FF">    This method captures the type, value, and traceback of the most recent exception and logs it using the trace level. It is typically used for debugging purposes.</span>
@@ -8873,7 +8871,8 @@ succeed (i.e., returns <code>None</code> or <code>False</code>).</li>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1598</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1597</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1598</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1599</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1600</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1601</span>
@@ -8886,8 +8885,7 @@ succeed (i.e., returns <code>None</code> or <code>False</code>).</li>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1608</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1609</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1610</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1611</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1612</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">verbose</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #E6EDF3">trace</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1611</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">verbose</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #E6EDF3">trace</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""Logs messages and optionally the stack trace of the most recent exception.</span>
 
 <span style="color: #A5D6FF">    Args:</span>
@@ -8947,7 +8945,8 @@ succeed (i.e., returns <code>None</code> or <code>False</code>).</li>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/modules/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1694</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1693</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1694</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1695</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1696</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1697</span>
@@ -8960,8 +8959,7 @@ succeed (i.e., returns <code>None</code> or <code>False</code>).</li>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1704</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1705</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1706</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1707</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1708</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">warning</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #E6EDF3">trace</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1707</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">warning</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #E6EDF3">trace</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""Logs a warning message, and optionally the stack trace of the most recent exception.</span>
 
 <span style="color: #A5D6FF">    Args:</span>

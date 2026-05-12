@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.arx6gcad.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.vlz67v5c.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -419,10 +419,10 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="#http">
+<a class="md-nav__link" href="#webhook">
 <span class="md-ellipsis">
       
-        HTTP
+        Webhook
       
     </span>
 </a>
@@ -1125,7 +1125,7 @@ mail.evilcorp.com
 <td>URL</td>
 <td>http://www.evilcorp.com</td>
 <td>2.3.4.5</td>
-<td>httpx</td>
+<td>http</td>
 <td>0</td>
 <td>a-record,aaaa-record,cdn-github,cname-record,distance-0,in-scope,resolved,subdomain</td>
 </tr>
@@ -1193,15 +1193,15 @@ mail.evilcorp.com
 <span style="color: #6E7681">    </span><span style="color: #7EE787">discord</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">min_severity</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">HIGH</span>
 </code></pre></div>
-<h3 id="http">HTTP</h3>
-<p>The <code>http</code> output module sends <a href="../events/">events</a> in JSON format to a desired HTTP endpoint.</p>
+<h3 id="webhook">Webhook</h3>
+<p>The <code>webhook</code> output module sends <a href="../events/">events</a> in JSON format to a desired HTTP endpoint.</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># POST scan results to localhost</span>
-bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>http<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.http.url<span style="color: #FF7B72; font-weight: bold">=</span>http://localhost:8000
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>webhook<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.webhook.url<span style="color: #FF7B72; font-weight: bold">=</span>http://localhost:8000
 </code></pre></div>
 <p>You can customize the HTTP method if needed. Authentication is also supported:</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">http_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">webhook_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">    </span><span style="color: #7EE787">http</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">webhook</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">url</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">https://localhost:8000</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">method</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">PUT</span>
 <span style="color: #6E7681">      </span><span style="color: #8B949E; font-style: italic"># Authorization: Bearer</span>

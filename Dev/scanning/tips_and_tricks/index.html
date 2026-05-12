@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.arx6gcad.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.vlz67v5c.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1020,7 +1020,7 @@
 <h2 id="kill-individual-module-during-scan">Kill Individual Module During Scan</h2>
 <p>Sometimes a certain module can get stuck or slow down the scan. If this happens and you want to kill it, just type "<code>kill &lt;module&gt;</code>" in the terminal and press enter. This will kill and disable the module for the rest of the scan.</p>
 <p>You can also kill multiple modules at a time by specifying them in a space or comma-separated list:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">kill</span><span style="color: #6E7681"> </span>httpx<span style="color: #6E7681"> </span>sslcert
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">kill</span><span style="color: #6E7681"> </span>http<span style="color: #6E7681"> </span>sslcert
 </code></pre></div>
 <p><img src="https://github.com/blacklanternsecurity/bbot/assets/20261699/61ad7123-8879-4c86-afdd-e96d7264b67c" style="max-width: 45em !important"/></p>
 <h2 id="common-config-changes">Common Config Changes</h2>
@@ -1123,7 +1123,7 @@ nameserver 74.82.42.42
 <span style="color: #6E7681">    </span><span style="color: #7EE787">spider_links_per_page</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">25</span>
 </code></pre></div>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># run the web spider against www.evilcorp.com</span>
-bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>www.evilcorp.com<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>httpx<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>spider.yml
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>www.evilcorp.com<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>http<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>spider.yml
 </code></pre></div>
 <p>You can also pair the web spider with subdomain enumeration:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># spider every subdomain of evilcorp.com</span>
@@ -1154,7 +1154,7 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>gowitness<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>web.http_proxy<span style="color: #FF7B72; font-weight: bold">=</span>http://127.0.0.1:8080
 </code></pre></div>
 <h3 id="display-http_response-events">Display <code>HTTP_RESPONSE</code> Events</h3>
-<p>BBOT's <code>httpx</code> module emits <code>HTTP_RESPONSE</code> events, but by default they're hidden from output. These events contain the full raw HTTP body along with headers, etc. If you want to see them, you can modify <code>omit_event_types</code> in the config:</p>
+<p>BBOT's <code>http</code> module emits <code>HTTP_RESPONSE</code> events, but by default they're hidden from output. These events contain the full raw HTTP body along with headers, etc. If you want to see them, you can modify <code>omit_event_types</code> in the config:</p>
 <div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/config/bbot.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">omit_event_types</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">URL_UNVERIFIED</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># - HTTP_RESPONSE</span>
@@ -1186,19 +1186,19 @@ bbot<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>
 <p>If you already have a list of discovered targets (e.g. URLs), you can speed up the scan by skipping BBOT's DNS resolution. You can do this by setting <code>dns.disable</code> to <code>true</code>:</p>
 <p>If you don't care about DNS-based scope checks, you can go even further by completely disabling DNS resolution:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># completely disable DNS resolution</span>
-bbot<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>httpx<span style="color: #6E7681"> </span>gowitness<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>urls.txt<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>dns.disable<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">true</span>
+bbot<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>http<span style="color: #6E7681"> </span>gowitness<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>urls.txt<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>dns.disable<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">true</span>
 </code></pre></div>
 <p>Note that the above setting <em>completely</em> disables DNS, meaning even <code>A</code> and <code>AAAA</code> records are not resolved. This can cause problems if you're using an IP whitelist or blacklist. In this case, you'll want to use <code>dns.minimal</code> instead:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># only resolve A and AAAA records</span>
-bbot<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>httpx<span style="color: #6E7681"> </span>gowitness<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>urls.txt<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>dns.minimal<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">true</span>
+bbot<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>http<span style="color: #6E7681"> </span>gowitness<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>urls.txt<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>dns.minimal<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">true</span>
 </code></pre></div>
 <h2 id="faq">FAQ</h2>
 <h3 id="what-is-url_unverified">What is <code>URL_UNVERIFIED</code>?</h3>
-<p><code>URL_UNVERIFIED</code> events are URLs that haven't yet been visited by <code>httpx</code>. Once <code>httpx</code> visits them, it reraises them as <code>URL</code>s, tagged with their resulting status code.</p>
-<p>For example, when <a href="../#types-of-modules"><code>excavate</code></a> gets an <code>HTTP_RESPONSE</code> event, it extracts links from the raw HTTP response as <code>URL_UNVERIFIED</code>s and then passes them back to <code>httpx</code> to be visited.</p>
+<p><code>URL_UNVERIFIED</code> events are URLs that haven't yet been visited by <code>http</code>. Once <code>http</code> visits them, it reraises them as <code>URL</code>s, tagged with their resulting status code.</p>
+<p>For example, when <a href="../#types-of-modules"><code>excavate</code></a> gets an <code>HTTP_RESPONSE</code> event, it extracts links from the raw HTTP response as <code>URL_UNVERIFIED</code>s and then passes them back to <code>http</code> to be visited.</p>
 <p>By default, <code>URL_UNVERIFIED</code>s are hidden from output. If you want to see all of them including the out-of-scope ones, you can do it by changing <code>omit_event_types</code> and <code>scope.report_distance</code> in the config like so:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># visit www.evilcorp.com and extract all the links</span>
-bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>www.evilcorp.com<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>httpx<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span><span style="color: #79C0FF">omit_event_types</span><span style="color: #FF7B72; font-weight: bold">=[]</span><span style="color: #6E7681"> </span>scope.report_distance<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">2</span>
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>www.evilcorp.com<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>http<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span><span style="color: #79C0FF">omit_event_types</span><span style="color: #FF7B72; font-weight: bold">=[]</span><span style="color: #6E7681"> </span>scope.report_distance<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">2</span>
 </code></pre></div>
 <h3 id="can-i-crank-up-the-threads-for-a-module-to-make-it-go-faster">Can I crank up the threads for a module to make it go faster?</h3>
 <p>Yes, you can customize the threads for any module by setting <code>module_threads</code> like so:</p>
