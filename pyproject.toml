@@ -25,7 +25,7 @@ dependencies = [
     "pycryptodome>=3.17,<4",
     "idna>=3.4,<4",
     "tabulate==0.8.10",
-    "websockets>=14.0.0,<16.0.0",
+    "websockets>=14.0.0,<17.0.0",
     "pyjwt>=2.7.0,<3",
     "beautifulsoup4>=4.12.2,<5",
     "lxml>=4.9.2,<7.0.0",
