@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 
 class TestTelerik(ModuleTestBase):
     targets = ["http://127.0.0.1:8888", "http://127.0.0.1:8888/telerik.aspx"]
-    modules_overrides = ["httpx", "telerik"]
+    modules_overrides = ["http", "telerik"]
     config_overrides = {"modules": {"telerik": {"exploit_RAU_crypto": True}}}
 
     async def setup_before_prep(self, module_test):
@@ -131,7 +131,7 @@ class TestTelerikDialogHandler_includesubdirs(TestTelerik):
             },
         }
     }
-    modules_overrides = ["httpx", "telerik"]
+    modules_overrides = ["http", "telerik"]
 
     async def setup_before_prep(self, module_test):
         # Simulate NO SpellCheckHandler detection (not testing for that with this test)

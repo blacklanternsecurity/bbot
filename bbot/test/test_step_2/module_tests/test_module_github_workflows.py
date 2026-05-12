@@ -18,10 +18,10 @@ class TestGithub_Workflows(ModuleTestBase):
     zip_content = data.getvalue()
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/zen", match_headers={"Authorization": "token asdf"}
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/orgs/blacklanternsecurity",
             match_headers={"Authorization": "token asdf"},
             json={
@@ -57,7 +57,7 @@ class TestGithub_Workflows(ModuleTestBase):
                 "type": "Organization",
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/orgs/blacklanternsecurity/repos?per_page=100&page=1",
             match_headers={"Authorization": "token asdf"},
             json=[
@@ -164,7 +164,7 @@ class TestGithub_Workflows(ModuleTestBase):
                 }
             ],
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/workflows?per_page=100&page=1",
             match_headers={"Authorization": "token asdf"},
             json={
@@ -185,7 +185,7 @@ class TestGithub_Workflows(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/workflows/22452226/runs?status=success&per_page=1",
             match_headers={"Authorization": "token asdf"},
             json={
@@ -432,7 +432,7 @@ class TestGithub_Workflows(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/runs/8839360698/logs",
             match_headers={"Authorization": "token asdf"},
             headers={
@@ -440,11 +440,11 @@ class TestGithub_Workflows(ModuleTestBase):
             },
             status_code=302,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://productionresultssa10.blob.core.windows.net/actions-results/7beb304e-f42c-4830-a027-4f5dec53107d/workflow-job-run-3a559e2a-952e-58d2-b8db-2e604a9266d7/logs/steps/step-logs-0e34a19a-18b0-4208-b27a-f8c031db2d17.txt?rsct=text%2Fplain&se=2024-04-26T16%3A25%3A39Z&sig=a%2FiN8dOw0e3tiBQZAfr80veI8OYChb9edJ1eFY136B4%3D&sp=r&spr=https&sr=b&st=2024-04-26T16%3A15%3A34Z&sv=2021-12-02",
             content=self.zip_content,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/runs/8839360698/artifacts",
             match_headers={"Authorization": "token asdf"},
             json={
@@ -472,7 +472,7 @@ class TestGithub_Workflows(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/artifacts/1829832535/zip",
             match_headers={"Authorization": "token asdf"},
             headers={
@@ -480,7 +480,7 @@ class TestGithub_Workflows(ModuleTestBase):
             },
             status_code=302,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://pipelinesghubeus22.actions.githubusercontent.com/uYHz4cw2WwYcB2EU57uoCs3MaEDiz8veiVlAtReP3xevBriD1h/_apis/pipelines/1/runs/214601/signedartifactscontent?artifactName=build.tar.gz&urlExpires=2024-08-20T14%3A41%3A41.8000556Z&urlSigningMethod=HMACV2&urlSignature=OOBxLx4eE5A8uHjxOIvQtn3cLFQOBW927mg0hcTHO6U%3D",
             content=self.zip_content,
         )

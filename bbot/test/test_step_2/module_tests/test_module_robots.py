@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 
 class TestRobots(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "robots"]
+    modules_overrides = ["http", "robots"]
     config_overrides = {"modules": {"robots": {"include_sitemap": True}}}
 
     async def setup_after_prep(self, module_test):

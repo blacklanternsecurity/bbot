@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 import multiprocessing as mp
 from functools import partial
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
 from . import misc
 from .asn import ASNHelper
@@ -86,12 +86,14 @@ class ConfigAwareHelper:
         self.process_pool = ProcessPoolExecutor(max_workers=num_processes)
 
         self._cloud = None
+        self._blasthttp_client = None
 
         self.re = RegexHelper(self)
         self.yara = YaraHelper(self)
         self.simhash = SimHashHelper()
         self._dns = None
         self._web = None
+        self._asn = None
         self._cloudcheck = None
         self._asn = None
         self.config_aware_validators = self.validators.Validators(self)
@@ -116,6 +118,17 @@ class ConfigAwareHelper:
         if self._asn is None:
             self._asn = ASNHelper(self)
         return self._asn
+
+    @property
+    def blasthttp(self):
+        if self._blasthttp_client is None:
+            import blasthttp as _blasthttp
+
+            self._blasthttp_client = _blasthttp.BlastHTTP()
+            rate_limit = self.web_config.get("http_rate_limit", 0)
+            if rate_limit:
+                self._blasthttp_client.set_rate_limit(rate_limit)
+        return self._blasthttp_client
 
     @property
     def cloudcheck(self):
@@ -195,22 +208,38 @@ class ConfigAwareHelper:
         """
         if self._loop is None:
             self._loop = get_event_loop()
+            # only current caller is wafw00f (sync requests library)
+            self._io_executor = ThreadPoolExecutor(max_workers=max(8, (os.cpu_count() or 1) + 4))
+            self._cpu_executor = ThreadPoolExecutor(max_workers=max(8, os.cpu_count() or 4))
+            self._loop.set_default_executor(self._io_executor)
         return self._loop
 
-    def run_in_executor(self, callback, *args, **kwargs):
+    def run_in_executor_io(self, callback, *args, **kwargs):
         """
         Run a synchronous task in the event loop's default thread pool executor
 
         Examples:
             Execute callback:
-            >>> result = await self.helpers.run_in_executor(callback_fn, arg1, arg2)
+            >>> result = await self.helpers.run_in_executor_io(callback_fn, arg1, arg2)
         """
         callback = partial(callback, **kwargs)
-        return self.loop.run_in_executor(None, callback, *args)
+        return self.loop.run_in_executor(self._io_executor, callback, *args)
+
+    def run_in_executor_cpu(self, callback, *args, **kwargs):
+        """
+        Run short CPU-bound work that releases the GIL in a dedicated thread pool,
+        separate from I/O so it never queues behind long-running network calls.
+
+        Examples:
+            Execute callback:
+            >>> result = await self.helpers.run_in_executor_cpu(callback_fn, arg1, arg2)
+        """
+        callback = partial(callback, **kwargs)
+        return self.loop.run_in_executor(self._cpu_executor, callback, *args)
 
     def run_in_executor_mp(self, callback, *args, **kwargs):
         """
-        Same as run_in_executor() except with a process pool executor
+        Same as run_in_executor_io() except with a process pool executor
         Use only in cases where callback is CPU-bound
 
         Examples:

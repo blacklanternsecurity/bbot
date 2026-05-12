@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 
 class TestNucleiManual(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "excavate", "nuclei"]
+    modules_overrides = ["http", "excavate", "nuclei"]
     config_overrides = {
         "web": {
             "spider_distance": 1,
@@ -63,7 +63,7 @@ class TestNucleiManual(ModuleTestBase):
 
 
 class TestNucleiSevere(TestNucleiManual):
-    modules_overrides = ["httpx", "nuclei"]
+    modules_overrides = ["http", "nuclei"]
     config_overrides = {
         "modules": {
             "nuclei": {

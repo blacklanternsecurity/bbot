@@ -102,8 +102,8 @@ class BaseEvent:
             "parent": "OPEN_TCP_PORT:cf7e6a937b161217eaed99f0c566eae045d094c7",
             "tags": ["in-scope", "distance-0", "dir", "status-301"],
             "http_title": "301 Moved Permanently",
-            "module": "httpx",
-            "module_sequence": "httpx"
+            "module": "http",
+            "module_sequence": "http"
         }
         ```
     """
@@ -703,6 +703,10 @@ class BaseEvent:
         process this event, heavy payload data is stripped to free memory.
         """
         self._module_consumers = max(0, self._module_consumers - 1)
+        if self._module_consumers <= 0:
+            self.dns_children = {}
+            self.raw_dns_records = {}
+            self._resolved_hosts = set()
 
     def clone(self):
         # Create a shallow copy of the event first
@@ -1497,6 +1501,13 @@ class WEB_PARAMETER(DictHostEvent):
         "envelopes",
     ]
 
+    def _minimize(self):
+        super()._minimize()
+        if self._module_consumers <= 0:
+            self._data.pop("original_value", None)
+            self._data.pop("additional_params", None)
+            self._data.pop("assigned_cookies", None)
+
     @property
     def children(self):
         # if we have any subparams, raise a new WEB_PARAMETER for each one
@@ -1666,6 +1677,9 @@ class HTTP_RESPONSE(URL_UNVERIFIED):
         if self._module_consumers <= 0:
             self._data.pop("body", None)
             self._data.pop("raw_header", None)
+            self._data.pop("header", None)
+            self._data.pop("hash", None)
+            self._data.pop("cert_info", None)
 
     @property
     def raw_response(self):

@@ -33,7 +33,7 @@ smuggler_text = r"""
 
 class TestSmuggler(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "smuggler"]
+    modules_overrides = ["http", "smuggler"]
 
     async def setup_after_prep(self, module_test):
         old_run_live = module_test.scan.helpers.run_live

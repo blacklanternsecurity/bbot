@@ -348,7 +348,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     scope_distance_modifier = None
     accept_dupes = False
 
-    _module_threads = 8
+    _module_threads = 6
 
     yara_rule_name_regex = re.compile(r"rule\s(\w+)\s{")
     yara_rule_regex = re.compile(r"(?s)((?:rule\s+\w+\s*{[^{}]*(?:{[^{}]*}[^{}]*)*[^{}]*(?:/\S*?}[^/]*?/)*)*})")
@@ -1162,7 +1162,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
         for label, data_instance in data_items:
             # Your existing processing code
-            for result in self.yara_rules.match(data=f"{data_instance}"):
+            for result in await self.helpers.run_in_executor_cpu(self.yara_rules.match, data=f"{data_instance}"):
                 rule_name = result.rule
 
                 # Skip specific operations for 'parameter_extraction' rule on decoded_data

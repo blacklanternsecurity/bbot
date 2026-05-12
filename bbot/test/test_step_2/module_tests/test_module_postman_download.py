@@ -11,7 +11,7 @@ class TestPostman_Download(ModuleTestBase):
     modules_overrides = ["postman", "postman_download", "speculate"]
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.getpostman.com/me",
             match_headers={"X-Api-Key": "asdf"},
             json={
@@ -48,7 +48,7 @@ class TestPostman_Download(ModuleTestBase):
         await module_test.mock_dns(
             {"blacklanternsecurity.com": {"A": ["127.0.0.99"]}, "github.com": {"A": ["127.0.0.99"]}}
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://www.postman.com/_api/ws/proxy",
             match_json={
                 "service": "search",
@@ -144,7 +144,7 @@ class TestPostman_Download(ModuleTestBase):
                 },
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://www.postman.com/_api/ws/proxy",
             match_json={
                 "service": "workspaces",
@@ -178,7 +178,7 @@ class TestPostman_Download(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.getpostman.com/workspaces/3a7e4bdc-7ff7-4dd4-8eaa-61ddce1c3d1b",
             match_headers={"X-Api-Key": "asdf"},
             json={
@@ -210,7 +210,7 @@ class TestPostman_Download(ModuleTestBase):
                 }
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://www.postman.com/_api/workspace/3a7e4bdc-7ff7-4dd4-8eaa-61ddce1c3d1b/globals",
             json={
                 "model_id": "8be7574b-219f-49e0-8d25-da447a882e4e",
@@ -232,7 +232,7 @@ class TestPostman_Download(ModuleTestBase):
                 },
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.getpostman.com/environments/10197090-f770f816-9c6a-40f7-bde3-c0855d2a1089",
             match_headers={"X-Api-Key": "asdf"},
             json={
@@ -253,7 +253,7 @@ class TestPostman_Download(ModuleTestBase):
                 }
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.getpostman.com/collections/10197090-2aab9fd0-3715-4abe-8bb0-8cb0264d023f",
             match_headers={"X-Api-Key": "asdf"},
             json={

@@ -18,8 +18,8 @@ class TestGit_Clone(ModuleTestBase):
     file_content = "https://admin:admin@the-internet.herokuapp.com/basic_auth"
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(url="https://api.github.com/zen")
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(url="https://api.github.com/zen")
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/orgs/blacklanternsecurity",
             json={
                 "login": "blacklanternsecurity",
@@ -54,7 +54,7 @@ class TestGit_Clone(ModuleTestBase):
                 "type": "Organization",
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/orgs/blacklanternsecurity/repos?per_page=100&page=1",
             json=[
                 {

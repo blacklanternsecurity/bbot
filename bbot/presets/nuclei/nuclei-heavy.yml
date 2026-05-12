@@ -1,7 +1,7 @@
 description: Run nuclei scans against all discovered targets, allowing for spidering, against ALL URLs, and with additional discovery modules.
 
 modules:
-  - httpx
+  - http
   - nuclei
   - robots
   - urlscan
