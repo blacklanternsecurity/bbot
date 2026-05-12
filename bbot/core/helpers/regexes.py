@@ -157,7 +157,14 @@ post_form_regex2 = re.compile(
     re.DOTALL,
 )
 post_form_regex_noaction = re.compile(
-    r"<form[^>]*(?:\baction=[\"']?([^\s\"'<>]+)[\"']?)?[^>]*\bmethod=[\"']?[pP][oO][sS][tT][\"']?[^>]*>([\s\S]*?)<\/form>",
+    # Negative lookahead rejects forms that already carry action= (those are
+    # handled by post_form_regex / post_form_regex2 with the real action URL).
+    # Without it, the action group's `?` makes this regex over-eagerly match
+    # forms with action, capturing '' and emitting a phantom WEB_PARAMETER
+    # whose url falls back to event.url — racing the legitimate emission.
+    # The empty `()` keeps findall's tuple shape (form_action, form_content)
+    # consistent with the other form regexes consumed by GetForm.extract().
+    r"<form(?![^>]*\baction=)()[^>]*\bmethod=[\"']?[pP][oO][sS][tT][\"']?[^>]*>([\s\S]*?)<\/form>",
     re.DOTALL,
 )
 generic_form_regex = re.compile(

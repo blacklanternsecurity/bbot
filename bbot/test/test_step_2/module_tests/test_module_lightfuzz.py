@@ -4269,8 +4269,12 @@ class Test_Lightfuzz_cookie_refresh(ModuleTestBase):
         },
     }
 
-    # Stateful: counter cycles per GET, current_token tracks the latest one issued.
-    _token_state = {"counter": 0, "current": None}
+    # The very first issued token is a "bootstrap" — represents the cookie the
+    # spider captured, which we want to reject at POST time. Subsequent GETs
+    # without an incoming cookie issue tokens that ARE valid for POST. GETs
+    # that carry a cookie preserve the current token without rotating, so
+    # parallel probes (sqli COOKIE fuzzing) don't invalidate the legitimate POST.
+    _token_state = {"counter": 0, "current": None, "valid_for_post": set()}
 
     landing_page = """
     <html><body>
@@ -4283,20 +4287,33 @@ class Test_Lightfuzz_cookie_refresh(ModuleTestBase):
 
     async def setup_after_prep(self, module_test):
         state = self._token_state
+        state["counter"] = 0
+        state["current"] = None
+        state["valid_for_post"] = set()
 
         def combined_handler(request):
-            # GET / → serve the form, cycle the TESTSESSION cookie to a fresh token.
-            # POST /cookie-login → reveal the secret only if the request carries the
-            # most-recently-issued TESTSESSION (the post-refresh token).
+            # GET / → if no incoming cookie, issue a fresh token. The first
+            # issued token (spider's) is bootstrap-only and NOT added to
+            # valid_for_post; subsequent issuances ARE valid for POST. GETs
+            # that already carry a cookie preserve current — parallel probes
+            # (sqli COOKIE fuzzing on TESTSESSION) don't invalidate the
+            # legitimate baseline POST.
+            # POST /cookie-login → reveal the secret only if the cookie was
+            # issued by a non-bootstrap GET. The discriminator: lightfuzz MUST
+            # refresh via its connectivity_test GET; using the spider's
+            # captured cookie directly fails.
             if request.method == "GET":
-                state["counter"] += 1
-                state["current"] = f"token-{state['counter']}"
+                if not request.cookies.get("TESTSESSION"):
+                    state["counter"] += 1
+                    state["current"] = f"token-{state['counter']}"
+                    if state["counter"] > 1:
+                        state["valid_for_post"].add(state["current"])
                 resp = Response(self.landing_page, status=200, content_type="text/html")
                 resp.set_cookie("TESTSESSION", state["current"], path="/")
                 return resp
             else:  # POST
                 cookie = request.cookies.get("TESTSESSION", "")
-                if cookie and cookie == state["current"]:
+                if cookie in state["valid_for_post"]:
                     body = '<html><body><a href="/secret-endpoint">Authorized</a></body></html>'
                 else:
                     body = "<html><body><h2>Session expired</h2></body></html>"
@@ -4568,4 +4585,102 @@ class Test_Lightfuzz_baseline_probe_no_dual_for_selected(ModuleTestBase):
         unique_bodies = {tuple(sorted(p.items())) for p in posts}
         assert len(unique_bodies) == 1, (
             f"Expected one unique POST body for the selected-option form, got {len(unique_bodies)}: {unique_bodies}"
+        )
+
+
+# End-to-end test for host-page priming: forms whose action URL is a different
+# endpoint than the page they were discovered on (the canonical CF / ASP.NET
+# WebForms / "search → results" shape) require a real browser to GET the host
+# page first to seed session state, then POST to the action URL with those
+# cookies. This server only reveals /host-cookie-secret when the POST carries
+# a cookie that's only set on the host page's GET response.
+class Test_Lightfuzz_host_url_priming(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888/host.html"]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {"lightfuzz": {"enabled_submodules": ["crypto"]}},
+    }
+
+    _request_log = {"action_posts": [], "action_referers": []}
+
+    host_page = """
+    <html><body>
+        <h1>Search</h1>
+        <form action="/action" method="post">
+            <input type="text" name="keyword">
+            <input type="submit" value="Search">
+        </form>
+    </body></html>
+    """
+
+    async def setup_after_prep(self, module_test):
+        self._request_log["action_posts"] = []
+        self._request_log["action_referers"] = []
+
+        def handler(request):
+            path = request.path
+            if path == "/host.html" and request.method == "GET":
+                resp = Response(self.host_page, status=200, content_type="text/html")
+                # Cookie is set only on the host page's GET — POSTs that didn't
+                # GET this page first won't carry it.
+                resp.set_cookie("HOSTSESSION", "host-page-cookie", path="/")
+                return resp
+            if path == "/action" and request.method == "POST":
+                self._request_log["action_posts"].append(dict(request.form))
+                self._request_log["action_referers"].append(request.headers.get("Referer", ""))
+                self._request_log.setdefault("action_cookie_headers", []).append(request.headers.get("Cookie", ""))
+                # Reveal the secret only when:
+                #  - the HOSTSESSION cookie is present (proves lightfuzz primed
+                #    against /host.html and carried its cookies through), AND
+                #  - the keyword field is non-empty (proves dual-probe's Probe B fired)
+                cookie = request.cookies.get("HOSTSESSION", "")
+                keyword = request.form.get("keyword", "")
+                if cookie == "host-page-cookie" and keyword:
+                    body = '<html><body><a href="/host-cookie-secret">found</a></body></html>'
+                else:
+                    body = f"<html><body>missing pieces (cookie={cookie!r} keyword={keyword!r})</body></html>"
+                return Response(body, status=200, content_type="text/html")
+            return Response("<html><body>not found</body></html>", status=404)
+
+        module_test.set_expect_requests_handler(
+            expect_args=re.compile(".*"),
+            request_handler=handler,
+        )
+
+    def check(self, module_test, events):
+        secret_url = "http://127.0.0.1:8888/host-cookie-secret"
+        secret_seen = any(
+            e.type == "URL_UNVERIFIED" and str(getattr(e, "data", {}).get("url", "") or e.data) == secret_url
+            for e in events
+        )
+        assert secret_seen, (
+            "URL_UNVERIFIED for /host-cookie-secret not emitted — lightfuzz POST "
+            "to /action likely didn't carry the cookie set by GET /host.html, "
+            "meaning host_url priming failed.\n"
+            f"action POSTs received: {self._request_log['action_posts']}\n"
+            f"Referer headers received: {self._request_log['action_referers']}\n"
+            f"Cookie headers received: {self._request_log.get('action_cookie_headers')}"
+        )
+
+        # At least one keyword WEB_PARAMETER should carry host_url pointing to /host.html.
+        # Excavate emits one per form-extractor that matches; the PostForm (with action)
+        # extractor stamps host_url, the PostForm_NoAction emission doesn't (its emit_url
+        # falls back to event.url so they coincide and stamping is a no-op).
+        keyword_params = [
+            e
+            for e in events
+            if e.type == "WEB_PARAMETER" and isinstance(e.data, dict) and e.data.get("name") == "keyword"
+        ]
+        assert keyword_params, "WEB_PARAMETER for 'keyword' was not emitted"
+        host_urls = [kp.data.get("host_url") for kp in keyword_params]
+        assert any(h and h.endswith("/host.html") for h in host_urls), (
+            f"no keyword WEB_PARAMETER carried host_url pointing to /host.html; got: {host_urls}"
+        )
+
+        # Action POSTs should carry Referer matching the host page URL.
+        referers = [r for r in self._request_log["action_referers"] if r]
+        assert referers, "no Referer header was sent on action POSTs"
+        assert any(r.endswith("/host.html") for r in referers), (
+            f"action POSTs did not carry Referer pointing to host page; got: {referers}"
         )

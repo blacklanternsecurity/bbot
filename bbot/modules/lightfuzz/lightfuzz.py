@@ -2,6 +2,7 @@ import importlib
 from urllib.parse import urlparse
 
 from bbot.modules.base import BaseModule
+from bbot.core.helpers.async_helpers import NamedLock
 
 from bbot.errors import InteractshError
 from bbot.core.helpers.misc import get_waf_strings
@@ -70,6 +71,19 @@ class lightfuzz(BaseModule):
         self._baseline_probe_response_cache = {}
         self._baseline_probe_response_cache_max = 200
 
+        # Cross-event cache for connectivity_test responses keyed on prime_url.
+        # Every WEB_PARAMETER's handle_event fires a connectivity GET against
+        # prime_url to refresh assigned_cookies; with _module_threads > 1, the
+        # five-or-so WEB_PARAMETERs excavate emits per page (csrf, custom header,
+        # Set-Cookie) all race their GETs against the same host page. Servers
+        # that cycle a session/CSRF token on each GET hand each racer a distinct
+        # token, then every subsequent POST lands with a stale cookie.
+        # NamedLock per prime_url serializes concurrent handle_events for the
+        # same URL: first caller fires the GET and caches the response, the
+        # rest acquire the released lock and return the cached response.
+        self._connectivity_test_cache = {}
+        self._connectivity_test_locks = NamedLock(max_size=200)
+
         if not self.enabled_submodules:
             return False, "Lightfuzz enabled without any submodules. Must enable at least one submodule."
 
@@ -135,6 +149,22 @@ class lightfuzz(BaseModule):
             else:
                 # this is likely caused by something trying to resolve the base domain first and can be ignored
                 self.debug("skipping result because subdomain tag was missing")
+
+    async def _connectivity_test(self, prime_url):
+        """Fire (or share) a connectivity GET against ``prime_url`` to refresh
+        cookies/CSRF state, returning the response. Concurrent handle_events
+        for the same prime_url serialize through a per-URL lock: the first
+        caller fires the GET and caches the response; subsequent callers
+        acquire the released lock and read the cached value back."""
+        cache = self._connectivity_test_cache
+        if prime_url in cache:
+            return cache[prime_url]
+        async with self._connectivity_test_locks.lock(prime_url):
+            if prime_url in cache:
+                return cache[prime_url]
+            response = await self.helpers.request(prime_url, timeout=10)
+            cache[prime_url] = response
+            return response
 
     @staticmethod
     def _baseline_request_signature(request_params):
@@ -206,6 +236,13 @@ class lightfuzz(BaseModule):
                     event.data.get("name", ""),
                 )
             )
+        # HTTP_RESPONSE and friends: include body hash in dedup so Probe A and
+        # Probe B emissions (same method+url, distinct bodies) both surface.
+        body_hash = ""
+        if isinstance(event.data, dict):
+            response_hash = event.data.get("hash") or {}
+            if isinstance(response_hash, dict):
+                body_hash = response_hash.get("body_md5", "") or ""
         return hash(
             (
                 "lightfuzz",
@@ -213,6 +250,7 @@ class lightfuzz(BaseModule):
                 str(event.host),
                 event.url,
                 event.data.get("method", "") if isinstance(event.data, dict) else "",
+                body_hash,
             )
         )
 
@@ -262,8 +300,16 @@ class lightfuzz(BaseModule):
                 await self.emit_event(data, "WEB_PARAMETER", event)
 
         elif event.type == "WEB_PARAMETER":
-            # check connectivity to url
-            connectivity_test = await self.helpers.request(event.url, timeout=10)
+            # Prime against the form's host page when distinct from the action URL.
+            # Browsers GET the host page first (seeding session cookies, CSRF tokens,
+            # any required server-side bootstrap state) and then POST to the action.
+            # When excavate stamps host_url on a form-derived WEB_PARAMETER, we mirror
+            # that flow: the connectivity GET hits host_url, fresh cookies merge into
+            # assigned_cookies, and the baseline POST goes to event.url. Falls back
+            # to event.url for non-form params or self-posting forms.
+            host_url = event.data.get("host_url") if isinstance(event.data, dict) else None
+            prime_url = host_url if host_url and host_url != event.url else event.url
+            connectivity_test = await self._connectivity_test(prime_url)
 
             if connectivity_test:
                 # Refresh assigned_cookies from the connectivity GET. The cookies excavate

@@ -819,6 +819,14 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                     }
                     if same_param_values:
                         data["same_param_values"] = same_param_values
+                    # When the form's action URL is a different endpoint than the page
+                    # the form was discovered on, stamp the host URL. lightfuzz primes
+                    # its connectivity GET (cookies, session bootstrap) against this
+                    # URL, and submodules stamp it as the POST's Referer — matching
+                    # what a browser would have done when submitting the form.
+                    host_url = event.url
+                    if host_url and host_url != emit_url:
+                        data["host_url"] = host_url
                     await self.report(data, event, yara_rule_settings, discovery_context, event_type="WEB_PARAMETER")
 
     class CSPExtractor(ExcavateRule):

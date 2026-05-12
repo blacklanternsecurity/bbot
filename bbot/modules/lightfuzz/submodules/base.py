@@ -145,22 +145,54 @@ class BaseLightfuzz:
         # Construct request parameters based on the event type
         if event_type == "GETPARAM":
             url = self.build_query_string(probe, parameter_name, additional_params)
-            return {"method": "GET", "cookies": cookies, "url": url}
+            request_params = {"method": "GET", "cookies": cookies, "url": url}
         elif event_type == "COOKIE":
             cookies_probe = {parameter_name: probe}
-            return {"method": "GET", "cookies": {**cookies, **cookies_probe}, "url": self.event.url}
+            request_params = {
+                "method": "GET",
+                "cookies": {**cookies, **cookies_probe},
+                "url": self.event.url,
+            }
         elif event_type == "HEADER":
             headers = {parameter_name: probe}
-            return {"method": "GET", "headers": headers, "cookies": cookies, "url": self.event.url}
+            request_params = {
+                "method": "GET",
+                "headers": headers,
+                "cookies": cookies,
+                "url": self.event.url,
+            }
         elif event_type in ["POSTPARAM", "BODYJSON"]:
             # Prepare data for POSTPARAM and BODYJSON event types
             data = {parameter_name: probe}
             if additional_params:
                 data.update(additional_params)
             if event_type == "BODYJSON":
-                return {"method": "POST", "json": data, "cookies": cookies, "url": self.event.url}
+                request_params = {
+                    "method": "POST",
+                    "json": data,
+                    "cookies": cookies,
+                    "url": self.event.url,
+                }
             else:
-                return {"method": "POST", "data": data, "cookies": cookies, "url": self.event.url}
+                request_params = {
+                    "method": "POST",
+                    "data": data,
+                    "cookies": cookies,
+                    "url": self.event.url,
+                }
+        else:
+            return None
+
+        # Stamp Referer matching what a browser would have sent: the URL of the page
+        # the form was discovered on. Only set when excavate marked the parameter as
+        # coming from a form whose host page is distinct from the action URL — apps
+        # that validate Referer for CSRF-like patterns reject POSTs without it.
+        host_url = self.event.data.get("host_url") if isinstance(self.event.data, dict) else None
+        if host_url:
+            request_params.setdefault("headers", {})
+            request_params["headers"]["Referer"] = host_url
+
+        return request_params
 
     def compare_baseline(
         self,
