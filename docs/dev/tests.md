@@ -53,7 +53,7 @@ class TestMyModule(ModuleTestBase):
 
     async def setup_after_prep(self, module_test):
         # mock HTTP response
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.com/sudomains?apikey=deadbeef&domain=blacklanternsecurity.com",
             json={
                 "subdomains": [

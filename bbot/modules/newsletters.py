@@ -39,7 +39,7 @@ class newsletters(BaseModule):
         _event = event
 
         # Call find_type Function if Webpage return Status Code 200 && "body" is found in event.data
-        # Ex: 'bbot -m httpx newsletters -t https://apf-api.eng.vn.cloud.tesla.com' returns
+        # Ex: 'bbot -m blasthttp newsletters -t https://apf-api.eng.vn.cloud.tesla.com' returns
         #     Status Code 200 but does NOT have event.data["body"]
         if _event.data["status_code"] == 200:
             if "body" in _event.data:

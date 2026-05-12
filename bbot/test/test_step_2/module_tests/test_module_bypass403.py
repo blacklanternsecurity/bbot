@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 
 class TestBypass403(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/test"]
-    modules_overrides = ["bypass403", "httpx"]
+    modules_overrides = ["bypass403", "http"]
 
     async def setup_after_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/test..;/"}
@@ -21,7 +21,7 @@ class TestBypass403(ModuleTestBase):
 
 class TestBypass403_collapsethreshold(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/test"]
-    modules_overrides = ["bypass403", "httpx"]
+    modules_overrides = ["bypass403", "http"]
 
     async def setup_after_prep(self, module_test):
         respond_args = {"response_data": "alive"}
@@ -72,7 +72,7 @@ class TestBypass403_collapsethreshold(ModuleTestBase):
 
 class TestBypass403_aspnetcookieless(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/admin.aspx"]
-    modules_overrides = ["bypass403", "httpx"]
+    modules_overrides = ["bypass403", "http"]
 
     async def setup_after_prep(self, module_test):
         expect_args = {"method": "GET", "uri": re.compile(r"\/\([sS]\(\w+\)\)\/.+\.aspx")}
@@ -88,7 +88,7 @@ class TestBypass403_aspnetcookieless(ModuleTestBase):
 
 class TestBypass403_waf(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/test"]
-    modules_overrides = ["bypass403", "httpx"]
+    modules_overrides = ["bypass403", "http"]
 
     async def setup_after_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/test..;/"}

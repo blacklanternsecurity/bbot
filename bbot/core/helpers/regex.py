@@ -29,19 +29,19 @@ class RegexHelper:
 
     async def search(self, compiled_regex, *args, **kwargs):
         self.ensure_compiled_regex(compiled_regex)
-        return await self.parent_helper.run_in_executor(compiled_regex.search, *args, **kwargs)
+        return await self.parent_helper.run_in_executor_cpu(compiled_regex.search, *args, **kwargs)
 
     async def match(self, compiled_regex, *args, **kwargs):
         self.ensure_compiled_regex(compiled_regex)
-        return await self.parent_helper.run_in_executor(compiled_regex.match, *args, **kwargs)
+        return await self.parent_helper.run_in_executor_cpu(compiled_regex.match, *args, **kwargs)
 
     async def sub(self, compiled_regex, *args, **kwargs):
         self.ensure_compiled_regex(compiled_regex)
-        return await self.parent_helper.run_in_executor(compiled_regex.sub, *args, **kwargs)
+        return await self.parent_helper.run_in_executor_cpu(compiled_regex.sub, *args, **kwargs)
 
     async def findall(self, compiled_regex, *args, **kwargs):
         self.ensure_compiled_regex(compiled_regex)
-        return await self.parent_helper.run_in_executor(compiled_regex.findall, *args, **kwargs)
+        return await self.parent_helper.run_in_executor_cpu(compiled_regex.findall, *args, **kwargs)
 
     async def findall_multi(self, compiled_regexes, *args, threads=10, **kwargs):
         """
@@ -55,7 +55,7 @@ class RegexHelper:
         tasks = {}
 
         def new_task(regex_name, r):
-            task = self.parent_helper.run_in_executor(r.findall, *args, **kwargs)
+            task = self.parent_helper.run_in_executor_cpu(r.findall, *args, **kwargs)
             tasks[task] = regex_name
 
         compiled_regexes = dict(compiled_regexes)
@@ -77,7 +77,7 @@ class RegexHelper:
 
     async def finditer(self, compiled_regex, *args, **kwargs):
         self.ensure_compiled_regex(compiled_regex)
-        return await self.parent_helper.run_in_executor(self._finditer, compiled_regex, *args, **kwargs)
+        return await self.parent_helper.run_in_executor_cpu(self._finditer, compiled_regex, *args, **kwargs)
 
     async def finditer_multi(self, compiled_regexes, *args, **kwargs):
         """
@@ -85,7 +85,7 @@ class RegexHelper:
         """
         for r in compiled_regexes:
             self.ensure_compiled_regex(r)
-        return await self.parent_helper.run_in_executor(self._finditer_multi, compiled_regexes, *args, **kwargs)
+        return await self.parent_helper.run_in_executor_cpu(self._finditer_multi, compiled_regexes, *args, **kwargs)
 
     def _finditer_multi(self, compiled_regexes, *args, **kwargs):
         matches = []
@@ -98,16 +98,16 @@ class RegexHelper:
         return list(compiled_regex.finditer(*args, **kwargs))
 
     async def extract_params_html(self, *args, **kwargs):
-        return await self.parent_helper.run_in_executor(misc.extract_params_html, *args, **kwargs)
+        return await self.parent_helper.run_in_executor_cpu(misc.extract_params_html, *args, **kwargs)
 
     async def extract_emails(self, *args, **kwargs):
-        return await self.parent_helper.run_in_executor(misc.extract_emails, *args, **kwargs)
+        return await self.parent_helper.run_in_executor_cpu(misc.extract_emails, *args, **kwargs)
 
     async def search_dict_values(self, *args, **kwargs):
         def _search_dict_values(*_args, **_kwargs):
             return list(misc.search_dict_values(*_args, **_kwargs))
 
-        return await self.parent_helper.run_in_executor(_search_dict_values, *args, **kwargs)
+        return await self.parent_helper.run_in_executor_cpu(_search_dict_values, *args, **kwargs)
 
     async def recursive_decode(self, *args, **kwargs):
-        return await self.parent_helper.run_in_executor(misc.recursive_decode, *args, **kwargs)
+        return await self.parent_helper.run_in_executor_cpu(misc.recursive_decode, *args, **kwargs)

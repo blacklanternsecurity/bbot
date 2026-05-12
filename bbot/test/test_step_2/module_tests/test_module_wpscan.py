@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 
 class Testwpscan(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "wpscan"]
+    modules_overrides = ["http", "wpscan"]
 
     wpscan_output_json = """{
   "banner": {

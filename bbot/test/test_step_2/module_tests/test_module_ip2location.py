@@ -6,7 +6,7 @@ class TestIP2Location(ModuleTestBase):
     config_overrides = {"modules": {"ip2location": {"api_key": "asdf"}}}
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="http://api.ip2location.io/?key=asdf&ip=8.8.8.8&format=json&source=bbot",
             json={
                 "ip": "8.8.8.8",

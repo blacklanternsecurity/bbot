@@ -15,10 +15,21 @@ import tracemalloc
 import importlib.util
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
+import psutil
+
 from bbot.scanner import Scanner
+from bbot.test.benchmarks._memory_helpers import (
+    LiveEventTracker,
+    RSSSampler,
+    event_census,
+    lineage_census,
+    queue_residence,
+    emit_metrics_json,
+)
 
 NUM_PAGES = int(sys.argv[1])
 BODY_SIZE = int(sys.argv[2])
+CHECKPOINT_EVERY = 200  # mid-scan census cadence (events seen)
 
 HTTP_MODULE = "httpx" if importlib.util.find_spec("bbot.modules.httpx") else "http"
 
@@ -73,14 +84,48 @@ async def run():
     gc.collect()
     if tracemalloc.is_tracing():
         tracemalloc.stop()
+
+    tracker = LiveEventTracker()
+    tracker.install()
+    sampler = RSSSampler(interval_s=0.2)
+    sampler.start()
     tracemalloc.start()
-    events = []
+
+    # Count emitted events without holding strong refs. Holding them in a
+    # list would inflate live-event counts artificially — production
+    # callers iterate and discard.
+    events_seen = 0
+    checkpoints = []
+    proc = psutil.Process()
     async for event in scan.async_start():
-        events.append(event)
+        del event
+        events_seen += 1
+        if events_seen % CHECKPOINT_EVERY == 0:
+            checkpoints.append(
+                {
+                    "events_seen": events_seen,
+                    "rss_mb": round(proc.memory_info().rss / 1024 / 1024, 2),
+                    **tracker.census(),
+                    "residence": queue_residence(scan, tracker),
+                }
+            )
+
+    sampler.stop()
+    _, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+
+    emit_metrics_json(
+        peak_tracemalloc_mb=round(peak / 1024 / 1024, 2),
+        num_pages=NUM_PAGES,
+        body_size=BODY_SIZE,
+        events_collected=events_seen,
+        rss=sampler.metrics(),
+        census=event_census(),
+        lineage=lineage_census(),
+        end_residence=queue_residence(scan, tracker),
+        checkpoints=checkpoints,
+    )
 
 
 asyncio.run(run())
-_, peak = tracemalloc.get_traced_memory()
-tracemalloc.stop()
 server.shutdown()
-print(f"PEAK_MB:{round(peak / 1024 / 1024, 2)}")

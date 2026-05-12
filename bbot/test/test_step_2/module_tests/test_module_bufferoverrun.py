@@ -6,7 +6,7 @@ class TestBufferOverrun(ModuleTestBase):
 
     async def setup_before_prep(self, module_test):
         # Mock response for non-commercial API
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://tls.bufferover.run/dns?q=.blacklanternsecurity.com",
             match_headers={"x-api-key": "asdf"},
             json={"Results": ["1.2.3.4,example.com,*,*,sub.blacklanternsecurity.com"]},
@@ -23,7 +23,7 @@ class TestBufferOverrunCommercial(ModuleTestBase):
 
     async def setup_before_prep(self, module_test):
         # Mock response for commercial API
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://bufferover-run-tls.p.rapidapi.com/ipv4/dns?q=.blacklanternsecurity.com",
             match_headers={"x-rapidapi-host": "bufferover-run-tls.p.rapidapi.com", "x-rapidapi-key": "asdf"},
             json={"Results": ["5.6.7.8,blacklanternsecurity.com,*,*,sub.blacklanternsecurity.com"]},

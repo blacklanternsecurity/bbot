@@ -176,19 +176,32 @@ class TestSubdomainEnumWildcardDefense(TestSubdomainEnumWildcardBaseline):
     dedup_strategy = "highest_parent"
 
     dns_mock_data = {
-        "walmart.cn": {"A": ["127.0.0.2"], "TXT": ["asdf.walmart.cn"]},
+        "walmart.cn": {"A": ["127.0.0.2"], "TXT": ['"asdf.walmart.cn"']},
+        # wildcard: every *.walmart.cn resolves to an A record
+        r"regex:.*\.walmart\.cn$": {"A": ["127.0.0.99"]},
     }
 
     async def setup_after_prep(self, module_test):
-        # simulate wildcard
-        custom_lookup = """
-def custom_lookup(query, rdtype):
-    import random
-    if rdtype == "A" and query.endswith(".walmart.cn"):
-        ip = ".".join([str(random.randint(0,256)) for _ in range(4)])
-        return {ip}
-"""
-        await module_test.mock_dns(self.dns_mock_data, custom_lookup_fn=custom_lookup)
+        import random
+
+        await module_test.mock_dns(self.dns_mock_data)
+
+        # Simulate walmart.cn's real-world behavior: random subdomains each
+        # resolve to a *different* IP, so wildcard detection flags it as
+        # POSSIBLE rather than TRUE. We monkey-patch _is_wildcard_zone to
+        # return random IPs in its result set, mimicking the inconsistency.
+        _original = module_test.scan.helpers.dns._is_wildcard_zone
+
+        async def _random_wildcard_zone(host, rdtype):
+            results, results_raw = await _original(host, rdtype)
+            if results and host.endswith("walmart.cn"):
+                # Replace the consistent mock IPs with random ones so the
+                # wildcard detector sees them as POSSIBLE, not TRUE.
+                results = {".".join(str(random.randint(1, 254)) for _ in range(4)) for _ in range(5)}
+                results_raw = {str(ip) for ip in results}
+            return results, results_raw
+
+        module_test.scan.helpers.dns._is_wildcard_zone = _random_wildcard_zone
 
     def check(self, module_test, events):
         # no subdomain enum should happen on this domain!
@@ -224,6 +237,6 @@ def custom_lookup(query, rdtype):
                 e
                 for e in events
                 if e.type == "RAW_DNS_RECORD"
-                and e.data == {"host": "walmart.cn", "type": "TXT", "answer": '"asdf.walmart.cn"'}
+                and e.data == {"host": "walmart.cn", "type": "TXT", "answer": "asdf.walmart.cn"}
             ]
         )

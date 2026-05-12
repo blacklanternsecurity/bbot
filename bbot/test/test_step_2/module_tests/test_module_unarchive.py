@@ -8,7 +8,7 @@ from ...bbot_fixtures import *
 
 class TestUnarchive(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["filedownload", "httpx", "excavate", "speculate", "unarchive"]
+    modules_overrides = ["filedownload", "http", "excavate", "speculate", "unarchive"]
     config_overrides = {
         "modules": {
             "filedownload": {
