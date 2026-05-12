@@ -34,9 +34,7 @@ class HttpCompare:
         self.headers = headers
         self.cookies = cookies
         self.timeout = 10
-        # Optional async callback fired once after baseline_1 is established.
-        # Receives the baseline_1 response and the bound request_params. Used by
-        # lightfuzz to emit HTTP_RESPONSE events from canonical baseline pages.
+        # Optional async callback fired once with baseline_1 after the baseline is established.
         self.on_baseline_ready = on_baseline_ready
 
     @staticmethod

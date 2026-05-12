@@ -56,31 +56,15 @@ class lightfuzz(BaseModule):
         self.avoid_wafs = self.scan.config.get("avoid_wafs", True)
         self.emit_baseline_responses = self.config.get("emit_baseline_responses", True)
         self.submodules = {}
-        # Per-WEB_PARAMETER baseline cache: {event.id: {request_sig: HttpCompare}}.
-        # Identical baselines across submodules (sqli, cmdi, path on a POSTPARAM
-        # with no envelopes) share one HttpCompare — and therefore one network
-        # baseline pair and one HTTP_RESPONSE emission. Cleared at end of handle_event.
+        # Per-event baseline cache so submodules with identical request signatures share one HttpCompare.
         self._baseline_cache = {}
 
-        # Cross-event cache for baseline_probe responses keyed on request signature.
-        # Each WEB_PARAMETER triggers its own baseline_probe; sibling fields of the
-        # same form produce identical request bodies (the data dict has the same
-        # keys+values regardless of which one is the "primary"), so without sharing
-        # we'd fire N identical requests per N-field form. Bounded LRU-by-insertion
-        # to keep long scans from accumulating responses.
+        # Cross-event baseline_probe response cache: sibling fields of the same form produce identical requests.
         self._baseline_probe_response_cache = {}
         self._baseline_probe_response_cache_max = 200
 
-        # Cross-event cache for connectivity_test responses keyed on prime_url.
-        # Every WEB_PARAMETER's handle_event fires a connectivity GET against
-        # prime_url to refresh assigned_cookies; with _module_threads > 1, the
-        # five-or-so WEB_PARAMETERs excavate emits per page (csrf, custom header,
-        # Set-Cookie) all race their GETs against the same host page. Servers
-        # that cycle a session/CSRF token on each GET hand each racer a distinct
-        # token, then every subsequent POST lands with a stale cookie.
-        # NamedLock per prime_url serializes concurrent handle_events for the
-        # same URL: first caller fires the GET and caches the response, the
-        # rest acquire the released lock and return the cached response.
+        # Per-URL lock + cache so concurrent WEB_PARAMETERs for the same page share one connectivity GET
+        # (servers that cycle session/CSRF tokens hand each racer a different token otherwise).
         self._connectivity_test_cache = {}
         self._connectivity_test_locks = NamedLock(max_size=200)
 
@@ -151,11 +135,7 @@ class lightfuzz(BaseModule):
                 self.debug("skipping result because subdomain tag was missing")
 
     async def _connectivity_test(self, prime_url):
-        """Fire (or share) a connectivity GET against ``prime_url`` to refresh
-        cookies/CSRF state, returning the response. Concurrent handle_events
-        for the same prime_url serialize through a per-URL lock: the first
-        caller fires the GET and caches the response; subsequent callers
-        acquire the released lock and read the cached value back."""
+        """Fire (or share) a connectivity GET against ``prime_url``; concurrent callers share one response."""
         cache = self._connectivity_test_cache
         if prime_url in cache:
             return cache[prime_url]
@@ -196,12 +176,7 @@ class lightfuzz(BaseModule):
         self._baseline_cache.setdefault(event.id, {})[signature] = http_compare
 
     async def emit_baseline_response(self, response, event, method):
-        """Emit a baseline blasthttp Response as an HTTP_RESPONSE event with `event` as parent.
-
-        Excavate consumes the resulting event and can discover new URLs/params
-        rendered only by the canonical POST/GET (forms behind a submit, redirect
-        targets, confirmation pages).
-        """
+        """Emit a baseline blasthttp Response as an HTTP_RESPONSE event so excavate can mine post-submit pages."""
         if not self.emit_baseline_responses:
             return
         if response is None:
@@ -222,9 +197,6 @@ class lightfuzz(BaseModule):
         )
 
     def _outgoing_dedup_hash(self, event):
-        # FINDING events use a rich dedup key; other event types (e.g. HTTP_RESPONSE,
-        # which has no "description") fall through to a sensible default keyed on
-        # url + method so identical baselines never re-emit.
         if event.type == "FINDING":
             return hash(
                 (
@@ -236,8 +208,7 @@ class lightfuzz(BaseModule):
                     event.data.get("name", ""),
                 )
             )
-        # HTTP_RESPONSE and friends: include body hash in dedup so Probe A and
-        # Probe B emissions (same method+url, distinct bodies) both surface.
+        # Include body hash so dual baselines (same method+url, distinct bodies) both surface.
         body_hash = ""
         if isinstance(event.data, dict):
             response_hash = event.data.get("hash") or {}
@@ -300,24 +271,14 @@ class lightfuzz(BaseModule):
                 await self.emit_event(data, "WEB_PARAMETER", event)
 
         elif event.type == "WEB_PARAMETER":
-            # Prime against the form's host page when distinct from the action URL.
-            # Browsers GET the host page first (seeding session cookies, CSRF tokens,
-            # any required server-side bootstrap state) and then POST to the action.
-            # When excavate stamps host_url on a form-derived WEB_PARAMETER, we mirror
-            # that flow: the connectivity GET hits host_url, fresh cookies merge into
-            # assigned_cookies, and the baseline POST goes to event.url. Falls back
-            # to event.url for non-form params or self-posting forms.
+            # Mirror browser flow: GET the form's host page first to seed cookies/CSRF, then POST to action.
             host_url = event.data.get("host_url") if isinstance(event.data, dict) else None
             prime_url = host_url if host_url and host_url != event.url else event.url
             connectivity_test = await self._connectivity_test(prime_url)
 
             if connectivity_test:
-                # Refresh assigned_cookies from the connectivity GET. The cookies excavate
-                # originally captured may be stale by the time we fuzz (cycled tokens,
-                # expired sessions); the connectivity probe just hit the server, so its
-                # Set-Cookie response is the freshest state we can get without an extra
-                # request. Fresh values win on conflict; cookies the GET didn't re-issue
-                # (e.g. an auth cookie originally seen elsewhere) are preserved.
+                # Merge fresh Set-Cookie values from the connectivity GET into assigned_cookies.
+                # Cookies the GET didn't re-issue (e.g. an unrelated auth cookie) are preserved.
                 fresh_cookies = dict(getattr(connectivity_test, "cookies", {}) or {})
                 if fresh_cookies:
                     merged = dict(event.data.get("assigned_cookies") or {})
@@ -327,12 +288,8 @@ class lightfuzz(BaseModule):
                 try:
                     original_type = event.data["type"]
 
-                    # Fire the canonical baseline form submission once per WEB_PARAMETER,
-                    # at the module level, independent of which submodules are enabled.
-                    # Excavate mines whichever response(s) carry useful page content
-                    # (filter-style vs search-style forms differ in which probe produces
-                    # content). The response cache means any later submodule baseline_probe
-                    # call (e.g. from crypto) is a no-op for the same signature.
+                    # Fire the canonical baseline once per WEB_PARAMETER so excavate can mine the
+                    # post-submit page; later submodule baseline_probes hit the response cache.
                     if self.emit_baseline_responses:
                         from bbot.modules.lightfuzz.submodules.base import BaseLightfuzz
 

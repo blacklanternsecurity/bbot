@@ -7,11 +7,7 @@ from urllib.parse import quote
 class BaseLightfuzz:
     friendly_name = ""
     uses_interactsh = False
-    # When True, this submodule operates at the wire-format level and does
-    # NOT want the envelope system to unwrap incoming probe values or pack
-    # outgoing ones. Used by submodules whose payloads ARE the transport
-    # encoding (e.g. `serial`, whose base64/hex/PHP-raw payloads are already
-    # the exact bytes the server should receive).
+    # True for submodules whose payloads ARE the wire format (e.g. `serial`) — skip envelope wrapping.
     skip_envelopes = False
 
     def __init__(self, lightfuzz, event):
@@ -122,12 +118,8 @@ class BaseLightfuzz:
             parameter_name = self.parameter_name
         additional_params = self.additional_params_process(additional_params, additional_params_populate_empty)
 
-        # Normalize None values to "" at the wire boundary. Excavate intentionally
-        # distinguishes `original_value=None` ("<input> had no value attribute") from
-        # `original_value=""` ("<input value=''>") in the event metadata, but the
-        # wire serialization is identical for both — browsers submit them as `name=`.
-        # Python's urlencode renders None as the literal text "None", which targets
-        # then reject as malformed input.
+        # Coerce None → "" at the wire boundary (excavate preserves the None/"" distinction
+        # in metadata, but browsers serialize both as `name=`; urlencode renders None as "None").
         if additional_params:
             additional_params = {k: ("" if v is None else v) for k, v in additional_params.items()}
         if probe is None:
@@ -183,10 +175,8 @@ class BaseLightfuzz:
         else:
             return None
 
-        # Stamp Referer matching what a browser would have sent: the URL of the page
-        # the form was discovered on. Only set when excavate marked the parameter as
-        # coming from a form whose host page is distinct from the action URL — apps
-        # that validate Referer for CSRF-like patterns reject POSTs without it.
+        # Stamp Referer to the form's host page (when distinct from action) — some apps
+        # validate Referer for CSRF-like patterns and reject POSTs without it.
         host_url = self.event.data.get("host_url") if isinstance(self.event.data, dict) else None
         if host_url:
             request_params.setdefault("headers", {})
@@ -206,21 +196,9 @@ class BaseLightfuzz:
         parameter_name_suffix_additional_params="",
         emit_http_response=True,
     ):
-        """
-        Compares the baseline using prepared request parameters.
-
-        Shares one HttpCompare across submodules whose baselines collapse to the
-        same request signature (URL + method + body + cookies + headers). The
-        first call for a given (event, signature) creates the HttpCompare and
-        registers a one-shot callback that emits the canonical baseline response
-        as an HTTP_RESPONSE event (when ``emit_http_response`` is true). Later
-        callers with the same signature reuse the cached HttpCompare — no extra
-        baseline pair, no duplicate emission.
-
-        ``emit_http_response=False`` suppresses HTTP_RESPONSE emission for
-        confirmation rounds and FP-killer baselines whose responses are not
-        useful page renderings.
-        """
+        """Return an HttpCompare for the given request signature, sharing the instance with
+        any prior caller with the same signature. Emits one HTTP_RESPONSE per unique baseline
+        (set ``emit_http_response=False`` for confirmation/FP-killer baselines)."""
         additional_params = copy.deepcopy(self.event.data.get("additional_params", {}))
 
         if additional_params and parameter_name_suffix_additional_params:
@@ -260,35 +238,13 @@ class BaseLightfuzz:
         return http_compare
 
     async def baseline_probe(self, cookies, emit_http_response=True):
-        """
-        Executes the canonical baseline probe(s) by submitting the form the
-        way a browser would: POSTs carry the parameter's ``original_value``
-        plus every sibling field from ``additional_params``; GETs carry them
-        in the querystring; headers/cookies inject them on the wire. Uses
-        ``prepare_request()`` so the request shape matches what
-        ``compare_baseline`` would build.
+        """Submit the canonical baseline the way a browser would, returning Probe A's response.
 
-        Fires up to two requests per call:
-
-        * **Probe A — form as captured.** Filter-style forms whose "show
-          all results" state is the no-narrowing default produce content
-          here. This is the only baseline returned to the caller.
-
-        * **Probe B — this field populated with ``"a"``.** Fired only when
-          the fuzzed parameter's ``original_value`` is ``None`` or ``""``
-          (i.e. the field had no captured default — typically a free-text
-          search input). Catches search-style forms whose useful content
-          appears only when the primary text input is non-empty. Skipped
-          entirely when the field already has a meaningful default.
-
-        Both probes go through ``emit_baseline_response`` so excavate can
-        re-mine either populated page. Whichever probe got content wins via
-        the response itself — no classifier picks between them.
-
-        Responses are cached on the parent ``lightfuzz`` module by request
-        signature: identical Probe A bodies across siblings of the same form
-        (data dict identical regardless of which field is the "primary")
-        collapse to one network request and one emission.
+        Probe A: form as captured (``original_value`` + sibling ``additional_params``).
+        Probe B: this field populated as ``"a"`` — only fired when ``original_value`` is None/"".
+        Catches search-style forms whose content only appears when the primary input is non-empty.
+        Both responses are emitted as HTTP_RESPONSE; responses are cached per request signature
+        so form siblings share one network request.
         """
         additional_params = copy.deepcopy(self.event.data.get("additional_params", {}))
         probe_value_a = self.incoming_probe_value(populate_empty=False)

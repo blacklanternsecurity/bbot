@@ -1,12 +1,7 @@
 """Build HTTP_RESPONSE event data dicts from blasthttp.Response objects.
 
-Shared between the `http` module (every probed URL) and `lightfuzz` (baseline
-responses worth re-mining). Keeping the shape in one place ensures excavate sees
-a consistent HTTP_RESPONSE format regardless of which module produced it.
-
-Materializes hash and cert_info at call time — only run this when about to
-emit an HTTP_RESPONSE event so the laziness of the underlying blasthttp.Response
-is preserved for all other code paths.
+Materializes hash and cert_info eagerly, so only call when about to emit an
+HTTP_RESPONSE event (otherwise blasthttp.Response stays lazy).
 """
 
 import re

@@ -217,16 +217,11 @@ class http(BaseModule):
             )
             configs.append(config)
 
-        # Suppress redundant https probes when http already succeeded for the same
-        # (host, port). When probing an unknown port, we try both schemes; if http
-        # works, the port definitely speaks HTTP, and the https result is likely a
-        # proxy artifact (intercepting proxies like Burp terminate TLS themselves,
-        # making any https:// URL "succeed" regardless of whether the target really
-        # speaks TLS). Explicit URL/URL_UNVERIFIED events are never suppressed —
-        # only speculative OPEN_TCP_PORT probes.
-        #
-        # Streaming requires per-pair coordination: emit http immediately, defer
-        # https until http's outcome is known (or the stream ends).
+        # Suppress redundant https probes when http already succeeded for the same (host, port) —
+        # intercepting proxies (Burp etc.) terminate TLS themselves, making any https:// "succeed"
+        # regardless of real TLS support. Only applies to speculative OPEN_TCP_PORT probes;
+        # explicit URL/URL_UNVERIFIED events are never suppressed.
+        # Streaming requires per-pair coordination: emit http immediately, defer https until http's outcome is known.
         http_succeeded = {}  # key -> bool, set when http result arrives
         deferred_https = {}  # key -> result, awaiting http verdict
 
