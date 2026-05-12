@@ -1,9 +1,8 @@
-import ipaddress
 import regex as re
 from functools import cached_property
 from bbot.errors import ValidationError
 from bbot.core.helpers import validators
-from bbot.core.helpers.misc import split_host_port, make_ip_type
+from bbot.core.helpers.misc import split_host_port, make_ip_type, cached_ip_address, cached_ip_network
 from bbot.core.helpers import regexes, smart_decode, smart_encode_punycode
 
 bbot_event_seeds = {}
@@ -151,13 +150,13 @@ class IP_ADDRESS(BaseEventSeed):
     @staticmethod
     def precheck(data):
         try:
-            return ipaddress.ip_address(data)
+            return cached_ip_address(data)
         except ValueError:
             return False
 
     @staticmethod
     def _sanitize_and_extract_host(data):
-        validated = ipaddress.ip_address(data)
+        validated = cached_ip_address(data)
         return str(validated), validated, None
 
 
@@ -176,13 +175,13 @@ class IP_RANGE(BaseEventSeed):
     @staticmethod
     def precheck(data):
         try:
-            return ipaddress.ip_network(str(data), strict=False)
+            return cached_ip_network(str(data))
         except ValueError:
             return False
 
     @staticmethod
     def _sanitize_and_extract_host(data):
-        validated = ipaddress.ip_network(str(data), strict=False)
+        validated = cached_ip_network(str(data))
         return str(validated), validated, None
 
 

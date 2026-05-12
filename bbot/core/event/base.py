@@ -35,6 +35,7 @@ from bbot.core.helpers import (
     domain_stem,
     make_netloc,
     make_ip_type,
+    cached_ip_address,
     recursive_decode,
     sha1,
     smart_decode,
@@ -1207,7 +1208,7 @@ class CODE_REPOSITORY(DictHostEvent):
 class IP_ADDRESS(BaseEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        ip = ipaddress.ip_address(self.data)
+        ip = cached_ip_address(self.data)
         self.add_tag(f"ipv{ip.version}")
         if ip.is_private:
             self.add_tag("private-ip")
@@ -1217,7 +1218,7 @@ class IP_ADDRESS(BaseEvent):
         return validators.validate_host(data)
 
     def _host(self):
-        return ipaddress.ip_address(self.data)
+        return cached_ip_address(self.data)
 
 
 class DnsEvent(BaseEvent):

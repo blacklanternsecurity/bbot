@@ -1,10 +1,10 @@
 import sys
-import ipaddress
 from contextlib import suppress
 
 from blastdns import DNSResult
 
 from bbot.errors import ValidationError
+from bbot.core.helpers.misc import cached_ip_address
 from bbot.core.helpers.dns.helpers import all_rdtypes, extract_targets, record_to_text
 from bbot.modules.base import BaseInterceptModule, BaseModule
 
@@ -297,7 +297,7 @@ class DNSResolve(BaseInterceptModule):
                         event.dns_children[_rdtype] = {host}
                     # check for private IPs
                     try:
-                        ip = ipaddress.ip_address(host)
+                        ip = cached_ip_address(host)
                         if ip.is_private:
                             event.add_tag("private-ip")
                     except ValueError:
