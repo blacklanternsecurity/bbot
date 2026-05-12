@@ -96,10 +96,9 @@ class ntlm(BaseModule):
                 urls.add(f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/{endpoint}")
 
         num_urls = len(urls)
-        results = await self.helpers.request_batch(
+        async for url, response in self.helpers.request_batch_stream(
             urls, headers=NTLM_test_header, allow_redirects=False, timeout=self.http_timeout
-        )
-        for url, response in results:
+        ):
             ntlm_resp = response.headers.get("WWW-Authenticate", "")
             if not ntlm_resp:
                 continue

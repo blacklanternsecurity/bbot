@@ -3,11 +3,11 @@ from .base import ModuleTestBase, tempwordlist
 
 class TestWebBruteShortnames(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    module_name = "web_brute_shortnames"
+    module_name = "webbrute_shortnames"
     test_wordlist = ["11111111", "administrator", "portal", "console", "junkword1", "zzzjunkword2", "directory"]
     config_overrides = {
         "modules": {
-            "web_brute_shortnames": {
+            "webbrute_shortnames": {
                 "find_common_prefixes": True,
                 "find_subwords": True,
                 "wordlist": tempwordlist(test_wordlist),
@@ -15,7 +15,7 @@ class TestWebBruteShortnames(ModuleTestBase):
             }
         }
     }
-    modules_overrides = ["web_brute_shortnames", "http"]
+    modules_overrides = ["webbrute_shortnames", "http"]
 
     async def setup_after_prep(self, module_test):
         module_test.httpserver.no_handler_status_code = 404

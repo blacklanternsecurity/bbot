@@ -132,10 +132,11 @@ def blasthttp_mock():
             return result
         return await original_request(self, *args, **kwargs)
 
-    original_request_batch = WebHelper.request_batch
+    original_request_batch_stream = WebHelper.request_batch_stream
 
-    async def patched_request_batch(self, urls, threads=10, **kwargs):
+    async def patched_request_batch_stream(self, urls, threads=10, **kwargs):
         import blasthttp
+        from collections import deque
 
         # Run the real entry-parsing and config-building logic unmodified
         entries = []
@@ -154,38 +155,30 @@ def blasthttp_mock():
                 entries.append((str(entry), kwargs, None))
 
         if not entries:
-            return []
+            return
 
         configs = []
-        trackers = []
+        trackers_by_url = {}
         for url, req_kwargs, tracker in entries:
             url, method, blast_kwargs = self._build_blasthttp_kwargs(url, **req_kwargs)
             config = blasthttp.BatchConfig(url, **blast_kwargs)
             configs.append(config)
-            trackers.append(tracker)
+            trackers_by_url.setdefault(config.url, deque()).append(tracker)
 
-        # Route through mock's batch handler instead of Rust client directly
-        batch_results = await mock.handle_batch(self.client, configs, concurrency=threads)
-
-        from bbot.core.helpers.web.blast_response import BlasthttpResponse
-
-        results = []
-        for i, br in enumerate(batch_results):
-            if br.response is not None:
-                response = BlasthttpResponse(br.response, request_url=br.url, method="GET")
-            else:
-                response = None
+        async for br in mock.handle_batch_stream(self.client, configs, concurrency=threads):
+            response = br.response  # blasthttp.Response or None
             if has_tracker:
-                results.append((br.url, response, trackers[i]))
+                queue = trackers_by_url.get(br.url)
+                tracker = queue.popleft() if queue else None
+                yield br.url, response, tracker
             else:
-                results.append((br.url, response))
-        return results
+                yield br.url, response
 
     WebHelper.request = patched_request
-    WebHelper.request_batch = patched_request_batch
+    WebHelper.request_batch_stream = patched_request_batch_stream
     yield mock
     WebHelper.request = original_request
-    WebHelper.request_batch = original_request_batch
+    WebHelper.request_batch_stream = original_request_batch_stream
 
 
 @pytest.fixture
