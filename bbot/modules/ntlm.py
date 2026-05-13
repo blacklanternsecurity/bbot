@@ -98,10 +98,9 @@ class ntlm(BaseModule):
                 urls.add(f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/{endpoint}")
 
         num_urls = len(urls)
-        agen = self.helpers.request_batch(
+        async for url, response in self.helpers.request_batch_stream(
             urls, headers=NTLM_test_header, allow_redirects=False, timeout=self.http_timeout
-        )
-        async for url, response in agen:
+        ):
             ntlm_resp = response.headers.get("WWW-Authenticate", "")
             if not ntlm_resp:
                 continue
@@ -111,7 +110,6 @@ class ntlm(BaseModule):
                 if not ntlm_resp_decoded:
                     continue
 
-                await agen.aclose()
                 self.found.add(found_hash)
                 fqdn = ntlm_resp_decoded.get("FQDN", "")
                 await self.emit_event(

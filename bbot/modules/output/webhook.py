@@ -3,10 +3,10 @@ from bbot.modules.output.base import BaseOutputModule
 from bbot.core.config.models import BaseModuleConfig, Field
 
 
-class HTTP(BaseOutputModule):
+class webhook(BaseOutputModule):
     watched_events = ["*"]
     meta = {
-        "description": "Send every event to a custom URL via a web request",
+        "description": "Send every event to a custom URL via a webhook",
         "created_date": "2022-04-13",
         "author": "@TheTechromancer",
     }

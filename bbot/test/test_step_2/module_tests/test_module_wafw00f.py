@@ -5,7 +5,7 @@ from werkzeug.wrappers import Response
 
 class TestWafw00f(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "wafw00f"]
+    modules_overrides = ["http", "wafw00f"]
 
     async def setup_after_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/"}
@@ -18,7 +18,7 @@ class TestWafw00f(ModuleTestBase):
 
 class TestWafw00f_noredirect(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "wafw00f"]
+    modules_overrides = ["http", "wafw00f"]
 
     async def setup_after_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/"}
@@ -34,7 +34,7 @@ class TestWafw00f_noredirect(ModuleTestBase):
 
 class TestWafw00f_genericdetection(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "wafw00f"]
+    modules_overrides = ["http", "wafw00f"]
 
     async def setup_after_prep(self, module_test):
         def handler(request):

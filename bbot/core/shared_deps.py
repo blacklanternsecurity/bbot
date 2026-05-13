@@ -1,15 +1,3 @@
-DEP_FFUF = [
-    {
-        "name": "Download ffuf",
-        "unarchive": {
-            "src": "https://github.com/ffuf/ffuf/releases/download/v#{BBOT_DEPS_FFUF_VERSION}/ffuf_#{BBOT_DEPS_FFUF_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH_GOLANG}.tar.gz",
-            "include": "ffuf",
-            "dest": "#{BBOT_TOOLS}",
-            "remote_src": True,
-        },
-    }
-]
-
 DEP_DOCKER = [
     {
         "name": "Check if Docker is already installed",
@@ -244,7 +232,7 @@ DEP_JAVA = [
     },
 ]
 
-# shared module dependencies -- ffuf, massdns, chromium, etc.
+# shared module dependencies -- massdns, chromium, etc.
 SHARED_DEPS = {}
 for var, val in list(locals().items()):
     if var.startswith("DEP_") and isinstance(val, list):

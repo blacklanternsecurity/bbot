@@ -5,7 +5,7 @@ from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class web_report(BaseOutputModule):
-    watched_events = ["URL", "TECHNOLOGY", "FINDING", "VHOST"]
+    watched_events = ["URL", "TECHNOLOGY", "FINDING"]
     meta = {
         "description": "Create a markdown report with web assets",
         "created_date": "2023-02-08",

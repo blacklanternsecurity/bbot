@@ -99,7 +99,7 @@ def helpers(scan):
     return scan.helpers
 
 
-httpx_response = {
+blasthttp_response = {
     "timestamp": "2022-11-14T12:14:27.377566416-05:00",
     "hash": {
         "body_md5": "84238dfc8092e5d9c0dac8ef93371a07",
@@ -224,7 +224,9 @@ def events(scan):
             parent=scan.root_event,
             module=dummy_module,
         )
-        http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", parent=scan.root_event, module=dummy_module)
+        http_response = scan.make_event(
+            blasthttp_response, "HTTP_RESPONSE", parent=scan.root_event, module=dummy_module
+        )
         storage_bucket = scan.make_event(
             {"name": "storage", "url": "https://storage.blob.core.windows.net"},
             "STORAGE_BUCKET",

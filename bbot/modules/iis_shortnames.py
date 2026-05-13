@@ -35,7 +35,7 @@ class iis_shortnames(BaseModule):
 
     in_scope_only = True
 
-    _module_threads = 8
+    _module_threads = 4
 
     # Gateway error codes from reverse proxies / CDNs — not IIS shortname signals
     gateway_error_codes = {502, 503, 504}
@@ -147,7 +147,7 @@ class iis_shortnames(BaseModule):
                 url = f"{target}{payload}{suffix}"
                 urls_and_kwargs.append((url, kwargs, (c, file_part)))
 
-        async for url, kwargs, (c, file_part), response in self.helpers.request_custom_batch(urls_and_kwargs):
+        async for url, response, (c, file_part) in self.helpers.request_batch_stream(urls_and_kwargs):
             if response is not None:
                 if response.status_code == affirmative_status_code:
                     if file_part == "stem":
@@ -188,7 +188,7 @@ class iis_shortnames(BaseModule):
             kwargs = {"method": method}
             urls_and_kwargs.append((url, kwargs, c))
 
-        async for url, kwargs, c, response in self.helpers.request_custom_batch(urls_and_kwargs):
+        async for url, response, c in self.helpers.request_batch_stream(urls_and_kwargs):
             if response is not None:
                 if response.status_code == affirmative_status_code:
                     found_results = True

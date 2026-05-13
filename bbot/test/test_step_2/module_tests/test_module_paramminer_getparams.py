@@ -2,7 +2,7 @@ from .test_module_paramminer_headers import Paramminer_Headers, tempwordlist, he
 
 
 class TestParamminer_Getparams(Paramminer_Headers):
-    modules_overrides = ["httpx", "paramminer_getparams"]
+    modules_overrides = ["http", "paramminer_getparams"]
     config_overrides = {"modules": {"paramminer_getparams": {"wordlist": tempwordlist(["canary", "id"])}}}
 
     getparam_body = """
@@ -116,7 +116,7 @@ class TestParamminer_Getparams_boring_on(TestParamminer_Getparams_boring_off):
 
 
 class TestParamminer_Getparams_finish(Paramminer_Headers):
-    modules_overrides = ["httpx", "excavate", "paramminer_getparams"]
+    modules_overrides = ["http", "excavate", "paramminer_getparams"]
     config_overrides = {
         "modules": {"paramminer_getparams": {"wordlist": tempwordlist(["canary", "canary2"]), "recycle_words": True}}
     }
@@ -192,7 +192,7 @@ class TestParamminer_Getparams_finish(Paramminer_Headers):
 
 class TestParamminer_Getparams_xmlspeculative(Paramminer_Headers):
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["httpx", "excavate", "paramminer_getparams"]
+    modules_overrides = ["http", "excavate", "paramminer_getparams"]
     config_overrides = {
         "modules": {
             "excavate": {"speculate_params": True},

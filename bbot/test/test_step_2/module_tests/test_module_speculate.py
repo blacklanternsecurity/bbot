@@ -3,7 +3,7 @@ from .base import ModuleTestBase
 
 class TestSpeculate_Subdirectories(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/subdir1/subdir2/"]
-    modules_overrides = ["httpx", "speculate"]
+    modules_overrides = ["http", "speculate"]
 
     async def setup_before_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/"}
@@ -35,6 +35,11 @@ class TestSpeculate_OpenPorts(ModuleTestBase):
             }
         )
 
+        module_test.blasthttp_mock.add_response(
+            url="https://api.certspotter.com/v1/issuances?domain=evilcorp.com&include_subdomains=true&expand=dns_names",
+            json=[{"dns_names": ["*.asdf.evilcorp.com"]}],
+        )
+
         from bbot.modules.base import BaseModule
 
         class DummyModule(BaseModule):
@@ -61,7 +66,7 @@ class TestSpeculate_OpenPorts(ModuleTestBase):
         speculate_module.emit_open_ports = True
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.certspotter.com/v1/issuances?domain=evilcorp.com&include_subdomains=true&expand=dns_names",
             json=[{"dns_names": ["*.asdf.evilcorp.com"]}],
         )

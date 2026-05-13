@@ -5,7 +5,7 @@ from .base import ModuleTestBase
 
 class TestIIS_Shortnames(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "iis_shortnames"]
+    modules_overrides = ["http", "iis_shortnames"]
     config_overrides = {"modules": {"iis_shortnames": {"detect_only": False}}}
 
     async def setup_after_prep(self, module_test):
@@ -110,7 +110,7 @@ class TestIIS_Shortnames_GatewayError(ModuleTestBase):
     """Negative test: server returns 502 gateway errors. Should NOT detect IIS shortnames."""
 
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "iis_shortnames"]
+    modules_overrides = ["http", "iis_shortnames"]
 
     async def setup_after_prep(self, module_test):
         module_test.httpserver.no_handler_status_code = 404

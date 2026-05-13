@@ -178,21 +178,6 @@ class BaseTarget:
     def __bool__(self):
         return bool(len(self._rt)) or bool(self.event_seeds)
 
-    def __getstate__(self):
-        return {
-            "event_seeds": self.event_seeds,
-            "strict_scope": self.strict_scope,
-            "acl_mode": self._rt._acl_mode,
-        }
-
-    def __setstate__(self, state):
-        self.strict_scope = state["strict_scope"]
-        self._rt = RadixTarget(strict_scope=state["strict_scope"], acl_mode=state["acl_mode"])
-        self.event_seeds = set()
-        for event_seed in state["event_seeds"]:
-            self.event_seeds.add(event_seed)
-            self._add(event_seed.host, data=event_seed)
-
     def __eq__(self, other):
         return self.hash == getattr(other, "hash", None)
 
@@ -268,10 +253,6 @@ class ScanBlacklist(ACLTarget):
     def __init__(self, *args, **kwargs):
         self.blacklist_regexes = set()
         super().__init__(*args, **kwargs)
-
-    def __setstate__(self, state):
-        self.blacklist_regexes = set()
-        super().__setstate__(state)
 
     def get(self, host, **kwargs):
         """

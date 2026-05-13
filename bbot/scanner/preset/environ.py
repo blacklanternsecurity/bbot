@@ -66,7 +66,7 @@ class BBOTEnviron:
     def flatten_config(self, config, base="bbot"):
         """
         Flatten a JSON-like config into a sequence of (KEY, value) env var pairs:
-            {"modules": {"httpx": {"timeout": 5}}} --> ("BBOT_MODULES_HTTPX_TIMEOUT", "5")
+            {"modules": {"http": {"threads": 10}}} --> ("BBOT_MODULES_HTTP_THREADS", "10")
 
         Lists are skipped (they don't translate cleanly to env var values).
         """

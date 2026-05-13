@@ -21,8 +21,8 @@ class TestBucket_Microsoft_NoDup(ModuleTestBase):
     module_name = "bucket_microsoft"
     config_overrides = {"cloudcheck": True}
 
-    async def setup_after_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+    async def setup_before_prep(self, module_test):
+        module_test.blasthttp_mock.add_response(
             url="https://tesla.blob.core.windows.net/tesla?restype=container",
             text="",
         )

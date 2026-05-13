@@ -20,7 +20,7 @@ class baddns_zone(baddns_module):
         )
 
     module_threads = 8
-    deps_pip = ["baddns~=2.1.0"]
+    deps_pip = ["baddns~=2.3.0"]
 
     def set_modules(self):
         self.enabled_submodules = ["NSEC", "zonetransfer"]

@@ -26,6 +26,8 @@ class social(BaseModule):
         "docker": (r"hub.docker.com/[ru]/([a-zA-Z0-9_-]+)", False),
         "huggingface": (r"huggingface.co/([a-zA-Z0-9_-]+)", False),
         "postman": (r"www.postman.com/([a-zA-Z0-9_-]+)", False),
+        # Linktree usernames are 3–30 chars of [a-z0-9._] (case-insensitive in URLs).
+        "linktree": (r"linktr\.ee/([a-zA-Z0-9._]{3,30})", False),
     }
 
     scope_distance_modifier = 1

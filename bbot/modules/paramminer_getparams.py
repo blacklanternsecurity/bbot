@@ -81,11 +81,8 @@ class paramminer_getparams(paramminer_headers):
             self.helpers.add_get_params(url, test_getparams).geturl(), check_reflection=(len(getparam_list) == 1)
         )
 
-    def gen_count_args(self, url):
-        getparam_count = 40
-        while 1:
-            if getparam_count < 0:
-                break
-            fake_getparams = {self.rand_string(14): self.rand_string(14) for _ in range(0, getparam_count)}
-            yield getparam_count, (self.helpers.add_get_params(url, fake_getparams).geturl(),), {}
-            getparam_count -= 5
+    max_count = 40
+
+    def build_count_test_request(self, url, count):
+        fake_getparams = {self.rand_string(14): self.rand_string(14) for _ in range(count)}
+        return (self.helpers.add_get_params(url, fake_getparams).geturl(),), {}

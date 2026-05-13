@@ -223,6 +223,12 @@ class portscan(BaseModule):
             context=f"{{module}} executed a {scan_type} scan against {parent_event.data} and found: {{event.type}}: {{event.pretty_string}}",
         )
 
+        # In ping_first mode, this event gets reused immediately in the SYN
+        # make_targets() call — before dnsresolve has populated it. Seed
+        # resolved_hosts from the parent so hostnames still correlate to IPs.
+        if parent_is_dns_name and parent_event._resolved_hosts:
+            event._resolved_hosts = set(parent_event._resolved_hosts)
+
         await self.emit_event(event)
         return event
 

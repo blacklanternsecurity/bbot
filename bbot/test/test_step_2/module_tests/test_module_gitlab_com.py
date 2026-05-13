@@ -3,11 +3,11 @@ from .base import ModuleTestBase
 
 class TestGitlab_Com(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["gitlab_com", "httpx", "social", "excavate"]
+    modules_overrides = ["gitlab_com", "http", "social", "excavate"]
 
     async def setup_before_prep(self, module_test):
         module_test.httpserver.expect_request("/").respond_with_data("<a href='https://gitlab.org/veilidgroup'/>")
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://gitlab.org/api/v4/groups/veilidgroup/projects?simple=true",
             json=[
                 {

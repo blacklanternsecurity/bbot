@@ -5,7 +5,7 @@ from .base import ModuleTestBase
 
 class TestGowitness(ModuleTestBase):
     targets = ["127.0.0.1:8888"]
-    modules_overrides = ["gowitness", "httpx", "social", "excavate"]
+    modules_overrides = ["gowitness", "http", "social", "excavate"]
     import shutil
     from pathlib import Path
 
@@ -143,7 +143,7 @@ class TestGowitness_MultiPort(ModuleTestBase):
     """
 
     targets = ["http://127.0.0.1:8888", "https://127.0.0.1:9999"]
-    modules_overrides = ["gowitness", "httpx"]
+    modules_overrides = ["gowitness", "http"]
 
     import shutil
 

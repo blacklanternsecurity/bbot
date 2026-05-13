@@ -45,7 +45,7 @@ The `csv` output module produces a CSV like this:
 | ---------- | ----------------------- | ---------- | ------------- | -------------- | -------------------------------------------------------------------------------------------------------- |
 | DNS_NAME   | evilcorp.com            | 1.2.3.4    | TARGET        | 0              | a-record,cdn-github,distance-0,domain,in-scope,mx-record,ns-record,resolved,soa-record,target,txt-record |
 | DNS_NAME   | www.evilcorp.com        | 2.3.4.5    | certspotter   | 0              | a-record,aaaa-record,cdn-github,cname-record,distance-0,in-scope,resolved,subdomain                      |
-| URL        | http://www.evilcorp.com | 2.3.4.5    | httpx         | 0              | a-record,aaaa-record,cdn-github,cname-record,distance-0,in-scope,resolved,subdomain                      |
+| URL        | http://www.evilcorp.com | 2.3.4.5    | http         | 0              | a-record,aaaa-record,cdn-github,cname-record,distance-0,in-scope,resolved,subdomain                      |
 | DNS_NAME   | admin.evilcorp.com      | 5.6.7.8    | otx           | 0              | a-record,aaaa-record,cloud-azure,cname-record,distance-0,in-scope,resolved,subdomain                     |
 
 ### JSON
@@ -128,21 +128,21 @@ config:
       min_severity: HIGH
 ```
 
-### HTTP
+### Webhook
 
-The `http` output module sends [events](events.md) in JSON format to a desired HTTP endpoint.
+The `webhook` output module sends [events](events.md) in JSON format to a desired HTTP endpoint.
 
 ```bash
 # POST scan results to localhost
-bbot -t evilcorp.com -om http -c modules.http.url=http://localhost:8000
+bbot -t evilcorp.com -om webhook -c modules.webhook.url=http://localhost:8000
 ```
 
 You can customize the HTTP method if needed. Authentication is also supported:
 
-```yaml title="http_preset.yml"
+```yaml title="webhook_preset.yml"
 config:
   modules:
-    http:
+    webhook:
       url: https://localhost:8000
       method: PUT
       # Authorization: Bearer
