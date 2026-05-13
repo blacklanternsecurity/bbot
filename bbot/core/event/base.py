@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Optional
 from zoneinfo import ZoneInfo
 from copy import copy, deepcopy
+from types import MappingProxyType
 from contextlib import suppress
 from radixtarget import RadixTarget
 from pydantic import BaseModel, field_validator
@@ -57,7 +58,7 @@ log = logging.getLogger("bbot.core.event")
 # container before mutating, so callers never see the singletons in a
 # mutable position.
 _EMPTY_FROZENSET: "frozenset[str]" = frozenset()
-_EMPTY_DICT: "dict" = {}
+_EMPTY_DICT = MappingProxyType({})
 
 
 class BaseEvent:
