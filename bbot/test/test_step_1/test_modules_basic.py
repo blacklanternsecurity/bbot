@@ -103,25 +103,6 @@ async def test_modules_basic_checks(events, blasthttp_mock):
     assert result is False
     assert reason == "its type is omitted in the config"
 
-    # graph-important omitted events should be accepted by output modules with _preserve_graph
-    # this prevents graph orphans when e.g. a JS URL (URL_UNVERIFIED, omitted) discovers a DNS_NAME
-    graph_output_module = BaseOutputModule(scan)
-    graph_output_module.watched_events = ["*"]
-    graph_output_module._preserve_graph = True
-    js_url = scan.make_event("http://evilcorp.com/app.js", "URL_UNVERIFIED", parent=scan.root_event)
-    js_url._omit = True
-    js_url._graph_important = True
-    result, reason = graph_output_module._event_precheck(js_url)
-    assert result is True, (
-        f"graph-important omitted event should be accepted by preserve_graph module, but got: {reason}"
-    )
-    # non-preserve_graph modules should still reject omitted events even if graph-important
-    non_graph_output_module = BaseOutputModule(scan)
-    non_graph_output_module.watched_events = ["*"]
-    non_graph_output_module._preserve_graph = False
-    result, reason = non_graph_output_module._event_precheck(js_url)
-    assert result is False, "graph-important omitted event should be rejected by non-preserve_graph module"
-
     # always_emit should bypass the internal check
     finding_data2 = {
         "host": "evilcorp.com",

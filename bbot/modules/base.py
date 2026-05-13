@@ -1569,7 +1569,7 @@ class BaseModule:
         return table
 
     def _is_graph_important(self, event):
-        return self.preserve_graph and getattr(event, "_graph_important", False)
+        return self.preserve_graph and getattr(event, "_graph_important", False) and not getattr(event, "_omit", False)
 
     @property
     def preserve_graph(self):
