@@ -15,7 +15,7 @@ class dnsbrute(subdomain_enum):
         "max_depth": 5,
     }
     options_desc = {
-        "wordlist": "Subdomain wordlist URL",
+        "wordlist": "Subdomain wordlist URL or file path. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
         "max_depth": "How many subdomains deep to brute force, i.e. 5.4.3.2.1.evilcorp.com",
     }
     deps_common = ["massdns"]
@@ -24,14 +24,23 @@ class dnsbrute(subdomain_enum):
     _qsize = 10000
 
     async def setup_deps(self):
-        self.subdomain_file = await self.helpers.wordlist(self.config.get("wordlist"))
+        wordlist = self.config.get("wordlist")
+        if isinstance(wordlist, str):
+            wordlist = [wordlist]
+        else:
+            wordlist = list(wordlist)
+        self.subdomain_files = []
+        for w in wordlist:
+            self.subdomain_files.append(await self.helpers.wordlist(w))
         # tell the dnsbrute helper to fetch the resolver file
         await self.helpers.dns.brute.resolver_file()
         return True
 
     async def setup(self):
         self.max_depth = max(1, self.config.get("max_depth", 5))
-        self.subdomain_list = set(self.helpers.read_file(self.subdomain_file))
+        self.subdomain_list = set()
+        for f in self.subdomain_files:
+            self.subdomain_list.update(self.helpers.read_file(f))
         self.wordlist_size = len(self.subdomain_list)
         return await super().setup()
 
