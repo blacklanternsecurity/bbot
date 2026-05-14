@@ -100,6 +100,7 @@ class WebHelper:
         headers = kwargs.pop("headers", None) or {}
         body = kwargs.pop("body", None)
         data = kwargs.pop("data", None)
+        files = kwargs.pop("files", None)
         json_body = kwargs.pop("json", None)
         timeout = kwargs.pop("timeout", self._http_timeout)
         follow_redirects = kwargs.pop("follow_redirects", None)
@@ -191,7 +192,9 @@ class WebHelper:
         }
 
         if body is not None:
-            blast_kwargs["body"] = str(body)
+            blast_kwargs["body"] = body if isinstance(body, (bytes, bytearray)) else str(body)
+        if files is not None:
+            blast_kwargs["files"] = files
         if follow_redirects is not None:
             blast_kwargs["follow_redirects"] = follow_redirects
         if max_redirects is not None:
@@ -253,8 +256,6 @@ class WebHelper:
         kwargs.pop("cache_for", None)
         kwargs.pop("client", None)
         kwargs.pop("stream", None)
-        if kwargs.pop("files", None) is not None:
-            log.warning("blasthttp does not support multipart file uploads (files= kwarg)")
 
         # allow vs follow
         allow_redirects = kwargs.pop("allow_redirects", None)
