@@ -1,6 +1,10 @@
+import asyncio
 import json
+import shutil
 import yaml
 from itertools import islice
+from pathlib import Path
+
 from bbot.modules.base import BaseModule
 
 
@@ -62,21 +66,17 @@ class nuclei(BaseModule):
     _batch_size = 200
 
     async def setup(self):
-        # attempt to update nuclei templates
         self.nuclei_templates_dir = self.helpers.tools_dir / "nuclei-templates"
-        self.info("Updating Nuclei templates")
-        update_results = await self.run_process(
-            ["nuclei", "-update-template-dir", self.nuclei_templates_dir, "-update-templates"]
-        )
-        if update_results.stderr:
-            if "Successfully downloaded nuclei-templates" in update_results.stderr:
-                self.success("Successfully updated nuclei templates")
-            elif "No new updates found for nuclei templates" in update_results.stderr:
-                self.info("Nuclei templates already up-to-date")
-            else:
-                self.warning(f"Failure while updating nuclei templates: {update_results.stderr}")
-        else:
-            self.warning("Error running nuclei template update command")
+        await self._update_templates()
+        # nuclei writes its version marker before the tarball finishes extracting,
+        # so a killed update can leave the marker pointing at an empty dir and
+        # every subsequent run reports "up-to-date." Verify and repair once.
+        if not self._templates_installed():
+            self.warning("Nuclei templates appear incomplete; wiping marker and re-downloading")
+            self._wipe_templates_state()
+            await self._update_templates()
+            if not self._templates_installed():
+                return False, "Failed to install nuclei templates after retry"
         self.proxy = self.scan.web_config.get("http_proxy", "")
         self.mode = self.config.get("mode", "severe").lower()
         self.ratelimit = int(self.config.get("ratelimit", 150))
@@ -316,6 +316,35 @@ class nuclei(BaseModule):
     async def cleanup(self):
         resume_file = self.helpers.current_dir / "resume.cfg"
         resume_file.unlink(missing_ok=True)
+
+    async def _update_templates(self):
+        self.info("Updating Nuclei templates")
+        # shield so an outer cancel can't kill the subprocess mid-extract and
+        # corrupt the templates dir
+        update_results = await asyncio.shield(
+            self.run_process(["nuclei", "-update-template-dir", self.nuclei_templates_dir, "-update-templates"])
+        )
+        if not update_results.stderr:
+            self.warning("Error running nuclei template update command")
+            return
+        if "Successfully downloaded nuclei-templates" in update_results.stderr:
+            self.success("Successfully updated nuclei templates")
+        elif "No new updates found for nuclei templates" in update_results.stderr:
+            self.info("Nuclei templates already up-to-date")
+        else:
+            self.warning(f"Failure while updating nuclei templates: {update_results.stderr}")
+
+    def _templates_installed(self):
+        http_dir = self.nuclei_templates_dir / "http"
+        return http_dir.is_dir() and any(http_dir.iterdir())
+
+    def _wipe_templates_state(self):
+        # nuclei keeps its version marker in ~/.config/nuclei separately from
+        # the templates dir; wipe both so the next update truly redownloads
+        marker = Path.home() / ".config" / "nuclei" / ".templates-config.json"
+        marker.unlink(missing_ok=True)
+        if self.nuclei_templates_dir.exists():
+            shutil.rmtree(self.nuclei_templates_dir, ignore_errors=True)
 
     async def filter_event(self, event):
         if self.config.get("directory_only", True):
