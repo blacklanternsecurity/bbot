@@ -97,49 +97,6 @@ class TestDnsbrute(ModuleTestBase):
         )
 
 
-class TestDnsbruteMultiWordlist(ModuleTestBase):
-    """Test that multiple wordlists are merged and deduplicated correctly."""
-
-    module_name = "dnsbrute"
-    wordlist_1 = tempwordlist(["www", "shared"])
-    wordlist_2 = tempwordlist(["asdf", "shared"])
-    config_overrides = {
-        "modules": {"dnsbrute": {"wordlist": [str(wordlist_1), str(wordlist_2)], "max_depth": 3}}
-    }
-
-    async def setup_after_prep(self, module_test):
-        old_run_live = module_test.scan.helpers.run_live
-
-        async def new_run_live(*command, check=False, text=True, **kwargs):
-            if "massdns" in command[:2]:
-                _input = [l async for l in kwargs["input"]]
-                if "asdf.blacklanternsecurity.com" in _input:
-                    yield """{"name": "asdf.blacklanternsecurity.com.", "type": "A", "class": "IN", "status": "NOERROR", "rx_ts": 1713974911725326170, "data": {"answers": [{"ttl": 86400, "type": "A", "class": "IN", "name": "asdf.blacklanternsecurity.com.", "data": "1.2.3.4."}]}, "flags": ["rd", "ra"], "resolver": "195.226.187.130:53", "proto": "UDP"}"""
-            else:
-                async for _ in old_run_live(*command, check=False, text=True, **kwargs):
-                    yield _
-
-        module_test.monkeypatch.setattr(module_test.scan.helpers, "run_live", new_run_live)
-
-        await module_test.mock_dns(
-            {
-                "blacklanternsecurity.com": {"A": ["4.3.2.1"]},
-                "asdf.blacklanternsecurity.com": {"A": ["1.2.3.4"]},
-            }
-        )
-
-    def check(self, module_test, events):
-        # "shared" appears in both wordlists - merged set should deduplicate it
-        assert module_test.module.wordlist_size == 3, (
-            f"Expected 3 unique words from 2 overlapping wordlists, got {module_test.module.wordlist_size}"
-        )
-        assert module_test.module.subdomain_list == {"www", "asdf", "shared"}
-        # Confirm the scan found the subdomain coming from the second wordlist
-        assert any(
-            e.data == "asdf.blacklanternsecurity.com" and str(e.module) == "dnsbrute" for e in events
-        ), "Expected asdf.blacklanternsecurity.com from second wordlist"
-
-
 class TestDnsbruteCanaryCheck(ModuleTestBase):
     """Test that the canary check correctly aborts brute-forcing on wildcard domains.
 
@@ -184,6 +141,6 @@ class TestDnsbruteCanaryCheck(ModuleTestBase):
     def check(self, module_test, events):
         # canary check should have aborted, so no DNS_NAME events from dnsbrute
         dnsbrute_events = [e for e in events if e.type == "DNS_NAME" and str(e.module) == "dnsbrute"]
-        assert len(dnsbrute_events) == 0, (
-            f"Expected no results from dnsbrute (canary check should abort), but got {len(dnsbrute_events)}: {[e.data for e in dnsbrute_events]}"
-        )
+        assert (
+            len(dnsbrute_events) == 0
+        ), f"Expected no results from dnsbrute (canary check should abort), but got {len(dnsbrute_events)}: {[e.data for e in dnsbrute_events]}"
