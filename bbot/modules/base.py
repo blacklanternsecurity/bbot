@@ -785,6 +785,7 @@ class BaseModule:
                                     except asyncio.CancelledError:
                                         self.debug(f"{context} was cancelled")
                                         continue
+                                    self.debug(f"Finished handling {event}")
                             else:
                                 self.debug(f"Not accepting {event} because {reason}")
                         finally:
@@ -1020,6 +1021,8 @@ class BaseModule:
                 return
             acceptable, reason = self._event_precheck(event)
             if not acceptable:
+                if reason and reason != "its type is not in watched_events":
+                    self.debug(f"Not queueing {event} because {reason}")
                 return
             try:
                 self.incoming_event_queue.put_nowait(event)
@@ -1858,6 +1861,7 @@ class BaseInterceptModule(BaseModule):
                     async with self._task_counter.count(f"event_postcheck({event})"):
                         postcheck_pass, reason = await self._event_postcheck(event)
                     if not postcheck_pass:
+                        self.debug(f"Not intercepting {event} because postcheck failed ({reason})")
                         acceptable = False
 
                     # whether to pass the event on to the rest of the scan
