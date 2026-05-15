@@ -1,9 +1,9 @@
 import asyncio
 import json
+import os
 import shutil
 import yaml
 from itertools import islice
-from pathlib import Path
 
 from bbot.modules.base import BaseModule
 
@@ -66,14 +66,23 @@ class nuclei(BaseModule):
     _batch_size = 200
 
     async def setup(self):
-        self.nuclei_templates_dir = self.helpers.tools_dir / "nuclei-templates"
+        # All nuclei runtime state lives under one bbot-owned dir so we can
+        # wipe it on corruption without touching the user's own ~/.config/nuclei.
+        # The subprocess gets HOME pointed here, so nuclei's Go stdlib resolves
+        # config / cache / pdcp dirs (and on macOS, Library/Application Support)
+        # all underneath it. See _nuclei_env().
+        self.nuclei_state_dir = self.helpers.tools_dir / "nuclei-state"
+        self.nuclei_templates_dir = self.nuclei_state_dir / "templates"
+        self.nuclei_home = self.nuclei_state_dir / "home"
+        self.nuclei_home.mkdir(parents=True, exist_ok=True)
         await self._update_templates()
         # nuclei writes its version marker before the tarball finishes extracting,
         # so a killed update can leave the marker pointing at an empty dir and
         # every subsequent run reports "up-to-date." Verify and repair once.
         if not self._templates_installed():
-            self.warning("Nuclei templates appear incomplete; wiping marker and re-downloading")
-            self._wipe_templates_state()
+            self.warning("Nuclei templates appear incomplete; wiping isolated state and re-downloading")
+            shutil.rmtree(self.nuclei_state_dir, ignore_errors=True)
+            self.nuclei_home.mkdir(parents=True, exist_ok=True)
             await self._update_templates()
             if not self._templates_installed():
                 return False, "Failed to install nuclei templates after retry"
@@ -257,7 +266,9 @@ class nuclei(BaseModule):
         stats_file = self.helpers.tempfile_tail(callback=self.log_nuclei_status)
         try:
             with open(stats_file, "w") as stats_fh:
-                async for line in self.run_process_live(command, input=nuclei_input, stderr=stats_fh):
+                async for line in self.run_process_live(
+                    command, input=nuclei_input, stderr=stats_fh, env=self._nuclei_env()
+                ):
                     try:
                         j = json.loads(line)
                     except json.decoder.JSONDecodeError:
@@ -317,12 +328,25 @@ class nuclei(BaseModule):
         resume_file = self.helpers.current_dir / "resume.cfg"
         resume_file.unlink(missing_ok=True)
 
+    def _nuclei_env(self):
+        # Redirect nuclei's HOME / AppData lookups into our isolated state dir
+        # so config (.templates-config.json marker), cache, and pdcp dirs all
+        # land under bbot's tools tree instead of the user's real home.
+        env = os.environ.copy()
+        env["HOME"] = str(self.nuclei_home)
+        env["APPDATA"] = str(self.nuclei_home)
+        env["LOCALAPPDATA"] = str(self.nuclei_home)
+        return env
+
     async def _update_templates(self):
         self.info("Updating Nuclei templates")
         # shield so an outer cancel can't kill the subprocess mid-extract and
         # corrupt the templates dir
         update_results = await asyncio.shield(
-            self.run_process(["nuclei", "-update-template-dir", self.nuclei_templates_dir, "-update-templates"])
+            self.run_process(
+                ["nuclei", "-update-template-dir", self.nuclei_templates_dir, "-update-templates"],
+                env=self._nuclei_env(),
+            )
         )
         if not update_results.stderr:
             self.warning("Error running nuclei template update command")
@@ -337,14 +361,6 @@ class nuclei(BaseModule):
     def _templates_installed(self):
         http_dir = self.nuclei_templates_dir / "http"
         return http_dir.is_dir() and any(http_dir.iterdir())
-
-    def _wipe_templates_state(self):
-        # nuclei keeps its version marker in ~/.config/nuclei separately from
-        # the templates dir; wipe both so the next update truly redownloads
-        marker = Path.home() / ".config" / "nuclei" / ".templates-config.json"
-        marker.unlink(missing_ok=True)
-        if self.nuclei_templates_dir.exists():
-            shutil.rmtree(self.nuclei_templates_dir, ignore_errors=True)
 
     async def filter_event(self, event):
         if self.config.get("directory_only", True):

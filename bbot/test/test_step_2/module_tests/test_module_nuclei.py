@@ -15,7 +15,7 @@ class TestNucleiManual(ModuleTestBase):
                 "mode": "manual",
                 "concurrency": 2,
                 "ratelimit": 10,
-                "templates": "/tmp/.bbot_test/tools/nuclei-templates/http/miscellaneous/",
+                "templates": "/tmp/.bbot_test/tools/nuclei-state/templates/http/miscellaneous/",
                 "interactsh_disable": True,
                 "directory_only": False,
             }
@@ -69,7 +69,7 @@ class TestNucleiSevere(TestNucleiManual):
             "nuclei": {
                 "mode": "severe",
                 "concurrency": 1,
-                "templates": "/tmp/.bbot_test/tools/nuclei-templates/http/vulnerabilities/generic/generic-env.yaml",
+                "templates": "/tmp/.bbot_test/tools/nuclei-state/templates/http/vulnerabilities/generic/generic-env.yaml",
             }
         },
         "interactsh_disable": True,
@@ -114,7 +114,7 @@ class TestNucleiBudget(TestNucleiManual):
                 "mode": "budget",
                 "concurrency": 1,
                 "tags": "spiderfoot",
-                "templates": "/tmp/.bbot_test/tools/nuclei-templates/exposed-panels/spiderfoot.yaml",
+                "templates": "/tmp/.bbot_test/tools/nuclei-state/templates/exposed-panels/spiderfoot.yaml",
                 "interactsh_disable": True,
             }
         }
