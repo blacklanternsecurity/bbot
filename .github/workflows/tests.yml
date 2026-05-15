@@ -46,7 +46,7 @@ jobs:
           name: pytest-debug-logs-${{ env.PYTHON_VERSION }}
           path: pytest_debug.log
       - name: Upload Code Coverage
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./cov.xml
@@ -61,9 +61,9 @@ jobs:
         with:
           fetch-depth: 0
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
       - name: Login to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -105,7 +105,7 @@ jobs:
         run: uv build
       - name: Publish Pypi package
         if: github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev'
-        uses: pypa/gh-action-pypi-publish@release/v1.13
+        uses: pypa/gh-action-pypi-publish@release/v1.14
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
       - name: Get BBOT version
@@ -121,7 +121,7 @@ jobs:
           echo "BBOT_VERSION_MAJOR=$MAJOR" >> $GITHUB_OUTPUT
       - name: Publish to Docker Hub (dev)
         if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           push: true
           context: .
@@ -130,7 +130,7 @@ jobs:
             blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION }}
       - name: Publish to Docker Hub (stable)
         if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           push: true
           context: .
@@ -142,7 +142,7 @@ jobs:
             blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION_MAJOR }}
       - name: Publish Full Docker Image to Docker Hub (dev)
         if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           push: true
           file: Dockerfile.full
@@ -152,7 +152,7 @@ jobs:
             blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION }}-full
       - name: Publish Full Docker Image to Docker Hub (stable)
         if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           push: true
           file: Dockerfile.full

@@ -347,7 +347,7 @@ class gowitness(BaseModule):
         if self.screenshots_taken:
             self.success(f"{len(self.screenshots_taken):,} web screenshots captured. To view:")
             self.success("    - Start gowitness")
-            self.success(f"        - cd {self.base_path} && ./gowitness server")
+            self.success(f"        - cd {self.base_path} && ./gowitness report server")
             self.success("    - Browse to http://localhost:7171")
         else:
             self.info("No web screenshots captured")
