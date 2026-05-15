@@ -15,7 +15,7 @@ class dnsbrute(subdomain_enum):
         "max_depth": 5,
     }
     options_desc = {
-        "wordlist": "Subdomain wordlist URL",
+        "wordlist": "Subdomain wordlist URL or file path. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
         "max_depth": "How many subdomains deep to brute force, i.e. 5.4.3.2.1.evilcorp.com",
     }
     deps_common = ["massdns"]

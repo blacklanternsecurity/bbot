@@ -235,8 +235,12 @@ class WebHelper(EngineClient):
         Allows for optional line-based truncation and caching. Returns the full path of the wordlist
         file or a truncated version of it.
 
+        Also accepts a list of paths/URLs, in which case all wordlists are fetched and merged
+        into a single deduplicated file before being returned.
+
         Args:
-            path (str): The local or remote path of the wordlist.
+            path (str | list): The local or remote path of the wordlist, or a list of paths/URLs
+                to merge into a single deduplicated wordlist.
             lines (int, optional): Number of lines to read from the wordlist.
                 If specified, will return a truncated wordlist with this many lines.
             zip (bool, optional): Whether to unzip the file after downloading. Defaults to False.
@@ -258,8 +262,37 @@ class WebHelper(EngineClient):
 
             Fetching and truncating to the first 100 lines
             >>> wordlist_path = await self.helpers.wordlist("/root/rockyou.txt", lines=100)
+
+            Merging multiple wordlists into one
+            >>> wordlist_path = await self.helpers.wordlist(["/custom.txt", "https://example.com/wordlist.txt"])
         """
         import zipfile
+
+        # Handle list of wordlists - fetch each and merge into a single deduplicated file
+        if not isinstance(path, (str, Path)):
+            paths = list(path)
+            if not paths:
+                raise WordlistError("Wordlist list is empty")
+            merged = set()
+            for p in paths:
+                f = await self.wordlist(p, **kwargs)
+                merged.update(self.parent_helper.read_file(f))
+            cache_key = "merged_wordlist:" + ":".join(sorted(str(p) for p in paths))
+            merged_filename = self.parent_helper.cache_filename(cache_key)
+            with open(merged_filename, "w") as f:
+                for word in merged:
+                    f.write(f"{word}\n")
+            if lines is None:
+                return merged_filename
+            lines = int(lines)
+            with open(merged_filename) as f:
+                read_lines = f.readlines()
+            trunc_key = f"{merged_filename}:{lines}"
+            truncated_filename = self.parent_helper.cache_filename(trunc_key)
+            with open(truncated_filename, "w") as f:
+                for line in read_lines[:lines]:
+                    f.write(line)
+            return truncated_filename
 
         if not path:
             raise WordlistError(f"Invalid wordlist: {path}")
