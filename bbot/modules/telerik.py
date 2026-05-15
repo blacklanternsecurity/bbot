@@ -156,7 +156,7 @@ class telerik(BaseModule):
     options = {"exploit_RAU_crypto": False, "include_subdirs": False}
     options_desc = {
         "exploit_RAU_crypto": "Attempt to confirm any RAU AXD detections are vulnerable",
-        "include_subdirs": "Include subdirectories in the scan (off by default)",  # will create many finding events if used in conjunction with web spider or ffuf
+        "include_subdirs": "Include subdirectories in the scan (off by default)",  # will create many finding events if used in conjunction with web spider or webbrute
     }
 
     in_scope_only = True
@@ -298,9 +298,8 @@ class telerik(BaseModule):
                 url = self.create_url(base_url, f"{dh}?dp=1")
                 urls[url] = dh
 
-            gen = self.helpers.request_batch(list(urls))
             fail_count = 0
-            async for url, response in gen:
+            async for url, response in self.helpers.request_batch_stream(list(urls)):
                 # cancel if we run into timeouts etc.
                 if response is None:
                     fail_count += 1
@@ -309,7 +308,7 @@ class telerik(BaseModule):
                     if fail_count < 2:
                         continue
                     self.debug(f"Cancelling run against {base_url} due to failed request")
-                    await gen.aclose()
+                    break
                 else:
                     if "Cannot deserialize dialog parameters" in response.text:
                         self.debug(f"Detected Telerik UI instance ({dh})")
@@ -327,7 +326,7 @@ class telerik(BaseModule):
                             event,
                         )
                         # Once we have a match we need to stop, because the basic handler (Telerik.Web.UI.DialogHandler.aspx) usually works with a path wildcard
-                        await gen.aclose()
+                        break
 
             spellcheckhandler = "Telerik.Web.UI.SpellCheckHandler.axd"
             result, _ = await self.test_detector(base_url, spellcheckhandler)
@@ -416,7 +415,7 @@ class telerik(BaseModule):
     async def test_detector(self, baseurl, detector):
         result = None
         url = self.create_url(baseurl, detector)
-        result = await self.helpers.request(url, timeout=self.scan.httpx_timeout)
+        result = await self.helpers.request(url, timeout=self.scan.http_timeout)
         return result, detector
 
     async def filter_event(self, event):

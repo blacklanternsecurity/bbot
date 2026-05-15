@@ -34,7 +34,10 @@ class TestMongo(ModuleTestBase):
             "-d",
             "mongo",
         )
+        # Wait for port to be available
+        await self.wait_for_port_open(27017)
 
+    async def setup_after_prep(self, module_test):
         from pymongo import AsyncMongoClient
 
         # Connect to the MongoDB collection with retry logic

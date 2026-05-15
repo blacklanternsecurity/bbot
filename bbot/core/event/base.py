@@ -23,6 +23,7 @@ from urllib.parse import urlparse, urljoin, parse_qs
 from bbot.errors import *
 from .helpers import EventSeed
 from bbot.core.helpers import (
+    bytes_to_human,
     extract_words,
     is_domain,
     is_subdomain,
@@ -101,8 +102,8 @@ class BaseEvent:
             "parent": "OPEN_TCP_PORT:cf7e6a937b161217eaed99f0c566eae045d094c7",
             "tags": ["in-scope", "distance-0", "dir", "status-301"],
             "http_title": "301 Moved Permanently",
-            "module": "httpx",
-            "module_sequence": "httpx"
+            "module": "http",
+            "module_sequence": "http"
         }
         ```
     """
@@ -702,6 +703,10 @@ class BaseEvent:
         process this event, heavy payload data is stripped to free memory.
         """
         self._module_consumers = max(0, self._module_consumers - 1)
+        if self._module_consumers <= 0:
+            self.dns_children = {}
+            self.raw_dns_records = {}
+            self._resolved_hosts = set()
 
     def clone(self):
         # Create a shallow copy of the event first
@@ -1182,8 +1187,7 @@ class ASN(DictEvent):
         return str(self.data["asn"])
 
     def _data_human(self):
-        """Create a concise human-readable representation of ASN data."""
-        return json.dumps({"asn": self.data["asn"]}, sort_keys=True)
+        return f"AS{self.data['asn']}"
 
 
 class CODE_REPOSITORY(DictHostEvent):
@@ -1194,6 +1198,9 @@ class CODE_REPOSITORY(DictHostEvent):
         _validate_url = field_validator("url")(validators.validate_url)
 
     def _pretty_string(self):
+        return self.data["url"]
+
+    def _data_human(self):
         return self.data["url"]
 
 
@@ -1478,6 +1485,9 @@ class STORAGE_BUCKET(URL_UNVERIFIED):
         data["name"] = data["name"].lower()
         return data
 
+    def _data_human(self):
+        return f"{self.data['name']} ({self.data['url']})"
+
     def _words(self):
         return self.data["name"]
 
@@ -1490,6 +1500,13 @@ class WEB_PARAMETER(DictHostEvent):
     __slots__ = [
         "envelopes",
     ]
+
+    def _minimize(self):
+        super()._minimize()
+        if self._module_consumers <= 0:
+            self._data.pop("original_value", None)
+            self._data.pop("additional_params", None)
+            self._data.pop("assigned_cookies", None)
 
     @property
     def children(self):
@@ -1545,6 +1562,29 @@ class WEB_PARAMETER(DictHostEvent):
 
     def _url(self):
         return self.data["url"]
+
+    def _data_human(self):
+        param_type = self.data.get("type", "")
+        name = self.data.get("name", "")
+        original_value = self.data.get("original_value", "")
+        url = self.data.get("url", "")
+        description = self.data.get("description", "")
+        additional_params = self.data.get("additional_params", {})
+        parts = []
+        if param_type:
+            parts.append(f"[{param_type}]")
+        if original_value:
+            parts.append(f"{name}={original_value}")
+        else:
+            parts.append(name)
+        if description:
+            parts.append(f"- {description}")
+        if additional_params:
+            param_names = ", ".join(sorted(additional_params.keys()))
+            parts.append(f"Additional Params: [{param_names}]")
+        if url:
+            parts.append(f"({url})")
+        return " ".join(parts)
 
     def __str__(self):
         max_event_len = 200
@@ -1610,11 +1650,36 @@ class HTTP_RESPONSE(URL_UNVERIFIED):
     def _pretty_string(self):
         return f"{self.data['hash']['header_mmh3']}:{self.data['hash']['body_mmh3']}"
 
+    def _data_human(self):
+        parts = []
+        status = self.http_status
+        if status:
+            parts.append(f"[{status}]")
+        method = self.data.get("method", "")
+        if method:
+            parts.append(method)
+        parts.append(self.data.get("url", ""))
+        if status and str(status).startswith("3"):
+            location = self.redirect_location
+            if location:
+                parts.append(f"-> {location}")
+        else:
+            title = self.http_title
+            if title:
+                parts.append(f"- [{title}]")
+        content_length = self.data.get("content_length", 0)
+        if content_length:
+            parts.append(f"({bytes_to_human(content_length)})")
+        return " ".join(parts)
+
     def _minimize(self):
         super()._minimize()
         if self._module_consumers <= 0:
             self._data.pop("body", None)
             self._data.pop("raw_header", None)
+            self._data.pop("header", None)
+            self._data.pop("hash", None)
+            self._data.pop("cert_info", None)
 
     @property
     def raw_response(self):
@@ -1735,6 +1800,19 @@ class FINDING(ClosestHostEvent):
             confidence_str = f"[{confidence}]"
         return f"Severity: [{severity}] Confidence: {confidence_str} {description}"
 
+    def _data_human(self):
+        parts = []
+        parts.append(f"Severity: [{self.data['severity']}]")
+        parts.append(f"Confidence: [{self.data['confidence']}]")
+        parts.append(self.data["description"])
+        url = self.data.get("url", "")
+        if url and url not in self.data["description"]:
+            parts.append(f"({url})")
+        cves = self.data.get("cves", [])
+        if cves:
+            parts.append(f"[{', '.join(cves)}]")
+        return " ".join(parts)
+
 
 class TECHNOLOGY(DictHostEvent):
     class _data_validator(BaseModel):
@@ -1756,6 +1834,13 @@ class TECHNOLOGY(DictHostEvent):
 
     def _pretty_string(self):
         return self.data["technology"]
+
+    def _data_human(self):
+        tech = self.data["technology"]
+        url = self.data.get("url", "")
+        if url:
+            return f"{tech} ({url})"
+        return tech
 
 
 class PROTOCOL(DictHostEvent):
@@ -1779,10 +1864,34 @@ class PROTOCOL(DictHostEvent):
     def _pretty_string(self):
         return self.data["protocol"]
 
+    def _data_human(self):
+        protocol = self.data["protocol"]
+        port = self.data.get("port")
+        banner = self.data.get("banner", "")
+        if port:
+            result = f"{protocol}/{port}"
+        else:
+            result = protocol
+        if banner:
+            result += f" - {banner}"
+        return result
+
 
 class GEOLOCATION(BaseEvent):
     _always_emit = True
     _quick_emit = True
+
+    def _data_human(self):
+        country = self.data.get("country_name", "")
+        region = self.data.get("region_name", "")
+        city = self.data.get("city_name", "") or self.data.get("city", "")
+        lat = self.data.get("latitude", "")
+        lon = self.data.get("longitude", "")
+        location_parts = [p for p in (city, region, country) if p]
+        result = ", ".join(location_parts)
+        if lat and lon:
+            result += f" ({lat}, {lon})"
+        return result if result else super()._data_human()
 
 
 class PASSWORD(BaseEvent):
@@ -1805,15 +1914,49 @@ class SOCIAL(DictHostEvent):
     _quick_emit = True
     _scope_distance_increment_same_host = True
 
+    def _data_human(self):
+        platform = self.data.get("platform", "")
+        profile_name = self.data.get("profile_name", "")
+        url = self.data.get("url", "")
+        parts = []
+        if platform:
+            parts.append(f"{platform}:")
+        parts.append(profile_name)
+        if url:
+            parts.append(f"({url})")
+        return " ".join(parts)
+
 
 class WEBSCREENSHOT(DictPathEvent):
     _always_emit = True
     _quick_emit = True
 
+    def _data_human(self):
+        return f"{self.data.get('url', '')} Saved to: {self.data.get('path', '')}"
+
 
 class AZURE_TENANT(DictEvent):
     _always_emit = True
     _quick_emit = True
+
+    def _data_human(self):
+        max_domains = 20
+        tenant_names = self.data.get("tenant-names", [])
+        tenant_id = self.data.get("tenant-id", "")
+        domains = self.data.get("domains", [])
+        parts = []
+        if tenant_names:
+            parts.append(", ".join(tenant_names))
+        if tenant_id:
+            parts.append(f"({tenant_id})")
+        if domains:
+            if len(domains) <= max_domains:
+                parts.append(f"- {', '.join(domains)}")
+            else:
+                shown = ", ".join(domains[:max_domains])
+                hidden = len(domains) - max_domains
+                parts.append(f"- {shown} (hiding {hidden} additional domains)")
+        return " ".join(parts) if parts else super()._data_human()
 
 
 class WAF(DictHostEvent):
@@ -1831,8 +1974,25 @@ class WAF(DictHostEvent):
     def _pretty_string(self):
         return self.data["waf"]
 
+    def _data_human(self):
+        waf = self.data["waf"]
+        info = self.data.get("info", "")
+        url = self.data.get("url", "")
+        if info:
+            waf += f" - {info}"
+        if url:
+            waf += f" ({url})"
+        return waf
+
 
 class FILESYSTEM(DictPathEvent):
+    def _data_human(self):
+        path = self.data.get("path", "")
+        description = self.data.get("magic_description", "")
+        if description:
+            return f"{path} ({description})"
+        return path
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self._data_path.is_file():
@@ -1860,6 +2020,12 @@ class FILESYSTEM(DictPathEvent):
 class RAW_DNS_RECORD(DictHostEvent, DnsEvent):
     # don't emit raw DNS records for affiliates
     _always_emit_tags = ["seed"]
+
+    def _data_human(self):
+        rdtype = self.data.get("type", "")
+        host = self.data.get("host", "")
+        answer = self.data.get("answer", "")
+        return f"{rdtype} {host} -> {answer}"
 
 
 class MOBILE_APP(DictEvent):
@@ -1889,6 +2055,13 @@ class MOBILE_APP(DictEvent):
 
     def _pretty_string(self):
         return self.data["url"]
+
+    def _data_human(self):
+        app_id = self.data.get("id", "")
+        url = self.data.get("url", "")
+        if app_id and url:
+            return f"{app_id} ({url})"
+        return url or app_id
 
 
 def update_event(

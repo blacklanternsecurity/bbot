@@ -8,4 +8,4 @@ config:
     baddns:
       enabled_submodules: [CNAME, MX, TXT]
       min_severity: LOW
-      min_confidence: MODERATE
+      min_confidence: MEDIUM

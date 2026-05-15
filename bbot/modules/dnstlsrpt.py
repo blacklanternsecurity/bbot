@@ -15,7 +15,7 @@
 #   e.g. tlsrpt@%{UNIQUE_ID}%.hosted.service.provider is usually a tenant specific ID.
 
 from bbot.modules.base import BaseModule
-from bbot.core.helpers.dns.helpers import service_record
+from bbot.core.helpers.dns.helpers import record_to_text, service_record
 
 import re
 
@@ -77,62 +77,58 @@ class dnstlsrpt(BaseModule):
         tags = ["tlsrpt-record"]
         hostname = f"_smtp._tls.{event.host}"
 
-        r = await self.helpers.resolve_raw(hostname, type=rdtype)
+        response = await self.helpers.dns.resolve_full(hostname, rdtype)
 
-        if r:
-            raw_results, errors = r
-            for answer in raw_results:
-                if self.emit_raw_dns_records:
-                    await self.emit_event(
-                        {"host": hostname, "type": rdtype, "answer": answer.to_text()},
-                        "RAW_DNS_RECORD",
-                        parent=event,
-                        tags=tags.append(f"{rdtype.lower()}-record"),
-                        context=f"{rdtype} lookup on {hostname} produced {{event.type}}",
-                    )
+        for answer in response.response.answers:
+            text_answer = record_to_text(answer)
+            if self.emit_raw_dns_records:
+                await self.emit_event(
+                    {"host": hostname, "type": rdtype, "answer": text_answer},
+                    "RAW_DNS_RECORD",
+                    parent=event,
+                    tags=tags.append(f"{rdtype.lower()}-record"),
+                    context=f"{rdtype} lookup on {hostname} produced {{event.type}}",
+                )
 
-                # we need to fix TXT data that may have been split across two different rdata's
-                # e.g. we will get a single string, but within that string we may have two parts such as:
-                # answer = '"part 1 that was really long" "part 2 that did not fit in part 1"'
-                # NOTE: the leading and trailing double quotes are essential as part of a raw DNS TXT record, or another record type that contains a free form text string as a component.
-                s = answer.to_text().strip('"').replace('" "', "")
+            # record_to_text already joins multi-string TXT records and omits dnspython-style quoting
+            s = text_answer
 
-                # validate TLSRPT record, tag appropriately
-                tlsrpt_match = tlsrpt_regex.search(s)
+            # validate TLSRPT record, tag appropriately
+            tlsrpt_match = tlsrpt_regex.search(s)
 
-                if (
-                    tlsrpt_match
-                    and tlsrpt_match.group("v")
-                    and tlsrpt_match.group("kvps")
-                    and tlsrpt_match.group("kvps") != ""
-                ):
-                    for kvp_match in tlsrpt_kvp_regex.finditer(tlsrpt_match.group("kvps")):
-                        key = kvp_match.group("k").lower()
+            if (
+                tlsrpt_match
+                and tlsrpt_match.group("v")
+                and tlsrpt_match.group("kvps")
+                and tlsrpt_match.group("kvps") != ""
+            ):
+                for kvp_match in tlsrpt_kvp_regex.finditer(tlsrpt_match.group("kvps")):
+                    key = kvp_match.group("k").lower()
 
-                        if key == "rua":
-                            for csul_match in csul.finditer(kvp_match.group("v")):
-                                if csul_match.group("uri"):
-                                    for match in email_regex.finditer(csul_match.group("uri")):
+                    if key == "rua":
+                        for csul_match in csul.finditer(kvp_match.group("v")):
+                            if csul_match.group("uri"):
+                                for match in email_regex.finditer(csul_match.group("uri")):
+                                    start, end = match.span()
+                                    email = csul_match.group("uri")[start:end]
+
+                                    if self.emit_emails:
+                                        await self.emit_event(
+                                            email,
+                                            "EMAIL_ADDRESS",
+                                            tags=tags.append(f"tlsrpt-record-{key}"),
+                                            parent=event,
+                                        )
+
+                                for url_regex in url_regexes:
+                                    for match in url_regex.finditer(csul_match.group("uri")):
                                         start, end = match.span()
-                                        email = csul_match.group("uri")[start:end]
+                                        url = csul_match.group("uri")[start:end]
 
-                                        if self.emit_emails:
+                                        if self.emit_urls:
                                             await self.emit_event(
-                                                email,
-                                                "EMAIL_ADDRESS",
+                                                url,
+                                                "URL_UNVERIFIED",
                                                 tags=tags.append(f"tlsrpt-record-{key}"),
                                                 parent=event,
                                             )
-
-                                    for url_regex in url_regexes:
-                                        for match in url_regex.finditer(csul_match.group("uri")):
-                                            start, end = match.span()
-                                            url = csul_match.group("uri")[start:end]
-
-                                            if self.emit_urls:
-                                                await self.emit_event(
-                                                    url,
-                                                    "URL_UNVERIFIED",
-                                                    tags=tags.append(f"tlsrpt-record-{key}"),
-                                                    parent=event,
-                                                )

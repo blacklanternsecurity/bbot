@@ -1,19 +1,21 @@
 from .base import ModuleTestBase, tempwordlist
 
 
-class TestFFUFShortnames(ModuleTestBase):
+class TestWebBruteShortnames(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
+    module_name = "webbrute_shortnames"
     test_wordlist = ["11111111", "administrator", "portal", "console", "junkword1", "zzzjunkword2", "directory"]
     config_overrides = {
         "modules": {
-            "ffuf_shortnames": {
+            "webbrute_shortnames": {
                 "find_common_prefixes": True,
                 "find_subwords": True,
                 "wordlist": tempwordlist(test_wordlist),
+                "max_predictions": 250,
             }
         }
     }
-    modules_overrides = ["ffuf_shortnames", "httpx"]
+    modules_overrides = ["webbrute_shortnames", "http"]
 
     async def setup_after_prep(self, module_test):
         module_test.httpserver.no_handler_status_code = 404
@@ -23,7 +25,7 @@ class TestFFUFShortnames(ModuleTestBase):
             "http://127.0.0.1:8888/",
             "URL",
             module_test.scan.root_event,
-            module="httpx",
+            module="http",
             tags=["status-200", "distance-0"],
         )
         seed_events.append(

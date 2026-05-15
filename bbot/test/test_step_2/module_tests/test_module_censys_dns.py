@@ -5,7 +5,7 @@ class TestCensys_DNS(ModuleTestBase):
     config_overrides = {"modules": {"censys_dns": {"api_key": "api_id:api_secret"}}}
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://search.censys.io/api/v1/account",
             match_headers={"Authorization": "Basic YXBpX2lkOmFwaV9zZWNyZXQ="},
             json={
@@ -16,7 +16,7 @@ class TestCensys_DNS(ModuleTestBase):
                 "quota": {"used": 26, "allowance": 250, "resets_at": "1919-06-03 16:30:32"},
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://search.censys.io/api/v2/certificates/search",
             match_headers={"Authorization": "Basic YXBpX2lkOmFwaV9zZWNyZXQ="},
             method="POST",
@@ -46,7 +46,7 @@ class TestCensys_DNS(ModuleTestBase):
                 },
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://search.censys.io/api/v2/certificates/search",
             match_headers={"Authorization": "Basic YXBpX2lkOmFwaV9zZWNyZXQ="},
             method="POST",

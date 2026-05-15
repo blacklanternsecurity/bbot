@@ -15,7 +15,7 @@ class nuclei(BaseModule):
     }
 
     options = {
-        "version": "3.7.1",
+        "version": "3.8.0",
         "tags": "",
         "templates": "",
         "severity": "",
@@ -107,7 +107,11 @@ class nuclei(BaseModule):
             self.info(
                 "Running nuclei in TECHNOLOGY mode. Scans will only be performed with the --automatic-scan flag set. This limits the templates used to those that match wappalyzer signatures"
             )
-            self.tags = ""
+            # Don't clear user-specified tags — they act as additional filters
+            # alongside -as, narrowing the auto-selected template set.
+            # Only clear tags if the user didn't explicitly set them.
+            if not self.tags:
+                self.tags = ""
 
         if self.mode == "severe":
             self.info(

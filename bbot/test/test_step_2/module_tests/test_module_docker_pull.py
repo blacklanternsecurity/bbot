@@ -11,7 +11,7 @@ class TestDockerPull(ModuleTestBase):
     config_overrides = {"modules": {"docker_pull": {"output_folder": str(bbot_test_dir / "test_docker_files")}}}
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://hub.docker.com/v2/users/blacklanternsecurity",
             json={
                 "id": "f90895d9cf484d9182c6dbbef2632329",
@@ -27,7 +27,7 @@ class TestDockerPull(ModuleTestBase):
                 "type": "User",
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://hub.docker.com/v2/repositories/blacklanternsecurity?page_size=25&page=1",
             json={
                 "count": 2,
@@ -71,7 +71,7 @@ class TestDockerPull(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/helloworld/tags/list",
             json={
                 "errors": [
@@ -94,7 +94,7 @@ class TestDockerPull(ModuleTestBase):
             },
             status_code=401,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/testimage/tags/list",
             json={
                 "errors": [
@@ -117,19 +117,19 @@ class TestDockerPull(ModuleTestBase):
             },
             status_code=401,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://auth.docker.io/token?service=registry.docker.io&scope=blacklanternsecurity/helloworld:pull",
             json={
                 "token": "QWERTYUIOPASDFGHJKLZXCBNM",
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://auth.docker.io/token?service=registry.docker.io&scope=blacklanternsecurity/testimage:pull",
             json={
                 "token": "QWERTYUIOPASDFGHJKLZXCBNM",
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/helloworld/tags/list",
             json={
                 "name": "blacklanternsecurity/helloworld",
@@ -139,7 +139,7 @@ class TestDockerPull(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/testimage/tags/list",
             json={
                 "name": "blacklanternsecurity/testimage",
@@ -149,7 +149,7 @@ class TestDockerPull(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/helloworld/manifests/latest",
             json={
                 "schemaVersion": 2,
@@ -168,7 +168,7 @@ class TestDockerPull(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/testimage/manifests/latest",
             json={
                 "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
@@ -201,7 +201,7 @@ class TestDockerPull(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/helloworld/blobs/sha256:a9910947b74a4f0606cfc8669ae8808d2c328beaee9e79f489dc17df14cd50b1",
             json={
                 "architecture": "amd64",
@@ -376,7 +376,7 @@ class TestDockerPull(ModuleTestBase):
                 },
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/testimage/manifests/sha256:7c75331408141f1e3ef37eac7c45938fbfb0d421a86201ad45d2ab8b70ddd527",
             json={
                 "name": "testimage",
@@ -422,11 +422,11 @@ class TestDockerPull(ModuleTestBase):
             tar.addfile(file_info, file_io)
         with open(tar_path, "rb") as file:
             layer_file = file.read()
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/helloworld/blobs/sha256:8a1e25ce7c4f75e372e9884f8f7b1bedcfe4a7a7d452eb4b0a1c7477c9a90345",
             content=layer_file,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/testimage/blobs/sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
             content=layer_file,
         )

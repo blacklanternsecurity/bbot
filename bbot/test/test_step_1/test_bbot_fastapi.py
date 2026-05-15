@@ -1,9 +1,12 @@
 import time
-import httpx
+import json
 import multiprocessing
 from pathlib import Path
 from subprocess import Popen
 from contextlib import suppress
+from urllib.request import urlopen, Request
+from urllib.error import URLError
+from urllib.parse import urlencode
 
 cwd = Path(__file__).parent.parent.parent
 
@@ -11,7 +14,7 @@ cwd = Path(__file__).parent.parent.parent
 def run_bbot_multiprocess(queue):
     from bbot.scanner import Scanner
 
-    scan = Scanner("http://127.0.0.1:8888", "blacklanternsecurity.com", modules=["httpx"])
+    scan = Scanner("http://127.0.0.1:8888", "blacklanternsecurity.com", modules=["http"])
     events = [e.json() for e in scan.start()]
     queue.put(events)
 
@@ -39,22 +42,20 @@ def test_bbot_fastapi(bbot_httpserver):
         start_time = time.time()
         while True:
             try:
-                response = httpx.get("http://127.0.0.1:8978/ping")
-                response.raise_for_status()
+                response = urlopen("http://127.0.0.1:8978/ping")
+                response.read()
                 break
-            except httpx.HTTPError:
+            except (URLError, ConnectionError):
                 if time.time() - start_time > 60:
                     raise TimeoutError("Server did not start within 60 seconds.")
                 time.sleep(0.1)
                 continue
 
         # run a scan
-        response = httpx.get(
-            "http://127.0.0.1:8978/start",
-            params={"targets": ["http://127.0.0.1:8888", "blacklanternsecurity.com"]},
-            timeout=100,
-        )
-        events = response.json()
+        params = urlencode({"targets": ["http://127.0.0.1:8888", "blacklanternsecurity.com"]}, doseq=True)
+        req = Request(f"http://127.0.0.1:8978/start?{params}")
+        response = urlopen(req, timeout=100)
+        events = json.loads(response.read())
         assert len(events) >= 3
         scan_events = [e for e in events if e["type"] == "SCAN"]
         assert len(scan_events) == 2

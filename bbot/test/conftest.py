@@ -42,11 +42,6 @@ for h in root_logger.handlers:
 CORE.merge_default(test_config)
 
 
-@pytest.fixture
-def assert_all_responses_were_requested() -> bool:
-    return False
-
-
 @pytest.fixture(autouse=True)
 def silence_live_logging():
     for handler in logging.getLogger().handlers:
@@ -93,24 +88,97 @@ def bbot_httpserver_ssl():
     server.clear()
 
 
-def should_mock(request):
-    return (
-        request.url.host
-        not in ["127.0.0.1", "localhost", "raw.githubusercontent.com", "asndb.api.bbot.io"] + interactsh_servers
-    )
+def _should_mock(host):
+    """Check if a request to this host should be mocked (True = mock, False = pass through)."""
+    return host not in ["127.0.0.1", "localhost", "raw.githubusercontent.com"] + interactsh_servers
 
 
-def pytest_collection_modifyitems(config, items):
-    # make sure all tests have the httpx_mock marker
-    for item in items:
-        item.add_marker(
-            pytest.mark.httpx_mock(
-                should_mock=should_mock,
-                assert_all_requests_were_expected=False,
-                assert_all_responses_were_requested=False,
-                can_send_already_matched_responses=True,
-            )
-        )
+@pytest.fixture
+def blasthttp_mock():
+    """
+    Mock fixture for blasthttp engine requests.
+
+    Patches HTTPEngine.request() to intercept external requests and return
+    mock responses. Requests to localhost/127.0.0.1 pass through to real blasthttp.
+    """
+    from bbot.core.helpers.web.web import WebHelper
+    from bbot.test.mock_blasthttp import BlasthttpMock
+
+    mock = BlasthttpMock(should_mock_fn=_should_mock)
+    original_request = WebHelper.request
+
+    async def patched_request(self, *args, **kwargs):
+        # Peek at URL without modifying kwargs
+        url = kwargs.get("url", "")
+        if not url and args:
+            url = str(args[0])
+        # If resolve_ip points to localhost, pass through to real blasthttp
+        resolve_ip = kwargs.get("resolve_ip", "")
+        if resolve_ip and resolve_ip in ("127.0.0.1", "::1"):
+            return await original_request(self, *args, **kwargs)
+        if url and mock.should_intercept(url):
+            # Read raise_error before the mock pops it
+            raise_error = kwargs.get("raise_error", False)
+            result = await mock.handle_engine_request(self, *args, **kwargs)
+            # Convert engine-style error dicts to WebError exceptions
+            if isinstance(result, dict) and "_request_error" in result:
+                if raise_error:
+                    from bbot.errors import WebError
+
+                    error = WebError(result["_request_error"])
+                    error.response = result.get("_response")
+                    raise error
+                return None
+            return result
+        return await original_request(self, *args, **kwargs)
+
+    original_request_batch_stream = WebHelper.request_batch_stream
+
+    async def patched_request_batch_stream(self, urls, threads=10, **kwargs):
+        import blasthttp
+        from collections import deque
+
+        # Run the real entry-parsing and config-building logic unmodified
+        entries = []
+        has_tracker = False
+        for entry in urls:
+            if isinstance(entry, str):
+                entries.append((entry, kwargs, None))
+            elif isinstance(entry, tuple):
+                url = entry[0]
+                req_kwargs = entry[1] if len(entry) > 1 and isinstance(entry[1], dict) else kwargs
+                tracker = entry[2] if len(entry) > 2 else None
+                if tracker is not None:
+                    has_tracker = True
+                entries.append((url, req_kwargs, tracker))
+            else:
+                entries.append((str(entry), kwargs, None))
+
+        if not entries:
+            return
+
+        configs = []
+        trackers_by_url = {}
+        for url, req_kwargs, tracker in entries:
+            url, method, blast_kwargs = self._build_blasthttp_kwargs(url, **req_kwargs)
+            config = blasthttp.BatchConfig(url, **blast_kwargs)
+            configs.append(config)
+            trackers_by_url.setdefault(config.url, deque()).append(tracker)
+
+        async for br in mock.handle_batch_stream(self.client, configs, concurrency=threads):
+            response = br.response  # blasthttp.Response or None
+            if has_tracker:
+                queue = trackers_by_url.get(br.url)
+                tracker = queue.popleft() if queue else None
+                yield br.url, response, tracker
+            else:
+                yield br.url, response
+
+    WebHelper.request = patched_request
+    WebHelper.request_batch_stream = patched_request_batch_stream
+    yield mock
+    WebHelper.request = original_request
+    WebHelper.request_batch_stream = original_request_batch_stream
 
 
 @pytest.fixture

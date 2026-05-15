@@ -1,7 +1,7 @@
-from .http import HTTP
+from .webhook import webhook
 
 
-class Elastic(HTTP):
+class Elastic(webhook):
     """
     docker run -d -p 9200:9200 --name=bbot-elastic --v "$(pwd)/elastic_data:/usr/share/elasticsearch/data" -e ELASTIC_PASSWORD=bbotislife -m 1GB docker.elastic.co/elasticsearch/elasticsearch:8.16.0
     """

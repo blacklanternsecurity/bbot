@@ -45,7 +45,8 @@ async def test_python_api(clean_default_config):
 
     # make sure config loads properly
     bbot_home = "/tmp/.bbot_python_api_test"
-    Scanner("127.0.0.1", config={"home": bbot_home})
+    scan4 = Scanner("127.0.0.1", config={"home": bbot_home})
+    await scan4._prep()
     assert os.environ["BBOT_TOOLS"] == str(Path(bbot_home) / "tools")
 
     # output modules override
@@ -84,7 +85,8 @@ async def test_python_api_sync(clean_default_config):
     assert list(scan2.helpers.read_file(out_file))
     # make sure config loads properly
     bbot_home = "/tmp/.bbot_python_api_test"
-    Scanner("127.0.0.1", config={"home": bbot_home})
+    scan3 = Scanner("127.0.0.1", config={"home": bbot_home})
+    await scan3._prep()
     assert os.environ["BBOT_TOOLS"] == str(Path(bbot_home) / "tools")
 
 
@@ -109,16 +111,18 @@ def test_python_api_sync_no_pending_tasks():
     assert len(pending) == 0, f"Found {len(pending)} pending tasks after scan: {pending}"
 
 
-def test_python_api_validation():
+async def test_python_api_validation():
     from bbot.scanner import Scanner, Preset
 
     # invalid target
     with pytest.raises(ValidationError) as error:
-        Scanner("asdf:::asdf")
+        scan = Scanner("asdf:::asdf")
+        await scan._prep()
     assert str(error.value) == 'Unable to autodetect data type from "asdf:::asdf"'
     # invalid module
     with pytest.raises(ValidationError) as error:
-        Scanner(modules=["asdf"])
+        scan = Scanner(modules=["asdf"])
+        await scan._prep()
     assert str(error.value) == 'Could not find scan module "asdf". Did you mean "asn"?'
     # invalid output module
     with pytest.raises(ValidationError) as error:
@@ -126,7 +130,8 @@ def test_python_api_validation():
     assert str(error.value) == 'Could not find output module "asdf". Did you mean "nats"?'
     # invalid excluded module
     with pytest.raises(ValidationError) as error:
-        Scanner(exclude_modules=["asdf"])
+        scan = Scanner(exclude_modules=["asdf"])
+        await scan._prep()
     assert str(error.value) == 'Could not find module "asdf". Did you mean "asn"?'
     # invalid flag
     with pytest.raises(ValidationError) as error:
@@ -142,7 +147,8 @@ def test_python_api_validation():
     assert str(error.value) == 'Could not find flag "activ". Did you mean "active"?'
     # output module as normal module
     with pytest.raises(ValidationError) as error:
-        Scanner(modules=["json"])
+        scan = Scanner(modules=["json"])
+        await scan._prep()
     assert str(error.value) == 'Could not find scan module "json". Did you mean "asn"?'
     # normal module as output module
     with pytest.raises(ValidationError) as error:
@@ -150,7 +156,8 @@ def test_python_api_validation():
     assert str(error.value) == 'Could not find output module "robots". Did you mean "rabbitmq"?'
     # invalid preset type
     with pytest.raises(ValidationError) as error:
-        Scanner(preset="asdf")
+        scan = Scanner(preset="asdf")
+        await scan._prep()
     assert str(error.value) == 'Preset must be of type Preset, not "str"'
     # include nonexistent preset
     with pytest.raises(ValidationError) as error:

@@ -18,7 +18,7 @@ dotnetnuke_http_response = """
 
 class TestDotnetnuke(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "dotnetnuke"]
+    modules_overrides = ["http", "dotnetnuke"]
     config_overrides = {"interactsh_disable": "True"}
 
     exploit_probe = {
@@ -133,7 +133,7 @@ def extract_subdomain_tag(data):
 class TestDotnetnuke_blindssrf(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     module_name = "dotnetnuke"
-    modules_overrides = ["httpx", "dotnetnuke"]
+    modules_overrides = ["http", "dotnetnuke"]
     config_overrides = {
         "interactsh_disable": False,
     }

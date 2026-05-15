@@ -87,8 +87,10 @@ class HttpCompare:
             self.baseline = baseline_1
             if baseline_1 is None or baseline_2 is None:
                 log.debug("HTTP error while establishing baseline, aborting")
+                baseline_1_repr = f"HTTP {baseline_1.status_code}" if baseline_1 is not None else "None"
+                baseline_2_repr = f"HTTP {baseline_2.status_code}" if baseline_2 is not None else "None"
                 raise HttpCompareError(
-                    f"Can't get baseline from source URL: {url_1}:{baseline_1} / {url_2}:{baseline_2}"
+                    f"Can't get baseline from source URL: {url_1} ({baseline_1_repr}) / {url_2} ({baseline_2_repr})"
                 )
             if baseline_1.status_code != baseline_2.status_code:
                 log.debug("Status code not stable during baseline, aborting")
@@ -146,7 +148,7 @@ class HttpCompare:
             for x in list(ddiff[k]):
                 try:
                     header_value = str(x).split("'")[1]
-                except KeyError:
+                except (KeyError, IndexError):
                     continue
                 differing_headers.append(header_value)
         return differing_headers
@@ -231,9 +233,21 @@ class HttpCompare:
                         if item in subject_response.text:
                             reflection = True
                             break
+        diff_reasons = await self.parent_helper.run_in_executor_cpu(
+            self._compare_sync,
+            subject_response,
+            subject,
+        )
+
+        if not diff_reasons:
+            return (True, [], reflection, subject_response)
+        else:
+            return (False, diff_reasons, reflection, subject_response)
+
+    def _compare_sync(self, subject_response, subject):
+        """CPU-bound comparison work offloaded from the event loop."""
         try:
             subject_json = xmltodict.parse(subject_response.text)
-
         except ExpatError:
             subject_json = subject_response.text.split("\n")
 
@@ -249,10 +263,7 @@ class HttpCompare:
         if self.compare_body(self.baseline_json, subject_json) is False:
             diff_reasons.append("body")
 
-        if not diff_reasons:
-            return (True, [], reflection, subject_response)
-        else:
-            return (False, diff_reasons, reflection, subject_response)
+        return diff_reasons
 
     async def canary_check(self, url, mode, rounds=3):
         """

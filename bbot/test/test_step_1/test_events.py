@@ -1,4 +1,3 @@
-import json
 import random
 import ipaddress
 
@@ -359,7 +358,7 @@ async def test_events(events, helpers):
         "FINDING",
         dummy=True,
     )
-    assert json.loads(test_vuln2.data_human)["severity"] == "INFO"
+    assert test_vuln2.data_human == "Severity: [INFO] Confidence: [HIGH] asdf"
     assert test_vuln2.host.is_private
     # must have severity
     with pytest.raises(ValidationError, match=".*validation error.*\nseverity\n.*Field required.*"):
@@ -621,7 +620,7 @@ async def test_events(events, helpers):
     assert hostless_event_json["data"] == "asdf"
     assert "host" not in hostless_event_json
 
-    http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", parent=scan.root_event)
+    http_response = scan.make_event(blasthttp_response, "HTTP_RESPONSE", parent=scan.root_event)
     assert http_response.parent_id == scan.root_event.id
     assert http_response.data["input"] == "http://example.com:80"
     assert (

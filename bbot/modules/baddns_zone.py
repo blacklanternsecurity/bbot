@@ -10,14 +10,14 @@ class baddns_zone(baddns_module):
         "created_date": "2024-01-29",
         "author": "@liquidsec",
     }
-    options = {"custom_nameservers": [], "min_severity": "INFO", "min_confidence": "MODERATE"}
+    options = {"custom_nameservers": [], "min_severity": "INFO", "min_confidence": "MEDIUM"}
     options_desc = {
         "custom_nameservers": "Force BadDNS to use a list of custom nameservers",
         "min_severity": "Minimum severity to emit (INFO, LOW, MEDIUM, HIGH, CRITICAL)",
-        "min_confidence": "Minimum confidence to emit (UNKNOWN, LOW, MODERATE, HIGH, CONFIRMED)",
+        "min_confidence": "Minimum confidence to emit (UNKNOWN, LOW, MEDIUM, HIGH, CONFIRMED)",
     }
     module_threads = 8
-    deps_pip = ["baddns~=2.0.0"]
+    deps_pip = ["baddns~=2.3.0"]
 
     def set_modules(self):
         self.enabled_submodules = ["NSEC", "zonetransfer"]
