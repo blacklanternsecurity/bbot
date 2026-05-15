@@ -102,6 +102,16 @@ class WebHelper:
         data = kwargs.pop("data", None)
         files = kwargs.pop("files", None)
         json_body = kwargs.pop("json", None)
+
+        body_sources = [
+            name
+            for name, val in (("body", body), ("data", data), ("json", json_body), ("files", files))
+            if val is not None
+        ]
+        if len(body_sources) > 1:
+            raise ValueError(
+                f"request() got conflicting body kwargs {body_sources}; pass at most one of body, data, json, files"
+            )
         timeout = kwargs.pop("timeout", self._http_timeout)
         follow_redirects = kwargs.pop("follow_redirects", None)
         max_redirects = kwargs.pop("max_redirects", None)

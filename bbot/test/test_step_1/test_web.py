@@ -126,6 +126,27 @@ async def test_web_request_files_multipart(bbot_scanner, bbot_httpserver):
 
 
 @pytest.mark.asyncio
+async def test_web_request_rejects_conflicting_body_kwargs(bbot_scanner):
+    scan = bbot_scanner()
+    await scan._prep()
+    url = "http://example.com/"
+
+    pairs = [
+        {"json": {"a": 1}, "files": {"f": ("x", b"x")}},
+        {"json": {"a": 1}, "data": {"a": "b"}},
+        {"body": "raw", "json": {"a": 1}},
+        {"body": "raw", "data": {"a": "b"}},
+        {"body": "raw", "files": {"f": ("x", b"x")}},
+        {"data": {"a": "b"}, "files": {"f": ("x", b"x")}},
+    ]
+    for kwargs in pairs:
+        with pytest.raises(ValueError, match="conflicting body kwargs"):
+            await scan.helpers.request(url, method="POST", **kwargs)
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
 async def test_web_helpers(bbot_scanner, bbot_httpserver, blasthttp_mock):
     # json conversion
     scan = bbot_scanner("evilcorp.com")
