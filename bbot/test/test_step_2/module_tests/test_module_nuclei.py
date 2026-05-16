@@ -190,10 +190,39 @@ class TestNucleiEnvIsolation(TestNucleiManual):
         env = nuclei._nuclei_env()
         for k in self.leaky_env:
             assert k not in env, f"{k} leaked into nuclei subprocess env"
-        nuclei_home = str(nuclei.nuclei_home)
-        for var in ("HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA"):
-            assert env[var] == nuclei_home, f"{var} not pinned to nuclei_home"
-        assert env["NUCLEI_CONFIG_DIR"].startswith(nuclei_home)
+        assert env["XDG_CONFIG_HOME"] == str(nuclei.nuclei_config_dir)
+        assert env["XDG_CACHE_HOME"] == str(nuclei.nuclei_cache_dir)
+        # HOME is intentionally NOT forwarded — nuclei must rely on the XDG
+        # vars we set, not on the user's home dir.
+        assert "HOME" not in env
+
+
+def test_nuclei_classify_update_stderr():
+    """Regression: nuclei's success line has changed wording across releases
+    ("downloaded" → "installed" → "updated"). All three must classify as
+    success so a fresh install isn't mis-logged as a failure.
+    """
+    from bbot.modules.nuclei import nuclei
+
+    c = nuclei._classify_update_stderr
+    # First-time install (what nuclei v3.8 prints on a clean state dir).
+    assert (
+        c(
+            "[INF] nuclei-templates are not installed, installing...\n[INF] Successfully installed nuclei-templates at /tmp/x"
+        )
+        == "updated"
+    )
+    # Version bump (newer phrasing).
+    assert c("[INF] Successfully updated nuclei-templates (v10.4.3) to /tmp/x. GoodLuck!") == "updated"
+    # Legacy phrasing — kept for older nuclei builds.
+    assert c("[INF] Successfully downloaded nuclei-templates") == "updated"
+    # Already up-to-date.
+    assert c("[INF] No new updates found for nuclei templates") == "up-to-date"
+    # Benign first-run noise must NOT trick us into reporting success.
+    assert c("[ERR] Could not copy nuclei ignore file ...: source file doesn't exist") == "failure"
+    # Empty / None stderr → failure (process produced nothing).
+    assert c("") == "failure"
+    assert c(None) == "failure"
 
 
 class TestNucleiCustomHeaders(TestNucleiManual):

@@ -70,9 +70,11 @@ class nuclei(BaseModule):
         # corruption without touching the user's own ~/.config/nuclei. See
         # _nuclei_env() for how the subprocess env pins config/cache here.
         self.nuclei_state_dir = self.helpers.tools_dir / "nuclei-state"
+        self.nuclei_config_dir = self.nuclei_state_dir / "config"
+        self.nuclei_cache_dir = self.nuclei_state_dir / "cache"
         self.nuclei_templates_dir = self.nuclei_state_dir / "templates"
-        self.nuclei_home = self.nuclei_state_dir / "home"
-        self.nuclei_home.mkdir(parents=True, exist_ok=True)
+        self.nuclei_config_dir.mkdir(parents=True, exist_ok=True)
+        self.nuclei_cache_dir.mkdir(parents=True, exist_ok=True)
         await self._update_templates()
         # nuclei writes its version marker before the tarball finishes extracting,
         # so a killed update can leave the marker pointing at an empty dir and
@@ -80,7 +82,8 @@ class nuclei(BaseModule):
         if not self._templates_installed():
             self.warning("Nuclei templates appear incomplete; wiping isolated state and re-downloading")
             shutil.rmtree(self.nuclei_state_dir, ignore_errors=True)
-            self.nuclei_home.mkdir(parents=True, exist_ok=True)
+            self.nuclei_config_dir.mkdir(parents=True, exist_ok=True)
+            self.nuclei_cache_dir.mkdir(parents=True, exist_ok=True)
             await self._update_templates()
             if not self._templates_installed():
                 return False, "Failed to install nuclei templates after retry"
@@ -328,10 +331,10 @@ class nuclei(BaseModule):
 
     def _nuclei_env(self):
         # Allowlist env vars: nuclei reads PDCP_API_KEY, GITHUB_TOKEN, AWS_*,
-        # AZURE_*, XDG_* etc. directly, so os.environ.copy() would silently
-        # change its behavior (e.g. upload findings to ProjectDiscovery Cloud
-        # under the user's account). NUCLEI_CONFIG_DIR pins the config dir even
-        # when XDG_CONFIG_HOME is set in the host env.
+        # AZURE_*, etc. directly, so os.environ.copy() would silently change
+        # its behavior (e.g. upload findings to ProjectDiscovery Cloud under
+        # the user's account). XDG_{CONFIG,CACHE}_HOME pin nuclei's config and
+        # cache under nuclei-state/ without inheriting the user's HOME.
         keep = {
             "PATH",
             "LD_LIBRARY_PATH",
@@ -346,11 +349,8 @@ class nuclei(BaseModule):
             "no_proxy",
         }
         env = {k: v for k, v in os.environ.items() if k in keep}
-        env["HOME"] = str(self.nuclei_home)
-        env["USERPROFILE"] = str(self.nuclei_home)
-        env["APPDATA"] = str(self.nuclei_home)
-        env["LOCALAPPDATA"] = str(self.nuclei_home)
-        env["NUCLEI_CONFIG_DIR"] = str(self.nuclei_home / ".config" / "nuclei")
+        env["XDG_CONFIG_HOME"] = str(self.nuclei_config_dir)
+        env["XDG_CACHE_HOME"] = str(self.nuclei_cache_dir)
         return env
 
     async def _update_templates(self):
@@ -363,15 +363,33 @@ class nuclei(BaseModule):
                 env=self._nuclei_env(),
             )
         )
-        if not update_results.stderr:
-            self.warning("Error running nuclei template update command")
-            return
-        if "Successfully downloaded nuclei-templates" in update_results.stderr:
+        outcome = self._classify_update_stderr(update_results.stderr)
+        if outcome == "updated":
             self.success("Successfully updated nuclei templates")
-        elif "No new updates found for nuclei templates" in update_results.stderr:
+        elif outcome == "up-to-date":
             self.info("Nuclei templates already up-to-date")
         else:
-            self.warning(f"Failure while updating nuclei templates: {update_results.stderr}")
+            self.warning(f"Failure while updating nuclei templates: {update_results.stderr or '<no stderr>'}")
+
+    # nuclei's success messaging has drifted across releases (installed / updated /
+    # downloaded). Match any of them so a future rename doesn't silently downgrade
+    # a clean install to a "Failure while updating" warning.
+    _UPDATE_SUCCESS_MARKERS = (
+        "Successfully installed nuclei-templates",
+        "Successfully updated nuclei-templates",
+        "Successfully downloaded nuclei-templates",
+    )
+    _UPDATE_NOOP_MARKER = "No new updates found for nuclei templates"
+
+    @classmethod
+    def _classify_update_stderr(cls, stderr):
+        if not stderr:
+            return "failure"
+        if any(m in stderr for m in cls._UPDATE_SUCCESS_MARKERS):
+            return "updated"
+        if cls._UPDATE_NOOP_MARKER in stderr:
+            return "up-to-date"
+        return "failure"
 
     def _templates_installed(self):
         http_dir = self.nuclei_templates_dir / "http"
