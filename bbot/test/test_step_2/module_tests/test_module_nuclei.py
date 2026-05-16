@@ -156,6 +156,46 @@ class TestNucleiRetriesCustom(TestNucleiRetries):
         assert "-retries 1" in open(module_test.scan.home / "debug.log").read()
 
 
+class TestNucleiEnvIsolation(TestNucleiManual):
+    """Set hostile env vars before the scan and verify _nuclei_env() filters them out.
+
+    The base TestNucleiManual assertions double as a regression check: nuclei must
+    still find and run templates even when the user's env has DISABLE_*_DOWNLOAD,
+    XDG_CONFIG_HOME, etc. set.
+    """
+
+    leaky_env = {
+        "PDCP_API_KEY": "user-pdcp-key-must-not-leak",
+        "PDCP_TEAM_ID": "user-team",
+        "XDG_CONFIG_HOME": "/tmp/.bbot_test/xdg-leak-config",
+        "XDG_CACHE_HOME": "/tmp/.bbot_test/xdg-leak-cache",
+        "GITHUB_TOKEN": "ghp_usertoken",
+        "GITHUB_TEMPLATE_REPO": "attacker/private-templates",
+        "GITLAB_TOKEN": "glpat-usertoken",
+        "AWS_ACCESS_KEY": "AKIA-user",
+        "AWS_SECRET_KEY": "user-aws-secret",
+        "AZURE_CLIENT_SECRET": "azure-secret",
+        "NUCLEI_SIGNATURE_PUBLIC_KEY": "user-pubkey",
+        "DISABLE_NUCLEI_TEMPLATES_PUBLIC_DOWNLOAD": "true",
+    }
+
+    async def setup_before_prep(self, module_test):
+        await super().setup_before_prep(module_test)
+        for k, v in self.leaky_env.items():
+            module_test.monkeypatch.setenv(k, v)
+
+    def check(self, module_test, events):
+        super().check(module_test, events)
+        nuclei = module_test.scan.modules["nuclei"]
+        env = nuclei._nuclei_env()
+        for k in self.leaky_env:
+            assert k not in env, f"{k} leaked into nuclei subprocess env"
+        nuclei_home = str(nuclei.nuclei_home)
+        for var in ("HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA"):
+            assert env[var] == nuclei_home, f"{var} not pinned to nuclei_home"
+        assert env["NUCLEI_CONFIG_DIR"].startswith(nuclei_home)
+
+
 class TestNucleiCustomHeaders(TestNucleiManual):
     custom_headers = {"testheader1": "test1", "testheader2": "test2"}
     config_overrides = TestNucleiManual.config_overrides

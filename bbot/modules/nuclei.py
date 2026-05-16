@@ -66,11 +66,9 @@ class nuclei(BaseModule):
     _batch_size = 200
 
     async def setup(self):
-        # All nuclei runtime state lives under one bbot-owned dir so we can
-        # wipe it on corruption without touching the user's own ~/.config/nuclei.
-        # The subprocess gets HOME pointed here, so nuclei's Go stdlib resolves
-        # config / cache / pdcp dirs (and on macOS, Library/Application Support)
-        # all underneath it. See _nuclei_env().
+        # All nuclei state lives under one bbot-owned dir so we can wipe it on
+        # corruption without touching the user's own ~/.config/nuclei. See
+        # _nuclei_env() for how the subprocess env pins config/cache here.
         self.nuclei_state_dir = self.helpers.tools_dir / "nuclei-state"
         self.nuclei_templates_dir = self.nuclei_state_dir / "templates"
         self.nuclei_home = self.nuclei_state_dir / "home"
@@ -329,13 +327,30 @@ class nuclei(BaseModule):
         resume_file.unlink(missing_ok=True)
 
     def _nuclei_env(self):
-        # Redirect nuclei's HOME / AppData lookups into our isolated state dir
-        # so config (.templates-config.json marker), cache, and pdcp dirs all
-        # land under bbot's tools tree instead of the user's real home.
-        env = os.environ.copy()
+        # Allowlist env vars: nuclei reads PDCP_API_KEY, GITHUB_TOKEN, AWS_*,
+        # AZURE_*, XDG_* etc. directly, so os.environ.copy() would silently
+        # change its behavior (e.g. upload findings to ProjectDiscovery Cloud
+        # under the user's account). NUCLEI_CONFIG_DIR pins the config dir even
+        # when XDG_CONFIG_HOME is set in the host env.
+        keep = {
+            "PATH",
+            "LD_LIBRARY_PATH",
+            "LANG",
+            "LC_ALL",
+            "TZ",
+            "HTTP_PROXY",
+            "HTTPS_PROXY",
+            "NO_PROXY",
+            "http_proxy",
+            "https_proxy",
+            "no_proxy",
+        }
+        env = {k: v for k, v in os.environ.items() if k in keep}
         env["HOME"] = str(self.nuclei_home)
+        env["USERPROFILE"] = str(self.nuclei_home)
         env["APPDATA"] = str(self.nuclei_home)
         env["LOCALAPPDATA"] = str(self.nuclei_home)
+        env["NUCLEI_CONFIG_DIR"] = str(self.nuclei_home / ".config" / "nuclei")
         return env
 
     async def _update_templates(self):
