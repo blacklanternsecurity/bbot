@@ -88,6 +88,15 @@ class BlasthttpMock:
         data = kwargs.pop("data", None)
         files = kwargs.pop("files", None)
         json_body = kwargs.pop("json", None)
+        body_sources = [
+            name
+            for name, val in (("body", body), ("data", data), ("json", json_body), ("files", files))
+            if val is not None
+        ]
+        if len(body_sources) > 1:
+            raise ValueError(
+                f"request() got conflicting body kwargs {body_sources}; pass at most one of body, data, json, files"
+            )
         cookies = kwargs.pop("cookies", None)
         auth = kwargs.pop("auth", None)
         # Drop kwargs that don't apply to mock dispatch but are valid on WebHelper.
