@@ -250,7 +250,7 @@ class crypto(BaseLightfuzz):
         return possible_sizes
 
     def _collect_keystream_candidates(self, probe_value):
-        """Return [(label, raw, bytes)] for every hex/base64-shaped candidate worth pairwise-XORing.
+        """Return [(label, raw, bytes)] for every hex-shaped candidate worth pairwise-XORing.
 
         Sources, in order:
           1. The current parameter's value (probe_value).
@@ -273,7 +273,12 @@ class crypto(BaseLightfuzz):
             if not value or not isinstance(value, str):
                 continue
             decoded, encoding = self.format_agnostic_decode(value)
-            if encoding == "unknown":
+            # Hex only: base64's alphabet overlaps heavily with URL-path / identifier
+            # characters, so plaintext URL paths sharing a prefix round-trip as base64
+            # and XOR to a leading-zero run, producing a false-positive keystream-reuse
+            # finding. Hex's [0-9a-f] alphabet has no such overlap with structured
+            # plaintext, so restricting to hex eliminates that class of FP.
+            if encoding != "hex":
                 continue
             if len(decoded) < 3:
                 continue

@@ -4244,6 +4244,35 @@ class Test_Lightfuzz_keystream_reuse(ModuleTestBase):
         assert same_param_values, "Expected same_param_values to carry the second ciphertext, got empty/None"
 
 
+# Regression: two URL-path-shaped values that share a long plaintext prefix
+# round-trip as valid base64 (every char is in the b64 alphabet, length
+# divisible by 4) and XOR to a long leading-zero run because the plaintexts
+# overlap. The earlier crypto gate only rejected narrow-range encodings, so
+# such pairs produced a HIGH/CONFIRMED Stream Cipher Keystream Reuse finding
+# despite obviously being plaintext URL paths, not ciphertext.
+class Test_Lightfuzz_keystream_reuse_url_path_fp(Test_Lightfuzz_keystream_reuse):
+    # Both values are 24 chars (valid base64 length), share a 13-char plaintext
+    # prefix, and use only base64-alphabet chars — so they round-trip and the
+    # XOR exposes a long leading-zero run unless the crypto gate rejects them.
+    landing_page = """
+    <html><body>
+        <a href="/run?token=/abc/def/x2003new1234567">2003</a>
+        <a href="/run?token=/abc/def/x2002new1234567">2002</a>
+    </body></html>
+    """
+
+    def check(self, module_test, events):
+        keystream_findings = [
+            e
+            for e in events
+            if e.type == "FINDING" and "Stream Cipher Keystream Reuse" in e.data.get("description", "")
+        ]
+        assert not keystream_findings, (
+            f"URL-path values were misclassified as keystream-reuse ciphertexts: "
+            f"{[f.data.get('description') for f in keystream_findings]}"
+        )
+
+
 # End-to-end test for assigned_cookies refresh.
 #
 # The cookies excavate originally captured on the spider's GET are often stale
