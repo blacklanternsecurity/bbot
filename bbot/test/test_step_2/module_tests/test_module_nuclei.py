@@ -184,12 +184,19 @@ class TestNucleiEnvIsolation(TestNucleiManual):
         for k, v in self.leaky_env.items():
             module_test.monkeypatch.setenv(k, v)
 
+    # XDG_{CONFIG,CACHE}_HOME are set by _nuclei_env() itself to our paths,
+    # so they appear in env but must override (not echo back) the user's values.
+    _xdg_overridden = {"XDG_CONFIG_HOME", "XDG_CACHE_HOME"}
+
     def check(self, module_test, events):
         super().check(module_test, events)
         nuclei = module_test.scan.modules["nuclei"]
         env = nuclei._nuclei_env()
-        for k in self.leaky_env:
-            assert k not in env, f"{k} leaked into nuclei subprocess env"
+        for k, v in self.leaky_env.items():
+            if k in self._xdg_overridden:
+                assert env.get(k) != v, f"{k} leaked user value into nuclei env"
+            else:
+                assert k not in env, f"{k} leaked into nuclei subprocess env"
         assert env["XDG_CONFIG_HOME"] == str(nuclei.nuclei_config_dir)
         assert env["XDG_CACHE_HOME"] == str(nuclei.nuclei_cache_dir)
         # HOME is intentionally NOT forwarded — nuclei must rely on the XDG
