@@ -1,7 +1,7 @@
 description: "Minimal fuzzing: only path traversal, SQLi, and XSS submodules. No POST requests. No companion modules. Safest option for running alongside larger scans with minimal overhead."
 
 modules:
-  - httpx
+  - http
   - lightfuzz
   - portfilter
   

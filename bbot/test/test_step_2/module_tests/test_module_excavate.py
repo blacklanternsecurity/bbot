@@ -10,7 +10,7 @@ import yara
 
 class TestExcavate(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/", "test.notreal", "http://127.0.0.1:8888/subdir/links.html"]
-    modules_overrides = ["excavate", "httpx"]
+    modules_overrides = ["excavate", "http"]
     config_overrides = {"web": {"spider_distance": 1, "spider_depth": 1}, "omit_event_types": []}
 
     async def setup_before_prep(self, module_test):
@@ -28,7 +28,7 @@ class TestExcavate(ModuleTestBase):
         <link href="/link_relative.txt">
         <a href="mailto:bob@evilcorp.org?subject=help">Help</a>
         <li class="toctree-l3"><a class="reference internal" href="miscellaneous.html#x50-uart-driver">16x50 UART Driver</a></li>
-        # these ones should get emitted as URL_UNVERIFIED events (processed by httpx which has accept_js_url=True)
+        # these ones should get emitted as URL_UNVERIFIED events (processed by http module which has accept_js_url=True)
         <a href="/a_relative.js">
         <link href="/link_relative.js">
         """
@@ -77,7 +77,7 @@ class TestExcavate(ModuleTestBase):
         assert "www6.test.notreal" in event_data
         assert "www7.test.notreal" in event_data
         assert "www8.test.notreal" in event_data
-        # .js files should be emitted as URL_UNVERIFIED events (they are processed by httpx which has accept_js_url=True)
+        # .js files should be emitted as URL_UNVERIFIED events (they are processed by http module which has accept_js_url=True)
         # they are seen by internal modules but not by output modules
         assert "http://127.0.0.1:8888/a_relative.js" not in event_data
         assert "http://127.0.0.1:8888/link_relative.js" not in event_data
@@ -190,7 +190,7 @@ class TestExcavate2(TestExcavate):
 
 class TestExcavateInScopeJavascript(TestExcavate):
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["excavate", "httpx", "badsecrets"]
+    modules_overrides = ["excavate", "http", "badsecrets"]
 
     async def setup_before_prep(self, module_test):
         module_test.httpserver.expect_request("/").respond_with_data(
@@ -515,7 +515,7 @@ class TestExcavateNonHttpScheme(TestExcavate):
 
 class TestExcavateParameterExtraction(TestExcavate):
     # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
-    modules_overrides = ["excavate", "httpx", "hunt"]
+    modules_overrides = ["excavate", "http", "hunt"]
     targets = ["http://127.0.0.1:8888/"]
     parameter_extraction_html = """
     <html>
@@ -662,7 +662,7 @@ class TestExcavateParameterExtraction_postform_noaction(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
 
     # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
-    modules_overrides = ["httpx", "excavate", "hunt"]
+    modules_overrides = ["http", "excavate", "hunt"]
     postform_extract_html = """
 <body>
     <h1>Post for without action</h1>
@@ -728,7 +728,7 @@ class TestExcavateParameterExtraction_additionalparams(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
 
     # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
-    modules_overrides = ["httpx", "excavate", "hunt"]
+    modules_overrides = ["http", "excavate", "hunt"]
     postformnoaction_extract_multiparams_html = """
 <body>
     <h1>Post for without action</h1>
@@ -789,7 +789,7 @@ class TestExcavateParameterExtraction_getparam(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
 
     # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
-    modules_overrides = ["httpx", "excavate", "hunt"]
+    modules_overrides = ["http", "excavate", "hunt"]
     getparam_extract_html = """
 <html><a href="/?hack=1">ping</a></html>
     """
@@ -811,7 +811,7 @@ class TestExcavateParameterExtraction_relativeurl(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
 
     # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
-    modules_overrides = ["httpx", "excavate", "hunt"]
+    modules_overrides = ["http", "excavate", "hunt"]
     config_overrides = {"web": {"spider_distance": 2, "spider_depth": 3}}
 
     # Secondary page that has a relative link to a traversal URL
@@ -885,7 +885,7 @@ class TestExcavateParameterExtraction_getparam_novalue(TestExcavateParameterExtr
 
 class TestExcavateParameterExtraction_json(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["httpx", "excavate", "paramminer_getparams"]
+    modules_overrides = ["http", "excavate", "paramminer_getparams"]
     config_overrides = {
         "modules": {
             "excavate": {"speculate_params": True},
@@ -917,7 +917,7 @@ class TestExcavateParameterExtraction_json(ModuleTestBase):
 
 class TestExcavateParameterExtraction_xml(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["httpx", "excavate", "paramminer_getparams"]
+    modules_overrides = ["http", "excavate", "paramminer_getparams"]
     config_overrides = {
         "modules": {
             "excavate": {"speculate_params": True},
@@ -975,7 +975,7 @@ class TestExcavateParameterExtraction_inputtagnovalue(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
 
     # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
-    modules_overrides = ["httpx", "excavate", "hunt"]
+    modules_overrides = ["http", "excavate", "hunt"]
     getparam_extract_html = """
 <form action=/ method=GET><input type=text name="novalue"><button type=submit class=button>Submit</button></form>
     """
@@ -995,7 +995,7 @@ class TestExcavateParameterExtraction_inputtagnovalue(ModuleTestBase):
 
 class TestExcavateParameterExtraction_jqueryjsonajax(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["httpx", "excavate", "hunt"]
+    modules_overrides = ["http", "excavate", "hunt"]
     jsonajax_extract_html = """
     <html>
     <script>
@@ -1062,7 +1062,7 @@ class TestExcavateYara(TestExcavate):
 """
 
     async def setup_before_prep(self, module_test):
-        self.modules_overrides = ["excavate", "httpx"]
+        self.modules_overrides = ["excavate", "http"]
         module_test.httpserver.expect_request("/").respond_with_data(self.yara_test_html)
 
     async def setup_after_prep(self, module_test):
@@ -1107,7 +1107,7 @@ class TestExcavateYaraConfidence(ModuleTestBase):
     """Test YARA rules with confidence options."""
 
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["excavate", "httpx"]
+    modules_overrides = ["excavate", "http"]
 
     async def setup_before_prep(self, module_test):
         yara_test_html = """
@@ -1168,7 +1168,7 @@ class TestExcavateSpiderDedupe(ModuleTestBase):
                 await self.emit_event(new_event)
 
     dummy_text = "<a href='/spider'>spider</a>"
-    modules_overrides = ["excavate", "httpx"]
+    modules_overrides = ["excavate", "http"]
     targets = ["http://127.0.0.1:8888/"]
     config_overrides = {"omit_event_types": []}
 
@@ -1206,7 +1206,7 @@ class TestExcavateSpiderDedupe(ModuleTestBase):
 
 class TestExcavateParameterExtraction_targeturl(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/?foo=1"]
-    modules_overrides = ["httpx", "excavate", "hunt"]
+    modules_overrides = ["http", "excavate", "hunt"]
     config_overrides = {
         "url_querystring_remove": False,
         "url_querystring_collapse": False,
@@ -1232,7 +1232,7 @@ class TestExcavateParameterExtraction_targeturl(ModuleTestBase):
 
 class TestExcavate_retain_querystring(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/?foo=1"]
-    modules_overrides = ["httpx", "excavate", "hunt"]
+    modules_overrides = ["http", "excavate", "hunt"]
     config_overrides = {
         "url_querystring_remove": False,
         "url_querystring_collapse": False,
@@ -1279,7 +1279,7 @@ class TestExcavate_webparameter_outofscope(ModuleTestBase):
     html_body = "<html><a class=button href='https://socialmediasite.com/send?text=foo'><a class=button href='https://outofscope.com/send?text=foo'></html>"
 
     targets = ["http://127.0.0.1:8888", "socialmediasite.com"]
-    modules_overrides = ["httpx", "excavate", "hunt"]
+    modules_overrides = ["http", "excavate", "hunt"]
     config_overrides = {"interactsh_disable": True}
 
     async def setup_after_prep(self, module_test):
@@ -1307,7 +1307,7 @@ class TestExcavate_webparameter_outofscope(ModuleTestBase):
 
 class TestExcavateHeaders(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["excavate", "httpx", "hunt"]
+    modules_overrides = ["excavate", "http", "hunt"]
     config_overrides = {"web": {"spider_distance": 1, "spider_depth": 1}}
 
     async def setup_before_prep(self, module_test):
@@ -1339,7 +1339,7 @@ class TestExcavateHeaders(ModuleTestBase):
 
 class TestExcavateRAWTEXT(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/", "test.notreal"]
-    modules_overrides = ["excavate", "httpx", "filedownload", "kreuzberg"]
+    modules_overrides = ["excavate", "http", "filedownload", "kreuzberg"]
     config_overrides = {
         "scope": {"report_distance": 1},
         "web": {"spider_distance": 2, "spider_depth": 2},
@@ -1478,7 +1478,7 @@ startxref
 
 class TestExcavateHeaders_blacklist(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["excavate", "httpx", "hunt"]
+    modules_overrides = ["excavate", "http", "hunt"]
     config_overrides = {"web": {"spider_distance": 1, "spider_depth": 1}}
 
     async def setup_before_prep(self, module_test):
@@ -1515,7 +1515,7 @@ class TestExcavateHeaders_blacklist(ModuleTestBase):
 
 class TestExcavateBadURLs(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["excavate", "httpx", "hunt"]
+    modules_overrides = ["excavate", "http", "hunt"]
     config_overrides = {"interactsh_disable": True, "scope": {"report_distance": 10}, "omit_event_types": []}
 
     bad_url_data = """
@@ -1546,7 +1546,7 @@ class TestExcavateBadURLs(ModuleTestBase):
 
 
 class TestExcavateURL_InvalidPort(TestExcavate):
-    modules_overrides = ["excavate", "httpx", "hunt"]
+    modules_overrides = ["excavate", "http", "hunt"]
 
     async def setup_before_prep(self, module_test):
         # Test URL with invalid port (greater than 65535)
@@ -1561,7 +1561,7 @@ class TestExcavateURL_InvalidPort(TestExcavate):
 
 class TestExcavateIgnorePDF(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["excavate", "httpx"]
+    modules_overrides = ["excavate", "http"]
 
     # body content that would normally produce findings if processed
     pdf_body_with_urls = "https://pdf-extracted.test.notreal/some/path ftp://ftp.test.notreal"

@@ -47,14 +47,37 @@ class TestBaddns_zone_nsec(BaseTestBaddns_zone):
 
     async def setup_after_prep(self, module_test):
         from baddns.lib.whoismanager import WhoisManager
+        from baddns.lib.dnsmanager import DNSManager
+
+        # NSEC records can't go through MockClient (hickory refuses zone-file NSEC parsing),
+        # so we pass only non-NSEC data to mock_dns and handle NSEC via DNSManager monkeypatch.
+        nsec_data = {
+            "bad.com": ["asdf.bad.com"],
+            "asdf.bad.com": ["zzzz.bad.com"],
+            "zzzz.bad.com": ["xyz.bad.com"],
+        }
 
         await module_test.mock_dns(
             {
-                "bad.com": {"A": ["127.0.0.5"], "NSEC": ["asdf.bad.com"]},
-                "asdf.bad.com": {"NSEC": ["zzzz.bad.com"]},
-                "zzzz.bad.com": {"NSEC": ["xyz.bad.com"]},
+                "bad.com": {"A": ["127.0.0.5"]},
             }
         )
+
+        original_do_resolve = DNSManager.do_resolve
+        original_dispatch = DNSManager.dispatchDNS
+
+        async def patched_do_resolve(self, target, rdatatype):
+            if rdatatype == "NSEC" and target in nsec_data:
+                return nsec_data[target]
+            return await original_do_resolve(self, target, rdatatype)
+
+        async def patched_dispatch(self, omit_types=[]):
+            await original_dispatch(self, omit_types=omit_types)
+            if "NSEC" not in omit_types and self.target in nsec_data:
+                self.answers["NSEC"] = nsec_data[self.target]
+
+        module_test.monkeypatch.setattr(DNSManager, "do_resolve", patched_do_resolve)
+        module_test.monkeypatch.setattr(DNSManager, "dispatchDNS", patched_dispatch)
         module_test.monkeypatch.setattr(WhoisManager, "dispatchWHOIS", self.dispatchWHOIS)
 
     def check(self, module_test, events):

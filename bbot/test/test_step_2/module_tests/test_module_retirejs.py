@@ -3,7 +3,7 @@ from .base import ModuleTestBase
 
 class TestRetireJS(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "excavate", "retirejs"]
+    modules_overrides = ["http", "excavate", "retirejs"]
 
     # HTML page with vulnerable JavaScript libraries
     vulnerable_html = """<!doctype html>
@@ -139,7 +139,7 @@ return Handlebars;
 
 class TestRetireJSNoExcavate(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "retirejs"]
+    modules_overrides = ["http", "retirejs"]
     force_start = True  # Allow scan to continue even if modules fail setup
     config_overrides = {
         "excavate": False,

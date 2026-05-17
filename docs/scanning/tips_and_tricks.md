@@ -13,7 +13,7 @@ Sometimes a certain module can get stuck or slow down the scan. If this happens 
 You can also kill multiple modules at a time by specifying them in a space or comma-separated list:
 
 ```bash
-kill httpx sslcert
+kill http sslcert
 ```
 
 <img src="https://github.com/blacklanternsecurity/bbot/assets/20261699/61ad7123-8879-4c86-afdd-e96d7264b67c" style="max-width: 45em !important"/>
@@ -45,6 +45,21 @@ If you have a fast internet connection or are running BBOT from a cloud VM, you 
 bbot -t evilcorp.com -f subdomain-enum -c dns.brute_threads=5000
 ```
 
+### Speed Up Scans with More DNS Resolvers
+
+By far the most effective way to speed up a BBOT scan is to **add more resolvers to `/etc/resolv.conf`**. BBOT's DNS engine (blastdns) spins up ten workers per resolver, so more resolvers = more parallelism = faster scans.
+
+For OSINT, it's critical that every resolver is **unfiltered**. Specialized resolvers that try to block ads, malicious domains, etc. will intentionally omit results. Below is a sample `/etc/resolv.conf` with 11 unfiltered public resolvers:
+
+```conf
+--8<-- "docs/data/resolv-sample.conf"
+```
+
+Copy this to `/etc/resolv.conf` (or append the `nameserver` lines to your existing config). With all 11 resolvers, blastdns will run 110 workers in parallel instead of the typical 10-30 you get from a default OS config.
+
+!!! tip
+    If your system uses `systemd-resolved` or `resolvconf`, you may need to configure the upstream forwarders there instead of editing `/etc/resolv.conf` directly.
+
 ### Web Spider
 
 The web spider is great for finding juicy data like subdomains, email addresses, and javascript secrets buried in webpages. However since it can lengthen the duration of a scan, it's disabled by default. To enable the web spider, you must increase the value of `web.spider_distance`.
@@ -67,7 +82,7 @@ config:
 
 ```bash
 # run the web spider against www.evilcorp.com
-bbot -t www.evilcorp.com -m httpx -c spider.yml
+bbot -t www.evilcorp.com -m http -c spider.yml
 ```
 
 You can also pair the web spider with subdomain enumeration:
@@ -119,7 +134,7 @@ bbot -t evilcorp.com -f subdomain-enum -m gowitness -c web.http_proxy=http://127
 
 ### Display `HTTP_RESPONSE` Events
 
-BBOT's `httpx` module emits `HTTP_RESPONSE` events, but by default they're hidden from output. These events contain the full raw HTTP body along with headers, etc. If you want to see them, you can modify `omit_event_types` in the config:
+BBOT's `http` module emits `HTTP_RESPONSE` events, but by default they're hidden from output. These events contain the full raw HTTP body along with headers, etc. If you want to see them, you can modify `omit_event_types` in the config:
 
 ```yaml title="~/.bbot/config/bbot.yml"
 omit_event_types:
@@ -148,29 +163,29 @@ If you don't care about DNS-based scope checks, you can go even further by compl
 
 ~~~bash
 # completely disable DNS resolution
-bbot -m httpx gowitness -t urls.txt -c dns.disable=true
+bbot -m http gowitness -t urls.txt -c dns.disable=true
 ~~~
 
 Note that the above setting _completely_ disables DNS, meaning even `A` and `AAAA` records are not resolved. This can cause problems if you're using an IP whitelist or blacklist. In this case, you'll want to use `dns.minimal` instead:
 
 ~~~bash
 # only resolve A and AAAA records
-bbot -m httpx gowitness -t urls.txt -c dns.minimal=true
+bbot -m http gowitness -t urls.txt -c dns.minimal=true
 ~~~
 
 ## FAQ
 
 ### What is `URL_UNVERIFIED`?
 
-`URL_UNVERIFIED` events are URLs that haven't yet been visited by `httpx`. Once `httpx` visits them, it reraises them as `URL`s, tagged with their resulting status code.
+`URL_UNVERIFIED` events are URLs that haven't yet been visited by `http`. Once `http` visits them, it reraises them as `URL`s, tagged with their resulting status code.
 
-For example, when [`excavate`](index.md/#types-of-modules) gets an `HTTP_RESPONSE` event, it extracts links from the raw HTTP response as `URL_UNVERIFIED`s and then passes them back to `httpx` to be visited.
+For example, when [`excavate`](index.md/#types-of-modules) gets an `HTTP_RESPONSE` event, it extracts links from the raw HTTP response as `URL_UNVERIFIED`s and then passes them back to `http` to be visited.
 
 By default, `URL_UNVERIFIED`s are hidden from output. If you want to see all of them including the out-of-scope ones, you can do it by changing `omit_event_types` and `scope.report_distance` in the config like so:
 
 ```bash
 # visit www.evilcorp.com and extract all the links
-bbot -t www.evilcorp.com -m httpx -c omit_event_types=[] scope.report_distance=2
+bbot -t www.evilcorp.com -m http -c omit_event_types=[] scope.report_distance=2
 ```
 
 ### Can I crank up the threads for a module to make it go faster?

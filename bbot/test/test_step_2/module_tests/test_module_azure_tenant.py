@@ -23,7 +23,7 @@ class AzureTenantTestBase(ModuleTestBase):
             email_domains.append("blacklanternsecurity.onmicrosoft.com")
 
         # Mock azmap.dev response
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://azmap.dev/api/tenant?domain=blacklanternsecurity.com&extract=true",
             json={
                 "tenant_id": "test-tenant-id",
@@ -33,7 +33,7 @@ class AzureTenantTestBase(ModuleTestBase):
         )
 
         # Mock ODC endpoint
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://odc.officeapps.live.com/odc/v2.1/federationprovider?domain=blacklanternsecurity.com",
             json={},
         )
@@ -53,7 +53,7 @@ class AzureTenantTestBase(ModuleTestBase):
                 "cloud_instance_name": "login.microsoftonline.us",
             }
 
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://login.microsoftonline.com/blacklanternsecurity.com/.well-known/openid-configuration",
             json=openid_config,
         )
@@ -67,26 +67,26 @@ class AzureTenantTestBase(ModuleTestBase):
         if self.federation_url:
             getcred_response["Credentials"]["FederationRedirectUrl"] = self.federation_url
 
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://login.microsoftonline.com/common/GetCredentialType",
             method="POST",
             json=getcred_response,
         )
 
         # Mock UserRealm v2.0
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://login.microsoftonline.com/common/userrealm/test@blacklanternsecurity.com?api-version=2.0",
             json={},
         )
 
         # Mock MTA-STS
         if self.exchange_online:
-            module_test.httpx_mock.add_response(
+            module_test.blasthttp_mock.add_response(
                 url="https://mta-sts.blacklanternsecurity.com/.well-known/mta-sts.txt",
                 text="version: STSv1\nmode: enforce\nmx: blacklanternsecurity-com.mail.protection.outlook.com\nmax_age: 604800",
             )
         else:
-            module_test.httpx_mock.add_response(
+            module_test.blasthttp_mock.add_response(
                 url="https://mta-sts.blacklanternsecurity.com/.well-known/mta-sts.txt",
                 status_code=404,
             )
@@ -94,7 +94,7 @@ class AzureTenantTestBase(ModuleTestBase):
         # Mock Directory Sync check if needed
         if self.include_onmicrosoft:
             sync_result = 0 if self.directory_sync_enabled else 1
-            module_test.httpx_mock.add_response(
+            module_test.blasthttp_mock.add_response(
                 url="https://login.microsoftonline.com/common/GetCredentialType",
                 method="POST",
                 json={"IfExistsResult": sync_result},
@@ -120,17 +120,17 @@ class TestAzure_Tenant(AzureTenantTestBase):
 
     async def setup_after_prep(self, module_test):
         # Use custom response for this test
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://azmap.dev/api/tenant?domain=blacklanternsecurity.com&extract=true",
             json=self.tenant_response,
         )
 
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://odc.officeapps.live.com/odc/v2.1/federationprovider?domain=blacklanternsecurity.com",
             json={"TenantId": "cc74fc12-4142-400e-a653-f98bdeadbeef"},
         )
 
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://login.microsoftonline.com/blacklanternsecurity.com/.well-known/openid-configuration",
             json={
                 "tenant_region_scope": "NA",
@@ -138,23 +138,23 @@ class TestAzure_Tenant(AzureTenantTestBase):
             },
         )
 
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://login.microsoftonline.com/common/GetCredentialType",
             json={"EstsProperties": {}, "Credentials": {}},
         )
 
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://login.microsoftonline.com/common/userrealm/test@blacklanternsecurity.com?api-version=2.0",
             json={"NameSpaceType": "Managed"},
         )
 
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://mta-sts.blacklanternsecurity.com/.well-known/mta-sts.txt",
             status_code=404,
         )
 
         # Directory sync check
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://login.microsoftonline.com/common/GetCredentialType",
             json={"IfExistsResult": 1},
         )

@@ -73,7 +73,7 @@ class BaseModule:
 
         _stats_exclude (bool): Whether to exclude this module from scan statistics. Default is False.
 
-        _disable_auto_module_deps (bool): Whether to disable automatic module dependencies. This is useful e.g. if the module consumes URLs, but you don't want to automatically enable the httpx module. Default is False.
+        _disable_auto_module_deps (bool): Whether to disable automatic module dependencies. This is useful e.g. if the module consumes URLs, but you don't want to automatically enable the blasthttp module. Default is False.
 
         _qsize (int): Outgoing queue size (0 for infinite). Default is 0.
 
@@ -662,7 +662,8 @@ class BaseModule:
             try:
                 event = self.incoming_event_queue.get_nowait()
                 self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
-                acceptable, reason = await self._event_postcheck(event)
+                async with self._task_counter.count(f"event_postcheck({event})"):
+                    acceptable, reason = await self._event_postcheck(event)
                 if acceptable:
                     if event.type == "FINISHED":
                         finish = True
@@ -793,8 +794,6 @@ class BaseModule:
                         finally:
                             event._minimize()
         except asyncio.CancelledError:
-            # this trace was used for debugging leaked CancelledErrors from inside httpx
-            # self.log.trace("Worker cancelled")
             raise
         except RuntimeError as e:
             self.trace(f"RuntimeError in module {self.name}: {e}")
@@ -1404,7 +1403,7 @@ class BaseModule:
             **requests_kwargs: Arbitrary keyword arguments that will be forwarded to the HTTP request function.
 
         Yields:
-            dict or httpx.Response: If 'json' is True, yields a dictionary containing the parsed JSON data. Otherwise, yields the raw HTTP response.
+            dict or Response: If 'json' is True, yields a dictionary containing the parsed JSON data. Otherwise, yields the raw HTTP response.
 
         Note:
             The loop will continue indefinitely unless manually stopped. Make sure to break out of the loop once the last page has been received.
@@ -1859,16 +1858,19 @@ class BaseInterceptModule(BaseModule):
                         continue
 
                     acceptable = True
+                    # precheck/postcheck must be counted so the module isn't marked finished
+                    # while events are mid-check (is_finished reads _task_counter.value)
                     async with self._task_counter.count(f"event_precheck({event})"):
                         precheck_pass, reason = self._event_precheck(event)
                     if not precheck_pass:
                         self.debug(f"Not intercepting {event} because precheck failed ({reason})")
                         acceptable = False
-                    async with self._task_counter.count(f"event_postcheck({event})"):
-                        postcheck_pass, reason = await self._event_postcheck(event)
-                    if not postcheck_pass:
-                        self.debug(f"Not intercepting {event} because postcheck failed ({reason})")
-                        acceptable = False
+                    else:
+                        async with self._task_counter.count(f"event_postcheck({event})"):
+                            postcheck_pass, reason = await self._event_postcheck(event)
+                        if not postcheck_pass:
+                            self.debug(f"Not intercepting {event} because postcheck failed ({reason})")
+                            acceptable = False
 
                     # whether to pass the event on to the rest of the scan
                     # defaults to true, unless handle_event returns False
@@ -1876,7 +1878,7 @@ class BaseInterceptModule(BaseModule):
                     forward_event_reason = ""
 
                     if acceptable:
-                        context = f"{self.name}.handle_event({event, kwargs})"
+                        context = f"{self.name}.handle_event({event})"
                         self.scan.stats.event_consumed(event, self)
                         self.debug(f"Intercepting {event}")
                         try:
@@ -1895,8 +1897,6 @@ class BaseInterceptModule(BaseModule):
                     await self.forward_event(event, kwargs)
 
         except asyncio.CancelledError:
-            # this trace was used for debugging leaked CancelledErrors from inside httpx
-            # self.log.trace("Worker cancelled")
             raise
         except RuntimeError as e:
             self.trace(f"RuntimeError in intercept module {self.name}: {e}")

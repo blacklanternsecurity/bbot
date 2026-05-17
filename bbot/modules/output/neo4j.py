@@ -108,7 +108,7 @@ class neo4j(BaseOutputModule):
                 # we pop the timestamp because it belongs on the relationship
                 event_json.pop("timestamp")
                 # nested data types aren't supported in neo4j
-                for key in ("dns_children", "discovery_path"):
+                for key in ("dns_children", "discovery_path", "host_metadata"):
                     if key in event_json:
                         event_json[key] = json.dumps(event_json[key])
                 insert_data.append(event_json)

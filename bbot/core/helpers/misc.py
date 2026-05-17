@@ -1693,7 +1693,7 @@ def rm_rf(f, ignore_errors=False):
         f (str or Path): The directory path to delete.
 
     Examples:
-        >>> rm_rf("/tmp/httpx98323849")
+        >>> rm_rf("/tmp/bbot98323849")
     """
     import shutil
 
@@ -2743,14 +2743,12 @@ def clean_dns_record(record):
         >>> clean_dns_record('www.evilcorp.com.')
         'www.evilcorp.com'
 
-        >>> from dns.rrset import from_text
-        >>> record = from_text('www.evilcorp.com', 3600, 'IN', 'A', '1.2.3.4')[0]
-        >>> clean_dns_record(record)
-        '1.2.3.4'
+        >>> clean_dns_record('*.evilcorp.com.')
+        'evilcorp.com'
     """
     if not isinstance(record, str):
         record = str(record.to_text())
-    return str(record).rstrip(".").lower()
+    return str(record).strip("'\"").strip("*.").lower()
 
 
 def truncate_filename(file_path, max_length=255):

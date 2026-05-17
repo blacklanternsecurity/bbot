@@ -3,7 +3,7 @@ from .base import ModuleTestBase
 
 class TestUrl_Manipulation(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "url_manipulation"]
+    modules_overrides = ["http", "url_manipulation"]
     body = """
     <html>
     <title>the title</title>
