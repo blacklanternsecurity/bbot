@@ -182,6 +182,34 @@ class xss(BaseLightfuzz):
                     return True
                 pos = html.find(match, pos + 1)
             return False
+        elif "HTML Comment" in context:
+            # Match begins inside an unclosed `<!--` (the `-->` that closes
+            # the comment is INSIDE the match itself — that's the breakout).
+            # Rules out a reflection of the same bytes elsewhere on the page
+            # that didn't actually break out of any comment.
+            pos = html.find(match)
+            while pos != -1:
+                preceding = html[:pos]
+                if preceding.rfind("<!--") > preceding.rfind("-->"):
+                    return True
+                pos = html.find(match, pos + 1)
+            return False
+        elif "JS Template Literal" in context:
+            # Match must land inside a `<script>` block AND inside a
+            # backtick-delimited span (odd # of backticks since the last
+            # script open, plus a closing backtick after the match). All
+            # scans are bounded to slices of `html`; no regex over the body.
+            pos = html.find(match)
+            while pos != -1:
+                preceding = html[:pos]
+                last_script_open = preceding.rfind("<script")
+                last_script_close = preceding.rfind("</script>")
+                if last_script_open > last_script_close:
+                    script_prefix = preceding[last_script_open:]
+                    if script_prefix.count("`") % 2 == 1 and "`" in html[pos + len(match) :]:
+                        return True
+                pos = html.find(match, pos + 1)
+            return False
         return True
 
     async def check_probe(self, cookies, probe, match, context):

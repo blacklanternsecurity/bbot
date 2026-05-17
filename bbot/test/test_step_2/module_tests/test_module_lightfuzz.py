@@ -579,6 +579,102 @@ class Test_Lightfuzz_xss_js_backtick(Test_Lightfuzz_xss):
         assert backtick_finding, "JS Template Literal XSS FINDING not emitted"
 
 
+# Negative test: param echoed in BOTH an HTML comment (with `-->` HTML-encoded,
+# so no breakout there) AND in plain body text (verbatim). determine_context
+# fires on the comment reflection, but the breakout match lands only in the
+# body — outside any comment. _verify_match_context must reject this so no
+# HTML Comment finding fires.
+class Test_Lightfuzz_xss_html_comment_fp(Test_Lightfuzz_xss):
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+        parameter_block = """
+        <html>
+            <a href="/otherpage.php?foo=bar">Link</a>
+        </html>
+        """
+        if "foo=" in qs:
+            value = qs.split("=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+            decoded = unquote(value)
+            # Comment: HTML-encode `-->` so the breakout is defanged.
+            comment_safe = decoded.replace("-->", "--&gt;")
+            # Body: reflect verbatim (the differential-escaping FP case).
+            return Response(
+                f"<html><body><!-- note: {comment_safe} --><p>You searched for {decoded}</p></body></html>",
+                status=200,
+            )
+        return Response(parameter_block, status=200)
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
+            "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        )
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+        expect_args = re.compile("/otherpage.php")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        html_comment_findings = [
+            e for e in events if e.type == "FINDING" and "Context: [HTML Comment]" in e.data.get("description", "")
+        ]
+        assert not html_comment_findings, (
+            f"HTML Comment XSS FINDING falsely emitted despite match landing outside comment context: "
+            f"{[f.data.get('description') for f in html_comment_findings]}"
+        )
+
+
+# Negative test: param echoed in BOTH a backtick string inside <script>
+# (with `${` defanged) AND in plain body text (verbatim). determine_context
+# fires on the backtick reflection, but the breakout match `${RAND}` lands
+# only in the body — outside any script/backtick. _verify_match_context
+# must reject this so no JS Template Literal finding fires.
+class Test_Lightfuzz_xss_js_backtick_fp(Test_Lightfuzz_xss):
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+        parameter_block = """
+        <html>
+            <a href="/otherpage.php?foo=bar">Link</a>
+        </html>
+        """
+        if "foo=" in qs:
+            value = qs.split("=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+            decoded = unquote(value)
+            # Script: HTML-encode `$` so `${...}` interpolation can't fire.
+            script_safe = decoded.replace("$", "&#36;")
+            # Body: reflect verbatim (the differential-escaping FP case).
+            safe_script = script_safe.replace("<", "").replace(">", "")
+            return Response(
+                f"<html><body><script>const g = `hi, {safe_script}`;</script>"
+                f"<p>You searched for {decoded}</p></body></html>",
+                status=200,
+            )
+        return Response(parameter_block, status=200)
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
+            "1234567890" if kwargs.get("numeric_only") else "AAAAAAAAAAAAAA"
+        )
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+        expect_args = re.compile("/otherpage.php")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        backtick_findings = [
+            e
+            for e in events
+            if e.type == "FINDING" and "Context: [JS Template Literal]" in e.data.get("description", "")
+        ]
+        assert not backtick_findings, (
+            f"JS Template Literal XSS FINDING falsely emitted despite match landing outside backtick context: "
+            f"{[f.data.get('description') for f in backtick_findings]}"
+        )
+
+
 # Form Action Injection Detection
 class Test_Lightfuzz_xss_formaction(Test_Lightfuzz_xss):
     def request_handler(self, request):

@@ -7,6 +7,8 @@ from bbot.core.helpers.async_helpers import NamedLock
 from bbot.errors import InteractshError
 from bbot.core.helpers.misc import get_waf_strings
 from bbot.core.helpers.web.response_event import response_to_event_dict
+from bbot.modules.lightfuzz.submodules.base import BaseLightfuzz
+from bbot.modules.lightfuzz.submodules.serial import serial as _serial_submodule
 
 
 class lightfuzz(BaseModule):
@@ -66,6 +68,7 @@ class lightfuzz(BaseModule):
         # Per-URL lock + cache so concurrent WEB_PARAMETERs for the same page share one connectivity GET
         # (servers that cycle session/CSRF tokens hand each racer a different token otherwise).
         self._connectivity_test_cache = {}
+        self._connectivity_test_cache_max = 300
         self._connectivity_test_locks = NamedLock(max_size=200)
 
         if not self.enabled_submodules:
@@ -82,10 +85,8 @@ class lightfuzz(BaseModule):
         waf_strings = get_waf_strings()
         self.waf_yara_rules = self.helpers.yara.compile_strings(waf_strings, nocase=True)
         # Serial submodule needs WAF + general error strings in one rule
-        from bbot.modules.lightfuzz.submodules.serial import serial
-
         self.serial_general_error_yara_rules = self.helpers.yara.compile_strings(
-            serial.GENERAL_ERROR_STRINGS + waf_strings, nocase=True
+            _serial_submodule.GENERAL_ERROR_STRINGS + waf_strings, nocase=True
         )
 
         interactsh_needed = any(submodule.uses_interactsh for submodule in self.submodules.values())
@@ -143,6 +144,8 @@ class lightfuzz(BaseModule):
             if prime_url in cache:
                 return cache[prime_url]
             response = await self.helpers.request(prime_url, timeout=10)
+            if len(cache) >= self._connectivity_test_cache_max:
+                cache.pop(next(iter(cache)))
             cache[prime_url] = response
             return response
 
@@ -291,8 +294,6 @@ class lightfuzz(BaseModule):
                     # Fire the canonical baseline once per WEB_PARAMETER so excavate can mine the
                     # post-submit page; later submodule baseline_probes hit the response cache.
                     if self.emit_baseline_responses:
-                        from bbot.modules.lightfuzz.submodules.base import BaseLightfuzz
-
                         prober = BaseLightfuzz(self, event)
                         try:
                             await prober.baseline_probe(cookies=event.data.get("assigned_cookies", {}) or {})

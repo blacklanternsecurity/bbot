@@ -48,9 +48,14 @@ class cmdi(BaseLightfuzz):
         canary = self.lightfuzz.helpers.rand_string(10, numeric_only=True)
         # Arithmetic canary: the multiplicands are in the probe, but their
         # product is NOT — so a response containing the product is evidence
-        # of arithmetic expansion performed by a real shell.
-        arith_a = self.lightfuzz.helpers.rand_string(5, numeric_only=True)
-        arith_b = self.lightfuzz.helpers.rand_string(5, numeric_only=True)
+        # of arithmetic expansion performed by a real shell. Reject factors
+        # that evaluate to 0; otherwise the canary degenerates to "0" and
+        # matches virtually every HTML response (critical-severity FP).
+        while True:
+            arith_a = self.lightfuzz.helpers.rand_string(5, numeric_only=True)
+            arith_b = self.lightfuzz.helpers.rand_string(5, numeric_only=True)
+            if int(arith_a) and int(arith_b):
+                break
         arith_canary = str(int(arith_a) * int(arith_b))
         http_compare = self.compare_baseline(
             self.event.data["type"], probe_value, cookies
@@ -95,11 +100,13 @@ class cmdi(BaseLightfuzz):
                 # arithmetic. The product value is never in either probe
                 # literal, so only real shell execution can place it in the
                 # response. Either confirmation upgrades to HIGH.
+                raw_marker = f"{arith_a}*{arith_b}"
                 linux_match = await self._arith_confirm(
                     http_compare,
                     cookies,
                     f"{probe_value}{p} echo $(({arith_a}*{arith_b})) {p}",
                     arith_canary,
+                    raw_marker,
                     p,
                     "linux",
                 )
@@ -111,6 +118,7 @@ class cmdi(BaseLightfuzz):
                     cookies,
                     f"{probe_value}{p} set /A {arith_a}*{arith_b} {p}",
                     arith_canary,
+                    raw_marker,
                     p,
                     "windows",
                 )
@@ -177,10 +185,11 @@ class cmdi(BaseLightfuzz):
                     skip_urlencoding=True,
                 )
 
-    async def _arith_confirm(self, http_compare, cookies, probe_str, expected, delim, shell_label):
+    async def _arith_confirm(self, http_compare, cookies, probe_str, expected, raw_marker, delim, shell_label):
         """Send a shell-arithmetic confirmation probe and return True iff the
-        expected product value appears in the response (and the word `echo`
-        does not, ruling out bulk reflection)."""
+        expected product value appears in the response and the literal
+        multiplicand expression (``{a}*{b}``) does not — the latter rules out
+        bulk reflection in a shell-agnostic way."""
         if self.event.data["type"] == "GETPARAM":
             probe_str = urllib.parse.quote(probe_str.encode(), safe="")
         try:
@@ -194,7 +203,7 @@ class cmdi(BaseLightfuzz):
         except HttpCompareError as e:
             self.debug(f"arithmetic probe [{shell_label}] error for [{delim}]: {e}")
             return False
-        matched = probe[3] is not None and expected in probe[3].text and "echo" not in probe[3].text
+        matched = probe[3] is not None and expected in probe[3].text and raw_marker not in probe[3].text
         if matched:
             self.debug(f"{shell_label} arithmetic canary [{expected}] matched for delimiter [{delim}]")
         return matched

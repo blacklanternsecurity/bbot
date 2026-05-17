@@ -270,6 +270,7 @@ parameter_blacklist:
   - cf_clearance
   - _abck
   - bm_sz
+  - bm_sv
   - ak_bmsc
   - f5_cspm
   # CSRF / Anti-Forgery tokens
@@ -285,11 +286,6 @@ parameter_blacklist:
   # PKCE (Proof Key for Code Exchange)
   - code_verifier
   - code_challenge
-  # Akamai Bot Manager
-  - _abck
-  - bm_sz
-  - bm_sv
-  - ak_bmsc
   # Analytics
   - _ga
   - _gid
