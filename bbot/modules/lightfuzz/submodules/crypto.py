@@ -331,9 +331,9 @@ class crypto(BaseLightfuzz):
         if zero_run >= 5:
             severity, confidence = "HIGH", "CONFIRMED"
         elif zero_run >= 3 or ascii_score >= 0.95:
-            severity, confidence = "HIGH", "PROBABLE"
+            severity, confidence = "HIGH", "HIGH"
         else:
-            severity, confidence = "MEDIUM", "PROBABLE"
+            severity, confidence = "MEDIUM", "MEDIUM"
 
         description = (
             "Stream Cipher Keystream Reuse (Many-Time-Pad). "
@@ -701,6 +701,11 @@ class crypto(BaseLightfuzz):
             )  # manipulate the value by mutating a byte in place
         except HttpCompareError as e:
             self.verbose(f"Encountered HttpCompareError Sending Compare Probe: {e}")
+            return
+
+        # If any probe got no response (e.g. WAF-blocked), we can't reason about diffs; abort.
+        if arbitrary_probe[3] is None or truncate_probe[3] is None or mutate_probe[3] is None:
+            self.verbose(f"One or more compare probes returned no response for url {self.event.url}, aborting")
             return
 
         confirmed_techniques = []
