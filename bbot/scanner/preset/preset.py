@@ -660,6 +660,14 @@ class Preset(metaclass=BasePreset):
             >>> preset = Preset.from_dict({"target": ["evilcorp.com"], "modules": ["portscan"]})
         """
         from bbot.core.helpers.misc import chain_lists
+        from .validate import validate_preset
+
+        # Surface preset typos / shape errors up front rather than letting
+        # them propagate to bake() as raw TypeErrors / AttributeErrors. This
+        # covers presets loaded from YAML files, YAML strings, and dicts.
+        errs = validate_preset(preset_dict)
+        if errs:
+            raise ValidationError("\n".join(str(e) for e in errs))
 
         # Handle seeds and targets from dict
         # for user-friendliness, we allow both "target" and "targets" to be used. we merge them into a single list.

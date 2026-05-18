@@ -84,3 +84,75 @@ def test_validate_preset_non_dict():
     errs = validate_preset(["not a dict"])
     assert len(errs) == 1
     assert "dict" in errs[0].message
+
+
+def test_validate_preset_config_modules_as_list():
+    """`config.modules` given as a list (wrong shape) used to crash with IndexError."""
+    errs = validate_preset({"config": {"modules": ["nuclei"]}})
+    assert len(errs) == 1
+    assert errs[0].where == "config"
+    assert errs[0].path == "modules"
+
+
+def test_validate_preset_module_dirs_as_string():
+    """`module_dirs` as a string used to iterate characters and raise PermissionError."""
+    errs = validate_preset({"module_dirs": "/tmp/foo"})
+    assert any(e.path == "module_dirs" and "list" in e.message for e in errs)
+
+
+def test_validate_preset_modules_as_string_no_cascade():
+    """`modules: "nuclei"` (string instead of list) should NOT produce per-character lookups."""
+    errs = validate_preset({"modules": "nuclei"})
+    # exactly one type error, no per-character bogus suggestions
+    assert len(errs) == 1
+    assert errs[0].path == "modules"
+    assert "list" in errs[0].message
+
+
+def test_validate_preset_top_level_typo_suggests_preset_field():
+    """Typos at the preset root should suggest preset field names, not config paths."""
+    cases = [
+        ("modlues", "modules"),
+        ("flgas", "flags"),
+        ("targest", "target"),
+        ("output_moduels", "output_modules"),
+    ]
+    for typo, expected in cases:
+        errs = validate_preset({typo: ["x"]})
+        assert any(f'"{typo}"' in str(e) and f'"{expected}"' in str(e) for e in errs), (
+            f"expected suggestion {expected!r} for typo {typo!r}, got: {[str(e) for e in errs]}"
+        )
+
+
+def test_validate_preset_file_missing_returns_error():
+    """A missing preset path should be reported as a single error, not raised."""
+    from bbot.scanner import validate_preset_file
+
+    errs = validate_preset_file("/tmp/does-not-exist-bbot-fuzz.yml")
+    assert len(errs) == 1
+    assert "not found" in errs[0].message.lower()
+
+
+def test_from_dict_raises_on_typos():
+    """from_dict() should reject typo'd preset dicts up front instead of letting
+    them flow through to bake()."""
+    from bbot.errors import ValidationError as BBOTValidationError
+    from bbot.scanner.preset import Preset
+
+    import pytest
+
+    with pytest.raises(BBOTValidationError) as excinfo:
+        Preset.from_dict({"modlues": ["nuclei"]})
+    assert "modlues" in str(excinfo.value)
+
+
+def test_from_yaml_string_raises_on_typos():
+    """YAML strings carrying typos should also be rejected up front."""
+    from bbot.errors import ValidationError as BBOTValidationError
+    from bbot.scanner.preset import Preset
+
+    import pytest
+
+    with pytest.raises(BBOTValidationError) as excinfo:
+        Preset.from_yaml_string("config:\n  scope:\n    strct: true\n")
+    assert "strct" in str(excinfo.value)

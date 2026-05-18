@@ -26,7 +26,23 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from bbot.core.config.models import PresetSchema
 from bbot.core.helpers.misc import get_closest_match, get_keys_in_dot_syntax
+
+
+def _preset_top_level_keys() -> set[str]:
+    """Field names and aliases declared on PresetSchema, used for closest-match
+    suggestions on unknown top-level preset keys (e.g. `modlues` -> `modules`)."""
+    keys: set[str] = set()
+    for name, field in PresetSchema.model_fields.items():
+        keys.add(name)
+        alias = getattr(field, "alias", None)
+        if alias:
+            keys.add(alias)
+    return keys
+
+
+_PRESET_KEYS = _preset_top_level_keys()
 
 
 log = logging.getLogger("bbot.presets.validate")
@@ -59,6 +75,10 @@ def _classify_loc(loc: tuple) -> tuple[str, str]:
 
     if len(parts) >= 2 and parts[0] == "config" and parts[1] == "modules":
         # Error is somewhere under config.modules.*
+        if len(parts) == 2:
+            # The `modules` mapping itself has the wrong shape (e.g. a list).
+            # Classify as a config-level error rather than walking deeper.
+            return ("config", "modules")
         if len(parts) == 3:
             # The module name itself is unknown (extra_forbidden on ModulesSchema)
             return ("preset", ".".join(parts))
@@ -84,6 +104,11 @@ def _format_msg(err: dict, known_modules: set | None = None, known_paths: set | 
         # a suggestion drawn from the set of known module names.
         if len(loc) == 3 and loc[0] == "config" and loc[1] == "modules":
             return get_closest_match(field, known_modules or set(), msg="module")
+        # Top-level preset key (e.g. `modlues:`) — suggest from PresetSchema
+        # field names rather than the dotted config-path universe, so users
+        # get useful hints like "Did you mean 'modules'?".
+        if len(loc) == 1:
+            return get_closest_match(field, _PRESET_KEYS, msg="preset option")
         # For everything else, suggest from the known dotted-path universe
         # (`web.spier_distance` → `web.spider_distance`).
         if known_paths:
@@ -173,7 +198,12 @@ def validate_preset(preset_dict: Any, module_loader=None) -> list[PresetValidati
         preset_dict.get("module_dirs"),
         config_dict.get("module_dirs") if isinstance(config_dict, dict) else None,
     ):
-        for d in source or []:
+        # Skip non-list shapes (e.g. a string) so we don't iterate characters
+        # and trigger filesystem calls. The schema pass below reports the
+        # actual type error.
+        if not isinstance(source, list):
+            continue
+        for d in source:
             if isinstance(d, str):
                 module_loader.add_module_dir(d)
 
@@ -194,8 +224,13 @@ def validate_preset(preset_dict: Any, module_loader=None) -> list[PresetValidati
     # Module names listed in top-level `modules`/`output_modules`/`exclude_modules`
     # aren't covered by the composite schema (they're a list of strings, not a
     # nested mapping). Check them explicitly, with the same closest-match hint.
+    # Skip non-list values; the schema pass above already flagged the type error,
+    # and iterating a string here would yield bogus per-character lookups.
     for key in ("modules", "output_modules", "exclude_modules"):
-        for name in preset_dict.get(key) or []:
+        value = preset_dict.get(key)
+        if not isinstance(value, list):
+            continue
+        for name in value:
             if name not in known_modules:
                 hint = get_closest_match(name, known_modules, msg="module")
                 errors.append(PresetValidationError(where="preset", path=key, message=hint))
@@ -204,11 +239,23 @@ def validate_preset(preset_dict: Any, module_loader=None) -> list[PresetValidati
 
 
 def validate_preset_file(path: str | Path, **kwargs) -> list[PresetValidationError]:
-    """Convenience wrapper for validating a YAML preset file on disk."""
+    """Convenience wrapper for validating a YAML preset file on disk.
+
+    Returns a list of errors. A missing file or unreadable YAML is reported
+    as a single error rather than raised, so callers can treat all failure
+    modes uniformly.
+    """
     import yaml
 
-    with open(path) as f:
-        data = yaml.safe_load(f) or {}
+    try:
+        with open(path) as f:
+            data = yaml.safe_load(f) or {}
+    except FileNotFoundError:
+        return [PresetValidationError("preset", "", f"Preset file not found: {path}")]
+    except OSError as e:
+        return [PresetValidationError("preset", "", f"Could not read preset file {path}: {e}")]
+    except yaml.YAMLError as e:
+        return [PresetValidationError("preset", "", f"Invalid YAML in {path}: {e}")]
     if not isinstance(data, dict):
         return [PresetValidationError("preset", "", f"Expected a YAML mapping, got {type(data).__name__}")]
     return validate_preset(data, **kwargs)
