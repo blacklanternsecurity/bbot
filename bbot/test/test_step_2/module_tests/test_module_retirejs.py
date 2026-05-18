@@ -116,13 +116,14 @@ return Handlebars;
         descriptions = [finding.data.get("description", "") for finding in retirejs_findings]
         all_descriptions = "\n".join(descriptions)
 
-        # Look for specific vulnerabilities we expect to find
-        expected_handlebars_vuln = "Vulnerable JavaScript library detected: handlebars v4.0.5 Severity: HIGH Summary: Regular Expression Denial of Service in Handlebars JavaScript URL: http://127.0.0.1:8888/handlebars.min.js CVE(s): CVE-2019-20922 Affected versions: [4.0.0 to 4.4.5)"
-        expected_jquery_vuln = "Vulnerable JavaScript library detected: jquery v3.4.1 Severity: MEDIUM Summary: Regex in its jQuery.htmlPrefilter sometimes may introduce XSS JavaScript URL: http://127.0.0.1:8888/jquery-3.4.1.min.js CVE(s): CVE-2020-11022 Affected versions: [1.2.0 to 3.5.0)"
+        # Match on stable identifiers — upstream RetireJS revises summary and
+        # affected-version strings over time.
+        def has_vuln(library, version, cve, js_url):
+            needle = f"library detected: {library} v{version}"
+            return any(needle in d and cve in d and js_url in d for d in descriptions)
 
-        # Verify at least one of the expected vulnerabilities is found
-        handlebars_found = expected_handlebars_vuln in all_descriptions
-        jquery_found = expected_jquery_vuln in all_descriptions
+        handlebars_found = has_vuln("handlebars", "4.0.5", "CVE-2019-20922", "http://127.0.0.1:8888/handlebars.min.js")
+        jquery_found = has_vuln("jquery", "3.4.1", "CVE-2020-11022", "http://127.0.0.1:8888/jquery-3.4.1.min.js")
 
         assert handlebars_found and jquery_found, (
             f"Expected to find specific vulnerabilities but didn't find them. Found descriptions:\n{all_descriptions}"
