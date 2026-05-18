@@ -69,7 +69,7 @@ class BlasthttpMock:
         into a body, then dispatches via ``self._inner.request(...)``.
         """
         raise_error = kwargs.pop("raise_error", False)
-        for k in ("cache_for", "client", "stream", "files"):
+        for k in ("cache_for", "client", "stream"):
             kwargs.pop(k, None)
 
         allow_redirects = kwargs.pop("allow_redirects", None)
@@ -86,7 +86,17 @@ class BlasthttpMock:
         headers = kwargs.pop("headers", None) or {}
         body = kwargs.pop("body", None)
         data = kwargs.pop("data", None)
+        files = kwargs.pop("files", None)
         json_body = kwargs.pop("json", None)
+        body_sources = [
+            name
+            for name, val in (("body", body), ("data", data), ("json", json_body), ("files", files))
+            if val is not None
+        ]
+        if len(body_sources) > 1:
+            raise ValueError(
+                f"request() got conflicting body kwargs {body_sources}; pass at most one of body, data, json, files"
+            )
         cookies = kwargs.pop("cookies", None)
         auth = kwargs.pop("auth", None)
         # Drop kwargs that don't apply to mock dispatch but are valid on WebHelper.
@@ -106,28 +116,33 @@ class BlasthttpMock:
         if cookies:
             headers["Cookie"] = "; ".join(f"{ck}={cv}" for ck, cv in cookies.items())
 
-        # Assemble body for handler-side matching/dispatch.
-        body_str = ""
-        if json_body is not None:
-            body_str = _json.dumps(json_body)
-            headers.setdefault("Content-Type", "application/json")
-        elif data is not None:
-            if isinstance(data, dict):
-                body_str = urlencode(data)
-                headers.setdefault("Content-Type", "application/x-www-form-urlencoded")
-            else:
-                body_str = str(data)
-        elif body is not None:
-            body_str = str(body)
+        # Assemble body for handler-side matching/dispatch. files= wins (multipart),
+        # then json, then data, then raw body.
+        final_body = b""
+        if files is None:
+            if json_body is not None:
+                final_body = _json.dumps(json_body)
+                headers.setdefault("Content-Type", "application/json")
+            elif data is not None:
+                if isinstance(data, dict):
+                    final_body = urlencode(data)
+                    headers.setdefault("Content-Type", "application/x-www-form-urlencoded")
+                else:
+                    final_body = data if isinstance(data, (bytes, bytearray)) else str(data)
+            elif body is not None:
+                final_body = body if isinstance(body, (bytes, bytearray)) else str(body)
 
         try:
-            return await self._inner.request(
-                url,
-                method=method,
-                headers=headers,
-                body=body_str,
-                follow_redirects=follow_redirects,
-            )
+            inner_kwargs = {
+                "method": method,
+                "headers": headers,
+                "follow_redirects": follow_redirects,
+            }
+            if files is not None:
+                inner_kwargs["files"] = files
+            else:
+                inner_kwargs["body"] = final_body
+            return await self._inner.request(url, **inner_kwargs)
         except Exception as e:
             import logging
 
