@@ -51,9 +51,9 @@ async def _main():
         try:
             preset.parse_args()
         except BBOTArgumentError as e:
-            log_to_stderr(str(e), level="ERROR")
+            log_to_stderr(str(e), level="WARNING")
             log.trace(traceback.format_exc())
-            return False
+            return
         # ensure arguments (-c config options etc.) are valid
         options = preset.args.parsed
         # apply CLI log level options (e.g. --debug/--verbose/--silent) to the
@@ -322,7 +322,6 @@ async def _main():
     except BBOTError as e:
         log.error(str(e))
         log.trace(traceback.format_exc())
-        return False
 
     finally:
         # save word cloud
@@ -340,9 +339,7 @@ def main():
 
     global scan_name
     try:
-        result = asyncio.run(_main())
-        if result is False:
-            sys.exit(1)
+        asyncio.run(_main())
     except asyncio.CancelledError:
         if CORE.logger.log_level <= logging.DEBUG:
             log_to_stderr(traceback.format_exc(), level="DEBUG")
