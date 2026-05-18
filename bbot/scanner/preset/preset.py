@@ -481,10 +481,15 @@ class Preset(metaclass=BasePreset):
         # dnsresolve is the intercept module that resolves every event, tags wildcards/unresolved,
         # and rewrites wildcard hits to `_wildcard.parent`. Modules that watch DNS_NAME depend on
         # those tags to filter false positives; without it, brute-force and passive-enum modules
-        # emit unverified and wildcard-tainted names. This catches all three opt-out paths:
-        # `-em dnsresolve`, top-level `dnsresolve: false`, and `dns.disable: true`.
-        dnsresolve_disabled = "dnsresolve" not in baked_preset.modules or baked_preset.config.get("dns", {}).get(
-            "disable", False
+        # emit unverified and wildcard-tainted names. This catches all three explicit opt-outs:
+        # `-em dnsresolve`, top-level `dnsresolve: false`, and `dns.disable: true`. We check the
+        # user actions rather than "dnsresolve in modules" so that internal-module-trimming code
+        # paths (e.g. `--list-module-options` setting `_default_internal_modules = []`) don't trip
+        # the gate -- those aren't real scans, and the user hasn't asked to disable anything.
+        dnsresolve_disabled = (
+            "dnsresolve" in baked_preset.exclude_modules
+            or baked_preset.config.get("dnsresolve", True) is False
+            or baked_preset.config.get("dns", {}).get("disable", False)
         )
         if dnsresolve_disabled:
             dns_name_consumers = sorted(
