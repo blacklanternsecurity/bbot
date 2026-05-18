@@ -258,7 +258,6 @@ class telerik(BaseModule):
                         if base_url not in self.RAUConfirmed:
                             self.RAUConfirmed.append(base_url)
                             root_tool_path = self.scan.helpers.tools_dir / "telerik"
-                            self.debug(root_tool_path)
 
                             for version in self.telerikVersions:
                                 command = [

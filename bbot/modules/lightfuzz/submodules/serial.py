@@ -142,10 +142,7 @@ class serial(BaseLightfuzz):
                     continue
 
                 if matches_baseline:
-                    self.debug(f"Payload {payload_type} matches baseline, skipping")
                     continue
-
-                self.debug(f"Probe result for {payload_type}: {response}")
 
                 status_code = getattr(response, "status_code", 0)
                 if status_code == 0:
@@ -159,8 +156,6 @@ class serial(BaseLightfuzz):
                     self.debug(f"Status code {status_code} not in (200, 500), skipping")
                     continue
 
-                # if the status code changed to 200, and the response doesn't match our general error exclusions, we have a finding
-                self.debug(f"Potential finding detected for {payload_type}, needs confirmation")
                 if (
                     status_code == 200
                     and "code" in diff_reasons
@@ -199,7 +194,6 @@ class serial(BaseLightfuzz):
                 # if the first case doesn't match, we check for a telltale error string like "java.io.optionaldataexception" in the response.
                 # but only if the response is a 500, or a 200 with a body diff
                 elif status_code == 500 or (status_code == 200 and diff_reasons == ["body"]):
-                    self.debug(f"500 status code or body match for {payload_type}")
                     for serialization_error in serialization_errors:
                         # check for the error string, but also ensure the error string isn't just always present in the response
                         if (
