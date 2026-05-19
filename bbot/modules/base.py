@@ -661,7 +661,6 @@ class BaseModule:
                 break
             try:
                 event = self.incoming_event_queue.get_nowait()
-                self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
                 async with self._task_counter.count(f"event_postcheck({event})"):
                     acceptable, reason = await self._event_postcheck(event)
                 if acceptable:
@@ -767,7 +766,6 @@ class BaseModule:
                                 break
                         except asyncio.queues.QueueEmpty:
                             continue
-                        self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
                         try:
                             async with self._task_counter.count(f"event_postcheck({event})"):
                                 acceptable, reason = await self._event_postcheck(event)
@@ -782,7 +780,7 @@ class BaseModule:
                                 else:
                                     context = f"{self.name}.handle_event({event})"
                                     self.scan.stats.event_consumed(event, self)
-                                    self.debug(f"Handling {event}")
+                                    self.debug(f"Handling {event} from {getattr(event, 'module', 'unknown_module')}")
                                     try:
                                         await self.run_task(self.handle_event(event), context)
                                     except asyncio.CancelledError:
@@ -939,7 +937,6 @@ class BaseModule:
             if not filter_result:
                 return False, msg
 
-        self.debug(f"{event} passed post-check")
         return True, ""
 
     def _scope_distance_check(self, event):
@@ -1026,8 +1023,6 @@ class BaseModule:
                 if reason and reason != "its type is not in watched_events":
                     self.debug(f"Not queueing {event} because {reason}")
                 return
-            else:
-                self.debug(f"Queueing {event} because {reason}")
             try:
                 self.incoming_event_queue.put_nowait(event)
                 event._module_consumers += 1
@@ -1863,7 +1858,6 @@ class BaseInterceptModule(BaseModule):
                     async with self._task_counter.count(f"event_precheck({event})"):
                         precheck_pass, reason = self._event_precheck(event)
                     if not precheck_pass:
-                        self.debug(f"Not intercepting {event} because precheck failed ({reason})")
                         acceptable = False
                     else:
                         async with self._task_counter.count(f"event_postcheck({event})"):
@@ -1893,7 +1887,6 @@ class BaseInterceptModule(BaseModule):
                             self.debug(f"Not forwarding {event} because {forward_event_reason}")
                             continue
 
-                    self.debug(f"Forwarding {event}")
                     await self.forward_event(event, kwargs)
 
         except asyncio.CancelledError:
