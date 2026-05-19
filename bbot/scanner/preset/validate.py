@@ -141,6 +141,17 @@ def _format_msg(err: dict, known_modules: set | None = None, known_paths: set | 
         return f"Expected one of {expected}, got {input_value!r}" if expected else err.get("msg", "")
     if kind == "missing":
         return f"Required option {field!r} is missing"
+    if kind == "value_error":
+        # Pydantic wraps ValueError raised inside a field_validator and prefixes
+        # the message with "Value error, ". Surface the original ValueError text
+        # so the error reads naturally.
+        ctx = err.get("ctx") or {}
+        inner = ctx.get("error")
+        if inner is not None:
+            return str(inner)
+        msg = err.get("msg", "")
+        prefix = "Value error, "
+        return msg[len(prefix) :] if msg.startswith(prefix) else msg
 
     # Fallback to pydantic's own message
     return err["msg"] if err.get("msg") else f"validation error at {path}"

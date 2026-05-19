@@ -156,3 +156,23 @@ def test_from_yaml_string_raises_on_typos():
     with pytest.raises(BBOTValidationError) as excinfo:
         Preset.from_yaml_string("config:\n  scope:\n    strct: true\n")
     assert "strct" in str(excinfo.value)
+
+
+def test_validate_preset_interactsh_server_accepts_valid():
+    """interactsh_server accepts FQDNs, IPv4, IPv6, None, and empty string."""
+    for v in ["example.com", "sub.example.com", "192.168.1.1", "::1", "", None]:
+        errs = validate_preset({"config": {"interactsh_server": v}})
+        assert errs == [], f"expected {v!r} to validate, got: {[str(e) for e in errs]}"
+
+
+def test_validate_preset_interactsh_server_rejects_invalid():
+    """A single-label hostname (a value without any dots, e.g. a typo'd
+    domain where the user forgot the TLD) or a value with whitespace must
+    be rejected at preset-load time, before any module tries to register
+    with the interactsh server."""
+    for v in ["badhost", "localhost", "with spaces.com"]:
+        errs = validate_preset({"config": {"interactsh_server": v}})
+        assert len(errs) == 1, f"expected {v!r} to fail validation"
+        assert errs[0].path == "interactsh_server"
+        assert "FQDN or IP" in errs[0].message
+        assert repr(v) in errs[0].message

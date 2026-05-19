@@ -15,13 +15,34 @@ from __future__ import annotations
 
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic import Field as _PydanticField
 from pydantic_core import PydanticUndefined
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 STRICT = ConfigDict(extra="forbid")
+
+
+def _validate_fqdn_or_ip(v: Optional[str]) -> Optional[str]:
+    """Accept None, empty, an IP address, or a hostname with at least one dot.
+
+    Single-label names like `localhost` (or a domain typed without its TLD)
+    are rejected so typos in domain-shaped config fields fail at preset-load
+    time rather than surfacing as runtime "Failed to register" errors deep
+    in a scan.
+    """
+    if v is None or v == "":
+        return v
+    # Lazy import to avoid a cycle at module load time. is_ip handles v4/v6;
+    # is_dns_name + a required dot is BBOT's everyday-FQDN check.
+    from bbot.core.helpers.misc import is_dns_name, is_ip
+
+    if is_ip(v):
+        return v
+    if "." in v and is_dns_name(v):
+        return v
+    raise ValueError(f"not a valid FQDN or IP address: {v!r}")
 
 
 def Field(default=PydanticUndefined, *, sensitive: bool = False, mandatory: bool = False, **kwargs):
@@ -315,6 +336,8 @@ class BBOTConfig(BaseSettings):
     interactsh_server: Optional[str] = None
     interactsh_token: Optional[str] = Field(default=None, sensitive=True)
     interactsh_disable: Optional[bool] = None
+
+    _validate_interactsh_server = field_validator("interactsh_server")(_validate_fqdn_or_ip)
 
     # Per-module configs — validated separately, per-module, against each
     # module's own `class Config(BaseModuleConfig)`.
