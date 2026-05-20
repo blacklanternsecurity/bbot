@@ -26,19 +26,32 @@ class DNSBrute:
         self.num_canaries = 100
         self.max_resolvers = self.dns_config.get("brute_threads", 1000)
         self.nameservers_url = self.dns_config.get("brute_nameservers", self._nameservers_url)
+        # massdns -c (resolve count / retries) -- default massdns is 50, which produces
+        # 100+ second tail latency on flaky zones. 3 retries is enough for transient loss
+        # without churning on dead nameservers.
+        self.massdns_retries = self.dns_config.get("brute_retries", 3)
+        # massdns -i (interval between retries, ms) -- default 500ms, we lower to 100ms
+        # so a capped retry budget completes faster.
+        self.massdns_interval_ms = self.dns_config.get("brute_interval_ms", 100)
+        # number of massdns subprocesses allowed to run concurrently across all callers
+        # (dnsbrute / dnscommonsrv / dnsbrute_mutations share the same DNSBrute singleton).
+        # default of 2 lets dnsbrute and dnscommonsrv overlap without doubling peak DNS load
+        # (pair with a reduced brute_threads if your upstream is constrained).
+        self.massdns_concurrency = max(1, self.dns_config.get("brute_concurrency", 2))
         self.devops_mutations = list(self.parent_helper.word_cloud.devops_mutations)
         self.digit_regex = self.parent_helper.re.compile(r"\d+")
         self._resolver_file = None
-        self._dnsbrute_lock = None
+        self._resolver_file_lock = None
+        self._dnsbrute_sem = None
 
     async def __call__(self, *args, **kwargs):
         return await self.dnsbrute(*args, **kwargs)
 
     @property
-    def dnsbrute_lock(self):
-        if self._dnsbrute_lock is None:
-            self._dnsbrute_lock = asyncio.Lock()
-        return self._dnsbrute_lock
+    def dnsbrute_sem(self):
+        if self._dnsbrute_sem is None:
+            self._dnsbrute_sem = asyncio.Semaphore(self.massdns_concurrency)
+        return self._dnsbrute_sem
 
     async def dnsbrute(self, module, domain, subdomains, type=None):
         subdomains = list(subdomains)
@@ -117,6 +130,10 @@ class DNSBrute:
             resolver_file,
             "-s",
             self.max_resolvers,
+            "-c",
+            str(self.massdns_retries),
+            "-i",
+            str(self.massdns_interval_ms),
             "-t",
             rdtype,
             "-o",
@@ -125,7 +142,7 @@ class DNSBrute:
         )
         subdomains = self.gen_subdomains(subdomains, domain)
         hosts_yielded = set()
-        async with self.dnsbrute_lock:
+        async with self.dnsbrute_sem:
             async for line in module.run_process_live(*command, stderr=subprocess.DEVNULL, input=subdomains):
                 try:
                     j = json.loads(line)
@@ -152,17 +169,22 @@ class DNSBrute:
             yield p
 
     async def resolver_file(self):
-        if self._resolver_file is None:
-            self._resolver_file_original = await self.parent_helper.wordlist(
-                self.nameservers_url,
-                cache_hrs=24 * 7,
-            )
-            nameservers = set(self.parent_helper.read_file(self._resolver_file_original))
-            nameservers.difference_update(self.parent_helper.dns.system_resolvers)
-            # exclude system nameservers from brute-force
-            # this helps prevent rate-limiting which might cause BBOT's main dns queries to fail
-            self._resolver_file = self.parent_helper.tempfile(nameservers, pipe=False)
-        return self._resolver_file
+        # guard lazy init so concurrent first-callers don't race when massdns is no
+        # longer serialized by a single lock
+        if self._resolver_file_lock is None:
+            self._resolver_file_lock = asyncio.Lock()
+        async with self._resolver_file_lock:
+            if self._resolver_file is None:
+                self._resolver_file_original = await self.parent_helper.wordlist(
+                    self.nameservers_url,
+                    cache_hrs=24 * 7,
+                )
+                nameservers = set(self.parent_helper.read_file(self._resolver_file_original))
+                nameservers.difference_update(self.parent_helper.dns.system_resolvers)
+                # exclude system nameservers from brute-force
+                # this helps prevent rate-limiting which might cause BBOT's main dns queries to fail
+                self._resolver_file = self.parent_helper.tempfile(nameservers, pipe=False)
+            return self._resolver_file
 
     def gen_random_subdomains(self, n=50):
         delimiters = (".", "-")

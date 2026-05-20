@@ -55,6 +55,16 @@ dns:
   # nameservers to use for DNS brute-forcing
   # default is updated weekly and contains ~10K high-quality public servers
   brute_nameservers: https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt
+  # massdns retry count per query (-c). Lower values cap tail latency on flaky zones
+  # at the cost of marginal recall. massdns's own default is 50.
+  brute_retries: 3
+  # massdns retry interval in milliseconds (-i). Pairs with brute_retries to bound how
+  # long a single massdns invocation can churn on unresponsive nameservers.
+  brute_interval_ms: 100
+  # max concurrent massdns subprocesses across all brute-force callers (dnsbrute,
+  # dnscommonsrv, dnsbrute_mutations). Default 2 lets the SRV and A scans overlap.
+  # Raise only if your upstream DNS path has headroom; lower to 1 to serialize.
+  brute_concurrency: 2
   # How far away from the main target to explore via DNS resolution (independent of scope.search_distance)
   # This is safe to change
   search_distance: 1
