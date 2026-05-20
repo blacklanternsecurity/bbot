@@ -49,6 +49,44 @@ def silence_live_logging():
             handler.setLevel(logging.CRITICAL)
 
 
+def _patch_python_module_loader():
+    """Restore the standard ``_module_consumers`` bump on the ``python`` output
+    module for every test scan.
+
+    In production, ``python._increment_consumer_count`` is a no-op (its
+    ``_worker`` is also no-op — see ``bbot/modules/output/python.py``),
+    so events flowing through ``async_start`` don't pin themselves and
+    ``_minimize()`` correctly strips heavy fields when their pipeline
+    finishes. But module + integration tests routinely do
+    ``events = [e async for e in scan.async_start()]`` and assert on
+    ``event.tags`` / ``event.resolved_hosts`` / ``event.body`` / etc.
+    *after* the scan completes — so for tests we want the standard
+    increment to fire, which keeps events pinned through assertion time.
+
+    BBOT's ``ModuleLoader.load_module`` exec's a fresh module spec each
+    call, so each Scanner gets a brand-new ``python`` *class object*,
+    not the one we'd see by importing ``bbot.modules.output.python``
+    statically. Patching the imported class therefore has no effect.
+    Instead we wrap the loader: every time a fresh ``python`` class is
+    materialized, restore the increment on it.
+    """
+    from bbot.core.modules import ModuleLoader
+    from bbot.modules.base import BaseModule
+
+    orig = ModuleLoader.load_module
+
+    def patched(self, module_name):
+        cls = orig(self, module_name)
+        if module_name == "python":
+            cls._increment_consumer_count = BaseModule._increment_consumer_count
+        return cls
+
+    ModuleLoader.load_module = patched
+
+
+_patch_python_module_loader()
+
+
 def stop_server(server):
     server.stop()
     while server.is_running():

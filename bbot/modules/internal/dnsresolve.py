@@ -243,11 +243,11 @@ class DNSResolve(BaseInterceptModule):
     def check_scope(self, event):
         in_target = False
         blacklisted = False
-        dns_children = getattr(event, "dns_children", {})
+        dns_children = event.dns_children
         for rdtype in ("A", "AAAA", "CNAME"):
             hosts = dns_children.get(rdtype, [])
             # update resolved hosts
-            event.resolved_hosts.update(sys.intern(h) for h in hosts)
+            event.update_resolved_hosts(sys.intern(h) for h in hosts)
             for host in hosts:
                 # having a CNAME to an in-scope host doesn't make you in-scope
                 if rdtype != "CNAME":
@@ -286,15 +286,12 @@ class DNSResolve(BaseInterceptModule):
 
             event.add_tag(f"{rdtype}-record")
             # blastdns hands us an already-unique list[Record] -- store as-is, no copy
-            event.raw_dns_records[rdtype] = answers
+            event.set_raw_dns_record(rdtype, answers)
             for answer in answers:
                 for _rdtype, host in extract_targets(answer):
                     _rdtype = sys.intern(_rdtype)
                     host = sys.intern(host)
-                    try:
-                        event.dns_children[_rdtype].add(host)
-                    except KeyError:
-                        event.dns_children[_rdtype] = {host}
+                    event.add_dns_child(_rdtype, host)
                     # check for private IPs
                     try:
                         ip = ipaddress.ip_address(host)
