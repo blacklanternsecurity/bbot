@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../../assets/stylesheets/extra-style.aumokfgn.min.css" rel="stylesheet"/></head>
+<link href="../../../assets/stylesheets/extra-style.jo_rg0wb.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -2117,7 +2117,7 @@ which supports global rate limiting via <code>web.http_rate_limit</code>.</p>
 <span style="color: #A5D6FF">            - Write tests for this function</span>
 
 <span style="color: #A5D6FF">        Examples:</span>
-<span style="color: #A5D6FF">            &gt;&gt;&gt; soup = self.helpers.beautifulsoup(event.data["body"], "html.parser")</span>
+<span style="color: #A5D6FF">            &gt;&gt;&gt; soup = self.helpers.beautifulsoup(event.body, "html.parser")</span>
 <span style="color: #A5D6FF">            Perform an html parse of the 'markup' argument and return a soup instance</span>
 
 <span style="color: #A5D6FF">            &gt;&gt;&gt; email_type = soup.find(type="email")</span>
@@ -2284,7 +2284,7 @@ document to be parsed.</p>
 </ul>
 </details>
 <p><span class="doc-section-title">Examples:</span></p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E">&gt;&gt;&gt; </span><span style="color: #E6EDF3">soup</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">helpers</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">beautifulsoup(event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">data[</span><span style="color: #A5D6FF">"body"</span><span style="color: #E6EDF3">],</span> <span style="color: #A5D6FF">"html.parser"</span><span style="color: #E6EDF3">)</span>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E">&gt;&gt;&gt; </span><span style="color: #E6EDF3">soup</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">helpers</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">beautifulsoup(event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">body,</span> <span style="color: #A5D6FF">"html.parser"</span><span style="color: #E6EDF3">)</span>
 <span style="color: #8B949E">Perform an html parse of the 'markup' argument and return a soup instance</span>
 </code></pre></div>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E">&gt;&gt;&gt; </span><span style="color: #E6EDF3">email_type</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">soup</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">find(type</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"email"</span><span style="color: #E6EDF3">)</span>
@@ -2394,7 +2394,7 @@ document to be parsed.</p>
 <span style="color: #A5D6FF">        - Write tests for this function</span>
 
 <span style="color: #A5D6FF">    Examples:</span>
-<span style="color: #A5D6FF">        &gt;&gt;&gt; soup = self.helpers.beautifulsoup(event.data["body"], "html.parser")</span>
+<span style="color: #A5D6FF">        &gt;&gt;&gt; soup = self.helpers.beautifulsoup(event.body, "html.parser")</span>
 <span style="color: #A5D6FF">        Perform an html parse of the 'markup' argument and return a soup instance</span>
 
 <span style="color: #A5D6FF">        &gt;&gt;&gt; email_type = soup.find(type="email")</span>
