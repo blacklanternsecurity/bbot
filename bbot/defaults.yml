@@ -314,3 +314,7 @@ omit_event_types:
 interactsh_server: null
 interactsh_token: null
 interactsh_disable: false
+
+# API key for bbot.io services (currently used by ASN lookups via the asndb library)
+# Can also be set via the BBOT_IO_API_KEY environment variable, which takes precedence.
+bbot_io_api_key: null
