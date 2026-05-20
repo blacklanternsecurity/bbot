@@ -533,70 +533,59 @@ class WebHelper:
         """
         import zipfile
 
-        # Handle list of wordlists - fetch each and merge into a single deduplicated file
+        # Handle list of wordlists - fetch each and merge into a single order-preserving deduplicated file,
+        # then fall through to the unified truncation logic below
         if not isinstance(path, (str, Path)):
             paths = list(path)
             if not paths:
                 raise WordlistError("Wordlist list is empty")
-            merged = set()
+            all_words = []
             for p in paths:
                 f = await self.wordlist(p, **kwargs)
-                merged.update(self.parent_helper.read_file(f))
+                all_words.extend(self.parent_helper.read_file(f))
             cache_key = "merged_wordlist:" + ":".join(sorted(str(p) for p in paths))
-            merged_filename = self.parent_helper.cache_filename(cache_key)
-            with open(merged_filename, "w") as f:
-                for word in merged:
+            filename = self.parent_helper.cache_filename(cache_key)
+            with open(filename, "w") as f:
+                for word in dict.fromkeys(all_words):
                     f.write(f"{word}\n")
-            if lines is None:
-                return merged_filename
-            lines = int(lines)
-            with open(merged_filename) as f:
-                read_lines = f.readlines()
-            trunc_key = f"{merged_filename}:{lines}"
-            truncated_filename = self.parent_helper.cache_filename(trunc_key)
-            with open(truncated_filename, "w") as f:
-                for line in read_lines[:lines]:
-                    f.write(line)
-            return truncated_filename
-
-        if not path:
-            raise WordlistError(f"Invalid wordlist: {path}")
-        if "cache_hrs" not in kwargs:
-            # 4320 hrs = 180 days = 6 months
-            kwargs["cache_hrs"] = 4320
-        if self.parent_helper.is_url(path):
-            filename = await self.download(str(path), **kwargs)
-            if filename is None:
-                raise WordlistError(f"Unable to retrieve wordlist from {path}")
         else:
-            filename = Path(path).resolve()
-            if not filename.is_file():
-                raise WordlistError(f"Unable to find wordlist at {path}")
+            if not path:
+                raise WordlistError(f"Invalid wordlist: {path}")
+            if "cache_hrs" not in kwargs:
+                # 4320 hrs = 180 days = 6 months
+                kwargs["cache_hrs"] = 4320
+            if self.parent_helper.is_url(path):
+                filename = await self.download(str(path), **kwargs)
+                if filename is None:
+                    raise WordlistError(f"Unable to retrieve wordlist from {path}")
+            else:
+                filename = Path(path).resolve()
+                if not filename.is_file():
+                    raise WordlistError(f"Unable to find wordlist at {path}")
 
-        if zip:
-            if not zip_filename:
-                raise WordlistError("zip_filename must be specified when zip is True")
-            try:
-                with zipfile.ZipFile(filename, "r") as zip_ref:
-                    if zip_filename not in zip_ref.namelist():
-                        raise WordlistError(f"File {zip_filename} not found in the zip archive {filename}")
-                    zip_ref.extract(zip_filename, filename.parent)
-                    filename = filename.parent / zip_filename
-            except Exception as e:
-                raise WordlistError(f"Error unzipping file {filename}: {e}")
+            if zip:
+                if not zip_filename:
+                    raise WordlistError("zip_filename must be specified when zip is True")
+                try:
+                    with zipfile.ZipFile(filename, "r") as zip_ref:
+                        if zip_filename not in zip_ref.namelist():
+                            raise WordlistError(f"File {zip_filename} not found in the zip archive {filename}")
+                        zip_ref.extract(zip_filename, filename.parent)
+                        filename = filename.parent / zip_filename
+                except Exception as e:
+                    raise WordlistError(f"Error unzipping file {filename}: {e}")
 
         if lines is None:
             return filename
-        else:
-            lines = int(lines)
-            with open(filename) as f:
-                read_lines = f.readlines()
-            cache_key = f"{filename}:{lines}"
-            truncated_filename = self.parent_helper.cache_filename(cache_key)
-            with open(truncated_filename, "w") as f:
-                for line in read_lines[:lines]:
-                    f.write(line)
-            return truncated_filename
+        lines = int(lines)
+        with open(filename) as f:
+            read_lines = f.readlines()
+        cache_key = f"{filename}:{lines}"
+        truncated_filename = self.parent_helper.cache_filename(cache_key)
+        with open(truncated_filename, "w") as f:
+            for line in read_lines[:lines]:
+                f.write(line)
+        return truncated_filename
 
     def beautifulsoup(
         self,
