@@ -67,6 +67,11 @@ class CloudCheck(BaseInterceptModule):
         if event.scope_distance >= self.max_scope_distance:
             return
 
+        # storage-bucket hostnames are anchored to provider-specific suffixes
+        # (e.g. .amazonaws.com), so they can never match a bare IP literal
+        if all(self.helpers.is_ip(h) for h in hosts_to_check):
+            return
+
         # see if any of our hosts are storage buckets, etc.
         regexes = await self.cloud_hostname_regexes()
         regexes = regexes.get("STORAGE_BUCKET_HOSTNAME", [])
