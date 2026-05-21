@@ -69,13 +69,16 @@ class BBOTEnviron:
             {"modules": {"http": {"threads": 10}}} --> ("BBOT_MODULES_HTTP_THREADS", "10")
 
         Lists are skipped (they don't translate cleanly to env var values).
+        None values are skipped too, since `str(None)` would write the literal
+        string "None" into the env and round-trip back through pydantic-settings
+        as a string, defeating any field validator that expects a real value.
         """
         if isinstance(config, dict):
             for k, v in config.items():
                 new_base = f"{base}_{k}"
                 if isinstance(v, dict):
                     yield from self.flatten_config(v, base=new_base)
-                elif not isinstance(v, list):
+                elif v is not None and not isinstance(v, list):
                     yield (new_base.upper(), str(v))
 
     def prepare(self):

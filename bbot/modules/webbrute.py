@@ -1,5 +1,6 @@
 import random
 import string
+from typing import Union
 
 import blasthttp
 
@@ -25,8 +26,9 @@ class webbrute(BaseModule):
         )
         lines: int = Field(5000, description="take only the first N lines from the wordlist when finding directories")
         max_depth: int = Field(0, description="the maximum directory depth to attempt to solve")
-        extensions: str = Field(
-            "", description="Optionally include a list of extensions to extend the keyword with (comma separated)"
+        extensions: Union[str, list[str]] = Field(
+            "",
+            description="Optionally include a list of extensions to extend the keyword with (comma separated or YAML list)",
         )
         ignore_case: bool = Field(False, description="Only put lowercase words into the wordlist")
         rate: int = Field(0, description="Maximum requests per second (0 = unlimited)")

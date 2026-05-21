@@ -75,7 +75,7 @@ async def test_preset_yaml(clean_default_config):
         verbose=False,
         debug=False,
         silent=True,
-        config={"preset_test_asdf": 1},
+        config={"keep_scans": 42},
     )
     preset1 = preset1.bake()
     assert "evilcorp.com" in preset1.target.seeds
@@ -785,16 +785,14 @@ class TestModule5(BaseModule):
 """
         )
 
-    preset = Preset.from_yaml_string(
-        """
+    # should fail at preset-load time now that validation runs in from_dict
+    with pytest.raises(ValidationError):
+        Preset.from_yaml_string(
+            """
 modules:
   - testmodule5
 """
-    )
-    # should fail
-    with pytest.raises(ValidationError):
-        scan = Scanner(preset=preset)
-        await scan._prep()
+        )
 
     preset = Preset.from_yaml_string(
         f"""
@@ -823,6 +821,8 @@ def test_preset_include():
     mkdir(custom_preset_dir_4)
     mkdir(custom_preset_dir_5)
 
+    # Real modules so the (now-strict) validator accepts them. We use the
+    # universal `module_timeout` field as an opaque marker per preset.
     preset_file = custom_preset_dir_1 / "preset1.yml"
     with open(preset_file, "w") as f:
         f.write(
@@ -832,8 +832,8 @@ include:
 
 config:
   modules:
-    testpreset1:
-      test: asdf
+    nuclei:
+      module_timeout: 1
 """
         )
 
@@ -846,8 +846,8 @@ include:
 
 config:
   modules:
-    testpreset2:
-      test: fdsa
+    sslcert:
+      module_timeout: 2
 """
         )
 
@@ -862,8 +862,8 @@ include:
 
 config:
   modules:
-    testpreset3:
-      test: qwerty
+    gowitness:
+      module_timeout: 3
 """
         )
 
@@ -876,8 +876,8 @@ include:
 
 config:
   modules:
-    testpreset4:
-      test: zxcv
+    robots:
+      module_timeout: 4
 """
         )
 
@@ -887,26 +887,26 @@ config:
             """
 config:
   modules:
-    testpreset5:
-      test: hjkl
+    wayback:
+      module_timeout: 5
 """
         )
 
     # with include=
     preset = Preset(include=[str(custom_preset_dir_1 / "preset1")])
-    assert preset.config["modules"]["testpreset1"]["test"] == "asdf"
-    assert preset.config["modules"]["testpreset2"]["test"] == "fdsa"
-    assert preset.config["modules"]["testpreset3"]["test"] == "qwerty"
-    assert preset.config["modules"]["testpreset4"]["test"] == "zxcv"
-    assert preset.config["modules"]["testpreset5"]["test"] == "hjkl"
+    assert preset.config["modules"]["nuclei"]["module_timeout"] == 1
+    assert preset.config["modules"]["sslcert"]["module_timeout"] == 2
+    assert preset.config["modules"]["gowitness"]["module_timeout"] == 3
+    assert preset.config["modules"]["robots"]["module_timeout"] == 4
+    assert preset.config["modules"]["wayback"]["module_timeout"] == 5
 
     # same thing but with presets= (an alias to include)
     preset = Preset(presets=[str(custom_preset_dir_1 / "preset1")])
-    assert preset.config["modules"]["testpreset1"]["test"] == "asdf"
-    assert preset.config["modules"]["testpreset2"]["test"] == "fdsa"
-    assert preset.config["modules"]["testpreset3"]["test"] == "qwerty"
-    assert preset.config["modules"]["testpreset4"]["test"] == "zxcv"
-    assert preset.config["modules"]["testpreset5"]["test"] == "hjkl"
+    assert preset.config["modules"]["nuclei"]["module_timeout"] == 1
+    assert preset.config["modules"]["sslcert"]["module_timeout"] == 2
+    assert preset.config["modules"]["gowitness"]["module_timeout"] == 3
+    assert preset.config["modules"]["robots"]["module_timeout"] == 4
+    assert preset.config["modules"]["wayback"]["module_timeout"] == 5
 
     # can't use both include= and presets= at the same time
     with pytest.raises(ValueError):
@@ -993,8 +993,8 @@ modules:
   - robots
 config:
   modules:
-    asdf:
-      option1: asdf
+    robots:
+      module_timeout: 10
 """
     preset_2_yaml = """
 name: override2
@@ -1005,8 +1005,8 @@ modules:
   - c99
 config:
   modules:
-    asdf:
-      option1: fdsa
+    robots:
+      module_timeout: 20
 """
     preset_3_yaml = """
 name: override3
@@ -1060,7 +1060,7 @@ config:
     assert targets == {"evilcorp1.com", "evilcorp2.com", "evilcorp3.com", "evilcorp4.com"}
     assert preset.config["web"]["spider_distance"] == 1
     assert preset.config["web"]["spider_depth"] == 2
-    assert preset.config["modules"]["asdf"]["option1"] == "fdsa"
+    assert preset.config["modules"]["robots"]["module_timeout"] == 20
     assert set(preset.scan_modules) == {"http", "c99", "robots", "virustotal", "securitytrails"}
 
 

@@ -15,10 +15,12 @@ from __future__ import annotations
 
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic import Field as _PydanticField
 from pydantic_core import PydanticUndefined
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from bbot.core.helpers.validators import validate_fqdn_or_ip
 
 
 STRICT = ConfigDict(extra="forbid")
@@ -315,6 +317,8 @@ class BBOTConfig(BaseSettings):
     interactsh_server: Optional[str] = None
     interactsh_token: Optional[str] = Field(default=None, sensitive=True)
     interactsh_disable: Optional[bool] = None
+
+    _validate_interactsh_server = field_validator("interactsh_server")(validate_fqdn_or_ip)
 
     # Per-module configs — validated separately, per-module, against each
     # module's own `class Config(BaseModuleConfig)`.
