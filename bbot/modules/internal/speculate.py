@@ -47,10 +47,11 @@ class speculate(BaseInternalModule):
         scan_modules = [m for m in self.scan.modules.values() if m._type == "scan"]
         self.open_port_consumers = any("OPEN_TCP_PORT" in m.watched_events for m in scan_modules)
         # only consider active portscanners (still speculate if only passive ones are enabled)
-        self.portscanner_enabled = any(
-            "portscan" in m.flags and "active" in m.flags for m in self.scan.modules.values()
+        self.portscanner = next(
+            (m for m in self.scan.modules.values() if "portscan" in m.flags and "active" in m.flags),
+            None,
         )
-        self.emit_open_ports = self.open_port_consumers and not self.portscanner_enabled
+        self._always_emit_open_ports = self.open_port_consumers and self.portscanner is None
         self.range_to_ip = True
         self.dns_disable = self.scan.config.get("dns", {}).get("disable", False)
         self.essential_only = self.config.get("essential_only", False)
@@ -62,9 +63,17 @@ class speculate(BaseInternalModule):
         except ValueError as e:
             return False, f"Error parsing ports: {e}"
 
-        if not self.portscanner_enabled:
+        if self.portscanner is None:
             self.info(f"No portscanner enabled. Assuming open ports: {', '.join(str(x) for x in self.ports)}")
         return True
+
+    def _should_emit_open_ports(self, event):
+        if not self.open_port_consumers:
+            return False
+        if self._always_emit_open_ports:
+            return True
+        # fill the gap when an active portscanner is enabled but won't scan this event
+        return self.portscanner is not None and self.portscanner.would_skip(event)
 
     async def handle_event(self, event):
         ### BEGIN ESSENTIAL SPECULATION ###
@@ -73,7 +82,7 @@ class speculate(BaseInternalModule):
 
         # we speculate on distance-1 stuff too, because distance-1 open ports are needed by certain modules like sslcert
         event_in_scope_distance = event.scope_distance <= (self.scan.scope_search_distance + 1)
-        speculate_open_ports = self.emit_open_ports and event_in_scope_distance
+        speculate_open_ports = self._should_emit_open_ports(event) and event_in_scope_distance
 
         # generate individual IP addresses from IP range
         if event.type == "IP_RANGE":
