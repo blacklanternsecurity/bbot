@@ -128,13 +128,13 @@ class TestDnsbruteMultiWordlist(ModuleTestBase):
 
     def check(self, module_test, events):
         # "shared" appears in both wordlists - merged set should deduplicate it
-        assert (
-            module_test.module.wordlist_size == 3
-        ), f"Expected 3 unique words from 2 overlapping wordlists, got {module_test.module.wordlist_size}"
+        assert module_test.module.wordlist_size == 3, (
+            f"Expected 3 unique words from 2 overlapping wordlists, got {module_test.module.wordlist_size}"
+        )
         assert module_test.module.subdomain_list == {"www", "asdf", "shared"}
-        assert any(
-            e.data == "asdf.blacklanternsecurity.com" and str(e.module) == "dnsbrute" for e in events
-        ), "Expected asdf.blacklanternsecurity.com from second wordlist"
+        assert any(e.data == "asdf.blacklanternsecurity.com" and str(e.module) == "dnsbrute" for e in events), (
+            "Expected asdf.blacklanternsecurity.com from second wordlist"
+        )
 
 
 class TestDnsbruteCanaryCheck(ModuleTestBase):
@@ -181,6 +181,6 @@ class TestDnsbruteCanaryCheck(ModuleTestBase):
     def check(self, module_test, events):
         # canary check should have aborted, so no DNS_NAME events from dnsbrute
         dnsbrute_events = [e for e in events if e.type == "DNS_NAME" and str(e.module) == "dnsbrute"]
-        assert (
-            len(dnsbrute_events) == 0
-        ), f"Expected no results from dnsbrute (canary check should abort), but got {len(dnsbrute_events)}: {[e.data for e in dnsbrute_events]}"
+        assert len(dnsbrute_events) == 0, (
+            f"Expected no results from dnsbrute (canary check should abort), but got {len(dnsbrute_events)}: {[e.data for e in dnsbrute_events]}"
+        )
