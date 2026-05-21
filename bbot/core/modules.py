@@ -33,6 +33,12 @@ log = logging.getLogger("bbot.module_loader")
 bbot_code_dir = Path(__file__).parent.parent
 
 
+# Bump when the preloader's output schema or validation rules change. Folded
+# into the per-module cache_key so stale entries from older bbot versions get
+# rebuilt instead of silently bypassing new checks.
+PRELOAD_CACHE_VERSION = 2
+
+
 _UNEVALUATED = object()
 
 
@@ -349,7 +355,7 @@ class ModuleLoader:
                 module_file = module_file.resolve()
 
                 # try to load from cache
-                module_cache_key = (str(module_file), tuple(module_file.stat()))
+                module_cache_key = (PRELOAD_CACHE_VERSION, str(module_file), tuple(module_file.stat()))
                 preloaded = self.preload_cache.get(module_name, {})
                 cache_key = preloaded.get("cache_key", ())
                 if preloaded and module_cache_key == cache_key:
@@ -382,6 +388,12 @@ class ModuleLoader:
                         preloaded["namespace"] = namespace
                         preloaded["cache_key"] = module_cache_key
 
+                    except BBOTError as e:
+                        # Intentional, user-facing errors raised from preload_module
+                        # (e.g. the pre-3.0 options-dict migration message). Skip the
+                        # traceback so the message reads cleanly.
+                        log_to_stderr(str(e), level="CRITICAL")
+                        sys.exit(1)
                     except Exception:
                         log_to_stderr(f"Error preloading {module_file}\n\n{traceback.format_exc()}", level="CRITICAL")
                         log_to_stderr(f"Error in {module_file.name}", level="CRITICAL")
@@ -563,6 +575,8 @@ class ModuleLoader:
         options_sensitive: set = set()
         options_mandatory: set = set()
         config_source: str | None = None
+        legacy_options_keyword: str | None = None
+        legacy_options_line: int | None = None
         disable_auto_module_deps = False
         with open(module_file) as f:
             python_code = f.read()
@@ -602,6 +616,15 @@ class ModuleLoader:
 
                     if not type(class_attr) == ast.Assign:
                         continue
+
+                    # legacy options/options_desc dict: record so we can fail
+                    # with a migration hint after the walk completes
+                    if legacy_options_keyword is None:
+                        for target in class_attr.targets:
+                            if isinstance(target, ast.Name) and target.id in ("options", "options_desc"):
+                                legacy_options_keyword = target.id
+                                legacy_options_line = class_attr.lineno
+                                break
 
                     # module metadata
                     if type(class_attr.value) == ast.Dict:
@@ -663,6 +686,25 @@ class ModuleLoader:
                         if any(target.id == "_disable_auto_module_deps" for target in class_attr.targets):
                             if type(class_attr.value.value) == bool:
                                 disable_auto_module_deps = class_attr.value.value
+
+        # Reject the pre-3.0 options/options_desc dict format. Those dicts are
+        # silently ignored by the new loader: defaults disappear and setting
+        # them via -c or YAML emits misleading "did you mean ...?" suggestions
+        # pointing at unrelated modules.
+        module_name = module_file.stem
+        if legacy_options_keyword is not None and config_source is None:
+            raise BBOTError(
+                f'Module "{module_name}" ({module_file}:{legacy_options_line}) declares a legacy '
+                f"`{legacy_options_keyword}` dict, which is no longer supported in BBOT 3.0+.\n\n"
+                f"Replace the `options` / `options_desc` dicts with a nested\n"
+                f"`class Config(BaseModuleConfig)` schema. For example:\n\n"
+                f"    from bbot.core.config.models import BaseModuleConfig, Field\n\n"
+                f"    class {module_name}(BaseModule):\n"
+                f"        ...\n"
+                f"        class Config(BaseModuleConfig):\n"
+                f'            api_key: str = Field("", description="API key", sensitive=True)\n'
+                f'            max_results: int = Field(100, description="Max results to return")\n'
+            )
 
         for task in ansible_tasks:
             if "become" not in task:
