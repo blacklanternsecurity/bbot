@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Optional
 from zoneinfo import ZoneInfo
 from copy import copy, deepcopy
+from types import MappingProxyType
 from contextlib import suppress
 from radixtarget import RadixTarget
 from pydantic import BaseModel, field_validator
@@ -48,6 +49,16 @@ from bbot.core.helpers.web.envelopes import BaseEnvelope
 
 
 log = logging.getLogger("bbot.core.event")
+
+
+# Shared empty defaults for lazy-init slots. Returned from property accessors
+# when the underlying slot is None — saves ~560 bytes per event compared to
+# allocating real empty containers (set/dict) at __init__ time. Mutating
+# helpers (add_tag, add_resolved_host, etc.) replace the slot with a real
+# container before mutating, so callers never see the singletons in a
+# mutable position.
+_EMPTY_FROZENSET: "frozenset[str]" = frozenset()
+_EMPTY_DICT = MappingProxyType({})
 
 
 class BaseEvent:
@@ -161,9 +172,12 @@ class BaseEvent:
         "_internal",
         "_dummy",
         "_module",
-        # DNS-related attributes
-        "dns_children",
-        "raw_dns_records",
+        # DNS-related attributes — backing slots; public access via the
+        # ``dns_children`` / ``raw_dns_records`` properties so a None
+        # underlying slot transparently reads as an empty dict (lazy-init
+        # saves ~128 bytes per event).
+        "_dns_children",
+        "_raw_dns_records",
         "dns_resolve_distance",
         # Host metadata (cloud providers, ASN, whois, etc.)
         "_host_metadata",
@@ -213,7 +227,10 @@ class BaseEvent:
         self._hash = None
         self._data = None
         self.__host = None
-        self._tags = set()
+        # Lazy-init: replaced with a real set/dict on first mutation.
+        # Reading via the property returns a shared empty frozenset/dict
+        # so callers never see None.
+        self._tags = None
         self._port = None
         self._omit = False
         self.__words = None
@@ -225,9 +242,9 @@ class BaseEvent:
         self._scope_distance = None
         self._module_priority = None
         self._graph_important = False
-        self._resolved_hosts = set()
-        self.dns_children = {}
-        self.raw_dns_records = {}
+        self._resolved_hosts = None
+        self._dns_children = None
+        self._raw_dns_records = None
         self._discovery_context = ""
         self._module_consumers = 0
 
@@ -293,7 +310,44 @@ class BaseEvent:
             return {
                 self.host,
             }
-        return self._resolved_hosts
+        return self._resolved_hosts if self._resolved_hosts is not None else _EMPTY_FROZENSET
+
+    def add_resolved_host(self, host):
+        """Add a host to ``_resolved_hosts``, lazy-allocating the set."""
+        if self._resolved_hosts is None or isinstance(self._resolved_hosts, frozenset):
+            # promote shared singleton / empty to a real mutable set
+            self._resolved_hosts = set(self._resolved_hosts) if self._resolved_hosts else set()
+        self._resolved_hosts.add(host)
+
+    def update_resolved_hosts(self, hosts):
+        """Add multiple hosts to ``_resolved_hosts``, lazy-allocating the set."""
+        if self._resolved_hosts is None or isinstance(self._resolved_hosts, frozenset):
+            self._resolved_hosts = set(self._resolved_hosts) if self._resolved_hosts else set()
+        self._resolved_hosts.update(hosts)
+
+    @property
+    def dns_children(self):
+        return self._dns_children if self._dns_children is not None else _EMPTY_DICT
+
+    @property
+    def raw_dns_records(self):
+        return self._raw_dns_records if self._raw_dns_records is not None else _EMPTY_DICT
+
+    def add_dns_child(self, rdtype, host):
+        """Record a DNS child host under ``rdtype``, lazy-allocating dict + child set."""
+        if self._dns_children is None:
+            self._dns_children = {}
+        existing = self._dns_children.get(rdtype)
+        if existing is None:
+            self._dns_children[rdtype] = {host}
+        else:
+            existing.add(host)
+
+    def set_raw_dns_record(self, rdtype, answers):
+        """Store the raw DNS answer list for ``rdtype``, lazy-allocating the dict."""
+        if self._raw_dns_records is None:
+            self._raw_dns_records = {}
+        self._raw_dns_records[rdtype] = answers
 
     @data.setter
     def data(self, data):
@@ -475,7 +529,7 @@ class BaseEvent:
 
     @property
     def tags(self):
-        return self._tags
+        return self._tags if self._tags is not None else _EMPTY_FROZENSET
 
     @tags.setter
     def tags(self, tags):
@@ -486,6 +540,8 @@ class BaseEvent:
             self.add_tag(tag)
 
     def add_tag(self, tag):
+        if self._tags is None:
+            self._tags = set()
         self._tags.add(sys.intern(tagify(tag)))
 
     def add_tags(self, tags):
@@ -493,6 +549,8 @@ class BaseEvent:
             self.add_tag(tag)
 
     def remove_tag(self, tag):
+        if not self._tags:
+            return
         with suppress(KeyError):
             self._tags.remove(sys.intern(tagify(tag)))
 
@@ -725,9 +783,10 @@ class BaseEvent:
         """
         self._module_consumers = max(0, self._module_consumers - 1)
         if self._module_consumers <= 0:
-            self.dns_children = {}
-            self.raw_dns_records = {}
-            self._resolved_hosts = set()
+            # release container slots; lazy-init pattern means None == empty
+            self._dns_children = None
+            self._raw_dns_records = None
+            self._resolved_hosts = None
 
     def clone(self):
         # Create a shallow copy of the event first
@@ -1634,6 +1693,45 @@ class HTTP_RESPONSE(URL_UNVERIFIED):
         if str(self.http_status).startswith("3"):
             self.num_redirects += 1
 
+        # Spill body to disk if a per-scan store is available. The body
+        # is removed from `_data` so JSON / human renderers don't see it;
+        # readers use the `.body` property which lazy-loads from the store.
+        # When spill is disabled (no store on the scan), body stays in
+        # `_data` and `.body` falls back to reading it from there.
+        store = getattr(getattr(self, "scan", None), "body_spill_store", None)
+        if store is not None and isinstance(self._data, dict) and "body" in self._data:
+            body = self._data.pop("body")
+            if isinstance(body, str):
+                body_bytes = body.encode("utf-8", errors="replace")
+            elif isinstance(body, (bytes, bytearray, memoryview)):
+                body_bytes = bytes(body)
+            else:
+                body_bytes = str(body).encode("utf-8", errors="replace")
+            if body_bytes:
+                store.write(str(self._uuid), body_bytes)
+
+    @property
+    def body(self):
+        """
+        The HTTP response body as a string.
+
+        With spill enabled, the body lives in the per-scan ``BodySpillStore``
+        (LRU cache + disk file). Cache hits are instant; misses re-read
+        from disk. After ``_minimize()`` fires the body is gone and this
+        property returns ``""``.
+
+        With spill disabled, falls back to ``self._data["body"]``.
+        """
+        store = getattr(getattr(self, "scan", None), "body_spill_store", None)
+        if store is None:
+            if isinstance(self._data, dict):
+                return self._data.get("body", "") or ""
+            return ""
+        body_bytes = store.read(str(self._uuid))
+        if not body_bytes:
+            return ""
+        return body_bytes.decode("utf-8", errors="replace")
+
     def _data_id(self):
         return self.data["method"] + "|" + self.data["url"]
 
@@ -1696,6 +1794,10 @@ class HTTP_RESPONSE(URL_UNVERIFIED):
     def _minimize(self):
         super()._minimize()
         if self._module_consumers <= 0:
+            store = getattr(getattr(self, "scan", None), "body_spill_store", None)
+            if store is not None:
+                store.evict_and_delete(str(self._uuid))
+            # `body` may still be in _data if spill was disabled at creation
             self._data.pop("body", None)
             self._data.pop("raw_header", None)
             self._data.pop("header", None)
@@ -1708,8 +1810,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED):
         Formats the status code, headers, and body into a single string formatted as an HTTP/1.1 response.
         """
         raw_header = self.data.get("raw_header", "")
-        body = self.data.get("body", "")
-        return f"{raw_header}{body}"
+        return f"{raw_header}{self.body}"
 
     @property
     def http_status(self):

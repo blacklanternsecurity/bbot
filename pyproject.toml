@@ -25,7 +25,7 @@ dependencies = [
     "pycryptodome>=3.17,<4",
     "idna>=3.4,<4",
     "tabulate==0.8.10",
-    "websockets>=14.0.0,<16.0.0",
+    "websockets>=14.0.0,<17.0.0",
     "pyjwt>=2.7.0,<3",
     "beautifulsoup4>=4.12.2,<5",
     "lxml>=4.9.2,<7.0.0",
@@ -48,8 +48,9 @@ dependencies = [
     "ansible-core>=2.17,<3",
     "tldextract>=5.3.0,<6",
     "cloudcheck>=10.0.0,<11",
-    "blasthttp>=0.5.1",
+    "blasthttp>=0.7.0",
     "blastdns>=1.9.0,<2",
+    "zstandard>=0.22,<1",
 ]
 
 [project.urls]
@@ -79,7 +80,7 @@ dev = [
     "pytest-httpx>=0.35",
     "pytest-benchmark>=4,<6",
     "baddns~=2.3.0",
-    "ruff==0.15.12",
+    "ruff==0.15.13",
     "maturin>=1.4,<2",
 ]
 docs = [
