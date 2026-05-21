@@ -1,6 +1,10 @@
+import asyncio
 import json
+import os
+import shutil
 import yaml
 from itertools import islice
+
 from bbot.modules.base import BaseModule
 
 
@@ -62,21 +66,27 @@ class nuclei(BaseModule):
     _batch_size = 200
 
     async def setup(self):
-        # attempt to update nuclei templates
-        self.nuclei_templates_dir = self.helpers.tools_dir / "nuclei-templates"
-        self.info("Updating Nuclei templates")
-        update_results = await self.run_process(
-            ["nuclei", "-update-template-dir", self.nuclei_templates_dir, "-update-templates"]
-        )
-        if update_results.stderr:
-            if "Successfully downloaded nuclei-templates" in update_results.stderr:
-                self.success("Successfully updated nuclei templates")
-            elif "No new updates found for nuclei templates" in update_results.stderr:
-                self.info("Nuclei templates already up-to-date")
-            else:
-                self.warning(f"Failure while updating nuclei templates: {update_results.stderr}")
-        else:
-            self.warning("Error running nuclei template update command")
+        # All nuclei state lives under one bbot-owned dir so we can wipe it on
+        # corruption without touching the user's own ~/.config/nuclei. See
+        # _nuclei_env() for how the subprocess env pins config/cache here.
+        self.nuclei_state_dir = self.helpers.tools_dir / "nuclei-state"
+        self.nuclei_config_dir = self.nuclei_state_dir / "config"
+        self.nuclei_cache_dir = self.nuclei_state_dir / "cache"
+        self.nuclei_templates_dir = self.nuclei_state_dir / "templates"
+        self.nuclei_config_dir.mkdir(parents=True, exist_ok=True)
+        self.nuclei_cache_dir.mkdir(parents=True, exist_ok=True)
+        await self._update_templates()
+        # nuclei writes its version marker before the tarball finishes extracting,
+        # so a killed update can leave the marker pointing at an empty dir and
+        # every subsequent run reports "up-to-date." Verify and repair once.
+        if not self._templates_installed():
+            self.warning("Nuclei templates appear incomplete; wiping isolated state and re-downloading")
+            shutil.rmtree(self.nuclei_state_dir, ignore_errors=True)
+            self.nuclei_config_dir.mkdir(parents=True, exist_ok=True)
+            self.nuclei_cache_dir.mkdir(parents=True, exist_ok=True)
+            await self._update_templates()
+            if not self._templates_installed():
+                return False, "Failed to install nuclei templates after retry"
         self.proxy = self.scan.web_config.get("http_proxy", "")
         self.mode = self.config.get("mode", "severe").lower()
         self.ratelimit = int(self.config.get("ratelimit", 150))
@@ -257,7 +267,9 @@ class nuclei(BaseModule):
         stats_file = self.helpers.tempfile_tail(callback=self.log_nuclei_status)
         try:
             with open(stats_file, "w") as stats_fh:
-                async for line in self.run_process_live(command, input=nuclei_input, stderr=stats_fh):
+                async for line in self.run_process_live(
+                    command, input=nuclei_input, stderr=stats_fh, env=self._nuclei_env()
+                ):
                     try:
                         j = json.loads(line)
                     except json.decoder.JSONDecodeError:
@@ -316,6 +328,72 @@ class nuclei(BaseModule):
     async def cleanup(self):
         resume_file = self.helpers.current_dir / "resume.cfg"
         resume_file.unlink(missing_ok=True)
+
+    def _nuclei_env(self):
+        # Allowlist env vars: nuclei reads PDCP_API_KEY, GITHUB_TOKEN, AWS_*,
+        # AZURE_*, etc. directly, so os.environ.copy() would silently change
+        # its behavior (e.g. upload findings to ProjectDiscovery Cloud under
+        # the user's account). XDG_{CONFIG,CACHE}_HOME pin nuclei's config and
+        # cache under nuclei-state/ without inheriting the user's HOME.
+        keep = {
+            "PATH",
+            "LD_LIBRARY_PATH",
+            "LANG",
+            "LC_ALL",
+            "TZ",
+            "HTTP_PROXY",
+            "HTTPS_PROXY",
+            "NO_PROXY",
+            "http_proxy",
+            "https_proxy",
+            "no_proxy",
+        }
+        env = {k: v for k, v in os.environ.items() if k in keep}
+        env["XDG_CONFIG_HOME"] = str(self.nuclei_config_dir)
+        env["XDG_CACHE_HOME"] = str(self.nuclei_cache_dir)
+        return env
+
+    async def _update_templates(self):
+        self.info("Updating Nuclei templates")
+        # shield so an outer cancel can't kill the subprocess mid-extract and
+        # corrupt the templates dir
+        update_results = await asyncio.shield(
+            self.run_process(
+                ["nuclei", "-update-template-dir", self.nuclei_templates_dir, "-update-templates"],
+                env=self._nuclei_env(),
+            )
+        )
+        outcome = self._classify_update_stderr(update_results.stderr)
+        if outcome == "updated":
+            self.success("Successfully updated nuclei templates")
+        elif outcome == "up-to-date":
+            self.info("Nuclei templates already up-to-date")
+        else:
+            self.warning(f"Failure while updating nuclei templates: {update_results.stderr or '<no stderr>'}")
+
+    # nuclei's success messaging has drifted across releases (installed / updated /
+    # downloaded). Match any of them so a future rename doesn't silently downgrade
+    # a clean install to a "Failure while updating" warning.
+    _UPDATE_SUCCESS_MARKERS = (
+        "Successfully installed nuclei-templates",
+        "Successfully updated nuclei-templates",
+        "Successfully downloaded nuclei-templates",
+    )
+    _UPDATE_NOOP_MARKER = "No new updates found for nuclei templates"
+
+    @classmethod
+    def _classify_update_stderr(cls, stderr):
+        if not stderr:
+            return "failure"
+        if any(m in stderr for m in cls._UPDATE_SUCCESS_MARKERS):
+            return "updated"
+        if cls._UPDATE_NOOP_MARKER in stderr:
+            return "up-to-date"
+        return "failure"
+
+    def _templates_installed(self):
+        http_dir = self.nuclei_templates_dir / "http"
+        return http_dir.is_dir() and any(http_dir.iterdir())
 
     async def filter_event(self, event):
         if self.config.get("directory_only", True):
