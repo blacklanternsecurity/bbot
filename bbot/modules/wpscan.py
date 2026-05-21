@@ -58,7 +58,10 @@ class wpscan(BaseModule):
         },
         {
             "name": "Install wpscan gem",
-            "gem": {"name": "wpscan", "state": "latest", "user_install": False},
+            # Pin to 3.8.28 (requires Ruby >= 3.0). wpscan 4.0.0 requires Ruby >= 3.3,
+            # which is newer than the Ruby shipped by Ubuntu 24.04 (3.2.3) and the bbot
+            # CI runners. Bump this when the runners ship Ruby 3.3+.
+            "gem": {"name": "wpscan", "version": "3.8.28", "user_install": False},
             "become": True,
         },
     ]

@@ -1332,7 +1332,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             )
 
             # process response data
-            body = event.data.get("body", "")
+            body = event.body
             headers = event.data.get("header-dict", {})
             if body == "" and headers == {}:
                 return

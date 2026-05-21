@@ -145,6 +145,10 @@ class ScanIngress(BaseInterceptModule):
         return self._module_priority_weights
 
     async def get_incoming_event(self):
+        # memory-pressure backpressure: scan-level delay scales 0s→5s as memory crosses 90→95%.
+        # delay is 0 in the common case so this is a near-free check.
+        if self.scan._ingress_delay > 0:
+            await asyncio.sleep(self.scan._ingress_delay)
         for q in self.helpers.weighted_shuffle(self.incoming_queues, self.module_priority_weights):
             try:
                 return q.get_nowait()

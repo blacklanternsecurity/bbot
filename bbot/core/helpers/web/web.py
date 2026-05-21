@@ -100,7 +100,18 @@ class WebHelper:
         headers = kwargs.pop("headers", None) or {}
         body = kwargs.pop("body", None)
         data = kwargs.pop("data", None)
+        files = kwargs.pop("files", None)
         json_body = kwargs.pop("json", None)
+
+        body_sources = [
+            name
+            for name, val in (("body", body), ("data", data), ("json", json_body), ("files", files))
+            if val is not None
+        ]
+        if len(body_sources) > 1:
+            raise ValueError(
+                f"request() got conflicting body kwargs {body_sources}; pass at most one of body, data, json, files"
+            )
         timeout = kwargs.pop("timeout", self._http_timeout)
         follow_redirects = kwargs.pop("follow_redirects", None)
         max_redirects = kwargs.pop("max_redirects", None)
@@ -191,7 +202,9 @@ class WebHelper:
         }
 
         if body is not None:
-            blast_kwargs["body"] = str(body)
+            blast_kwargs["body"] = body if isinstance(body, (bytes, bytearray)) else str(body)
+        if files is not None:
+            blast_kwargs["files"] = files
         if follow_redirects is not None:
             blast_kwargs["follow_redirects"] = follow_redirects
         if max_redirects is not None:
@@ -253,8 +266,6 @@ class WebHelper:
         kwargs.pop("cache_for", None)
         kwargs.pop("client", None)
         kwargs.pop("stream", None)
-        if kwargs.pop("files", None) is not None:
-            log.warning("blasthttp does not support multipart file uploads (files= kwarg)")
 
         # allow vs follow
         allow_redirects = kwargs.pop("allow_redirects", None)
@@ -597,7 +608,7 @@ class WebHelper:
             - Write tests for this function
 
         Examples:
-            >>> soup = self.helpers.beautifulsoup(event.data["body"], "html.parser")
+            >>> soup = self.helpers.beautifulsoup(event.body, "html.parser")
             Perform an html parse of the 'markup' argument and return a soup instance
 
             >>> email_type = soup.find(type="email")
