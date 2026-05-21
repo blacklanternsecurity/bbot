@@ -226,7 +226,6 @@ class paramminer_headers(BaseModule):
                     if self.global_blacklist_prefixes and lower_name.startswith(self.global_blacklist_prefixes):
                         return
                 if parameter_name not in self.wl:  # Ensure it's not already in the wordlist
-                    self.debug(f"Adding {parameter_name} to wordlist")
                     self.extracted_words_master.add(parameter_name)
 
         elif event.type == "HTTP_RESPONSE":
@@ -289,7 +288,7 @@ class paramminer_headers(BaseModule):
     async def binary_search(self, compare_helper, url, group, reasons=None, reflection=False):
         if reasons is None:
             reasons = []
-        self.debug(f"Entering recursive binary_search with {len(group):,} sized group")
+            self.debug(f"Entering binary_search with {len(group):,} sized group for URL [{url}]")
         if len(group) == 1 and len(reasons) > 0:
             yield group[0], reasons, reflection
         elif len(group) > 1 or (len(group) == 1 and len(reasons) == 0):
@@ -298,10 +297,6 @@ class paramminer_headers(BaseModule):
                 if match is False:
                     async for r in self.binary_search(compare_helper, url, group_slice, reasons, reflection):
                         yield r
-        else:
-            self.debug(
-                f"binary_search() failed to start with group of size {str(len(group))} and {str(len(reasons))} length reasons"
-            )
 
     async def check_batch(self, compare_helper, url, header_list):
         rand = self.rand_string()

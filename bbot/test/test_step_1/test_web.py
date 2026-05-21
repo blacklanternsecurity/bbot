@@ -87,6 +87,66 @@ async def test_web(bbot_scanner, bbot_httpserver, blasthttp_mock):
 
 
 @pytest.mark.asyncio
+async def test_web_request_files_multipart(bbot_scanner, bbot_httpserver):
+    """httpx-style files= kwarg builds a multipart/form-data body."""
+    captured = {}
+
+    def server_handler(request):
+        from werkzeug.wrappers import Response
+
+        captured["body"] = request.get_data()
+        captured["content_type"] = request.headers.get("Content-Type", "")
+        return Response("ok")
+
+    bbot_httpserver.expect_request(uri="/upload", method="POST").respond_with_handler(server_handler)
+    url = bbot_httpserver.url_for("/upload")
+
+    scan = bbot_scanner()
+    await scan._prep()
+
+    response = await scan.helpers.request(
+        url,
+        method="POST",
+        files={
+            "field": (None, "value"),
+            "f": ("blob", b"\x00\x01\x02hello", "application/octet-stream"),
+        },
+    )
+    assert response.status_code == 200
+
+    ct = captured["content_type"]
+    assert ct.startswith("multipart/form-data; boundary=")
+    body = captured["body"]
+    assert b'name="field"' in body
+    assert b"value" in body
+    assert b'filename="blob"' in body
+    assert b"\x00\x01\x02hello" in body
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_web_request_rejects_conflicting_body_kwargs(bbot_scanner):
+    scan = bbot_scanner()
+    await scan._prep()
+    url = "http://example.com/"
+
+    pairs = [
+        {"json": {"a": 1}, "files": {"f": ("x", b"x")}},
+        {"json": {"a": 1}, "data": {"a": "b"}},
+        {"body": "raw", "json": {"a": 1}},
+        {"body": "raw", "data": {"a": "b"}},
+        {"body": "raw", "files": {"f": ("x", b"x")}},
+        {"data": {"a": "b"}, "files": {"f": ("x", b"x")}},
+    ]
+    for kwargs in pairs:
+        with pytest.raises(ValueError, match="conflicting body kwargs"):
+            await scan.helpers.request(url, method="POST", **kwargs)
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
 async def test_web_helpers(bbot_scanner, bbot_httpserver, blasthttp_mock):
     # json conversion
     scan = bbot_scanner("evilcorp.com")

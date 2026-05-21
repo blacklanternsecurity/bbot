@@ -250,6 +250,15 @@ class Scanner:
                 "You have enabled custom HTTP cookies. These will be attached to all in-scope requests and all requests made by blasthttp."
             )
 
+        # HTTP_RESPONSE body disk-spill — keeps body bytes off the Python heap.
+        # See bbot/core/event/spill.py for design notes. Created in _prep()
+        # once temp_dir exists.
+        body_spill_config = web_config.get("body_spill", {})
+        self.body_spill_enabled = bool(body_spill_config.get("enabled", True))
+        self.body_spill_cache_mb = int(body_spill_config.get("cache_mb", 512))
+        self.body_spill_compress = bool(body_spill_config.get("compress", True))
+        self.body_spill_store = None
+
         # url file extensions
         self.url_extension_special = {e.lower() for e in self.config.get("url_extension_special", [])}
         self.url_extension_blacklist = {e.lower() for e in self.config.get("url_extension_blacklist", [])}
@@ -263,6 +272,12 @@ class Scanner:
 
         # how often to print scan status
         self.status_frequency = self.config.get("status_frequency", 15)
+
+        # memory-pressure ingress throttle: when system memory exceeds max_mem_percent,
+        # ScanIngress sleeps _ingress_delay seconds before pulling each event.
+        # delay is recomputed every status tick from current memory.
+        self.max_mem_percent = self.config.get("max_mem_percent", 90)
+        self._ingress_delay = 0.0
 
         from .stats import ScanStats
 
@@ -305,6 +320,15 @@ class Scanner:
 
         self.helpers.mkdir(self.home)
         self.helpers.mkdir(self.temp_dir)
+
+        if self.body_spill_enabled and self.body_spill_store is None:
+            from bbot.core.event.spill import BodySpillStore
+
+            self.body_spill_store = BodySpillStore(
+                self.temp_dir / "bodies",
+                cache_bytes=self.body_spill_cache_mb * 1024 * 1024,
+                compress=self.body_spill_compress,
+            )
 
         if not self._modules_loaded:
             self.modules = OrderedDict({})
@@ -728,14 +752,20 @@ class Scanner:
 
         modules_errored = [m for m, s in status["modules"].items() if s["errored"]]
 
-        max_mem_percent = 90
         mem_status = self.helpers.memory_status()
-        # abort if we don't have the memory
         mem_percent = mem_status.percent
-        if mem_percent > max_mem_percent:
-            free_memory = mem_status.available
-            free_memory_human = self.helpers.bytes_to_human(free_memory)
-            self.warning(f"System memory is at {mem_percent:.1f}% ({free_memory_human} remaining)")
+        prev_delay = self._ingress_delay
+        new_delay = self._compute_ingress_delay(mem_percent)
+        self._ingress_delay = new_delay
+        if mem_percent > self.max_mem_percent:
+            free_memory_human = self.helpers.bytes_to_human(mem_status.available)
+            if prev_delay == 0.0 and new_delay > 0.0:
+                self.warning(
+                    f"System memory is at {mem_percent:.1f}% ({free_memory_human} remaining); "
+                    f"throttling ingress ({new_delay:.1f}s/event) to let the pipeline drain"
+                )
+        elif prev_delay > 0.0 and new_delay == 0.0:
+            self.hugesuccess(f"System memory dropped to {mem_percent:.1f}%; ingress throttle cleared")
 
         if _log:
             modules_status = []
@@ -807,6 +837,15 @@ class Scanner:
         status.update({"modules_errored": len(modules_errored)})
 
         return status
+
+    def _compute_ingress_delay(self, mem_percent):
+        # 0s at threshold, scaling linearly to 5s at threshold+5 (capped at 95%).
+        if mem_percent <= self.max_mem_percent:
+            return 0.0
+        cap = min(self.max_mem_percent + 5, 95)
+        overshoot_range = max(cap - self.max_mem_percent, 1)
+        overshoot = min(mem_percent - self.max_mem_percent, overshoot_range)
+        return (overshoot / overshoot_range) * 5.0
 
     async def async_stop(self):
         """Stops the in-progress scan and performs necessary cleanup.

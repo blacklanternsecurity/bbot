@@ -1266,3 +1266,20 @@ def test_preset_file_targets(tmp_path):
     target_inputs5 = set(preset5._target_list)
     assert "nested.evilcorp.com" in target_inputs5
     assert "my_targets.txt" not in target_inputs5
+
+
+def test_preset_dnsresolve_required_by_dns_name_consumers():
+    # gate must fire for all three opt-out paths when any DNS_NAME-watching module is enabled
+    for opt_out in (
+        {"exclude_modules": ["dnsresolve"], "flags": ["subdomain-enum"]},
+        {"config": {"dnsresolve": False}, "flags": ["subdomain-enum"]},
+        {"config": {"dns": {"disable": True}}, "flags": ["subdomain-enum"]},
+    ):
+        with pytest.raises(ValidationError, match="dnsresolve is required"):
+            Preset(**opt_out).bake()
+
+    # dns.minimal keeps dnsresolve in the pipeline -- must NOT fire
+    Preset(flags=["subdomain-enum"], config={"dns": {"minimal": True}}).bake()
+
+    # disabling dnsresolve with no DNS_NAME consumers enabled is allowed
+    Preset(exclude_modules=["dnsresolve"]).bake()

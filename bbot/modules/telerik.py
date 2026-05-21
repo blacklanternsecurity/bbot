@@ -257,7 +257,6 @@ class telerik(BaseModule):
                         if base_url not in self.RAUConfirmed:
                             self.RAUConfirmed.append(base_url)
                             root_tool_path = self.scan.helpers.tools_dir / "telerik"
-                            self.debug(root_tool_path)
 
                             for version in self.telerikVersions:
                                 command = [
@@ -377,7 +376,7 @@ class telerik(BaseModule):
                     )
 
         elif event.type == "HTTP_RESPONSE":
-            resp_body = event.data.get("body", None)
+            resp_body = event.body
             url = event.url
             if resp_body:
                 if '":{"SerializedParameters":"' in resp_body:

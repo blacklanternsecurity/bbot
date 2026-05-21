@@ -38,12 +38,12 @@ class newsletters(BaseModule):
     async def handle_event(self, event):
         _event = event
 
-        # Call find_type Function if Webpage return Status Code 200 && "body" is found in event.data
+        # Call find_type Function if Webpage return Status Code 200 && body is non-empty
         # Ex: 'bbot -m blasthttp newsletters -t https://apf-api.eng.vn.cloud.tesla.com' returns
-        #     Status Code 200 but does NOT have event.data["body"]
+        #     Status Code 200 but does NOT have a response body
         if _event.data["status_code"] == 200:
-            if "body" in _event.data:
-                body = _event.data["body"]
+            body = _event.body
+            if body:
                 soup = self.helpers.beautifulsoup(body, "html.parser")
                 if soup is False:
                     self.debug("BeautifulSoup returned False")

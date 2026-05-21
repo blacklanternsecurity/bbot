@@ -476,6 +476,33 @@ class Preset(metaclass=BasePreset):
             for output_module in self.default_output_modules:
                 baked_preset.add_module(output_module, module_type="output", raise_error=False)
 
+        # dnsresolve is the intercept module that resolves every event, tags wildcards/unresolved,
+        # and rewrites wildcard hits to `_wildcard.parent`. Modules that watch DNS_NAME depend on
+        # those tags to filter false positives; without it, brute-force and passive-enum modules
+        # emit unverified and wildcard-tainted names. This catches all three explicit opt-outs:
+        # `-em dnsresolve`, top-level `dnsresolve: false`, and `dns.disable: true`. We check the
+        # user actions rather than "dnsresolve in modules" so that internal-module-trimming code
+        # paths (e.g. `--list-module-options` setting `_default_internal_modules = []`) don't trip
+        # the gate -- those aren't real scans, and the user hasn't asked to disable anything.
+        dnsresolve_disabled = (
+            "dnsresolve" in baked_preset.exclude_modules
+            or baked_preset.config.get("dnsresolve", True) is False
+            or baked_preset.config.get("dns", {}).get("disable", False)
+        )
+        if dnsresolve_disabled:
+            dns_name_consumers = sorted(
+                m
+                for m in baked_preset.modules
+                if "DNS_NAME" in baked_preset.preloaded_module(m).get("watched_events", [])
+            )
+            if dns_name_consumers:
+                raise ValidationError(
+                    f"dnsresolve is required by these enabled modules but is disabled: {', '.join(dns_name_consumers)}. "
+                    "Use `dns.minimal: true` (resolves A/AAAA only, skips MX/NS/SRV expansion) "
+                    "if you want to reduce DNS overhead while keeping wildcard and unresolved tagging. "
+                    "If you genuinely want no DNS at all, also disable the modules listed above."
+                )
+
         # create target object
         from bbot.scanner.target import BBOTTarget
 

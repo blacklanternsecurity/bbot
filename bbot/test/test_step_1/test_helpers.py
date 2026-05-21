@@ -1146,3 +1146,27 @@ def test_clean_dns_record():
     assert clean_dns_record("'d1jwhzvlef5tfb.example.com'") == "d1jwhzvlef5tfb.example.com"
     # quotes + trailing dot
     assert clean_dns_record('"d1jwhzvlef5tfb.example.com."') == "d1jwhzvlef5tfb.example.com"
+
+
+@pytest.mark.asyncio
+async def test_asn_helper_passes_api_key(bbot_scanner, monkeypatch):
+    """ASNHelper should forward the configured bbot_io_api_key to ASNDB."""
+    captured = {}
+
+    class FakeASNDB:
+        def __init__(self, bbot_io_api_key=None, verify=True):
+            captured["bbot_io_api_key"] = bbot_io_api_key
+            captured["verify"] = verify
+
+    import asndb
+
+    monkeypatch.setattr(asndb, "ASNDB", FakeASNDB)
+
+    scan = bbot_scanner("8.8.8.8", config={"bbot_io_api_key": "test-key-xyz"})
+    _ = scan.helpers.asn.client
+    assert captured["bbot_io_api_key"] == "test-key-xyz"
+
+    captured.clear()
+    scan2 = bbot_scanner("8.8.8.8")
+    _ = scan2.helpers.asn.client
+    assert captured["bbot_io_api_key"] is None
