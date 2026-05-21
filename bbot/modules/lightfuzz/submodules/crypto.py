@@ -482,12 +482,16 @@ class crypto(BaseLightfuzz):
         for i in range(starting_pos, starting_pos + 254):
             byte = bytes([i])
             probe_value = self.format_agnostic_encode(ivblock + paddingblock[:-1] + byte + datablock, encoding)
-            oracle_probe = await self.compare_probe(
-                baseline,
-                self.event.data["type"],
-                probe_value,
-                cookies,
-            )
+            try:
+                oracle_probe = await self.compare_probe(
+                    baseline,
+                    self.event.data["type"],
+                    probe_value,
+                    cookies,
+                )
+            except HttpCompareError as e:
+                self.verbose(f"Encountered HttpCompareError during padding oracle probe: {e}")
+                return False
             # oracle_probe[0] will be false if the response is different - oracle_probe[1] stores what aspect of the response is different (headers, body, code)
             if oracle_probe[0] is False and "body" in oracle_probe[1]:
                 # When the server reflects submitted values or reveals decrypted data, every probe will differ in the body. Strip the known probe values from both responses and re-compare.
