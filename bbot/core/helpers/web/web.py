@@ -608,7 +608,7 @@ class WebHelper:
             - Write tests for this function
 
         Examples:
-            >>> soup = self.helpers.beautifulsoup(event.data["body"], "html.parser")
+            >>> soup = self.helpers.beautifulsoup(event.body, "html.parser")
             Perform an html parse of the 'markup' argument and return a soup instance
 
             >>> email_type = soup.find(type="email")

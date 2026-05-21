@@ -36,7 +36,7 @@ class ajaxpro(BaseModule):
                     await self.confirm_exploitability(probe_url, event)
 
     async def check_http_response_event(self, event):
-        resp_body = event.data.get("body")
+        resp_body = event.body
         if resp_body:
             match = await self.helpers.re.search(self.ajaxpro_regex, resp_body)
             if match:
