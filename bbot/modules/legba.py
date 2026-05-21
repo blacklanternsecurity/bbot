@@ -41,6 +41,7 @@ class legba(BaseModule):
         "version": "1.1.1",
     }
 
+    # All *_wordlist options also accept a list of URLs/paths to merge multiple wordlists (duplicates are removed).
     options_desc = {
         "ssh_wordlist": "Wordlist URL for SSH combined username:password wordlist, newline separated",
         "ftp_wordlist": "Wordlist URL for FTP combined username:password wordlist, newline separated",
