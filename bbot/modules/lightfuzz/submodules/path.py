@@ -163,6 +163,31 @@ class path(BaseLightfuzz):
                             self.lightfuzz.waf_yara_rules, doubledot_response.text
                         )
                     ):
+                        # Canary check: a real path traversal would 404/500 on a random non-existent
+                        # filename, but a search/filter field returns 200 with an empty results page
+                        # for any input. If the canary also returns 200 with a body, it's a search
+                        # field, not a file path handler — break to avoid an FP.
+                        canary_name = self.lightfuzz.helpers.rand_string(10, digits=False)
+                        canary_payload = payloads["doubledot_payload"].replace(probe_value, canary_name)
+                        canary_probe = await self.compare_probe(
+                            http_compare,
+                            self.event.data["type"],
+                            canary_payload,
+                            cookies,
+                            skip_urlencoding=True,
+                        )
+                        canary_response = canary_probe[3]
+                        canary_is_success = (
+                            canary_response is not None
+                            and 200 <= canary_response.status_code < 300
+                            and bool(canary_response.text)
+                        )
+                        if canary_is_success:
+                            self.debug(
+                                f"Path Traversal canary check failed: random filename also returned "
+                                f"{canary_response.status_code} (likely a search/filter field, not a file path)"
+                            )
+                            break
                         confirmations += 1
                         self.verbose(f"Got possible Path Traversal detection: [{str(confirmations)}] Confirmations")
                         # only report if we have 3 confirmations
