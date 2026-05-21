@@ -533,12 +533,13 @@ class WebHelper:
         """
         import zipfile
 
+        if not path:
+            raise WordlistError(f"Invalid wordlist: {path}")
+
         # Handle list of wordlists - fetch each and merge into a single order-preserving deduplicated file,
         # then fall through to the unified truncation logic below
         if not isinstance(path, (str, Path)):
             paths = list(path)
-            if not paths:
-                raise WordlistError("Wordlist list is empty")
             all_words = []
             for p in paths:
                 f = await self.wordlist(p, **kwargs)
@@ -549,8 +550,6 @@ class WebHelper:
                 for word in dict.fromkeys(all_words):
                     f.write(f"{word}\n")
         else:
-            if not path:
-                raise WordlistError(f"Invalid wordlist: {path}")
             if "cache_hrs" not in kwargs:
                 # 4320 hrs = 180 days = 6 months
                 kwargs["cache_hrs"] = 4320
