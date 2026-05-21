@@ -41,15 +41,14 @@ class legba(BaseModule):
         "version": "1.1.1",
     }
 
-    # All *_wordlist options also accept a list of URLs/paths to merge multiple wordlists (duplicates are removed).
     options_desc = {
-        "ssh_wordlist": "Wordlist URL for SSH combined username:password wordlist, newline separated",
-        "ftp_wordlist": "Wordlist URL for FTP combined username:password wordlist, newline separated",
-        "telnet_wordlist": "Wordlist URL for TELNET combined username:password wordlist, newline separated",
-        "vnc_wordlist": "Wordlist URL for VNC password wordlist, newline separated",
-        "mssql_wordlist": "Wordlist URL for MSSQL combined username:password wordlist, newline separated",
-        "mysql_wordlist": "Wordlist URL for MySQL combined username:password wordlist, newline separated",
-        "postgresql_wordlist": "Wordlist URL for PostgreSQL combined username:password wordlist, newline separated",
+        "ssh_wordlist": "Wordlist for SSH combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
+        "ftp_wordlist": "Wordlist for FTP combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
+        "telnet_wordlist": "Wordlist for TELNET combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
+        "vnc_wordlist": "Wordlist for VNC passwords, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
+        "mssql_wordlist": "Wordlist for MSSQL combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
+        "mysql_wordlist": "Wordlist for MySQL combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
+        "postgresql_wordlist": "Wordlist for PostgreSQL combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
         "concurrency": "Number of concurrent workers, gets overridden for SSH",
         "rate_limit": "Limit the number of requests per second, gets overridden for SSH",
         "version": "legba version",
