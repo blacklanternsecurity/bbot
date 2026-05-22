@@ -7,6 +7,7 @@ import random
 import string
 import asyncio
 import logging
+import functools
 import ipaddress
 import regex as re
 import subprocess as sp
@@ -617,11 +618,11 @@ def is_ip(d, version=None, include_network=False):
     """
     ip = None
     try:
-        ip = ipaddress.ip_address(d)
+        ip = cached_ip_address(d)
     except Exception:
         if include_network:
             try:
-                ip = ipaddress.ip_network(d, strict=False)
+                ip = cached_ip_network(d)
             except Exception:
                 pass
     if ip is not None and (version is None or ip.version == version):
@@ -657,6 +658,39 @@ def is_ip_type(i, network=None):
     return ipaddress._IPAddressBase in i.__class__.__mro__
 
 
+# Valid characters in any IP address or CIDR string: hex digits, dot, colon,
+# slash (prefix length), and percent (IPv6 zone ID). A typical hostname like
+# "google.com" fails this check at its first letter.
+_IP_CHARS = frozenset("0123456789abcdefABCDEF.:/%")
+
+
+def _looks_like_ip(s):
+    """Cheap reject for strings that obviously aren't IPs/CIDRs."""
+    for c in s:
+        if c not in _IP_CHARS:
+            return False
+    return True
+
+
+@functools.lru_cache(maxsize=16384)
+def cached_ip_address(s):
+    """
+    Cached wrapper around `ipaddress.ip_address()`. Same semantics: returns an
+    IPv4Address/IPv6Address, or raises ValueError. Exceptions are not cached.
+    """
+    return ipaddress.ip_address(s)
+
+
+@functools.lru_cache(maxsize=16384)
+def cached_ip_network(s):
+    """
+    Cached wrapper around `ipaddress.ip_network(strict=False)`. Same semantics.
+    Exceptions are not cached.
+    """
+    return ipaddress.ip_network(s, strict=False)
+
+
+@functools.lru_cache(maxsize=16384)
 def make_ip_type(s):
     """
     Convert a string to its corresponding IP address or network type.
@@ -682,12 +716,20 @@ def make_ip_type(s):
     """
     if not s:
         raise ValueError(f'Invalid hostname: "{s}"')
-    # IP address
-    with suppress(Exception):
+    # Pass through anything that isn't a string (e.g. an already-parsed IP object).
+    if not isinstance(s, str):
+        return s
+    # Skip the expensive ipaddress parse+raise path for obvious non-IPs.
+    if not _looks_like_ip(s):
+        return s
+    try:
         return ipaddress.ip_address(s)
-    # IP network
-    with suppress(Exception):
+    except ValueError:
+        pass
+    try:
         return ipaddress.ip_network(s, strict=False)
+    except ValueError:
+        pass
     return s
 
 
@@ -2559,27 +2601,16 @@ def weighted_shuffle(items, weights):
         ['banana', 'apple', 'cherry']
 
     Note:
-        The sum of all weights does not have to be 1. They will be normalized internally.
+        Weights must be positive. The sum does not need to be 1.
     """
-    # Create a list of tuples where each tuple is (item, weight)
-    pool = list(zip(items, weights))
-
-    shuffled_items = []
-
-    # While there are still items to be chosen...
-    while pool:
-        # Normalize weights
-        total = sum(weight for item, weight in pool)
-        weights = [weight / total for item, weight in pool]
-
-        # Choose an index based on weight
-        chosen_index = random.choices(range(len(pool)), weights=weights, k=1)[0]
-
-        # Add the chosen item to the shuffled list
-        chosen_item, chosen_weight = pool.pop(chosen_index)
-        shuffled_items.append(chosen_item)
-
-    return shuffled_items
+    # Give each item a random number, but skewed by its weight
+    # (heavier weight → number closer to 1). Sort by that number,
+    # highest first. Items with bigger weights are more likely to
+    # end up near the top, but every item still has a chance.
+    rand = random.random
+    keyed = [(rand() ** (1.0 / w), item) for item, w in zip(items, weights)]
+    keyed.sort(key=lambda x: x[0], reverse=True)
+    return [item for _, item in keyed]
 
 
 def parse_port_string(port_string):
