@@ -23,7 +23,7 @@ class medusa(BaseModule):
     }
 
     options_desc = {
-        "snmp_wordlist": "Wordlist url for SNMP community strings, newline separated (default https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/SNMP/snmp.txt)",
+        "snmp_wordlist": "Wordlist url for SNMP community strings, newline separated (default https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/SNMP/snmp.txt). Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
         "snmp_versions": "List of SNMP versions to attempt against the SNMP server (default ['1', '2C'])",
         "wait_microseconds": "Wait time after every SNMP request in microseconds (default 200)",
         "timeout_s": "Wait time for the SNMP response(s) once at the end of all attempts (default 5)",
