@@ -20,6 +20,8 @@ pipx install --pip-args '\--pre' bbot
 
 _For more installation methods, including [Docker](https://hub.docker.com/r/blacklanternsecurity/bbot), see [Getting Started](https://www.blacklanternsecurity.com/bbot/Stable/)_
 
+> **Upgrading from 2.x?** BBOT 3.0 contains breaking changes to the CLI, presets, modules, events, and Python API. See the [2.x → 3.0 Migration Guide](https://www.blacklanternsecurity.com/bbot/Stable/migration/3.0_breaking_changes/) ([source](docs/migration/3.0_breaking_changes.md)) before upgrading.
+
 > **Speed tip:** BBOT's DNS engine spins up ten workers per resolver in `/etc/resolv.conf`. Adding more unfiltered resolvers dramatically speeds up scans. See the [sample resolv.conf](docs/data/resolv-sample.conf) and [Tips and Tricks](https://www.blacklanternsecurity.com/bbot/Stable/scanning/tips_and_tricks/#speed-up-scans-with-more-dns-resolvers) for details.
 
 ## Example Commands
@@ -388,6 +390,8 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/Stabl
         - [Nuclei](https://www.blacklanternsecurity.com/bbot/Stable/modules/nuclei)
         - [Custom YARA Rules](https://www.blacklanternsecurity.com/bbot/Stable/modules/custom_yara_rules)
         - [Lightfuzz (DAST)](https://www.blacklanternsecurity.com/bbot/Stable/modules/lightfuzz)
+    - **Migration**
+        - [2.x → 3.0 Breaking Changes](https://www.blacklanternsecurity.com/bbot/Stable/migration/3.0_breaking_changes)
     - **Misc**
         - [Contribution](https://www.blacklanternsecurity.com/bbot/Stable/contribution)
         - [Release History](https://www.blacklanternsecurity.com/bbot/Stable/release_history)
