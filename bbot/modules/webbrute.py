@@ -28,7 +28,7 @@ class webbrute(BaseModule):
     }
 
     options_desc = {
-        "wordlist": "Specify wordlist to use when finding directories",
+        "wordlist": "Specify wordlist to use when finding directories. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
         "lines": "take only the first N lines from the wordlist when finding directories",
         "max_depth": "the maximum directory depth to attempt to solve",
         "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
