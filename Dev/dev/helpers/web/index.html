@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../../assets/stylesheets/extra-style.jgj9gmgf.min.css" rel="stylesheet"/></head>
+<link href="../../../assets/stylesheets/extra-style.dcwrkv7t.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1547,7 +1547,28 @@ which supports global rate limiting via <code>web.http_rate_limit</code>.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">679</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">680</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">681</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">682</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">WebHelper</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">682</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">683</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">684</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">685</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">686</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">687</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">688</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">689</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">690</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">691</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">692</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">693</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">694</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">695</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">696</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">697</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">698</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">699</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">700</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">701</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">702</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">703</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">WebHelper</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Main utility class for managing HTTP operations in BBOT. Uses blasthttp (Rust) as the</span>
 <span style="color: #A5D6FF">    HTTP engine for all requests, downloads, and wordlist retrieval.</span>
@@ -2009,8 +2030,12 @@ which supports global rate limiting via <code>web.http_rate_limit</code>.</p>
 <span style="color: #A5D6FF">        Allows for optional line-based truncation and caching. Returns the full path of the wordlist</span>
 <span style="color: #A5D6FF">        file or a truncated version of it.</span>
 
+<span style="color: #A5D6FF">        Also accepts a list of paths/URLs, in which case all wordlists are fetched and merged</span>
+<span style="color: #A5D6FF">        into a single deduplicated file before being returned.</span>
+
 <span style="color: #A5D6FF">        Args:</span>
-<span style="color: #A5D6FF">            path (str): The local or remote path of the wordlist.</span>
+<span style="color: #A5D6FF">            path (str | list): The local or remote path of the wordlist, or a list of paths/URLs</span>
+<span style="color: #A5D6FF">                to merge into a single deduplicated wordlist.</span>
 <span style="color: #A5D6FF">            lines (int, optional): Number of lines to read from the wordlist.</span>
 <span style="color: #A5D6FF">                If specified, will return a truncated wordlist with this many lines.</span>
 <span style="color: #A5D6FF">            zip (bool, optional): Whether to unzip the file after downloading. Defaults to False.</span>
@@ -2032,47 +2057,64 @@ which supports global rate limiting via <code>web.http_rate_limit</code>.</p>
 
 <span style="color: #A5D6FF">            Fetching and truncating to the first 100 lines</span>
 <span style="color: #A5D6FF">            &gt;&gt;&gt; wordlist_path = await self.helpers.wordlist("/root/rockyou.txt", lines=100)</span>
+
+<span style="color: #A5D6FF">            Merging multiple wordlists into one</span>
+<span style="color: #A5D6FF">            &gt;&gt;&gt; wordlist_path = await self.helpers.wordlist(["/custom.txt", "https://example.com/wordlist.txt"])</span>
 <span style="color: #A5D6FF">        """</span>
         <span style="color: #FF7B72">import</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">zipfile</span>
 
         <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">path:</span>
             <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">WordlistError(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Invalid wordlist: {</span><span style="color: #E6EDF3">path</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #A5D6FF">"cache_hrs"</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">kwargs:</span>
-            <span style="color: #8B949E; font-style: italic"># 4320 hrs = 180 days = 6 months</span>
-            <span style="color: #E6EDF3">kwargs[</span><span style="color: #A5D6FF">"cache_hrs"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">4320</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">is_url(path):</span>
-            <span style="color: #E6EDF3">filename</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">download(str(path),</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs)</span>
-            <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">filename</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
-                <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">WordlistError(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Unable to retrieve wordlist from {</span><span style="color: #E6EDF3">path</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
-        <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #E6EDF3">filename</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">Path(path)</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">resolve()</span>
-            <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">filename</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">is_file():</span>
-                <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">WordlistError(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Unable to find wordlist at {</span><span style="color: #E6EDF3">path</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
 
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">zip:</span>
-            <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">zip_filename:</span>
-                <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">WordlistError(</span><span style="color: #A5D6FF">"zip_filename must be specified when zip is True"</span><span style="color: #E6EDF3">)</span>
-            <span style="color: #FF7B72">try</span><span style="color: #E6EDF3">:</span>
-                <span style="color: #FF7B72">with</span> <span style="color: #E6EDF3">zipfile</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">ZipFile(filename,</span> <span style="color: #A5D6FF">"r"</span><span style="color: #E6EDF3">)</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">zip_ref:</span>
-                    <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">zip_filename</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">zip_ref</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">namelist():</span>
-                        <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">WordlistError(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"File {</span><span style="color: #E6EDF3">zip_filename</span><span style="color: #A5D6FF">} not found in the zip archive {</span><span style="color: #E6EDF3">filename</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
-                    <span style="color: #E6EDF3">zip_ref</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">extract(zip_filename,</span> <span style="color: #E6EDF3">filename</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent)</span>
-                    <span style="color: #E6EDF3">filename</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">filename</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent</span> <span style="color: #FF7B72; font-weight: bold">/</span> <span style="color: #E6EDF3">zip_filename</span>
-            <span style="color: #FF7B72">except</span> <span style="color: #F0883E; font-weight: bold">Exception</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">e:</span>
-                <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">WordlistError(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Error unzipping file {</span><span style="color: #E6EDF3">filename</span><span style="color: #A5D6FF">}: {</span><span style="color: #E6EDF3">e</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
+        <span style="color: #8B949E; font-style: italic"># Handle list of wordlists - fetch each and merge into a single order-preserving deduplicated file,</span>
+        <span style="color: #8B949E; font-style: italic"># then fall through to the unified truncation logic below</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">isinstance(path,</span> <span style="color: #E6EDF3">(str,</span> <span style="color: #E6EDF3">Path)):</span>
+            <span style="color: #E6EDF3">paths</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">list(path)</span>
+            <span style="color: #E6EDF3">all_words</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[]</span>
+            <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">p</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">paths:</span>
+                <span style="color: #E6EDF3">f</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">wordlist(p,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs)</span>
+                <span style="color: #E6EDF3">all_words</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">extend(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">read_file(f))</span>
+            <span style="color: #E6EDF3">cache_key</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">"merged_wordlist:"</span> <span style="color: #FF7B72; font-weight: bold">+</span> <span style="color: #A5D6FF">":"</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">join(sorted(str(p)</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">p</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">paths))</span>
+            <span style="color: #E6EDF3">filename</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cache_filename(cache_key)</span>
+            <span style="color: #FF7B72">with</span> <span style="color: #E6EDF3">open(filename,</span> <span style="color: #A5D6FF">"w"</span><span style="color: #E6EDF3">)</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">f:</span>
+                <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">word</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">dict</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">fromkeys(all_words):</span>
+                    <span style="color: #E6EDF3">f</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">write(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"{</span><span style="color: #E6EDF3">word</span><span style="color: #A5D6FF">}</span><span style="color: #79C0FF">\n</span><span style="color: #A5D6FF">"</span><span style="color: #E6EDF3">)</span>
+        <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
+            <span style="color: #FF7B72">if</span> <span style="color: #A5D6FF">"cache_hrs"</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">kwargs:</span>
+                <span style="color: #8B949E; font-style: italic"># 4320 hrs = 180 days = 6 months</span>
+                <span style="color: #E6EDF3">kwargs[</span><span style="color: #A5D6FF">"cache_hrs"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">4320</span>
+            <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">is_url(path):</span>
+                <span style="color: #E6EDF3">filename</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">download(str(path),</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs)</span>
+                <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">filename</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
+                    <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">WordlistError(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Unable to retrieve wordlist from {</span><span style="color: #E6EDF3">path</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
+            <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
+                <span style="color: #E6EDF3">filename</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">Path(path)</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">resolve()</span>
+                <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">filename</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">is_file():</span>
+                    <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">WordlistError(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Unable to find wordlist at {</span><span style="color: #E6EDF3">path</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
+
+            <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">zip:</span>
+                <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">zip_filename:</span>
+                    <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">WordlistError(</span><span style="color: #A5D6FF">"zip_filename must be specified when zip is True"</span><span style="color: #E6EDF3">)</span>
+                <span style="color: #FF7B72">try</span><span style="color: #E6EDF3">:</span>
+                    <span style="color: #FF7B72">with</span> <span style="color: #E6EDF3">zipfile</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">ZipFile(filename,</span> <span style="color: #A5D6FF">"r"</span><span style="color: #E6EDF3">)</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">zip_ref:</span>
+                        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">zip_filename</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">zip_ref</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">namelist():</span>
+                            <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">WordlistError(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"File {</span><span style="color: #E6EDF3">zip_filename</span><span style="color: #A5D6FF">} not found in the zip archive {</span><span style="color: #E6EDF3">filename</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
+                        <span style="color: #E6EDF3">zip_ref</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">extract(zip_filename,</span> <span style="color: #E6EDF3">filename</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent)</span>
+                        <span style="color: #E6EDF3">filename</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">filename</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent</span> <span style="color: #FF7B72; font-weight: bold">/</span> <span style="color: #E6EDF3">zip_filename</span>
+                <span style="color: #FF7B72">except</span> <span style="color: #F0883E; font-weight: bold">Exception</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">e:</span>
+                    <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">WordlistError(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Error unzipping file {</span><span style="color: #E6EDF3">filename</span><span style="color: #A5D6FF">}: {</span><span style="color: #E6EDF3">e</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
 
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">lines</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
             <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">filename</span>
-        <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #E6EDF3">lines</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">int(lines)</span>
-            <span style="color: #FF7B72">with</span> <span style="color: #E6EDF3">open(filename)</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">f:</span>
-                <span style="color: #E6EDF3">read_lines</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">f</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">readlines()</span>
-            <span style="color: #E6EDF3">cache_key</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"{</span><span style="color: #E6EDF3">filename</span><span style="color: #A5D6FF">}:{</span><span style="color: #E6EDF3">lines</span><span style="color: #A5D6FF">}"</span>
-            <span style="color: #E6EDF3">truncated_filename</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cache_filename(cache_key)</span>
-            <span style="color: #FF7B72">with</span> <span style="color: #E6EDF3">open(truncated_filename,</span> <span style="color: #A5D6FF">"w"</span><span style="color: #E6EDF3">)</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">f:</span>
-                <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">line</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">read_lines[:lines]:</span>
-                    <span style="color: #E6EDF3">f</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">write(line)</span>
-            <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">truncated_filename</span>
+        <span style="color: #E6EDF3">lines</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">int(lines)</span>
+        <span style="color: #FF7B72">with</span> <span style="color: #E6EDF3">open(filename)</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">f:</span>
+            <span style="color: #E6EDF3">read_lines</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">f</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">readlines()</span>
+        <span style="color: #E6EDF3">cache_key</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"{</span><span style="color: #E6EDF3">filename</span><span style="color: #A5D6FF">}:{</span><span style="color: #E6EDF3">lines</span><span style="color: #A5D6FF">}"</span>
+        <span style="color: #E6EDF3">truncated_filename</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cache_filename(cache_key)</span>
+        <span style="color: #FF7B72">with</span> <span style="color: #E6EDF3">open(truncated_filename,</span> <span style="color: #A5D6FF">"w"</span><span style="color: #E6EDF3">)</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">f:</span>
+            <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">line</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">read_lines[:lines]:</span>
+                <span style="color: #E6EDF3">f</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">write(line)</span>
+        <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">truncated_filename</span>
 
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">beautifulsoup</span><span style="color: #E6EDF3">(</span>
         <span style="color: #E6EDF3">self,</span>
@@ -2292,28 +2334,7 @@ document to be parsed.</p>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">568</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">569</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">570</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">571</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">572</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">573</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">574</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">575</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">576</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">577</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">578</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">579</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">580</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">581</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">582</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">583</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">584</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">585</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">586</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">587</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">588</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">589</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">589</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">590</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">591</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">592</span>
@@ -2351,7 +2372,28 @@ document to be parsed.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">624</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">625</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">626</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">627</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">beautifulsoup</span><span style="color: #E6EDF3">(</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">627</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">628</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">629</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">630</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">631</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">632</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">633</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">634</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">635</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">636</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">637</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">638</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">639</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">640</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">641</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">642</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">643</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">644</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">645</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">646</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">647</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">648</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">beautifulsoup</span><span style="color: #E6EDF3">(</span>
     <span style="color: #E6EDF3">self,</span>
     <span style="color: #E6EDF3">markup,</span>
     <span style="color: #E6EDF3">features</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"html.parser"</span><span style="color: #E6EDF3">,</span>
@@ -3317,28 +3359,7 @@ async for url, response, tracker in self.helpers.request_batch_stream(reqs):
 <p>Convert web response to JSON object, to a JSON-serializable dict.</p>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">629</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">630</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">631</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">632</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">633</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">634</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">635</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">636</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">637</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">638</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">639</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">640</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">641</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">642</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">643</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">644</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">645</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">646</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">647</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">648</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">649</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">650</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">650</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">651</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">652</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">653</span>
@@ -3370,7 +3391,28 @@ async for url, response, tracker in self.helpers.request_batch_stream(reqs):
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">679</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">680</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">681</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">682</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">response_to_json</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">response):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">682</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">683</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">684</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">685</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">686</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">687</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">688</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">689</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">690</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">691</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">692</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">693</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">694</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">695</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">696</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">697</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">698</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">699</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">700</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">701</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">702</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">703</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">response_to_json</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">response):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Convert web response to JSON object, to a JSON-serializable dict.</span>
 <span style="color: #A5D6FF">    """</span>
@@ -3443,14 +3485,17 @@ async for url, response, tracker in self.helpers.request_batch_stream(reqs):
 <p>Asynchronous function for retrieving wordlists, either from a local path or a URL.
 Allows for optional line-based truncation and caching. Returns the full path of the wordlist
 file or a truncated version of it.</p>
+<p>Also accepts a list of paths/URLs, in which case all wordlists are fetched and merged
+into a single deduplicated file before being returned.</p>
 <p><span class="doc-section-title">Parameters:</span></p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>path</code></b>
-              (<code><span title="str">str</span></code>)
+              (<code><span title="str">str</span> | <span title="list">list</span></code>)
           –
           <div class="doc-md-description">
-<p>The local or remote path of the wordlist.</p>
+<p>The local or remote path of the wordlist, or a list of paths/URLs
+to merge into a single deduplicated wordlist.</p>
 </div>
 </li>
 <li class="doc-section-item field-body">
@@ -3528,6 +3573,9 @@ Defaults to 720 hours (30 days) for remote wordlists.</p>
 <p>Fetching and truncating to the first 100 lines</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E">&gt;&gt;&gt; </span><span style="color: #E6EDF3">wordlist_path</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">helpers</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">wordlist(</span><span style="color: #A5D6FF">"/root/rockyou.txt"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">lines</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">100</span><span style="color: #E6EDF3">)</span>
 </code></pre></div>
+<p>Merging multiple wordlists into one</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E">&gt;&gt;&gt; </span><span style="color: #E6EDF3">wordlist_path</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">helpers</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">wordlist([</span><span style="color: #A5D6FF">"/custom.txt"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"https://example.com/wordlist.txt"</span><span style="color: #E6EDF3">])</span>
+</code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
 <div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">497</span>
@@ -3599,14 +3647,39 @@ Defaults to 720 hours (30 days) for remote wordlists.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">563</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">564</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">565</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">566</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">wordlist</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">path,</span> <span style="color: #E6EDF3">lines</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">zip</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">zip_filename</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">566</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">567</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">568</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">569</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">570</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">571</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">572</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">573</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">574</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">575</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">576</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">577</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">578</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">579</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">580</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">581</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">582</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">583</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">584</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">585</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">586</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">587</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">wordlist</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">path,</span> <span style="color: #E6EDF3">lines</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">zip</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">zip_filename</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Asynchronous function for retrieving wordlists, either from a local path or a URL.</span>
 <span style="color: #A5D6FF">    Allows for optional line-based truncation and caching. Returns the full path of the wordlist</span>
 <span style="color: #A5D6FF">    file or a truncated version of it.</span>
 
+<span style="color: #A5D6FF">    Also accepts a list of paths/URLs, in which case all wordlists are fetched and merged</span>
+<span style="color: #A5D6FF">    into a single deduplicated file before being returned.</span>
+
 <span style="color: #A5D6FF">    Args:</span>
-<span style="color: #A5D6FF">        path (str): The local or remote path of the wordlist.</span>
+<span style="color: #A5D6FF">        path (str | list): The local or remote path of the wordlist, or a list of paths/URLs</span>
+<span style="color: #A5D6FF">            to merge into a single deduplicated wordlist.</span>
 <span style="color: #A5D6FF">        lines (int, optional): Number of lines to read from the wordlist.</span>
 <span style="color: #A5D6FF">            If specified, will return a truncated wordlist with this many lines.</span>
 <span style="color: #A5D6FF">        zip (bool, optional): Whether to unzip the file after downloading. Defaults to False.</span>
@@ -3628,47 +3701,64 @@ Defaults to 720 hours (30 days) for remote wordlists.</p>
 
 <span style="color: #A5D6FF">        Fetching and truncating to the first 100 lines</span>
 <span style="color: #A5D6FF">        &gt;&gt;&gt; wordlist_path = await self.helpers.wordlist("/root/rockyou.txt", lines=100)</span>
+
+<span style="color: #A5D6FF">        Merging multiple wordlists into one</span>
+<span style="color: #A5D6FF">        &gt;&gt;&gt; wordlist_path = await self.helpers.wordlist(["/custom.txt", "https://example.com/wordlist.txt"])</span>
 <span style="color: #A5D6FF">    """</span>
     <span style="color: #FF7B72">import</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">zipfile</span>
 
     <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">path:</span>
         <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">WordlistError(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Invalid wordlist: {</span><span style="color: #E6EDF3">path</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
-    <span style="color: #FF7B72">if</span> <span style="color: #A5D6FF">"cache_hrs"</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">kwargs:</span>
-        <span style="color: #8B949E; font-style: italic"># 4320 hrs = 180 days = 6 months</span>
-        <span style="color: #E6EDF3">kwargs[</span><span style="color: #A5D6FF">"cache_hrs"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">4320</span>
-    <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">is_url(path):</span>
-        <span style="color: #E6EDF3">filename</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">download(str(path),</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs)</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">filename</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">WordlistError(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Unable to retrieve wordlist from {</span><span style="color: #E6EDF3">path</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
-    <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
-        <span style="color: #E6EDF3">filename</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">Path(path)</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">resolve()</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">filename</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">is_file():</span>
-            <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">WordlistError(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Unable to find wordlist at {</span><span style="color: #E6EDF3">path</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
 
-    <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">zip:</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">zip_filename:</span>
-            <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">WordlistError(</span><span style="color: #A5D6FF">"zip_filename must be specified when zip is True"</span><span style="color: #E6EDF3">)</span>
-        <span style="color: #FF7B72">try</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #FF7B72">with</span> <span style="color: #E6EDF3">zipfile</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">ZipFile(filename,</span> <span style="color: #A5D6FF">"r"</span><span style="color: #E6EDF3">)</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">zip_ref:</span>
-                <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">zip_filename</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">zip_ref</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">namelist():</span>
-                    <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">WordlistError(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"File {</span><span style="color: #E6EDF3">zip_filename</span><span style="color: #A5D6FF">} not found in the zip archive {</span><span style="color: #E6EDF3">filename</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
-                <span style="color: #E6EDF3">zip_ref</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">extract(zip_filename,</span> <span style="color: #E6EDF3">filename</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent)</span>
-                <span style="color: #E6EDF3">filename</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">filename</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent</span> <span style="color: #FF7B72; font-weight: bold">/</span> <span style="color: #E6EDF3">zip_filename</span>
-        <span style="color: #FF7B72">except</span> <span style="color: #F0883E; font-weight: bold">Exception</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">e:</span>
-            <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">WordlistError(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Error unzipping file {</span><span style="color: #E6EDF3">filename</span><span style="color: #A5D6FF">}: {</span><span style="color: #E6EDF3">e</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
+    <span style="color: #8B949E; font-style: italic"># Handle list of wordlists - fetch each and merge into a single order-preserving deduplicated file,</span>
+    <span style="color: #8B949E; font-style: italic"># then fall through to the unified truncation logic below</span>
+    <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">isinstance(path,</span> <span style="color: #E6EDF3">(str,</span> <span style="color: #E6EDF3">Path)):</span>
+        <span style="color: #E6EDF3">paths</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">list(path)</span>
+        <span style="color: #E6EDF3">all_words</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[]</span>
+        <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">p</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">paths:</span>
+            <span style="color: #E6EDF3">f</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">wordlist(p,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs)</span>
+            <span style="color: #E6EDF3">all_words</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">extend(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">read_file(f))</span>
+        <span style="color: #E6EDF3">cache_key</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">"merged_wordlist:"</span> <span style="color: #FF7B72; font-weight: bold">+</span> <span style="color: #A5D6FF">":"</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">join(sorted(str(p)</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">p</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">paths))</span>
+        <span style="color: #E6EDF3">filename</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cache_filename(cache_key)</span>
+        <span style="color: #FF7B72">with</span> <span style="color: #E6EDF3">open(filename,</span> <span style="color: #A5D6FF">"w"</span><span style="color: #E6EDF3">)</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">f:</span>
+            <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">word</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">dict</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">fromkeys(all_words):</span>
+                <span style="color: #E6EDF3">f</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">write(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"{</span><span style="color: #E6EDF3">word</span><span style="color: #A5D6FF">}</span><span style="color: #79C0FF">\n</span><span style="color: #A5D6FF">"</span><span style="color: #E6EDF3">)</span>
+    <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #A5D6FF">"cache_hrs"</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">kwargs:</span>
+            <span style="color: #8B949E; font-style: italic"># 4320 hrs = 180 days = 6 months</span>
+            <span style="color: #E6EDF3">kwargs[</span><span style="color: #A5D6FF">"cache_hrs"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">4320</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">is_url(path):</span>
+            <span style="color: #E6EDF3">filename</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">download(str(path),</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs)</span>
+            <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">filename</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
+                <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">WordlistError(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Unable to retrieve wordlist from {</span><span style="color: #E6EDF3">path</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
+        <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
+            <span style="color: #E6EDF3">filename</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">Path(path)</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">resolve()</span>
+            <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">filename</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">is_file():</span>
+                <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">WordlistError(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Unable to find wordlist at {</span><span style="color: #E6EDF3">path</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
+
+        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">zip:</span>
+            <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">zip_filename:</span>
+                <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">WordlistError(</span><span style="color: #A5D6FF">"zip_filename must be specified when zip is True"</span><span style="color: #E6EDF3">)</span>
+            <span style="color: #FF7B72">try</span><span style="color: #E6EDF3">:</span>
+                <span style="color: #FF7B72">with</span> <span style="color: #E6EDF3">zipfile</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">ZipFile(filename,</span> <span style="color: #A5D6FF">"r"</span><span style="color: #E6EDF3">)</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">zip_ref:</span>
+                    <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">zip_filename</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">zip_ref</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">namelist():</span>
+                        <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">WordlistError(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"File {</span><span style="color: #E6EDF3">zip_filename</span><span style="color: #A5D6FF">} not found in the zip archive {</span><span style="color: #E6EDF3">filename</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
+                    <span style="color: #E6EDF3">zip_ref</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">extract(zip_filename,</span> <span style="color: #E6EDF3">filename</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent)</span>
+                    <span style="color: #E6EDF3">filename</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">filename</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent</span> <span style="color: #FF7B72; font-weight: bold">/</span> <span style="color: #E6EDF3">zip_filename</span>
+            <span style="color: #FF7B72">except</span> <span style="color: #F0883E; font-weight: bold">Exception</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">e:</span>
+                <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">WordlistError(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Error unzipping file {</span><span style="color: #E6EDF3">filename</span><span style="color: #A5D6FF">}: {</span><span style="color: #E6EDF3">e</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
 
     <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">lines</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
         <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">filename</span>
-    <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
-        <span style="color: #E6EDF3">lines</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">int(lines)</span>
-        <span style="color: #FF7B72">with</span> <span style="color: #E6EDF3">open(filename)</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">f:</span>
-            <span style="color: #E6EDF3">read_lines</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">f</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">readlines()</span>
-        <span style="color: #E6EDF3">cache_key</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"{</span><span style="color: #E6EDF3">filename</span><span style="color: #A5D6FF">}:{</span><span style="color: #E6EDF3">lines</span><span style="color: #A5D6FF">}"</span>
-        <span style="color: #E6EDF3">truncated_filename</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cache_filename(cache_key)</span>
-        <span style="color: #FF7B72">with</span> <span style="color: #E6EDF3">open(truncated_filename,</span> <span style="color: #A5D6FF">"w"</span><span style="color: #E6EDF3">)</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">f:</span>
-            <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">line</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">read_lines[:lines]:</span>
-                <span style="color: #E6EDF3">f</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">write(line)</span>
-        <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">truncated_filename</span>
+    <span style="color: #E6EDF3">lines</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">int(lines)</span>
+    <span style="color: #FF7B72">with</span> <span style="color: #E6EDF3">open(filename)</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">f:</span>
+        <span style="color: #E6EDF3">read_lines</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">f</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">readlines()</span>
+    <span style="color: #E6EDF3">cache_key</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"{</span><span style="color: #E6EDF3">filename</span><span style="color: #A5D6FF">}:{</span><span style="color: #E6EDF3">lines</span><span style="color: #A5D6FF">}"</span>
+    <span style="color: #E6EDF3">truncated_filename</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cache_filename(cache_key)</span>
+    <span style="color: #FF7B72">with</span> <span style="color: #E6EDF3">open(truncated_filename,</span> <span style="color: #A5D6FF">"w"</span><span style="color: #E6EDF3">)</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">f:</span>
+        <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">line</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">read_lines[:lines]:</span>
+            <span style="color: #E6EDF3">f</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">write(line)</span>
+    <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">truncated_filename</span>
 </code></pre></div></td></tr></table></div>
 </details>
 </div>
