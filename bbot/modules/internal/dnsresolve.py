@@ -210,7 +210,7 @@ class DNSResolve(BaseInterceptModule):
                 if rdtype == "PTR":
                     child_event.add_tag("ptr")
 
-                child_hash = hash(f"{event.host}:{module}:{child_host}")
+                child_hash = hash(f"{module}:{child_host}")
                 # if we haven't emitted this one before
                 if child_hash not in self.children_emitted:
                     # and it's either in-scope or inside our dns search distance
