@@ -337,6 +337,8 @@ def main():
     import traceback
     from bbot.core import CORE
 
+    log = logging.getLogger("bbot.cli")
+
     global scan_name
     try:
         asyncio.run(_main())
@@ -347,9 +349,17 @@ def main():
         msg = "Interrupted"
         if scan_name:
             msg = f"You killed {scan_name}"
+        log.error(msg)
+        log.trace(traceback.format_exc())
         log_to_stderr(msg, level="WARNING")
         if CORE.logger.log_level <= logging.DEBUG:
             log_to_stderr(traceback.format_exc(), level="DEBUG")
+        exit(1)
+    except Exception as e:
+        log.error(f"Unhandled exception: {e}")
+        log.trace(traceback.format_exc())
+        log_to_stderr(f"Unhandled exception: {e}", level="CRITICAL")
+        log_to_stderr(traceback.format_exc(), level="DEBUG")
         exit(1)
 
 

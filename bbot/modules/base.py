@@ -1095,10 +1095,9 @@ class BaseModule:
             if message is not None:
                 log_msg += f": {message}"
             if critical:
-                log_fn = self.error
+                self.critical(log_msg, trace=False)
             else:
-                log_fn = self.warning
-            log_fn(log_msg)
+                self.error(log_msg)
             self.errored = True
             # clear incoming queue
             if self.incoming_event_queue is not False:

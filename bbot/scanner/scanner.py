@@ -588,7 +588,7 @@ class Scanner:
                 self.debug(f"Setup succeeded for {module.name} ({msg})")
                 succeeded.append(module.name)
             elif status is False:
-                self.warning(f"Setup hard-failed for {module.name}: {msg}")
+                self.error(f"Setup hard-failed for {module.name}: {msg}")
                 self.modules[module.name].set_error_state()
                 hard_failed.append(module.name)
             else:
@@ -858,7 +858,7 @@ class Scanner:
         if not self._stopping:
             self._stopping = True
             await self._set_status(SCAN_STATUS_ABORTING)
-            self.hugewarning("Aborting scan")
+            self.critical("Aborting scan", trace=False)
             self.trace()
             self._cancel_tasks()
             self._drain_queues()
@@ -1402,9 +1402,9 @@ class Scanner:
                     self.verbose(f'Loaded module "{module_name}"')
                     continue
                 except Exception:
-                    self.warning(f"Failed to load module {module_class}")
+                    self.error(f"Failed to load module {module_class}")
             else:
-                self.warning(f'Failed to load unknown module "{module_name}"')
+                self.error(f'Failed to load unknown module "{module_name}"')
             failed.add(module_name)
         return loaded_modules, failed
 
