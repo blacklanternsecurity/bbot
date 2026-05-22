@@ -55,7 +55,7 @@ class TestDNSCommonSRV(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        assert len(events) == 20
+        assert len(events) == 19
         assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "blacklanternsecurity.com"])
         assert 1 == len(
             [
@@ -75,7 +75,9 @@ class TestDNSCommonSRV(ModuleTestBase):
                 and str(e.module) == "dnscommonsrv"
             ]
         ), "Failed to detect subdomain 2"
-        assert 2 == len([e for e in events if e.type == "DNS_NAME" and e.data == "asdf.blacklanternsecurity.com"]), (
+        # cross-parent (rdtype, child) dedup in DNSResolve.emit_dns_children collapses
+        # the two SRV->asdf edges into a single DNS_NAME event
+        assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "asdf.blacklanternsecurity.com"]), (
             "Failed to detect subdomain 3"
         )
         assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "api.blacklanternsecurity.com"]), (
@@ -109,6 +111,6 @@ class TestDNSCommonSRV(ModuleTestBase):
             ]
         ), "Failed to emit RAW_DNS_RECORD for _ldap._tcp.gc._msdcs.blacklanternsecurity.com"
         assert 2 == len([e for e in events if e.type == "RAW_DNS_RECORD"])
-        assert 10 == len([e for e in events if e.type == "DNS_NAME"])
+        assert 9 == len([e for e in events if e.type == "DNS_NAME"])
         assert 5 == len([e for e in events if e.type == "DNS_NAME_UNRESOLVED"])
         assert 5 == len([e for e in events if e.type == "DNS_NAME_UNRESOLVED" and str(e.module) == "speculate"])
