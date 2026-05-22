@@ -1,5 +1,3 @@
-import asyncpg
-
 from .base import ModuleTestBase
 
 
@@ -50,7 +48,7 @@ class TestCRT_DB_Reconnect(ModuleTestBase):
 
         async def fetch_then_succeed(self, *args, **kwargs):
             self._closed = True
-            raise asyncpg.InterfaceError("connection is closed")
+            raise ConnectionError("connection is closed")
 
         self.connect_count = 0
 
