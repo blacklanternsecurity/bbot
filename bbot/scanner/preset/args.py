@@ -413,14 +413,14 @@ class BBOTArgs:
         self.parsed.exclude_modules = chain_lists(self.parsed.exclude_modules)
         self.parsed.output_modules = chain_lists(self.parsed.output_modules)
         self.parsed.targets = chain_lists(
-            self.parsed.targets, try_files=True, msg="Reading targets from file: {filename}"
+            self.parsed.targets, try_files=True, msg="Reading targets from file: {filename}", _strip_comments=True
         )
         if self.parsed.seeds is not None:
             self.parsed.seeds = chain_lists(
-                self.parsed.seeds, try_files=True, msg="Reading seeds from file: {filename}"
+                self.parsed.seeds, try_files=True, msg="Reading seeds from file: {filename}", _strip_comments=True
             )
         self.parsed.blacklist = chain_lists(
-            self.parsed.blacklist, try_files=True, msg="Reading blacklist from file: {filename}"
+            self.parsed.blacklist, try_files=True, msg="Reading blacklist from file: {filename}", _strip_comments=True
         )
         self.parsed.flags = chain_lists(self.parsed.flags)
         self.parsed.exclude_flags = chain_lists(self.parsed.exclude_flags)

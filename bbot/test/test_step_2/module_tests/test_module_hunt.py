@@ -3,7 +3,7 @@ from .base import ModuleTestBase
 
 class TestHunt(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "hunt", "excavate"]
+    modules_overrides = ["http", "hunt", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
     }

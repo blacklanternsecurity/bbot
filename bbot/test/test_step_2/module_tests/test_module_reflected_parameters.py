@@ -8,7 +8,7 @@ from .test_module_paramminer_headers import helper
 
 class TestReflected_parameters_fromexcavate(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "reflected_parameters", "excavate"]
+    modules_overrides = ["http", "reflected_parameters", "excavate"]
 
     def request_handler(self, request):
         normal_block = '<html><a href="/?reflected=foo">foo</a></html>'
@@ -36,7 +36,7 @@ class TestReflected_parameters_fromexcavate(ModuleTestBase):
 
 
 class TestReflected_parameters_headers(TestReflected_parameters_fromexcavate):
-    modules_overrides = ["httpx", "reflected_parameters", "excavate", "paramminer_headers"]
+    modules_overrides = ["http", "reflected_parameters", "excavate", "paramminer_headers"]
     config_overrides = {
         "modules": {
             "paramminer_headers": {"wordlist": tempwordlist(["junkword1", "tracestate"]), "recycle_words": True}
@@ -62,7 +62,7 @@ class TestReflected_parameters_headers(TestReflected_parameters_fromexcavate):
 
 
 class TestReflected_parameters_fromparamminer(TestParamminer_Getparams):
-    modules_overrides = ["httpx", "paramminer_getparams", "reflected_parameters"]
+    modules_overrides = ["http", "paramminer_getparams", "reflected_parameters"]
 
     def request_handler(self, request):
         normal_block = "<html></html>"
@@ -115,7 +115,7 @@ class TestReflected_parameters_with_canary(TestReflected_parameters_fromexcavate
 
 
 class TestReflected_parameters_cookies(TestReflected_parameters_fromexcavate):
-    modules_overrides = ["httpx", "reflected_parameters", "excavate", "paramminer_cookies"]
+    modules_overrides = ["http", "reflected_parameters", "excavate", "paramminer_cookies"]
     config_overrides = {
         "modules": {
             "paramminer_cookies": {"wordlist": tempwordlist(["junkword1", "testcookie"]), "recycle_words": True}
@@ -141,7 +141,7 @@ class TestReflected_parameters_cookies(TestReflected_parameters_fromexcavate):
 
 
 class TestReflected_parameters_postparams(TestReflected_parameters_fromexcavate):
-    modules_overrides = ["httpx", "reflected_parameters", "excavate"]
+    modules_overrides = ["http", "reflected_parameters", "excavate"]
 
     def request_handler(self, request):
         form_data = request.form
@@ -172,7 +172,7 @@ class TestReflected_parameters_postparams(TestReflected_parameters_fromexcavate)
 
 
 class TestReflected_parameters_bodyjson(TestReflected_parameters_fromexcavate):
-    modules_overrides = ["httpx", "reflected_parameters", "excavate"]
+    modules_overrides = ["http", "reflected_parameters", "excavate"]
 
     def request_handler(self, request):
         # Ensure the request is expecting JSON data

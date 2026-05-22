@@ -68,7 +68,7 @@ class url_manipulation(BaseModule):
                 self.debug(f"Encountered HttpCompareError: [{e}] for URL [{event.url}]")
 
             if subject_response:
-                subject_content = "".join([str(x) for x in subject_response.headers])
+                subject_content = subject_response.raw_headers
                 if subject_response.text is not None:
                     subject_content += subject_response.text
 

@@ -515,7 +515,7 @@ async def test_preset_module_resolution(clean_default_config):
     assert "active" in dotnetnuke_flags
     assert "subdomain-enum" in sslcert_flags
     assert "subdomain-enum" in wayback_flags
-    assert "httpx" in dotnetnuke_preloaded["deps"]["modules"]
+    assert "http" in dotnetnuke_preloaded["deps"]["modules"]
 
     # make sure we have the expected defaults
     assert not preset.scan_modules
@@ -532,7 +532,7 @@ async def test_preset_module_resolution(clean_default_config):
 
     # make sure dependency resolution works as expected
     preset = Preset(modules=["dotnetnuke"]).bake()
-    assert set(preset.scan_modules) == {"dotnetnuke", "httpx"}
+    assert set(preset.scan_modules) == {"dotnetnuke", "http"}
 
     # make sure flags work as expected
     preset = Preset(flags=["subdomain-enum"]).bake()
@@ -565,7 +565,7 @@ async def test_preset_module_resolution(clean_default_config):
 
     # normal module enableement
     preset = Preset(modules=["sslcert", "dotnetnuke", "wayback"]).bake()
-    assert set(preset.scan_modules) == {"sslcert", "dotnetnuke", "wayback", "httpx"}
+    assert set(preset.scan_modules) == {"sslcert", "dotnetnuke", "wayback", "http"}
 
     # modules + flag exclusions
     preset = Preset(exclude_flags=["active"], modules=["sslcert", "dotnetnuke", "wayback"]).bake()
@@ -588,7 +588,7 @@ async def test_preset_module_resolution(clean_default_config):
         "excavate",
         "unarchive",
         "txt",
-        "httpx",
+        "http",
         "csv",
         "dotnetnuke",
     }
@@ -1069,7 +1069,7 @@ config:
     assert preset.config["web"]["spider_distance"] == 1
     assert preset.config["web"]["spider_depth"] == 2
     assert preset.config["modules"]["asdf"]["option1"] == "fdsa"
-    assert set(preset.scan_modules) == {"httpx", "c99", "robots", "virustotal", "securitytrails"}
+    assert set(preset.scan_modules) == {"http", "c99", "robots", "virustotal", "securitytrails"}
 
 
 async def test_preset_require_exclude(clean_default_config):
@@ -1101,7 +1101,7 @@ async def test_preset_require_exclude(clean_default_config):
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     assert "chaos" in [x[0] for x in module_flags]
-    assert "httpx" not in [x[0] for x in module_flags]
+    assert "http" not in [x[0] for x in module_flags]
     assert all("passive" in flags for module, flags in module_flags)
     assert not any("active" in flags for module, flags in module_flags)
     assert any("safe" in flags for module, flags in module_flags)
@@ -1112,7 +1112,7 @@ async def test_preset_require_exclude(clean_default_config):
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     assert "chaos" in [x[0] for x in module_flags]
-    assert "httpx" not in [x[0] for x in module_flags]
+    assert "http" not in [x[0] for x in module_flags]
     assert all("passive" in flags for module, flags in module_flags)
     assert not any("active" in flags for module, flags in module_flags)
     assert any("safe" in flags for module, flags in module_flags)
@@ -1123,7 +1123,7 @@ async def test_preset_require_exclude(clean_default_config):
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     assert "dnsbrute" not in [x[0] for x in module_flags]
-    assert "httpx" in [x[0] for x in module_flags]
+    assert "http" in [x[0] for x in module_flags]
     assert any("passive" in flags for module, flags in module_flags)
     assert any("active" in flags for module, flags in module_flags)
     assert any("safe" in flags for module, flags in module_flags)
@@ -1195,3 +1195,99 @@ async def test_preset_serialization(clean_default_config):
     assert preset_dict_round_tripped == preset_dict
     assert preset_dict["target"] == ["192.168.1.1"]
     assert "seeds" not in preset_dict
+
+
+def test_preset_file_targets(tmp_path):
+    """Test that file paths in preset target/seeds/blacklist are resolved via PresetPath.
+
+    The preset and its target files live in tmp_path (NOT CWD), so relative paths
+    like "targets.txt" can only be found if PresetPath adds the preset's directory
+    to its search paths. This is the core behavior being tested.
+    """
+    import os
+
+    # sanity check: tmp_path is not CWD (otherwise relative resolution is ambiguous)
+    assert os.getcwd() != str(tmp_path)
+
+    # create target files next to where the preset will live
+    targets_file = tmp_path / "targets.txt"
+    targets_file.write_text("evilcorp.com\n1.2.3.4\n")
+    seeds_file = tmp_path / "seeds.txt"
+    seeds_file.write_text("seed1.evilcorp.com\nseed2.evilcorp.com\n")
+    blacklist_file = tmp_path / "blacklist.txt"
+    blacklist_file.write_text("internal.evilcorp.com\n10.0.0.0/8\n")
+
+    # relative paths: resolved from the preset's directory via PresetPath
+    preset_file = tmp_path / "my_preset.yml"
+    preset_file.write_text("target:\n  - targets.txt\nseeds:\n  - seeds.txt\nblacklist:\n  - blacklist.txt\n")
+    preset = Preset.from_yaml_file(str(preset_file))
+    target_inputs = set(preset._target_list)
+    assert "evilcorp.com" in target_inputs
+    assert "1.2.3.4" in target_inputs
+    assert "targets.txt" not in target_inputs
+    seed_inputs = set(preset._seeds)
+    assert "seed1.evilcorp.com" in seed_inputs
+    assert "seed2.evilcorp.com" in seed_inputs
+    blacklist_inputs = set(preset._blacklist)
+    assert "internal.evilcorp.com" in blacklist_inputs
+    assert "10.0.0.0/8" in blacklist_inputs
+
+    # absolute paths for targets, seeds, and blacklist
+    preset_file2 = tmp_path / "my_preset2.yml"
+    preset_file2.write_text(
+        f"target:\n  - {targets_file}\nseeds:\n  - {seeds_file}\nblacklist:\n  - {blacklist_file}\n"
+    )
+    preset2 = Preset.from_yaml_file(str(preset_file2))
+    target_inputs2 = set(preset2._target_list)
+    assert "evilcorp.com" in target_inputs2
+    assert "1.2.3.4" in target_inputs2
+    seed_inputs2 = set(preset2._seeds)
+    assert "seed1.evilcorp.com" in seed_inputs2
+    assert "seed2.evilcorp.com" in seed_inputs2
+    blacklist_inputs2 = set(preset2._blacklist)
+    assert "internal.evilcorp.com" in blacklist_inputs2
+    assert "10.0.0.0/8" in blacklist_inputs2
+
+    # mixed: file paths + literal targets
+    preset_file3 = tmp_path / "my_preset3.yml"
+    preset_file3.write_text("target:\n  - targets.txt\n  - extra.evilcorp.com\n")
+    preset3 = Preset.from_yaml_file(str(preset_file3))
+    target_inputs3 = set(preset3._target_list)
+    assert "evilcorp.com" in target_inputs3
+    assert "1.2.3.4" in target_inputs3
+    assert "extra.evilcorp.com" in target_inputs3
+
+    # non-existent file strings are kept as literal targets
+    preset4 = Preset.from_dict({"target": ["not_a_file.txt", "192.168.1.1"]})
+    target_inputs4 = set(preset4._target_list)
+    assert "not_a_file.txt" in target_inputs4
+    assert "192.168.1.1" in target_inputs4
+
+    # subdirectory: preset in a nested dir references a file in the same nested dir
+    subdir = tmp_path / "nested" / "presets"
+    subdir.mkdir(parents=True)
+    nested_targets = subdir / "my_targets.txt"
+    nested_targets.write_text("nested.evilcorp.com\n")
+    nested_preset = subdir / "nested_preset.yml"
+    nested_preset.write_text("target:\n  - my_targets.txt\n")
+    preset5 = Preset.from_yaml_file(str(nested_preset))
+    target_inputs5 = set(preset5._target_list)
+    assert "nested.evilcorp.com" in target_inputs5
+    assert "my_targets.txt" not in target_inputs5
+
+
+def test_preset_dnsresolve_required_by_dns_name_consumers():
+    # gate must fire for all three opt-out paths when any DNS_NAME-watching module is enabled
+    for opt_out in (
+        {"exclude_modules": ["dnsresolve"], "flags": ["subdomain-enum"]},
+        {"config": {"dnsresolve": False}, "flags": ["subdomain-enum"]},
+        {"config": {"dns": {"disable": True}}, "flags": ["subdomain-enum"]},
+    ):
+        with pytest.raises(ValidationError, match="dnsresolve is required"):
+            Preset(**opt_out).bake()
+
+    # dns.minimal keeps dnsresolve in the pipeline -- must NOT fire
+    Preset(flags=["subdomain-enum"], config={"dns": {"minimal": True}}).bake()
+
+    # disabling dnsresolve with no DNS_NAME consumers enabled is allowed
+    Preset(exclude_modules=["dnsresolve"]).bake()

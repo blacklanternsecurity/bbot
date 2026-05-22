@@ -58,7 +58,10 @@ class wpscan(BaseModule):
         },
         {
             "name": "Install wpscan gem",
-            "gem": {"name": "wpscan", "state": "latest", "user_install": False},
+            # Pin to 3.8.28 (requires Ruby >= 3.0). wpscan 4.0.0 requires Ruby >= 3.3,
+            # which is newer than the Ruby shipped by Ubuntu 24.04 (3.2.3) and the bbot
+            # CI runners. Bump this when the runners ship Ruby 3.3+.
+            "gem": {"name": "wpscan", "version": "3.8.28", "user_install": False},
             "become": True,
         },
     ]
@@ -170,7 +173,7 @@ class wpscan(BaseModule):
                         source_event,
                     )
             else:
-                url_event = self.make_event(url, "URL_UNVERIFIED", parent=source_event, tags=["httpx-safe"])
+                url_event = self.make_event(url, "URL_UNVERIFIED", parent=source_event, tags=["blasthttp-safe"])
                 if url_event:
                     yield url_event
                 yield self.make_event(
@@ -242,7 +245,7 @@ class wpscan(BaseModule):
         for name, plugin in plugins_json.items():
             url = plugin.get("location", base_url)
             if url != base_url:
-                url_event = self.make_event(url, "URL_UNVERIFIED", parent=source_event, tags=["httpx-safe"])
+                url_event = self.make_event(url, "URL_UNVERIFIED", parent=source_event, tags=["blasthttp-safe"])
                 if url_event:
                     yield url_event
             version = plugin.get("version", {}).get("number", "")

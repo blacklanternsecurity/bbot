@@ -34,10 +34,10 @@ class TestTrufflehog(ModuleTestBase):
     file_content = "Verifiable Secret:\nhttps://admin:admin@the-internet.herokuapp.com/basic_auth\n\nUnverifiable Secret:\nhttps://admin:admin@internal.host.com"
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/zen", match_headers={"Authorization": "token asdf"}
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.getpostman.com/me",
             json={
                 "user": {
@@ -68,7 +68,7 @@ class TestTrufflehog(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/orgs/blacklanternsecurity",
             match_headers={"Authorization": "token asdf"},
             json={
@@ -104,7 +104,7 @@ class TestTrufflehog(ModuleTestBase):
                 "type": "Organization",
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/orgs/blacklanternsecurity/repos?per_page=100&page=1",
             match_headers={"Authorization": "token asdf"},
             json=[
@@ -312,7 +312,7 @@ class TestTrufflehog(ModuleTestBase):
                 },
             ],
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/workflows?per_page=100&page=1",
             match_headers={"Authorization": "token asdf"},
             json={
@@ -333,7 +333,7 @@ class TestTrufflehog(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/workflows/22452226/runs?status=success&per_page=1",
             match_headers={"Authorization": "token asdf"},
             json={
@@ -580,7 +580,7 @@ class TestTrufflehog(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/runs/8839360698/logs",
             match_headers={"Authorization": "token asdf"},
             headers={
@@ -594,11 +594,11 @@ class TestTrufflehog(ModuleTestBase):
             z.writestr("folder/test2.txt", self.file_content)
         data.seek(0)
         zip_content = data.getvalue()
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://productionresultssa10.blob.core.windows.net/actions-results/7beb304e-f42c-4830-a027-4f5dec53107d/workflow-job-run-3a559e2a-952e-58d2-b8db-2e604a9266d7/logs/steps/step-logs-0e34a19a-18b0-4208-b27a-f8c031db2d17.txt?rsct=text%2Fplain&se=2024-04-26T16%3A25%3A39Z&sig=a%2FiN8dOw0e3tiBQZAfr80veI8OYChb9edJ1eFY136B4%3D&sp=r&spr=https&sr=b&st=2024-04-26T16%3A15%3A34Z&sv=2021-12-02",
             content=zip_content,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://hub.docker.com/v2/users/blacklanternsecurity",
             json={
                 "id": "f90895d9cf484d9182c6dbbef2632329",
@@ -614,7 +614,7 @@ class TestTrufflehog(ModuleTestBase):
                 "type": "User",
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://hub.docker.com/v2/repositories/blacklanternsecurity?page_size=25&page=1",
             json={
                 "count": 2,
@@ -641,7 +641,7 @@ class TestTrufflehog(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/helloworld/tags/list",
             json={
                 "name": "blacklanternsecurity/helloworld",
@@ -651,7 +651,7 @@ class TestTrufflehog(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/helloworld/manifests/latest",
             json={
                 "schemaVersion": 2,
@@ -670,7 +670,7 @@ class TestTrufflehog(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/helloworld/blobs/sha256:a9910947b74a4f0606cfc8669ae8808d2c328beaee9e79f489dc17df14cd50b1",
             json={
                 "architecture": "amd64",
@@ -856,13 +856,13 @@ class TestTrufflehog(ModuleTestBase):
             tar.addfile(file_info, file_io)
         with open(tar_path, "rb") as file:
             layer_file = file.read()
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/helloworld/blobs/sha256:8a1e25ce7c4f75e372e9884f8f7b1bedcfe4a7a7d452eb4b0a1c7477c9a90345",
             content=layer_file,
         )
 
     async def setup_after_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://www.postman.com/_api/ws/proxy",
             match_json={
                 "service": "search",
@@ -958,7 +958,7 @@ class TestTrufflehog(ModuleTestBase):
                 },
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://www.postman.com/_api/ws/proxy",
             match_json={
                 "service": "workspaces",
@@ -992,7 +992,7 @@ class TestTrufflehog(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.getpostman.com/workspaces/3a7e4bdc-7ff7-4dd4-8eaa-61ddce1c3d1b",
             json={
                 "workspace": {
@@ -1023,7 +1023,7 @@ class TestTrufflehog(ModuleTestBase):
                 }
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://www.postman.com/_api/workspace/3a7e4bdc-7ff7-4dd4-8eaa-61ddce1c3d1b/globals",
             json={
                 "model_id": "8be7574b-219f-49e0-8d25-da447a882e4e",
@@ -1045,7 +1045,7 @@ class TestTrufflehog(ModuleTestBase):
                 },
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.getpostman.com/environments/10197090-f770f816-9c6a-40f7-bde3-c0855d2a1089",
             json={
                 "environment": {
@@ -1065,7 +1065,7 @@ class TestTrufflehog(ModuleTestBase):
                 }
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.getpostman.com/collections/10197090-2aab9fd0-3715-4abe-8bb0-8cb0264d023f",
             json={
                 "collection": {
@@ -1288,7 +1288,7 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
 
 class TestTrufflehog_HTTPResponse(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "trufflehog"]
+    modules_overrides = ["http", "trufflehog"]
     config_overrides = {"modules": {"trufflehog": {"only_verified": False}}}
 
     async def setup_before_prep(self, module_test):
@@ -1302,7 +1302,7 @@ class TestTrufflehog_HTTPResponse(ModuleTestBase):
 
 class TestTrufflehog_RAWText(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/test.pdf"]
-    modules_overrides = ["httpx", "trufflehog", "filedownload", "kreuzberg"]
+    modules_overrides = ["http", "trufflehog", "filedownload", "kreuzberg"]
 
     download_dir = bbot_test_dir / "test_trufflehog_rawtext"
     config_overrides = {

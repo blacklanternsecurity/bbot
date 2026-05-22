@@ -13,7 +13,7 @@ def extract_subdomain_tag(data):
 
 class TestHost_Header(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "host_header"]
+    modules_overrides = ["http", "host_header"]
 
     fake_host = "fakedomain.fakeinteractsh.com"
 

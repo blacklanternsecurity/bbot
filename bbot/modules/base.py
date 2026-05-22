@@ -73,7 +73,7 @@ class BaseModule:
 
         _stats_exclude (bool): Whether to exclude this module from scan statistics. Default is False.
 
-        _disable_auto_module_deps (bool): Whether to disable automatic module dependencies. This is useful e.g. if the module consumes URLs, but you don't want to automatically enable the httpx module. Default is False.
+        _disable_auto_module_deps (bool): Whether to disable automatic module dependencies. This is useful e.g. if the module consumes URLs, but you don't want to automatically enable the blasthttp module. Default is False.
 
         _qsize (int): Outgoing queue size (0 for infinite). Default is 0.
 
@@ -494,6 +494,9 @@ class BaseModule:
                     await self.run_task(self.handle_batch(*events), context, n=len(events))
                 except asyncio.CancelledError:
                     self.debug(f"{context} was cancelled")
+                finally:
+                    for event in events:
+                        event._minimize()
                 self.verbose(f"Finished handling batch of {len(events):,} events")
         if finish:
             context = f"{self.name}.finish()"
@@ -658,16 +661,19 @@ class BaseModule:
                 break
             try:
                 event = self.incoming_event_queue.get_nowait()
-                self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
-                acceptable, reason = await self._event_postcheck(event)
+                async with self._task_counter.count(f"event_postcheck({event})"):
+                    acceptable, reason = await self._event_postcheck(event)
                 if acceptable:
                     if event.type == "FINISHED":
                         finish = True
+                        event._minimize()
                     else:
                         events.append(event)
                         self.scan.stats.event_consumed(event, self)
-                elif reason:
-                    self.debug(f"Not accepting {event} because {reason}")
+                else:
+                    event._minimize()
+                    if reason:
+                        self.debug(f"Not accepting {event} because {reason}")
             except asyncio.queues.QueueEmpty:
                 break
         return events, finish
@@ -760,32 +766,32 @@ class BaseModule:
                                 break
                         except asyncio.queues.QueueEmpty:
                             continue
-                        self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
-                        async with self._task_counter.count(f"event_postcheck({event})"):
-                            acceptable, reason = await self._event_postcheck(event)
-                        if acceptable:
-                            if event.type == "FINISHED":
-                                context = f"{self.name}.finish()"
-                                try:
-                                    await self.run_task(self.finish(), context)
-                                except asyncio.CancelledError:
-                                    self.debug(f"{context} was cancelled")
-                                    continue
+                        try:
+                            async with self._task_counter.count(f"event_postcheck({event})"):
+                                acceptable, reason = await self._event_postcheck(event)
+                            if acceptable:
+                                if event.type == "FINISHED":
+                                    context = f"{self.name}.finish()"
+                                    try:
+                                        await self.run_task(self.finish(), context)
+                                    except asyncio.CancelledError:
+                                        self.debug(f"{context} was cancelled")
+                                        continue
+                                else:
+                                    context = f"{self.name}.handle_event({event})"
+                                    self.scan.stats.event_consumed(event, self)
+                                    self.debug(f"Handling {event} from {getattr(event, 'module', 'unknown_module')}")
+                                    try:
+                                        await self.run_task(self.handle_event(event), context)
+                                    except asyncio.CancelledError:
+                                        self.debug(f"{context} was cancelled")
+                                        continue
+                                    self.debug(f"Finished handling {event}")
                             else:
-                                context = f"{self.name}.handle_event({event})"
-                                self.scan.stats.event_consumed(event, self)
-                                self.debug(f"Handling {event}")
-                                try:
-                                    await self.run_task(self.handle_event(event), context)
-                                except asyncio.CancelledError:
-                                    self.debug(f"{context} was cancelled")
-                                    continue
-                                self.debug(f"Finished handling {event}")
-                        else:
-                            self.debug(f"Not accepting {event} because {reason}")
+                                self.debug(f"Not accepting {event} because {reason}")
+                        finally:
+                            event._minimize()
         except asyncio.CancelledError:
-            # this trace was used for debugging leaked CancelledErrors from inside httpx
-            # self.log.trace("Worker cancelled")
             raise
         except RuntimeError as e:
             self.trace(f"RuntimeError in module {self.name}: {e}")
@@ -931,7 +937,6 @@ class BaseModule:
             if not filter_result:
                 return False, msg
 
-        self.debug(f"{event} passed post-check")
         return True, ""
 
     def _scope_distance_check(self, event):
@@ -1018,16 +1023,26 @@ class BaseModule:
                 if reason and reason != "its type is not in watched_events":
                     self.debug(f"Not queueing {event} because {reason}")
                 return
-            else:
-                self.debug(f"Queueing {event} because {reason}")
             try:
                 self.incoming_event_queue.put_nowait(event)
+                self._increment_consumer_count(event)
                 async with self.event_received:
                     self.event_received.notify()
                 if event.type != "FINISHED":
                     self.scan._new_activity = True
             except AttributeError:
                 self.debug("Not in an acceptable state to queue incoming event")
+
+    def _increment_consumer_count(self, event):
+        """Increment the event's consumer count when it lands in this module's queue.
+
+        Paired with the matching ``_minimize()`` call when the worker
+        finishes processing. Modules that have no real worker (e.g. the
+        ``python`` output module backing ``Scanner.async_start``)
+        override this to skip the increment — otherwise the count
+        leaks +1 forever and ``_minimize()``'s strip block never fires.
+        """
+        event._module_consumers += 1
 
     async def queue_outgoing_event(self, event, **kwargs):
         """
@@ -1394,7 +1409,7 @@ class BaseModule:
             **requests_kwargs: Arbitrary keyword arguments that will be forwarded to the HTTP request function.
 
         Yields:
-            dict or httpx.Response: If 'json' is True, yields a dictionary containing the parsed JSON data. Otherwise, yields the raw HTTP response.
+            dict or Response: If 'json' is True, yields a dictionary containing the parsed JSON data. Otherwise, yields the raw HTTP response.
 
         Note:
             The loop will continue indefinitely unless manually stopped. Make sure to break out of the loop once the last page has been received.
@@ -1849,16 +1864,18 @@ class BaseInterceptModule(BaseModule):
                         continue
 
                     acceptable = True
+                    # precheck/postcheck must be counted so the module isn't marked finished
+                    # while events are mid-check (is_finished reads _task_counter.value)
                     async with self._task_counter.count(f"event_precheck({event})"):
                         precheck_pass, reason = self._event_precheck(event)
                     if not precheck_pass:
-                        self.debug(f"Not intercepting {event} because precheck failed ({reason})")
                         acceptable = False
-                    async with self._task_counter.count(f"event_postcheck({event})"):
-                        postcheck_pass, reason = await self._event_postcheck(event)
-                    if not postcheck_pass:
-                        self.debug(f"Not intercepting {event} because postcheck failed ({reason})")
-                        acceptable = False
+                    else:
+                        async with self._task_counter.count(f"event_postcheck({event})"):
+                            postcheck_pass, reason = await self._event_postcheck(event)
+                        if not postcheck_pass:
+                            self.debug(f"Not intercepting {event} because postcheck failed ({reason})")
+                            acceptable = False
 
                     # whether to pass the event on to the rest of the scan
                     # defaults to true, unless handle_event returns False
@@ -1866,7 +1883,7 @@ class BaseInterceptModule(BaseModule):
                     forward_event_reason = ""
 
                     if acceptable:
-                        context = f"{self.name}.handle_event({event, kwargs})"
+                        context = f"{self.name}.handle_event({event})"
                         self.scan.stats.event_consumed(event, self)
                         self.debug(f"Intercepting {event}")
                         try:
@@ -1881,12 +1898,9 @@ class BaseInterceptModule(BaseModule):
                             self.debug(f"Not forwarding {event} because {forward_event_reason}")
                             continue
 
-                    self.debug(f"Forwarding {event}")
                     await self.forward_event(event, kwargs)
 
         except asyncio.CancelledError:
-            # this trace was used for debugging leaked CancelledErrors from inside httpx
-            # self.log.trace("Worker cancelled")
             raise
         except RuntimeError as e:
             self.trace(f"RuntimeError in intercept module {self.name}: {e}")

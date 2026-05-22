@@ -3,7 +3,7 @@ from .base import ModuleTestBase
 
 class TestWayback(ModuleTestBase):
     async def setup_after_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original",
             json=[["original"], ["http://asdf.blacklanternsecurity.com"]],
         )

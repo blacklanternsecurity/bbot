@@ -4,7 +4,7 @@ flags:
   - web-paramminer
 
 modules:
-  - httpx
+  - http
   - reflected_parameters
   - hunt
 

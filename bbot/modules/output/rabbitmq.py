@@ -25,14 +25,22 @@ class RabbitMQ(BaseOutputModule):
         self.rabbitmq_url = self.config.get("url", "amqp://guest:guest@localhost/")
         self.queue_name = self.config.get("queue", "bbot_events")
 
-        # Connect to RabbitMQ
-        self.connection = await aio_pika.connect_robust(self.rabbitmq_url)
-        self.channel = await self.connection.channel()
-
-        # Declare the queue
-        self.queue = await self.channel.declare_queue(self.queue_name, durable=True)
-        self.verbose("RabbitMQ connection and queue setup successfully")
-        return True
+        # Connect to RabbitMQ (retry in case the server is still starting)
+        max_retries = 30
+        for attempt in range(max_retries):
+            try:
+                self.connection = await aio_pika.connect_robust(self.rabbitmq_url)
+                self.channel = await self.connection.channel()
+                self.queue = await self.channel.declare_queue(self.queue_name, durable=True)
+                self.verbose("RabbitMQ connection and queue setup successfully")
+                return True
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    self.verbose(f"RabbitMQ not ready (attempt {attempt + 1}/{max_retries}): {e}")
+                    await self.helpers.sleep(1)
+                else:
+                    self.error(f"Failed to connect to RabbitMQ after {max_retries} attempts: {e}")
+                    return False
 
     async def handle_event(self, event):
         event_json = event.json()
@@ -52,5 +60,6 @@ class RabbitMQ(BaseOutputModule):
 
     async def cleanup(self):
         # Close the connection
-        await self.connection.close()
-        self.verbose("RabbitMQ connection closed successfully")
+        if hasattr(self, "connection"):
+            await self.connection.close()
+            self.verbose("RabbitMQ connection closed successfully")

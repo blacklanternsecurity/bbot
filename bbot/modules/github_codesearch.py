@@ -32,7 +32,7 @@ class github_codesearch(github, subdomain_enum):
                 context=f'{{module}} searched github.com for "{query}" and found {{event.type}} with matching content at {repo_url}',
             )
             for raw_url in raw_urls:
-                url_event = self.make_event(raw_url, "URL_UNVERIFIED", parent=repo_event, tags=["httpx-safe"])
+                url_event = self.make_event(raw_url, "URL_UNVERIFIED", parent=repo_event, tags=["blasthttp-safe"])
                 if not url_event:
                     continue
                 await self.emit_event(

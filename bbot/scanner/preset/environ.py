@@ -77,7 +77,7 @@ class BBOTEnviron:
     def flatten_config(self, config, base="bbot"):
         """
         Flatten a JSON-like config into a list of environment variables:
-            {"modules": [{"httpx": {"timeout": 5}}]} --> "BBOT_MODULES_HTTPX_TIMEOUT=5"
+            {"modules": [{"http": {"threads": 10}}]} --> "BBOT_MODULES_BLASTHTTP_THREADS=10"
         """
         if type(config) == omegaconf.dictconfig.DictConfig:
             for k, v in config.items():

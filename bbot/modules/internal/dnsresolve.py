@@ -1,9 +1,11 @@
+import sys
 import ipaddress
 from contextlib import suppress
 
+from blastdns import DNSResult
+
 from bbot.errors import ValidationError
-from bbot.core.helpers.dns.engine import all_rdtypes
-from bbot.core.helpers.dns.helpers import extract_targets
+from bbot.core.helpers.dns.helpers import all_rdtypes, extract_targets, record_to_text
 from bbot.modules.base import BaseInterceptModule, BaseModule
 
 
@@ -37,6 +39,8 @@ class DNSResolve(BaseInterceptModule):
         self.dns_search_distance = max(0, int(self.dns_config.get("search_distance", 1)))
         self._emit_raw_records = None
 
+        self.filter_ptrs = self.dns_config.get("filter_ptrs", True)
+
         self.host_module = self.HostModule(self.scan)
         self.children_emitted = set()
         self.children_emitted_raw = set()
@@ -68,8 +72,16 @@ class DNSResolve(BaseInterceptModule):
             # are any of its IPs in target scope or blacklisted?
             in_target, blacklisted = self.check_scope(main_host_event)
             if in_target and main_host_event.scope_distance > 0:
-                self.debug(f"Making {main_host_event} in-scope because it resolves to an in-scope resource (A/AAAA)")
-                main_host_event.scope_distance = 0
+                # when filter_ptrs is enabled, don't promote PTR-derived hostnames to in-scope
+                # this prevents rDNS results from triggering subdomain enumeration against unrelated domains
+                # (e.g. scanning 1.2.3.0/24 would otherwise enumerate every PTR parent like randomothercorp.com)
+                if self.filter_ptrs and "ptr" in main_host_event.tags:
+                    self.debug(f"Not making {main_host_event} in-scope: PTR-derived hostname (filter_ptrs=true)")
+                else:
+                    self.debug(
+                        f"Making {main_host_event} in-scope because it resolves to an in-scope resource (A/AAAA)"
+                    )
+                    main_host_event.scope_distance = 0
 
         # abort if the event resolves to something blacklisted
         if blacklisted:
@@ -191,8 +203,12 @@ class DNSResolve(BaseInterceptModule):
                         context=f"{rdtype} record for {event.host} contains {{event.type}}: {{event.host}}",
                     )
                 except ValidationError as e:
-                    self.warning(f'Event validation failed for DNS child of {event}: "{child_host}" ({rdtype}): {e}')
+                    self.trace(f'Event validation failed for DNS child of {event}: "{child_host}" ({rdtype}): {e}')
                     continue
+
+                # tag PTR-derived children so downstream logic can identify them
+                if rdtype == "PTR":
+                    child_event.add_tag("ptr")
 
                 child_hash = hash(f"{event.host}:{module}:{child_host}")
                 # if we haven't emitted this one before
@@ -212,7 +228,7 @@ class DNSResolve(BaseInterceptModule):
             tags = {t for t in dns_tags if rdtype_lower in t.split("-")}
             if self.emit_raw_records and rdtype not in ("A", "AAAA", "CNAME", "PTR"):
                 for answer in answers:
-                    text_answer = answer.to_text()
+                    text_answer = record_to_text(answer)
                     child_hash = hash(f"{event.host}:{rdtype}:{text_answer}")
                     if child_hash not in self.children_emitted_raw:
                         self.children_emitted_raw.add(child_hash)
@@ -227,11 +243,11 @@ class DNSResolve(BaseInterceptModule):
     def check_scope(self, event):
         in_target = False
         blacklisted = False
-        dns_children = getattr(event, "dns_children", {})
+        dns_children = event.dns_children
         for rdtype in ("A", "AAAA", "CNAME"):
             hosts = dns_children.get(rdtype, [])
             # update resolved hosts
-            event.resolved_hosts.update(hosts)
+            event.update_resolved_hosts(sys.intern(h) for h in hosts)
             for host in hosts:
                 # having a CNAME to an in-scope host doesn't make you in-scope
                 if rdtype != "CNAME":
@@ -255,27 +271,27 @@ class DNSResolve(BaseInterceptModule):
         if not types:
             return
         event_host = str(event.host)
-        queries = [(event_host, rdtype) for rdtype in types]
-        dns_errors = {}
-        async for (query, rdtype), (answers, errors) in self.helpers.dns.resolve_raw_batch(queries):
-            # errors
-            try:
-                dns_errors[rdtype].update(errors)
-            except KeyError:
-                dns_errors[rdtype] = set(errors)
+        results = await self.helpers.dns.resolve_multi_full(event_host, list(types))
+        for rdtype, response in results.items():
+            rdtype = sys.intern(rdtype)
+            if not isinstance(response, DNSResult):
+                # blastdns returns a DNSError for this rdtype; tag and move on
+                if rdtype not in event.dns_children:
+                    event.add_tag(f"{rdtype}-error")
+                continue
+
+            answers = response.response.answers
+            if not answers:
+                continue
+
+            event.add_tag(f"{rdtype}-record")
+            # blastdns hands us an already-unique list[Record] -- store as-is, no copy
+            event.set_raw_dns_record(rdtype, answers)
             for answer in answers:
-                event.add_tag(f"{rdtype}-record")
-                # raw dnspython answers
-                try:
-                    event.raw_dns_records[rdtype].add(answer)
-                except KeyError:
-                    event.raw_dns_records[rdtype] = {answer}
-                # hosts
                 for _rdtype, host in extract_targets(answer):
-                    try:
-                        event.dns_children[_rdtype].add(host)
-                    except KeyError:
-                        event.dns_children[_rdtype] = {host}
+                    _rdtype = sys.intern(_rdtype)
+                    host = sys.intern(host)
+                    event.add_dns_child(_rdtype, host)
                     # check for private IPs
                     try:
                         ip = ipaddress.ip_address(host)
@@ -283,12 +299,6 @@ class DNSResolve(BaseInterceptModule):
                             event.add_tag("private-ip")
                     except ValueError:
                         continue
-
-        # tag event with errors
-        for rdtype, errors in dns_errors.items():
-            # only consider it an error if there weren't any results for that rdtype
-            if errors and rdtype not in event.dns_children:
-                event.add_tag(f"{rdtype}-error")
 
     def get_dns_parent(self, event):
         """

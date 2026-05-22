@@ -291,8 +291,7 @@ class Asset:
         if not is_ip(event.host):
             self.host = event.host
 
-        dns_children = getattr(event, "_dns_children", {})
-        for rdtype, records in sorted(dns_children.items(), key=lambda x: x[0]):
+        for rdtype, records in sorted(event.dns_children.items(), key=lambda x: x[0]):
             for record in sorted([str(r) for r in records]):
                 self.dns_records.add(f"{rdtype}:{record}")
 

@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 
 class TestNucleiManual(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "excavate", "nuclei"]
+    modules_overrides = ["http", "excavate", "nuclei"]
     config_overrides = {
         "web": {
             "spider_distance": 1,
@@ -15,7 +15,7 @@ class TestNucleiManual(ModuleTestBase):
                 "mode": "manual",
                 "concurrency": 2,
                 "ratelimit": 10,
-                "templates": "/tmp/.bbot_test/tools/nuclei-templates/http/miscellaneous/",
+                "templates": "/tmp/.bbot_test/tools/nuclei-state/templates/http/miscellaneous/",
                 "interactsh_disable": True,
                 "directory_only": False,
             }
@@ -63,13 +63,13 @@ class TestNucleiManual(ModuleTestBase):
 
 
 class TestNucleiSevere(TestNucleiManual):
-    modules_overrides = ["httpx", "nuclei"]
+    modules_overrides = ["http", "nuclei"]
     config_overrides = {
         "modules": {
             "nuclei": {
                 "mode": "severe",
                 "concurrency": 1,
-                "templates": "/tmp/.bbot_test/tools/nuclei-templates/http/vulnerabilities/generic/generic-env.yaml",
+                "templates": "/tmp/.bbot_test/tools/nuclei-state/templates/http/vulnerabilities/generic/generic-env.yaml",
             }
         },
         "interactsh_disable": True,
@@ -114,7 +114,7 @@ class TestNucleiBudget(TestNucleiManual):
                 "mode": "budget",
                 "concurrency": 1,
                 "tags": "spiderfoot",
-                "templates": "/tmp/.bbot_test/tools/nuclei-templates/exposed-panels/spiderfoot.yaml",
+                "templates": "/tmp/.bbot_test/tools/nuclei-state/templates/exposed-panels/spiderfoot.yaml",
                 "interactsh_disable": True,
             }
         }
@@ -154,6 +154,82 @@ class TestNucleiRetriesCustom(TestNucleiRetries):
 
     def check(self, module_test, events):
         assert "-retries 1" in open(module_test.scan.home / "debug.log").read()
+
+
+class TestNucleiEnvIsolation(TestNucleiManual):
+    """Set hostile env vars before the scan and verify _nuclei_env() filters them out.
+
+    The base TestNucleiManual assertions double as a regression check: nuclei must
+    still find and run templates even when the user's env has DISABLE_*_DOWNLOAD,
+    XDG_CONFIG_HOME, etc. set.
+    """
+
+    leaky_env = {
+        "PDCP_API_KEY": "user-pdcp-key-must-not-leak",
+        "PDCP_TEAM_ID": "user-team",
+        "XDG_CONFIG_HOME": "/tmp/.bbot_test/xdg-leak-config",
+        "XDG_CACHE_HOME": "/tmp/.bbot_test/xdg-leak-cache",
+        "GITHUB_TOKEN": "ghp_usertoken",
+        "GITHUB_TEMPLATE_REPO": "attacker/private-templates",
+        "GITLAB_TOKEN": "glpat-usertoken",
+        "AWS_ACCESS_KEY": "AKIA-user",
+        "AWS_SECRET_KEY": "user-aws-secret",
+        "AZURE_CLIENT_SECRET": "azure-secret",
+        "NUCLEI_SIGNATURE_PUBLIC_KEY": "user-pubkey",
+        "DISABLE_NUCLEI_TEMPLATES_PUBLIC_DOWNLOAD": "true",
+    }
+
+    async def setup_before_prep(self, module_test):
+        await super().setup_before_prep(module_test)
+        for k, v in self.leaky_env.items():
+            module_test.monkeypatch.setenv(k, v)
+
+    # XDG_{CONFIG,CACHE}_HOME are set by _nuclei_env() itself to our paths,
+    # so they appear in env but must override (not echo back) the user's values.
+    _xdg_overridden = {"XDG_CONFIG_HOME", "XDG_CACHE_HOME"}
+
+    def check(self, module_test, events):
+        super().check(module_test, events)
+        nuclei = module_test.scan.modules["nuclei"]
+        env = nuclei._nuclei_env()
+        for k, v in self.leaky_env.items():
+            if k in self._xdg_overridden:
+                assert env.get(k) != v, f"{k} leaked user value into nuclei env"
+            else:
+                assert k not in env, f"{k} leaked into nuclei subprocess env"
+        assert env["XDG_CONFIG_HOME"] == str(nuclei.nuclei_config_dir)
+        assert env["XDG_CACHE_HOME"] == str(nuclei.nuclei_cache_dir)
+        # HOME is intentionally NOT forwarded — nuclei must rely on the XDG
+        # vars we set, not on the user's home dir.
+        assert "HOME" not in env
+
+
+def test_nuclei_classify_update_stderr():
+    """Regression: nuclei's success line has changed wording across releases
+    ("downloaded" → "installed" → "updated"). All three must classify as
+    success so a fresh install isn't mis-logged as a failure.
+    """
+    from bbot.modules.nuclei import nuclei
+
+    c = nuclei._classify_update_stderr
+    # First-time install (what nuclei v3.8 prints on a clean state dir).
+    assert (
+        c(
+            "[INF] nuclei-templates are not installed, installing...\n[INF] Successfully installed nuclei-templates at /tmp/x"
+        )
+        == "updated"
+    )
+    # Version bump (newer phrasing).
+    assert c("[INF] Successfully updated nuclei-templates (v10.4.3) to /tmp/x. GoodLuck!") == "updated"
+    # Legacy phrasing — kept for older nuclei builds.
+    assert c("[INF] Successfully downloaded nuclei-templates") == "updated"
+    # Already up-to-date.
+    assert c("[INF] No new updates found for nuclei templates") == "up-to-date"
+    # Benign first-run noise must NOT trick us into reporting success.
+    assert c("[ERR] Could not copy nuclei ignore file ...: source file doesn't exist") == "failure"
+    # Empty / None stderr → failure (process produced nothing).
+    assert c("") == "failure"
+    assert c(None) == "failure"
 
 
 class TestNucleiCustomHeaders(TestNucleiManual):

@@ -478,6 +478,33 @@ class Preset(metaclass=BasePreset):
             for output_module in self.default_output_modules:
                 baked_preset.add_module(output_module, module_type="output", raise_error=False)
 
+        # dnsresolve is the intercept module that resolves every event, tags wildcards/unresolved,
+        # and rewrites wildcard hits to `_wildcard.parent`. Modules that watch DNS_NAME depend on
+        # those tags to filter false positives; without it, brute-force and passive-enum modules
+        # emit unverified and wildcard-tainted names. This catches all three explicit opt-outs:
+        # `-em dnsresolve`, top-level `dnsresolve: false`, and `dns.disable: true`. We check the
+        # user actions rather than "dnsresolve in modules" so that internal-module-trimming code
+        # paths (e.g. `--list-module-options` setting `_default_internal_modules = []`) don't trip
+        # the gate -- those aren't real scans, and the user hasn't asked to disable anything.
+        dnsresolve_disabled = (
+            "dnsresolve" in baked_preset.exclude_modules
+            or baked_preset.config.get("dnsresolve", True) is False
+            or baked_preset.config.get("dns", {}).get("disable", False)
+        )
+        if dnsresolve_disabled:
+            dns_name_consumers = sorted(
+                m
+                for m in baked_preset.modules
+                if "DNS_NAME" in baked_preset.preloaded_module(m).get("watched_events", [])
+            )
+            if dns_name_consumers:
+                raise ValidationError(
+                    f"dnsresolve is required by these enabled modules but is disabled: {', '.join(dns_name_consumers)}. "
+                    "Use `dns.minimal: true` (resolves A/AAAA only, skips MX/NS/SRV expansion) "
+                    "if you want to reduce DNS overhead while keeping wildcard and unresolved tagging. "
+                    "If you genuinely want no DNS at all, also disable the modules listed above."
+                )
+
         # create target object
         from bbot.scanner.target import BBOTTarget
 
@@ -629,6 +656,23 @@ class Preset(metaclass=BasePreset):
     def in_target(self, host):
         return self.target.in_target(host)
 
+    @staticmethod
+    def _resolve_file_entries(entries):
+        """Resolve relative file paths in target/seeds/blacklist entries via PresetPath.
+
+        Replaces entries that match a file in PresetPath's known directories with
+        their absolute path, so that chain_lists' existing try_files logic can find them.
+        Entries that don't match a file are left as-is.
+        """
+        resolved = []
+        for entry in entries:
+            found = PRESET_PATH.find_file(entry)
+            if found is not None:
+                resolved.append(str(found))
+            else:
+                resolved.append(entry)
+        return resolved
+
     @classmethod
     def from_dict(cls, preset_dict, name=None, _exclude=None, _log=False):
         """
@@ -646,15 +690,38 @@ class Preset(metaclass=BasePreset):
         Examples:
             >>> preset = Preset.from_dict({"target": ["evilcorp.com"], "modules": ["portscan"]})
         """
+        from bbot.core.helpers.misc import chain_lists
+
         # Handle seeds and targets from dict
         # for user-friendliness, we allow both "target" and "targets" to be used. we merge them into a single list.
         target_vals = (preset_dict.get("target") or []) + (preset_dict.get("targets") or [])
-        targets = list(dict.fromkeys(target_vals))
+        # resolve relative file paths via PresetPath (which knows the preset's directory)
+        targets = chain_lists(
+            cls._resolve_file_entries(target_vals),
+            try_files=True,
+            msg="Reading targets from preset file: {filename}",
+            _strip_comments=True,
+        )
         seeds = preset_dict.get("seeds")
+        if seeds is not None:
+            seeds = chain_lists(
+                cls._resolve_file_entries(seeds),
+                try_files=True,
+                msg="Reading seeds from preset file: {filename}",
+                _strip_comments=True,
+            )
+        blacklist = preset_dict.get("blacklist")
+        if blacklist is not None:
+            blacklist = chain_lists(
+                cls._resolve_file_entries(blacklist),
+                try_files=True,
+                msg="Reading blacklist from preset file: {filename}",
+                _strip_comments=True,
+            )
         new_preset = cls(
             *targets,
             seeds=seeds,
-            blacklist=preset_dict.get("blacklist"),
+            blacklist=blacklist,
             modules=preset_dict.get("modules"),
             output_modules=preset_dict.get("output_modules"),
             exclude_modules=preset_dict.get("exclude_modules"),
@@ -724,7 +791,10 @@ class Preset(metaclass=BasePreset):
             except FileNotFoundError:
                 raise PresetNotFoundError(f'Could not find preset at "{filename}" - file does not exist')
             preset = cls.from_dict(
-                omegaconf.OmegaConf.create(yaml_str), name=filename.stem, _exclude=_exclude, _log=_log
+                omegaconf.OmegaConf.create(yaml_str),
+                name=filename.stem,
+                _exclude=_exclude,
+                _log=_log,
             )
             preset._yaml_str = yaml_str
             preset.filename = filename
