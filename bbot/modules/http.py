@@ -212,7 +212,7 @@ class http(BaseModule):
         if url_event:
             response_ip = j.get("host", "")
             if response_ip:
-                url_event.add_resolved_host(response_ip)
+                url_event.resolved_hosts = (response_ip,)
             title = j.get("title", "")
             if title:
                 url_event.http_title = title

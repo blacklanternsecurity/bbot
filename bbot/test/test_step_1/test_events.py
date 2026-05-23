@@ -576,7 +576,7 @@ async def test_events(events, helpers):
     db_event = scan.make_event("evilcorp.com:80", parent=scan.root_event, context="test context")
     assert db_event.parent == scan.root_event
     assert db_event.parent is scan.root_event
-    db_event._resolved_hosts = {"127.0.0.1"}
+    db_event.resolved_hosts = ("127.0.0.1",)
     db_event.scope_distance = 1
     assert db_event.discovery_context == "test context"
     assert db_event.discovery_path == ["test context"]

@@ -55,9 +55,10 @@ log = logging.getLogger("bbot.core.event")
 # Shared empty defaults for lazy-init slots. Returned from property accessors
 # when the underlying slot is None — saves ~560 bytes per event compared to
 # allocating real empty containers (set/dict) at __init__ time. Mutating
-# helpers (add_tag, add_resolved_host, etc.) replace the slot with a real
-# container before mutating, so callers never see the singletons in a
-# mutable position.
+# helpers (add_tag, etc.) replace the slot with a real container before
+# mutating, so callers never see the singletons in a mutable position.
+# `_resolved_hosts` has no in-place mutation API — see the resolved_hosts
+# property setter for the assign-once-then-frozen contract.
 _EMPTY_FROZENSET: "frozenset[str]" = frozenset()
 _EMPTY_DICT = MappingProxyType({})
 
@@ -307,23 +308,24 @@ class BaseEvent:
     @property
     def resolved_hosts(self):
         if is_ip(self.host):
-            return {
-                self.host,
-            }
+            return frozenset({self.host})
         return self._resolved_hosts if self._resolved_hosts is not None else _EMPTY_FROZENSET
 
-    def add_resolved_host(self, host):
-        """Add a host to ``_resolved_hosts``, lazy-allocating the set."""
-        if self._resolved_hosts is None or isinstance(self._resolved_hosts, frozenset):
-            # promote shared singleton / empty to a real mutable set
-            self._resolved_hosts = set(self._resolved_hosts) if self._resolved_hosts else set()
-        self._resolved_hosts.add(host)
+    @resolved_hosts.setter
+    def resolved_hosts(self, value):
+        """Assign ``_resolved_hosts`` as a frozenset (or None for unset).
 
-    def update_resolved_hosts(self, hosts):
-        """Add multiple hosts to ``_resolved_hosts``, lazy-allocating the set."""
-        if self._resolved_hosts is None or isinstance(self._resolved_hosts, frozenset):
-            self._resolved_hosts = set(self._resolved_hosts) if self._resolved_hosts else set()
-        self._resolved_hosts.update(hosts)
+        Resolved hosts are naturally immutable: there is no in-place mutation
+        API. Callers (typically ``dnsresolve``) build the set locally and then
+        assign it once via this setter, after which the slot holds a
+        ``frozenset`` that downstream consumers can read but cannot modify.
+        """
+        if value is None:
+            self._resolved_hosts = None
+        elif isinstance(value, frozenset):
+            self._resolved_hosts = value
+        else:
+            self._resolved_hosts = frozenset(value)
 
     @property
     def dns_children(self):
@@ -2362,7 +2364,7 @@ def event_from_json(j):
             event._uuid = uuid.UUID(event_uuid.split(":")[-1])
 
         resolved_hosts = j.get("resolved_hosts", [])
-        event._resolved_hosts = set(resolved_hosts)
+        event._resolved_hosts = frozenset(resolved_hosts) if resolved_hosts else None
 
         http_title = j.get("http_title", "")
         if http_title:
