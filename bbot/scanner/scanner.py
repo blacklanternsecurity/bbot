@@ -714,7 +714,7 @@ class Scanner:
         if module._intercept:
             self.warning(f'Cannot kill module "{module_name}" because it is critical to the scan')
             return
-        module.set_error_state(message=message, clear_outgoing_queue=True)
+        module.set_error_state(message=message, clear_outgoing_queue=True, log_level="info")
         for proc in module._proc_tracker:
             with contextlib.suppress(Exception):
                 proc.send_signal(SIGINT)
@@ -858,7 +858,7 @@ class Scanner:
         if not self._stopping:
             self._stopping = True
             await self._set_status(SCAN_STATUS_ABORTING)
-            self.critical("Aborting scan", trace=False)
+            self.hugewarning("Aborting scan")
             self.trace()
             self._cancel_tasks()
             self._drain_queues()
