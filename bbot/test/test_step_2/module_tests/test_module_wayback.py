@@ -590,6 +590,47 @@ class TestWaybackGarbageUrlLength(ModuleTestBase):
         )
 
 
+class TestWaybackJunkUrlFilter(ModuleTestBase):
+    """Bot-manager-style randomized URLs should be filtered by the built-in YARA junk rules."""
+
+    module_name = "wayback"
+    modules_overrides = ["wayback"]
+    targets = ["blacklanternsecurity.com"]
+    config_overrides = {"modules": {"wayback": {"urls": True}}}
+
+    # Synthetic Akamai-style junk URLs: each path has 2+ random segments
+    # mixing uppercase, lowercase, and digits/symbols.
+    junk_urls = [
+        "https://blacklanternsecurity.com/K8RIfwz/zxO29N1d2a4g/Q3rx/GjlB8/ZrcodWAG1Tpd/1KhpOA/0c5tzl-i2II/Es8jJD",
+        "https://blacklanternsecurity.com/w9bx0E/UPcIqN7-eCer/Fgm0A2/z0IU7/GBxV7_4QEnK/knJ9z4IYXGGw/XWt6dak5Ao",
+        "https://blacklanternsecurity.com/oq384ANPC0E/Hq2E2/yCFIf08-/Ln3Kln6oEWx7",
+    ]
+    # URLs that must survive the filter — includes the Akamai bot-manager endpoint
+    # itself, a CamelCase REST API path, and a single mixed-case-with-symbol segment
+    # (MYAPP_Auth alone shouldn't trip the threshold of 2).
+    legit_urls = [
+        "https://blacklanternsecurity.com/clientlibs/abc123def456",
+        "https://blacklanternsecurity.com/_bm/get_params?type=get-akid",
+        "https://blacklanternsecurity.com/api/v1/MyController/getStuff",
+        "https://blacklanternsecurity.com/MYAPP_Auth/login.jsp?TYPE=33554432",
+    ]
+
+    async def setup_after_prep(self, module_test):
+        module_test.blasthttp_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
+            json=[["original"], *([u] for u in self.junk_urls + self.legit_urls)],
+        )
+
+    def check(self, module_test, events):
+        emitted = [e.url for e in events if e.type == "URL_UNVERIFIED"]
+        for junk in self.junk_urls:
+            assert not any(junk in u for u in emitted), f"Junk URL was not filtered: {junk}"
+        for legit in self.legit_urls:
+            # match on the path so http/https variant normalization doesn't cause spurious failures
+            path = legit.split("blacklanternsecurity.com", 1)[1].split("?", 1)[0]
+            assert any(path in u for u in emitted), f"Legit URL was filtered: {legit}"
+
+
 class TestWaybackArchive429Retry(ModuleTestBase):
     """Archive fetches that get 429 rate-limited should back off and retry successfully."""
 

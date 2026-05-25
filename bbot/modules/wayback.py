@@ -48,6 +48,35 @@ class wayback(subdomain_enum):
     # if any single path segment repeats more than this many times, it's a path loop / crawler trap
     _max_path_segment_repeats = 3
 
+    # YARA rules for filtering junk URLs out of CDX results.
+    # Each rule's meta block should set category = "url_junk" and a `description`.
+    # To add a new pattern, add an entry — rule names must be unique across the dict.
+    _junk_url_yara_rules = {
+        # Per-session bot-manager challenge URLs (Akamai-style randomized paths).
+        # Counts path segments that contain all three of: uppercase, lowercase,
+        # and digit/underscore/hyphen. The big alternation enumerates the six
+        # possible orderings of those three character classes within a segment.
+        # Threshold of 2 catches every URL in the validation corpus and leaves
+        # CamelCase REST paths (/api/v1/MyController/getStuff) untouched because
+        # those don't contain a digit or symbol inside the camelCase segment.
+        "akamai_bot_manager_url": r"""
+rule akamai_bot_manager_url
+{
+    meta:
+        author = "BBOT"
+        description = "Per-session bot-manager challenge URL with random-looking path segments mixing case and digits/symbols"
+        category = "url_junk"
+        confidence = "HIGH"
+
+    strings:
+        $strict_seg = /\/[A-Za-z0-9_-]*([A-Z][A-Za-z0-9_-]*[a-z][A-Za-z0-9_-]*[0-9_-]|[A-Z][A-Za-z0-9_-]*[0-9_-][A-Za-z0-9_-]*[a-z]|[a-z][A-Za-z0-9_-]*[A-Z][A-Za-z0-9_-]*[0-9_-]|[a-z][A-Za-z0-9_-]*[0-9_-][A-Za-z0-9_-]*[A-Z]|[0-9_-][A-Za-z0-9_-]*[A-Z][A-Za-z0-9_-]*[a-z]|[0-9_-][A-Za-z0-9_-]*[a-z][A-Za-z0-9_-]*[A-Z])[A-Za-z0-9_-]*/
+
+    condition:
+        #strict_seg >= 2
+}
+""",
+    }
+
     def _is_garbage_url(self, url):
         """Detect crawler-trap URLs with repeating path segments or excessive length."""
         if len(url) > self._max_url_length:
@@ -60,6 +89,21 @@ class wayback(subdomain_enum):
             return False
         counts = Counter(segments)
         return counts.most_common(1)[0][1] > self._max_path_segment_repeats
+
+    def _filter_urls_sync(self, urls):
+        """Drop blacklisted, garbage, and YARA-junk URLs in one pass. Returns (kept, junk_dropped)."""
+        kept = []
+        junk_dropped = 0
+        for url in urls:
+            if any(bl in url for bl in self.url_blacklist):
+                continue
+            if self._is_garbage_url(url):
+                continue
+            if self._junk_url_rules.match(data=url):
+                junk_dropped += 1
+                continue
+            kept.append(url)
+        return kept, junk_dropped
 
     def _is_interesting_file(self, url):
         ext = get_file_extension(url)
@@ -95,6 +139,7 @@ class wayback(subdomain_enum):
         # (multiple request URLs can redirect to the same archived snapshot)
         # 32M bits (~4MB) supports ~400K entries with negligible false-positive rate
         self._archive_bloom = self.helpers.bloom_filter(32000000)
+        self._junk_url_rules = self.helpers.yara.compile(source="\n".join(self._junk_url_yara_rules.values()))
         return await super().setup()
 
     def _incoming_dedup_hash(self, event):
@@ -355,10 +400,11 @@ class wayback(subdomain_enum):
 
         self.verbose(f"Found {len(urls):,} URLs for {query}")
 
-        # filter blacklisted and garbage URLs before any further processing
-        urls = [
-            url for url in urls if not any(bl in url for bl in self.url_blacklist) and not self._is_garbage_url(url)
-        ]
+        # filter blacklisted, garbage, and junk URLs before any further processing
+        # (one bulk executor pass, since CDX responses can contain 100K+ URLs)
+        urls, junk_dropped = await self.helpers.run_in_executor_cpu(self._filter_urls_sync, urls)
+        if junk_dropped:
+            self.verbose(f"Filtered {junk_dropped:,} junk URLs via YARA rules for {query}")
 
         # pre-extract metadata from raw URLs before collapse strips query strings
         raw_url_params, archive_urls, interesting_files = {}, {}, {}
