@@ -28,10 +28,10 @@ class Stdout(BaseOutputModule):
     # tuned so even UNKNOWN stays legible on dark terminals (brightest channel ~115)
     finding_confidence_brightness = {
         "CONFIRMED": 1.00,
-        "HIGH": 0.82,
-        "MEDIUM": 0.65,
-        "LOW": 0.55,
-        "UNKNOWN": 0.45,
+        "HIGH": 0.88,
+        "MEDIUM": 0.77,
+        "LOW": 0.66,
+        "UNKNOWN": 0.55,
     }
     format_choices = ["text", "json"]
 
