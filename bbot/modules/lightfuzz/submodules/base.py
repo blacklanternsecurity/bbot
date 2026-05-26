@@ -91,11 +91,15 @@ class BaseLightfuzz:
         return probe
 
     def build_query_string(self, probe, parameter_name, additional_params=None):
-        """Constructs a URL with query parameters from the given probe and additional parameters."""
-        url = f"{self.event.url}?{parameter_name}={probe}"
-        if additional_params:
-            url = self.lightfuzz.helpers.add_get_params(url, additional_params, encode=False).geturl()
-        return url
+        """Constructs a URL with query parameters from the given probe and additional parameters.
+
+        Merges into any existing querystring on ``self.event.url``: the probe replaces
+        ``parameter_name`` if it's already present, and ``additional_params`` fill in
+        alongside. Sibling params already in the URL are preserved.
+        """
+        params = dict(additional_params) if additional_params else {}
+        params[parameter_name] = probe
+        return self.lightfuzz.helpers.add_get_params(self.event.url, params, encode=False).geturl()
 
     def prepare_request(
         self,

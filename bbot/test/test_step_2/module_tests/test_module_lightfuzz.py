@@ -1,6 +1,8 @@
 import json
 import re
 import base64
+from types import SimpleNamespace
+from urllib.parse import urlparse, parse_qs
 
 from .base import ModuleTestBase, tempwordlist
 from werkzeug.wrappers import Response
@@ -8,7 +10,49 @@ from urllib.parse import unquote, quote
 
 import xml.etree.ElementTree as ET
 
+from bbot.core.helpers.url import add_get_params
+from bbot.modules.lightfuzz.submodules.base import BaseLightfuzz
+
 from .test_module_paramminer_headers import helper
+
+
+def _make_base_lightfuzz(url):
+    event = SimpleNamespace(url=url, data={"name": "p"})
+    lightfuzz = SimpleNamespace(helpers=SimpleNamespace(add_get_params=add_get_params))
+    return BaseLightfuzz(lightfuzz, event)
+
+
+def test_lightfuzz_build_query_string_no_existing_qs():
+    bl = _make_base_lightfuzz("https://x.test/path")
+    assert bl.build_query_string("PROBE", "p") == "https://x.test/path?p=PROBE"
+
+
+def test_lightfuzz_build_query_string_unrelated_existing_param():
+    bl = _make_base_lightfuzz("https://x.test/path?init=true")
+    result = bl.build_query_string("PROBE", "p")
+    assert result.count("?") == 1
+    assert parse_qs(urlparse(result).query) == {"init": ["true"], "p": ["PROBE"]}
+
+
+def test_lightfuzz_build_query_string_probe_overrides_existing_same_param():
+    bl = _make_base_lightfuzz("https://x.test/path?p=original&init=true")
+    result = bl.build_query_string("PROBE", "p")
+    assert result.count("?") == 1
+    assert parse_qs(urlparse(result).query) == {"p": ["PROBE"], "init": ["true"]}
+
+
+def test_lightfuzz_build_query_string_merges_additional_params():
+    bl = _make_base_lightfuzz("https://x.test/path?init=true")
+    result = bl.build_query_string("PROBE", "p", additional_params={"unlock": "tok"})
+    assert result.count("?") == 1
+    assert parse_qs(urlparse(result).query) == {"init": ["true"], "p": ["PROBE"], "unlock": ["tok"]}
+
+
+def test_lightfuzz_build_query_string_preserves_fragment():
+    bl = _make_base_lightfuzz("https://x.test/path?init=true#frag")
+    result = bl.build_query_string("PROBE", "p")
+    assert result.count("?") == 1
+    assert result.endswith("#frag")
 
 
 # Path Traversal single dot tolerance
