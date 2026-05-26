@@ -700,7 +700,9 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
             # Group yields by (type, name, url) within an identifier; extra distinct values for
             # the same param are stashed in same_param_values so they survive WEB_PARAMETER dedup.
-            response_body = event.data.get("body", "") if isinstance(event.data, dict) else ""
+            # Use event.body (property) so we hit the body-spill store; event.data["body"] is
+            # popped at spill time and would be empty here.
+            response_body = getattr(event, "body", "") or ""
             for identifier, results in yara_results.items():
                 if identifier not in self.parameterExtractorCallbackDict.keys():
                     raise ExcavateError("ParameterExtractor YaraRule identified reference non-existent submodule")
