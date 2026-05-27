@@ -346,8 +346,12 @@ class Scanner:
             self.dummy_modules.clear()
 
             # save scan preset
+            redact_secrets = self.config.get("redact_secrets", True)
             with open(self.home / "preset.yml", "w") as f:
-                f.write(self.preset.to_yaml())
+                if redact_secrets:
+                    f.write("# Secrets (API keys, tokens, etc.) have been redacted.\n")
+                    f.write('# To include secrets, set "redact_secrets: false" in your preset or BBOT config.\n\n')
+                f.write(self.preset.to_yaml(redact_secrets=redact_secrets))
 
             # log scan overview
             start_msg = f"Scan seeded with {len(self.seeds.event_seeds):,} seed(s)"

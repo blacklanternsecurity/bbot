@@ -1197,6 +1197,21 @@ async def test_preset_serialization(clean_default_config):
     assert "seeds" not in preset_dict
 
 
+def test_preset_yaml_redacts_secrets():
+    preset = Preset(
+        "evilcorp.com",
+        config={"modules": {"github_org": {"api_key": "ghp_secrettoken123"}}},
+    )
+    preset = preset.bake()
+
+    yaml_plain = preset.to_yaml()
+    assert "ghp_secrettoken123" in yaml_plain
+
+    yaml_redacted = preset.to_yaml(redact_secrets=True)
+    assert "ghp_secrettoken123" not in yaml_redacted
+    assert "api_key" not in yaml_redacted
+
+
 def test_preset_file_targets(tmp_path):
     """Test that file paths in preset target/seeds/blacklist are resolved via PresetPath.
 
