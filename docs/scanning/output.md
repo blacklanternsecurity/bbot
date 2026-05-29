@@ -11,6 +11,32 @@ If you reuse a scan name, it will append to its original output files and levera
 
 Multiple simultaneous output formats are possible because of **output modules**. Output modules are similar to normal modules except they are enabled with `-om`.
 
+!!! warning "Always enable output modules with `-om`"
+    Configuring an output module in your preset or `bbot.yml` is **not enough on its own** — you must also enable it with `-om` on the command line, or add it to `output_modules:` in a preset.
+
+```bash
+    # correct — module is both configured and enabled
+    bbot -t evilcorp.com -om discord -c modules.discord.webhook_url=https://...
+
+    # incorrect — module is configured but never activated, nothing will be sent
+    bbot -t evilcorp.com
+```
+
+    To avoid typing `-om` every time, add the module to `output_modules:` in a preset file:
+
+```yaml title="my_preset.yml"
+    output_modules:
+      - discord
+    config:
+      modules:
+        discord:
+          webhook_url: https://discord.com/api/webhooks/1234/deadbeef
+```
+
+```bash
+    bbot -t evilcorp.com -p my_preset.yml
+```
+
 ### STDOUT
 
 The `stdout` output module is what you see when you execute BBOT in the terminal. By default it looks the same as the [`txt`](#txt) module, but it has options you can customize. You can filter by event type, choose the data format (`text`, `json`), and which fields you want to see:
@@ -88,23 +114,42 @@ mail.evilcorp.com
 
 ![bbot-discord](https://github.com/blacklanternsecurity/bbot/assets/20261699/6d88045c-8eac-43b6-8de9-c621ecf60c2d)
 
-BBOT supports output via webhooks to `discord`, `slack`, and `teams`. To use them, you must specify a webhook URL either in the config:
+BBOT supports output via webhooks to `discord`, `slack`, and `teams`.
+
+To send notifications you need two things: a **webhook URL** and the **`-om` flag** to activate the module. The simplest way is to pass both on the command line:
+
+```bash
+# Discord
+bbot -t evilcorp.com -om discord -c modules.discord.webhook_url=https://discord.com/api/webhooks/1234/deadbeef
+
+# Slack
+bbot -t evilcorp.com -om slack -c modules.slack.webhook_url=https://hooks.slack.com/services/T00/B00/XXXX
+
+# Teams
+bbot -t evilcorp.com -om teams -c modules.teams.webhook_url=https://your-org.webhook.office.com/webhookb2/...
+```
+
+You can also save the webhook URL in a preset so you don't have to retype it. **Note:** you still need to pass `-om` when running the scan, or include `output_modules:` in the preset itself:
 
 ```yaml title="discord_preset.yml"
+output_modules:
+  - discord
 config:
   modules:
     discord:
       webhook_url: https://discord.com/api/webhooks/1234/deadbeef
 ```
 
-...or on the command line:
 ```bash
-bbot -t evilcorp.com -om discord -c modules.discord.webhook_url=https://discord.com/api/webhooks/1234/deadbeef
+# -om is no longer needed because the preset already declares it
+bbot -t evilcorp.com -p discord_preset.yml
 ```
 
 By default, only `VULNERABILITY` and `FINDING` events are sent, but this can be customized by setting `event_types` in the config like so:
 
 ```yaml title="discord_preset.yml"
+output_modules:
+  - discord
 config:
   modules:
     discord:
@@ -123,6 +168,8 @@ You can also filter on the severity of `VULNERABILITY` events by setting `min_se
 
 
 ```yaml title="discord_preset.yml"
+output_modules:
+  - discord
 config:
   modules:
     discord:
