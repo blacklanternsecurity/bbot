@@ -588,7 +588,7 @@ class Scanner:
                 self.debug(f"Setup succeeded for {module.name} ({msg})")
                 succeeded.append(module.name)
             elif status is False:
-                self.warning(f"Setup hard-failed for {module.name}: {msg}")
+                self.error(f"Setup hard-failed for {module.name}: {msg}")
                 self.modules[module.name].set_error_state()
                 hard_failed.append(module.name)
             else:
@@ -714,7 +714,7 @@ class Scanner:
         if module._intercept:
             self.warning(f'Cannot kill module "{module_name}" because it is critical to the scan')
             return
-        module.set_error_state(message=message, clear_outgoing_queue=True)
+        module.set_error_state(message=message, clear_outgoing_queue=True, log_level="info")
         for proc in module._proc_tracker:
             with contextlib.suppress(Exception):
                 proc.send_signal(SIGINT)
@@ -756,6 +756,14 @@ class Scanner:
         mem_percent = mem_status.percent
         prev_delay = self._ingress_delay
         new_delay = self._compute_ingress_delay(mem_percent)
+        # if no module has work in flight or queued, ingress is the only drain — don't throttle it
+        drain_mode = not any(
+            (m.running or m.outgoing_event_queue.qsize() > 0 or m.num_incoming_events > 0)
+            for m in self.modules.values()
+            if not m._intercept
+        )
+        if drain_mode:
+            new_delay = 0.0
         self._ingress_delay = new_delay
         if mem_percent > self.max_mem_percent:
             free_memory_human = self.helpers.bytes_to_human(mem_status.available)
@@ -1360,7 +1368,7 @@ class Scanner:
             error_handler = GzipRotatingFileHandler(
                 str(self.home / "error.log"), maxBytes=1024 * 1024 * 100, backupCount=100
             )
-            error_handler.addFilter(lambda x: x.levelno == logging.TRACE or x.levelno >= logging.ERROR)
+            error_handler.addFilter(lambda x: x.levelno >= logging.ERROR and x.levelno != logging.TRACE)
             self.__log_handlers = [main_handler, debug_handler, error_handler]
         return self.__log_handlers
 
@@ -1402,9 +1410,9 @@ class Scanner:
                     self.verbose(f'Loaded module "{module_name}"')
                     continue
                 except Exception:
-                    self.warning(f"Failed to load module {module_class}")
+                    self.error(f"Failed to load module {module_class}")
             else:
-                self.warning(f'Failed to load unknown module "{module_name}"')
+                self.error(f'Failed to load unknown module "{module_name}"')
             failed.add(module_name)
         return loaded_modules, failed
 

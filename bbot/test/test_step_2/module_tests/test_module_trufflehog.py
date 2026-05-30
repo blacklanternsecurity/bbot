@@ -1,18 +1,49 @@
 import io
+import json
 import shutil
 import zipfile
 import tarfile
 import subprocess
 from pathlib import Path
 
+from werkzeug.wrappers import Response
+
 from .base import ModuleTestBase
 from bbot.test.bbot_fixtures import bbot_test_dir
 
 
+# Custom trufflehog detector that verifies against module_test.httpserver (127.0.0.1:8888),
+# so the test doesn't depend on external network reachability.
+TRUFFLEHOG_VERIFY_PATH = "/trufflehog-verify"
+TRUFFLEHOG_VERIFIED_TOKEN = "aaaaaaaaaaaaaaaa"
+TRUFFLEHOG_UNVERIFIED_TOKEN = "bbbbbbbbbbbbbbbb"
+TRUFFLEHOG_CUSTOM_CONFIG = f"""detectors:
+  - name: BBOTTestSecret
+    keywords:
+      - BBOTTEST
+    regex:
+      key: 'BBOTTEST-([A-Za-z0-9]{{16}})'
+    verify:
+      - endpoint: http://127.0.0.1:8888{TRUFFLEHOG_VERIFY_PATH}
+        unsafe: true
+"""
+
+
+def _trufflehog_verify_handler(request):
+    payload = json.loads(request.get_data() or b"{}")
+    # trufflehog posts {"<DetectorName>": {"<group>": ["<full match>", "<group capture>"]}}
+    captures = payload.get("BBOTTestSecret", {}).get("key", [])
+    if len(captures) >= 2 and captures[1] == TRUFFLEHOG_VERIFIED_TOKEN:
+        return Response("ok", status=200)
+    return Response("no", status=401)
+
+
 class TestTrufflehog(ModuleTestBase):
     download_dir = bbot_test_dir / "test_trufflehog"
+    trufflehog_config_path = bbot_test_dir / "trufflehog_custom_config.yaml"
     config_overrides = {
         "modules": {
+            "trufflehog": {"config": str(trufflehog_config_path)},
             "postman_download": {"api_key": "asdf", "output_folder": str(download_dir)},
             "docker_pull": {"output_folder": str(download_dir)},
             "github_org": {"api_key": "asdf"},
@@ -31,9 +62,13 @@ class TestTrufflehog(ModuleTestBase):
         "trufflehog",
     ]
 
-    file_content = "Verifiable Secret:\nhttps://admin:admin@the-internet.herokuapp.com/basic_auth\n\nUnverifiable Secret:\nhttps://admin:admin@internal.host.com"
+    file_content = (
+        f"Verifiable Secret:\nBBOTTEST-{TRUFFLEHOG_VERIFIED_TOKEN}\n\n"
+        f"Unverifiable Secret:\nBBOTTEST-{TRUFFLEHOG_UNVERIFIED_TOKEN}"
+    )
 
     async def setup_before_prep(self, module_test):
+        self.trufflehog_config_path.write_text(TRUFFLEHOG_CUSTOM_CONFIG)
         module_test.blasthttp_mock.add_response(
             url="https://api.github.com/zen", match_headers={"Authorization": "token asdf"}
         )
@@ -862,6 +897,9 @@ class TestTrufflehog(ModuleTestBase):
         )
 
     async def setup_after_prep(self, module_test):
+        module_test.httpserver.expect_request(uri=TRUFFLEHOG_VERIFY_PATH, method="POST").respond_with_handler(
+            _trufflehog_verify_handler
+        )
         module_test.blasthttp_mock.add_response(
             url="https://www.postman.com/_api/ws/proxy",
             match_json={
@@ -1088,12 +1126,9 @@ class TestTrufflehog(ModuleTestBase):
                                 "header": [{"key": "Content-Type", "value": "application/json"}],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": '{"username": "test", "password": "Test"}',
+                                    "raw": f"verifiable: BBOTTEST-{TRUFFLEHOG_VERIFIED_TOKEN}",
                                 },
-                                "url": {
-                                    "raw": "https://admin:admin@the-internet.herokuapp.com/basic_auth",
-                                    "host": ["https://admin:admin@the-internet.herokuapp.com/basic_auth"],
-                                },
+                                "url": {"raw": "https://example.com/", "host": ["https://example.com/"]},
                                 "description": "",
                             },
                             "response": [],
@@ -1108,12 +1143,9 @@ class TestTrufflehog(ModuleTestBase):
                                 "header": [{"key": "Content-Type", "value": "application/json"}],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": '{"username": "test", "password": "Test"}',
+                                    "raw": f"unverifiable: BBOTTEST-{TRUFFLEHOG_UNVERIFIED_TOKEN}",
                                 },
-                                "url": {
-                                    "raw": "https://admin:admin@internal.host.com",
-                                    "host": ["https://admin:admin@internal.host.com"],
-                                },
+                                "url": {"raw": "https://example.com/", "host": ["https://example.com/"]},
                                 "description": "",
                             },
                             "response": [],
@@ -1165,8 +1197,7 @@ class TestTrufflehog(ModuleTestBase):
                 or e.data["host"] == "www.postman.com"
             )
             and "Verified Secret Found." in e.data["description"]
-            and "Raw result: [https://admin:admin@the-internet.herokuapp.com]" in e.data["description"]
-            and "RawV2 result: [https://admin:admin@the-internet.herokuapp.com/basic_auth]" in e.data["description"]
+            and f"Raw result: [{TRUFFLEHOG_VERIFIED_TOKEN}]" in e.data["description"]
         ]
 
         # Trufflehog should find 4 verifiable secrets, 1 from the github, 1 from the workflow log, 1 from the docker image and 1 from the postman.
@@ -1219,7 +1250,7 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
     download_dir = bbot_test_dir / "test_trufflehog_nonverified"
     config_overrides = {
         "modules": {
-            "trufflehog": {"only_verified": False},
+            "trufflehog": {"only_verified": False, "config": str(TestTrufflehog.trufflehog_config_path)},
             "docker_pull": {"output_folder": str(download_dir)},
             "postman_download": {"api_key": "asdf", "output_folder": str(download_dir)},
             "github_org": {"api_key": "asdf"},
@@ -1238,7 +1269,7 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
                 or e.data["host"] == "www.postman.com"
             )
             and "Possible Secret Found." in e.data["description"]
-            and "Raw result: [https://admin:admin@internal.host.com]" in e.data["description"]
+            and f"Raw result: [{TRUFFLEHOG_UNVERIFIED_TOKEN}]" in e.data["description"]
         ]
         # Trufflehog should find 4 unverifiable secrets, 1 from the github, 1 from the workflow log, 1 from the docker image and 1 from the postman.
         assert 4 == len(finding_events), "Failed to find secret in events"
