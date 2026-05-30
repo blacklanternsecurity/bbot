@@ -1360,7 +1360,7 @@ class Scanner:
             error_handler = GzipRotatingFileHandler(
                 str(self.home / "error.log"), maxBytes=1024 * 1024 * 100, backupCount=100
             )
-            error_handler.addFilter(lambda x: x.levelno == logging.TRACE or x.levelno >= logging.ERROR)
+            error_handler.addFilter(lambda x: x.levelno >= logging.ERROR and x.levelno != logging.TRACE)
             self.__log_handlers = [main_handler, debug_handler, error_handler]
         return self.__log_handlers
 
