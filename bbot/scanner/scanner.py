@@ -756,6 +756,14 @@ class Scanner:
         mem_percent = mem_status.percent
         prev_delay = self._ingress_delay
         new_delay = self._compute_ingress_delay(mem_percent)
+        # if no module has work in flight or queued, ingress is the only drain — don't throttle it
+        drain_mode = not any(
+            (m.running or m.outgoing_event_queue.qsize() > 0 or m.num_incoming_events > 0)
+            for m in self.modules.values()
+            if not m._intercept
+        )
+        if drain_mode:
+            new_delay = 0.0
         self._ingress_delay = new_delay
         if mem_percent > self.max_mem_percent:
             free_memory_human = self.helpers.bytes_to_human(mem_status.available)
