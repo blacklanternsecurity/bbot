@@ -588,7 +588,7 @@ class Scanner:
                 self.debug(f"Setup succeeded for {module.name} ({msg})")
                 succeeded.append(module.name)
             elif status is False:
-                self.warning(f"Setup hard-failed for {module.name}: {msg}")
+                self.error(f"Setup hard-failed for {module.name}: {msg}")
                 self.modules[module.name].set_error_state()
                 hard_failed.append(module.name)
             else:
@@ -714,7 +714,7 @@ class Scanner:
         if module._intercept:
             self.warning(f'Cannot kill module "{module_name}" because it is critical to the scan')
             return
-        module.set_error_state(message=message, clear_outgoing_queue=True)
+        module.set_error_state(message=message, clear_outgoing_queue=True, log_level="info")
         for proc in module._proc_tracker:
             with contextlib.suppress(Exception):
                 proc.send_signal(SIGINT)
@@ -1402,9 +1402,9 @@ class Scanner:
                     self.verbose(f'Loaded module "{module_name}"')
                     continue
                 except Exception:
-                    self.warning(f"Failed to load module {module_class}")
+                    self.error(f"Failed to load module {module_class}")
             else:
-                self.warning(f'Failed to load unknown module "{module_name}"')
+                self.error(f'Failed to load unknown module "{module_name}"')
             failed.add(module_name)
         return loaded_modules, failed
 

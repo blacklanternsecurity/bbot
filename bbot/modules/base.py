@@ -1069,36 +1069,30 @@ class BaseModule:
         except AttributeError:
             self.debug("Not in an acceptable state to queue outgoing event")
 
-    def set_error_state(self, message=None, clear_outgoing_queue=False, critical=False):
+    def set_error_state(self, message=None, clear_outgoing_queue=False, critical=False, log_level="error"):
         """
-        Puts the module into an errored state where it cannot accept new events. Optionally logs a warning message.
-
-        The function sets the module's `errored` attribute to True and logs a warning with the optional message.
-        It also clears the incoming event queue to prevent further processing and updates its status to False.
+        Puts the module into an errored state where it cannot accept new events. Optionally logs a message.
 
         Args:
-            message (str, optional): Additional message to be logged along with the warning.
-
-        Returns:
-            None: The function doesn't return anything but updates the `errored` state and clears the incoming event queue.
+            message (str, optional): Additional message to log alongside the state transition.
+            clear_outgoing_queue (bool): Drain the outgoing event queue as well.
+            critical (bool): Log at CRITICAL severity (overrides log_level).
+            log_level (str): Severity to log at when not critical. Use "info" or "verbose" for intentional
+                stops (e.g. user-initiated kill) so they don't appear in error.log.
 
         Examples:
             >>> self.set_error_state()
             >>> self.set_error_state("Failed to connect to the server")
-
-        Notes:
-            - The function sets `self._incoming_event_queue` to False to prevent its further use.
-            - If the module was already in an errored state, the function will not reset the error state or the queue.
+            >>> self.set_error_state("killed by user", log_level="info")
         """
         if not self.errored:
             log_msg = "Setting error state"
             if message is not None:
                 log_msg += f": {message}"
             if critical:
-                log_fn = self.error
+                self.critical(log_msg, trace=False)
             else:
-                log_fn = self.warning
-            log_fn(log_msg)
+                getattr(self, log_level)(log_msg)
             self.errored = True
             # clear incoming queue
             if self.incoming_event_queue is not False:
