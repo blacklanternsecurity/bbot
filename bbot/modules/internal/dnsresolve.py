@@ -43,6 +43,7 @@ class DNSResolve(BaseInterceptModule):
 
         self.host_module = self.HostModule(self.scan)
         self.children_emitted = set()
+        self.in_scope_children = set()
         self.child_edges_emitted = set()
         self.children_emitted_raw = set()
         self.hosts_resolved = set()
@@ -216,18 +217,17 @@ class DNSResolve(BaseInterceptModule):
                     child_event.add_tag("ptr")
 
                 child_hash = hash(f"{module}:{child_host}")
-                child_in_scope = self.preset.in_scope(child_host)
-                # parent-aware key: tells a genuinely new parent->child edge apart from the same
-                # host being re-processed (children_emitted drops the parent, so it can't). only
-                # in-scope edges are ever re-emitted for the graph, so only those are tracked.
-                edge_hash = hash(f"{event.host}:{module}:{child_host}")
                 # if we haven't emitted this one before
                 if child_hash not in self.children_emitted:
+                    child_in_scope = self.preset.in_scope(child_host)
                     # and it's either in-scope or inside our dns search distance
                     if child_in_scope or child_event.scope_distance <= self._dns_search_distance:
                         self.children_emitted.add(child_hash)
                         if child_in_scope:
-                            self.child_edges_emitted.add(edge_hash)
+                            # remember in-scope children (so cross-parent dups are recognized without
+                            # a second scope lookup) and record this parent->child edge
+                            self.in_scope_children.add(child_hash)
+                            self.child_edges_emitted.add(hash(f"{event.host}:{module}:{child_host}"))
                         # if it's a hostname and it's only one hop away, mark it as affiliate
                         if child_event.type == "DNS_NAME" and child_event.scope_distance == 1:
                             child_event.add_tag("affiliate")
@@ -236,12 +236,19 @@ class DNSResolve(BaseInterceptModule):
                 # the child entity was already emitted, but a genuinely new in-scope parent->child
                 # edge is worth preserving for graph outputs (neo4j/json) so shared in-scope
                 # infrastructure keeps every edge. out-of-scope dups and same-parent re-processing
-                # fall through here and stay collapsed.
-                elif child_in_scope and edge_hash not in self.child_edges_emitted:
-                    self.child_edges_emitted.add(edge_hash)
-                    child_event._graph_important = True
-                    self.debug(f"Queueing graph-important DNS child edge for {event}: {child_event}")
-                    await self.emit_event(child_event)
+                # stay collapsed (out-of-scope children never enter in_scope_children).
+                elif child_hash in self.in_scope_children:
+                    # parent-aware key: tells a genuinely new parent->child edge apart from the same
+                    # host being re-processed (children_emitted drops the parent, so it can't)
+                    edge_hash = hash(f"{event.host}:{module}:{child_host}")
+                    if edge_hash not in self.child_edges_emitted:
+                        self.child_edges_emitted.add(edge_hash)
+                        # _graph_important must imply the event reaches output; an omitted type is
+                        # dropped there regardless, so don't flag it (keeps _graph_important => not _omit)
+                        if child_event.type not in self.scan.omitted_event_types:
+                            child_event._graph_important = True
+                            self.debug(f"Queueing graph-important DNS child edge for {event}: {child_event}")
+                            await self.emit_event(child_event)
 
     async def emit_dns_children_raw(self, event, dns_tags):
         for rdtype, answers in event.raw_dns_records.items():

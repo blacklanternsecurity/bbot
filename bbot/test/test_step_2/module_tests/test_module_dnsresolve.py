@@ -220,6 +220,55 @@ class TestDNSResolveInScopeSharedInfraGraphFidelity(ModuleTestBase):
         )
 
 
+class TestDNSResolveOmittedSharedInfraNotGraphImportant(ModuleTestBase):
+    """
+    Cross-parent edge re-emission must keep the rule that a graph-important event is never
+    omitted (graph outputs force these in; an omitted child is dropped at output regardless).
+
+    Same in-scope shared infra as TestDNSResolveInScopeSharedInfraGraphFidelity, but DNS_NAME is
+    omitted. dnsresolve must not flag the re-emitted cross-parent edges _graph_important, otherwise
+    they become the omit + graph-important combination the graph machinery assumes is unreachable.
+    """
+
+    module_name = "dnsresolve"
+    modules_overrides = ["dnsresolve", "json"]
+    targets = ["domain-a.test", "domain-b.test", "domain-c.test"]
+    config_overrides = {"dns": {"minimal": False}, "omit_event_types": ["DNS_NAME"]}
+
+    async def setup_after_prep(self, module_test):
+        shared_ns = ["ns1.domain-a.test.", "ns2.domain-a.test."]
+        shared_soa = ["ns1.domain-a.test. admin.domain-a.test. 1 7200 3600 1209600 3600"]
+        await module_test.mock_dns(
+            {
+                "domain-a.test": {"A": ["192.168.0.1"], "NS": shared_ns, "SOA": shared_soa},
+                "domain-b.test": {"A": ["192.168.0.2"], "NS": shared_ns, "SOA": shared_soa},
+                "domain-c.test": {"A": ["192.168.0.3"], "NS": shared_ns, "SOA": shared_soa},
+                "ns1.domain-a.test": {"A": ["192.168.99.1"]},
+                "ns2.domain-a.test": {"A": ["192.168.99.2"]},
+            }
+        )
+
+        # snapshot (type, graph_important) for every event dnsresolve emits, at emit time
+        self.emitted = []
+        dnsresolve = module_test.scan.modules["dnsresolve"]
+        original_emit = dnsresolve.emit_event
+
+        async def recording_emit(*args, **kwargs):
+            if args and hasattr(args[0], "_graph_important"):
+                self.emitted.append((args[0].type, args[0]._graph_important))
+            return await original_emit(*args, **kwargs)
+
+        module_test.monkeypatch.setattr(dnsresolve, "emit_event", recording_emit)
+
+    def check(self, module_test, events):
+        omitted = set(module_test.scan.omitted_event_types)
+        violations = [t for t, graph_important in self.emitted if graph_important and t in omitted]
+        assert not violations, (
+            f"dnsresolve emitted graph-important events of an omitted type {violations} "
+            f"(violates the _graph_important => not _omit rule)"
+        )
+
+
 class TestDNSResolveFilterPTRsDisabled(ModuleTestBase):
     """Test that PTR-derived hostnames ARE promoted to in-scope when filter_ptrs is disabled."""
 
