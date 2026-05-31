@@ -114,3 +114,49 @@ class TestDNSCommonSRV(ModuleTestBase):
         assert 9 == len([e for e in events if e.type == "DNS_NAME"])
         assert 5 == len([e for e in events if e.type == "DNS_NAME_UNRESOLVED"])
         assert 5 == len([e for e in events if e.type == "DNS_NAME_UNRESOLVED" and str(e.module) == "speculate"])
+
+
+class TestDNSCommonSRVMutationFilterDefault(ModuleTestBase):
+    """By default (recursive_mutations=False) mutation-tagged events are rejected."""
+
+    module_name = "dnscommonsrv"
+    targets = ["blacklanternsecurity.com"]
+
+    async def setup_after_prep(self, module_test):
+        await module_test.mock_dns({"blacklanternsecurity.com": {"A": ["1.2.3.4"]}})
+        event = module_test.scan.make_event(
+            "mut.blacklanternsecurity.com",
+            "DNS_NAME",
+            parent=module_test.scan.root_event,
+            tags=["mutation-1"],
+        )
+        event.scope_distance = 0
+        result, reason = await module_test.module.filter_event(event)
+        assert result is False
+        assert reason == "event was discovered by dnsbrute_mutations and recursive_mutations is False"
+
+    def check(self, module_test, events):
+        pass
+
+
+class TestDNSCommonSRVRecursiveMutations(ModuleTestBase):
+    """With recursive_mutations=True the mutation tag no longer rejects the event."""
+
+    module_name = "dnscommonsrv"
+    targets = ["blacklanternsecurity.com"]
+    config_overrides = {"modules": {"dnscommonsrv": {"recursive_mutations": True}}}
+
+    async def setup_after_prep(self, module_test):
+        await module_test.mock_dns({"blacklanternsecurity.com": {"A": ["1.2.3.4"]}})
+        event = module_test.scan.make_event(
+            "mut.blacklanternsecurity.com",
+            "DNS_NAME",
+            parent=module_test.scan.root_event,
+            tags=["mutation-1"],
+        )
+        event.scope_distance = 0
+        result = await module_test.module.filter_event(event)
+        assert result is True
+
+    def check(self, module_test, events):
+        pass
