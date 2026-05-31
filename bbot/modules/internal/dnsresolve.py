@@ -132,10 +132,14 @@ class DNSResolve(BaseInterceptModule):
             )
             main_host_event.add_tag(f"runaway-dns-{dns_resolve_distance}")
         else:
-            # emit dns children
-            await self.emit_dns_children_raw(main_host_event, dns_tags)
-            if not self.minimal:
-                await self.emit_dns_children(main_host_event)
+            # graph-important events are edge-only re-emissions of an already-processed host;
+            # skip re-walking their children (the canonical emission already did so, and
+            # re-walking would re-emit the same cross-parent edges once per parent)
+            if not event._graph_important:
+                # emit dns children
+                await self.emit_dns_children_raw(main_host_event, dns_tags)
+                if not self.minimal:
+                    await self.emit_dns_children(main_host_event)
 
             # emit the main DNS_NAME or IP_ADDRESS
             if (
@@ -221,6 +225,14 @@ class DNSResolve(BaseInterceptModule):
                             child_event.add_tag("affiliate")
                         self.debug(f"Queueing DNS child for {event}: {child_event}")
                         await self.emit_event(child_event)
+                # already emitted under another parent: the child entity is the same, but this
+                # parent->child edge is distinct. preserve it for graph outputs (neo4j/json) when
+                # the child is in-scope, so shared in-scope infrastructure keeps every edge.
+                # out-of-scope affiliate dups fall through here and stay collapsed.
+                elif self.preset.in_scope(child_host):
+                    child_event._graph_important = True
+                    self.debug(f"Queueing graph-important DNS child edge for {event}: {child_event}")
+                    await self.emit_event(child_event)
 
     async def emit_dns_children_raw(self, event, dns_tags):
         for rdtype, answers in event.raw_dns_records.items():

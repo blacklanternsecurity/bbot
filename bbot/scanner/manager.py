@@ -271,10 +271,16 @@ class ScanEgress(BaseInterceptModule):
         if -1 < event.scope_distance < 1:
             self.scan.word_cloud.absorb_event(event)
 
-        for mod in self.scan.modules.values():
+        for module in self.scan.modules.values():
             # don't distribute events to intercept modules
-            if not mod._intercept:
-                await mod.queue_event(event)
+            if module._intercept:
+                continue
+            # graph-important events are duplicates re-emitted only to preserve graph structure.
+            # a module that isn't graph-preserving and doesn't accept dupes would just drop them
+            # at its postcheck, so skip queueing entirely and avoid the churn (outcome unchanged)
+            if event._graph_important and not (module.preserve_graph or module.accept_dupes):
+                continue
+            await module.queue_event(event)
 
         # if no module accepted this event, minimize it now
         if event._module_consumers <= 0:
