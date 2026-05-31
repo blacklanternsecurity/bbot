@@ -55,7 +55,7 @@ class TestDNSCommonSRV(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        assert len(events) == 19
+        assert len(events) == 20
         assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "blacklanternsecurity.com"])
         assert 1 == len(
             [
@@ -75,11 +75,15 @@ class TestDNSCommonSRV(ModuleTestBase):
                 and str(e.module) == "dnscommonsrv"
             ]
         ), "Failed to detect subdomain 2"
-        # cross-parent (rdtype, child) dedup in DNSResolve.emit_dns_children collapses
-        # the two SRV->asdf edges into a single DNS_NAME event
-        assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "asdf.blacklanternsecurity.com"]), (
-            "Failed to detect subdomain 3"
-        )
+        # asdf.blacklanternsecurity.com is in-scope shared infrastructure: the SRV target of two
+        # different in-scope _ldap records. both parent->child edges are preserved for graph output
+        # (the second as a graph-important re-emission), so it produces two DNS_NAME events.
+        asdf_events = [e for e in events if e.type == "DNS_NAME" and e.data == "asdf.blacklanternsecurity.com"]
+        assert 2 == len(asdf_events), "Failed to detect subdomain 3"
+        assert {str(e.parent.data) for e in asdf_events} == {
+            "_ldap._tcp.gc._msdcs.blacklanternsecurity.com",
+            "_ldap._tcp.gc._msdcs.api.blacklanternsecurity.com",
+        }, "in-scope shared SRV target should keep both cross-parent edges"
         assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "api.blacklanternsecurity.com"]), (
             "Failed to detect subdomain 4"
         )
@@ -111,7 +115,7 @@ class TestDNSCommonSRV(ModuleTestBase):
             ]
         ), "Failed to emit RAW_DNS_RECORD for _ldap._tcp.gc._msdcs.blacklanternsecurity.com"
         assert 2 == len([e for e in events if e.type == "RAW_DNS_RECORD"])
-        assert 9 == len([e for e in events if e.type == "DNS_NAME"])
+        assert 10 == len([e for e in events if e.type == "DNS_NAME"])
         assert 5 == len([e for e in events if e.type == "DNS_NAME_UNRESOLVED"])
         assert 5 == len([e for e in events if e.type == "DNS_NAME_UNRESOLVED" and str(e.module) == "speculate"])
 
