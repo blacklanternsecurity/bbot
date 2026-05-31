@@ -43,6 +43,7 @@ class DNSResolve(BaseInterceptModule):
 
         self.host_module = self.HostModule(self.scan)
         self.children_emitted = set()
+        self.child_edges_emitted = set()
         self.children_emitted_raw = set()
         self.hosts_resolved = set()
 
@@ -215,21 +216,29 @@ class DNSResolve(BaseInterceptModule):
                     child_event.add_tag("ptr")
 
                 child_hash = hash(f"{module}:{child_host}")
+                child_in_scope = self.preset.in_scope(child_host)
+                # parent-aware key: tells a genuinely new parent->child edge apart from the same
+                # host being re-processed (children_emitted drops the parent, so it can't). only
+                # in-scope edges are ever re-emitted for the graph, so only those are tracked.
+                edge_hash = hash(f"{event.host}:{module}:{child_host}")
                 # if we haven't emitted this one before
                 if child_hash not in self.children_emitted:
                     # and it's either in-scope or inside our dns search distance
-                    if self.preset.in_scope(child_host) or child_event.scope_distance <= self._dns_search_distance:
+                    if child_in_scope or child_event.scope_distance <= self._dns_search_distance:
                         self.children_emitted.add(child_hash)
+                        if child_in_scope:
+                            self.child_edges_emitted.add(edge_hash)
                         # if it's a hostname and it's only one hop away, mark it as affiliate
                         if child_event.type == "DNS_NAME" and child_event.scope_distance == 1:
                             child_event.add_tag("affiliate")
                         self.debug(f"Queueing DNS child for {event}: {child_event}")
                         await self.emit_event(child_event)
-                # already emitted under another parent: the child entity is the same, but this
-                # parent->child edge is distinct. preserve it for graph outputs (neo4j/json) when
-                # the child is in-scope, so shared in-scope infrastructure keeps every edge.
-                # out-of-scope affiliate dups fall through here and stay collapsed.
-                elif self.preset.in_scope(child_host):
+                # the child entity was already emitted, but a genuinely new in-scope parent->child
+                # edge is worth preserving for graph outputs (neo4j/json) so shared in-scope
+                # infrastructure keeps every edge. out-of-scope dups and same-parent re-processing
+                # fall through here and stay collapsed.
+                elif child_in_scope and edge_hash not in self.child_edges_emitted:
+                    self.child_edges_emitted.add(edge_hash)
                     child_event._graph_important = True
                     self.debug(f"Queueing graph-important DNS child edge for {event}: {child_event}")
                     await self.emit_event(child_event)
