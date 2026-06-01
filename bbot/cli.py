@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import io
+import os
 import sys
 import logging
 import multiprocessing
@@ -11,16 +12,22 @@ from bbot.core.helpers.misc import chain_lists
 
 
 if multiprocessing.current_process().name == "MainProcess":
+    # the --no-color flag is parsed later, so honor it (and the NO_COLOR env) before any color is printed
+    no_color = "--no-color" in sys.argv or bool(os.environ.get("NO_COLOR", ""))
+    if no_color:
+        os.environ["NO_COLOR"] = "1"
     silent = "-s" in sys.argv or "--silent" in sys.argv
 
     if not silent:
-        ascii_art = rf""" [1;38;5;208m ______ [0m _____   ____ _______
- [1;38;5;208m|  ___ \[0m|  __ \ / __ \__   __|
- [1;38;5;208m| |___) [0m| |__) | |  | | | |
- [1;38;5;208m|  ___ <[0m|  __ <| |  | | | |
- [1;38;5;208m| |___) [0m| |__) | |__| | | |
- [1;38;5;208m|______/[0m|_____/ \____/  |_|
- [1;38;5;208mBIGHUGE[0m BLS OSINT TOOL {__version__}
+        o = "" if no_color else "\033[1;38;5;208m"
+        e = "" if no_color else "\033[0m"
+        ascii_art = rf""" {o} ______ {e} _____   ____ _______
+ {o}|  ___ \{e}|  __ \ / __ \__   __|
+ {o}| |___) {e}| |__) | |  | | | |
+ {o}|  ___ <{e}|  __ <| |  | | | |
+ {o}| |___) {e}| |__) | |__| | | |
+ {o}|______/{e}|_____/ \____/  |_|
+ {o}BIGHUGE{e} BLS OSINT TOOL {__version__}
 
 www.blacklanternsecurity.com/bbot
 """
