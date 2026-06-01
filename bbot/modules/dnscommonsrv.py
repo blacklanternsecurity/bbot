@@ -10,8 +10,11 @@ class dnscommonsrv(subdomain_enum):
     dedup_strategy = "lowest_parent"
     deps_common = ["massdns"]
 
-    options = {"max_depth": 2}
-    options_desc = {"max_depth": "The maximum subdomain depth to brute-force SRV records"}
+    options = {"max_depth": 2, "recursive_mutations": False}
+    options_desc = {
+        "max_depth": "The maximum subdomain depth to brute-force SRV records",
+        "recursive_mutations": "If True, brute-force SRV records on hosts discovered by dnsbrute_mutations. Default False skips them.",
+    }
 
     async def setup(self):
         self.max_subdomain_depth = self.config.get("max_depth", 2)
@@ -19,6 +22,8 @@ class dnscommonsrv(subdomain_enum):
         return True
 
     async def filter_event(self, event):
+        if not self.config.get("recursive_mutations", True) and any(t.startswith("mutation-") for t in event.tags):
+            return False, "event was discovered by dnsbrute_mutations and recursive_mutations is False"
         subdomain_depth = self.helpers.subdomain_depth(event.host)
         if subdomain_depth > self.max_subdomain_depth:
             return False, f"its subdomain depth ({subdomain_depth}) exceeds max_depth={self.max_subdomain_depth}"

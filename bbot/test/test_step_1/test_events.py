@@ -397,11 +397,27 @@ async def test_events(events, helpers):
             dummy=True,
         )
 
-    # test confidence colors and formatting
+    # test the standardized finding color palette
     from bbot.core.event.base import FINDING
 
-    expected_colors = {"CONFIRMED": "🟣", "HIGH": "🔴", "MEDIUM": "🟠", "LOW": "🟡", "UNKNOWN": "⚪"}
-    assert FINDING.confidence_colors == expected_colors
+    assert FINDING.confidence_colors_emoji == {
+        "CONFIRMED": "🟣",
+        "HIGH": "🔴",
+        "MEDIUM": "🟠",
+        "LOW": "🟡",
+        "UNKNOWN": "⚪",
+    }
+    assert FINDING.severity_colors_emoji == {
+        "INFO": "🟦",
+        "LOW": "🟨",
+        "MEDIUM": "🟧",
+        "HIGH": "🟥",
+        "CRITICAL": "🟪",
+    }
+    assert FINDING.severity_colors_rgb["INFO"] == (113, 161, 255)
+    assert FINDING.severity_colors_rgb["CRITICAL"] == (207, 0, 255)
+    assert set(FINDING.confidence_brightness) == {"CONFIRMED", "HIGH", "MEDIUM", "LOW", "UNKNOWN"}
+    assert FINDING.severity_card_colors["CRITICAL"] == "Attention"
 
     # test CONFIRMED gets bold formatting
     confirmed_finding = scan.make_event(
