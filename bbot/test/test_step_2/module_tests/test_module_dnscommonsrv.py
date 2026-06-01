@@ -75,9 +75,15 @@ class TestDNSCommonSRV(ModuleTestBase):
                 and str(e.module) == "dnscommonsrv"
             ]
         ), "Failed to detect subdomain 2"
-        assert 2 == len([e for e in events if e.type == "DNS_NAME" and e.data == "asdf.blacklanternsecurity.com"]), (
-            "Failed to detect subdomain 3"
-        )
+        # asdf.blacklanternsecurity.com is in-scope shared infrastructure: the SRV target of two
+        # different in-scope _ldap records. both parent->child edges are preserved for graph output
+        # (the second as a graph-important re-emission), so it produces two DNS_NAME events.
+        asdf_events = [e for e in events if e.type == "DNS_NAME" and e.data == "asdf.blacklanternsecurity.com"]
+        assert 2 == len(asdf_events), "Failed to detect subdomain 3"
+        assert {str(e.parent.data) for e in asdf_events} == {
+            "_ldap._tcp.gc._msdcs.blacklanternsecurity.com",
+            "_ldap._tcp.gc._msdcs.api.blacklanternsecurity.com",
+        }, "in-scope shared SRV target should keep both cross-parent edges"
         assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "api.blacklanternsecurity.com"]), (
             "Failed to detect subdomain 4"
         )
