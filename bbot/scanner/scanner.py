@@ -183,14 +183,19 @@ class Scanner:
 
         # :)
         if self.name == "golden_gus":
+            import os
             from base64 import b64decode as _d
 
             _a = _d(
                 "ICAgICAgICAgICAgICBfX18KICAqd29vZiogIF9fL18gIGAuICAuLSIiIi0uCiAgICAgICAgICBcXyxgIHwgXC0nICAvICAgKWAtJykKICAgICAgICAgICAiIikgImAiICAgIFwgICgoImAiCiAgICAgICAgICBfX19ZICAsICAgIC4nNyAvfAogICAgICAgICAoXyxfX18vLi4uLWAgKF8vXy8="
             ).decode()
             _m = _d("R3VzIGhhcyBibGVzc2VkIHlvdXIgc2Nhbi4=").decode()
+            no_color = bool(os.environ.get("NO_COLOR", ""))
+            gold = "" if no_color else "\033[1;38;5;220m"
+            green = "" if no_color else "\033[1;38;5;118m"
+            reset = "" if no_color else "\033[0m"
             log_to_stderr(
-                f"\033[1;38;5;220m{_a}\033[0m\n          \033[1;38;5;118m{_m}\033[0m",
+                f"{gold}{_a}{reset}\n          {green}{_m}{reset}",
                 level="HUGESUCCESS",
                 logname=False,
             )
