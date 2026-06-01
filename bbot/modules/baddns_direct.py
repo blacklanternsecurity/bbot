@@ -17,7 +17,7 @@ class baddns_direct(baddns_module):
         "min_confidence": "Minimum confidence to emit (UNKNOWN, LOW, MEDIUM, HIGH, CONFIRMED)",
     }
     module_threads = 8
-    deps_pip = ["baddns~=2.1.0"]
+    deps_pip = ["baddns~=2.3.0"]
 
     scope_distance_modifier = 1
 
@@ -27,7 +27,7 @@ class baddns_direct(baddns_module):
     async def handle_event(self, event):
         CNAME_direct_module = self.select_modules()[0]
         kwargs = {
-            "http_client_class": self.scan.helpers.web.AsyncClient,
+            "http_client": self.helpers.blasthttp,
             "dns_client": self.scan.helpers.dns.blastdns,
             "custom_nameservers": self.custom_nameservers,
             "signatures": self.signatures,

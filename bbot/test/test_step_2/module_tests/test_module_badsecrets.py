@@ -30,7 +30,7 @@ class TestBadSecrets(ModuleTestBase):
 <p><input type="hidden" name="javax.faces.ViewState" id="j_id__v_0:javax.faces.ViewState:1" value="AHo0wmLu5ceItIi+I7XkEi1GAb4h12WZ894pA+Z4OH7bco2jXEy1RSCWwjtJcZNbWPcvPqL5zzfl03DoeMZfGGX7a9PSv+fUT8MAeKNouAGj1dZuO8srXt8xZIGg+wPCWWCzcX6IhWOtgWUwiXeSojCDTKXklsYt+kAAAAk5wOsXvb2lTJoO0Q==" autocomplete="off" />
 """
 
-    modules_overrides = ["badsecrets", "httpx"]
+    modules_overrides = ["badsecrets", "http"]
 
     async def setup_after_prep(self, module_test):
         expect_args = {"uri": "/test.aspx"}
@@ -141,7 +141,7 @@ class TestBadSecrets_JWTIdentifyOnly(ModuleTestBase):
         "http://127.0.0.1:8888/vuln_jwt.aspx",
         "http://127.0.0.1:8888/safe_jwt.aspx",
     ]
-    modules_overrides = ["badsecrets", "httpx"]
+    modules_overrides = ["badsecrets", "http"]
 
     # JWT signed with a secret NOT in badsecrets' wordlists (will produce IdentifyOnly)
     safe_jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0In0.BHvEIdlrTFS4VXvT9nUOycVzokhfIYSxJa7DXNz_h0o"

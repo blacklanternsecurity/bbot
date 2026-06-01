@@ -3,3 +3,4 @@ __pycache__/
 /data/
 /neo4j/
 .DS_Store
+pytest_debug.log

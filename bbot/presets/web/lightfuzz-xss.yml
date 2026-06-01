@@ -1,7 +1,7 @@
 description: "XSS-only: enables only the xss submodule with paramminer_getparams and reflected_parameters. POST disabled, no query string collapsing. Example of a focused single-submodule preset."
 
 modules:
-  - httpx
+  - http
   - lightfuzz
   - paramminer_getparams
   - reflected_parameters

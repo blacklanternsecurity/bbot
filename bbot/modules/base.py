@@ -73,7 +73,7 @@ class BaseModule:
 
         _stats_exclude (bool): Whether to exclude this module from scan statistics. Default is False.
 
-        _disable_auto_module_deps (bool): Whether to disable automatic module dependencies. This is useful e.g. if the module consumes URLs, but you don't want to automatically enable the httpx module. Default is False.
+        _disable_auto_module_deps (bool): Whether to disable automatic module dependencies. This is useful e.g. if the module consumes URLs, but you don't want to automatically enable the blasthttp module. Default is False.
 
         _qsize (int): Outgoing queue size (0 for infinite). Default is 0.
 
@@ -661,8 +661,8 @@ class BaseModule:
                 break
             try:
                 event = self.incoming_event_queue.get_nowait()
-                self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
-                acceptable, reason = await self._event_postcheck(event)
+                async with self._task_counter.count(f"event_postcheck({event})"):
+                    acceptable, reason = await self._event_postcheck(event)
                 if acceptable:
                     if event.type == "FINISHED":
                         finish = True
@@ -766,7 +766,6 @@ class BaseModule:
                                 break
                         except asyncio.queues.QueueEmpty:
                             continue
-                        self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
                         try:
                             async with self._task_counter.count(f"event_postcheck({event})"):
                                 acceptable, reason = await self._event_postcheck(event)
@@ -781,7 +780,7 @@ class BaseModule:
                                 else:
                                     context = f"{self.name}.handle_event({event})"
                                     self.scan.stats.event_consumed(event, self)
-                                    self.debug(f"Handling {event}")
+                                    self.debug(f"Handling {event} from {getattr(event, 'module', 'unknown_module')}")
                                     try:
                                         await self.run_task(self.handle_event(event), context)
                                     except asyncio.CancelledError:
@@ -793,8 +792,6 @@ class BaseModule:
                         finally:
                             event._minimize()
         except asyncio.CancelledError:
-            # this trace was used for debugging leaked CancelledErrors from inside httpx
-            # self.log.trace("Worker cancelled")
             raise
         except RuntimeError as e:
             self.trace(f"RuntimeError in module {self.name}: {e}")
@@ -940,7 +937,6 @@ class BaseModule:
             if not filter_result:
                 return False, msg
 
-        self.debug(f"{event} passed post-check")
         return True, ""
 
     def _scope_distance_check(self, event):
@@ -1027,17 +1023,26 @@ class BaseModule:
                 if reason and reason != "its type is not in watched_events":
                     self.debug(f"Not queueing {event} because {reason}")
                 return
-            else:
-                self.debug(f"Queueing {event} because {reason}")
             try:
                 self.incoming_event_queue.put_nowait(event)
-                event._module_consumers += 1
+                self._increment_consumer_count(event)
                 async with self.event_received:
                     self.event_received.notify()
                 if event.type != "FINISHED":
                     self.scan._new_activity = True
             except AttributeError:
                 self.debug("Not in an acceptable state to queue incoming event")
+
+    def _increment_consumer_count(self, event):
+        """Increment the event's consumer count when it lands in this module's queue.
+
+        Paired with the matching ``_minimize()`` call when the worker
+        finishes processing. Modules that have no real worker (e.g. the
+        ``python`` output module backing ``Scanner.async_start``)
+        override this to skip the increment — otherwise the count
+        leaks +1 forever and ``_minimize()``'s strip block never fires.
+        """
+        event._module_consumers += 1
 
     async def queue_outgoing_event(self, event, **kwargs):
         """
@@ -1064,36 +1069,30 @@ class BaseModule:
         except AttributeError:
             self.debug("Not in an acceptable state to queue outgoing event")
 
-    def set_error_state(self, message=None, clear_outgoing_queue=False, critical=False):
+    def set_error_state(self, message=None, clear_outgoing_queue=False, critical=False, log_level="error"):
         """
-        Puts the module into an errored state where it cannot accept new events. Optionally logs a warning message.
-
-        The function sets the module's `errored` attribute to True and logs a warning with the optional message.
-        It also clears the incoming event queue to prevent further processing and updates its status to False.
+        Puts the module into an errored state where it cannot accept new events. Optionally logs a message.
 
         Args:
-            message (str, optional): Additional message to be logged along with the warning.
-
-        Returns:
-            None: The function doesn't return anything but updates the `errored` state and clears the incoming event queue.
+            message (str, optional): Additional message to log alongside the state transition.
+            clear_outgoing_queue (bool): Drain the outgoing event queue as well.
+            critical (bool): Log at CRITICAL severity (overrides log_level).
+            log_level (str): Severity to log at when not critical. Use "info" or "verbose" for intentional
+                stops (e.g. user-initiated kill) so they don't appear in error.log.
 
         Examples:
             >>> self.set_error_state()
             >>> self.set_error_state("Failed to connect to the server")
-
-        Notes:
-            - The function sets `self._incoming_event_queue` to False to prevent its further use.
-            - If the module was already in an errored state, the function will not reset the error state or the queue.
+            >>> self.set_error_state("killed by user", log_level="info")
         """
         if not self.errored:
             log_msg = "Setting error state"
             if message is not None:
                 log_msg += f": {message}"
             if critical:
-                log_fn = self.error
+                self.critical(log_msg, trace=False)
             else:
-                log_fn = self.warning
-            log_fn(log_msg)
+                getattr(self, log_level)(log_msg)
             self.errored = True
             # clear incoming queue
             if self.incoming_event_queue is not False:
@@ -1404,7 +1403,7 @@ class BaseModule:
             **requests_kwargs: Arbitrary keyword arguments that will be forwarded to the HTTP request function.
 
         Yields:
-            dict or httpx.Response: If 'json' is True, yields a dictionary containing the parsed JSON data. Otherwise, yields the raw HTTP response.
+            dict or Response: If 'json' is True, yields a dictionary containing the parsed JSON data. Otherwise, yields the raw HTTP response.
 
         Note:
             The loop will continue indefinitely unless manually stopped. Make sure to break out of the loop once the last page has been received.
@@ -1859,16 +1858,18 @@ class BaseInterceptModule(BaseModule):
                         continue
 
                     acceptable = True
+                    # precheck/postcheck must be counted so the module isn't marked finished
+                    # while events are mid-check (is_finished reads _task_counter.value)
                     async with self._task_counter.count(f"event_precheck({event})"):
                         precheck_pass, reason = self._event_precheck(event)
                     if not precheck_pass:
-                        self.debug(f"Not intercepting {event} because precheck failed ({reason})")
                         acceptable = False
-                    async with self._task_counter.count(f"event_postcheck({event})"):
-                        postcheck_pass, reason = await self._event_postcheck(event)
-                    if not postcheck_pass:
-                        self.debug(f"Not intercepting {event} because postcheck failed ({reason})")
-                        acceptable = False
+                    else:
+                        async with self._task_counter.count(f"event_postcheck({event})"):
+                            postcheck_pass, reason = await self._event_postcheck(event)
+                        if not postcheck_pass:
+                            self.debug(f"Not intercepting {event} because postcheck failed ({reason})")
+                            acceptable = False
 
                     # whether to pass the event on to the rest of the scan
                     # defaults to true, unless handle_event returns False
@@ -1891,12 +1892,9 @@ class BaseInterceptModule(BaseModule):
                             self.debug(f"Not forwarding {event} because {forward_event_reason}")
                             continue
 
-                    self.debug(f"Forwarding {event}")
                     await self.forward_event(event, kwargs)
 
         except asyncio.CancelledError:
-            # this trace was used for debugging leaked CancelledErrors from inside httpx
-            # self.log.trace("Worker cancelled")
             raise
         except RuntimeError as e:
             self.trace(f"RuntimeError in intercept module {self.name}: {e}")

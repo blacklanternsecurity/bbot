@@ -515,7 +515,7 @@ async def test_preset_module_resolution(clean_default_config):
     assert "active" in dotnetnuke_flags
     assert "subdomain-enum" in sslcert_flags
     assert "subdomain-enum" in wayback_flags
-    assert "httpx" in dotnetnuke_preloaded["deps"]["modules"]
+    assert "http" in dotnetnuke_preloaded["deps"]["modules"]
 
     # make sure we have the expected defaults
     assert not preset.scan_modules
@@ -532,7 +532,7 @@ async def test_preset_module_resolution(clean_default_config):
 
     # make sure dependency resolution works as expected
     preset = Preset(modules=["dotnetnuke"]).bake()
-    assert set(preset.scan_modules) == {"dotnetnuke", "httpx"}
+    assert set(preset.scan_modules) == {"dotnetnuke", "http"}
 
     # make sure flags work as expected
     preset = Preset(flags=["subdomain-enum"]).bake()
@@ -565,7 +565,7 @@ async def test_preset_module_resolution(clean_default_config):
 
     # normal module enableement
     preset = Preset(modules=["sslcert", "dotnetnuke", "wayback"]).bake()
-    assert set(preset.scan_modules) == {"sslcert", "dotnetnuke", "wayback", "httpx"}
+    assert set(preset.scan_modules) == {"sslcert", "dotnetnuke", "wayback", "http"}
 
     # modules + flag exclusions
     preset = Preset(exclude_flags=["active"], modules=["sslcert", "dotnetnuke", "wayback"]).bake()
@@ -588,7 +588,7 @@ async def test_preset_module_resolution(clean_default_config):
         "excavate",
         "unarchive",
         "txt",
-        "httpx",
+        "http",
         "csv",
         "dotnetnuke",
     }
@@ -1069,7 +1069,7 @@ config:
     assert preset.config["web"]["spider_distance"] == 1
     assert preset.config["web"]["spider_depth"] == 2
     assert preset.config["modules"]["asdf"]["option1"] == "fdsa"
-    assert set(preset.scan_modules) == {"httpx", "c99", "robots", "virustotal", "securitytrails"}
+    assert set(preset.scan_modules) == {"http", "c99", "robots", "virustotal", "securitytrails"}
 
 
 async def test_preset_require_exclude(clean_default_config):
@@ -1101,7 +1101,7 @@ async def test_preset_require_exclude(clean_default_config):
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     assert "chaos" in [x[0] for x in module_flags]
-    assert "httpx" not in [x[0] for x in module_flags]
+    assert "http" not in [x[0] for x in module_flags]
     assert all("passive" in flags for module, flags in module_flags)
     assert not any("active" in flags for module, flags in module_flags)
     assert any("safe" in flags for module, flags in module_flags)
@@ -1112,7 +1112,7 @@ async def test_preset_require_exclude(clean_default_config):
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     assert "chaos" in [x[0] for x in module_flags]
-    assert "httpx" not in [x[0] for x in module_flags]
+    assert "http" not in [x[0] for x in module_flags]
     assert all("passive" in flags for module, flags in module_flags)
     assert not any("active" in flags for module, flags in module_flags)
     assert any("safe" in flags for module, flags in module_flags)
@@ -1123,7 +1123,7 @@ async def test_preset_require_exclude(clean_default_config):
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     assert "dnsbrute" not in [x[0] for x in module_flags]
-    assert "httpx" in [x[0] for x in module_flags]
+    assert "http" in [x[0] for x in module_flags]
     assert any("passive" in flags for module, flags in module_flags)
     assert any("active" in flags for module, flags in module_flags)
     assert any("safe" in flags for module, flags in module_flags)
@@ -1274,3 +1274,20 @@ def test_preset_file_targets(tmp_path):
     target_inputs5 = set(preset5._target_list)
     assert "nested.evilcorp.com" in target_inputs5
     assert "my_targets.txt" not in target_inputs5
+
+
+def test_preset_dnsresolve_required_by_dns_name_consumers():
+    # gate must fire for all three opt-out paths when any DNS_NAME-watching module is enabled
+    for opt_out in (
+        {"exclude_modules": ["dnsresolve"], "flags": ["subdomain-enum"]},
+        {"config": {"dnsresolve": False}, "flags": ["subdomain-enum"]},
+        {"config": {"dns": {"disable": True}}, "flags": ["subdomain-enum"]},
+    ):
+        with pytest.raises(ValidationError, match="dnsresolve is required"):
+            Preset(**opt_out).bake()
+
+    # dns.minimal keeps dnsresolve in the pipeline -- must NOT fire
+    Preset(flags=["subdomain-enum"], config={"dns": {"minimal": True}}).bake()
+
+    # disabling dnsresolve with no DNS_NAME consumers enabled is allowed
+    Preset(exclude_modules=["dnsresolve"]).bake()

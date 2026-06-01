@@ -5,7 +5,7 @@ from bbot.scanner import Scanner
 
 class TestCloudCheck(ModuleTestBase):
     targets = ["http://127.0.0.1:8888", "asdf2.storage.googleapis.com"]
-    modules_overrides = ["httpx", "excavate", "cloudcheck"]
+    modules_overrides = ["http", "excavate", "cloudcheck"]
 
     async def setup_after_prep(self, module_test):
         module_test.set_expect_requests({"uri": "/"}, {"response_data": "<a href='http://asdf.s3.amazonaws.com'/>"})

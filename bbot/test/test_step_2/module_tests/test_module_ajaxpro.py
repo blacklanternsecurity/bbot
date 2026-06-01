@@ -3,7 +3,7 @@ from .base import ModuleTestBase
 
 class TestAjaxpro(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "ajaxpro"]
+    modules_overrides = ["http", "ajaxpro"]
     exploit_headers = {"X-Ajaxpro-Method": "AddItem", "Content-Type": "text/json; charset=UTF-8"}
     exploit_response = """
     null; r.error = {"Message":"Constructor on type 'AjaxPro.Services.ICartService' not found.","Type":"System.MissingMethodException"};/*

@@ -5,7 +5,7 @@ from .base import ModuleTestBase, tempwordlist
 
 class Paramminer_Headers(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "paramminer_headers"]
+    modules_overrides = ["http", "paramminer_headers"]
     config_overrides = {"modules": {"paramminer_headers": {"wordlist": tempwordlist(["junkword1", "tracestate"])}}}
 
     headers_body = """
@@ -80,7 +80,7 @@ class TestParamminer_Headers_noreflection(Paramminer_Headers):
 
 
 class TestParamminer_Headers_extract(Paramminer_Headers):
-    modules_overrides = ["httpx", "paramminer_headers", "excavate"]
+    modules_overrides = ["http", "paramminer_headers", "excavate"]
     config_overrides = {
         "modules": {
             "paramminer_headers": {"wordlist": tempwordlist(["junkword1", "tracestate"]), "recycle_words": True}
@@ -135,7 +135,7 @@ class TestParamminer_Headers_extract(Paramminer_Headers):
 
 
 class TestParamminer_Headers_extract_norecycle(TestParamminer_Headers_extract):
-    modules_overrides = ["httpx", "excavate"]
+    modules_overrides = ["http", "excavate"]
     config_overrides = {}
 
     async def setup_after_prep(self, module_test):

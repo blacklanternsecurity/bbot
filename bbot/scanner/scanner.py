@@ -41,11 +41,11 @@ class Scanner:
 
     Examples:
         Create scan with multiple targets:
-        >>> my_scan = Scanner("evilcorp.com", "1.2.3.0/24", modules=["portscan", "sslcert", "httpx"])
+        >>> my_scan = Scanner("evilcorp.com", "1.2.3.0/24", modules=["portscan", "sslcert", "http"])
 
         Create scan with custom config:
         >>> config = {"http_proxy": "http://127.0.0.1:8080", "modules": {"portscan": {"top_ports": 2000}}}
-        >>> my_scan = Scanner("www.evilcorp.com", modules=["portscan", "httpx"], config=config)
+        >>> my_scan = Scanner("www.evilcorp.com", modules=["portscan", "http"], config=config)
 
         Start the scan, iterating over events as they're discovered (synchronous):
         >>> for event in my_scan.start():
@@ -233,22 +233,31 @@ class Scanner:
         self.web_max_redirects = max(max_redirects, self.web_spider_distance)
         self.http_proxy = web_config.get("http_proxy", "")
         self.http_timeout = web_config.get("http_timeout", 10)
-        self.httpx_timeout = web_config.get("httpx_timeout", 5)
+        self.blasthttp_timeout = web_config.get("blasthttp_timeout", 5)
         self.http_retries = web_config.get("http_retries", 1)
-        self.httpx_retries = web_config.get("httpx_retries", 1)
+        self.blasthttp_retries = web_config.get("blasthttp_retries", 1)
         self.useragent = f"{web_config.get('user_agent', 'BBOT')} {web_config.get('user_agent_suffix') or ''}".strip()
         # custom HTTP headers warning
         self.custom_http_headers = web_config.get("http_headers", {})
         if self.custom_http_headers:
             self.warning(
-                "You have enabled custom HTTP headers. These will be attached to all in-scope requests and all requests made by httpx."
+                "You have enabled custom HTTP headers. These will be attached to all in-scope requests and all requests made by blasthttp."
             )
         # custom HTTP cookies warning
         self.custom_http_cookies = web_config.get("http_cookies", {})
         if self.custom_http_cookies:
             self.warning(
-                "You have enabled custom HTTP cookies. These will be attached to all in-scope requests and all requests made by httpx."
+                "You have enabled custom HTTP cookies. These will be attached to all in-scope requests and all requests made by blasthttp."
             )
+
+        # HTTP_RESPONSE body disk-spill — keeps body bytes off the Python heap.
+        # See bbot/core/event/spill.py for design notes. Created in _prep()
+        # once temp_dir exists.
+        body_spill_config = web_config.get("body_spill", {})
+        self.body_spill_enabled = bool(body_spill_config.get("enabled", True))
+        self.body_spill_cache_mb = int(body_spill_config.get("cache_mb", 512))
+        self.body_spill_compress = bool(body_spill_config.get("compress", True))
+        self.body_spill_store = None
 
         # url file extensions
         self.url_extension_special = {e.lower() for e in self.config.get("url_extension_special", [])}
@@ -263,6 +272,12 @@ class Scanner:
 
         # how often to print scan status
         self.status_frequency = self.config.get("status_frequency", 15)
+
+        # memory-pressure ingress throttle: when system memory exceeds max_mem_percent,
+        # ScanIngress sleeps _ingress_delay seconds before pulling each event.
+        # delay is recomputed every status tick from current memory.
+        self.max_mem_percent = self.config.get("max_mem_percent", 90)
+        self._ingress_delay = 0.0
 
         from .stats import ScanStats
 
@@ -305,6 +320,15 @@ class Scanner:
 
         self.helpers.mkdir(self.home)
         self.helpers.mkdir(self.temp_dir)
+
+        if self.body_spill_enabled and self.body_spill_store is None:
+            from bbot.core.event.spill import BodySpillStore
+
+            self.body_spill_store = BodySpillStore(
+                self.temp_dir / "bodies",
+                cache_bytes=self.body_spill_cache_mb * 1024 * 1024,
+                compress=self.body_spill_compress,
+            )
 
         if not self._modules_loaded:
             self.modules = OrderedDict({})
@@ -564,7 +588,7 @@ class Scanner:
                 self.debug(f"Setup succeeded for {module.name} ({msg})")
                 succeeded.append(module.name)
             elif status is False:
-                self.warning(f"Setup hard-failed for {module.name}: {msg}")
+                self.error(f"Setup hard-failed for {module.name}: {msg}")
                 self.modules[module.name].set_error_state()
                 hard_failed.append(module.name)
             else:
@@ -605,6 +629,15 @@ class Scanner:
             After all modules are loaded, they are sorted by `_priority` and stored in the `modules` dictionary.
         """
         if not self._modules_loaded:
+            # If the preset hasn't been baked yet but modules have been
+            # manually attached (e.g. in tests), skip the automatic loading
+            # pipeline and operate only on the existing modules.
+            if self.preset is None:
+                if not self.modules:
+                    self.warning("No modules to load")
+                self._modules_loaded = True
+                return
+
             if not self.preset.modules:
                 self.warning("No modules to load")
                 self._modules_loaded = True
@@ -681,7 +714,7 @@ class Scanner:
         if module._intercept:
             self.warning(f'Cannot kill module "{module_name}" because it is critical to the scan')
             return
-        module.set_error_state(message=message, clear_outgoing_queue=True)
+        module.set_error_state(message=message, clear_outgoing_queue=True, log_level="info")
         for proc in module._proc_tracker:
             with contextlib.suppress(Exception):
                 proc.send_signal(SIGINT)
@@ -719,14 +752,28 @@ class Scanner:
 
         modules_errored = [m for m, s in status["modules"].items() if s["errored"]]
 
-        max_mem_percent = 90
         mem_status = self.helpers.memory_status()
-        # abort if we don't have the memory
         mem_percent = mem_status.percent
-        if mem_percent > max_mem_percent:
-            free_memory = mem_status.available
-            free_memory_human = self.helpers.bytes_to_human(free_memory)
-            self.warning(f"System memory is at {mem_percent:.1f}% ({free_memory_human} remaining)")
+        prev_delay = self._ingress_delay
+        new_delay = self._compute_ingress_delay(mem_percent)
+        # if no module has work in flight or queued, ingress is the only drain — don't throttle it
+        drain_mode = not any(
+            (m.running or m.outgoing_event_queue.qsize() > 0 or m.num_incoming_events > 0)
+            for m in self.modules.values()
+            if not m._intercept
+        )
+        if drain_mode:
+            new_delay = 0.0
+        self._ingress_delay = new_delay
+        if mem_percent > self.max_mem_percent:
+            free_memory_human = self.helpers.bytes_to_human(mem_status.available)
+            if prev_delay == 0.0 and new_delay > 0.0:
+                self.warning(
+                    f"System memory is at {mem_percent:.1f}% ({free_memory_human} remaining); "
+                    f"throttling ingress ({new_delay:.1f}s/event) to let the pipeline drain"
+                )
+        elif prev_delay > 0.0 and new_delay == 0.0:
+            self.hugesuccess(f"System memory dropped to {mem_percent:.1f}%; ingress throttle cleared")
 
         if _log:
             modules_status = []
@@ -799,6 +846,15 @@ class Scanner:
 
         return status
 
+    def _compute_ingress_delay(self, mem_percent):
+        # 0s at threshold, scaling linearly to 5s at threshold+5 (capped at 95%).
+        if mem_percent <= self.max_mem_percent:
+            return 0.0
+        cap = min(self.max_mem_percent + 5, 95)
+        overshoot_range = max(cap - self.max_mem_percent, 1)
+        overshoot = min(mem_percent - self.max_mem_percent, overshoot_range)
+        return (overshoot / overshoot_range) * 5.0
+
     async def async_stop(self):
         """Stops the in-progress scan and performs necessary cleanup.
 
@@ -860,13 +916,13 @@ class Scanner:
         """
         self.debug("Draining queues")
         for module in self.modules.values():
-            with contextlib.suppress(asyncio.queues.QueueEmpty):
-                while 1:
-                    if module.incoming_event_queue not in (None, False):
+            if module.incoming_event_queue not in (None, False):
+                with contextlib.suppress(asyncio.queues.QueueEmpty):
+                    while 1:
                         module.incoming_event_queue.get_nowait()
-            with contextlib.suppress(asyncio.queues.QueueEmpty):
-                while 1:
-                    if module.outgoing_event_queue not in (None, False):
+            if module.outgoing_event_queue not in (None, False):
+                with contextlib.suppress(asyncio.queues.QueueEmpty):
+                    while 1:
                         module.outgoing_event_queue.get_nowait()
         self.debug("Finished draining queues")
 
@@ -942,9 +998,6 @@ class Scanner:
             # clean up dns engine
             if self.helpers._dns is not None:
                 await self.helpers.dns.shutdown()
-            # clean up web engine
-            if self.helpers._web is not None:
-                await self.helpers.web.shutdown()
             # In some test paths, `_prep()` is never called, so `home` and
             # `temp_dir` may not exist. Treat those as best-effort cleanups.
             home = getattr(self, "home", None)
@@ -1186,7 +1239,7 @@ class Scanner:
             if self.dns_yara_rules_uncompiled is not None:
                 import yara
 
-                self._dns_yara_rules = await self.helpers.run_in_executor(
+                self._dns_yara_rules = await self.helpers.run_in_executor_cpu(
                     yara.compile, source="\n".join(self.dns_yara_rules_uncompiled.values())
                 )
         return self._dns_yara_rules
@@ -1202,7 +1255,7 @@ class Scanner:
         matches = set()
         dns_yara_rules = await self.dns_yara_rules()
         if dns_yara_rules is not None:
-            for match in await self.helpers.run_in_executor(dns_yara_rules.match, data=s):
+            for match in await self.helpers.run_in_executor_cpu(dns_yara_rules.match, data=s):
                 for string in match.strings:
                     for instance in string.instances:
                         matches.add(str(instance))
@@ -1315,7 +1368,7 @@ class Scanner:
             error_handler = GzipRotatingFileHandler(
                 str(self.home / "error.log"), maxBytes=1024 * 1024 * 100, backupCount=100
             )
-            error_handler.addFilter(lambda x: x.levelno == logging.TRACE or x.levelno >= logging.ERROR)
+            error_handler.addFilter(lambda x: x.levelno >= logging.ERROR and x.levelno != logging.TRACE)
             self.__log_handlers = [main_handler, debug_handler, error_handler]
         return self.__log_handlers
 
@@ -1357,9 +1410,9 @@ class Scanner:
                     self.verbose(f'Loaded module "{module_name}"')
                     continue
                 except Exception:
-                    self.warning(f"Failed to load module {module_class}")
+                    self.error(f"Failed to load module {module_class}")
             else:
-                self.warning(f'Failed to load unknown module "{module_name}"')
+                self.error(f'Failed to load unknown module "{module_name}"')
             failed.add(module_name)
         return loaded_modules, failed
 

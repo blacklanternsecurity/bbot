@@ -286,7 +286,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     out, err = capsys.readouterr()
     assert result is None
     assert "| dnsbrute " in out
-    assert "| httpx " in out
+    assert "| http " in out
     assert "| robots " in out
 
     # list modules by flag
@@ -295,7 +295,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     out, err = capsys.readouterr()
     assert result is None
     assert "| dnsbrute " in out
-    assert "| httpx " in out
+    assert "| http " in out
     assert "| robots " not in out
 
     # list modules by flag + required flag
@@ -304,7 +304,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     out, err = capsys.readouterr()
     assert result is None
     assert "| chaos " in out
-    assert "| httpx " not in out
+    assert "| http " not in out
 
     # list modules by flag + excluded flag
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-ef", "active", "-l"])
@@ -312,7 +312,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     out, err = capsys.readouterr()
     assert result is None
     assert "| chaos " in out
-    assert "| httpx " not in out
+    assert "| http " not in out
 
     # list modules by flag + excluded module
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-em", "dnsbrute", "-l"])
@@ -320,7 +320,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     out, err = capsys.readouterr()
     assert result is None
     assert "| dnsbrute " not in out
-    assert "| httpx " in out
+    assert "| http " in out
 
     # output modules override
     caplog.clear()
@@ -522,7 +522,7 @@ def test_cli_module_validation(monkeypatch, caplog):
         [
             l
             for l in lines
-            if l.startswith("WARNING  bbot.scanner:scanner.py")
+            if l.startswith("ERROR    bbot.scanner:scanner.py")
             and l.endswith("Setup hard-failed for websocket: Must set URL")
         ]
     )
@@ -530,7 +530,7 @@ def test_cli_module_validation(monkeypatch, caplog):
         [
             l
             for l in lines
-            if l.startswith("WARNING  bbot.modules.output.websocket:base.py") and l.endswith("Setting error state")
+            if l.startswith("ERROR    bbot.modules.output.websocket:base.py") and l.endswith("Setting error state")
         ]
     )
     assert 1 == len(
@@ -556,7 +556,7 @@ def test_cli_module_validation(monkeypatch, caplog):
         [
             l
             for l in lines
-            if l.startswith("WARNING  bbot.scanner:scanner.py")
+            if l.startswith("ERROR    bbot.scanner:scanner.py")
             and l.endswith("Setup hard-failed for websocket: Must set URL")
         ]
     )
@@ -564,7 +564,7 @@ def test_cli_module_validation(monkeypatch, caplog):
         [
             l
             for l in lines
-            if l.startswith("WARNING  bbot.modules.output.websocket:base.py") and l.endswith("Setting error state")
+            if l.startswith("ERROR    bbot.modules.output.websocket:base.py") and l.endswith("Setting error state")
         ]
     )
     assert 1 == len(

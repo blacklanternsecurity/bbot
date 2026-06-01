@@ -6,7 +6,26 @@ class TestCensys_IP(ModuleTestBase):
     config_overrides = {"modules": {"censys_ip": {"api_key": "api_id:api_secret"}}}
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        await module_test.mock_dns(
+            {
+                "wildcard.evilcorp.com": {
+                    "A": ["1.2.3.4"],
+                },
+                "certname.evilcorp.com": {
+                    "A": ["1.2.3.4"],
+                },
+                "certsubject.evilcorp.com": {
+                    "A": ["1.2.3.4"],
+                },
+                "reversedns.evilcorp.com": {
+                    "A": ["1.2.3.4"],
+                },
+                "ptr.evilcorp.com": {
+                    "A": ["1.2.3.4"],
+                },
+            }
+        )
+        module_test.blasthttp_mock.add_response(
             url="https://search.censys.io/api/v1/account",
             match_headers={"Authorization": "Basic YXBpX2lkOmFwaV9zZWNyZXQ="},
             json={
@@ -17,7 +36,7 @@ class TestCensys_IP(ModuleTestBase):
                 "quota": {"used": 26, "allowance": 250, "resets_at": "1919-06-03 16:30:32"},
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://search.censys.io/api/v2/hosts/1.2.3.4",
             match_headers={"Authorization": "Basic YXBpX2lkOmFwaV9zZWNyZXQ="},
             json={
@@ -228,7 +247,8 @@ class TestCensys_IP_InScopeOnly(ModuleTestBase):
     config_overrides = {"modules": {"censys_ip": {"api_key": "api_id:api_secret", "in_scope_only": True}}}
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        await module_test.mock_dns({"evilcorp.com": {"A": ["1.1.1.1"]}})
+        module_test.blasthttp_mock.add_response(
             url="https://search.censys.io/api/v1/account",
             match_headers={"Authorization": "Basic YXBpX2lkOmFwaV9zZWNyZXQ="},
             json={
@@ -236,7 +256,7 @@ class TestCensys_IP_InScopeOnly(ModuleTestBase):
             },
         )
         # This should NOT be called because in_scope_only=True
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://search.censys.io/api/v2/hosts/1.1.1.1",
             match_headers={"Authorization": "Basic YXBpX2lkOmFwaV9zZWNyZXQ="},
             json={
@@ -271,7 +291,8 @@ class TestCensys_IP_OutOfScope(ModuleTestBase):
     }
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        await module_test.mock_dns({"evilcorp.com": {"A": ["1.1.1.1"]}})
+        module_test.blasthttp_mock.add_response(
             url="https://search.censys.io/api/v1/account",
             match_headers={"Authorization": "Basic YXBpX2lkOmFwaV9zZWNyZXQ="},
             json={
@@ -279,7 +300,7 @@ class TestCensys_IP_OutOfScope(ModuleTestBase):
             },
         )
         # This SHOULD be called because in_scope_only=False
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://search.censys.io/api/v2/hosts/1.1.1.1",
             match_headers={"Authorization": "Basic YXBpX2lkOmFwaV9zZWNyZXQ="},
             json={

@@ -6,7 +6,7 @@ class TestShodan_Enterprise(ModuleTestBase):
     config_overrides = {"modules": {"shodan_enterprise": {"api_key": "deadbeef"}}}
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.shodan.io/shodan/host/8.8.8.8?key=deadbeef",
             json={
                 "asn": "AS15169",
@@ -95,7 +95,7 @@ class TestShodan_Enterprise_InScopeOnly(ModuleTestBase):
 
     async def setup_before_prep(self, module_test):
         # This should NOT be called because in_scope_only=True
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.shodan.io/shodan/host/1.1.1.1?key=deadbeef",
             json=shodan_response_1_1_1_1,
         )
@@ -122,7 +122,7 @@ class TestShodan_Enterprise_OutOfScope(ModuleTestBase):
 
     async def setup_before_prep(self, module_test):
         # This SHOULD be called because in_scope_only=False
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.shodan.io/shodan/host/1.1.1.1?key=deadbeef",
             json=shodan_response_1_1_1_1,
         )

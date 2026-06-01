@@ -15,6 +15,10 @@ home: ~/.bbot
 keep_scans: 20
 # Interval for displaying status messages
 status_frequency: 15
+# When system memory exceeds this percentage, ingress is throttled with a per-event sleep
+# that scales linearly from 0s at the threshold up to 5s at threshold+5 (capped at 95%).
+# Last-ditch effort to give the pipeline a chance to drain before OOM.
+max_mem_percent: 90
 # Include the raw data of files (i.e. PDFs, web screenshots) as base64 in the event
 file_blobs: false
 # Include the raw data of directories (i.e. git repos) as tar.gz base64 in the event
@@ -100,8 +104,8 @@ web:
   spider_links_per_page: 25
   # HTTP timeout (for Python requests; API calls, etc.)
   http_timeout: 10
-  # HTTP timeout (for httpx)
-  httpx_timeout: 5
+  # HTTP timeout (for blasthttp)
+  blasthttp_timeout: 5
   # Custom HTTP headers (e.g. cookies, etc.)
   # in the format { "Header-Key": "header_value" }
   # These are attached to all in-scope HTTP requests
@@ -113,8 +117,8 @@ web:
   api_retries: 2
   # HTTP retries - try again if the raw connection fails
   http_retries: 1
-  # HTTP retries (for httpx)
-  httpx_retries: 1
+  # HTTP retries (for blasthttp)
+  blasthttp_retries: 1
   # Default sleep interval when rate limited by 429 (and retry-after isn't provided)
   429_sleep_interval: 30
   # Maximum sleep interval when rate limited by 429 (and an excessive retry-after is provided)
@@ -125,6 +129,19 @@ web:
   http_max_redirects: 5
   # Whether to verify SSL certificates
   ssl_verify: false
+  # Maximum HTTP requests per second (0 = unlimited)
+  # Applies globally across all blasthttp consumers (http probing, web brute, etc.)
+  http_rate_limit: 0
+  # HTTP_RESPONSE body disk-spill — keeps body bytes off the Python heap.
+  # Bodies are written to ${scan_home}/temp/bodies/{uuid}.body.zst and served
+  # from a bounded LRU cache; only cache misses touch disk.
+  body_spill:
+    # Master switch
+    enabled: true
+    # In-memory LRU cache budget for hot bodies, in MB
+    cache_mb: 512
+    # zstd level-1 compression on the way to disk
+    compress: true
 
 ### ENGINE ###
 
@@ -133,8 +150,6 @@ engine:
 
 # Tool dependencies
 deps:
-  ffuf:
-    version: "2.1.0"
   # How to handle installation of module dependencies
   # Choices are:
   #  - abort_on_failure (default) - if a module dependency fails to install, abort the scan
@@ -313,3 +328,7 @@ omit_event_types:
 interactsh_server: null
 interactsh_token: null
 interactsh_disable: false
+
+# API key for bbot.io services (currently used by ASN lookups via the asndb library)
+# Can also be set via the BBOT_IO_API_KEY environment variable, which takes precedence.
+bbot_io_api_key: null

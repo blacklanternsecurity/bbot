@@ -5,7 +5,7 @@ class TestHunterio(ModuleTestBase):
     config_overrides = {"modules": {"hunterio": {"api_key": ["asdf", "1234", "4321", "fdsa"]}}}
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.hunter.io/v2/account?api_key=asdf",
             json={
                 "data": {
@@ -28,7 +28,7 @@ class TestHunterio(ModuleTestBase):
                 }
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.hunter.io/v2/domain-search?domain=blacklanternsecurity.com&api_key=fdsa&limit=100&offset=0",
             json={
                 "data": {
@@ -91,7 +91,7 @@ class TestHunterio(ModuleTestBase):
                 },
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.hunter.io/v2/domain-search?domain=blacklanternsecurity.com&api_key=4321&limit=100&offset=100",
             json={
                 "data": {

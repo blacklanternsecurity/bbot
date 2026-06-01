@@ -34,10 +34,10 @@ class badsecrets(BaseModule):
 
     @property
     def _module_threads(self):
-        return max(1, multiprocessing.cpu_count() - 1)
+        return min(4, max(1, multiprocessing.cpu_count() - 1))
 
     async def handle_event(self, event):
-        resp_body = event.data.get("body", None)
+        resp_body = event.body
         resp_headers = event.data.get("header", None)
         resp_cookies = {}
         if resp_headers:
