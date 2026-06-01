@@ -1,3 +1,4 @@
+import os
 import sys
 import json
 
@@ -15,24 +16,6 @@ class Stdout(BaseOutputModule):
         "in_scope_only": "Whether to only show in-scope events",
         "accept_dupes": "Whether to show duplicate events, default True",
     }
-    # base RGB hue per severity (matches the 🟦🟨🟧🟥🟪 convention from FINDING.severity_colors)
-    # all hues normalized so the brightest channel is 255 — gives a uniform brightness range per row
-    finding_severity_rgb = {
-        "INFO": (113, 161, 255),  # blue
-        "LOW": (255, 215, 0),  # yellow
-        "MEDIUM": (255, 135, 0),  # orange
-        "HIGH": (255, 0, 0),  # red
-        "CRITICAL": (207, 0, 255),  # purple
-    }
-    # brightness multiplier per confidence — CONFIRMED also adds bold
-    # tuned so even UNKNOWN stays legible on dark terminals (brightest channel ~115)
-    finding_confidence_brightness = {
-        "CONFIRMED": 1.00,
-        "HIGH": 0.88,
-        "MEDIUM": 0.77,
-        "LOW": 0.66,
-        "UNKNOWN": 0.55,
-    }
     format_choices = ["text", "json"]
 
     async def setup(self):
@@ -46,6 +29,8 @@ class Stdout(BaseOutputModule):
         self.show_event_fields = [str(s) for s in self.config.get("event_fields", [])]
         self.in_scope_only = self.config.get("in_scope_only", False)
         self.accept_dupes = self.config.get("accept_dupes", False)
+        # honor the NO_COLOR convention (https://no-color.org) and skip color when not writing to a terminal
+        self.use_color = sys.stdout.isatty() and not os.environ.get("NO_COLOR", "")
         return True
 
     async def filter_event(self, event):
@@ -73,16 +58,16 @@ class Stdout(BaseOutputModule):
             event_str = self.human_event_str(event)
 
         # color findings: severity picks the hue, confidence dims the brightness
-        if event.type == "FINDING" and isinstance(event.data, dict) and sys.stdout.isatty():
-            event_str = self._colorize_finding(event_str, event.data)
+        if event.type == "FINDING" and isinstance(event.data, dict) and self.use_color:
+            event_str = self._colorize_finding(event_str, event)
 
         print(event_str)
 
-    def _colorize_finding(self, event_str, data):
-        severity = str(data.get("severity", "INFO")).upper()
-        confidence = str(data.get("confidence", "UNKNOWN")).upper()
-        r, g, b = self.finding_severity_rgb.get(severity, self.finding_severity_rgb["INFO"])
-        mult = self.finding_confidence_brightness.get(confidence, 0.65)
+    def _colorize_finding(self, event_str, event):
+        severity = str(event.data.get("severity", "INFO")).upper()
+        confidence = str(event.data.get("confidence", "UNKNOWN")).upper()
+        r, g, b = event.severity_colors_rgb.get(severity, event.severity_colors_rgb["INFO"])
+        mult = event.confidence_brightness.get(confidence, event.confidence_brightness["UNKNOWN"])
         r, g, b = int(r * mult), int(g * mult), int(b * mult)
         bold = "1;" if confidence == "CONFIRMED" else ""
         return f"\033[{bold}38;2;{r};{g};{b}m{event_str}\033[0m"
