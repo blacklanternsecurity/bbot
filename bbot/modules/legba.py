@@ -32,31 +32,31 @@ class legba(BaseModule):
     class Config(BaseModuleConfig):
         ssh_wordlist: str = Field(
             "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/ssh-betterdefaultpasslist.txt",
-            description="Wordlist URL for SSH combined username:password wordlist, newline separated",
+            description="Wordlist for SSH combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
         )
         ftp_wordlist: str = Field(
             "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/ftp-betterdefaultpasslist.txt",
-            description="Wordlist URL for FTP combined username:password wordlist, newline separated",
+            description="Wordlist for FTP combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
         )
         telnet_wordlist: str = Field(
             "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/telnet-betterdefaultpasslist.txt",
-            description="Wordlist URL for TELNET combined username:password wordlist, newline separated",
+            description="Wordlist for TELNET combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
         )
         vnc_wordlist: str = Field(
             "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/vnc-betterdefaultpasslist.txt",
-            description="Wordlist URL for VNC password wordlist, newline separated",
+            description="Wordlist for VNC passwords, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
         )
         mssql_wordlist: str = Field(
             "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/mssql-betterdefaultpasslist.txt",
-            description="Wordlist URL for MSSQL combined username:password wordlist, newline separated",
+            description="Wordlist for MSSQL combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
         )
         mysql_wordlist: str = Field(
             "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/mysql-betterdefaultpasslist.txt",
-            description="Wordlist URL for MySQL combined username:password wordlist, newline separated",
+            description="Wordlist for MySQL combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
         )
         postgresql_wordlist: str = Field(
             "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/postgres-betterdefaultpasslist.txt",
-            description="Wordlist URL for PostgreSQL combined username:password wordlist, newline separated",
+            description="Wordlist for PostgreSQL combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
         )
         concurrency: int = Field(3, description="Number of concurrent workers, gets overridden for SSH")
         rate_limit: int = Field(3, description="Limit the number of requests per second, gets overridden for SSH")

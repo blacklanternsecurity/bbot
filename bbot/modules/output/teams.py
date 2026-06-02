@@ -45,18 +45,10 @@ class Teams(WebhookOutputModule):
         return items
 
     def get_severity_color(self, event):
-        color = "Accent"
         if event.type == "FINDING":
             severity = event.data.get("severity", "INFO")
-            if severity == "CRITICAL":
-                color = "Attention"
-            elif severity == "HIGH":
-                color = "Attention"
-            elif severity == "MEDIUM":
-                color = "Warning"
-            elif severity == "LOW":
-                color = "Good"
-        return color
+            return event.severity_card_colors.get(severity, "Accent")
+        return "Accent"
 
     def format_message(self, event):
         adaptive_card = {

@@ -524,7 +524,7 @@ def test_cli_module_validation(monkeypatch, caplog):
         [
             l
             for l in lines
-            if l.startswith("WARNING  bbot.scanner:scanner.py")
+            if l.startswith("ERROR    bbot.scanner:scanner.py")
             and l.endswith("Setup hard-failed for websocket: Must set URL")
         ]
     )
@@ -532,7 +532,7 @@ def test_cli_module_validation(monkeypatch, caplog):
         [
             l
             for l in lines
-            if l.startswith("WARNING  bbot.modules.output.websocket:base.py") and l.endswith("Setting error state")
+            if l.startswith("ERROR    bbot.modules.output.websocket:base.py") and l.endswith("Setting error state")
         ]
     )
     assert 1 == len(
@@ -558,7 +558,7 @@ def test_cli_module_validation(monkeypatch, caplog):
         [
             l
             for l in lines
-            if l.startswith("WARNING  bbot.scanner:scanner.py")
+            if l.startswith("ERROR    bbot.scanner:scanner.py")
             and l.endswith("Setup hard-failed for websocket: Must set URL")
         ]
     )
@@ -566,7 +566,7 @@ def test_cli_module_validation(monkeypatch, caplog):
         [
             l
             for l in lines
-            if l.startswith("WARNING  bbot.modules.output.websocket:base.py") and l.endswith("Setting error state")
+            if l.startswith("ERROR    bbot.modules.output.websocket:base.py") and l.endswith("Setting error state")
         ]
     )
     assert 1 == len(
@@ -777,3 +777,22 @@ scan_name: {scan_name}
     shutil.rmtree(scan_dir, ignore_errors=True)
     shutil.rmtree(output_file, ignore_errors=True)
     output_dir_preset_file.unlink()
+
+
+@pytest.mark.asyncio
+async def test_cli_no_color(monkeypatch):
+    from bbot.logger import colorize
+    from bbot.scanner import Preset
+
+    # colorize honors the NO_COLOR convention
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    assert colorize("test", "INFO") != "test"
+    monkeypatch.setenv("NO_COLOR", "1")
+    assert colorize("test", "INFO") == "test"
+
+    # the --no-color CLI switch sets NO_COLOR (restored by monkeypatch at teardown)
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.setattr("sys.argv", ["bbot", "-t", "evilcorp.com", "--no-color"])
+    preset = Preset()
+    preset.parse_args()
+    assert os.environ.get("NO_COLOR") == "1"

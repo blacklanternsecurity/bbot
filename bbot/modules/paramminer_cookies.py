@@ -17,7 +17,10 @@ class paramminer_cookies(paramminer_headers):
     }
 
     class Config(BaseModuleConfig):
-        wordlist: str = Field("", description="Define the wordlist to be used to derive cookies")
+        wordlist: str = Field(
+            "",
+            description="Define the wordlist to be used to derive cookies. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
+        )
         recycle_words: bool = Field(
             False, description="Attempt to use words found during the scan on all other endpoints"
         )

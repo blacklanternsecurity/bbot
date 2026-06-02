@@ -13,6 +13,10 @@ class dnscommonsrv(subdomain_enum):
 
     class Config(BaseModuleConfig):
         max_depth: int = Field(2, description="The maximum subdomain depth to brute-force SRV records")
+        recursive_mutations: bool = Field(
+            False,
+            description="If True, brute-force SRV records on hosts discovered by dnsbrute_mutations. Default False skips them.",
+        )
 
     async def setup(self):
         self.max_subdomain_depth = self.config.get("max_depth", 2)
@@ -20,6 +24,8 @@ class dnscommonsrv(subdomain_enum):
         return True
 
     async def filter_event(self, event):
+        if not self.config.get("recursive_mutations", True) and any(t.startswith("mutation-") for t in event.tags):
+            return False, "event was discovered by dnsbrute_mutations and recursive_mutations is False"
         subdomain_depth = self.helpers.subdomain_depth(event.host)
         if subdomain_depth > self.max_subdomain_depth:
             return False, f"its subdomain depth ({subdomain_depth}) exceeds max_depth={self.max_subdomain_depth}"

@@ -18,8 +18,9 @@ class medusa(BaseModule):
     class Config(BaseModuleConfig):
         snmp_wordlist: str = Field(
             "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/SNMP/common-snmp-community-strings.txt",
-            description="Wordlist url for SNMP community strings, newline separated (default https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/SNMP/snmp.txt)",
+            description="Wordlist url for SNMP community strings, newline separated (default https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/SNMP/snmp.txt). Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
         )
+        # Only 1 and 2C are available with medusa 2.3.
         snmp_versions: list[str] = Field(
             ["1", "2C"], description="List of SNMP versions to attempt against the SNMP server (default ['1', '2C'])"
         )

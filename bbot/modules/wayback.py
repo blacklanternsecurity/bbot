@@ -46,13 +46,13 @@ class wayback(subdomain_enum):
         waybackurl = f"{self.base_url}/cdx/search/cdx?url={self.helpers.quote(query)}&matchType=domain&output=json&fl=original&collapse=original"
         r = await self.helpers.request(waybackurl, timeout=self.http_timeout + 10)
         if not r:
-            self.warning(f'Error connecting to archive.org for query "{query}"')
+            self.verbose(f'Error connecting to archive.org for query "{query}"')
             return results
         try:
             j = r.json()
             assert type(j) == list
         except Exception:
-            self.warning(f'Error JSON-decoding archive.org response for query "{query}"')
+            self.verbose(f'Error JSON-decoding archive.org response for query "{query}"')
             return results
 
         urls = []

@@ -18,7 +18,10 @@ class webbrute_shortnames(webbrute):
     }
 
     class Config(BaseModuleConfig):
-        wordlist_extensions: str = Field("", description="Specify wordlist to use when making extension lists")
+        wordlist_extensions: str = Field(
+            "",
+            description="Specify wordlist to use when making extension lists. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
+        )
         max_depth: int = Field(1, description="the maximum directory depth to attempt to solve")
         extensions: str = Field(
             "", description="Optionally include a list of extensions to extend the keyword with (comma separated)"

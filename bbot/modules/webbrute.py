@@ -22,7 +22,7 @@ class webbrute(BaseModule):
     class Config(BaseModuleConfig):
         wordlist: str = Field(
             "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-small-directories.txt",
-            description="Specify wordlist to use when finding directories",
+            description="Specify wordlist to use when finding directories. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
         )
         lines: int = Field(5000, description="take only the first N lines from the wordlist when finding directories")
         max_depth: int = Field(0, description="the maximum directory depth to attempt to solve")

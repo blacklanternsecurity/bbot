@@ -15,9 +15,13 @@ class dnsbrute(subdomain_enum):
     class Config(BaseModuleConfig):
         wordlist: str = Field(
             "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
-            description="Subdomain wordlist URL",
+            description="Subdomain wordlist URL or file path. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
         )
         max_depth: int = Field(5, description="How many subdomains deep to brute force, i.e. 5.4.3.2.1.evilcorp.com")
+        recursive_mutations: bool = Field(
+            False,
+            description="If True, brute-force hosts discovered by dnsbrute_mutations. The default (False) skips them because the static wordlist heavily overlaps with the mutation algorithm's own output.",
+        )
 
     deps_common = ["massdns"]
     reject_wildcards = "strict"

@@ -161,6 +161,8 @@ class subdomain_enum(BaseModule):
         return False
 
     async def filter_event(self, event):
+        if not self.config.get("recursive_mutations", True) and any(t.startswith("mutation-") for t in event.tags):
+            return False, "event was discovered by dnsbrute_mutations and recursive_mutations is False"
         query = self.make_query(event)
         # check if wildcard
         is_wildcard = await self._is_wildcard(query)

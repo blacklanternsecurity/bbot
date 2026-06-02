@@ -23,7 +23,10 @@ class paramminer_getparams(paramminer_headers):
     scanned_hosts = []
 
     class Config(BaseModuleConfig):
-        wordlist: str = Field("", description="Define the wordlist to be used to derive headers")
+        wordlist: str = Field(
+            "",
+            description="Define the wordlist to be used to derive headers. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
+        )
         recycle_words: bool = Field(
             False, description="Attempt to use words found during the scan on all other endpoints"
         )
@@ -40,7 +43,7 @@ class paramminer_getparams(paramminer_headers):
             False,
             description=(
                 "Generate every 1-, 2-, and 3-letter [a-z] combination and add to the wordlist. "
-                "Costs ~18,278 extra requests per host — opt-in for thorough scans."
+                "Costs ~18,278 extra requests per host; opt-in for thorough scans."
             ),
         )
 

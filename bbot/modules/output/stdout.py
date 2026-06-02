@@ -1,7 +1,8 @@
+import os
+import sys
 import json
 from typing import Literal
 
-from bbot.logger import log_to_stderr
 from bbot.modules.output.base import BaseOutputModule
 from pydantic import Field, field_validator
 from bbot.core.config.models import BaseModuleConfig
@@ -37,6 +38,8 @@ class Stdout(BaseOutputModule):
         self.show_event_fields = [str(s) for s in self.config.get("event_fields", [])]
         self.in_scope_only = self.config.get("in_scope_only", False)
         self.accept_dupes = self.config.get("accept_dupes", False)
+        # honor the NO_COLOR convention (https://no-color.org) and skip color when not writing to a terminal
+        self.use_color = sys.stdout.isatty() and not os.environ.get("NO_COLOR", "")
         return True
 
     async def filter_event(self, event):
@@ -63,16 +66,20 @@ class Stdout(BaseOutputModule):
         else:
             event_str = self.human_event_str(event)
 
-        # log findings in vivid colors based on severity
-        if event.type == "FINDING":
-            severity = event.data.get("severity", "INFO")
-            if severity in self.vuln_severity_map:
-                loglevel = self.vuln_severity_map[severity]
-                log_to_stderr(event_str, level=loglevel, logname=False)
-            else:
-                log_to_stderr(event_str, level="HUGEINFO", logname=False)
+        # color findings: severity picks the hue, confidence dims the brightness
+        if event.type == "FINDING" and isinstance(event.data, dict) and self.use_color:
+            event_str = self._colorize_finding(event_str, event)
 
         print(event_str)
+
+    def _colorize_finding(self, event_str, event):
+        severity = str(event.data.get("severity", "INFO")).upper()
+        confidence = str(event.data.get("confidence", "UNKNOWN")).upper()
+        r, g, b = event.severity_colors_rgb.get(severity, event.severity_colors_rgb["INFO"])
+        mult = event.confidence_brightness.get(confidence, event.confidence_brightness["UNKNOWN"])
+        r, g, b = int(r * mult), int(g * mult), int(b * mult)
+        bold = "1;" if confidence == "CONFIRMED" else ""
+        return f"\033[{bold}38;2;{r};{g};{b}m{event_str}\033[0m"
 
     async def handle_json(self, event, event_json):
         print(json.dumps(event_json))

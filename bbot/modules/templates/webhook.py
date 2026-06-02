@@ -75,8 +75,8 @@ class WebhookOutputModule(BaseOutputModule):
         if event.type == "FINDING":
             severity = event.data.get("severity", "INFO")
             confidence = event.data.get("confidence", "UNKNOWN")
-            severity_color = event.severity_colors.get(severity, "⬜")
-            confidence_color = event.confidence_colors.get(confidence, "⚪")
+            severity_color = event.severity_colors_emoji.get(severity, "⬜")
+            confidence_color = event.confidence_colors_emoji.get(confidence, "⚪")
             return f"{event.type} (Severity: {severity} / Confidence: {confidence})", severity_color, confidence_color
         else:
             return event.type, "🟦", ""
