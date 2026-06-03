@@ -517,6 +517,49 @@ def test_parse_cli_value_keeps_date_shaped_strings():
     assert _parse_cli_value("hello") == "hello"
 
 
+def test_parse_dotted_cli_type_aware_string_fields():
+    """Pure-string fields keep the literal CLI text (lossless) so an all-numeric or
+    boolean-looking value isn't coerced to int/bool and rejected by the str type."""
+    from bbot.scanner.preset.args import parse_dotted_cli
+    from bbot.scanner import validate_preset
+    from bbot.core.modules import MODULE_LOADER
+
+    MODULE_LOADER.preload()
+    schema = MODULE_LOADER.config_schema
+    for raw, expect in [("12345678", "12345678"), ("true", "true"), ("0755", "0755")]:
+        d = parse_dotted_cli([f"modules.postgres.password={raw}"], schema=schema)
+        assert d["modules"]["postgres"]["password"] == expect
+        assert validate_preset({"config": d}) == []
+
+
+def test_parse_dotted_cli_type_aware_preserves_scalars():
+    """Typed options still coerce (int/bool), and Union[str, list[str]] still parses a
+    list while keeping a bare value as a string."""
+    from bbot.scanner.preset.args import parse_dotted_cli
+    from bbot.core.modules import MODULE_LOADER
+
+    MODULE_LOADER.preload()
+    schema = MODULE_LOADER.config_schema
+    assert parse_dotted_cli(["web.http_timeout=20"], schema=schema)["web"]["http_timeout"] == 20
+    assert parse_dotted_cli(["scope.strict=true"], schema=schema)["scope"]["strict"] is True
+    wl = parse_dotted_cli(["modules.dnsbrute.wordlist=[a,b]"], schema=schema)["modules"]["dnsbrute"]["wordlist"]
+    assert wl == ["a", "b"]
+    bare = parse_dotted_cli(["modules.dnsbrute.wordlist=foo"], schema=schema)["modules"]["dnsbrute"]["wordlist"]
+    assert bare == "foo"
+
+
+def test_type_aware_parsing_still_flags_unknown_key():
+    """Type-awareness must not hide a typo: an unknown key falls back to YAML parse
+    and is still rejected by validation."""
+    from bbot.scanner.preset.args import parse_dotted_cli
+    from bbot.scanner import validate_preset
+    from bbot.core.modules import MODULE_LOADER
+
+    MODULE_LOADER.preload()
+    d = parse_dotted_cli(["web.bogus=5"], schema=MODULE_LOADER.config_schema)
+    assert validate_preset({"config": d})  # non-empty: unknown key flagged
+
+
 def test_cli_module_validation(monkeypatch, caplog):
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)

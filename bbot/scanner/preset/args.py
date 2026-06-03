@@ -6,25 +6,28 @@ import datetime
 
 from bbot.errors import *
 from bbot.core.config.merge import dotted_set
+from bbot.core.config.models import pure_string_field, resolve_field_annotation
 from bbot.core.helpers.misc import chain_lists
 
 
-def _parse_cli_value(raw: str):
+def _parse_cli_value(raw: str, annotation=None):
     """
     Parse the RHS of a `-c a.b.c=value` argument.
 
-    YAML safe_load handles `true`/`false`/`null`/ints/floats and quoted strings
-    the way users expect when they write `web.spider_distance=2` or
-    `modules.stdout.event_fields='[type, data]'`. An empty RHS (`-c key=`) is
-    treated as an empty string rather than None — matching the "clear this
-    value" intent users normally have.
+    If `annotation` (the target field's declared type) is a pure-string field, the
+    user's literal text IS the value -- skip YAML coercion so "12345678" / "true" /
+    "0755" stay strings (lossless) instead of being coerced to int/bool and rejected
+    by the str type.
 
-    Date-shaped values (e.g. `2024-01-01`) are kept as the literal string: YAML
-    resolves them to a date object, which is never a valid config value and would
-    be rejected by every typed field (e.g. an all-numeric or date-shaped api key).
+    Otherwise YAML safe_load handles `true`/`false`/`null`/ints/floats/lists the way
+    users expect for `web.spider_distance=2`. An empty RHS (`-c key=`) is an empty
+    string. Date-shaped values are kept as the literal string (no field is typed
+    `date`), since YAML would resolve them to a date object.
     """
     if raw == "":
         return ""
+    if annotation is not None and pure_string_field(annotation):
+        return raw
     try:
         value = yaml.safe_load(raw)
     except yaml.YAMLError:
@@ -34,9 +37,14 @@ def _parse_cli_value(raw: str):
     return value
 
 
-def parse_dotted_cli(entries):
+def parse_dotted_cli(entries, schema=None):
     """
     Parse one or more `a.b.c=value` strings into a nested dict.
+
+    If `schema` (the composite config model, i.e. `MODULE_LOADER.config_schema`) is
+    provided, each value is parsed type-aware against its target field, so a
+    pure-string field keeps the literal text rather than YAML-coercing it. Without a
+    schema, parsing falls back to plain YAML coercion.
 
     Examples:
         >>> parse_dotted_cli(["modules.shodan.api_key=1234"])
@@ -52,7 +60,8 @@ def parse_dotted_cli(entries):
         path = path.strip()
         if not path:
             raise ValueError(f'Empty key in "{entry}"')
-        dotted_set(result, path, _parse_cli_value(raw.strip()))
+        annotation = resolve_field_annotation(schema, path) if schema is not None else None
+        dotted_set(result, path, _parse_cli_value(raw.strip(), annotation))
     return result
 
 
@@ -234,10 +243,12 @@ class BBOTArgs:
         if self.parsed.user_agent_suffix:
             args_preset.core.merge_custom({"web": {"user_agent_suffix": self.parsed.user_agent_suffix}})
 
-        # CLI config options (dot-syntax)
+        # CLI config options (dot-syntax) — parsed type-aware so pure-string fields
+        # keep their literal value (e.g. an all-numeric password isn't coerced to int)
+        schema = self._config_schema()
         for config_arg in self.parsed.config:
             try:
-                args_preset.core.merge_custom(parse_dotted_cli([config_arg]))
+                args_preset.core.merge_custom(parse_dotted_cli([config_arg], schema=schema))
             except Exception as e:
                 raise BBOTArgumentError(f'Error parsing command-line config option: "{config_arg}": {e}')
 
@@ -493,6 +504,14 @@ class BBOTArgs:
         if self.parsed.fast_mode:
             self.parsed.preset += ["fast"]
 
+    def _config_schema(self):
+        """Composite config schema for type-aware CLI parsing, or None if it can't
+        be built yet (then parsing falls back to plain YAML coercion)."""
+        try:
+            return self.preset.module_loader.config_schema
+        except Exception:
+            return None
+
     def validate(self):
         """
         Validate the CLI `-c key=value` arguments against the composite
@@ -503,7 +522,7 @@ class BBOTArgs:
 
         if not self.parsed.config:
             return
-        cli_dict = parse_dotted_cli(self.parsed.config)
+        cli_dict = parse_dotted_cli(self.parsed.config, schema=self._config_schema())
         errs = validate_preset({"config": cli_dict}, module_loader=self.preset.module_loader)
         if errs:
             raise ValidationError("\n".join(str(e) for e in errs))

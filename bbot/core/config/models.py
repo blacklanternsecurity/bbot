@@ -99,6 +99,66 @@ def _field_submodel(field):
     return None
 
 
+def _acceptable_types(annotation) -> set:
+    """Base types an annotation accepts, unwrapping Optional/Union and reducing
+    parametrized generics + Literals to their base type (e.g. Union[str, list[str]]
+    -> {str, list}; Literal["a", "b"] -> {str})."""
+    import typing
+
+    types: set = set()
+    origin = typing.get_origin(annotation)
+    if origin is typing.Union:
+        args = typing.get_args(annotation)
+    elif origin is typing.Literal:
+        return {type(a) for a in typing.get_args(annotation)}
+    else:
+        args = (annotation,)
+    for a in args:
+        if a is type(None):
+            continue
+        ao = typing.get_origin(a)
+        if ao is typing.Literal:
+            types.update(type(x) for x in typing.get_args(a))
+        else:
+            types.add(ao if ao is not None else a)
+    return types
+
+
+def pure_string_field(annotation) -> bool:
+    """True if `annotation` accepts a plain string and NOT any collection type.
+
+    These are fields where the user's literal CLI text *is* the value (api keys,
+    passwords, hostnames, string Literals). For them the CLI skips YAML coercion
+    so an all-numeric or boolean-looking value isn't turned into an int/bool and
+    rejected by the str type. `Union[str, list[str]]` (the wordlist fields) is
+    intentionally NOT pure-string: it must still YAML-parse a list.
+    """
+    if annotation is None:
+        return False
+    acc = _acceptable_types(annotation)
+    return (str in acc) and not (acc & {list, tuple, set, dict, frozenset})
+
+
+def resolve_field_annotation(model, dotted_path: str):
+    """Walk a dotted config path against a pydantic model and return the leaf
+    field's annotation, or None if any segment can't be resolved. None means
+    "unknown" -> the caller falls back to default parsing (a genuine typo is
+    still caught by the normal validation pass). Honors `Field(alias=...)`."""
+    current = model
+    parts = dotted_path.split(".")
+    for i, part in enumerate(parts):
+        field = _resolve_field(current, part)
+        if field is None:
+            return None
+        if i == len(parts) - 1:
+            return field.annotation
+        sub = _field_submodel(field)
+        if sub is None:
+            return None
+        current = sub
+    return None
+
+
 def partition_sensitive_config(config, model, *, keep_sensitive: bool):
     """
     Walk `config` (a dict) alongside the pydantic `model`, returning a copy
@@ -397,4 +457,6 @@ __all__ = [
     "is_mandatory",
     "is_sensitive",
     "partition_sensitive_config",
+    "pure_string_field",
+    "resolve_field_annotation",
 ]
