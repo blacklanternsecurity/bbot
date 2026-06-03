@@ -70,8 +70,7 @@ class BBOTEnviron:
 
         Lists are skipped (they don't translate cleanly to env var values).
         None values are skipped too, since `str(None)` would write the literal
-        string "None" into the env and round-trip back through pydantic-settings
-        as a string, defeating any field validator that expects a real value.
+        string "None" into the env, which is never a useful value for a consumer.
         """
         if isinstance(config, dict):
             for k, v in config.items():

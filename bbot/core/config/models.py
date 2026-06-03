@@ -18,7 +18,6 @@ from typing import Any, Literal, Optional
 from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic import Field as _PydanticField
 from pydantic_core import PydanticUndefined
-from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from bbot.core.helpers.validators import validate_fqdn_or_ip
 
@@ -265,20 +264,18 @@ class BaseModuleConfig(BaseModel):
     )
 
 
-class BBOTConfig(BaseSettings):
+class BBOTConfig(BaseModel):
     """
     Root BBOT config schema. Unknown top-level keys are rejected so that
     typos like `scpoe:` or `moudules:` become loud errors instead of silent
     no-ops.
 
-    This is a validation schema only — it has no default values. The real
+    This is a validation schema only -- it has no default values. The real
     defaults live in `bbot/defaults.yml`.
     """
 
-    model_config = SettingsConfigDict(
+    model_config = ConfigDict(
         extra="forbid",
-        env_prefix="BBOT_",
-        env_nested_delimiter="__",
         populate_by_name=True,
     )
 

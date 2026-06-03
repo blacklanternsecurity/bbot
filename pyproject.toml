@@ -41,7 +41,6 @@ dependencies = [
     "pyzmq>=26.0.3,<28.0.0",
     "puremagic>=1.28,<2",
     "pydantic>=2.12.2,<3",
-    "pydantic-settings>=2.6.0,<3",
     "pyyaml>=6.0.0,<7",
     "radixtarget>=4.0.1,<5",
     "asndb>=1.0.4",
