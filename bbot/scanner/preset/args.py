@@ -2,6 +2,7 @@ import os
 import yaml
 import logging
 import argparse
+import datetime
 
 from bbot.errors import *
 from bbot.core.config.merge import dotted_set
@@ -17,13 +18,20 @@ def _parse_cli_value(raw: str):
     `modules.stdout.event_fields='[type, data]'`. An empty RHS (`-c key=`) is
     treated as an empty string rather than None — matching the "clear this
     value" intent users normally have.
+
+    Date-shaped values (e.g. `2024-01-01`) are kept as the literal string: YAML
+    resolves them to a date object, which is never a valid config value and would
+    be rejected by every typed field (e.g. an all-numeric or date-shaped api key).
     """
     if raw == "":
         return ""
     try:
-        return yaml.safe_load(raw)
+        value = yaml.safe_load(raw)
     except yaml.YAMLError:
         return raw
+    if isinstance(value, (datetime.date, datetime.time)):
+        return raw
+    return value
 
 
 def parse_dotted_cli(entries):

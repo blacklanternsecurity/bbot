@@ -502,6 +502,21 @@ def test_cli_config_validation(monkeypatch, caplog):
     assert 'Did you mean "web.spider_distance"?' in caplog.text
 
 
+def test_parse_cli_value_keeps_date_shaped_strings():
+    """`-c key=2024-01-01` must stay a string -- YAML would coerce it to a date object,
+    which every typed field rejects (e.g. an all-numeric or date-shaped credential).
+    Normal type coercion for typed options is preserved."""
+    from bbot.scanner.preset.args import _parse_cli_value
+
+    assert _parse_cli_value("2024-01-01") == "2024-01-01"
+    assert _parse_cli_value("2") == 2
+    assert _parse_cli_value("true") is True
+    assert _parse_cli_value("3.5") == 3.5
+    assert _parse_cli_value("[a, b]") == ["a", "b"]
+    assert _parse_cli_value("") == ""
+    assert _parse_cli_value("hello") == "hello"
+
+
 def test_cli_module_validation(monkeypatch, caplog):
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
