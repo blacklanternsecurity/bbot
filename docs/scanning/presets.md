@@ -172,16 +172,16 @@ conditions:
 ```
 
 ```yaml title="my_preset.yml"
-description: Enable ffuf but only when the web spider isn't also enabled
+description: Enable webbrute but only when the web spider isn't also enabled
 
 modules:
-  - ffuf
+  - webbrute
 
 conditions:
   - |
     {% if config.web.spider_distance > 0 and config.web.spider_depth > 0 %}
-      {{ warn("Disabling ffuf because the web spider is enabled") }}
-      {{ preset.exclude_module("ffuf") }}
+      {{ warn("Disabling webbrute because the web spider is enabled") }}
+      {{ preset.exclude_module("webbrute") }}
     {% endif %}
 ```
 
