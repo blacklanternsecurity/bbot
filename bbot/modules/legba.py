@@ -1,4 +1,5 @@
 import json
+from typing import Union
 from pathlib import Path
 from bbot.errors import WordlistError
 from bbot.modules.base import BaseModule
@@ -30,31 +31,31 @@ class legba(BaseModule):
     scope_distance_modifier = None
 
     class Config(BaseModuleConfig):
-        ssh_wordlist: str = Field(
+        ssh_wordlist: Union[str, list[str]] = Field(
             "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/ssh-betterdefaultpasslist.txt",
             description="Wordlist for SSH combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
         )
-        ftp_wordlist: str = Field(
+        ftp_wordlist: Union[str, list[str]] = Field(
             "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/ftp-betterdefaultpasslist.txt",
             description="Wordlist for FTP combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
         )
-        telnet_wordlist: str = Field(
+        telnet_wordlist: Union[str, list[str]] = Field(
             "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/telnet-betterdefaultpasslist.txt",
             description="Wordlist for TELNET combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
         )
-        vnc_wordlist: str = Field(
+        vnc_wordlist: Union[str, list[str]] = Field(
             "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/vnc-betterdefaultpasslist.txt",
             description="Wordlist for VNC passwords, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
         )
-        mssql_wordlist: str = Field(
+        mssql_wordlist: Union[str, list[str]] = Field(
             "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/mssql-betterdefaultpasslist.txt",
             description="Wordlist for MSSQL combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
         )
-        mysql_wordlist: str = Field(
+        mysql_wordlist: Union[str, list[str]] = Field(
             "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/mysql-betterdefaultpasslist.txt",
             description="Wordlist for MySQL combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
         )
-        postgresql_wordlist: str = Field(
+        postgresql_wordlist: Union[str, list[str]] = Field(
             "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/postgres-betterdefaultpasslist.txt",
             description="Wordlist for PostgreSQL combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
         )

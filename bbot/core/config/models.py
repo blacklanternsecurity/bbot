@@ -183,6 +183,16 @@ class DnsConfig(BaseModel):
     omit_queries: Optional[list[str]] = None
 
 
+class BodySpillConfig(BaseModel):
+    """`web.body_spill` — keeps large HTTP_RESPONSE bodies off the Python heap."""
+
+    model_config = STRICT
+
+    enabled: Optional[bool] = None
+    cache_mb: Optional[int] = None
+    compress: Optional[bool] = None
+
+
 class WebConfig(BaseModel):
     model_config = STRICT
 
@@ -193,12 +203,14 @@ class WebConfig(BaseModel):
     spider_depth: Optional[int] = None
     spider_links_per_page: Optional[int] = None
     http_timeout: Optional[int] = None
-    httpx_timeout: Optional[int] = None
+    blasthttp_timeout: Optional[int] = None
     http_headers: Optional[dict[str, str]] = None
     http_cookies: Optional[dict[str, str]] = Field(default=None, sensitive=True)
     api_retries: Optional[int] = None
     http_retries: Optional[int] = None
-    httpx_retries: Optional[int] = None
+    blasthttp_retries: Optional[int] = None
+    http_rate_limit: Optional[int] = None
+    body_spill: Optional[BodySpillConfig] = None
     # The `429_*` keys start with a digit, so we expose them via aliases.
     sleep_interval_429: Optional[int] = Field(default=None, alias="429_sleep_interval")
     max_sleep_interval_429: Optional[int] = Field(default=None, alias="429_max_sleep_interval")
@@ -276,6 +288,7 @@ class BBOTConfig(BaseSettings):
     status_frequency: Optional[int] = None
     file_blobs: Optional[bool] = None
     folder_blobs: Optional[bool] = None
+    max_mem_percent: Optional[int] = None
 
     # Nested sections
     scope: Optional[ScopeConfig] = None
@@ -317,6 +330,9 @@ class BBOTConfig(BaseSettings):
     interactsh_server: Optional[str] = None
     interactsh_token: Optional[str] = Field(default=None, sensitive=True)
     interactsh_disable: Optional[bool] = None
+
+    # bbot.io API key (used by the asn helper)
+    bbot_io_api_key: Optional[str] = Field(default=None, sensitive=True)
 
     _validate_interactsh_server = field_validator("interactsh_server")(validate_fqdn_or_ip)
 

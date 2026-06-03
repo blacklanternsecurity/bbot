@@ -1,3 +1,5 @@
+from typing import Union
+
 from .paramminer_headers import paramminer_headers
 from bbot.core.config.models import BaseModuleConfig, Field
 
@@ -17,7 +19,7 @@ class paramminer_cookies(paramminer_headers):
     }
 
     class Config(BaseModuleConfig):
-        wordlist: str = Field(
+        wordlist: Union[str, list[str]] = Field(
             "",
             description="Define the wordlist to be used to derive cookies. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
         )

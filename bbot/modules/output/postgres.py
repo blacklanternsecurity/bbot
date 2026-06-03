@@ -16,6 +16,9 @@ class Postgres(SQLTemplate):
         host: str = Field("localhost", description="The server running Postgres")
         port: int = Field(5432, description="The port to connect to Postgres")
         database: str = Field("bbot", description="The database name to connect to")
+        retries: int = Field(
+            10, description="Number of times to retry connecting to the database (1 second between retries)"
+        )
 
     deps_pip = ["sqlmodel", "asyncpg"]
     protocol = "postgresql+asyncpg"

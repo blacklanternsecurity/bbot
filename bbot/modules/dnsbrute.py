@@ -1,3 +1,5 @@
+from typing import Union
+
 from bbot.modules.templates.subdomain_enum import subdomain_enum
 from bbot.core.config.models import BaseModuleConfig, Field
 
@@ -13,7 +15,7 @@ class dnsbrute(subdomain_enum):
     }
 
     class Config(BaseModuleConfig):
-        wordlist: str = Field(
+        wordlist: Union[str, list[str]] = Field(
             "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
             description="Subdomain wordlist URL or file path. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
         )

@@ -1,4 +1,5 @@
 import re
+from typing import Union
 
 from bbot.errors import HttpCompareError
 from bbot.modules.base import BaseModule
@@ -42,7 +43,7 @@ class paramminer_headers(BaseModule):
     }
 
     class Config(BaseModuleConfig):
-        wordlist: str = Field(
+        wordlist: Union[str, list[str]] = Field(
             "",
             description="Define the wordlist to be used to derive headers. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
         )

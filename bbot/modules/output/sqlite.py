@@ -14,6 +14,9 @@ class SQLite(SQLTemplate):
 
     class Config(BaseModuleConfig):
         database: str = Field("", description="The path to the sqlite database file")
+        retries: int = Field(
+            10, description="Number of times to retry connecting to the database (1 second between retries)"
+        )
 
     deps_pip = ["sqlmodel", "aiosqlite"]
 

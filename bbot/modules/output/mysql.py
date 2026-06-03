@@ -16,6 +16,9 @@ class MySQL(SQLTemplate):
         host: str = Field("localhost", description="The server running MySQL")
         port: int = Field(3306, description="The port to connect to MySQL")
         database: str = Field("bbot", description="The database name to connect to")
+        retries: int = Field(
+            10, description="Number of times to retry connecting to the database (1 second between retries)"
+        )
 
     deps_pip = ["sqlmodel", "aiomysql"]
     protocol = "mysql+aiomysql"

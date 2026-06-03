@@ -1,5 +1,6 @@
 import itertools
 import string
+from typing import Union
 from urllib.parse import urlparse
 
 
@@ -23,7 +24,7 @@ class paramminer_getparams(paramminer_headers):
     scanned_hosts = []
 
     class Config(BaseModuleConfig):
-        wordlist: str = Field(
+        wordlist: Union[str, list[str]] = Field(
             "",
             description="Define the wordlist to be used to derive headers. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
         )

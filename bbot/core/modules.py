@@ -139,12 +139,20 @@ def _build_validation_schema(preloaded: dict):
     module_fields = {}
     for name, data in preloaded.items():
         source = data.get("config_source")
-        if source:
-            cfg_model = _exec_config_class(source, name)
-        else:
+        if not source:
             # Module declares no Config — only the universal options apply.
-            cfg_model = BaseModuleConfig
-        module_fields[name] = (Optional[cfg_model], Field(default=None))
+            field_type = BaseModuleConfig
+        else:
+            try:
+                field_type = _exec_config_class(source, name)
+            except BBOTError as e:
+                # The Config references a name not available in the isolated exec
+                # namespace (a module-level constant, imported type, Enum, …); it's
+                # valid at real import time. Don't reject the module — accept any
+                # config for it (its own options just aren't strictly validated here).
+                log.debug(f"{e} -- accepting any config for module '{name}'")
+                field_type = dict
+        module_fields[name] = (Optional[field_type], Field(default=None))
 
     # Some module names (e.g. `json`) shadow BaseModel's deprecated method
     # names and trigger a UserWarning. The field still validates correctly;

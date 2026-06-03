@@ -20,7 +20,7 @@ class webbrute(BaseModule):
     }
 
     class Config(BaseModuleConfig):
-        wordlist: str = Field(
+        wordlist: Union[str, list[str]] = Field(
             "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-small-directories.txt",
             description="Specify wordlist to use when finding directories. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
         )

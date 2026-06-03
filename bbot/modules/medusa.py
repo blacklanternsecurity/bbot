@@ -1,4 +1,6 @@
 import re
+from typing import Union
+
 from bbot.modules.base import BaseModule
 from bbot.core.config.models import BaseModuleConfig, Field
 
@@ -16,7 +18,7 @@ class medusa(BaseModule):
     scope_distance_modifier = None
 
     class Config(BaseModuleConfig):
-        snmp_wordlist: str = Field(
+        snmp_wordlist: Union[str, list[str]] = Field(
             "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/SNMP/common-snmp-community-strings.txt",
             description="Wordlist url for SNMP community strings, newline separated (default https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/SNMP/snmp.txt). Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
         )

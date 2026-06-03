@@ -26,6 +26,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from bbot.errors import BBOTError
 from bbot.core.config.models import PresetSchema
 from bbot.core.helpers.misc import get_closest_match, get_keys_in_dot_syntax
 
@@ -201,6 +202,8 @@ def validate_preset(preset_dict: Any, module_loader=None) -> list[PresetValidati
 
         module_loader = MODULE_LOADER
 
+    errors: list[PresetValidationError] = []
+
     # Pre-load any custom module_dirs the preset declares so the composite
     # schema includes their modules. Defensive iteration — bad shape gets
     # surfaced by the schema pass below.
@@ -215,10 +218,19 @@ def validate_preset(preset_dict: Any, module_loader=None) -> list[PresetValidati
         if not isinstance(source, list):
             continue
         for d in source:
-            if isinstance(d, str):
+            if not isinstance(d, str):
+                continue
+            # A bad custom module (e.g. a legacy options dict, which preload rejects
+            # via sys.exit) must not kill a caller that just wants a list of errors.
+            try:
                 module_loader.add_module_dir(d)
+            except (SystemExit, Exception) as e:
+                detail = str(e).strip()
+                suffix = f": {detail}" if detail and detail != "1" else ""
+                errors.append(
+                    PresetValidationError("preset", "module_dirs", f"Failed to load module dir {d!r}{suffix}")
+                )
 
-    errors: list[PresetValidationError] = []
     known_modules = set(module_loader.all_module_choices)
     # Universe of valid dotted config paths, used for "did you mean ...?"
     # suggestions on unknown global-config keys.
@@ -231,6 +243,10 @@ def validate_preset(preset_dict: Any, module_loader=None) -> list[PresetValidati
         module_loader.validation_schema.model_validate(preset_dict)
     except ValidationError as e:
         errors.extend(_format_errors(e, known_modules=known_modules, known_paths=known_paths))
+    except BBOTError as e:
+        # A custom module with an invalid `class Config` raises when the schema is
+        # built/exec'd. Report it instead of letting it propagate out of this API.
+        errors.append(PresetValidationError("preset", "", str(e)))
 
     # Module names listed in top-level `modules`/`output_modules`/`exclude_modules`
     # aren't covered by the composite schema (they're a list of strings, not a

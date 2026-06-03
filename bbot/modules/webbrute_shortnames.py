@@ -2,6 +2,7 @@ import pickle
 import re
 import random
 import string
+from typing import Union
 
 from bbot.modules.webbrute import webbrute
 from bbot.core.config.models import BaseModuleConfig, Field
@@ -18,7 +19,7 @@ class webbrute_shortnames(webbrute):
     }
 
     class Config(BaseModuleConfig):
-        wordlist_extensions: str = Field(
+        wordlist_extensions: Union[str, list[str]] = Field(
             "",
             description="Specify wordlist to use when making extension lists. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
         )

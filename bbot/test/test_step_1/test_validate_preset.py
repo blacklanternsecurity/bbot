@@ -196,3 +196,90 @@ def test_validate_preset_interactsh_server_rejects_invalid():
         assert errs[0].path == "interactsh_server"
         assert "FQDN or IP" in errs[0].message
         assert repr(v) in errs[0].message
+
+
+def test_defaults_yml_validates_against_schema():
+    """BBOT's own defaults.yml must pass its own validator. Guards against the pydantic
+    schema (core/config/models.py) silently drifting from defaults.yml -- if a key is
+    added/renamed in defaults.yml, the schema must keep up or this fails."""
+    import yaml
+    from pathlib import Path
+    import bbot
+
+    defaults = yaml.safe_load((Path(bbot.__file__).parent / "defaults.yml").read_text())
+    errs = validate_preset({"config": defaults})
+    assert errs == [], "defaults.yml must validate clean:\n" + "\n".join(str(e) for e in errs)
+
+
+def test_validate_preset_sql_retries_settable():
+    """`retries` is read by the shared SQLTemplate.setup, so each concrete SQL output
+    module must declare it in its Config (otherwise it's rejected as an unknown option)."""
+    for module in ("postgres", "mysql", "sqlite"):
+        errs = validate_preset({"config": {"modules": {module: {"retries": 5}}}})
+        assert errs == [], f"{module}.retries should validate, got: {[str(e) for e in errs]}"
+
+
+def test_validate_preset_wordlist_accepts_list():
+    """*_wordlist fields document a list form (merge multiple wordlists); the validating
+    path must accept a list, not only a string. Regression for a documented-feature break."""
+    for module, field in [
+        ("dnsbrute", "wordlist"),
+        ("paramminer_headers", "wordlist"),
+        ("webbrute", "wordlist"),
+        ("legba", "ssh_wordlist"),
+    ]:
+        errs = validate_preset({"config": {"modules": {module: {field: ["/tmp/a.txt", "/tmp/b.txt"]}}}})
+        assert errs == [], f"{module}.{field} list form should validate, got: {[str(e) for e in errs]}"
+
+
+def test_validate_preset_nuclei_mode_lowercase_literal():
+    """nuclei.mode is a lowercase Literal: lowercase values pass; anything else (incl.
+    mixed case) is rejected with the allowed values listed."""
+    assert validate_preset({"config": {"modules": {"nuclei": {"mode": "manual"}}}}) == []
+    errs = validate_preset({"config": {"modules": {"nuclei": {"mode": "MANUAL"}}}})
+    assert len(errs) == 1
+    assert errs[0].where == "module:nuclei" and errs[0].path == "mode"
+    assert "Expected one of" in errs[0].message and "'manual'" in errs[0].message
+
+
+def test_validate_preset_bad_module_dir_returns_errors(tmp_path):
+    """A custom module_dir containing an unloadable module (here a legacy options dict,
+    which preload rejects via sys.exit) must surface as an error, not kill the caller."""
+    from bbot.core.modules import ModuleLoader
+
+    mod_dir = tmp_path / "badmods"
+    mod_dir.mkdir()
+    (mod_dir / "legacymod.py").write_text(
+        "from bbot.modules.base import BaseModule\n"
+        "class legacymod(BaseModule):\n"
+        '    watched_events = ["DNS_NAME"]\n'
+        '    produced_events = ["DNS_NAME"]\n'
+        '    flags = ["passive", "safe"]\n'
+        '    meta = {"description": "x", "created_date": "2025-01-01", "author": "@x"}\n'
+        '    options = {"foo": "bar"}\n'
+        '    options_desc = {"foo": "a foo"}\n'
+    )
+    # isolated loader so the bad dir doesn't pollute the global one
+    errs = validate_preset(
+        {"module_dirs": [str(mod_dir)], "modules": ["legacymod"]},
+        module_loader=ModuleLoader(),
+    )
+    assert any(e.path == "module_dirs" for e in errs), [str(e) for e in errs]
+
+
+def test_build_validation_schema_tolerates_unexecable_config():
+    """A custom module whose `class Config` references a module-level name (valid at real
+    import, but unresolvable in the isolated exec namespace) must not break schema building.
+    The module falls back to accepting any config rather than being rejected."""
+    from bbot.core.modules import _build_validation_schema
+
+    preloaded = {
+        "synthmod": {
+            "config_source": (
+                "class Config(BaseModuleConfig):\n    threads: int = Field(MY_UNDEFINED_CONSTANT, description='x')\n"
+            ),
+        },
+    }
+    schema = _build_validation_schema(preloaded)  # must not raise
+    # the module is usable and accepts arbitrary config (lenient fallback)
+    assert schema.model_validate({"config": {"modules": {"synthmod": {"threads": 5, "anything": "x"}}}})
