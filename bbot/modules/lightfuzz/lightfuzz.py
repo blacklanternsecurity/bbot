@@ -238,14 +238,19 @@ class lightfuzz(BaseModule):
         return True
 
     @classmethod
-    def help_text(self):
+    def help_text(cls):
         # Call the base class help_text method
         base_help_text = super().help_text()
 
         import importlib
 
+        # classmethod: read defaults from the Config schema (instance config isn't available here)
+        default_submodules = cls.Config.model_fields["enabled_submodules"].get_default(call_default_factory=True)
+        if not isinstance(default_submodules, (list, tuple)):
+            default_submodules = []
+
         submodules = {}
-        for submodule_name in self.config.get("enabled_submodules", []):
+        for submodule_name in default_submodules:
             try:
                 submodule_module = importlib.import_module(f"bbot.modules.lightfuzz.submodules.{submodule_name}")
                 submodule_class = getattr(submodule_module, submodule_name)

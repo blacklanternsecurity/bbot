@@ -461,6 +461,23 @@ async def test_cli_module_help(monkeypatch, capsys):
     assert "Extracts domains from CSP headers" in captured.out
     assert "Module Help:" in captured.out
 
+    # a module with options must list them (regression: help_text reads the pydantic
+    # Config, not the removed self.options dict — otherwise every module shows nothing)
+    monkeypatch.setattr("sys.argv", ["bbot", "--module-help", "robots"])
+    assert await cli._main() is None
+    captured = capsys.readouterr()
+    assert "include_sitemap" in captured.out
+    assert "No options available" not in captured.out
+
+    # lightfuzz overrides help_text as a classmethod (regression: it must not read
+    # instance-only config, which previously crashed with AttributeError)
+    monkeypatch.setattr("sys.argv", ["bbot", "--module-help", "lightfuzz"])
+    assert await cli._main() is None
+    captured = capsys.readouterr()
+    assert "Lightfuzz Submodules:" in captured.out
+    assert "sqli" in captured.out
+    assert "enabled_submodules" in captured.out
+
 
 def test_cli_config_validation(monkeypatch, caplog):
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
