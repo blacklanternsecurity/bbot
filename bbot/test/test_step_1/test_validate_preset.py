@@ -109,6 +109,26 @@ def test_validate_preset_modules_as_string_no_cascade():
     assert "list" in errs[0].message
 
 
+def test_validate_preset_non_string_module_entry_no_crash():
+    """A non-string entry in modules/output_modules/exclude_modules (e.g. a dangling YAML
+    list item -> None) must be reported as a type error, never raise TypeError."""
+    # dangling YAML item -> None
+    errs = validate_preset({"modules": ["nuclei", None]})
+    assert len(errs) == 1
+    assert errs[0].path == "modules.1"
+    assert "string" in errs[0].message and "None" in errs[0].message
+
+    # a typo alongside the bad entry: both surface, still no crash
+    errs = validate_preset({"modules": ["nucleii", None]})
+    assert len(errs) == 2
+    assert any('Did you mean "nuclei"' in str(e) for e in errs)
+
+    # int and unhashable (dict) entries must not crash the set membership / difflib calls
+    errs = validate_preset({"output_modules": [123], "exclude_modules": [{"a": 1}]})
+    assert len(errs) == 2
+    assert all("string" in e.message for e in errs)
+
+
 def test_validate_preset_top_level_typo_suggests_preset_field():
     """Typos at the preset root should suggest preset field names, not config paths."""
     cases = [

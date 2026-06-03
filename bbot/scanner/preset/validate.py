@@ -242,6 +242,10 @@ def validate_preset(preset_dict: Any, module_loader=None) -> list[PresetValidati
         if not isinstance(value, list):
             continue
         for name in value:
+            # non-string entries (e.g. a dangling YAML item -> None) already get a
+            # type error from the schema pass; skip so get_closest_match's difflib doesn't choke
+            if not isinstance(name, str):
+                continue
             if name not in known_modules:
                 hint = get_closest_match(name, known_modules, msg="module")
                 errors.append(PresetValidationError(where="preset", path=key, message=hint))
