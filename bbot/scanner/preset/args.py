@@ -1,3 +1,4 @@
+import os
 import re
 import logging
 import argparse
@@ -150,6 +151,8 @@ class BBOTArgs:
             )
         if self.parsed.event_types:
             args_preset.core.merge_custom({"modules": {"stdout": {"event_types": self.parsed.event_types}}})
+        if self.parsed.no_color:
+            os.environ["NO_COLOR"] = "1"
         if self.parsed.exclude_cdn:
             args_preset.explicit_scan_modules.add("portfilter")
 
@@ -176,6 +179,9 @@ class BBOTArgs:
 
         if self.parsed.proxy:
             args_preset.core.merge_custom({"web": {"http_proxy": self.parsed.proxy}})
+
+        if self.parsed.no_proxy:
+            args_preset.core.merge_custom({"web": {"http_proxy_exclude": self.parsed.no_proxy}})
 
         if self.parsed.custom_headers:
             args_preset.core.merge_custom({"web": {"http_headers": self.parsed.custom_headers}})
@@ -348,6 +354,7 @@ class BBOTArgs:
         output.add_argument("-lo", "--list-output-modules", action="store_true", help="List available output modules")
         output.add_argument("--json", "-j", action="store_true", help="Output scan data in JSON format")
         output.add_argument("--brief", "-br", action="store_true", help="Output only the data itself")
+        output.add_argument("--no-color", action="store_true", help="Disable colored terminal output")
         output.add_argument("--event-types", nargs="+", default=[], help="Choose which event types to display")
         output.add_argument(
             "--exclude-cdn",
@@ -372,6 +379,13 @@ class BBOTArgs:
         misc = p.add_argument_group(title="Misc")
         misc.add_argument("--version", action="store_true", help="show BBOT version and exit")
         misc.add_argument("--proxy", help="Use this proxy for all HTTP requests", metavar="HTTP_PROXY")
+        misc.add_argument(
+            "--no-proxy",
+            nargs="+",
+            default=[],
+            help="Exclude these hosts from proxy (e.g. localhost *.internal.corp 10.0.0.0/8)",
+            metavar="HOST",
+        )
         misc.add_argument(
             "-H",
             "--custom-headers",

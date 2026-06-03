@@ -28,7 +28,7 @@ class webbrute_shortnames(webbrute):
     }
 
     options_desc = {
-        "wordlist_extensions": "Specify wordlist to use when making extension lists",
+        "wordlist_extensions": "Specify wordlist to use when making extension lists. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
         "max_depth": "the maximum directory depth to attempt to solve",
         "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
         "find_common_prefixes": "Attempt to automatically detect common prefixes and make additional runs against them",

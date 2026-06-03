@@ -27,7 +27,7 @@ class paramminer_getparams(paramminer_headers):
         "brute_short": False,
     }
     options_desc = {
-        "wordlist": "Define the wordlist to be used to derive headers",
+        "wordlist": "Define the wordlist to be used to derive headers. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
         "recycle_words": "Attempt to use words found during the scan on all other endpoints",
         "skip_boring_words": "Remove commonly uninteresting words from the wordlist",
         "mutate_case": (
