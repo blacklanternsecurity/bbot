@@ -74,13 +74,13 @@ dev = [
     "pytest-timeout>=2.3.1,<3",
     "pytest-httpserver>=1.0.11,<2",
     "pytest>=8.3.1,<10",
-    "pytest-asyncio==1.3.0",
-    "uvicorn>=0.32,<0.48",
+    "pytest-asyncio==1.4.0",
+    "uvicorn>=0.32,<0.49",
     "fastapi>=0.115.5,<0.137.0",
     "pytest-httpx>=0.35",
     "pytest-benchmark>=4,<6",
     "baddns~=2.3.0",
-    "ruff==0.15.13",
+    "ruff==0.15.15",
     "maturin>=1.4,<2",
 ]
 docs = [

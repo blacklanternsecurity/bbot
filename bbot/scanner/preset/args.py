@@ -1,3 +1,4 @@
+import os
 import re
 import logging
 import argparse
@@ -150,6 +151,8 @@ class BBOTArgs:
             )
         if self.parsed.event_types:
             args_preset.core.merge_custom({"modules": {"stdout": {"event_types": self.parsed.event_types}}})
+        if self.parsed.no_color:
+            os.environ["NO_COLOR"] = "1"
         if self.parsed.exclude_cdn:
             args_preset.explicit_scan_modules.add("portfilter")
 
@@ -351,6 +354,7 @@ class BBOTArgs:
         output.add_argument("-lo", "--list-output-modules", action="store_true", help="List available output modules")
         output.add_argument("--json", "-j", action="store_true", help="Output scan data in JSON format")
         output.add_argument("--brief", "-br", action="store_true", help="Output only the data itself")
+        output.add_argument("--no-color", action="store_true", help="Disable colored terminal output")
         output.add_argument("--event-types", nargs="+", default=[], help="Choose which event types to display")
         output.add_argument(
             "--exclude-cdn",

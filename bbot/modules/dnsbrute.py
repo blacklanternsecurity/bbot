@@ -13,10 +13,12 @@ class dnsbrute(subdomain_enum):
     options = {
         "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
         "max_depth": 5,
+        "recursive_mutations": False,
     }
     options_desc = {
         "wordlist": "Subdomain wordlist URL or file path. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
         "max_depth": "How many subdomains deep to brute force, i.e. 5.4.3.2.1.evilcorp.com",
+        "recursive_mutations": "If True, brute-force hosts discovered by dnsbrute_mutations. The default (False) skips them because the static wordlist heavily overlaps with the mutation algorithm's own output.",
     }
     deps_common = ["massdns"]
     reject_wildcards = "strict"
