@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.v3oo5166.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.kyphhpls.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1059,6 +1059,9 @@ Is the same as:
 <span style="color: #7EE787">web</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># HTTP proxy</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">http_proxy</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Hosts/CIDRs to exclude from HTTP proxy (NO_PROXY equivalent)</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Examples: ["localhost", "*.internal.corp", "10.0.0.0/8", "elastic.mycompany.com"]</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">http_proxy_exclude</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[]</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Web user-agent</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">user_agent</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.2151.97</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Suffix to append to user-agent (e.g. for tracking or identification)</span>
@@ -1071,8 +1074,8 @@ Is the same as:
 <span style="color: #6E7681">  </span><span style="color: #7EE787">spider_links_per_page</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">25</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># HTTP timeout (for Python requests; API calls, etc.)</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">http_timeout</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">10</span>
-<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># HTTP timeout (for httpx)</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">httpx_timeout</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">5</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># HTTP timeout (for blasthttp)</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">blasthttp_timeout</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">5</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Custom HTTP headers (e.g. cookies, etc.)</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># in the format { "Header-Key": "header_value" }</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># These are attached to all in-scope HTTP requests</span>
@@ -1084,8 +1087,8 @@ Is the same as:
 <span style="color: #6E7681">  </span><span style="color: #7EE787">api_retries</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">2</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># HTTP retries - try again if the raw connection fails</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">http_retries</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">1</span>
-<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># HTTP retries (for httpx)</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">httpx_retries</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">1</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># HTTP retries (for blasthttp)</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">blasthttp_retries</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">1</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Default sleep interval when rate limited by 429 (and retry-after isn't provided)</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">429_sleep_interval</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">30</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Maximum sleep interval when rate limited by 429 (and an excessive retry-after is provided)</span>
@@ -1096,6 +1099,19 @@ Is the same as:
 <span style="color: #6E7681">  </span><span style="color: #7EE787">http_max_redirects</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">5</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Whether to verify SSL certificates</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">ssl_verify</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">false</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Maximum HTTP requests per second (0 = unlimited)</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Applies globally across all blasthttp consumers (http probing, web brute, etc.)</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">http_rate_limit</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">0</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># HTTP_RESPONSE body disk-spill — keeps body bytes off the Python heap.</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Bodies are written to ${scan_home}/temp/bodies/{uuid}.body.zst and served</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># from a bounded LRU cache; only cache misses touch disk.</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">body_spill</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #8B949E; font-style: italic"># Master switch</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">enabled</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span>
+<span style="color: #6E7681">    </span><span style="color: #8B949E; font-style: italic"># In-memory LRU cache budget for hot bodies, in MB</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">cache_mb</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">512</span>
+<span style="color: #6E7681">    </span><span style="color: #8B949E; font-style: italic"># zstd level-1 compression on the way to disk</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">compress</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span>
 
 <span style="color: #8B949E; font-style: italic">### ENGINE ###</span>
 
@@ -1104,8 +1120,6 @@ Is the same as:
 
 <span style="color: #8B949E; font-style: italic"># Tool dependencies</span>
 <span style="color: #7EE787">deps</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">ffuf</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">    </span><span style="color: #7EE787">version</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"2.1.0"</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How to handle installation of module dependencies</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Choices are:</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic">#  - abort_on_failure (default) - if a module dependency fails to install, abort the scan</span>
@@ -1234,8 +1248,25 @@ Is the same as:
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">ASP.NET_SessionId</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">.AspNetCore.Session</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">PHPSESSID</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">sessionid</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">csrftoken</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">__cf_bm</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">cf_clearance</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">_abck</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">bm_sz</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">ak_bmsc</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">f5_cspm</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">_ga</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">_gid</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">_gat</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">_gcl_au</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">_fbp</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">_fbc</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">__utma</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">__utmb</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">__utmc</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">__utmz</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">_hjid</span>
 
 <span style="color: #7EE787">parameter_blacklist_prefixes</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">TS01</span>
@@ -1248,6 +1279,9 @@ Is the same as:
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">ApplicationGatewayAffinity</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">JSESSIONID</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">ARRAffinity</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">_hjSession</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">_gat_</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">intercom-</span>
 
 <span style="color: #8B949E; font-style: italic"># Don't output these types of events (they are still distributed to modules)</span>
 <span style="color: #7EE787">omit_event_types</span><span style="color: #E6EDF3">:</span>
@@ -1264,6 +1298,10 @@ Is the same as:
 <span style="color: #7EE787">interactsh_server</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">null</span>
 <span style="color: #7EE787">interactsh_token</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">null</span>
 <span style="color: #7EE787">interactsh_disable</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">false</span>
+
+<span style="color: #8B949E; font-style: italic"># API key for bbot.io services (currently used by ASN lookups via the asndb library)</span>
+<span style="color: #8B949E; font-style: italic"># Can also be set via the BBOT_IO_API_KEY environment variable, which takes precedence.</span>
+<span style="color: #7EE787">bbot_io_api_key</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">null</span>
 </code></pre></div>
 <!-- END BBOT DEFAULT CONFIG -->
 <h2 id="module-config-options">Module Config Options</h2>
@@ -1378,6 +1416,12 @@ Is the same as:
 <td>False</td>
 </tr>
 <tr>
+<td>modules.bucket_hetzner.permutations</td>
+<td>bool</td>
+<td>Whether to try permutations</td>
+<td>False</td>
+</tr>
+<tr>
 <td>modules.bucket_microsoft.permutations</td>
 <td>bool</td>
 <td>Whether to try permutations</td>
@@ -1392,7 +1436,7 @@ Is the same as:
 <tr>
 <td>modules.dnsbrute.wordlist</td>
 <td>str</td>
-<td>Subdomain wordlist URL</td>
+<td>Subdomain wordlist URL or file path. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).</td>
 <td>https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt</td>
 </tr>
 <tr>
@@ -1406,102 +1450,6 @@ Is the same as:
 <td>int</td>
 <td>The maximum subdomain depth to brute-force SRV records</td>
 <td>2</td>
-</tr>
-<tr>
-<td>modules.ffuf.extensions</td>
-<td>str</td>
-<td>Optionally include a list of extensions to extend the keyword with (comma separated)</td>
-<td></td>
-</tr>
-<tr>
-<td>modules.ffuf.ignore_case</td>
-<td>bool</td>
-<td>Only put lowercase words into the wordlist</td>
-<td>False</td>
-</tr>
-<tr>
-<td>modules.ffuf.lines</td>
-<td>int</td>
-<td>take only the first N lines from the wordlist when finding directories</td>
-<td>5000</td>
-</tr>
-<tr>
-<td>modules.ffuf.max_depth</td>
-<td>int</td>
-<td>the maximum directory depth to attempt to solve</td>
-<td>0</td>
-</tr>
-<tr>
-<td>modules.ffuf.rate</td>
-<td>int</td>
-<td>Rate of requests per second (default: 0)</td>
-<td>0</td>
-</tr>
-<tr>
-<td>modules.ffuf.wordlist</td>
-<td>str</td>
-<td>Specify wordlist to use when finding directories</td>
-<td>https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-small-directories.txt</td>
-</tr>
-<tr>
-<td>modules.ffuf_shortnames.extensions</td>
-<td>str</td>
-<td>Optionally include a list of extensions to extend the keyword with (comma separated)</td>
-<td></td>
-</tr>
-<tr>
-<td>modules.ffuf_shortnames.find_common_prefixes</td>
-<td>bool</td>
-<td>Attempt to automatically detect common prefixes and make additional ffuf runs against them</td>
-<td>False</td>
-</tr>
-<tr>
-<td>modules.ffuf_shortnames.find_delimiters</td>
-<td>bool</td>
-<td>Attempt to detect common delimiters and make additional ffuf runs against them</td>
-<td>True</td>
-</tr>
-<tr>
-<td>modules.ffuf_shortnames.find_subwords</td>
-<td>bool</td>
-<td>Attempt to detect subwords and make additional ffuf runs against them</td>
-<td>False</td>
-</tr>
-<tr>
-<td>modules.ffuf_shortnames.ignore_redirects</td>
-<td>bool</td>
-<td>Explicitly ignore redirects (301,302)</td>
-<td>True</td>
-</tr>
-<tr>
-<td>modules.ffuf_shortnames.max_depth</td>
-<td>int</td>
-<td>the maximum directory depth to attempt to solve</td>
-<td>1</td>
-</tr>
-<tr>
-<td>modules.ffuf_shortnames.max_predictions</td>
-<td>int</td>
-<td>The maximum number of predictions to generate per shortname prefix</td>
-<td>250</td>
-</tr>
-<tr>
-<td>modules.ffuf_shortnames.rate</td>
-<td>int</td>
-<td>Rate of requests per second (default: 0)</td>
-<td>0</td>
-</tr>
-<tr>
-<td>modules.ffuf_shortnames.version</td>
-<td>str</td>
-<td>ffuf version</td>
-<td>2.0.0</td>
-</tr>
-<tr>
-<td>modules.ffuf_shortnames.wordlist_extensions</td>
-<td>str</td>
-<td>Specify wordlist to use when making extension lists</td>
-<td></td>
 </tr>
 <tr>
 <td>modules.filedownload.extensions</td>
@@ -1532,6 +1480,12 @@ Is the same as:
 <td>str</td>
 <td>fingerprintx version</td>
 <td>1.1.4</td>
+</tr>
+<tr>
+<td>modules.generic_ssrf.skip_dns_interaction</td>
+<td>bool</td>
+<td>Do not report DNS interactions (only HTTP interaction)</td>
+<td>False</td>
 </tr>
 <tr>
 <td>modules.gitlab_com.api_key</td>
@@ -1612,40 +1566,28 @@ Is the same as:
 <td></td>
 </tr>
 <tr>
-<td>modules.httpx.in_scope_only</td>
+<td>modules.http.in_scope_only</td>
 <td>bool</td>
-<td>Only visit web reparents that are in scope.</td>
+<td>Only visit web resources that are in scope.</td>
 <td>True</td>
 </tr>
 <tr>
-<td>modules.httpx.max_response_size</td>
+<td>modules.http.max_response_size</td>
 <td>int</td>
 <td>Max response size in bytes</td>
 <td>5242880</td>
 </tr>
 <tr>
-<td>modules.httpx.probe_all_ips</td>
-<td>bool</td>
-<td>Probe all the ips associated with same host</td>
-<td>False</td>
-</tr>
-<tr>
-<td>modules.httpx.store_responses</td>
+<td>modules.http.store_responses</td>
 <td>bool</td>
 <td>Save raw HTTP responses to scan folder</td>
 <td>False</td>
 </tr>
 <tr>
-<td>modules.httpx.threads</td>
+<td>modules.http.threads</td>
 <td>int</td>
-<td>Number of httpx threads to use</td>
+<td>Number of concurrent requests</td>
 <td>50</td>
-</tr>
-<tr>
-<td>modules.httpx.version</td>
-<td>str</td>
-<td>httpx version</td>
-<td>1.2.5</td>
 </tr>
 <tr>
 <td>modules.iis_shortnames.detect_only</td>
@@ -1674,25 +1616,25 @@ Is the same as:
 <tr>
 <td>modules.legba.ftp_wordlist</td>
 <td>str</td>
-<td>Wordlist URL for FTP combined username:password wordlist, newline separated</td>
+<td>Wordlist for FTP combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).</td>
 <td>https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/ftp-betterdefaultpasslist.txt</td>
 </tr>
 <tr>
 <td>modules.legba.mssql_wordlist</td>
 <td>str</td>
-<td>Wordlist URL for MSSQL combined username:password wordlist, newline separated</td>
+<td>Wordlist for MSSQL combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).</td>
 <td>https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/mssql-betterdefaultpasslist.txt</td>
 </tr>
 <tr>
 <td>modules.legba.mysql_wordlist</td>
 <td>str</td>
-<td>Wordlist URL for MySQL combined username:password wordlist, newline separated</td>
+<td>Wordlist for MySQL combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).</td>
 <td>https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/mysql-betterdefaultpasslist.txt</td>
 </tr>
 <tr>
 <td>modules.legba.postgresql_wordlist</td>
 <td>str</td>
-<td>Wordlist URL for PostgreSQL combined username:password wordlist, newline separated</td>
+<td>Wordlist for PostgreSQL combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).</td>
 <td>https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/postgres-betterdefaultpasslist.txt</td>
 </tr>
 <tr>
@@ -1704,13 +1646,13 @@ Is the same as:
 <tr>
 <td>modules.legba.ssh_wordlist</td>
 <td>str</td>
-<td>Wordlist URL for SSH combined username:password wordlist, newline separated</td>
+<td>Wordlist for SSH combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).</td>
 <td>https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/ssh-betterdefaultpasslist.txt</td>
 </tr>
 <tr>
 <td>modules.legba.telnet_wordlist</td>
 <td>str</td>
-<td>Wordlist URL for TELNET combined username:password wordlist, newline separated</td>
+<td>Wordlist for TELNET combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).</td>
 <td>https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/telnet-betterdefaultpasslist.txt</td>
 </tr>
 <tr>
@@ -1722,7 +1664,7 @@ Is the same as:
 <tr>
 <td>modules.legba.vnc_wordlist</td>
 <td>str</td>
-<td>Wordlist URL for VNC password wordlist, newline separated</td>
+<td>Wordlist for VNC passwords, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).</td>
 <td>https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/vnc-betterdefaultpasslist.txt</td>
 </tr>
 <tr>
@@ -1770,7 +1712,7 @@ Is the same as:
 <tr>
 <td>modules.medusa.snmp_wordlist</td>
 <td>str</td>
-<td>Wordlist url for SNMP community strings, newline separated (default https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/SNMP/snmp.txt)</td>
+<td>Wordlist url for SNMP community strings, newline separated (default https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/SNMP/snmp.txt). Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).</td>
 <td>https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/SNMP/common-snmp-community-strings.txt</td>
 </tr>
 <tr>
@@ -1902,8 +1844,20 @@ Is the same as:
 <tr>
 <td>modules.paramminer_cookies.wordlist</td>
 <td>str</td>
-<td>Define the wordlist to be used to derive cookies</td>
+<td>Define the wordlist to be used to derive cookies. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).</td>
 <td></td>
+</tr>
+<tr>
+<td>modules.paramminer_getparams.brute_short</td>
+<td>bool</td>
+<td>Generate every 1-, 2-, and 3-letter [a-z] combination and add to the wordlist. Costs ~18,278 extra requests per host — opt-in for thorough scans.</td>
+<td>False</td>
+</tr>
+<tr>
+<td>modules.paramminer_getparams.mutate_case</td>
+<td>bool</td>
+<td>Also test case-mutated variants of each entry (camelCase for snake_case/kebab-case, Title case for single words). Skipped on URLs with case-insensitive backend extensions like .aspx/.cfm.</td>
+<td>False</td>
 </tr>
 <tr>
 <td>modules.paramminer_getparams.recycle_words</td>
@@ -1920,7 +1874,7 @@ Is the same as:
 <tr>
 <td>modules.paramminer_getparams.wordlist</td>
 <td>str</td>
-<td>Define the wordlist to be used to derive headers</td>
+<td>Define the wordlist to be used to derive headers. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).</td>
 <td></td>
 </tr>
 <tr>
@@ -1938,7 +1892,7 @@ Is the same as:
 <tr>
 <td>modules.paramminer_headers.wordlist</td>
 <td>str</td>
-<td>Define the wordlist to be used to derive headers</td>
+<td>Define the wordlist to be used to derive headers. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).</td>
 <td></td>
 </tr>
 <tr>
@@ -2056,18 +2010,6 @@ Is the same as:
 <td>True</td>
 </tr>
 <tr>
-<td>modules.sslcert.skip_non_ssl</td>
-<td>bool</td>
-<td>Don't try common non-SSL ports</td>
-<td>True</td>
-</tr>
-<tr>
-<td>modules.sslcert.timeout</td>
-<td>float</td>
-<td>Socket connect timeout in seconds</td>
-<td>5.0</td>
-</tr>
-<tr>
 <td>modules.telerik.exploit_RAU_crypto</td>
 <td>bool</td>
 <td>Attempt to confirm any RAU AXD detections are vulnerable</td>
@@ -2090,6 +2032,96 @@ Is the same as:
 <td>bool</td>
 <td>When no specific WAF detections are made, try to perform a generic detect</td>
 <td>True</td>
+</tr>
+<tr>
+<td>modules.webbrute.concurrency</td>
+<td>int</td>
+<td>Number of concurrent requests per URL being fuzzed</td>
+<td>50</td>
+</tr>
+<tr>
+<td>modules.webbrute.extensions</td>
+<td>str</td>
+<td>Optionally include a list of extensions to extend the keyword with (comma separated)</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.webbrute.ignore_case</td>
+<td>bool</td>
+<td>Only put lowercase words into the wordlist</td>
+<td>False</td>
+</tr>
+<tr>
+<td>modules.webbrute.lines</td>
+<td>int</td>
+<td>take only the first N lines from the wordlist when finding directories</td>
+<td>5000</td>
+</tr>
+<tr>
+<td>modules.webbrute.max_depth</td>
+<td>int</td>
+<td>the maximum directory depth to attempt to solve</td>
+<td>0</td>
+</tr>
+<tr>
+<td>modules.webbrute.rate</td>
+<td>int</td>
+<td>Maximum requests per second (0 = unlimited)</td>
+<td>0</td>
+</tr>
+<tr>
+<td>modules.webbrute.wordlist</td>
+<td>str</td>
+<td>Specify wordlist to use when finding directories. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).</td>
+<td>https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-small-directories.txt</td>
+</tr>
+<tr>
+<td>modules.webbrute_shortnames.extensions</td>
+<td>str</td>
+<td>Optionally include a list of extensions to extend the keyword with (comma separated)</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.webbrute_shortnames.find_common_prefixes</td>
+<td>bool</td>
+<td>Attempt to automatically detect common prefixes and make additional runs against them</td>
+<td>False</td>
+</tr>
+<tr>
+<td>modules.webbrute_shortnames.find_delimiters</td>
+<td>bool</td>
+<td>Attempt to detect common delimiters and make additional runs against them</td>
+<td>True</td>
+</tr>
+<tr>
+<td>modules.webbrute_shortnames.find_subwords</td>
+<td>bool</td>
+<td>Attempt to detect subwords and make additional runs against them</td>
+<td>False</td>
+</tr>
+<tr>
+<td>modules.webbrute_shortnames.max_depth</td>
+<td>int</td>
+<td>the maximum directory depth to attempt to solve</td>
+<td>1</td>
+</tr>
+<tr>
+<td>modules.webbrute_shortnames.max_predictions</td>
+<td>int</td>
+<td>The maximum number of predictions to generate per shortname prefix</td>
+<td>250</td>
+</tr>
+<tr>
+<td>modules.webbrute_shortnames.rate</td>
+<td>int</td>
+<td>Rate of requests per second (default: 0)</td>
+<td>0</td>
+</tr>
+<tr>
+<td>modules.webbrute_shortnames.wordlist_extensions</td>
+<td>str</td>
+<td>Specify wordlist to use when making extension lists. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).</td>
+<td></td>
 </tr>
 <tr>
 <td>modules.wpscan.api_key</td>
@@ -2470,12 +2502,6 @@ Is the same as:
 <td></td>
 </tr>
 <tr>
-<td>modules.passivetotal.api_key</td>
-<td>str</td>
-<td>PassiveTotal API Key in the format of 'username:api_key'</td>
-<td></td>
-</tr>
-<tr>
 <td>modules.pgp.search_urls</td>
 <td>list</td>
 <td>PGP key servers to search</td>
@@ -2749,48 +2775,6 @@ Is the same as:
 <td>modules.emails.output_file</td>
 <td>str</td>
 <td>Output to file</td>
-<td></td>
-</tr>
-<tr>
-<td>modules.http.bearer</td>
-<td>str</td>
-<td>Authorization Bearer token</td>
-<td></td>
-</tr>
-<tr>
-<td>modules.http.headers</td>
-<td>dict</td>
-<td>Additional headers to send with the request</td>
-<td>{}</td>
-</tr>
-<tr>
-<td>modules.http.method</td>
-<td>str</td>
-<td>HTTP method</td>
-<td>POST</td>
-</tr>
-<tr>
-<td>modules.http.password</td>
-<td>str</td>
-<td>Password (basic auth)</td>
-<td></td>
-</tr>
-<tr>
-<td>modules.http.timeout</td>
-<td>int</td>
-<td>HTTP timeout</td>
-<td>10</td>
-</tr>
-<tr>
-<td>modules.http.url</td>
-<td>str</td>
-<td>Web URL</td>
-<td></td>
-</tr>
-<tr>
-<td>modules.http.username</td>
-<td>str</td>
-<td>Username (basic auth)</td>
 <td></td>
 </tr>
 <tr>
@@ -3097,6 +3081,48 @@ Is the same as:
 <td>modules.web_report.output_file</td>
 <td>str</td>
 <td>Output to file</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.webhook.bearer</td>
+<td>str</td>
+<td>Authorization Bearer token</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.webhook.headers</td>
+<td>dict</td>
+<td>Additional headers to send with the request</td>
+<td>{}</td>
+</tr>
+<tr>
+<td>modules.webhook.method</td>
+<td>str</td>
+<td>HTTP method</td>
+<td>POST</td>
+</tr>
+<tr>
+<td>modules.webhook.password</td>
+<td>str</td>
+<td>Password (basic auth)</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.webhook.timeout</td>
+<td>int</td>
+<td>HTTP timeout</td>
+<td>10</td>
+</tr>
+<tr>
+<td>modules.webhook.url</td>
+<td>str</td>
+<td>Web URL</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.webhook.username</td>
+<td>str</td>
+<td>Username (basic auth)</td>
 <td></td>
 </tr>
 <tr>

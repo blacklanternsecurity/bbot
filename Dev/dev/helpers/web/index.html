@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../../assets/stylesheets/extra-style.v3oo5166.min.css" rel="stylesheet"/></head>
+<link href="../../../assets/stylesheets/extra-style.kyphhpls.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1568,7 +1568,14 @@ which supports global rate limiting via <code>web.http_rate_limit</code>.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">700</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">701</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">702</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">703</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">WebHelper</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">703</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">704</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">705</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">706</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">707</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">708</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">709</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">710</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">WebHelper</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Main utility class for managing HTTP operations in BBOT. Uses blasthttp (Rust) as the</span>
 <span style="color: #A5D6FF">    HTTP engine for all requests, downloads, and wordlist retrieval.</span>
@@ -1606,6 +1613,7 @@ which supports global rate limiting via <code>web.http_rate_limit</code>.</p>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_http_timeout</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">web_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"http_timeout"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">20</span><span style="color: #E6EDF3">)</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_http_retries</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">web_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"http_retries"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">1</span><span style="color: #E6EDF3">)</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_http_proxy</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">web_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"http_proxy"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
+        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_http_proxy_exclude</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">web_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"http_proxy_exclude"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">[])</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">[]</span>
         <span style="color: #E6EDF3">ua</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">web_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"user_agent"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"BBOT"</span><span style="color: #E6EDF3">)</span>
         <span style="color: #E6EDF3">ua_suffix</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">web_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"user_agent_suffix"</span><span style="color: #E6EDF3">)</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #A5D6FF">""</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_user_agent</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"{</span><span style="color: #E6EDF3">ua</span><span style="color: #A5D6FF">} {</span><span style="color: #E6EDF3">ua_suffix</span><span style="color: #A5D6FF">}"</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">strip()</span>
@@ -1646,6 +1654,7 @@ which supports global rate limiting via <code>web.http_rate_limit</code>.</p>
         <span style="color: #E6EDF3">follow_redirects</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">kwargs</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">pop(</span><span style="color: #A5D6FF">"follow_redirects"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
         <span style="color: #E6EDF3">max_redirects</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">kwargs</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">pop(</span><span style="color: #A5D6FF">"max_redirects"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
         <span style="color: #E6EDF3">proxy</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">kwargs</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">pop(</span><span style="color: #A5D6FF">"proxy"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_http_proxy)</span>
+        <span style="color: #E6EDF3">no_proxy</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">kwargs</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">pop(</span><span style="color: #A5D6FF">"no_proxy"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_http_proxy_exclude)</span>
         <span style="color: #E6EDF3">retries</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">kwargs</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">pop(</span><span style="color: #A5D6FF">"retries"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_http_retries)</span>
         <span style="color: #E6EDF3">params</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">kwargs</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">pop(</span><span style="color: #A5D6FF">"params"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
         <span style="color: #E6EDF3">cookies</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">kwargs</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">pop(</span><span style="color: #A5D6FF">"cookies"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
@@ -1741,6 +1750,11 @@ which supports global rate limiting via <code>web.http_rate_limit</code>.</p>
             <span style="color: #E6EDF3">blast_kwargs[</span><span style="color: #A5D6FF">"max_redirects"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">int(max_redirects)</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">proxy:</span>
             <span style="color: #E6EDF3">blast_kwargs[</span><span style="color: #A5D6FF">"proxy"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">proxy</span>
+            <span style="color: #8B949E; font-style: italic"># no_proxy lists hosts that bypass the proxy; it only has an effect</span>
+            <span style="color: #8B949E; font-style: italic"># alongside a proxy (blasthttp errors if it's set without one), so</span>
+            <span style="color: #8B949E; font-style: italic"># only forward it when a proxy is actually in play.</span>
+            <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">no_proxy:</span>
+                <span style="color: #E6EDF3">blast_kwargs[</span><span style="color: #A5D6FF">"no_proxy"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">list(no_proxy)</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">max_body_size</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
             <span style="color: #E6EDF3">blast_kwargs[</span><span style="color: #A5D6FF">"max_body_size"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">int(max_body_size)</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">request_target</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
@@ -2334,14 +2348,7 @@ document to be parsed.</p>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">589</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">590</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">591</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">592</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">593</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">594</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">595</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">596</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">596</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">597</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">598</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">599</span>
@@ -2393,7 +2400,14 @@ document to be parsed.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">645</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">646</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">647</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">648</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">beautifulsoup</span><span style="color: #E6EDF3">(</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">648</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">649</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">650</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">651</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">652</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">653</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">654</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">655</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">beautifulsoup</span><span style="color: #E6EDF3">(</span>
     <span style="color: #E6EDF3">self,</span>
     <span style="color: #E6EDF3">markup,</span>
     <span style="color: #E6EDF3">features</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"html.parser"</span><span style="color: #E6EDF3">,</span>
@@ -2544,14 +2558,7 @@ A negative value disables caching. Defaults to -1.</p>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">410</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">411</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">412</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">413</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">414</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">415</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">416</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">417</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">417</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">418</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">419</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">420</span>
@@ -2629,7 +2636,14 @@ A negative value disables caching. Defaults to -1.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">492</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">493</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">494</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">495</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">download</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">url,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">495</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">496</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">497</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">498</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">499</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">500</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">501</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">502</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">download</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">url,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Asynchronous function for downloading files from a given URL. Supports caching with an optional</span>
 <span style="color: #A5D6FF">    time period in hours via the "cache_hrs" keyword argument. In case of successful download,</span>
@@ -2896,14 +2910,7 @@ meaning you can override the scan's values if you want.</p>
 </details>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">223</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">224</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">225</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">226</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">227</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">228</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">229</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">230</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">230</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">231</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">232</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">233</span>
@@ -2998,7 +3005,14 @@ meaning you can override the scan's values if you want.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">322</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">323</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">324</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">325</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">request</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">325</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">326</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">327</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">328</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">329</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">330</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">331</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">332</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">request</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Asynchronous function for making HTTP requests, intended to be the most basic web request function</span>
 <span style="color: #A5D6FF">    used widely across BBOT and within this helper class. Handles various exceptions and timeouts</span>
@@ -3182,14 +3196,7 @@ async for url, response, tracker in self.helpers.request_batch_stream(reqs):
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">327</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">328</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">329</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">330</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">331</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">332</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">333</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">334</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">334</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">335</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">336</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">337</span>
@@ -3263,7 +3270,14 @@ async for url, response, tracker in self.helpers.request_batch_stream(reqs):
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">405</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">406</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">407</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">408</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">request_batch_stream</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">urls,</span> <span style="color: #E6EDF3">threads</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">10</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">408</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">409</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">410</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">411</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">412</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">413</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">414</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">415</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">request_batch_stream</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">urls,</span> <span style="color: #E6EDF3">threads</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">10</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Request multiple URLs in parallel via blasthttp's native Rust batch engine,</span>
 <span style="color: #A5D6FF">    yielding each response as soon as it completes (completion order, not input</span>
@@ -3359,14 +3373,7 @@ async for url, response, tracker in self.helpers.request_batch_stream(reqs):
 <p>Convert web response to JSON object, to a JSON-serializable dict.</p>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">650</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">651</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">652</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">653</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">654</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">655</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">656</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">657</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">657</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">658</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">659</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">660</span>
@@ -3412,7 +3419,14 @@ async for url, response, tracker in self.helpers.request_batch_stream(reqs):
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">700</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">701</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">702</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">703</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">response_to_json</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">response):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">703</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">704</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">705</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">706</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">707</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">708</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">709</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">710</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">response_to_json</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">response):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Convert web response to JSON object, to a JSON-serializable dict.</span>
 <span style="color: #A5D6FF">    """</span>
@@ -3578,14 +3592,7 @@ Defaults to 720 hours (30 days) for remote wordlists.</p>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">497</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">498</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">499</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">500</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">501</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">502</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">503</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">504</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">504</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">505</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">506</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">507</span>
@@ -3668,7 +3675,14 @@ Defaults to 720 hours (30 days) for remote wordlists.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">584</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">585</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">586</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">587</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">wordlist</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">path,</span> <span style="color: #E6EDF3">lines</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">zip</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">zip_filename</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">587</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">588</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">589</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">590</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">591</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">592</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">593</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">594</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">wordlist</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">path,</span> <span style="color: #E6EDF3">lines</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">zip</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">zip_filename</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Asynchronous function for retrieving wordlists, either from a local path or a URL.</span>
 <span style="color: #A5D6FF">    Allows for optional line-based truncation and caching. Returns the full path of the wordlist</span>

@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.v3oo5166.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.kyphhpls.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -978,6 +978,17 @@
 <td>2022-11-04</td>
 </tr>
 <tr>
+<td>bucket_hetzner</td>
+<td>scan</td>
+<td>No</td>
+<td>Check for Hetzner Object Storage buckets related to target</td>
+<td>active, cloud-enum, safe, slow, web-heavy</td>
+<td>DNS_NAME, STORAGE_BUCKET</td>
+<td>FINDING, STORAGE_BUCKET</td>
+<td>@ChrisJr404</td>
+<td>2026-05-04</td>
+</tr>
+<tr>
 <td>bucket_microsoft</td>
 <td>scan</td>
 <td>No</td>
@@ -1044,28 +1055,6 @@
 <td>2023-11-21</td>
 </tr>
 <tr>
-<td>ffuf</td>
-<td>scan</td>
-<td>No</td>
-<td>A fast web fuzzer written in Go</td>
-<td>active, loud</td>
-<td>URL</td>
-<td>URL_UNVERIFIED</td>
-<td>@liquidsec</td>
-<td>2022-04-10</td>
-</tr>
-<tr>
-<td>ffuf_shortnames</td>
-<td>scan</td>
-<td>No</td>
-<td>Use ffuf in combination IIS shortnames</td>
-<td>active, iis-shortnames, loud, web-heavy</td>
-<td>URL_HINT</td>
-<td>URL_UNVERIFIED</td>
-<td>@liquidsec</td>
-<td>2022-07-05</td>
-</tr>
-<tr>
 <td>filedownload</td>
 <td>scan</td>
 <td>No</td>
@@ -1083,9 +1072,20 @@
 <td>Fingerprint exposed services like RDP, SSH, MySQL, etc.</td>
 <td>active, safe, service-enum, slow</td>
 <td>OPEN_TCP_PORT</td>
-<td>PROTOCOL</td>
+<td>PROTOCOL, URL_UNVERIFIED</td>
 <td>@TheTechromancer</td>
 <td>2023-01-30</td>
+</tr>
+<tr>
+<td>generic_ssrf</td>
+<td>scan</td>
+<td>No</td>
+<td>Check for generic SSRFs</td>
+<td>active, invasive, web-heavy</td>
+<td>URL</td>
+<td>FINDING</td>
+<td>@liquidsec</td>
+<td>2022-07-30</td>
 </tr>
 <tr>
 <td>git</td>
@@ -1154,15 +1154,15 @@
 <td>2022-07-27</td>
 </tr>
 <tr>
-<td>httpx</td>
+<td>http</td>
 <td>scan</td>
 <td>No</td>
-<td>Visit webpages. Many other modules rely on httpx</td>
+<td>Visit webpages using blasthttp (native Rust HTTP engine)</td>
 <td>active, cloud-enum, safe, social-enum, subdomain-enum, web</td>
 <td>OPEN_TCP_PORT, URL, URL_UNVERIFIED</td>
 <td>HTTP_RESPONSE, URL</td>
-<td>@TheTechromancer</td>
-<td>2022-07-08</td>
+<td>@liquidsec</td>
+<td>2026-03-08</td>
 </tr>
 <tr>
 <td>hunt</td>
@@ -1352,23 +1352,12 @@
 <td>2024-05-26</td>
 </tr>
 <tr>
-<td>smuggler</td>
-<td>scan</td>
-<td>No</td>
-<td>Check for HTTP smuggling</td>
-<td>active, invasive, loud, slow, web-heavy</td>
-<td>URL</td>
-<td>FINDING</td>
-<td>@liquidsec</td>
-<td>2022-07-06</td>
-</tr>
-<tr>
 <td>sslcert</td>
 <td>scan</td>
 <td>No</td>
-<td>Visit open ports and retrieve SSL certificates</td>
+<td>Extract hostnames and emails from TLS certificates in HTTP responses</td>
 <td>active, affiliates, email-enum, safe, subdomain-enum, web</td>
-<td>OPEN_TCP_PORT</td>
+<td>HTTP_RESPONSE</td>
 <td>DNS_NAME, EMAIL_ADDRESS</td>
 <td>@TheTechromancer</td>
 <td>2022-03-30</td>
@@ -1407,6 +1396,28 @@
 <td>2023-02-15</td>
 </tr>
 <tr>
+<td>webbrute</td>
+<td>scan</td>
+<td>No</td>
+<td>A fast web fuzzer powered by blasthttp</td>
+<td>active, loud</td>
+<td>URL</td>
+<td>URL_UNVERIFIED</td>
+<td>@liquidsec</td>
+<td>2022-04-10</td>
+</tr>
+<tr>
+<td>webbrute_shortnames</td>
+<td>scan</td>
+<td>No</td>
+<td>Brute-force IIS shortnames using ML-predicted wordlists</td>
+<td>active, iis-shortnames, loud, web-heavy</td>
+<td>URL_HINT</td>
+<td>URL_UNVERIFIED</td>
+<td>@liquidsec</td>
+<td>2022-07-05</td>
+</tr>
+<tr>
 <td>wpscan</td>
 <td>scan</td>
 <td>No</td>
@@ -1432,7 +1443,7 @@
 <td>anubisdb</td>
 <td>scan</td>
 <td>No</td>
-<td>Query jldc.me's database for subdomains</td>
+<td>Query anubisdb.com for subdomains</td>
 <td>passive, safe, subdomain-enum</td>
 <td>DNS_NAME</td>
 <td>DNS_NAME</td>
@@ -1625,17 +1636,6 @@
 <td>EMAIL_ADDRESS, HASHED_PASSWORD, PASSWORD, USERNAME</td>
 <td>@SpamFaux</td>
 <td>2023-10-12</td>
-</tr>
-<tr>
-<td>digitorus</td>
-<td>scan</td>
-<td>No</td>
-<td>Query certificatedetails.com for subdomains</td>
-<td>passive, safe, subdomain-enum</td>
-<td>DNS_NAME</td>
-<td>DNS_NAME</td>
-<td>@TheTechromancer</td>
-<td>2023-07-25</td>
 </tr>
 <tr>
 <td>dnsbimi</td>
@@ -1913,17 +1913,6 @@
 <td>2022-08-24</td>
 </tr>
 <tr>
-<td>passivetotal</td>
-<td>scan</td>
-<td>Yes</td>
-<td>Query the PassiveTotal API for subdomains</td>
-<td>passive, safe, subdomain-enum</td>
-<td>DNS_NAME</td>
-<td>DNS_NAME</td>
-<td>@TheTechromancer</td>
-<td>2022-08-08</td>
-</tr>
-<tr>
 <td>pgp</td>
 <td>scan</td>
 <td>No</td>
@@ -2021,17 +2010,6 @@
 <td>DNS_NAME, FINDING, OPEN_TCP_PORT, TECHNOLOGY</td>
 <td>@TheTechromancer</td>
 <td>2023-12-22</td>
-</tr>
-<tr>
-<td>sitedossier</td>
-<td>scan</td>
-<td>No</td>
-<td>Query sitedossier.com for subdomains</td>
-<td>passive, safe, subdomain-enum</td>
-<td>DNS_NAME</td>
-<td>DNS_NAME</td>
-<td>@TheTechromancer</td>
-<td>2023-08-04</td>
 </tr>
 <tr>
 <td>skymem</td>
@@ -2208,17 +2186,6 @@
 <td></td>
 <td>@domwhewell-sage</td>
 <td>2023-12-23</td>
-</tr>
-<tr>
-<td>http</td>
-<td>output</td>
-<td>No</td>
-<td>Send every event to a custom URL via a web request</td>
-<td></td>
-<td>*</td>
-<td></td>
-<td>@TheTechromancer</td>
-<td>2022-04-13</td>
 </tr>
 <tr>
 <td>json</td>
@@ -2424,10 +2391,21 @@
 <td>No</td>
 <td>Create a markdown report with web assets</td>
 <td></td>
-<td>FINDING, TECHNOLOGY, URL, VHOST</td>
+<td>FINDING, TECHNOLOGY, URL</td>
 <td></td>
 <td>@liquidsec</td>
 <td>2023-02-08</td>
+</tr>
+<tr>
+<td>webhook</td>
+<td>output</td>
+<td>No</td>
+<td>Send every event to a custom URL via a webhook</td>
+<td></td>
+<td>*</td>
+<td></td>
+<td>@TheTechromancer</td>
+<td>2022-04-13</td>
 </tr>
 <tr>
 <td>websocket</td>

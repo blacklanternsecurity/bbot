@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.v3oo5166.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.kyphhpls.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -521,6 +521,15 @@
 <span class="md-ellipsis">
       
         paramminer
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#paramminer-heavy">
+<span class="md-ellipsis">
+      
+        paramminer-heavy
       
     </span>
 </a>
@@ -1217,16 +1226,16 @@
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">iis-shortnames</span>
 
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">ffuf</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">webbrute</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">wayback</span>
 
 <span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">iis_shortnames</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">      </span><span style="color: #8B949E; font-style: italic"># we exploit the shortnames vulnerability to produce URL_HINTs which are consumed by ffuf_shortnames</span>
+<span style="color: #6E7681">      </span><span style="color: #8B949E; font-style: italic"># we exploit the shortnames vulnerability to produce URL_HINTs which are consumed by webbrute_shortnames</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">detect_only</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">False</span>
-<span style="color: #6E7681">    </span><span style="color: #7EE787">ffuf</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">      </span><span style="color: #7EE787">depth</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">3</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">webbrute</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">max_depth</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">3</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">lines</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">5000</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">extensions</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">        </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">php</span>
@@ -1261,11 +1270,11 @@
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">iis-shortnames</span>
 
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">ffuf</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">webbrute</span>
 
 <span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">    </span><span style="color: #7EE787">ffuf</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">webbrute</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #8B949E; font-style: italic"># wordlist size = 1000</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">lines</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">1000</span>
 </code></pre></div>
@@ -1283,10 +1292,10 @@
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">iis-shortnames</span>
 
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">httpx</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">badsecrets</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">ffuf_shortnames</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">ffuf</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">webbrute_shortnames</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">webbrute</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">telerik</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">ajaxpro</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">dotnetnuke</span>
@@ -1294,10 +1303,10 @@
 
 <span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">    </span><span style="color: #7EE787">ffuf</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">webbrute</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">extensions</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">asp,aspx,ashx,asmx,ascx</span>
-<span style="color: #6E7681">      </span><span style="color: #7EE787">extensions_ignore_case</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span>
-<span style="color: #6E7681">    </span><span style="color: #7EE787">ffuf_shortnames</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">ignore_case</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">webbrute_shortnames</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">find_subwords</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">telerik</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">exploit_RAU_crypto</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span>
@@ -1378,6 +1387,13 @@
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">dirbust-light</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">web-screenshots</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">baddns-heavy</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">dnsbrute</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">recursive_mutations</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">dnscommonsrv</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">recursive_mutations</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span>
 </code></pre></div>
 </details>
 <p>Modules: <a href="" title="">0</a></p>
@@ -1437,7 +1453,7 @@
 <div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/lightfuzz-light.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"Minimal</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">fuzzing:</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">only</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">path</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">traversal,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">SQLi,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">and</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">XSS</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">submodules.</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">No</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">POST</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">requests.</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">No</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">companion</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">modules.</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">Safest</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">option</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">for</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">running</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">alongside</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">larger</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">scans</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">with</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">minimal</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">overhead."</span>
 
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">httpx</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">lightfuzz</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">portfilter</span>
 
@@ -1460,13 +1476,14 @@
 <p>Category: web</p>
 <p>Modules: <a href="" title="">0</a></p>
 <h2 id="lightfuzz-max"><strong>lightfuzz-max</strong></h2>
-<p>Maximum fuzzing: everything in lightfuzz-heavy, plus WAF targets are no longer skipped, each unique parameter-value pair is fuzzed individually (no collapsing), common headers like X-Forwarded-For are fuzzed even if not observed, and potential parameters are speculated from JSON/XML response bodies. Significantly increases scan time.</p>
+<p>Maximum fuzzing: everything in lightfuzz-heavy, plus the heavy paramminer variant (1-3 letter brute-force on GET params, case mutation on case-sensitive backends, recycle_words on all paramminer modules), WAF targets are no longer skipped, each unique parameter-value pair is fuzzed individually (no collapsing), common headers like X-Forwarded-For are fuzzed even if not observed, and potential parameters are speculated from JSON/XML response bodies. Significantly increases scan time.</p>
 <details class="note">
 <summary><code>lightfuzz-max.yml</code></summary>
-<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/lightfuzz-max.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"Maximum</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">fuzzing:</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">everything</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">in</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">lightfuzz-heavy,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">plus</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">WAF</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">targets</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">are</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">no</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">longer</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">skipped,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">each</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">unique</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">parameter-value</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">pair</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">is</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">fuzzed</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">individually</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">(no</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">collapsing),</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">common</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">headers</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">like</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">X-Forwarded-For</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">are</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">fuzzed</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">even</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">if</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">not</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">observed,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">and</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">potential</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">parameters</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">are</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">speculated</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">from</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">JSON/XML</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">response</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">bodies.</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">Significantly</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">increases</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">scan</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">time."</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/lightfuzz-max.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"Maximum</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">fuzzing:</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">everything</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">in</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">lightfuzz-heavy,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">plus</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">the</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">heavy</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">paramminer</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">variant</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">(1-3</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">letter</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">brute-force</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">on</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">GET</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">params,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">case</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">mutation</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">on</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">case-sensitive</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">backends,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">recycle_words</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">on</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">all</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">paramminer</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">modules),</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">WAF</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">targets</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">are</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">no</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">longer</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">skipped,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">each</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">unique</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">parameter-value</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">pair</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">is</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">fuzzed</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">individually</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">(no</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">collapsing),</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">common</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">headers</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">like</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">X-Forwarded-For</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">are</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">fuzzed</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">even</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">if</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">not</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">observed,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">and</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">potential</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">parameters</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">are</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">speculated</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">from</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">JSON/XML</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">response</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">bodies.</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">Significantly</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">increases</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">scan</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">time."</span>
 
 <span style="color: #7EE787">include</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">lightfuzz-heavy</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">paramminer-heavy</span>
 
 <span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">url_querystring_collapse</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">False</span><span style="color: #6E7681"> </span><span style="color: #8B949E; font-style: italic"># in cases where the same parameter is observed multiple times, fuzz them individually instead of collapsing them into a single parameter</span>
@@ -1488,7 +1505,7 @@
 <div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/lightfuzz-xss.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"XSS-only:</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">enables</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">only</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">the</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">xss</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">submodule</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">with</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">paramminer_getparams</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">and</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">reflected_parameters.</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">POST</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">disabled,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">no</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">query</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">string</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">collapsing.</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">Example</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">of</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">a</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">focused</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">single-submodule</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">preset."</span>
 
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">httpx</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">lightfuzz</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">paramminer_getparams</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">reflected_parameters</span>
@@ -1518,7 +1535,7 @@
 <div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/nuclei/nuclei.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Run nuclei scans against all discovered targets</span>
 
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">httpx</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">nuclei</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">portfilter</span>
 
@@ -1556,7 +1573,7 @@
 <div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/nuclei/nuclei-budget.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Run nuclei scans against all discovered targets, using budget mode to look for low hanging fruit with greatly reduced number of requests</span>
 
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">httpx</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">nuclei</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">portfilter</span>
 
@@ -1583,7 +1600,7 @@
 <div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/nuclei/nuclei-heavy.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Run nuclei scans against all discovered targets, allowing for spidering, against ALL URLs, and with additional discovery modules.</span>
 
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">httpx</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">nuclei</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">robots</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">urlscan</span>
@@ -1619,7 +1636,7 @@
 <div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/nuclei/nuclei-technology.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Run nuclei scans against all discovered targets, running templates which match discovered technologies</span>
 
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">httpx</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">nuclei</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">portfilter</span>
 
@@ -1653,7 +1670,7 @@
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">web-paramminer</span>
 
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">httpx</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">reflected_parameters</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">hunt</span>
 
@@ -1666,6 +1683,29 @@
 </details>
 <p>Category: web</p>
 <p>Modules: <a href="" title="">0</a></p>
+<h2 id="paramminer-heavy"><strong>paramminer-heavy</strong></h2>
+<p>Aggressive paramminer brute-force: enables 1-3 letter combination brute-force on GET parameters and case mutation (camelCase / Title-case variants) on case-sensitive backends. Significantly increases scan time.</p>
+<details class="note">
+<summary><code>paramminer-heavy.yml</code></summary>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/paramminer-heavy.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"Aggressive</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">paramminer</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">brute-force:</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">enables</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">1-3</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">letter</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">combination</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">brute-force</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">on</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">GET</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">parameters</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">and</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">case</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">mutation</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">(camelCase</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">/</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">Title-case</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">variants)</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">on</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">case-sensitive</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">backends.</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">Significantly</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">increases</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">scan</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">time."</span>
+
+<span style="color: #7EE787">include</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">paramminer</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">paramminer_getparams</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">brute_short</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">mutate_case</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">recycle_words</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">paramminer_headers</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">recycle_words</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">paramminer_cookies</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">recycle_words</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span>
+</code></pre></div>
+</details>
+<p>Category: web</p>
+<p>Modules: <a href="" title="">0</a></p>
 <h2 id="spider"><strong>spider</strong></h2>
 <p>Recursive web spider</p>
 <details class="note">
@@ -1673,7 +1713,7 @@
 <div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/spider.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Recursive web spider</span>
 
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">httpx</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http</span>
 
 <span style="color: #7EE787">blacklist</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Prevent spider from invalidating sessions by logging out</span>
@@ -1854,21 +1894,21 @@
 <td>web</td>
 <td>Recursive web directory brute-force (aggressive)</td>
 <td>3</td>
-<td>ffuf, httpx, wayback</td>
+<td>http, wayback, webbrute</td>
 </tr>
 <tr>
 <td>dirbust-light</td>
 <td>web</td>
 <td>Basic web directory brute-force (surface-level directories only)</td>
 <td>1</td>
-<td>ffuf</td>
+<td>webbrute</td>
 </tr>
 <tr>
 <td>dotnet-audit</td>
 <td>web</td>
 <td>Comprehensive scan for all IIS/.NET specific modules and module settings</td>
 <td>8</td>
-<td>ajaxpro, aspnet_bin_exposure, badsecrets, dotnetnuke, ffuf, ffuf_shortnames, httpx, telerik</td>
+<td>ajaxpro, aspnet_bin_exposure, badsecrets, dotnetnuke, http, telerik, webbrute, webbrute_shortnames</td>
 </tr>
 <tr>
 <td>email-enum</td>
@@ -1896,91 +1936,98 @@
 <td></td>
 <td>Everything everywhere all at once</td>
 <td>7</td>
-<td>baddns, baddns_direct, baddns_zone, ffuf, httpx, hunt, reflected_parameters</td>
+<td>baddns, baddns_direct, baddns_zone, http, hunt, reflected_parameters, webbrute</td>
 </tr>
 <tr>
 <td>lightfuzz</td>
 <td>web</td>
 <td>Default fuzzing: all 9 submodules (cmdi, crypto, path, serial, sqli, ssti, xss, esi, ssrf) plus companion modules (badsecrets, hunt, reflected_parameters). POST fuzzing disabled but try_post_as_get enabled, so POST params are retested as GET. Skips confirmed WAFs.</td>
 <td>6</td>
-<td>badsecrets, httpx, hunt, lightfuzz, portfilter, reflected_parameters</td>
+<td>badsecrets, http, hunt, lightfuzz, portfilter, reflected_parameters</td>
 </tr>
 <tr>
 <td>lightfuzz-heavy</td>
 <td>web</td>
 <td>Aggressive fuzzing: everything in lightfuzz, plus paramminer brute-force parameter discovery (headers, GET params, cookies), POST request fuzzing enabled, try_get_as_post enabled (GET params retested as POST), and robots.txt parsing. Still skips confirmed WAFs.</td>
 <td>7</td>
-<td>badsecrets, httpx, hunt, lightfuzz, portfilter, reflected_parameters, robots</td>
+<td>badsecrets, http, hunt, lightfuzz, portfilter, reflected_parameters, robots</td>
 </tr>
 <tr>
 <td>lightfuzz-light</td>
 <td>web</td>
 <td>Minimal fuzzing: only path traversal, SQLi, and XSS submodules. No POST requests. No companion modules. Safest option for running alongside larger scans with minimal overhead.</td>
 <td>3</td>
-<td>httpx, lightfuzz, portfilter</td>
+<td>http, lightfuzz, portfilter</td>
 </tr>
 <tr>
 <td>lightfuzz-max</td>
 <td>web</td>
-<td>Maximum fuzzing: everything in lightfuzz-heavy, plus WAF targets are no longer skipped, each unique parameter-value pair is fuzzed individually (no collapsing), common headers like X-Forwarded-For are fuzzed even if not observed, and potential parameters are speculated from JSON/XML response bodies. Significantly increases scan time.</td>
+<td>Maximum fuzzing: everything in lightfuzz-heavy, plus the heavy paramminer variant (1-3 letter brute-force on GET params, case mutation on case-sensitive backends, recycle_words on all paramminer modules), WAF targets are no longer skipped, each unique parameter-value pair is fuzzed individually (no collapsing), common headers like X-Forwarded-For are fuzzed even if not observed, and potential parameters are speculated from JSON/XML response bodies. Significantly increases scan time.</td>
 <td>7</td>
-<td>badsecrets, httpx, hunt, lightfuzz, portfilter, reflected_parameters, robots</td>
+<td>badsecrets, http, hunt, lightfuzz, portfilter, reflected_parameters, robots</td>
 </tr>
 <tr>
 <td>lightfuzz-xss</td>
 <td>web</td>
 <td>XSS-only: enables only the xss submodule with paramminer_getparams and reflected_parameters. POST disabled, no query string collapsing. Example of a focused single-submodule preset.</td>
 <td>5</td>
-<td>httpx, lightfuzz, paramminer_getparams, portfilter, reflected_parameters</td>
+<td>http, lightfuzz, paramminer_getparams, portfilter, reflected_parameters</td>
 </tr>
 <tr>
 <td>nuclei</td>
 <td>nuclei</td>
 <td>Run nuclei scans against all discovered targets</td>
 <td>3</td>
-<td>httpx, nuclei, portfilter</td>
+<td>http, nuclei, portfilter</td>
 </tr>
 <tr>
 <td>nuclei-budget</td>
 <td>nuclei</td>
 <td>Run nuclei scans against all discovered targets, using budget mode to look for low hanging fruit with greatly reduced number of requests</td>
 <td>3</td>
-<td>httpx, nuclei, portfilter</td>
+<td>http, nuclei, portfilter</td>
 </tr>
 <tr>
 <td>nuclei-heavy</td>
 <td>nuclei</td>
 <td>Run nuclei scans against all discovered targets, allowing for spidering, against ALL URLs, and with additional discovery modules.</td>
 <td>6</td>
-<td>httpx, nuclei, portfilter, robots, urlscan, wayback</td>
+<td>http, nuclei, portfilter, robots, urlscan, wayback</td>
 </tr>
 <tr>
 <td>nuclei-technology</td>
 <td>nuclei</td>
 <td>Run nuclei scans against all discovered targets, running templates which match discovered technologies</td>
 <td>3</td>
-<td>httpx, nuclei, portfilter</td>
+<td>http, nuclei, portfilter</td>
 </tr>
 <tr>
 <td>paramminer</td>
 <td>web</td>
 <td>Discover new web parameters via brute-force, and analyze them with additional modules</td>
 <td>3</td>
-<td>httpx, hunt, reflected_parameters</td>
+<td>http, hunt, reflected_parameters</td>
+</tr>
+<tr>
+<td>paramminer-heavy</td>
+<td>web</td>
+<td>Aggressive paramminer brute-force: enables 1-3 letter combination brute-force on GET parameters and case mutation (camelCase / Title-case variants) on case-sensitive backends. Significantly increases scan time.</td>
+<td>3</td>
+<td>http, hunt, reflected_parameters</td>
 </tr>
 <tr>
 <td>spider</td>
 <td></td>
 <td>Recursive web spider</td>
 <td>1</td>
-<td>httpx</td>
+<td>http</td>
 </tr>
 <tr>
 <td>spider-heavy</td>
 <td></td>
 <td>Recursive web spider with more aggressive settings</td>
 <td>1</td>
-<td>httpx</td>
+<td>http</td>
 </tr>
 <tr>
 <td>subdomain-enum</td>
