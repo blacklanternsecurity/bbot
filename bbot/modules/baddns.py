@@ -1,11 +1,10 @@
-from typing import Literal
 from baddns.base import get_all_modules
 from baddns.lib.loader import load_signatures
 from .base import BaseModule
 
 import logging
-from pydantic import Field, field_validator
-from bbot.core.config.models import BaseModuleConfig
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig, SeverityLiteral, ConfidenceLiteral
 
 SEVERITY_LEVELS = ("INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL")
 CONFIDENCE_LEVELS = ("UNKNOWN", "LOW", "MEDIUM", "HIGH", "CONFIRMED")
@@ -53,21 +52,12 @@ class baddns(BaseModule):
         custom_nameservers: list[str] = Field(
             default_factory=list, description="Force BadDNS to use a list of custom nameservers"
         )
-        min_severity: Literal["INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"] = Field(
-            "LOW", description="Minimum severity to emit"
-        )
-        min_confidence: Literal["UNKNOWN", "LOW", "MEDIUM", "HIGH", "CONFIRMED"] = Field(
-            "MEDIUM", description="Minimum confidence to emit"
-        )
+        min_severity: SeverityLiteral = Field("LOW", description="Minimum severity to emit")
+        min_confidence: ConfidenceLiteral = Field("MEDIUM", description="Minimum confidence to emit")
         enabled_submodules: list[str] = Field(
             default_factory=list,
             description="A list of submodules to enable. Empty list (default) enables CNAME, TXT and MX Only",
         )
-
-        @field_validator("min_severity", "min_confidence", mode="before")
-        @classmethod
-        def _normalize_case(cls, v):
-            return v.upper() if isinstance(v, str) else v
 
     module_threads = 8
     deps_pip = ["baddns~=2.3.0"]
@@ -114,6 +104,11 @@ class baddns(BaseModule):
             self.custom_nameservers = self.helpers.chain_lists(self.custom_nameservers)
         min_severity = self.config.get("min_severity").upper()
         min_confidence = self.config.get("min_confidence").upper()
+        # guard the unvalidated programmatic path (Scanner(config=...) skips validation)
+        if min_severity not in SEVERITY_LEVELS:
+            return False, f"Invalid min_severity {min_severity!r}; must be one of {', '.join(SEVERITY_LEVELS)}"
+        if min_confidence not in CONFIDENCE_LEVELS:
+            return False, f"Invalid min_confidence {min_confidence!r}; must be one of {', '.join(CONFIDENCE_LEVELS)}"
         self._min_sev_idx = SEVERITY_LEVELS.index(min_severity)
         self._min_conf_idx = CONFIDENCE_LEVELS.index(min_confidence)
         self.signatures = load_signatures()

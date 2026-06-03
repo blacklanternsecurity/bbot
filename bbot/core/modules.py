@@ -74,11 +74,12 @@ def _exec_config_class(source: str, module_name: str):
     valid type expression (`Optional[str]`, `Literal["a", "b"]`,
     `list[Union[int, str]]`, …) without any hand-rolled resolver.
     """
-    from typing import Any, Dict, List, Literal, Optional, Set, Tuple, Union
+    from typing import Annotated, Any, Dict, List, Literal, Optional, Set, Tuple, Union
     from pydantic import AfterValidator, BeforeValidator, field_validator, model_validator
-    from bbot.core.config.models import BaseModuleConfig, Field
+    from bbot.core.config.models import BaseModuleConfig, ConfidenceLiteral, Field, SeverityLiteral
 
     namespace: dict = {
+        "Annotated": Annotated,
         "Any": Any,
         "Dict": Dict,
         "List": List,
@@ -93,6 +94,8 @@ def _exec_config_class(source: str, module_name: str):
         "BeforeValidator": BeforeValidator,
         "AfterValidator": AfterValidator,
         "BaseModuleConfig": BaseModuleConfig,
+        "SeverityLiteral": SeverityLiteral,
+        "ConfidenceLiteral": ConfidenceLiteral,
     }
     try:
         exec(source, namespace)
@@ -621,6 +624,17 @@ class ModuleLoader:
                         # capture the class source verbatim; schema build re-execs it
                         config_source = ast.get_source_segment(python_code, class_attr)
                         continue
+
+                    # annotated legacy form (`options: dict = {...}` -> ast.AnnAssign) must
+                    # also be caught, otherwise it slips the 3.0 legacy-options rejection below
+                    if (
+                        legacy_options_keyword is None
+                        and isinstance(class_attr, ast.AnnAssign)
+                        and isinstance(class_attr.target, ast.Name)
+                        and class_attr.target.id in ("options", "options_desc")
+                    ):
+                        legacy_options_keyword = class_attr.target.id
+                        legacy_options_line = class_attr.lineno
 
                     if not type(class_attr) == ast.Assign:
                         continue

@@ -1,5 +1,5 @@
 from .baddns import baddns as baddns_module
-from bbot.core.config.models import BaseModuleConfig, Field
+from bbot.core.config.models import BaseModuleConfig, Field, SeverityLiteral, ConfidenceLiteral
 
 
 class baddns_zone(baddns_module):
@@ -14,8 +14,10 @@ class baddns_zone(baddns_module):
 
     class Config(BaseModuleConfig):
         custom_nameservers: list = Field([], description="Force BadDNS to use a list of custom nameservers")
-        min_severity: str = Field("INFO", description="Minimum severity to emit (INFO, LOW, MEDIUM, HIGH, CRITICAL)")
-        min_confidence: str = Field(
+        min_severity: SeverityLiteral = Field(
+            "INFO", description="Minimum severity to emit (INFO, LOW, MEDIUM, HIGH, CRITICAL)"
+        )
+        min_confidence: ConfidenceLiteral = Field(
             "MEDIUM", description="Minimum confidence to emit (UNKNOWN, LOW, MEDIUM, HIGH, CONFIRMED)"
         )
 

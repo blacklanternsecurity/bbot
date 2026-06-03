@@ -34,6 +34,10 @@ class Stdout(BaseOutputModule):
 
     async def setup(self):
         self.text_format = self.config.get("format", "text").strip().lower()
+        # guard the unvalidated programmatic path (Scanner(config=...) skips validation),
+        # otherwise an unknown format silently drops every event in handle_event
+        if self.text_format not in ("text", "json"):
+            return False, f"Invalid format {self.text_format!r}; must be 'text' or 'json'"
         self.accept_event_types = [str(s).upper() for s in self.config.get("event_types", [])]
         self.show_event_fields = [str(s) for s in self.config.get("event_fields", [])]
         self.in_scope_only = self.config.get("in_scope_only", False)

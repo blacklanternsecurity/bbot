@@ -624,3 +624,28 @@ class new_style_mod(BaseModule):
     preloaded = MODULE_LOADER.preload_module(new_mod)
     assert preloaded is not None
     assert preloaded["config"] == {"api_key": ""}
+
+    # The annotated form `options: dict = {...}` (ast.AnnAssign) must also be rejected,
+    # not silently slip the guard.
+    annotated_mod = tmp_path / "annotated_legacy_mod.py"
+    annotated_mod.write_text(
+        """
+from bbot.modules.base import BaseModule
+
+
+class annotated_legacy_mod(BaseModule):
+    watched_events = ["DNS_NAME"]
+    produced_events = ["FINDING"]
+    flags = ["passive", "safe"]
+    meta = {"description": "x", "created_date": "2024-01-01", "author": "@x"}
+
+    options: dict = {"api_key": ""}
+    options_desc: dict = {"api_key": "API key"}
+
+    async def handle_event(self, event):
+        pass
+"""
+    )
+    with pytest.raises(BBOTError) as excinfo:
+        MODULE_LOADER.preload_module(annotated_mod)
+    assert "no longer supported" in str(excinfo.value)

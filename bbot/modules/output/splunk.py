@@ -12,7 +12,7 @@ class Splunk(BaseOutputModule):
     }
 
     class Config(BaseModuleConfig):
-        url: str = Field("", description="Web URL")
+        url: str = Field("", description="Web URL", sensitive=True)
         hectoken: str = Field("", description="HEC Token", sensitive=True)
         index: str = Field("", description="Index to send data to")
         source: str = Field("", description="Source path to be added to the metadata")

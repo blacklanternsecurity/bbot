@@ -13,9 +13,9 @@ merged dict straight from YAML, and these models only ever validate shape.
 
 from __future__ import annotations
 
-from typing import Any, Literal, Optional
+from typing import Annotated, Any, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, BeforeValidator, ConfigDict, field_validator
 from pydantic import Field as _PydanticField
 from pydantic_core import PydanticUndefined
 
@@ -23,6 +23,19 @@ from bbot.core.helpers.validators import validate_fqdn_or_ip
 
 
 STRICT = ConfigDict(extra="forbid")
+
+
+def _normalize_upper(v):
+    """Uppercase a string so severity/confidence options are case-insensitive."""
+    return v.upper() if isinstance(v, str) else v
+
+
+# Single source of truth for severity/confidence option types (used by the baddns family).
+# The BeforeValidator normalizes case at validation time so e.g. "low" validates as "LOW".
+SeverityLiteral = Annotated[Literal["INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"], BeforeValidator(_normalize_upper)]
+ConfidenceLiteral = Annotated[
+    Literal["UNKNOWN", "LOW", "MEDIUM", "HIGH", "CONFIRMED"], BeforeValidator(_normalize_upper)
+]
 
 
 def Field(default=PydanticUndefined, *, sensitive: bool = False, mandatory: bool = False, **kwargs):
@@ -457,6 +470,8 @@ __all__ = [
     "is_mandatory",
     "is_sensitive",
     "partition_sensitive_config",
+    "ConfidenceLiteral",
+    "SeverityLiteral",
     "pure_string_field",
     "resolve_field_annotation",
 ]

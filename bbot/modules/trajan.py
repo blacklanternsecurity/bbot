@@ -24,7 +24,7 @@ class trajan(BaseModule):
         gitlab_token: str = Field("", description="GitLab API token for private repo access", sensitive=True)
         ado_token: str = Field("", description="Azure DevOps Personal Access Token (PAT)", sensitive=True)
         jfrog_token: str = Field("", description="JFrog API token", sensitive=True)
-        jenkins_username: str = Field("", description="Jenkins username for basic auth")
+        jenkins_username: str = Field("", description="Jenkins username for basic auth", sensitive=True)
         jenkins_password: str = Field("", description="Jenkins password for basic auth", sensitive=True)
         jenkins_token: str = Field("", description="Jenkins API token", sensitive=True)
 

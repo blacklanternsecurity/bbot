@@ -283,3 +283,17 @@ def test_build_validation_schema_tolerates_unexecable_config():
     schema = _build_validation_schema(preloaded)  # must not raise
     # the module is usable and accepts arbitrary config (lenient fallback)
     assert schema.model_validate({"config": {"modules": {"synthmod": {"threads": 5, "anything": "x"}}}})
+
+
+def test_validate_preset_baddns_subclass_severity_is_validated():
+    """baddns_direct/baddns_zone validate min_severity/min_confidence against the shared
+    severity/confidence Literal (case-insensitive), not accept arbitrary strings."""
+    assert validate_preset({"config": {"modules": {"baddns_direct": {"min_severity": "low"}}}}) == []
+    errs = validate_preset({"config": {"modules": {"baddns_zone": {"min_severity": "BOGUS"}}}})
+    assert len(errs) == 1 and errs[0].path == "min_severity"
+    assert "Expected one of" in errs[0].message
+
+
+def test_validate_preset_shodan_idb_retries_is_int():
+    """shodan_idb.retries is numeric; the natural `retries: 3` must validate (was typed str)."""
+    assert validate_preset({"config": {"modules": {"shodan_idb": {"retries": 3}}}}) == []

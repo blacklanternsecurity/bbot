@@ -51,7 +51,7 @@ class shodan_idb(BaseModule):
     }
 
     class Config(BaseModuleConfig):
-        retries: Optional[str] = Field(
+        retries: Optional[int] = Field(
             None,
             description="How many times to retry API requests (e.g. after a 429 error). Overrides the global web.api_retries setting.",
         )

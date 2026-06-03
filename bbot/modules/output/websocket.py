@@ -12,7 +12,7 @@ class Websocket(BaseOutputModule):
     meta = {"description": "Output to websockets", "created_date": "2022-04-15", "author": "@TheTechromancer"}
 
     class Config(BaseModuleConfig):
-        url: str = Field("", description="Web URL")
+        url: str = Field("", description="Web URL", sensitive=True)
         token: str = Field("", description="Authorization Bearer token", sensitive=True)
         preserve_graph: bool = Field(
             True, description="Preserve full chains of events in the graph (prevents orphans)"

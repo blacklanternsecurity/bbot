@@ -143,3 +143,17 @@ def test_auth_required_property_derives_from_config():
     robots_mandatories = [n for n, f in robots.Config.model_fields.items() if is_mandatory(f)]
     assert shodan_mandatories == ["api_key"]
     assert robots_mandatories == []
+
+
+def test_credential_connection_fields_are_sensitive():
+    """Connection URIs that can embed credentials, and auth usernames, must be sensitive
+    so they aren't leaked into the redacted/public config view."""
+    from bbot.core.modules import MODULE_LOADER
+
+    MODULE_LOADER.preload()
+    preloaded = MODULE_LOADER.preloaded()
+    assert "uri" in preloaded["neo4j"]["options_sensitive"]
+    assert "url" in preloaded["elastic"]["options_sensitive"]
+    assert "url" in preloaded["splunk"]["options_sensitive"]
+    assert "url" in preloaded["websocket"]["options_sensitive"]
+    assert "jenkins_username" in preloaded["trajan"]["options_sensitive"]

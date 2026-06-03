@@ -36,7 +36,7 @@ class neo4j(BaseOutputModule):
     meta = {"description": "Output to Neo4j", "created_date": "2022-04-07", "author": "@TheTechromancer"}
 
     class Config(BaseModuleConfig):
-        uri: str = Field("bolt://localhost:7687", description="Neo4j server + port")
+        uri: str = Field("bolt://localhost:7687", description="Neo4j server + port", sensitive=True)
         username: str = Field("neo4j", description="Neo4j username", sensitive=True)
         password: str = Field("bbotislife", description="Neo4j password", sensitive=True)
 
