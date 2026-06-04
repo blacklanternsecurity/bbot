@@ -44,6 +44,7 @@ usage: bbot [-h] [-t TARGET [TARGET ...]] [-s SEEDS [SEEDS ...]]
                [--event-types EVENT_TYPES [EVENT_TYPES ...]] [--exclude-cdn]
                [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps]
                [--install-all-deps] [--version] [--proxy HTTP_PROXY]
+               [--no-proxy HOST [HOST ...]]
                [-H CUSTOM_HEADERS [CUSTOM_HEADERS ...]]
                [-C CUSTOM_COOKIES [CUSTOM_COOKIES ...]]
                [--custom-yara-rules CUSTOM_YARA_RULES]
@@ -128,6 +129,8 @@ Module dependencies:
 Misc:
   --version             show BBOT version and exit
   --proxy HTTP_PROXY    Use this proxy for all HTTP requests
+  --no-proxy HOST [HOST ...]
+                        Exclude these hosts from proxy (e.g. localhost *.internal.corp 10.0.0.0/8)
   -H CUSTOM_HEADERS [CUSTOM_HEADERS ...], --custom-headers CUSTOM_HEADERS [CUSTOM_HEADERS ...]
                         List of custom headers as key value pairs (header=value).
   -C CUSTOM_COOKIES [CUSTOM_COOKIES ...], --custom-cookies CUSTOM_COOKIES [CUSTOM_COOKIES ...]

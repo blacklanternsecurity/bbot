@@ -269,6 +269,7 @@ class WebConfig(BaseModel):
     model_config = STRICT
 
     http_proxy: Optional[str] = None
+    http_proxy_exclude: Optional[list[str]] = None
     user_agent: Optional[str] = None
     user_agent_suffix: Optional[str] = None
     spider_distance: Optional[int] = None
