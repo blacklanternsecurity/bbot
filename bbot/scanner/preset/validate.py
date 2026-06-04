@@ -28,7 +28,7 @@ from pydantic import ValidationError
 
 from bbot.errors import BBOTError
 from bbot.core.config.models import PresetSchema
-from bbot.core.helpers.misc import get_closest_match, get_keys_in_dot_syntax
+from bbot.core.helpers.misc import get_closest_match
 
 
 def _preset_top_level_keys() -> set[str]:
@@ -232,9 +232,9 @@ def validate_preset(preset_dict: Any, module_loader=None) -> list[PresetValidati
                 )
 
     known_modules = set(module_loader.all_module_choices)
-    # Universe of valid dotted config paths, used for "did you mean ...?"
-    # suggestions on unknown global-config keys.
-    known_paths = set(get_keys_in_dot_syntax(module_loader.core.default_config))
+    # The type index is the single source of truth for known dotted config
+    # paths -- both for coercion AND for "did you mean ...?" suggestions.
+    known_paths = set(module_loader.config_type_index)
 
     # Validate against the composite schema (rebuilt automatically if new
     # module_dirs were just preloaded above). Closest-match suggestions

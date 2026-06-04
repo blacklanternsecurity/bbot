@@ -112,64 +112,144 @@ def _field_submodel(field):
     return None
 
 
-def _acceptable_types(annotation) -> set:
-    """Base types an annotation accepts, unwrapping Optional/Union and reducing
-    parametrized generics + Literals to their base type (e.g. Union[str, list[str]]
-    -> {str, list}; Literal["a", "b"] -> {str})."""
+_COLLECTION_NAMES = frozenset({"list", "List", "tuple", "Tuple", "set", "Set", "frozenset", "dict", "Dict"})
+_TRUE_WORDS = frozenset({"true", "1", "yes", "on"})
+_FALSE_WORDS = frozenset({"false", "0", "no", "off"})
+
+
+def accepted_types_from_string(src: str) -> frozenset:
+    """Base type-names a stringified annotation accepts (no exec, pure AST).
+
+    Used to normalize module Config annotations captured at preload time into
+    a set of base type-names that `coerce_value` can act on.
+
+    >>> accepted_types_from_string("bool")
+    frozenset({'bool'})
+    >>> accepted_types_from_string("Optional[int]")
+    frozenset({'int'})
+    >>> accepted_types_from_string("Union[str, list[str]]")
+    frozenset({'str', 'list'})
+    >>> accepted_types_from_string('Literal["manual", "x"]')
+    frozenset({'str'})
+    """
+    import ast as _ast
+
+    try:
+        root = _ast.parse(src, mode="eval").body
+    except SyntaxError:
+        return frozenset()
+
+    def walk(n):
+        t: set = set()
+        if isinstance(n, _ast.Name):
+            t.add(n.id)
+        elif isinstance(n, _ast.Attribute):
+            t.add(n.attr)
+        elif isinstance(n, _ast.BinOp) and isinstance(n.op, _ast.BitOr):
+            t |= walk(n.left) | walk(n.right)
+        elif isinstance(n, _ast.Subscript):
+            base = getattr(n.value, "id", getattr(n.value, "attr", None))
+            elts = n.slice.elts if isinstance(n.slice, _ast.Tuple) else [n.slice]
+            if base in ("Optional", "Union"):
+                for e in elts:
+                    t |= walk(e)
+            elif base == "Literal":
+                t |= {type(e.value).__name__ for e in elts if isinstance(e, _ast.Constant)}
+            elif base == "Annotated":
+                if elts:
+                    t |= walk(elts[0])
+            else:
+                t.add(base)
+        return t
+
+    return frozenset(x for x in walk(root) if x != "NoneType")
+
+
+def accepted_types_from_annotation(annotation) -> frozenset:
+    """Base type-names a real annotation object accepts.
+
+    Used for the static global models (BBOTConfig, WebConfig, etc.) where the
+    annotation is a live type object, not a string.
+    """
     import typing
 
-    types: set = set()
     origin = typing.get_origin(annotation)
-    if origin is typing.Union:
-        args = typing.get_args(annotation)
-    elif origin is typing.Literal:
-        return {type(a) for a in typing.get_args(annotation)}
-    else:
-        args = (annotation,)
+    if origin is typing.Literal:
+        return frozenset(type(a).__name__ for a in typing.get_args(annotation))
+    args = typing.get_args(annotation) if origin is typing.Union else (annotation,)
+    out: set = set()
     for a in args:
         if a is type(None):
             continue
         ao = typing.get_origin(a)
         if ao is typing.Literal:
-            types.update(type(x) for x in typing.get_args(a))
+            out |= {type(x).__name__ for x in typing.get_args(a)}
+        elif ao is typing.Annotated or (hasattr(typing, "Annotated") and typing.get_origin(a) is typing.Annotated):
+            inner_args = typing.get_args(a)
+            if inner_args:
+                out |= accepted_types_from_annotation(inner_args[0])
         else:
-            types.add(ao if ao is not None else a)
-    return types
+            out.add(getattr(ao or a, "__name__", str(ao or a)))
+    return frozenset(out)
 
 
-def pure_string_field(annotation) -> bool:
-    """True if `annotation` accepts a plain string and NOT any collection type.
+def _yaml_scalar(value):
+    """yaml.safe_load a raw string, but never coerce to date/time. Non-strings pass through."""
+    import datetime as _dt
+    import yaml as _yaml
 
-    These are fields where the user's literal CLI text *is* the value (api keys,
-    passwords, hostnames, string Literals). For them the CLI skips YAML coercion
-    so an all-numeric or boolean-looking value isn't turned into an int/bool and
-    rejected by the str type. `Union[str, list[str]]` (the wordlist fields) is
-    intentionally NOT pure-string: it must still YAML-parse a list.
+    if not isinstance(value, str):
+        return value
+    if value == "":
+        return ""
+    try:
+        parsed = _yaml.safe_load(value)
+    except _yaml.YAMLError:
+        return value
+    return value if isinstance(parsed, (_dt.date, _dt.time)) else parsed
+
+
+def coerce_value(value, accepted):
+    """Coerce one config value toward its declared type.
+
+    `value` may be a raw CLI string OR an already-parsed YAML value.
+    `accepted` is the frozenset of base type-names for the target field, or
+    None/empty when the field is unknown (fall back to default YAML behavior;
+    unknown keys are still caught by validation).
     """
-    if annotation is None:
-        return False
-    acc = _acceptable_types(annotation)
-    return (str in acc) and not (acc & {list, tuple, set, dict, frozenset})
+    is_raw = isinstance(value, str)
+    if not accepted:
+        return _yaml_scalar(value) if is_raw else value
+    if "str" in accepted and not (accepted & _COLLECTION_NAMES):
+        if is_raw:
+            return value
+        return None if value is None else str(value)
+    if accepted == frozenset({"bool"}):
+        v = _yaml_scalar(value) if is_raw else value
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, (int, float)):
+            return bool(v)
+        if isinstance(v, str):
+            low = v.strip().lower()
+            if low in _TRUE_WORDS:
+                return True
+            if low in _FALSE_WORDS:
+                return False
+        return v
+    return _yaml_scalar(value) if is_raw else value
 
 
-def resolve_field_annotation(model, dotted_path: str):
-    """Walk a dotted config path against a pydantic model and return the leaf
-    field's annotation, or None if any segment can't be resolved. None means
-    "unknown" -> the caller falls back to default parsing (a genuine typo is
-    still caught by the normal validation pass). Honors `Field(alias=...)`."""
-    current = model
-    parts = dotted_path.split(".")
-    for i, part in enumerate(parts):
-        field = _resolve_field(current, part)
-        if field is None:
-            return None
-        if i == len(parts) - 1:
-            return field.annotation
-        sub = _field_submodel(field)
-        if sub is None:
-            return None
-        current = sub
-    return None
+def coerce_config(config, index, prefix=""):
+    """Walk a config dict and coerce each leaf toward its declared type."""
+    out = {}
+    for k, v in config.items():
+        dotted = f"{prefix}.{k}" if prefix else k
+        if isinstance(v, dict):
+            out[k] = coerce_config(v, index, dotted)
+        else:
+            out[k] = coerce_value(v, index.get(dotted))
+    return out
 
 
 def partition_sensitive_config(config, model, *, keep_sensitive: bool):
@@ -459,6 +539,7 @@ class PresetSchema(BaseModel):
 __all__ = [
     "BBOTConfig",
     "BaseModuleConfig",
+    "ConfidenceLiteral",
     "DepsConfig",
     "DepsToolConfig",
     "DnsConfig",
@@ -466,13 +547,14 @@ __all__ = [
     "Field",
     "PresetSchema",
     "ScopeConfig",
+    "SeverityLiteral",
     "WebConfig",
+    "accepted_types_from_annotation",
+    "accepted_types_from_string",
+    "coerce_config",
+    "coerce_value",
     "field_flags",
     "is_mandatory",
     "is_sensitive",
     "partition_sensitive_config",
-    "ConfidenceLiteral",
-    "SeverityLiteral",
-    "pure_string_field",
-    "resolve_field_annotation",
 ]

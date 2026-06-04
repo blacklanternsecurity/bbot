@@ -36,7 +36,7 @@ bbot_code_dir = Path(__file__).parent.parent
 # Bump when the preloader's output schema or validation rules change. Folded
 # into the per-module cache_key so stale entries from older bbot versions get
 # rebuilt instead of silently bypassing new checks.
-PRELOAD_CACHE_VERSION = 2
+PRELOAD_CACHE_VERSION = 3
 
 
 _UNEVALUATED = object()
@@ -184,13 +184,15 @@ def _build_validation_schema(preloaded: dict):
     return FullPresetSchema
 
 
-def _extract_pydantic_config(config_class: ast.ClassDef) -> tuple[dict, dict, set, set]:
+def _extract_pydantic_config(config_class: ast.ClassDef) -> tuple[dict, dict, set, set, dict]:
     """
     Walk a `class Config(BaseModuleConfig):` block and extract
-    `(defaults, descriptions, sensitive, mandatory)` — cheap metadata used
-    for `bbot -l` and similar listing paths, without importing or exec-ing
-    anything.
+    `(defaults, descriptions, sensitive, mandatory, types)` -- cheap metadata
+    used for `bbot -l`, type-directed config coercion, and similar listing
+    paths, without importing or exec-ing anything.
 
+    `types` maps each field name to its raw annotation string (e.g.
+    `"bool"`, `"Union[str, list[str]]"`, `"Literal['manual', 'severe']"`).
     The actual typed pydantic class is built later via `_exec_config_class`
     on the captured source text.
     """
@@ -198,14 +200,16 @@ def _extract_pydantic_config(config_class: ast.ClassDef) -> tuple[dict, dict, se
     descriptions: dict = {}
     sensitive: set = set()
     mandatory: set = set()
+    types: dict = {}
     for node in config_class.body:
-        # `model_config = ConfigDict(...)` etc. are plain assigns, not typed — skip.
+        # `model_config = ConfigDict(...)` etc. are plain assigns, not typed -- skip.
         if not isinstance(node, ast.AnnAssign) or not isinstance(node.target, ast.Name):
             continue
         name = node.target.id
         if name.startswith("_"):
             continue
 
+        types[name] = ast.unparse(node.annotation)
         default = _UNEVALUATED
         description = ""
         is_sensitive = False
@@ -249,7 +253,7 @@ def _extract_pydantic_config(config_class: ast.ClassDef) -> tuple[dict, dict, se
             sensitive.add(name)
         if is_mandatory:
             mandatory.add(name)
-    return defaults, descriptions, sensitive, mandatory
+    return defaults, descriptions, sensitive, mandatory, types
 
 
 class ModuleLoader:
@@ -285,6 +289,7 @@ class ModuleLoader:
         # Composite preset-validation schema, built from preloaded modules.
         # Invalidated whenever a new module is preloaded.
         self._validation_schema = None
+        self._config_type_index = None
 
         self._module_dirs = set()
         self._module_dirs_preloaded = set()
@@ -434,6 +439,7 @@ class ModuleLoader:
         # on next access now that the set of modules has changed
         if new_modules:
             self._validation_schema = None
+            self._config_type_index = None
 
         return new_modules
 
@@ -515,6 +521,46 @@ class ModuleLoader:
             return BBOTConfig
         return _unwrap_optional(field.annotation)
 
+    @property
+    def config_type_index(self):
+        """{dotted_config_path: frozenset(base_type_names)} for every known option.
+
+        Global keys come from the static BBOTConfig tree; per-module keys from
+        the preloaded AST annotation strings. No module Config is exec'd.
+        """
+        if self._config_type_index is None:
+            from bbot.core.config.models import (
+                BBOTConfig,
+                BaseModuleConfig,
+                accepted_types_from_annotation,
+                accepted_types_from_string,
+                _field_submodel,
+            )
+
+            index = {}
+
+            def walk_static(model, prefix=""):
+                for fname, field in model.model_fields.items():
+                    for key in {fname, getattr(field, "alias", None)} - {None}:
+                        dotted = f"{prefix}.{key}" if prefix else key
+                        sub = _field_submodel(field)
+                        if sub is not None and fname != "modules":
+                            walk_static(sub, dotted)
+                        else:
+                            index[dotted] = accepted_types_from_annotation(field.annotation)
+
+            walk_static(BBOTConfig)
+
+            universal = {n: f.annotation for n, f in BaseModuleConfig.model_fields.items()}
+            for name, data in self._preloaded.items():
+                for field, ann_str in data.get("options_types", {}).items():
+                    index[f"modules.{name}.{field}"] = accepted_types_from_string(ann_str)
+                for field, ann in universal.items():
+                    index.setdefault(f"modules.{name}.{field}", accepted_types_from_annotation(ann))
+
+            self._config_type_index = index
+        return self._config_type_index
+
     def find_and_replace(self, **kwargs):
         self.__preloaded = search_format_dict(self.__preloaded, **kwargs)
         self._shared_deps = search_format_dict(self._shared_deps, **kwargs)
@@ -585,6 +631,7 @@ class ModuleLoader:
         options_desc = {}
         options_sensitive: set = set()
         options_mandatory: set = set()
+        options_types: dict = {}
         config_source: str | None = None
         legacy_options_keyword: str | None = None
         legacy_options_line: int | None = None
@@ -616,11 +663,14 @@ class ModuleLoader:
                 for class_attr in root_element.body:
                     # nested `class Config(BaseModuleConfig): ...` — the module's config schema
                     if type(class_attr) == ast.ClassDef and class_attr.name == "Config":
-                        config_fields, config_descs, config_sens, config_mand = _extract_pydantic_config(class_attr)
+                        config_fields, config_descs, config_sens, config_mand, config_types = _extract_pydantic_config(
+                            class_attr
+                        )
                         config.update(config_fields)
                         options_desc.update(config_descs)
                         options_sensitive.update(config_sens)
                         options_mandatory.update(config_mand)
+                        options_types.update(config_types)
                         # capture the class source verbatim; schema build re-execs it
                         config_source = ast.get_source_segment(python_code, class_attr)
                         continue
@@ -745,6 +795,7 @@ class ModuleLoader:
             "options_desc": options_desc,
             "options_sensitive": sorted(options_sensitive),
             "options_mandatory": sorted(options_mandatory),
+            "options_types": options_types,
             "config_source": config_source,
             "hash": module_hash,
             "deps": {
@@ -910,9 +961,10 @@ class ModuleLoader:
             modules_options[module_name] = []
             module_options = preloaded["config"]
             module_options_desc = preloaded["options_desc"]
+            module_options_types = preloaded.get("options_types", {})
             for k, v in sorted(module_options.items(), key=lambda x: x[0]):
                 option_name = f"modules.{module_name}.{k}"
-                option_type = type(v).__name__
+                option_type = module_options_types.get(k, type(v).__name__)
                 option_description = module_options_desc[k]
                 modules_options[module_name].append((option_name, option_type, option_description, str(v)))
         return modules_options

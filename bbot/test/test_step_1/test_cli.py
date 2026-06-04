@@ -518,16 +518,16 @@ def test_parse_cli_value_keeps_date_shaped_strings():
 
 
 def test_parse_dotted_cli_type_aware_string_fields():
-    """Pure-string fields keep the literal CLI text (lossless) so an all-numeric or
+    """String fields keep the literal CLI text (lossless) so an all-numeric or
     boolean-looking value isn't coerced to int/bool and rejected by the str type."""
     from bbot.scanner.preset.args import parse_dotted_cli
     from bbot.scanner import validate_preset
     from bbot.core.modules import MODULE_LOADER
 
     MODULE_LOADER.preload()
-    schema = MODULE_LOADER.config_schema
+    index = MODULE_LOADER.config_type_index
     for raw, expect in [("12345678", "12345678"), ("true", "true"), ("0755", "0755")]:
-        d = parse_dotted_cli([f"modules.postgres.password={raw}"], schema=schema)
+        d = parse_dotted_cli([f"modules.postgres.password={raw}"], index=index)
         assert d["modules"]["postgres"]["password"] == expect
         assert validate_preset({"config": d}) == []
 
@@ -539,13 +539,28 @@ def test_parse_dotted_cli_type_aware_preserves_scalars():
     from bbot.core.modules import MODULE_LOADER
 
     MODULE_LOADER.preload()
-    schema = MODULE_LOADER.config_schema
-    assert parse_dotted_cli(["web.http_timeout=20"], schema=schema)["web"]["http_timeout"] == 20
-    assert parse_dotted_cli(["scope.strict=true"], schema=schema)["scope"]["strict"] is True
-    wl = parse_dotted_cli(["modules.dnsbrute.wordlist=[a,b]"], schema=schema)["modules"]["dnsbrute"]["wordlist"]
+    index = MODULE_LOADER.config_type_index
+    assert parse_dotted_cli(["web.http_timeout=20"], index=index)["web"]["http_timeout"] == 20
+    assert parse_dotted_cli(["scope.strict=true"], index=index)["scope"]["strict"] is True
+    wl = parse_dotted_cli(["modules.dnsbrute.wordlist=[a,b]"], index=index)["modules"]["dnsbrute"]["wordlist"]
     assert wl == ["a", "b"]
-    bare = parse_dotted_cli(["modules.dnsbrute.wordlist=foo"], schema=schema)["modules"]["dnsbrute"]["wordlist"]
+    bare = parse_dotted_cli(["modules.dnsbrute.wordlist=foo"], index=index)["modules"]["dnsbrute"]["wordlist"]
     assert bare == "foo"
+
+
+def test_parse_dotted_cli_type_aware_bool_fields():
+    """Bool fields produce real bool values, not ints or strings."""
+    from bbot.scanner.preset.args import parse_dotted_cli
+    from bbot.core.modules import MODULE_LOADER
+
+    MODULE_LOADER.preload()
+    index = MODULE_LOADER.config_type_index
+    d = parse_dotted_cli(["modules.lightfuzz.force_common_headers=1"], index=index)
+    assert d["modules"]["lightfuzz"]["force_common_headers"] is True
+    d = parse_dotted_cli(["scope.strict=yes"], index=index)
+    assert d["scope"]["strict"] is True
+    d = parse_dotted_cli(["scope.strict=false"], index=index)
+    assert d["scope"]["strict"] is False
 
 
 def test_type_aware_parsing_still_flags_unknown_key():
@@ -556,8 +571,30 @@ def test_type_aware_parsing_still_flags_unknown_key():
     from bbot.core.modules import MODULE_LOADER
 
     MODULE_LOADER.preload()
-    d = parse_dotted_cli(["web.bogus=5"], schema=MODULE_LOADER.config_schema)
+    d = parse_dotted_cli(["web.bogus=5"], index=MODULE_LOADER.config_type_index)
     assert validate_preset({"config": d})  # non-empty: unknown key flagged
+
+
+def test_coerce_config_file_values():
+    """coerce_config fixes YAML-parsed values from config files: numeric passwords
+    become strings, integer 1 on a bool field becomes True, etc."""
+    from bbot.core.config.models import coerce_config
+    from bbot.core.modules import MODULE_LOADER
+
+    MODULE_LOADER.preload()
+    index = MODULE_LOADER.config_type_index
+    cfg = {
+        "web": {"http_timeout": 30},
+        "modules": {
+            "postgres": {"password": 12345678, "port": 5432},
+            "lightfuzz": {"force_common_headers": 1},
+        },
+    }
+    result = coerce_config(cfg, index)
+    assert result["modules"]["postgres"]["password"] == "12345678"
+    assert result["modules"]["postgres"]["port"] == 5432
+    assert result["modules"]["lightfuzz"]["force_common_headers"] is True
+    assert result["web"]["http_timeout"] == 30
 
 
 def test_cli_module_validation(monkeypatch, caplog):

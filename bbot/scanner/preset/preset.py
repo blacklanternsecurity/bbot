@@ -432,6 +432,17 @@ class Preset(metaclass=BasePreset):
         # validate log level options
         baked_preset.apply_log_level(apply_core=scan is not None)
 
+        # coerce config values toward their declared types so the runtime gets
+        # real typed values (bool fields hold True/False, not int 1; str fields
+        # hold strings, not YAML-parsed ints from a config file)
+        from bbot.core.config.models import coerce_config
+
+        try:
+            index = baked_preset.module_loader.config_type_index
+            baked_preset.core.custom_config = coerce_config(baked_preset.core.custom_config, index)
+        except Exception:
+            pass
+
         # validate flags, config options
         baked_preset.validate()
 

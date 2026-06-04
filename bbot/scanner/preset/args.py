@@ -1,56 +1,33 @@
 import os
-import yaml
 import logging
 import argparse
-import datetime
 
 from bbot.errors import *
 from bbot.core.config.merge import dotted_set
-from bbot.core.config.models import pure_string_field, resolve_field_annotation
+from bbot.core.config.models import coerce_value
 from bbot.core.helpers.misc import chain_lists
 
 
-def _parse_cli_value(raw: str, annotation=None):
-    """
-    Parse the RHS of a `-c a.b.c=value` argument.
+def _parse_cli_value(raw: str, accepted=None):
+    """Parse the RHS of a `-c a.b.c=value` argument.
 
-    If `annotation` (the target field's declared type) is a pure-string field, the
-    user's literal text IS the value -- skip YAML coercion so "12345678" / "true" /
-    "0755" stay strings (lossless) instead of being coerced to int/bool and rejected
-    by the str type.
-
-    Otherwise YAML safe_load handles `true`/`false`/`null`/ints/floats/lists the way
-    users expect for `web.spider_distance=2`. An empty RHS (`-c key=`) is an empty
-    string. Date-shaped values are kept as the literal string (no field is typed
-    `date`), since YAML would resolve them to a date object.
+    `accepted` is the frozenset of base type-names for the target field (from the
+    config type index), or None when the field is unknown.  Coercion follows the
+    declared type: string fields keep the literal text (lossless), bool fields
+    produce a real bool, int/float fields use YAML, and unknown fields fall back to
+    plain YAML coercion.
     """
     if raw == "":
         return ""
-    if annotation is not None and pure_string_field(annotation):
-        return raw
-    try:
-        value = yaml.safe_load(raw)
-    except yaml.YAMLError:
-        return raw
-    if isinstance(value, (datetime.date, datetime.time)):
-        return raw
-    return value
+    return coerce_value(raw, accepted)
 
 
-def parse_dotted_cli(entries, schema=None):
-    """
-    Parse one or more `a.b.c=value` strings into a nested dict.
+def parse_dotted_cli(entries, index=None):
+    """Parse one or more `a.b.c=value` strings into a nested dict.
 
-    If `schema` (the composite config model, i.e. `MODULE_LOADER.config_schema`) is
-    provided, each value is parsed type-aware against its target field, so a
-    pure-string field keeps the literal text rather than YAML-coercing it. Without a
-    schema, parsing falls back to plain YAML coercion.
-
-    Examples:
-        >>> parse_dotted_cli(["modules.shodan.api_key=1234"])
-        {'modules': {'shodan': {'api_key': 1234}}}
-        >>> parse_dotted_cli(["web.spider_distance=2"])
-        {'web': {'spider_distance': 2}}
+    If `index` (the config type index from `MODULE_LOADER.config_type_index`) is
+    provided, each value is coerced toward its declared type so string fields keep
+    their literal text and typed fields get real typed values.
     """
     result: dict = {}
     for entry in entries:
@@ -60,8 +37,8 @@ def parse_dotted_cli(entries, schema=None):
         path = path.strip()
         if not path:
             raise ValueError(f'Empty key in "{entry}"')
-        annotation = resolve_field_annotation(schema, path) if schema is not None else None
-        dotted_set(result, path, _parse_cli_value(raw.strip(), annotation))
+        accepted = index.get(path) if index is not None else None
+        dotted_set(result, path, _parse_cli_value(raw.strip(), accepted))
     return result
 
 
@@ -246,12 +223,12 @@ class BBOTArgs:
         if self.parsed.user_agent_suffix:
             args_preset.core.merge_custom({"web": {"user_agent_suffix": self.parsed.user_agent_suffix}})
 
-        # CLI config options (dot-syntax) — parsed type-aware so pure-string fields
+        # CLI config options (dot-syntax) -- parsed type-aware so string fields
         # keep their literal value (e.g. an all-numeric password isn't coerced to int)
-        schema = self._config_schema()
+        index = self._config_type_index()
         for config_arg in self.parsed.config:
             try:
-                args_preset.core.merge_custom(parse_dotted_cli([config_arg], schema=schema))
+                args_preset.core.merge_custom(parse_dotted_cli([config_arg], index=index))
             except Exception as e:
                 raise BBOTArgumentError(f'Error parsing command-line config option: "{config_arg}": {e}')
 
@@ -514,11 +491,11 @@ class BBOTArgs:
         if self.parsed.fast_mode:
             self.parsed.preset += ["fast"]
 
-    def _config_schema(self):
-        """Composite config schema for type-aware CLI parsing, or None if it can't
+    def _config_type_index(self):
+        """Config type index for type-directed CLI parsing, or None if it can't
         be built yet (then parsing falls back to plain YAML coercion)."""
         try:
-            return self.preset.module_loader.config_schema
+            return self.preset.module_loader.config_type_index
         except Exception:
             return None
 
@@ -532,7 +509,7 @@ class BBOTArgs:
 
         if not self.parsed.config:
             return
-        cli_dict = parse_dotted_cli(self.parsed.config, schema=self._config_schema())
+        cli_dict = parse_dotted_cli(self.parsed.config, index=self._config_type_index())
         errs = validate_preset({"config": cli_dict}, module_loader=self.preset.module_loader)
         if errs:
             raise ValidationError("\n".join(str(e) for e in errs))
