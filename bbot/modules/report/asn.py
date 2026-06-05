@@ -241,6 +241,9 @@ class asn(BaseReportModule):
             kwargs["cache_for"] = 60 * 60 * 24
         r = await self.helpers.request(url, **kwargs)
         data = {}
+        if r is None:
+            self.debug(f"No response for {data_type} at {url}")
+            return False
         try:
             j = r.json()
             if not isinstance(j, dict):
