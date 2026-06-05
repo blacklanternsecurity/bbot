@@ -151,6 +151,8 @@ class Scanner:
                 raise ValidationError(f'Preset must be of type Preset, not "{type(custom_preset).__name__}"')
             base_preset.merge(custom_preset)
 
+        # validation+coercion is a precondition for baking; Scanner does it for the caller
+        base_preset.validate()
         self.preset = base_preset.bake(self)
 
         self._prepped = False

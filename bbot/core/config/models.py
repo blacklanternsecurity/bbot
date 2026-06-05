@@ -462,6 +462,7 @@ class BBOTConfig(BaseModel):
     aggregate: Optional[bool] = None
     dnsresolve: Optional[bool] = None
     cloudcheck: Optional[bool] = None
+    unarchive: Optional[bool] = None
 
     # URL handling
     url_querystring_remove: Optional[bool] = None
