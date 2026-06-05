@@ -166,15 +166,29 @@ def test_from_dict_raises_on_typos():
     assert "modlues" in str(excinfo.value)
 
 
-def test_from_yaml_string_raises_on_typos():
-    """YAML strings carrying typos should also be rejected up front."""
+def test_from_yaml_string_raises_on_top_level_typo():
+    """A top-level key typo in a YAML string is rejected up front by from_dict's gate."""
     from bbot.errors import ValidationError as BBOTValidationError
     from bbot.scanner.preset import Preset
 
     import pytest
 
     with pytest.raises(BBOTValidationError) as excinfo:
-        Preset.from_yaml_string("config:\n  scope:\n    strct: true\n")
+        Preset.from_yaml_string("flgas:\n  - subdomain-enum\n")
+    assert "flgas" in str(excinfo.value)
+
+
+def test_from_yaml_config_typo_deferred_to_validate():
+    """A config-VALUE typo passes the top-level key gate; validate() catches it, not load."""
+    from bbot.errors import ValidationError as BBOTValidationError
+    from bbot.scanner.preset import Preset
+
+    import pytest
+
+    preset = Preset.from_yaml_string("config:\n  scope:\n    strct: true\n")
+    assert preset._validated is False
+    with pytest.raises(BBOTValidationError) as excinfo:
+        preset.validate()
     assert "strct" in str(excinfo.value)
 
 

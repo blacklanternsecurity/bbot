@@ -720,6 +720,7 @@ names = [
     "theoden",
     "theon",
     "theresa",
+    "thetechromancer",
     "thomas",
     "tiffany",
     "timothy",

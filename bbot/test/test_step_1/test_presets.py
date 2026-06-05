@@ -785,14 +785,14 @@ class TestModule5(BaseModule):
 """
         )
 
-    # should fail at preset-load time now that validation runs in from_dict
+    # unknown module name is caught at validate() (from_dict gates only top-level keys); bake() is the backstop
     with pytest.raises(ValidationError):
         Preset.from_yaml_string(
             """
 modules:
   - testmodule5
 """
-        )
+        ).validate()
 
     preset = Preset.from_yaml_string(
         f"""

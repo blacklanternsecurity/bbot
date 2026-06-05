@@ -696,6 +696,14 @@ class Preset(metaclass=BasePreset):
         Examples:
             >>> preset = Preset.from_dict({"target": ["evilcorp.com"], "modules": ["portscan"]})
         """
+        from .validate import prevalidate_preset
+
+        # Gate top-level keys only -- .get() below would silently drop a typo like
+        # `modlues:`. Config values + _validated are validate()'s job, not from_dict's.
+        errs = prevalidate_preset(preset_dict)
+        if errs:
+            raise ValidationError("\n".join(str(e) for e in errs))
+
         from bbot.core.helpers.misc import chain_lists
 
         # Handle seeds and targets from dict
@@ -748,9 +756,6 @@ class Preset(metaclass=BasePreset):
             _exclude=_exclude,
             _log=_log,
         )
-        # validate+coerce so the returned preset is bake-ready (callers that
-        # mutate it afterward will need to .validate() again before baking)
-        new_preset.validate()
         return new_preset
 
     def include_preset(self, filename):
@@ -1012,6 +1017,12 @@ class Preset(metaclass=BasePreset):
                 raise ValidationError(
                     get_closest_match(excluded_module, self.module_loader.all_module_choices, msg="module")
                 )
+        # validate declared module names (same _is_valid_module check bake() uses) so
+        # typos fail here, not at bake(). Set resolution + dnsresolve stay in bake().
+        for scan_module in self.explicit_scan_modules:
+            self._is_valid_module(scan_module, "scan", name_only=True)
+        for output_module in self.explicit_output_modules:
+            self._is_valid_module(output_module, "output", name_only=True)
         # validate excluded flags
         for excluded_flag in self.exclude_flags:
             if excluded_flag not in self.module_loader.flag_choices:

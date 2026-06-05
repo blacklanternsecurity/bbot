@@ -170,6 +170,28 @@ def _format_errors(
     return out
 
 
+def prevalidate_preset(preset_dict: Any) -> list[PresetValidationError]:
+    """Validate a preset's top-level KEY names only -- the gate `Preset.from_dict`
+    runs up front. Reports every unknown/typo'd key with a closest-match hint;
+    config VALUES are validated later by `Preset.validate()`, not here.
+
+    Examples:
+        >>> print(prevalidate_preset({"modlues": ["nuclei"]})[0])
+        [preset:modlues] Could not find preset option "modlues". Did you mean "modules"?
+    """
+    if not isinstance(preset_dict, dict):
+        return [PresetValidationError("preset", "", f"Expected a mapping, got {type(preset_dict).__name__}")]
+    errors: list[PresetValidationError] = []
+    for key in preset_dict:
+        if key not in _PRESET_KEYS:
+            errors.append(
+                PresetValidationError(
+                    "preset", str(key), get_closest_match(str(key), _PRESET_KEYS, msg="preset option")
+                )
+            )
+    return errors
+
+
 def validate_preset(preset_dict: Any, module_loader=None) -> list[PresetValidationError]:
     """
     Validate a preset dict against BBOT's composite schema.
@@ -292,4 +314,4 @@ def validate_preset_file(path: str | Path, **kwargs) -> list[PresetValidationErr
     return validate_preset(data, **kwargs)
 
 
-__all__ = ["PresetValidationError", "validate_preset", "validate_preset_file"]
+__all__ = ["PresetValidationError", "prevalidate_preset", "validate_preset", "validate_preset_file"]
