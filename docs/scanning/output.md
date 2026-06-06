@@ -88,16 +88,22 @@ mail.evilcorp.com
 
 ![bbot-discord](https://github.com/blacklanternsecurity/bbot/assets/20261699/6d88045c-8eac-43b6-8de9-c621ecf60c2d)
 
-BBOT supports output via webhooks to `discord`, `slack`, and `teams`. To use them, you must specify a webhook URL either in the config:
+BBOT supports output via webhooks to `discord`, `slack`, and `teams`. To use them, you need to enable the output module and configure a webhook URL.
+
+Via preset:
 
 ```yaml title="discord_preset.yml"
+output_modules:
+  - discord
+
 config:
   modules:
     discord:
       webhook_url: https://discord.com/api/webhooks/1234/deadbeef
 ```
 
-...or on the command line:
+Via command line:
+
 ```bash
 bbot -t evilcorp.com -om discord -c modules.discord.webhook_url=https://discord.com/api/webhooks/1234/deadbeef
 ```
@@ -105,6 +111,9 @@ bbot -t evilcorp.com -om discord -c modules.discord.webhook_url=https://discord.
 By default, only `FINDING` events are sent, but this can be customized by setting `event_types` in the config like so:
 
 ```yaml title="discord_preset.yml"
+output_modules:
+  - discord
+
 config:
   modules:
     discord:
@@ -120,8 +129,10 @@ bbot -t evilcorp.com -om discord -c modules.discord.event_types=["STORAGE_BUCKET
 
 You can also filter on the severity of `FINDING` events by setting `min_severity`:
 
-
 ```yaml title="discord_preset.yml"
+output_modules:
+  - discord
+
 config:
   modules:
     discord:
@@ -140,6 +151,9 @@ bbot -t evilcorp.com -om webhook -c modules.webhook.url=http://localhost:8000
 You can customize the HTTP method if needed. Authentication is also supported:
 
 ```yaml title="webhook_preset.yml"
+output_modules:
+  - webhook
+
 config:
   modules:
     webhook:
@@ -173,6 +187,9 @@ bbot -t evilcorp.com -om elastic -c \
 Alternatively, via a preset:
 
 ```yaml title="elastic_preset.yml"
+output_modules:
+  - elastic
+
 config:
   modules:
     elastic:
@@ -187,6 +204,9 @@ The `splunk` output module sends [events](events.md) in JSON format to a desired
 You can customize this output with the following config options:
 
 ```yaml title="splunk_preset.yml"
+output_modules:
+  - splunk
+
 config:
   modules:
     splunk:
@@ -229,6 +249,9 @@ bbot -t evilcorp.com -om postgres -c modules.postgres.database=custom_bbot_db
 ```
 
 ```yaml title="postgres_preset.yml"
+output_modules:
+  - postgres
+
 config:
   modules:
     postgres:
@@ -249,6 +272,9 @@ bbot -t evilcorp.com -om mysql -c modules.mysql.database=custom_bbot_db
 ```
 
 ```yaml title="mysql_preset.yml"
+output_modules:
+  - mysql
+
 config:
   modules:
     mysql:
