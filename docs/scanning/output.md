@@ -117,6 +117,7 @@ output_modules:
 config:
   modules:
     discord:
+      webhook_url: https://discord.com/api/webhooks/1234/deadbeef
       event_types:
         - FINDING
         - STORAGE_BUCKET
@@ -124,7 +125,7 @@ config:
 
 ...or on the command line:
 ```bash
-bbot -t evilcorp.com -om discord -c modules.discord.event_types=["STORAGE_BUCKET","FINDING"]
+bbot -t evilcorp.com -om discord -c modules.discord.webhook_url=https://discord.com/api/webhooks/1234/deadbeef -c modules.discord.event_types=["STORAGE_BUCKET","FINDING"]
 ```
 
 You can also filter on the severity of `FINDING` events by setting `min_severity`:
@@ -136,6 +137,7 @@ output_modules:
 config:
   modules:
     discord:
+      webhook_url: https://discord.com/api/webhooks/1234/deadbeef
       min_severity: HIGH
 ```
 
