@@ -1,3 +1,5 @@
+from werkzeug.wrappers import Response
+
 from .base import ModuleTestBase
 
 
@@ -173,3 +175,53 @@ class TestHTTP_custom_cookies(ModuleTestBase):
     def check(self, module_test, events):
         # Ensure we received the expected response when the cookie was present
         assert [e for e in events if e.type == "URL" and "status-200" in e.tags]
+
+
+class TestHTTP_429_retry(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["http"]
+    config_overrides = {"web": {"429_sleep_interval": 1, "429_max_sleep_interval": 1}}
+
+    async def setup_after_prep(self, module_test):
+        self.request_count = 0
+
+        def handler(request):
+            self.request_count += 1
+            if self.request_count <= 1:
+                return Response("rate limited", status=429, headers={"Retry-After": "1"})
+            return Response("<html><body>OK</body></html>")
+
+        module_test.httpserver.expect_request("/").respond_with_handler(handler)
+
+    def check(self, module_test, events):
+        assert self.request_count >= 2, "Expected retry after 429"
+        assert any(e.type == "URL" and "status-200" in e.tags for e in events), (
+            "Expected URL with status-200 after successful retry"
+        )
+        assert not any(e.type == "URL" and "status-429" in e.tags for e in events), (
+            "429 response should not be emitted as a URL event"
+        )
+
+
+class TestHTTP_429_max_retries(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["http"]
+    config_overrides = {"web": {"429_sleep_interval": 1, "429_max_sleep_interval": 1}}
+
+    async def setup_after_prep(self, module_test):
+        self.request_count = 0
+
+        def handler(request):
+            self.request_count += 1
+            return Response("rate limited", status=429, headers={"Retry-After": "1"})
+
+        module_test.httpserver.expect_request("/").respond_with_handler(handler)
+
+    def check(self, module_test, events):
+        assert self.request_count >= 2, "Expected at least one retry before giving up"
+        assert not any(e.type == "URL" and "status-429" in e.tags for e in events), (
+            "Exhausted 429 retries should not emit a URL event"
+        )
+        assert not any(e.type == "HTTP_RESPONSE" and e.data.get("status_code") == 429 for e in events), (
+            "Exhausted 429 retries should not emit an HTTP_RESPONSE event"
+        )

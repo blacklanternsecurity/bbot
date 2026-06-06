@@ -45,6 +45,7 @@ class http(BaseModule):
         self._max_429_retries = 3
         self._429_default_interval = self.scan.web_config.get("429_sleep_interval", 30)
         self._429_max_interval = self.scan.web_config.get("429_max_sleep_interval", 60)
+        self._wakeup_pending = False
         return True
 
     async def filter_event(self, event):
@@ -124,7 +125,10 @@ class http(BaseModule):
         return self._429_default_interval
 
     def _defer_event(self, event):
-        self._deferred_events.append(event)
+        if event not in self._deferred_events:
+            self._deferred_events.append(event)
+            return True
+        return False
 
     async def _flush_deferred(self):
         if not self._deferred_events or self.incoming_event_queue is False:
@@ -147,12 +151,14 @@ class http(BaseModule):
         if flushed:
             async with self.event_received:
                 self.event_received.notify()
-        if still_deferred and earliest_resume is not None:
+        if still_deferred and earliest_resume is not None and not self._wakeup_pending:
             delay = max(0.1, earliest_resume - time.monotonic())
+            self._wakeup_pending = True
             self.helpers.create_task(self._deferred_wakeup(delay))
 
     async def _deferred_wakeup(self, delay):
         await self.helpers.sleep(delay)
+        self._wakeup_pending = False
         await self._flush_deferred()
 
     def _build_headers(self):
@@ -272,9 +278,10 @@ class http(BaseModule):
                 paired_probe_urls[schemes["https"]] = key
 
         if not stdin:
-            if self._deferred_events:
+            if self._deferred_events and not self._wakeup_pending:
                 earliest = min(self._host_cooldowns.get(str(e.host), 0) for e in self._deferred_events)
                 delay = max(0.1, earliest - time.monotonic())
+                self._wakeup_pending = True
                 self.helpers.create_task(self._deferred_wakeup(delay))
             return
 
@@ -313,18 +320,21 @@ class http(BaseModule):
             if result.success and result.response is not None and result.response.status == 429:
                 url = result.url
                 host = urlparse(url).hostname
-                retry_count = self._429_retry_counts.get(url, 0) + 1
-                self._429_retry_counts[url] = retry_count
-                if retry_count <= self._max_429_retries:
-                    retry_after = self._parse_retry_after(result.response)
-                    self._set_host_cooldown(host, retry_after)
-                    self._defer_event(stdin[url])
-                    self.verbose(
-                        f"429 from {host} ({url}), cooling down {retry_after}s (attempt {retry_count}/{self._max_429_retries})"
-                    )
-                    continue
-                else:
+                parent_event = stdin[url]
+                event_key = self._incoming_dedup_hash(parent_event)
+                retry_count = self._429_retry_counts.get(event_key, 0)
+                if retry_count >= self._max_429_retries:
                     self.warning(f"429 from {url} after {self._max_429_retries} retries, giving up")
+                    self._429_retry_counts.pop(event_key, None)
+                    continue
+                retry_after = self._parse_retry_after(result.response)
+                self._set_host_cooldown(host, retry_after)
+                if self._defer_event(parent_event):
+                    self._429_retry_counts[event_key] = retry_count + 1
+                self.verbose(
+                    f"429 from {host} ({url}), cooling down {retry_after}s (attempt {retry_count + 1}/{self._max_429_retries})"
+                )
+                continue
 
             key = paired_probe_urls.get(result.url)
             if key is None:
