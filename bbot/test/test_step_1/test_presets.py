@@ -785,7 +785,7 @@ class TestModule5(BaseModule):
 """
         )
 
-    # unknown module name is caught at validate() (from_dict gates only top-level keys); bake() is the backstop
+    # unknown module name is caught at validate()
     with pytest.raises(ValidationError):
         Preset.from_yaml_string(
             """

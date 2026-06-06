@@ -3,8 +3,7 @@ from ..bbot_fixtures import *  # noqa: F401
 
 @pytest.mark.asyncio
 async def test_config(bbot_scanner):
-    # config is now strictly validated, so propagation is tested with REAL keys
-    # (the old sentinel keys "plumbus" / "test_option" are rejected as typos).
+    # config is strictly validated, so propagation must be tested with real keys
     config = {
         "status_frequency": 5,
         "speculate": True,

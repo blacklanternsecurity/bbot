@@ -989,19 +989,14 @@ class Preset(metaclass=BasePreset):
         """
         from bbot.core.config.models import coerce_config
 
-        # Coerce config values toward their declared types (this is the single
-        # coercion point, lifted out of bake()): the runtime gets real typed
-        # values, and type-coercible values (e.g. an all-numeric password) pass
-        # validation cleanly instead of being rejected.
+        # Coerce config values toward their declared types
         try:
             index = self.module_loader.config_type_index
             self.core.custom_config = coerce_config(self.core.custom_config, index)
-        except Exception:
-            pass
+        except Exception as e:
+            log.debug(f"Config coercion error: {e}")
 
-        # Validate the (coerced) user config against the schema. This covers
-        # every entry point (programmatic Preset(config=)/Scanner(config=),
-        # bbot.yml/secrets.yml, presets, CLI) -- not just from_dict / CLI args.
+        # Validate the (coerced) user config against the schema
         from .validate import validate_preset
 
         errs = validate_preset({"config": dict(self.core.custom_config)}, module_loader=self.module_loader)
@@ -1017,8 +1012,7 @@ class Preset(metaclass=BasePreset):
                 raise ValidationError(
                     get_closest_match(excluded_module, self.module_loader.all_module_choices, msg="module")
                 )
-        # validate declared module names (same _is_valid_module check bake() uses) so
-        # typos fail here, not at bake(). Set resolution + dnsresolve stay in bake().
+        # validate declared module names so typos fail early
         for scan_module in self.explicit_scan_modules:
             self._is_valid_module(scan_module, "scan", name_only=True)
         for output_module in self.explicit_output_modules:
