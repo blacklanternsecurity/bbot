@@ -237,6 +237,7 @@ adjectives = [
     "rapid_unscheduled",
     "raving",
     "reckless",
+    "recursive",
     "reductive",
     "ripped",
     "ruthless",
