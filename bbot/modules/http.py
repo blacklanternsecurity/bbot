@@ -1,3 +1,4 @@
+import time
 from http.cookies import SimpleCookie
 from urllib.parse import urlparse
 
@@ -38,6 +39,12 @@ class http(BaseModule):
         self.store_responses = self.config.get("store_responses", False)
         self.client = self.helpers.blasthttp
         self.waf_yara_rule = self.helpers.yara.compile_strings(self.helpers.get_waf_strings(), nocase=True)
+        self._host_cooldowns = {}
+        self._deferred_events = []
+        self._429_retry_counts = {}
+        self._max_429_retries = 3
+        self._429_default_interval = self.scan.web_config.get("429_sleep_interval", 30)
+        self._429_max_interval = self.scan.web_config.get("429_max_sleep_interval", 60)
         return True
 
     async def filter_event(self, event):
@@ -85,6 +92,68 @@ class http(BaseModule):
     def _incoming_dedup_hash(self, event):
         urls, url_hash = self.make_url_metadata(event)
         return url_hash
+
+    @property
+    def finished(self):
+        if self._deferred_events:
+            return False
+        return super().finished
+
+    def is_incoming_duplicate(self, event, add=False):
+        if getattr(event, "_429_retry", False):
+            event._429_retry = False
+            return False, "429 retry"
+        return super().is_incoming_duplicate(event, add=add)
+
+    def _host_is_cooled_down(self, host):
+        return time.monotonic() < self._host_cooldowns.get(host, 0)
+
+    def _set_host_cooldown(self, host, seconds):
+        resume_time = time.monotonic() + seconds
+        self._host_cooldowns[host] = max(self._host_cooldowns.get(host, 0), resume_time)
+
+    def _parse_retry_after(self, response):
+        for k, v in response.headers.items():
+            if k.lower() == "retry-after":
+                try:
+                    seconds = max(1, int(v))
+                    return min(seconds, self._429_max_interval)
+                except ValueError:
+                    pass
+                break
+        return self._429_default_interval
+
+    def _defer_event(self, event):
+        self._deferred_events.append(event)
+
+    async def _flush_deferred(self):
+        if not self._deferred_events or self.incoming_event_queue is False:
+            return
+        still_deferred = []
+        flushed = 0
+        earliest_resume = None
+        for event in self._deferred_events:
+            host = str(event.host)
+            resume_time = self._host_cooldowns.get(host, 0)
+            if time.monotonic() >= resume_time:
+                event._429_retry = True
+                self.incoming_event_queue.put_nowait(event)
+                flushed += 1
+            else:
+                still_deferred.append(event)
+                if earliest_resume is None or resume_time < earliest_resume:
+                    earliest_resume = resume_time
+        self._deferred_events = still_deferred
+        if flushed:
+            async with self.event_received:
+                self.event_received.notify()
+        if still_deferred and earliest_resume is not None:
+            delay = max(0.1, earliest_resume - time.monotonic())
+            self.helpers.create_task(self._deferred_wakeup(delay))
+
+    async def _deferred_wakeup(self, delay):
+        await self.helpers.sleep(delay)
+        await self._flush_deferred()
 
     def _build_headers(self):
         """Build list of (name, value) header tuples from scan config."""
@@ -182,6 +251,10 @@ class http(BaseModule):
 
         for event in events:
             urls, url_hash = self.make_url_metadata(event)
+            host = str(event.host)
+            if self._host_is_cooled_down(host):
+                self._defer_event(event)
+                continue
             for url in urls:
                 stdin[url] = event
                 if event.type == "OPEN_TCP_PORT":
@@ -199,6 +272,10 @@ class http(BaseModule):
                 paired_probe_urls[schemes["https"]] = key
 
         if not stdin:
+            if self._deferred_events:
+                earliest = min(self._host_cooldowns.get(str(e.host), 0) for e in self._deferred_events)
+                delay = max(0.1, earliest - time.monotonic())
+                self.helpers.create_task(self._deferred_wakeup(delay))
             return
 
         headers = self._build_headers()
@@ -233,9 +310,25 @@ class http(BaseModule):
             await self._process_result(result, stdin[result.url])
 
         async for result in iter_batch_results(self.client.request_batch_stream(configs, concurrency=self.threads)):
+            if result.success and result.response is not None and result.response.status == 429:
+                url = result.url
+                host = urlparse(url).hostname
+                retry_count = self._429_retry_counts.get(url, 0) + 1
+                self._429_retry_counts[url] = retry_count
+                if retry_count <= self._max_429_retries:
+                    retry_after = self._parse_retry_after(result.response)
+                    self._set_host_cooldown(host, retry_after)
+                    self._defer_event(stdin[url])
+                    self.verbose(
+                        f"429 from {host} ({url}), cooling down {retry_after}s (attempt {retry_count}/{self._max_429_retries})"
+                    )
+                    continue
+                else:
+                    self.warning(f"429 from {url} after {self._max_429_retries} retries, giving up")
+
             key = paired_probe_urls.get(result.url)
             if key is None:
-                # Non-paired URL — emit immediately
+                # Non-paired URL -- emit immediately
                 parent_event = stdin.get(result.url)
                 if parent_event is None:
                     self.warning(f"Unable to correlate parent event for: {result.url}")
@@ -259,6 +352,9 @@ class http(BaseModule):
                 else:
                     deferred_https[key] = result
 
-        # Stream ended — any leftover https had no http result, so emit unconditionally
+        # Stream ended -- any leftover https had no http result, so emit unconditionally
         for key, result in deferred_https.items():
             await self._process_result(result, stdin[result.url])
+
+        if self._deferred_events:
+            await self._flush_deferred()
