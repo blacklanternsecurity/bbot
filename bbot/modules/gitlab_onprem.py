@@ -20,7 +20,9 @@ class gitlab_onprem(GitLabBaseModule):
     # Optional GitLab access token (only required for gitlab.com, but still
     # supported for on-prem installations that expose private projects).
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="GitLab access token (for self-hosted instances only)", sensitive=True)
+        api_key: str | list[str] = Field(
+            "", description="GitLab access token (for self-hosted instances only)", sensitive=True
+        )
 
     # Allow accepting events slightly beyond configured max distance so we can
     # discover repos on neighbouring infrastructure.

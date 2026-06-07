@@ -13,7 +13,7 @@ class chaos(subdomain_enum_apikey):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="Chaos API key", sensitive=True, mandatory=True)
+        api_key: str | list[str] = Field("", description="Chaos API key", sensitive=True, mandatory=True)
 
     base_url = "https://dns.projectdiscovery.io/dns"
     ping_url = f"{base_url}/example.com"

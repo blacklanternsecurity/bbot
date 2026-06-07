@@ -15,7 +15,7 @@ class dehashed(subdomain_enum):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="DeHashed API Key", sensitive=True, mandatory=True)
+        api_key: str | list[str] = Field("", description="DeHashed API Key", sensitive=True, mandatory=True)
 
     target_only = True
 

@@ -15,7 +15,7 @@ class git_clone(github):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="Github token", sensitive=True)
+        api_key: str | list[str] = Field("", description="Github token", sensitive=True)
         output_folder: str = Field(
             "",
             description="Folder to clone repositories to. If not specified, cloned repositories will be deleted when the scan completes, to minimize disk usage.",

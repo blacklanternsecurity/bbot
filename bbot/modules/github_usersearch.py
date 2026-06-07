@@ -14,7 +14,7 @@ class github_usersearch(github, subdomain_enum):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="Github token", sensitive=True, mandatory=True)
+        api_key: str | list[str] = Field("", description="Github token", sensitive=True, mandatory=True)
 
     async def handle_event(self, event):
         self.verbose("Searching for users with emails matching in scope domains")

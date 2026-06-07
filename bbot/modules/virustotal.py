@@ -13,7 +13,7 @@ class virustotal(subdomain_enum_apikey):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="VirusTotal API Key", sensitive=True, mandatory=True)
+        api_key: str | list[str] = Field("", description="VirusTotal API Key", sensitive=True, mandatory=True)
 
     base_url = "https://www.virustotal.com/api/v3"
     api_page_iter_kwargs = {"json": False, "next_key": lambda r: r.json().get("links", {}).get("next", "")}

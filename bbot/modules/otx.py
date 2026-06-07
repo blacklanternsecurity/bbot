@@ -13,7 +13,7 @@ class otx(subdomain_enum_apikey):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="OTX API key", sensitive=True, mandatory=True)
+        api_key: str | list[str] = Field("", description="OTX API key", sensitive=True, mandatory=True)
 
     base_url = "https://otx.alienvault.com"
 

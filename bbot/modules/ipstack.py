@@ -14,7 +14,7 @@ class Ipstack(BaseModule):
     meta = {"description": "Query IPStack's GeoIP API", "created_date": "2022-11-26", "author": "@tycoonslive"}
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="IPStack GeoIP API Key", sensitive=True, mandatory=True)
+        api_key: str | list[str] = Field("", description="IPStack GeoIP API Key", sensitive=True, mandatory=True)
 
     scope_distance_modifier = 1
     _priority = 2

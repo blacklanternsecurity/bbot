@@ -13,7 +13,7 @@ class c99(subdomain_enum_apikey):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="c99.nl API key", sensitive=True, mandatory=True)
+        api_key: str | list[str] = Field("", description="c99.nl API key", sensitive=True, mandatory=True)
 
     base_url = "https://api.c99.nl"
     ping_url = f"{base_url}/randomnumber?key={{api_key}}&between=1,100&json"

@@ -13,7 +13,7 @@ class github_org(github):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="Github token", sensitive=True)
+        api_key: str | list[str] = Field("", description="Github token", sensitive=True)
         include_members: bool = Field(True, description="Enumerate organization members")
         include_member_repos: bool = Field(False, description="Also enumerate organization members' repositories")
 

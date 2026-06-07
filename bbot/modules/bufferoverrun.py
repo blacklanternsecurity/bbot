@@ -13,7 +13,7 @@ class BufferOverrun(subdomain_enum_apikey):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="BufferOverrun API key", sensitive=True, mandatory=True)
+        api_key: str | list[str] = Field("", description="BufferOverrun API key", sensitive=True, mandatory=True)
         commercial: bool = Field(False, description="Use commercial API")
 
     base_url = "https://tls.bufferover.run/dns"

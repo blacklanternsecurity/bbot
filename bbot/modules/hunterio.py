@@ -9,7 +9,7 @@ class hunterio(subdomain_enum_apikey):
     meta = {"description": "Query hunter.io for emails", "created_date": "2022-04-25", "author": "@TheTechromancer"}
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="Hunter.IO API key", sensitive=True, mandatory=True)
+        api_key: str | list[str] = Field("", description="Hunter.IO API key", sensitive=True, mandatory=True)
 
     base_url = "https://api.hunter.io/v2"
     ping_url = f"{base_url}/account?api_key={{api_key}}"

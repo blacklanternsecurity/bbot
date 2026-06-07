@@ -17,7 +17,7 @@ class bevigil(subdomain_enum_apikey):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="BeVigil OSINT API Key", sensitive=True, mandatory=True)
+        api_key: str | list[str] = Field("", description="BeVigil OSINT API Key", sensitive=True, mandatory=True)
         urls: bool = Field(False, description="Emit URLs in addition to DNS_NAMEs")
 
     base_url = "https://osint.bevigil.com/api"

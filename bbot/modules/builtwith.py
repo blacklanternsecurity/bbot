@@ -25,7 +25,7 @@ class builtwith(subdomain_enum_apikey):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="Builtwith API key", sensitive=True, mandatory=True)
+        api_key: str | list[str] = Field("", description="Builtwith API key", sensitive=True, mandatory=True)
         redirects: bool = Field(True, description="Also look up inbound and outbound redirects")
 
     base_url = "https://api.builtwith.com"

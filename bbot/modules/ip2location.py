@@ -17,7 +17,7 @@ class IP2Location(BaseModule):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="IP2location.io API Key", sensitive=True, mandatory=True)
+        api_key: str | list[str] = Field("", description="IP2location.io API Key", sensitive=True, mandatory=True)
         lang: str = Field(
             "",
             description="Translation information(ISO639-1). The translation is only applicable for continent, country, region and city name.",

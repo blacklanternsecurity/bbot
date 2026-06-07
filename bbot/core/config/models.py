@@ -223,7 +223,9 @@ def coerce_value(value, accepted):
     if "str" in accepted and not (accepted & _COLLECTION_NAMES):
         if is_raw:
             return value
-        return None if value is None else str(value)
+        if value is None or isinstance(value, (list, dict, set)):
+            return value
+        return str(value)
     if accepted == frozenset({"bool"}):
         v = _yaml_scalar(value) if is_raw else value
         if isinstance(v, bool):
