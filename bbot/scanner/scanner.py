@@ -208,7 +208,11 @@ class Scanner:
             ).decode()
             cyan = "\033[1;38;5;51m"
             reset = "\033[0m"
-            print(f"{_a}\n{cyan}Never Mind the Electric Reign{reset}", file=sys.stderr)
+            log_to_stderr(
+                f"{_a}\n{cyan}Never Mind the Electric Reign{reset}",
+                level="HUGESUCCESS",
+                logname=False,
+            )
 
         # make sure the preset has a description
         if not self.preset.description:
