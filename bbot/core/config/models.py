@@ -13,6 +13,7 @@ merged dict straight from YAML, and these models only ever validate shape.
 
 from __future__ import annotations
 
+import os
 from typing import Annotated, Any, Literal, Optional
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, field_validator
@@ -239,7 +240,11 @@ def coerce_value(value, accepted):
             if low in _FALSE_WORDS:
                 return False
         return v
-    return _yaml_scalar(value) if is_raw else value
+    if is_raw:
+        return _yaml_scalar(value)
+    if "str" in accepted and isinstance(value, os.PathLike):
+        return str(value)
+    return value
 
 
 def coerce_config(config, index, prefix=""):
