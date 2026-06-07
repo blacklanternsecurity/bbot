@@ -36,6 +36,7 @@ from bbot.core.helpers import (
     domain_stem,
     make_netloc,
     make_ip_type,
+    cached_ip_address,
     recursive_decode,
     sha1,
     smart_decode,
@@ -1276,7 +1277,7 @@ class CODE_REPOSITORY(DictHostEvent):
 class IP_ADDRESS(BaseEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        ip = ipaddress.ip_address(self.data)
+        ip = cached_ip_address(self.data)
         self.add_tag(f"ipv{ip.version}")
         if ip.is_private:
             self.add_tag("private-ip")
@@ -1286,7 +1287,7 @@ class IP_ADDRESS(BaseEvent):
         return validators.validate_host(data)
 
     def _host(self):
-        return ipaddress.ip_address(self.data)
+        return cached_ip_address(self.data)
 
 
 class DnsEvent(BaseEvent):
@@ -1862,20 +1863,46 @@ class FINDING(ClosestHostEvent):
                     parts.append(f"{n} {sev}")
             return f"{event_type}: {self.count} ({', '.join(parts)})"
 
-    severity_colors = {
-        "CRITICAL": "🟪",
-        "HIGH": "🟥",
-        "MEDIUM": "🟧",
-        "LOW": "🟨",
-        "INFO": "⬜",
+    # Standard finding color palette. Single source of truth for every output module.
+    # Severity selects the hue (blue, yellow, orange, red, purple); confidence dims it.
+    severity_colors_rgb = {
+        "INFO": (113, 161, 255),
+        "LOW": (255, 215, 0),
+        "MEDIUM": (255, 135, 0),
+        "HIGH": (255, 0, 0),
+        "CRITICAL": (207, 0, 255),
+    }
+    confidence_brightness = {
+        "CONFIRMED": 1.00,
+        "HIGH": 0.88,
+        "MEDIUM": 0.77,
+        "LOW": 0.66,
+        "UNKNOWN": 0.55,
     }
 
-    confidence_colors = {
+    # emoji rendering of the same palette, for chat-based output (Slack, Discord, Teams)
+    severity_colors_emoji = {
+        "INFO": "🟦",
+        "LOW": "🟨",
+        "MEDIUM": "🟧",
+        "HIGH": "🟥",
+        "CRITICAL": "🟪",
+    }
+    confidence_colors_emoji = {
         "CONFIRMED": "🟣",
         "HIGH": "🔴",
         "MEDIUM": "🟠",
         "LOW": "🟡",
         "UNKNOWN": "⚪",
+    }
+
+    # Adaptive Card style names for Microsoft Teams output
+    severity_card_colors = {
+        "CRITICAL": "Attention",
+        "HIGH": "Attention",
+        "MEDIUM": "Warning",
+        "LOW": "Good",
+        "INFO": "Accent",
     }
 
     def sanitize_data(self, data):
