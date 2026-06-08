@@ -1,6 +1,7 @@
 import json
 import subprocess
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class fingerprintx(BaseModule):
@@ -12,14 +13,13 @@ class fingerprintx(BaseModule):
         "created_date": "2023-01-30",
         "author": "@TheTechromancer",
     }
-    options = {"version": "1.1.4"}
-    options_desc = {"version": "fingerprintx version"}
     _batch_size = 10
     _module_threads = 2
     _priority = 2
 
-    options = {"skip_common_web": True}
-    options_desc = {"skip_common_web": "Skip common web ports such as 80, 443, 8080, 8443, etc."}
+    class Config(BaseModuleConfig):
+        version: str = Field("1.1.4", description="fingerprintx version")
+        skip_common_web: bool = Field(True, description="Skip common web ports such as 80, 443, 8080, 8443, etc.")
 
     deps_ansible = [
         {

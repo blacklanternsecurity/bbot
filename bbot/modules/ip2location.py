@@ -1,4 +1,5 @@
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class IP2Location(BaseModule):
@@ -13,13 +14,15 @@ class IP2Location(BaseModule):
         "description": "Query IP2location.io's API for geolocation information. ",
         "created_date": "2023-09-12",
         "author": "@TheTechromancer",
-        "auth_required": True,
     }
-    options = {"api_key": "", "lang": ""}
-    options_desc = {
-        "api_key": "IP2location.io API Key",
-        "lang": "Translation information(ISO639-1). The translation is only applicable for continent, country, region and city name.",
-    }
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="IP2location.io API Key", sensitive=True, mandatory=True)
+        lang: str = Field(
+            "",
+            description="Translation information(ISO639-1). The translation is only applicable for continent, country, region and city name.",
+        )
+
     scope_distance_modifier = 1
     _priority = 2
     suppress_dupes = False

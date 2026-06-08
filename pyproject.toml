@@ -16,7 +16,6 @@ classifiers = [
 ]
 dependencies = [
     "pip",
-    "omegaconf>=2.3.0,<3",
     "psutil>=5.9.4,<8.0.0",
     "wordninja>=2.0.0,<3",
     "ansible-runner>=2.3.2,<3",
@@ -42,13 +41,14 @@ dependencies = [
     "pyzmq>=26.0.3,<28.0.0",
     "puremagic>=1.28,<2",
     "pydantic>=2.12.2,<3",
+    "pyyaml>=6.0.0,<7",
     "radixtarget>=4.0.1,<5",
     "asndb>=1.0.4",
     "orjson>=3.10.12,<4",
     "ansible-core>=2.17,<3",
     "tldextract>=5.3.0,<6",
     "cloudcheck>=10.0.0,<11",
-    "blasthttp>=0.7.0",
+    "blasthttp>=0.8.0",
     "blastdns>=1.9.0,<2",
     "zstandard>=0.22,<1",
 ]
@@ -75,12 +75,12 @@ dev = [
     "pytest-httpserver>=1.0.11,<2",
     "pytest>=8.3.1,<10",
     "pytest-asyncio==1.4.0",
-    "uvicorn>=0.32,<0.49",
+    "uvicorn>=0.32,<0.50",
     "fastapi>=0.115.5,<0.137.0",
     "pytest-httpx>=0.35",
     "pytest-benchmark>=4,<6",
     "baddns~=2.3.0",
-    "ruff==0.15.15",
+    "ruff==0.15.16",
     "maturin>=1.4,<2",
 ]
 docs = [

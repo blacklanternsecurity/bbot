@@ -1,6 +1,9 @@
 import json
 from enum import IntEnum
+from typing import Literal
 from bbot.modules.base import BaseModule
+from pydantic import Field, field_validator
+from bbot.core.config.models import BaseModuleConfig
 
 
 class RetireJSSeverity(IntEnum):
@@ -27,16 +30,18 @@ class retirejs(BaseModule):
         "created_date": "2025-08-19",
         "author": "@liquidsec",
     }
-    options = {
-        "version": "5.3.0",
-        "node_version": "18.19.1",
-        "severity": "medium",
-    }
-    options_desc = {
-        "version": "retire.js version",
-        "node_version": "Node.js version to install locally",
-        "severity": "Minimum severity level to report (none, low, medium, high, critical)",
-    }
+
+    class Config(BaseModuleConfig):
+        version: str = Field("5.3.0", description="retire.js version")
+        node_version: str = Field("18.19.1", description="Node.js version to install locally")
+        severity: Literal["none", "low", "medium", "high", "critical"] = Field(
+            "medium", description="Minimum severity level to report (none, low, medium, high, critical)"
+        )
+
+        @field_validator("severity", mode="before")
+        @classmethod
+        def _normalize_case(cls, v):
+            return v.lower() if isinstance(v, str) else v
 
     deps_ansible = [
         # Download Node.js binary (Linux x64)
@@ -116,15 +121,6 @@ class retirejs(BaseModule):
         if not excavate_enabled:
             return None, "retirejs will not function without excavate enabled"
 
-        # Validate severity level
-        valid_severities = ["none", "low", "medium", "high", "critical"]
-        configured_severity = self.config.get("severity", "medium").lower()
-        if configured_severity not in valid_severities:
-            return (
-                False,
-                f"Invalid severity level '{configured_severity}'. Valid options are: {', '.join(valid_severities)}",
-            )
-
         self.repofile = await self.helpers.download(
             "https://raw.githubusercontent.com/RetireJS/retire.js/master/repository/jsrepository-v4.json", cache_hrs=24
         )
@@ -185,7 +181,7 @@ class retirejs(BaseModule):
                                 data = {
                                     "name": "Vulnerable JavaScript Library",
                                     "description": description,
-                                    "severity": severity,
+                                    "severity": "INFO",
                                     "confidence": "HIGH",
                                     "component": component,
                                     "url": event.parent.url,

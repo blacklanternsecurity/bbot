@@ -102,6 +102,7 @@ async def _main():
                 preset._default_internal_modules = []
 
             # Bake a temporary copy of the preset so that flags correctly enable their associated modules before listing them
+            preset.validate()
             preset = preset.bake()
 
             # --list-modules
@@ -156,6 +157,7 @@ async def _main():
                 print(row)
             return
 
+        preset.validate()
         baked_preset = preset.bake()
 
         # --current-preset / --current-preset-full

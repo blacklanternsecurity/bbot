@@ -76,6 +76,7 @@ class WebHelper:
         self._http_timeout = self.web_config.get("http_timeout", 20)
         self._http_retries = self.web_config.get("http_retries", 1)
         self._http_proxy = self.web_config.get("http_proxy", None)
+        self._http_proxy_exclude = self.web_config.get("http_proxy_exclude", []) or []
         ua = self.web_config.get("user_agent", "BBOT")
         ua_suffix = self.web_config.get("user_agent_suffix") or ""
         self._user_agent = f"{ua} {ua_suffix}".strip()
@@ -116,6 +117,7 @@ class WebHelper:
         follow_redirects = kwargs.pop("follow_redirects", None)
         max_redirects = kwargs.pop("max_redirects", None)
         proxy = kwargs.pop("proxy", self._http_proxy)
+        no_proxy = kwargs.pop("no_proxy", self._http_proxy_exclude)
         retries = kwargs.pop("retries", self._http_retries)
         params = kwargs.pop("params", None)
         cookies = kwargs.pop("cookies", None)
@@ -211,6 +213,11 @@ class WebHelper:
             blast_kwargs["max_redirects"] = int(max_redirects)
         if proxy:
             blast_kwargs["proxy"] = proxy
+            # no_proxy lists hosts that bypass the proxy; it only has an effect
+            # alongside a proxy (blasthttp errors if it's set without one), so
+            # only forward it when a proxy is actually in play.
+            if no_proxy:
+                blast_kwargs["no_proxy"] = list(no_proxy)
         if max_body_size is not None:
             blast_kwargs["max_body_size"] = int(max_body_size)
         if request_target is not None:

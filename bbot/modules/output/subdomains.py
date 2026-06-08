@@ -1,5 +1,6 @@
 from bbot.modules.output.txt import TXT
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class Subdomains(TXT):
@@ -10,8 +11,11 @@ class Subdomains(TXT):
         "created_date": "2023-07-31",
         "author": "@TheTechromancer",
     }
-    options = {"output_file": "", "include_unresolved": False}
-    options_desc = {"output_file": "Output to file", "include_unresolved": "Include unresolved subdomains in output"}
+
+    class Config(BaseModuleConfig):
+        output_file: str = Field("", description="Output to file")
+        include_unresolved: bool = Field(False, description="Include unresolved subdomains in output")
+
     accept_dupes = False
     in_scope_only = True
 
