@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../assets/stylesheets/extra-style.bowr1_i1.min.css" rel="stylesheet"/></head>
+<link href="../assets/stylesheets/extra-style.h_nb_gwr.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -780,6 +780,18 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../dev/preset_validation/">
+<span class="md-ellipsis">
+    
+  
+    Validating &amp; Inspecting Presets
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../dev/tests/">
 <span class="md-ellipsis">
     
@@ -804,8 +816,8 @@
 </a>
 </li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_8" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_8" id="__nav_2_8_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -816,8 +828,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_2_7">
+<nav aria-expanded="false" aria-labelledby="__nav_2_8_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_8">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -911,8 +923,8 @@
 </a>
 </li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7_8" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7_8" id="__nav_2_7_8_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_8_8" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_8_8" id="__nav_2_8_8_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -923,8 +935,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_8_label" class="md-nav" data-md-level="3">
-<label class="md-nav__title" for="__nav_2_7_8">
+<nav aria-expanded="false" aria-labelledby="__nav_2_8_8_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_2_8_8">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -1072,14 +1084,14 @@ $<span style="color: #6E7681"> </span>bbot<span style="color: #6E7681"> </span>-
 <h2 id="modules-m">Modules (<code>-m</code>)</h2>
 <p>To see a full list of modules and their descriptions, use <code>bbot -l</code> or see <a href="../modules/list_of_modules/">List of Modules</a>.</p>
 <p>Modules are the part of BBOT that does the work -- port scanning, subdomain brute-forcing, API querying, etc. Modules consume <a href="events/">Events</a> (<code>IP_ADDRESS</code>, <code>DNS_NAME</code>, etc.) from each other, process the data in a useful way, then emit the results as new events. You can enable individual modules with <code>-m</code>.</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Enable modules: portscan, sslcert, and httpx</span>
-bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>www.evilcorp.com<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>portscan<span style="color: #6E7681"> </span>sslcert<span style="color: #6E7681"> </span>httpx
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Enable modules: portscan, sslcert, and http</span>
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>www.evilcorp.com<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>portscan<span style="color: #6E7681"> </span>sslcert<span style="color: #6E7681"> </span>http
 </code></pre></div>
 <h3 id="types-of-modules">Types of Modules</h3>
 <p>Modules fall into three categories:</p>
 <ul>
 <li><strong>Scan Modules</strong>:<ul>
-<li>These make up the majority of modules. Examples are <code>portscan</code>, <code>sslcert</code>, <code>httpx</code>, etc. Enable with <code>-m</code>.</li>
+<li>These make up the majority of modules. Examples are <code>portscan</code>, <code>sslcert</code>, <code>http</code>, etc. Enable with <code>-m</code>.</li>
 </ul>
 </li>
 <li><strong>Output Modules</strong>:<ul>
@@ -1326,7 +1338,7 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <div class="highlight" style="background: #0d1117"><span class="filename">spider.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Recursive web spider</span>
 
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">httpx</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http</span>
 
 <span style="color: #7EE787">blacklist</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Prevent spider from invalidating sessions by logging out</span>

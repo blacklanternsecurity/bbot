@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.bowr1_i1.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.h_nb_gwr.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -571,6 +571,15 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="#test">
+<span class="md-ellipsis">
+      
+        test
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="#web">
 <span class="md-ellipsis">
       
@@ -886,6 +895,18 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/preset_validation/">
+<span class="md-ellipsis">
+    
+  
+    Validating &amp; Inspecting Presets
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../../dev/tests/">
 <span class="md-ellipsis">
     
@@ -910,8 +931,8 @@
 </a>
 </li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_8" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_8" id="__nav_2_8_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -922,8 +943,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_2_7">
+<nav aria-expanded="false" aria-labelledby="__nav_2_8_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_8">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -1017,8 +1038,8 @@
 </a>
 </li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7_8" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7_8" id="__nav_2_7_8_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_8_8" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_8_8" id="__nav_2_8_8_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -1029,8 +1050,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_8_label" class="md-nav" data-md-level="3">
-<label class="md-nav__title" for="__nav_2_7_8">
+<nav aria-expanded="false" aria-labelledby="__nav_2_8_8_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_2_8_8">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -1796,6 +1817,26 @@
 </code></pre></div>
 </details>
 <p>Modules: <a href="" title="">0</a></p>
+<h2 id="test"><strong>test</strong></h2>
+<p>Detect technologies via Nuclei, and FingerprintX</p>
+<details class="note">
+<summary><code>test.yml</code></summary>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/test.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Detect technologies via Nuclei, and FingerprintX</span>
+
+<span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">nuclei</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">fingerprintx</span>
+
+<span style="color: #7EE787">target</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">tesasdft.txt</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">nuclei</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">tags</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">tech</span>
+</code></pre></div>
+</details>
+<p>Modules: <a href="" title="">0</a></p>
 <h2 id="web"><strong>web</strong></h2>
 <p>Quick web scan</p>
 <details class="note">
@@ -2038,6 +2079,13 @@
 </tr>
 <tr>
 <td>tech-detect</td>
+<td></td>
+<td>Detect technologies via Nuclei, and FingerprintX</td>
+<td>2</td>
+<td>fingerprintx, nuclei</td>
+</tr>
+<tr>
+<td>test</td>
 <td></td>
 <td>Detect technologies via Nuclei, and FingerprintX</td>
 <td>2</td>

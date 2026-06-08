@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.bowr1_i1.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.h_nb_gwr.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -596,6 +596,18 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../preset_validation/">
+<span class="md-ellipsis">
+    
+  
+    Validating &amp; Inspecting Presets
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../tests/">
 <span class="md-ellipsis">
     
@@ -620,8 +632,8 @@
 </a>
 </li>
 <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
-<input checked="" class="md-nav__toggle md-toggle" id="__nav_2_7" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_2_8" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_8" id="__nav_2_8_label" tabindex="">
 <span class="md-ellipsis">
     
   
@@ -632,8 +644,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="true" aria-labelledby="__nav_2_7_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_2_7">
+<nav aria-expanded="true" aria-labelledby="__nav_2_8_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_8">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -873,8 +885,8 @@
 </a>
 </li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7_8" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7_8" id="__nav_2_7_8_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_8_8" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_8_8" id="__nav_2_8_8_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -885,8 +897,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_8_label" class="md-nav" data-md-level="3">
-<label class="md-nav__title" for="__nav_2_7_8">
+<nav aria-expanded="false" aria-labelledby="__nav_2_8_8_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_2_8_8">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -1145,7 +1157,7 @@ Use <code>target.target</code> to access what's in the target (what <code>in_tar
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.scanner.Preset.config">config</span></code></b>
-              (<code><span title="omegaconf.dictconfig.DictConfig">DictConfig</span></code>)
+              (<code><span title="dict">dict</span></code>)
           –
           <div class="doc-md-description">
 <p>BBOT config (alias to <code>core.config</code>)</p>
@@ -1199,7 +1211,9 @@ Use <code>target.target</code> to access what's in the target (what <code>in_tar
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">  59</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">  57</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">  58</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">  59</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">  60</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">  61</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">  62</span>
@@ -2211,7 +2225,49 @@ Use <code>target.target</code> to access what's in the target (what <code>in_tar
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1068</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1069</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1070</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1071</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">Preset</span><span style="color: #E6EDF3">(metaclass</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">BasePreset):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1071</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1072</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1073</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1074</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1075</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1076</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1077</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1078</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1079</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1080</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1081</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1082</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1083</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1084</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1085</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1086</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1087</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1088</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1089</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1090</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1091</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1092</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1093</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1094</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1095</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1096</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1097</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1098</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1099</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1100</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1101</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1102</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1103</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1104</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1105</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1106</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1107</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1108</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1109</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1110</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1111</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1112</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1113</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">Preset</span><span style="color: #E6EDF3">(metaclass</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">BasePreset):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    A preset is the central config for a BBOT scan. It contains everything a scan needs to run --</span>
 <span style="color: #A5D6FF">        targets, modules, flags, config options like API keys, etc.</span>
@@ -2248,7 +2304,7 @@ Use <code>target.target</code> to access what's in the target (what <code>in_tar
 <span style="color: #A5D6FF">        require_flags (set): Require modules to have these flags. When set, automatically removes offending modules.</span>
 <span style="color: #A5D6FF">        exclude_flags (set): Exclude modules that have any of these flags. When set, automatically removes offending modules.</span>
 <span style="color: #A5D6FF">        module_dirs (set): Custom directories from which to load modules (alias to `self.module_loader.module_dirs`). When set, automatically preloads contained modules.</span>
-<span style="color: #A5D6FF">        config (omegaconf.dictconfig.DictConfig): BBOT config (alias to `core.config`)</span>
+<span style="color: #A5D6FF">        config (dict): BBOT config (alias to `core.config`)</span>
 <span style="color: #A5D6FF">        core (BBOTCore): Local copy of BBOTCore object.</span>
 <span style="color: #A5D6FF">        verbose (bool): Whether log level is currently set to verbose. When set, updates log level for all BBOT log handlers.</span>
 <span style="color: #A5D6FF">        debug (bool): Whether log level is currently set to debug. When set, updates log level for all BBOT log handlers.</span>
@@ -2334,6 +2390,8 @@ Use <code>target.target</code> to access what's in the target (what <code>in_tar
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_module_loader</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">None</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_yaml_str</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">""</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_baked</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">False</span>
+        <span style="color: #8B949E; font-style: italic"># whether this preset has been validated+coerced (a precondition for bake())</span>
+        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_validated</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">False</span>
 
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_default_output_modules</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">None</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_default_internal_modules</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">None</span>
@@ -2404,7 +2462,7 @@ Use <code>target.target</code> to access what's in the target (what <code>in_tar
         <span style="color: #8B949E; font-style: italic"># bbot core config</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">CORE</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">copy()</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">config</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #E6EDF3">config</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">omegaconf</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">OmegaConf</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">create({})</span>
+            <span style="color: #E6EDF3">config</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">{}</span>
         <span style="color: #8B949E; font-style: italic"># merge custom configs if specified by the user</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">merge_custom(config)</span>
 
@@ -2553,6 +2611,8 @@ Use <code>target.target</code> to access what's in the target (what <code>in_tar
         <span style="color: #8B949E; font-style: italic"># transfer args</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_args</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
             <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_args</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_args</span>
+        <span style="color: #8B949E; font-style: italic"># the preset changed -- it must be re-validated before baking</span>
+        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_validated</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">False</span>
 
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">bake</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">        </span><span style="color: #A5D6FF">"""</span>
@@ -2586,11 +2646,17 @@ Use <code>target.target</code> to access what's in the target (what <code>in_tar
             <span style="color: #E6EDF3">os</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">environ</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">clear()</span>
             <span style="color: #E6EDF3">os</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">environ</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update(os_environ)</span>
 
+        <span style="color: #8B949E; font-style: italic"># bake() requires an already validated + coerced preset. Validation and</span>
+        <span style="color: #8B949E; font-style: italic"># coercion are a PRECONDITION (Preset.validate(), the caller's</span>
+        <span style="color: #8B949E; font-style: italic"># responsibility) -- enforced here so an unvalidated preset never bakes.</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_validated:</span>
+            <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">ValidationError(</span>
+                <span style="color: #A5D6FF">"Preset must be validated before baking -- call .validate() first "</span>
+                <span style="color: #A5D6FF">"(Scanner and the CLI do this for you)."</span>
+            <span style="color: #E6EDF3">)</span>
+
         <span style="color: #8B949E; font-style: italic"># validate log level options</span>
         <span style="color: #E6EDF3">baked_preset</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">apply_log_level(apply_core</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">scan</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
-
-        <span style="color: #8B949E; font-style: italic"># validate flags, config options</span>
-        <span style="color: #E6EDF3">baked_preset</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">validate()</span>
 
         <span style="color: #8B949E; font-style: italic"># now that our requirements / exclusions are validated, we can start enabling modules</span>
         <span style="color: #8B949E; font-style: italic"># enable scan modules</span>
@@ -2752,16 +2818,14 @@ Use <code>target.target</code> to access what's in the target (what <code>in_tar
             <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">apply_core:</span>
                 <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">logger</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">log_level</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">"CRITICAL"</span>
                 <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">key</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">(</span><span style="color: #A5D6FF">"verbose"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"debug"</span><span style="color: #E6EDF3">):</span>
-                    <span style="color: #FF7B72">with</span> <span style="color: #E6EDF3">suppress(omegaconf</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">errors</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">ConfigKeyError):</span>
-                        <span style="color: #FF7B72">del</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">custom_config[key]</span>
+                    <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">custom_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">pop(key,</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
         <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
             <span style="color: #8B949E; font-style: italic"># then debug</span>
             <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">debug:</span>
                 <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">verbose</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">False</span>
                 <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">apply_core:</span>
                     <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">logger</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">log_level</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">"DEBUG"</span>
-                    <span style="color: #FF7B72">with</span> <span style="color: #E6EDF3">suppress(omegaconf</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">errors</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">ConfigKeyError):</span>
-                        <span style="color: #FF7B72">del</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">custom_config[</span><span style="color: #A5D6FF">"verbose"</span><span style="color: #E6EDF3">]</span>
+                    <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">custom_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">pop(</span><span style="color: #A5D6FF">"verbose"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
             <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
                 <span style="color: #8B949E; font-style: italic"># finally verbose</span>
                 <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">verbose</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #E6EDF3">apply_core:</span>
@@ -2845,6 +2909,14 @@ Use <code>target.target</code> to access what's in the target (what <code>in_tar
 <span style="color: #A5D6FF">        Examples:</span>
 <span style="color: #A5D6FF">            &gt;&gt;&gt; preset = Preset.from_dict({"target": ["evilcorp.com"], "modules": ["portscan"]})</span>
 <span style="color: #A5D6FF">        """</span>
+        <span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">.validate</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">prevalidate_preset</span>
+
+        <span style="color: #8B949E; font-style: italic"># Gate top-level keys only -- .get() below would silently drop a typo like</span>
+        <span style="color: #8B949E; font-style: italic"># `modlues:`. Config values + _validated are validate()'s job, not from_dict's.</span>
+        <span style="color: #E6EDF3">errs</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">prevalidate_preset(preset_dict)</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">errs:</span>
+            <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">ValidationError(</span><span style="color: #A5D6FF">"</span><span style="color: #79C0FF">\n</span><span style="color: #A5D6FF">"</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">join(str(e)</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">e</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">errs))</span>
+
         <span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">bbot.core.helpers.misc</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">chain_lists</span>
 
         <span style="color: #8B949E; font-style: italic"># Handle seeds and targets from dict</span>
@@ -2946,7 +3018,7 @@ Use <code>target.target</code> to access what's in the target (what <code>in_tar
             <span style="color: #FF7B72">except</span> <span style="color: #F0883E; font-weight: bold">FileNotFoundError</span><span style="color: #E6EDF3">:</span>
                 <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">PresetNotFoundError(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">'Could not find preset at "{</span><span style="color: #E6EDF3">filename</span><span style="color: #A5D6FF">}" - file does not exist'</span><span style="color: #E6EDF3">)</span>
             <span style="color: #E6EDF3">preset</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">cls</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">from_dict(</span>
-                <span style="color: #E6EDF3">omegaconf</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">OmegaConf</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">create(yaml_str),</span>
+                <span style="color: #E6EDF3">yaml</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">safe_load(yaml_str)</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">{},</span>
                 <span style="color: #E6EDF3">name</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">filename</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">stem,</span>
                 <span style="color: #E6EDF3">_exclude</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">_exclude,</span>
                 <span style="color: #E6EDF3">_log</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">_log,</span>
@@ -2971,7 +3043,7 @@ Use <code>target.target</code> to access what's in the target (what <code>in_tar
 <span style="color: #A5D6FF">            &gt;&gt;&gt; - portscan'''</span>
 <span style="color: #A5D6FF">            &gt;&gt;&gt; preset = Preset.from_yaml_string(yaml_string)</span>
 <span style="color: #A5D6FF">        """</span>
-        <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">cls</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">from_dict(omegaconf</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">OmegaConf</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">create(yaml_preset))</span>
+        <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">cls</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">from_dict(yaml</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">safe_load(yaml_preset)</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">{})</span>
 
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">to_dict</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">include_target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">full_config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">redact_secrets</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">        </span><span style="color: #A5D6FF">"""</span>
@@ -2996,10 +3068,9 @@ Use <code>target.target</code> to access what's in the target (what <code>in_tar
 
         <span style="color: #8B949E; font-style: italic"># config</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">full_config:</span>
-            <span style="color: #E6EDF3">config</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">config</span>
+            <span style="color: #E6EDF3">config</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">dict(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">config)</span>
         <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #E6EDF3">config</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">custom_config</span>
-        <span style="color: #E6EDF3">config</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">omegaconf</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">OmegaConf</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">to_object(config)</span>
+            <span style="color: #E6EDF3">config</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">dict(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">custom_config)</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">redact_secrets:</span>
             <span style="color: #E6EDF3">config</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">no_secrets_config(config)</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">config:</span>
@@ -3122,8 +3193,29 @@ Use <code>target.target</code> to access what's in the target (what <code>in_tar
 
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">validate</span><span style="color: #E6EDF3">(self):</span>
 <span style="color: #6E7681">        </span><span style="color: #A5D6FF">"""</span>
-<span style="color: #A5D6FF">        Validate module/flag exclusions/requirements, and CLI config options if applicable.</span>
+<span style="color: #A5D6FF">        Coerce config values to their declared types and validate the preset.</span>
+
+<span style="color: #A5D6FF">        This is a PRECONDITION for bake() (which enforces it): a preset must be</span>
+<span style="color: #A5D6FF">        validated before it can be baked. Idempotent -- safe to call more than</span>
+<span style="color: #A5D6FF">        once. Sets ``self._validated = True`` on success and returns ``self`` so</span>
+<span style="color: #A5D6FF">        it can be chained (e.g. ``preset.validate().bake()``).</span>
 <span style="color: #A5D6FF">        """</span>
+        <span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">bbot.core.config.models</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">coerce_config</span>
+
+        <span style="color: #8B949E; font-style: italic"># Coerce config values toward their declared types</span>
+        <span style="color: #FF7B72">try</span><span style="color: #E6EDF3">:</span>
+            <span style="color: #E6EDF3">index</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">module_loader</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">config_type_index</span>
+            <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">custom_config</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">coerce_config(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">custom_config,</span> <span style="color: #E6EDF3">index)</span>
+        <span style="color: #FF7B72">except</span> <span style="color: #F0883E; font-weight: bold">Exception</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">e:</span>
+            <span style="color: #E6EDF3">log</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">debug(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Config coercion error: {</span><span style="color: #E6EDF3">e</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
+
+        <span style="color: #8B949E; font-style: italic"># Validate the (coerced) user config against the schema</span>
+        <span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">.validate</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">validate_preset</span>
+
+        <span style="color: #E6EDF3">errs</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">validate_preset({</span><span style="color: #A5D6FF">"config"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">dict(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">custom_config)},</span> <span style="color: #E6EDF3">module_loader</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">module_loader)</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">errs:</span>
+            <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">ValidationError(</span><span style="color: #A5D6FF">"</span><span style="color: #79C0FF">\n</span><span style="color: #A5D6FF">"</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">join(str(e)</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">e</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">errs))</span>
+
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_cli:</span>
             <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">args</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">validate()</span>
 
@@ -3133,6 +3225,11 @@ Use <code>target.target</code> to access what's in the target (what <code>in_tar
                 <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">ValidationError(</span>
                     <span style="color: #E6EDF3">get_closest_match(excluded_module,</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">module_loader</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">all_module_choices,</span> <span style="color: #E6EDF3">msg</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"module"</span><span style="color: #E6EDF3">)</span>
                 <span style="color: #E6EDF3">)</span>
+        <span style="color: #8B949E; font-style: italic"># validate declared module names so typos fail early</span>
+        <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">scan_module</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">explicit_scan_modules:</span>
+            <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_is_valid_module(scan_module,</span> <span style="color: #A5D6FF">"scan"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">name_only</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">)</span>
+        <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">output_module</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">explicit_output_modules:</span>
+            <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_is_valid_module(output_module,</span> <span style="color: #A5D6FF">"output"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">name_only</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">)</span>
         <span style="color: #8B949E; font-style: italic"># validate excluded flags</span>
         <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">excluded_flag</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">exclude_flags:</span>
             <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">excluded_flag</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">module_loader</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">flag_choices:</span>
@@ -3145,6 +3242,9 @@ Use <code>target.target</code> to access what's in the target (what <code>in_tar
         <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">flag</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">flags:</span>
             <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">flag</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">module_loader</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">flag_choices:</span>
                 <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">ValidationError(get_closest_match(flag,</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">module_loader</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">flag_choices,</span> <span style="color: #E6EDF3">msg</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"flag"</span><span style="color: #E6EDF3">))</span>
+
+        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_validated</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">True</span>
+        <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">self</span>
 
     <span style="color: #D2A8FF; font-weight: bold">@property</span>
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">all_presets</span><span style="color: #E6EDF3">(self):</span>
@@ -3505,7 +3605,9 @@ If not specified, seeds will be backfilled from target when target is defined.</
 </ul>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">116</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">114</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">115</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">116</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">117</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">118</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">119</span>
@@ -3740,6 +3842,8 @@ If not specified, seeds will be backfilled from target when target is defined.</
     <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_module_loader</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">None</span>
     <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_yaml_str</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">""</span>
     <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_baked</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">False</span>
+    <span style="color: #8B949E; font-style: italic"># whether this preset has been validated+coerced (a precondition for bake())</span>
+    <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_validated</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">False</span>
 
     <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_default_output_modules</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">None</span>
     <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_default_internal_modules</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">None</span>
@@ -3810,7 +3914,7 @@ If not specified, seeds will be backfilled from target when target is defined.</
     <span style="color: #8B949E; font-style: italic"># bbot core config</span>
     <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">CORE</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">copy()</span>
     <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">config</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
-        <span style="color: #E6EDF3">config</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">omegaconf</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">OmegaConf</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">create({})</span>
+        <span style="color: #E6EDF3">config</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">{}</span>
     <span style="color: #8B949E; font-style: italic"># merge custom configs if specified by the user</span>
     <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">merge_custom(config)</span>
 
@@ -3871,15 +3975,7 @@ If not specified, seeds will be backfilled from target when target is defined.</
 </ul>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">586</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">587</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">588</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">589</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">590</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">591</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">592</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">593</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">594</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">594</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">595</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">596</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">597</span>
@@ -3898,7 +3994,13 @@ If not specified, seeds will be backfilled from target when target is defined.</
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">610</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">611</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">612</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">613</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">apply_log_level</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">apply_core</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">613</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">614</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">615</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">616</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">617</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">618</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">619</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">apply_log_level</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">apply_core</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Apply the log level to the preset.</span>
 
@@ -3912,16 +4014,14 @@ If not specified, seeds will be backfilled from target when target is defined.</
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">apply_core:</span>
             <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">logger</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">log_level</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">"CRITICAL"</span>
             <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">key</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">(</span><span style="color: #A5D6FF">"verbose"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"debug"</span><span style="color: #E6EDF3">):</span>
-                <span style="color: #FF7B72">with</span> <span style="color: #E6EDF3">suppress(omegaconf</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">errors</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">ConfigKeyError):</span>
-                    <span style="color: #FF7B72">del</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">custom_config[key]</span>
+                <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">custom_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">pop(key,</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
     <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
         <span style="color: #8B949E; font-style: italic"># then debug</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">debug:</span>
             <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">verbose</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">False</span>
             <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">apply_core:</span>
                 <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">logger</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">log_level</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">"DEBUG"</span>
-                <span style="color: #FF7B72">with</span> <span style="color: #E6EDF3">suppress(omegaconf</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">errors</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">ConfigKeyError):</span>
-                    <span style="color: #FF7B72">del</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">custom_config[</span><span style="color: #A5D6FF">"verbose"</span><span style="color: #E6EDF3">]</span>
+                <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">custom_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">pop(</span><span style="color: #A5D6FF">"verbose"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
         <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
             <span style="color: #8B949E; font-style: italic"># finally verbose</span>
             <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">verbose</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #E6EDF3">apply_core:</span>
@@ -3944,9 +4044,7 @@ performing final validations, and substituting environment variables in preloade
 <p>This function is automatically called in Scanner.<strong>init</strong>(). There is no need to call it manually.</p>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">402</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">403</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">404</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">404</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">405</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">406</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">407</span>
@@ -4061,7 +4159,15 @@ performing final validations, and substituting environment variables in preloade
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">516</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">517</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">518</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">519</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">bake</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">519</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">520</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">521</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">522</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">523</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">524</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">525</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">526</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">527</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">bake</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Return a "baked" copy of this preset, ready for use by a BBOT scan.</span>
 
@@ -4093,11 +4199,17 @@ performing final validations, and substituting environment variables in preloade
         <span style="color: #E6EDF3">os</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">environ</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">clear()</span>
         <span style="color: #E6EDF3">os</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">environ</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update(os_environ)</span>
 
+    <span style="color: #8B949E; font-style: italic"># bake() requires an already validated + coerced preset. Validation and</span>
+    <span style="color: #8B949E; font-style: italic"># coercion are a PRECONDITION (Preset.validate(), the caller's</span>
+    <span style="color: #8B949E; font-style: italic"># responsibility) -- enforced here so an unvalidated preset never bakes.</span>
+    <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_validated:</span>
+        <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">ValidationError(</span>
+            <span style="color: #A5D6FF">"Preset must be validated before baking -- call .validate() first "</span>
+            <span style="color: #A5D6FF">"(Scanner and the CLI do this for you)."</span>
+        <span style="color: #E6EDF3">)</span>
+
     <span style="color: #8B949E; font-style: italic"># validate log level options</span>
     <span style="color: #E6EDF3">baked_preset</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">apply_log_level(apply_core</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">scan</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
-
-    <span style="color: #8B949E; font-style: italic"># validate flags, config options</span>
-    <span style="color: #E6EDF3">baked_preset</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">validate()</span>
 
     <span style="color: #8B949E; font-style: italic"># now that our requirements / exclusions are validated, we can start enabling modules</span>
     <span style="color: #8B949E; font-style: italic"># enable scan modules</span>
@@ -4251,13 +4363,7 @@ performing final validations, and substituting environment variables in preloade
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">676</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">677</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">678</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">679</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">680</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">681</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">682</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">682</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">683</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">684</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">685</span>
@@ -4320,7 +4426,21 @@ performing final validations, and substituting environment variables in preloade
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">742</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">743</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">744</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">745</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@classmethod</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">745</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">746</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">747</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">748</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">749</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">750</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">751</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">752</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">753</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">754</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">755</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">756</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">757</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">758</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">759</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@classmethod</span>
 <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">from_dict</span><span style="color: #E6EDF3">(cls,</span> <span style="color: #E6EDF3">preset_dict,</span> <span style="color: #E6EDF3">name</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">_exclude</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">_log</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Create a preset from a Python dictionary object.</span>
@@ -4337,6 +4457,14 @@ performing final validations, and substituting environment variables in preloade
 <span style="color: #A5D6FF">    Examples:</span>
 <span style="color: #A5D6FF">        &gt;&gt;&gt; preset = Preset.from_dict({"target": ["evilcorp.com"], "modules": ["portscan"]})</span>
 <span style="color: #A5D6FF">    """</span>
+    <span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">.validate</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">prevalidate_preset</span>
+
+    <span style="color: #8B949E; font-style: italic"># Gate top-level keys only -- .get() below would silently drop a typo like</span>
+    <span style="color: #8B949E; font-style: italic"># `modlues:`. Config values + _validated are validate()'s job, not from_dict's.</span>
+    <span style="color: #E6EDF3">errs</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">prevalidate_preset(preset_dict)</span>
+    <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">errs:</span>
+        <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">ValidationError(</span><span style="color: #A5D6FF">"</span><span style="color: #79C0FF">\n</span><span style="color: #A5D6FF">"</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">join(str(e)</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">e</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">errs))</span>
+
     <span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">bbot.core.helpers.misc</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">chain_lists</span>
 
     <span style="color: #8B949E; font-style: italic"># Handle seeds and targets from dict</span>
@@ -4411,21 +4539,7 @@ performing final validations, and substituting environment variables in preloade
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">767</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">768</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">769</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">770</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">771</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">772</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">773</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">774</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">775</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">776</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">777</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">778</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">779</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">780</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">781</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">781</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">782</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">783</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">784</span>
@@ -4446,7 +4560,21 @@ performing final validations, and substituting environment variables in preloade
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">799</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">800</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">801</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">802</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@classmethod</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">802</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">803</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">804</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">805</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">806</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">807</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">808</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">809</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">810</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">811</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">812</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">813</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">814</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">815</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">816</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@classmethod</span>
 <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">from_yaml_file</span><span style="color: #E6EDF3">(cls,</span> <span style="color: #E6EDF3">filename,</span> <span style="color: #E6EDF3">_exclude</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">_log</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Create a preset from a YAML file. If the full path is not specified, BBOT will look in all the usual places for it.</span>
@@ -4473,7 +4601,7 @@ performing final validations, and substituting environment variables in preloade
         <span style="color: #FF7B72">except</span> <span style="color: #F0883E; font-weight: bold">FileNotFoundError</span><span style="color: #E6EDF3">:</span>
             <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">PresetNotFoundError(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">'Could not find preset at "{</span><span style="color: #E6EDF3">filename</span><span style="color: #A5D6FF">}" - file does not exist'</span><span style="color: #E6EDF3">)</span>
         <span style="color: #E6EDF3">preset</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">cls</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">from_dict(</span>
-            <span style="color: #E6EDF3">omegaconf</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">OmegaConf</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">create(yaml_str),</span>
+            <span style="color: #E6EDF3">yaml</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">safe_load(yaml_str)</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">{},</span>
             <span style="color: #E6EDF3">name</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">filename</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">stem,</span>
             <span style="color: #E6EDF3">_exclude</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">_exclude,</span>
             <span style="color: #E6EDF3">_log</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">_log,</span>
@@ -4508,22 +4636,22 @@ performing final validations, and substituting environment variables in preloade
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">804</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">805</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">806</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">807</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">808</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">809</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">810</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">811</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">812</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">813</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">814</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">815</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">816</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">817</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">818</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">819</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@classmethod</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">818</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">819</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">820</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">821</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">822</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">823</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">824</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">825</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">826</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">827</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">828</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">829</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">830</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">831</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">832</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">833</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@classmethod</span>
 <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">from_yaml_string</span><span style="color: #E6EDF3">(cls,</span> <span style="color: #E6EDF3">yaml_preset):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Create a preset from a YAML string.</span>
@@ -4538,7 +4666,7 @@ performing final validations, and substituting environment variables in preloade
 <span style="color: #A5D6FF">        &gt;&gt;&gt; - portscan'''</span>
 <span style="color: #A5D6FF">        &gt;&gt;&gt; preset = Preset.from_yaml_string(yaml_string)</span>
 <span style="color: #A5D6FF">    """</span>
-    <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">cls</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">from_dict(omegaconf</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">OmegaConf</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">create(yaml_preset))</span>
+    <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">cls</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">from_dict(yaml</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">safe_load(yaml_preset)</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">{})</span>
 </code></pre></div></td></tr></table></div>
 </details>
 </div>
@@ -4569,25 +4697,25 @@ performing final validations, and substituting environment variables in preloade
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">747</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">748</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">749</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">750</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">751</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">752</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">753</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">754</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">755</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">756</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">757</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">758</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">759</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">760</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">761</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">761</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">762</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">763</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">764</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">765</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">include_preset</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">filename):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">765</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">766</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">767</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">768</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">769</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">770</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">771</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">772</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">773</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">774</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">775</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">776</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">777</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">778</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">779</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">include_preset</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">filename):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Load a preset from a yaml file and merge it into this one.</span>
 
@@ -4711,7 +4839,9 @@ performing final validations, and substituting environment variables in preloade
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">397</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">398</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">399</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">400</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">merge</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">other):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">400</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">401</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">402</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">merge</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">other):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Merge another preset into this one.</span>
 
@@ -4780,6 +4910,8 @@ performing final validations, and substituting environment variables in preloade
     <span style="color: #8B949E; font-style: italic"># transfer args</span>
     <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_args</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_args</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">other</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_args</span>
+    <span style="color: #8B949E; font-style: italic"># the preset changed -- it must be re-validated before baking</span>
+    <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_validated</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">False</span>
 </code></pre></div></td></tr></table></div>
 </details>
 </div>
@@ -4795,14 +4927,14 @@ performing final validations, and substituting environment variables in preloade
 <p>Used in <code>cli.py</code>.</p>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">521</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">522</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">523</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">524</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">525</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">526</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">527</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">528</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">parse_args</span><span style="color: #E6EDF3">(self):</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">529</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">530</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">531</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">532</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">533</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">534</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">535</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">536</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">parse_args</span><span style="color: #E6EDF3">(self):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Parse CLI arguments, and merge them into this preset.</span>
 
@@ -4824,24 +4956,24 @@ performing final validations, and substituting environment variables in preloade
 <p>Return a table of all the presets in the form of a string</p>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1046</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1047</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1048</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1049</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1050</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1051</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1052</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1053</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1054</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1055</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1056</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1057</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1058</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1059</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1060</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1061</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1062</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1063</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">presets_table</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">include_modules</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">):</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1088</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1089</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1090</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1091</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1092</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1093</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1094</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1095</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1096</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1097</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1098</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1099</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1100</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1101</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1102</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1103</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1104</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1105</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">presets_table</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">include_modules</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Return a table of all the presets in the form of a string</span>
 <span style="color: #A5D6FF">    """</span>
@@ -4914,21 +5046,7 @@ performing final validations, and substituting environment variables in preloade
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">821</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">822</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">823</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">824</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">825</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">826</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">827</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">828</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">829</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">830</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">831</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">832</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">833</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">834</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">835</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">835</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">836</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">837</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">838</span>
@@ -4992,7 +5110,20 @@ performing final validations, and substituting environment variables in preloade
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">896</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">897</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">898</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">899</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">to_dict</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">include_target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">full_config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">redact_secrets</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">899</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">900</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">901</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">902</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">903</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">904</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">905</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">906</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">907</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">908</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">909</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">910</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">911</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">912</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">to_dict</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">include_target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">full_config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">redact_secrets</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Convert this preset into a Python dictionary.</span>
 
@@ -5015,10 +5146,9 @@ performing final validations, and substituting environment variables in preloade
 
     <span style="color: #8B949E; font-style: italic"># config</span>
     <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">full_config:</span>
-        <span style="color: #E6EDF3">config</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">config</span>
+        <span style="color: #E6EDF3">config</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">dict(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">config)</span>
     <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
-        <span style="color: #E6EDF3">config</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">custom_config</span>
-    <span style="color: #E6EDF3">config</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">omegaconf</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">OmegaConf</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">to_object(config)</span>
+        <span style="color: #E6EDF3">config</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">dict(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">custom_config)</span>
     <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">redact_secrets:</span>
         <span style="color: #E6EDF3">config</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">no_secrets_config(config)</span>
     <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">config:</span>
@@ -5137,20 +5267,7 @@ performing final validations, and substituting environment variables in preloade
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">901</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">902</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">903</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">904</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">905</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">906</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">907</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">908</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">909</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">910</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">911</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">912</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">913</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">914</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">914</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">915</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">916</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">917</span>
@@ -5158,7 +5275,20 @@ performing final validations, and substituting environment variables in preloade
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">919</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">920</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">921</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">922</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">to_yaml</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">include_target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">full_config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">sort_keys</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">922</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">923</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">924</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">925</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">926</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">927</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">928</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">929</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">930</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">931</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">932</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">933</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">934</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">935</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">to_yaml</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">include_target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">full_config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">sort_keys</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Return the preset in the form of a YAML string.</span>
 
@@ -5191,37 +5321,91 @@ performing final validations, and substituting environment variables in preloade
 <div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">validate()</span>
 </code></pre></div>
 <div class="doc doc-contents">
-<p>Validate module/flag exclusions/requirements, and CLI config options if applicable.</p>
+<p>Coerce config values to their declared types and validate the preset.</p>
+<p>This is a PRECONDITION for bake() (which enforces it): a preset must be
+validated before it can be baked. Idempotent -- safe to call more than
+once. Sets <code>self._validated = True</code> on success and returns <code>self</code> so
+it can be chained (e.g. <code>preset.validate().bake()</code>).</p>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">968</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">969</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">970</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">971</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">972</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">973</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">974</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">975</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">976</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">977</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">978</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">979</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">980</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">981</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">982</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">983</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">984</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">985</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">986</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">987</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">988</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">989</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">990</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">991</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">992</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">validate</span><span style="color: #E6EDF3">(self):</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 981</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 982</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 983</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 984</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 985</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 986</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 987</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 988</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 989</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 990</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 991</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 992</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 993</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 994</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 995</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 996</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 997</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 998</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 999</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1000</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1001</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1002</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1003</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1004</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1005</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1006</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1007</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1008</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1009</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1010</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1011</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1012</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1013</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1014</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1015</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1016</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1017</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1018</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1019</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1020</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1021</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1022</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1023</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1024</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1025</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1026</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1027</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1028</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1029</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1030</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1031</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1032</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1033</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1034</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">validate</span><span style="color: #E6EDF3">(self):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
-<span style="color: #A5D6FF">    Validate module/flag exclusions/requirements, and CLI config options if applicable.</span>
+<span style="color: #A5D6FF">    Coerce config values to their declared types and validate the preset.</span>
+
+<span style="color: #A5D6FF">    This is a PRECONDITION for bake() (which enforces it): a preset must be</span>
+<span style="color: #A5D6FF">    validated before it can be baked. Idempotent -- safe to call more than</span>
+<span style="color: #A5D6FF">    once. Sets ``self._validated = True`` on success and returns ``self`` so</span>
+<span style="color: #A5D6FF">    it can be chained (e.g. ``preset.validate().bake()``).</span>
 <span style="color: #A5D6FF">    """</span>
+    <span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">bbot.core.config.models</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">coerce_config</span>
+
+    <span style="color: #8B949E; font-style: italic"># Coerce config values toward their declared types</span>
+    <span style="color: #FF7B72">try</span><span style="color: #E6EDF3">:</span>
+        <span style="color: #E6EDF3">index</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">module_loader</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">config_type_index</span>
+        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">custom_config</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">coerce_config(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">custom_config,</span> <span style="color: #E6EDF3">index)</span>
+    <span style="color: #FF7B72">except</span> <span style="color: #F0883E; font-weight: bold">Exception</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">e:</span>
+        <span style="color: #E6EDF3">log</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">debug(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Config coercion error: {</span><span style="color: #E6EDF3">e</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
+
+    <span style="color: #8B949E; font-style: italic"># Validate the (coerced) user config against the schema</span>
+    <span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">.validate</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">validate_preset</span>
+
+    <span style="color: #E6EDF3">errs</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">validate_preset({</span><span style="color: #A5D6FF">"config"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">dict(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">core</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">custom_config)},</span> <span style="color: #E6EDF3">module_loader</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">module_loader)</span>
+    <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">errs:</span>
+        <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">ValidationError(</span><span style="color: #A5D6FF">"</span><span style="color: #79C0FF">\n</span><span style="color: #A5D6FF">"</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">join(str(e)</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">e</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">errs))</span>
+
     <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_cli:</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">args</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">validate()</span>
 
@@ -5231,6 +5415,11 @@ performing final validations, and substituting environment variables in preloade
             <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">ValidationError(</span>
                 <span style="color: #E6EDF3">get_closest_match(excluded_module,</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">module_loader</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">all_module_choices,</span> <span style="color: #E6EDF3">msg</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"module"</span><span style="color: #E6EDF3">)</span>
             <span style="color: #E6EDF3">)</span>
+    <span style="color: #8B949E; font-style: italic"># validate declared module names so typos fail early</span>
+    <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">scan_module</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">explicit_scan_modules:</span>
+        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_is_valid_module(scan_module,</span> <span style="color: #A5D6FF">"scan"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">name_only</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">)</span>
+    <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">output_module</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">explicit_output_modules:</span>
+        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_is_valid_module(output_module,</span> <span style="color: #A5D6FF">"output"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">name_only</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">)</span>
     <span style="color: #8B949E; font-style: italic"># validate excluded flags</span>
     <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">excluded_flag</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">exclude_flags:</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">excluded_flag</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">module_loader</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">flag_choices:</span>
@@ -5243,6 +5432,9 @@ performing final validations, and substituting environment variables in preloade
     <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">flag</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">flags:</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">flag</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">module_loader</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">flag_choices:</span>
             <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">ValidationError(get_closest_match(flag,</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">module_loader</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">flag_choices,</span> <span style="color: #E6EDF3">msg</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"flag"</span><span style="color: #E6EDF3">))</span>
+
+    <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_validated</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">True</span>
+    <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">self</span>
 </code></pre></div></td></tr></table></div>
 </details>
 </div>

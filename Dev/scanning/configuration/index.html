@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.bowr1_i1.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.h_nb_gwr.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -674,6 +674,18 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/preset_validation/">
+<span class="md-ellipsis">
+    
+  
+    Validating &amp; Inspecting Presets
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../../dev/tests/">
 <span class="md-ellipsis">
     
@@ -698,8 +710,8 @@
 </a>
 </li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_8" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_8" id="__nav_2_8_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -710,8 +722,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_2_7">
+<nav aria-expanded="false" aria-labelledby="__nav_2_8_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_8">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -805,8 +817,8 @@
 </a>
 </li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7_8" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7_8" id="__nav_2_7_8_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_8_8" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_8_8" id="__nav_2_8_8_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -817,8 +829,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_8_label" class="md-nav" data-md-level="3">
-<label class="md-nav__title" for="__nav_2_7_8">
+<nav aria-expanded="false" aria-labelledby="__nav_2_8_8_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_2_8_8">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -1340,13 +1352,13 @@ Is the same as:
 <tr>
 <td>modules.baddns.min_confidence</td>
 <td>str</td>
-<td>Minimum confidence to emit (UNKNOWN, LOW, MEDIUM, HIGH, CONFIRMED)</td>
+<td>Minimum confidence to emit</td>
 <td>MEDIUM</td>
 </tr>
 <tr>
 <td>modules.baddns.min_severity</td>
 <td>str</td>
-<td>Minimum severity to emit (INFO, LOW, MEDIUM, HIGH, CRITICAL)</td>
+<td>Minimum severity to emit</td>
 <td>LOW</td>
 </tr>
 <tr>
@@ -1434,6 +1446,12 @@ Is the same as:
 <td>5</td>
 </tr>
 <tr>
+<td>modules.dnsbrute.recursive_mutations</td>
+<td>bool</td>
+<td>If True, brute-force hosts discovered by dnsbrute_mutations. The default (False) skips them because the static wordlist heavily overlaps with the mutation algorithm's own output.</td>
+<td>False</td>
+</tr>
+<tr>
 <td>modules.dnsbrute.wordlist</td>
 <td>str</td>
 <td>Subdomain wordlist URL or file path. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).</td>
@@ -1450,6 +1468,12 @@ Is the same as:
 <td>int</td>
 <td>The maximum subdomain depth to brute-force SRV records</td>
 <td>2</td>
+</tr>
+<tr>
+<td>modules.dnscommonsrv.recursive_mutations</td>
+<td>bool</td>
+<td>If True, brute-force SRV records on hosts discovered by dnsbrute_mutations. Default False skips them.</td>
+<td>False</td>
 </tr>
 <tr>
 <td>modules.filedownload.extensions</td>
@@ -1850,7 +1874,7 @@ Is the same as:
 <tr>
 <td>modules.paramminer_getparams.brute_short</td>
 <td>bool</td>
-<td>Generate every 1-, 2-, and 3-letter [a-z] combination and add to the wordlist. Costs ~18,278 extra requests per host — opt-in for thorough scans.</td>
+<td>Generate every 1-, 2-, and 3-letter [a-z] combination and add to the wordlist. Costs ~18,278 extra requests per host; opt-in for thorough scans.</td>
 <td>False</td>
 </tr>
 <tr>
@@ -2042,7 +2066,7 @@ Is the same as:
 <tr>
 <td>modules.webbrute.extensions</td>
 <td>str</td>
-<td>Optionally include a list of extensions to extend the keyword with (comma separated)</td>
+<td>Optionally include a list of extensions to extend the keyword with (comma separated or YAML list)</td>
 <td></td>
 </tr>
 <tr>
@@ -2850,6 +2874,12 @@ Is the same as:
 <td>3306</td>
 </tr>
 <tr>
+<td>modules.mysql.retries</td>
+<td>int</td>
+<td>Number of times to retry connecting to the database (1 second between retries)</td>
+<td>10</td>
+</tr>
+<tr>
 <td>modules.mysql.username</td>
 <td>str</td>
 <td>The username to connect to MySQL</td>
@@ -2910,6 +2940,12 @@ Is the same as:
 <td>5432</td>
 </tr>
 <tr>
+<td>modules.postgres.retries</td>
+<td>int</td>
+<td>Number of times to retry connecting to the database (1 second between retries)</td>
+<td>10</td>
+</tr>
+<tr>
 <td>modules.postgres.username</td>
 <td>str</td>
 <td>The username to connect to Postgres</td>
@@ -2948,7 +2984,7 @@ Is the same as:
 <tr>
 <td>modules.slack.webhook_url</td>
 <td>str</td>
-<td>Discord webhook URL</td>
+<td>Slack webhook URL</td>
 <td></td>
 </tr>
 <tr>
@@ -2986,6 +3022,12 @@ Is the same as:
 <td>str</td>
 <td>The path to the sqlite database file</td>
 <td></td>
+</tr>
+<tr>
+<td>modules.sqlite.retries</td>
+<td>int</td>
+<td>Number of times to retry connecting to the database (1 second between retries)</td>
+<td>10</td>
 </tr>
 <tr>
 <td>modules.stdout.accept_dupes</td>

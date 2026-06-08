@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.bowr1_i1.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.h_nb_gwr.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -380,15 +380,6 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="#environment-variables">
-<span class="md-ellipsis">
-      
-        Environment Variables
-      
-    </span>
-</a>
-</li>
-<li class="md-nav__item">
 <a class="md-nav__link" href="#conditions">
 <span class="md-ellipsis">
       
@@ -692,6 +683,18 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/preset_validation/">
+<span class="md-ellipsis">
+    
+  
+    Validating &amp; Inspecting Presets
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../../dev/tests/">
 <span class="md-ellipsis">
     
@@ -716,8 +719,8 @@
 </a>
 </li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_8" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_8" id="__nav_2_8_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -728,8 +731,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_2_7">
+<nav aria-expanded="false" aria-labelledby="__nav_2_8_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_8">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -823,8 +826,8 @@
 </a>
 </li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7_8" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7_8" id="__nav_2_7_8_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_8_8" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_8_8" id="__nav_2_8_8_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -835,8 +838,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_8_label" class="md-nav" data-md-level="3">
-<label class="md-nav__title" for="__nav_2_7_8">
+<nav aria-expanded="false" aria-labelledby="__nav_2_8_8_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_2_8_8">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -1031,7 +1034,7 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 bbot<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>./mypreset.yml<span style="color: #6E7681"> </span>--current-preset
 </code></pre></div>
 <h2 id="advanced-usage">Advanced Usage</h2>
-<p>BBOT Presets support advanced features like file-based targets, environment variable substitution, and custom conditions.</p>
+<p>BBOT Presets support advanced features like file-based targets, custom modules, and custom conditions.</p>
 <h3 id="files-as-targets">Files as Targets</h3>
 <p>You can specify file paths in your preset's <code>target</code>, <code>seeds</code>, or <code>blacklist</code> fields. BBOT will read each file and expand its lines as individual entries:</p>
 <div class="highlight" style="background: #0d1117"><span class="filename">my_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">target</span><span style="color: #E6EDF3">:</span>
@@ -1052,24 +1055,6 @@ bbot<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>
 <span style="color: #7EE787">module_dirs</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">/home/user/custom_modules</span>
 </code></pre></div>
-<h3 id="environment-variables">Environment Variables</h3>
-<p>You can insert environment variables into your preset like this: <code>${env:&lt;variable&gt;}</code>:</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">my_nuclei.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Do a nuclei scan</span>
-
-<span style="color: #7EE787">target</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">evilcorp.com</span>
-
-<span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">nuclei</span>
-
-<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">    </span><span style="color: #7EE787">nuclei</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">      </span><span style="color: #8B949E; font-style: italic"># allow the nuclei templates to be specified at runtime via an environment variable</span>
-<span style="color: #6E7681">      </span><span style="color: #7EE787">tags</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">${env:NUCLEI_TAGS}</span>
-</code></pre></div>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #79C0FF">NUCLEI_TAGS</span><span style="color: #FF7B72; font-weight: bold">=</span>apache,nginx<span style="color: #6E7681"> </span>bbot<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>./my_nuclei.yml
-</code></pre></div>
 <h3 id="conditions">Conditions</h3>
 <p>Sometimes, you might need to add custom logic to a preset. BBOT supports this via <code>conditions</code>. The <code>conditions</code> attribute allows you to specify a list of custom conditions that will be evaluated before the scan starts. This is useful for performing last-minute sanity checks, or changing the behavior of the scan based on custom criteria.</p>
 <div class="highlight" style="background: #0d1117"><span class="filename">my_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Abort if nuclei templates aren't specified</span>
@@ -1083,16 +1068,16 @@ bbot<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>
 <span style="color: #6E7681">      </span><span style="color: #79C0FF; font-weight: bold">{{ abort("Don't forget to set your templates!") }}</span>
 <span style="color: #6E7681">    </span><span style="color: #79C0FF; font-weight: bold">{% endif %}</span>
 </code></pre></div>
-<div class="highlight" style="background: #0d1117"><span class="filename">my_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Enable ffuf but only when the web spider isn't also enabled</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">my_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Enable webbrute but only when the web spider isn't also enabled</span>
 
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">ffuf</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">webbrute</span>
 
 <span style="color: #7EE787">conditions</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">|</span>
 <span style="color: #6E7681">    </span><span style="color: #79C0FF; font-weight: bold">{% if config.web.spider_distance &gt; 0 and config.web.spider_depth &gt; 0 %}</span>
-<span style="color: #6E7681">      </span><span style="color: #79C0FF; font-weight: bold">{{ warn("Disabling ffuf because the web spider is enabled") }}</span>
-<span style="color: #6E7681">      </span><span style="color: #79C0FF; font-weight: bold">{{ preset.exclude_module("ffuf") }}</span>
+<span style="color: #6E7681">      </span><span style="color: #79C0FF; font-weight: bold">{{ warn("Disabling webbrute because the web spider is enabled") }}</span>
+<span style="color: #6E7681">      </span><span style="color: #79C0FF; font-weight: bold">{{ preset.exclude_module("webbrute") }}</span>
 <span style="color: #6E7681">    </span><span style="color: #79C0FF; font-weight: bold">{% endif %}</span>
 </code></pre></div>
 <p>Conditions use <a href="https://palletsprojects.com/p/jinja/">Jinja</a>, which means they can contain Python code. They run inside a sandboxed environment which has access to the following variables:</p>
