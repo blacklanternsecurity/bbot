@@ -182,10 +182,13 @@ class retirejs(BaseModule):
                                 elif at_or_above:
                                     description_parts.append(f"Affected versions: [>= {at_or_above}]")
                                 description = " ".join(description_parts)
+                                # retire.js findings are emitted as informational
+                                # FINDINGs, not graded vulnerabilities — the related
+                                # CVE's CVSS severity stays in the description rather
+                                # than being passed through as an event severity (#3153).
                                 data = {
                                     "name": "Vulnerable JavaScript Library",
                                     "description": description,
-                                    "severity": severity,
                                     "confidence": "HIGH",
                                     "component": component,
                                     "url": event.parent.url,

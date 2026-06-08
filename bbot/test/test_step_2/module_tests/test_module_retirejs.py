@@ -136,6 +136,10 @@ return Handlebars;
             # url field should point to the page that loaded the JS, not the JS file itself
             assert finding.data["url"] == "http://127.0.0.1:8888/", "url should be the parent page URL"
             assert finding.parent.type == "URL_UNVERIFIED", "Parent should be URL_UNVERIFIED"
+            # retire.js findings are informational; the CVE severity lives in the
+            # description and is not passed through as an event severity (#3153).
+            assert "severity" not in finding.data, "Finding should not carry a severity"
+            assert "Severity:" in finding.data["description"], "CVE severity should remain in the description"
 
 
 class TestRetireJSNoExcavate(ModuleTestBase):
