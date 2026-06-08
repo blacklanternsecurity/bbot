@@ -279,16 +279,10 @@ class http(BaseModule):
             )
             configs.append(config)
 
-        # Suppress redundant https probes when http already succeeded for the same
-        # (host, port). When probing an unknown port, we try both schemes; if http
-        # works, the port definitely speaks HTTP, and the https result is likely a
-        # proxy artifact (intercepting proxies like Burp terminate TLS themselves,
-        # making any https:// URL "succeed" regardless of whether the target really
-        # speaks TLS). Explicit URL/URL_UNVERIFIED events are never suppressed —
-        # only speculative OPEN_TCP_PORT probes.
-        #
-        # Streaming requires per-pair coordination: emit http immediately, defer
-        # https until http's outcome is known (or the stream ends).
+        # Suppress redundant https probes when http returned a real page (2xx) for
+        # the same (host, port). Only a 2xx counts as "http works" -- 3xx (often
+        # http-to-https redirects), 4xx (e.g. Cloudflare 400 on plain HTTP to TLS
+        # port), and 5xx do NOT suppress the https probe.
         http_succeeded = {}  # key -> bool, set when http result arrives
         deferred_https = {}  # key -> result, awaiting http verdict
 
@@ -312,7 +306,8 @@ class http(BaseModule):
             # Paired OPEN_TCP_PORT probe
             is_http = result.url == port_probes[key]["http"]
             if is_http:
-                http_succeeded[key] = result.success and result.response is not None and result.response.status != 0
+                status = result.response.status if result.response is not None else 0
+                http_succeeded[key] = result.success and 200 <= status < 300
                 await self._process_result(result, stdin[result.url])
                 # If https for this key arrived first and was buffered, resolve it now
                 pending = deferred_https.pop(key, None)
