@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from bbot.modules.templates.sql import SQLTemplate
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class SQLite(SQLTemplate):
@@ -10,12 +11,13 @@ class SQLite(SQLTemplate):
         "created_date": "2024-11-07",
         "author": "@TheTechromancer",
     }
-    options = {
-        "database": "",
-    }
-    options_desc = {
-        "database": "The path to the sqlite database file",
-    }
+
+    class Config(BaseModuleConfig):
+        database: str = Field("", description="The path to the sqlite database file")
+        retries: int = Field(
+            10, description="Number of times to retry connecting to the database (1 second between retries)"
+        )
+
     deps_pip = ["sqlmodel", "aiosqlite"]
 
     async def setup(self):

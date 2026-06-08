@@ -1,5 +1,6 @@
 from bbot.modules.base import BaseModule
 import xml.etree.ElementTree as ET
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class bucket_file_enum(BaseModule):
@@ -17,10 +18,10 @@ class bucket_file_enum(BaseModule):
         "author": "@TheTechromancer",
     }
     flags = ["safe", "passive", "cloud-enum"]
-    options = {
-        "file_limit": 50,
-    }
-    options_desc = {"file_limit": "Limit the number of files downloaded per bucket"}
+
+    class Config(BaseModuleConfig):
+        file_limit: int = Field(50, description="Limit the number of files downloaded per bucket")
+
     scope_distance_modifier = 2
 
     async def setup(self):

@@ -1,4 +1,7 @@
+from typing import Union
+
 from bbot.modules.templates.subdomain_enum import subdomain_enum
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class dnsbrute(subdomain_enum):
@@ -10,14 +13,18 @@ class dnsbrute(subdomain_enum):
         "author": "@TheTechromancer",
         "created_date": "2024-04-24",
     }
-    options = {
-        "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
-        "max_depth": 5,
-    }
-    options_desc = {
-        "wordlist": "Subdomain wordlist URL",
-        "max_depth": "How many subdomains deep to brute force, i.e. 5.4.3.2.1.evilcorp.com",
-    }
+
+    class Config(BaseModuleConfig):
+        wordlist: Union[str, list[str]] = Field(
+            "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
+            description="Subdomain wordlist URL or file path. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
+        )
+        max_depth: int = Field(5, description="How many subdomains deep to brute force, i.e. 5.4.3.2.1.evilcorp.com")
+        recursive_mutations: bool = Field(
+            False,
+            description="If True, brute-force hosts discovered by dnsbrute_mutations. The default (False) skips them because the static wordlist heavily overlaps with the mutation algorithm's own output.",
+        )
+
     deps_common = ["massdns"]
     reject_wildcards = "strict"
     dedup_strategy = "lowest_parent"

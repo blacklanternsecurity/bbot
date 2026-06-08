@@ -202,7 +202,7 @@ class DepsInstaller:
                             log.debug(f'Setup succeeded for module "{m}"')
                             succeeded.append(m)
                         else:
-                            log.warning(f'Setup failed for module "{m}"')
+                            log.error(f'Setup failed for module "{m}"')
                             failed.append(m)
                     else:
                         if success or self.deps_behavior == "ignore_failed":
@@ -211,7 +211,7 @@ class DepsInstaller:
                             )
                             succeeded.append(m)
                         else:
-                            log.warning(
+                            log.error(
                                 f'Skipping dependency install for module "{m}" because it failed previously (--retry-deps to retry or --ignore-failed-deps to ignore)'
                             )
                             failed.append(m)
@@ -288,7 +288,7 @@ class DepsInstaller:
             log.info(message)
             return True
         except CalledProcessError as err:
-            log.warning(f"Failed to install pip packages {packages_str} (return code {err.returncode}): {err.stderr}")
+            log.error(f"Failed to install pip packages {packages_str} (return code {err.returncode}): {err.stderr}")
         return False
 
     def apt_install(self, packages):
@@ -300,11 +300,9 @@ class DepsInstaller:
         if success:
             log.info(f'Successfully installed OS packages "{",".join(sorted(packages))}"')
         else:
-            log.warning(
-                f"Failed to install OS packages ({err}). Recommend installing the following packages manually:"
-            )
+            log.error(f"Failed to install OS packages ({err}). Recommend installing the following packages manually:")
             for p in packages:
-                log.warning(f" - {p}")
+                log.error(f" - {p}")
         return success
 
     def _make_apt_ansible_args(self, packages):
@@ -341,7 +339,7 @@ class DepsInstaller:
         if success:
             log.info(f"Successfully ran {len(commands):,} shell commands")
         else:
-            log.warning("Failed to run shell dependencies")
+            log.error("Failed to run shell dependencies")
         return success
 
     def tasks(self, module, tasks):
@@ -350,7 +348,7 @@ class DepsInstaller:
         if success:
             log.info(f"Successfully ran {len(tasks):,} Ansible tasks for {module}")
         else:
-            log.warning(f"Failed to run Ansible tasks for {module}")
+            log.error(f"Failed to run Ansible tasks for {module}")
         return success
 
     def ansible_run(self, tasks=None, module=None, args=None, ansible_args=None):
@@ -440,7 +438,7 @@ class DepsInstaller:
                 try:
                     _sudo_password = getpass.getpass(prompt="[USER] Please enter sudo password: ")
                 except OSError:
-                    log.warning("Unable to read sudo password (no TTY). Set BBOT_SUDO_PASS env var.")
+                    log.error("Unable to read sudo password (no TTY). Set BBOT_SUDO_PASS env var.")
                     return
                 if self.parent_helper.verify_sudo_password(_sudo_password):
                     log.success("Authentication successful")

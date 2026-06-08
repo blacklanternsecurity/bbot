@@ -1,5 +1,6 @@
 from bbot.errors import InteractshError
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 ssrf_params = [
@@ -158,12 +159,10 @@ class generic_ssrf(BaseModule):
     produced_events = ["FINDING"]
     flags = ["active", "invasive", "web-heavy"]
     meta = {"description": "Check for generic SSRFs", "created_date": "2022-07-30", "author": "@liquidsec"}
-    options = {
-        "skip_dns_interaction": False,
-    }
-    options_desc = {
-        "skip_dns_interaction": "Do not report DNS interactions (only HTTP interaction)",
-    }
+
+    class Config(BaseModuleConfig):
+        skip_dns_interaction: bool = Field(False, description="Do not report DNS interactions (only HTTP interaction)")
+
     in_scope_only = True
 
     async def setup(self):
