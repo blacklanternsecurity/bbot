@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style._6p2tk8b.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.56p0lng9.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1167,30 +1167,42 @@ mail.evilcorp.com
 </code></pre></div>
 <h3 id="discord-slack-teams">Discord / Slack / Teams</h3>
 <p><img alt="bbot-discord" src="https://github.com/blacklanternsecurity/bbot/assets/20261699/6d88045c-8eac-43b6-8de9-c621ecf60c2d"/></p>
-<p>BBOT supports output via webhooks to <code>discord</code>, <code>slack</code>, and <code>teams</code>. To use them, you must specify a webhook URL either in the config:</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">discord_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<p>BBOT supports output via webhooks to <code>discord</code>, <code>slack</code>, and <code>teams</code>. To use them, you need to enable the output module and configure a webhook URL.</p>
+<p>Via preset:</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">discord_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">discord</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">discord</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">webhook_url</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">https://discord.com/api/webhooks/1234/deadbeef</span>
 </code></pre></div>
-<p>...or on the command line:
+<p>Via command line:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>discord<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.discord.webhook_url<span style="color: #FF7B72; font-weight: bold">=</span>https://discord.com/api/webhooks/1234/deadbeef
-</code></pre></div></p>
+</code></pre></div>
 <p>By default, only <code>FINDING</code> events are sent, but this can be customized by setting <code>event_types</code> in the config like so:</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">discord_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">discord_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">discord</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">discord</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">webhook_url</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">https://discord.com/api/webhooks/1234/deadbeef</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">event_types</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">        </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">FINDING</span>
 <span style="color: #6E7681">        </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">STORAGE_BUCKET</span>
 </code></pre></div>
 <p>...or on the command line:
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>discord<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.discord.event_types<span style="color: #FF7B72; font-weight: bold">=[</span><span style="color: #A5D6FF">"STORAGE_BUCKET"</span>,<span style="color: #A5D6FF">"FINDING"</span><span style="color: #FF7B72; font-weight: bold">]</span>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>discord<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.discord.webhook_url<span style="color: #FF7B72; font-weight: bold">=</span>https://discord.com/api/webhooks/1234/deadbeef<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.discord.event_types<span style="color: #FF7B72; font-weight: bold">=[</span><span style="color: #A5D6FF">"STORAGE_BUCKET"</span>,<span style="color: #A5D6FF">"FINDING"</span><span style="color: #FF7B72; font-weight: bold">]</span>
 </code></pre></div></p>
 <p>You can also filter on the severity of <code>FINDING</code> events by setting <code>min_severity</code>:</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">discord_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">discord_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">discord</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">discord</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">webhook_url</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">https://discord.com/api/webhooks/1234/deadbeef</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">min_severity</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">HIGH</span>
 </code></pre></div>
 <h3 id="webhook">Webhook</h3>
@@ -1199,7 +1211,10 @@ mail.evilcorp.com
 bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>webhook<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.webhook.url<span style="color: #FF7B72; font-weight: bold">=</span>http://localhost:8000
 </code></pre></div>
 <p>You can customize the HTTP method if needed. Authentication is also supported:</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">webhook_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">webhook_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">webhook</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">webhook</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">url</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">https://localhost:8000</span>
@@ -1226,7 +1241,10 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <span style="color: #6E7681">  </span>modules.elastic.password<span style="color: #FF7B72; font-weight: bold">=</span>bbotislife
 </code></pre></div>
 <p>Alternatively, via a preset:</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">elastic_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">elastic_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">elastic</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">elastic</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">url</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http://localhost:9200/bbot/_doc</span>
@@ -1235,7 +1253,10 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <h3 id="splunk">Splunk</h3>
 <p>The <code>splunk</code> output module sends <a href="../events/">events</a> in JSON format to a desired splunk instance via <a href="https://docs.splunk.com/Documentation/Splunk/9.2.0/Data/UsetheHTTPEventCollector">HEC</a>.</p>
 <p>You can customize this output with the following config options:</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">splunk_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">splunk_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">splunk</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">splunk</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #8B949E; font-style: italic"># The full URL with the URI `/services/collector/event`</span>
@@ -1293,7 +1314,10 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># specifying an alternate database</span>
 bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>postgres<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.postgres.database<span style="color: #FF7B72; font-weight: bold">=</span>custom_bbot_db
 </code></pre></div>
-<div class="highlight" style="background: #0d1117"><span class="filename">postgres_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">postgres_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">postgres</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">postgres</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">host</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">psq.fsociety.local</span>
@@ -1307,7 +1331,10 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># specifying an alternate database</span>
 bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>mysql<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.mysql.database<span style="color: #FF7B72; font-weight: bold">=</span>custom_bbot_db
 </code></pre></div>
-<div class="highlight" style="background: #0d1117"><span class="filename">mysql_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">mysql_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">mysql</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">mysql</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">host</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">mysql.fsociety.local</span>
