@@ -57,6 +57,8 @@ class TestChaosFloodCollapse(ModuleTestBase):
         flood.extend(f"host{i}.bigparent" for i in range(400))
         # A normal subdomain under a different parent — should pass through.
         flood.append("realone.normalparent")
+        # Date-prefixed name that should NOT be caught by the PTR filter.
+        flood.append("2024.01.15.report.bigparent")
 
         module_test.blasthttp_mock.add_response(
             url="https://dns.projectdiscovery.io/dns/example.com",
@@ -98,3 +100,36 @@ class TestChaosFloodCollapse(ModuleTestBase):
             assert not any(frag in d for d in emitted), (
                 f"PTR-style name containing {frag!r} should have been filtered; got {emitted}"
             )
+
+        # Date-prefixed names must NOT be filtered (only 4-group IPv4 patterns are)
+        assert "2024.01.15.report.bigparent.blacklanternsecurity.com" in emitted, (
+            f"Date-prefixed subdomain should survive PTR filter; got {emitted}"
+        )
+
+
+class TestChaosApexFlood(ModuleTestBase):
+    """>300 subdomains directly under the queried apex must not be collapsed."""
+
+    modules_overrides = ["chaos"]
+    config_overrides = {"modules": {"chaos": {"api_key": "asdf"}}}
+
+    async def setup_before_prep(self, module_test):
+        module_test.blasthttp_mock.add_response(
+            url="https://dns.projectdiscovery.io/dns/example.com",
+            match_headers={"Authorization": "asdf"},
+            json={"domain": "example.com", "subdomains": 65},
+        )
+        flood = [f"svc{i}" for i in range(400)] + ["realsub.cluster"]
+        module_test.blasthttp_mock.add_response(
+            url="https://dns.projectdiscovery.io/dns/blacklanternsecurity.com/subdomains",
+            match_headers={"Authorization": "asdf"},
+            json={"domain": "blacklanternsecurity.com", "subdomains": flood},
+        )
+
+    def check(self, module_test, events):
+        assert module_test.scan.modules["chaos"].errored is False
+        emitted = [e.data for e in events if e.module and getattr(e.module, "name", "") == "chaos"]
+        assert any(d.startswith("svc") for d in emitted), (
+            f"Direct-apex subdomains should not be collapsed; got {emitted}"
+        )
+        assert "realsub.cluster.blacklanternsecurity.com" in emitted, f"Nested subdomain should survive; got {emitted}"

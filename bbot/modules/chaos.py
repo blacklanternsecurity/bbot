@@ -7,9 +7,9 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
 PER_PARENT_CAP = 300
 PTR_NOISE_PATTERNS = [
     # leading dotted IPv4-style octets, e.g. 001.106.103.218.static.netvigator.com
-    re.compile(r"^\d{1,4}(\.\d{1,4}){2,}(\.|$)"),
+    re.compile(r"^\d{1,3}(\.\d{1,3}){3}(\.|$)"),
     # leading hyphenated IPv4-style octets, e.g. 000-1-246-220.static.netvigator.com
-    re.compile(r"^\d{1,4}(-\d{1,4}){2,}(\.|$|-)"),
+    re.compile(r"^\d{1,3}(-\d{1,3}){3}(\.|$|-)"),
 ]
 
 
@@ -45,9 +45,8 @@ def _collapse(subdomains, domain, query):
     out = set()
     capped = []
     for parent, kids in parent_children.items():
-        if len(kids) > PER_PARENT_CAP:
+        if len(kids) > PER_PARENT_CAP and parent != query:
             capped.append((parent, len(kids)))
-            # emit just the parent so bbot's DNS layer can decide wildcard status
             out.add(parent)
         else:
             out.update(kids)
