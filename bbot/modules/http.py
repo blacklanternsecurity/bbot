@@ -6,6 +6,7 @@ import blasthttp
 
 from bbot.core.helpers.web.web import iter_batch_results
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class http(BaseModule):
@@ -18,18 +19,11 @@ class http(BaseModule):
         "author": "@liquidsec",
     }
 
-    options = {
-        "threads": 50,
-        "in_scope_only": True,
-        "max_response_size": 5242880,
-        "store_responses": False,
-    }
-    options_desc = {
-        "threads": "Number of concurrent requests",
-        "in_scope_only": "Only visit web resources that are in scope.",
-        "max_response_size": "Max response size in bytes",
-        "store_responses": "Save raw HTTP responses to scan folder",
-    }
+    class Config(BaseModuleConfig):
+        threads: int = Field(50, description="Number of concurrent requests")
+        in_scope_only: bool = Field(True, description="Only visit web resources that are in scope.")
+        max_response_size: int = Field(5242880, description="Max response size in bytes")
+        store_responses: bool = Field(False, description="Save raw HTTP responses to scan folder")
 
     scope_distance_modifier = 2
     _shuffle_incoming_queue = False

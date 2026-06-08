@@ -1,5 +1,6 @@
 from bbot.modules.output.txt import TXT
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class Emails(TXT):
@@ -10,8 +11,10 @@ class Emails(TXT):
         "created_date": "2023-12-23",
         "author": "@domwhewell-sage",
     }
-    options = {"output_file": ""}
-    options_desc = {"output_file": "Output to file"}
+
+    class Config(BaseModuleConfig):
+        output_file: str = Field("", description="Output to file")
+
     in_scope_only = True
     accept_dupes = False
 

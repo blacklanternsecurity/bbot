@@ -541,3 +541,111 @@ async def test_module_loading(bbot_scanner):
     assert not any(not_async)
 
     await scan2._cleanup()
+
+
+def test_legacy_options_dict_rejected(tmp_path):
+    """A pre-3.0 user module that declares an `options` / `options_desc` dict
+    instead of a `class Config(BaseModuleConfig)` schema must be rejected at
+    preload time with a clear migration message. Otherwise the loader would
+    silently ignore the defaults and the user would never know."""
+    from bbot.errors import BBOTError
+    from bbot.core.modules import MODULE_LOADER
+
+    legacy_mod = tmp_path / "legacy_user_mod.py"
+    legacy_mod.write_text(
+        """
+from bbot.modules.base import BaseModule
+
+
+class legacy_user_mod(BaseModule):
+    watched_events = ["DNS_NAME"]
+    produced_events = ["FINDING"]
+    flags = ["passive", "safe"]
+    meta = {"description": "x", "created_date": "2024-01-01", "author": "@x"}
+
+    options = {"api_key": "", "max_results": 100}
+    options_desc = {"api_key": "API key", "max_results": "Max results"}
+
+    async def handle_event(self, event):
+        pass
+"""
+    )
+
+    with pytest.raises(BBOTError) as excinfo:
+        MODULE_LOADER.preload_module(legacy_mod)
+    msg = str(excinfo.value)
+    assert "legacy_user_mod" in msg
+    assert "no longer supported" in msg
+    assert "class Config(BaseModuleConfig)" in msg
+
+    # And a module that declares only options_desc (still legacy) is also rejected.
+    legacy_mod_desc_only = tmp_path / "legacy_desc_only.py"
+    legacy_mod_desc_only.write_text(
+        """
+from bbot.modules.base import BaseModule
+
+
+class legacy_desc_only(BaseModule):
+    watched_events = ["DNS_NAME"]
+    produced_events = ["FINDING"]
+    flags = ["passive", "safe"]
+    meta = {"description": "x", "created_date": "2024-01-01", "author": "@x"}
+
+    options_desc = {"api_key": "API key"}
+
+    async def handle_event(self, event):
+        pass
+"""
+    )
+    with pytest.raises(BBOTError):
+        MODULE_LOADER.preload_module(legacy_mod_desc_only)
+
+    # A module with a real `class Config` and NO legacy dict must load cleanly.
+    new_mod = tmp_path / "new_style_mod.py"
+    new_mod.write_text(
+        """
+from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
+
+
+class new_style_mod(BaseModule):
+    watched_events = ["DNS_NAME"]
+    produced_events = ["FINDING"]
+    flags = ["passive", "safe"]
+    meta = {"description": "x", "created_date": "2024-01-01", "author": "@x"}
+
+    class Config(BaseModuleConfig):
+        api_key: str = Field("", description="API key", sensitive=True)
+
+    async def handle_event(self, event):
+        pass
+"""
+    )
+    preloaded = MODULE_LOADER.preload_module(new_mod)
+    assert preloaded is not None
+    assert preloaded["config"] == {"api_key": ""}
+
+    # The annotated form `options: dict = {...}` (ast.AnnAssign) must also be rejected,
+    # not silently slip the guard.
+    annotated_mod = tmp_path / "annotated_legacy_mod.py"
+    annotated_mod.write_text(
+        """
+from bbot.modules.base import BaseModule
+
+
+class annotated_legacy_mod(BaseModule):
+    watched_events = ["DNS_NAME"]
+    produced_events = ["FINDING"]
+    flags = ["passive", "safe"]
+    meta = {"description": "x", "created_date": "2024-01-01", "author": "@x"}
+
+    options: dict = {"api_key": ""}
+    options_desc: dict = {"api_key": "API key"}
+
+    async def handle_event(self, event):
+        pass
+"""
+    )
+    with pytest.raises(BBOTError) as excinfo:
+        MODULE_LOADER.preload_module(annotated_mod)
+    assert "no longer supported" in str(excinfo.value)

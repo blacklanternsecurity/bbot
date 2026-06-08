@@ -1,4 +1,5 @@
 from bbot.modules.templates.bucket import bucket_template
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class bucket_microsoft(bucket_template):
@@ -10,10 +11,9 @@ class bucket_microsoft(bucket_template):
         "created_date": "2022-11-04",
         "author": "@TheTechromancer",
     }
-    options = {"permutations": False}
-    options_desc = {
-        "permutations": "Whether to try permutations",
-    }
+
+    class Config(BaseModuleConfig):
+        permutations: bool = Field(False, description="Whether to try permutations")
 
     cloudcheck_provider_name = "Microsoft"
     delimiters = ("", "-")

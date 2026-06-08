@@ -1,4 +1,7 @@
+from typing import Union
+
 from .paramminer_headers import paramminer_headers
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class paramminer_cookies(paramminer_headers):
@@ -14,16 +17,17 @@ class paramminer_cookies(paramminer_headers):
         "created_date": "2022-06-27",
         "author": "@liquidsec",
     }
-    options = {
-        "wordlist": "",  # default is defined within setup function
-        "recycle_words": False,
-        "skip_boring_words": True,
-    }
-    options_desc = {
-        "wordlist": "Define the wordlist to be used to derive cookies. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
-        "recycle_words": "Attempt to use words found during the scan on all other endpoints",
-        "skip_boring_words": "Remove commonly uninteresting words from the wordlist",
-    }
+
+    class Config(BaseModuleConfig):
+        wordlist: Union[str, list[str]] = Field(
+            "",
+            description="Define the wordlist to be used to derive cookies. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
+        )
+        recycle_words: bool = Field(
+            False, description="Attempt to use words found during the scan on all other endpoints"
+        )
+        skip_boring_words: bool = Field(True, description="Remove commonly uninteresting words from the wordlist")
+
     scanned_hosts = []
     _module_threads = 4
     in_scope_only = True

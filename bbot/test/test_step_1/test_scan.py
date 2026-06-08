@@ -391,7 +391,7 @@ async def test_exclude_cdn(bbot_scanner, monkeypatch, clean_default_config):
     # then run a scan with --exclude-cdn enabled
     preset = Preset("evilcorp.com")
     preset.parse_args()
-    baked_preset = preset.bake()
+    baked_preset = preset.validate().bake()
     assert baked_preset.to_yaml() == "modules:\n- portfilter\n"
     scan = bbot_scanner("evilcorp.com", preset=preset)
     await scan._prep()

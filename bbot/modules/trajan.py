@@ -2,6 +2,7 @@ import json
 from urllib.parse import urlparse
 
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class trajan(BaseModule):
@@ -15,26 +16,17 @@ class trajan(BaseModule):
     }
 
     # Configuration options
-    options = {
-        "version": "1.0.0",
-        "github_token": "",
-        "gitlab_token": "",
-        "ado_token": "",
-        "jfrog_token": "",
-        "jenkins_username": "",
-        "jenkins_password": "",
-        "jenkins_token": "",
-    }
-    options_desc = {
-        "version": "Trajan version to download and use",
-        "github_token": "GitHub API token for rate-limiting and private repo access",
-        "gitlab_token": "GitLab API token for private repo access",
-        "ado_token": "Azure DevOps Personal Access Token (PAT)",
-        "jfrog_token": "JFrog API token",
-        "jenkins_username": "Jenkins username for basic auth",
-        "jenkins_password": "Jenkins password for basic auth",
-        "jenkins_token": "Jenkins API token",
-    }
+    class Config(BaseModuleConfig):
+        version: str = Field("1.0.0", description="Trajan version to download and use")
+        github_token: str = Field(
+            "", description="GitHub API token for rate-limiting and private repo access", sensitive=True
+        )
+        gitlab_token: str = Field("", description="GitLab API token for private repo access", sensitive=True)
+        ado_token: str = Field("", description="Azure DevOps Personal Access Token (PAT)", sensitive=True)
+        jfrog_token: str = Field("", description="JFrog API token", sensitive=True)
+        jenkins_username: str = Field("", description="Jenkins username for basic auth", sensitive=True)
+        jenkins_password: str = Field("", description="Jenkins password for basic auth", sensitive=True)
+        jenkins_token: str = Field("", description="Jenkins API token", sensitive=True)
 
     deps_ansible = [
         {

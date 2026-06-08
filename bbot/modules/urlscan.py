@@ -1,4 +1,5 @@
 from bbot.modules.templates.subdomain_enum import subdomain_enum
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class urlscan(subdomain_enum):
@@ -10,8 +11,9 @@ class urlscan(subdomain_enum):
         "created_date": "2022-06-09",
         "author": "@TheTechromancer",
     }
-    options = {"urls": False}
-    options_desc = {"urls": "Emit URLs in addition to DNS_NAMEs"}
+
+    class Config(BaseModuleConfig):
+        urls: bool = Field(False, description="Emit URLs in addition to DNS_NAMEs")
 
     base_url = "https://urlscan.io/api/v1"
 
