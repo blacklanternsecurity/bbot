@@ -10,6 +10,7 @@ import bbot.core.helpers.regexes as bbot_regexes
 from bbot.modules.base import BaseInterceptModule
 from bbot.modules.internal.base import BaseInternalModule
 from urllib.parse import urlparse, urljoin, parse_qs, urlunparse, urldefrag
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 def find_subclasses(obj, base_class):
@@ -368,18 +369,19 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         "author": "@liquidsec",
     }
 
-    options = {
-        "yara_max_match_data": 2000,
-        "custom_yara_rules": "",
-        "speculate_params": False,
-        "max_form_bytes": 262144,
-    }
-    options_desc = {
-        "yara_max_match_data": "Sets the maximum amount of text that can extracted from a YARA regex",
-        "custom_yara_rules": "Include custom Yara rules",
-        "speculate_params": "Enable speculative parameter extraction from JSON and XML content",
-        "max_form_bytes": "Maximum byte slice of the response body searched for a single <form> body. YARA only locates form openings; the bounded slice is what the Python re-based extractor scans for fields. Caps worst-case extraction work per form match.",
-    }
+    class Config(BaseModuleConfig):
+        yara_max_match_data: int = Field(
+            2000, description="Sets the maximum amount of text that can extracted from a YARA regex"
+        )
+        custom_yara_rules: str = Field("", description="Include custom Yara rules")
+        speculate_params: bool = Field(
+            False, description="Enable speculative parameter extraction from JSON and XML content"
+        )
+        max_form_bytes: int = Field(
+            262144,
+            description="Maximum byte slice of the response body searched for a single <form> body. YARA only locates form openings; the bounded slice is what the Python re-based extractor scans for fields. Caps worst-case extraction work per form match.",
+        )
+
     scope_distance_modifier = None
     accept_dupes = False
 
@@ -1161,7 +1163,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         ]
 
         self.parameter_extraction = bool(modules_WEB_PARAMETER)
-        self.speculate_params = bool(self.config.get("speculate_params", False))
+        self.speculate_params = self.config.get("speculate_params", False)
         self.remove_querystring = self.scan.config.get("url_querystring_remove", True)
         # Bounded slice of the response body searched for a form's body, anchored
         # at each YARA form-opening match. Caps worst-case Python re work per form.
@@ -1191,7 +1193,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             p.lower() for p in self.scan.config.get("parameter_blacklist_prefixes", [])
         )
 
-        self.custom_yara_rules = str(self.config.get("custom_yara_rules", ""))
+        self.custom_yara_rules = self.config.get("custom_yara_rules", "")
         if self.custom_yara_rules:
             custom_rules_count = 0
             if Path(self.custom_yara_rules).is_file():

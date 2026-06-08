@@ -397,6 +397,7 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/Stabl
     - [Setting Up a Dev Environment](https://www.blacklanternsecurity.com/bbot/Stable/dev/dev_environment)
     - [BBOT Internal Architecture](https://www.blacklanternsecurity.com/bbot/Stable/dev/architecture)
     - [How to Write a BBOT Module](https://www.blacklanternsecurity.com/bbot/Stable/dev/module_howto)
+    - [Validating & Inspecting Presets](https://www.blacklanternsecurity.com/bbot/Stable/dev/preset_validation)
     - [Unit Tests](https://www.blacklanternsecurity.com/bbot/Stable/dev/tests)
     - [Discord Bot Example](https://www.blacklanternsecurity.com/bbot/Stable/dev/discord_bot)
     - **Code Reference**

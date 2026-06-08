@@ -18,7 +18,7 @@ class BaseModule:
 
         produced_events (List): Event types to produce.
 
-        meta (Dict): Metadata about the module, such as whether authentication is required and a description.
+        meta (Dict): Metadata about the module — description, author, created_date, etc.
 
         flags (List): Flags indicating the type of module (must have at least "passive" or "active").
 
@@ -86,7 +86,7 @@ class BaseModule:
 
     watched_events = []
     produced_events = []
-    meta = {"auth_required": False, "description": "Base module"}
+    meta = {"description": "Base module"}
     flags = []
     options = {}
     options_desc = {}
@@ -1502,7 +1502,13 @@ class BaseModule:
 
     @property
     def auth_required(self):
-        return self.meta.get("auth_required", False)
+        """True iff this module's `class Config` declares any `mandatory=True` field."""
+        cfg = getattr(type(self), "Config", None)
+        if cfg is None:
+            return False
+        from bbot.core.config.models import is_mandatory
+
+        return any(is_mandatory(f) for f in getattr(cfg, "model_fields", {}).values())
 
     @property
     def http_timeout(self):
@@ -1775,21 +1781,21 @@ class BaseModule:
             self.trace()
 
     @classmethod
-    def help_text(self):
+    def help_text(cls):
         """
         Returns a string containing help text for the module.
         This includes the module's description, metadata, events, flags, and available options.
         """
-        # Retrieve the module's metadata, options, events, and flags
-        meta = getattr(self, "meta", {})
-        options = getattr(self, "options", {})
-        options_desc = getattr(self, "options_desc", {})
-        watched_events = getattr(self, "watched_events", [])
-        produced_events = getattr(self, "produced_events", [])
-        flags = getattr(self, "flags", [])
+        from pydantic_core import PydanticUndefined
+
+        # Retrieve the module's metadata, events, and flags
+        meta = getattr(cls, "meta", {})
+        watched_events = getattr(cls, "watched_events", [])
+        produced_events = getattr(cls, "produced_events", [])
+        flags = getattr(cls, "flags", [])
 
         help_text = "\n" + "=" * 40 + "\n"
-        help_text += f"Module Help: {self.__name__}\n"
+        help_text += f"Module Help: {cls.__name__}\n"
         help_text += "=" * 40 + "\n\n"
 
         for key, value in meta.items():
@@ -1804,12 +1810,24 @@ class BaseModule:
         help_text += "\nFlags:\n"
         help_text += "  " + ", ".join(flags) + "\n" if flags else "  None\n"
 
+        # Options come from the module's `class Config`; show only its own declared fields
+        # (mirrors `--list-module-options`), not inherited universal options.
+        config_cls = getattr(cls, "Config", None)
+        own_options = (
+            [name for name in getattr(config_cls, "__annotations__", {}) if name in config_cls.model_fields]
+            if config_cls is not None
+            else []
+        )
         help_text += "\nOptions:\n"
-        if options:
-            for option, default_value in options.items():
-                option_description = options_desc.get(option, "No description available.")
+        if own_options:
+            for option in sorted(own_options):
+                field = config_cls.model_fields[option]
+                default_value = field.get_default(call_default_factory=True)
+                if default_value is PydanticUndefined:
+                    default_value = ""
+                description = field.description or "No description available."
                 help_text += f"  - {option}:\n"
-                help_text += f"      Description: {option_description}\n"
+                help_text += f"      Description: {description}\n"
                 help_text += f"      Default: {default_value}\n"
         else:
             help_text += "  No options available."

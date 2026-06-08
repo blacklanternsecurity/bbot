@@ -1,6 +1,7 @@
 import ipaddress
 
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class ipneighbor(BaseModule):
@@ -12,13 +13,15 @@ class ipneighbor(BaseModule):
         "created_date": "2022-06-08",
         "author": "@TheTechromancer",
     }
-    options = {"num_bits": 4}
-    options_desc = {"num_bits": "Netmask size (in CIDR notation) to check. Default is 4 bits (16 hosts)"}
+
+    class Config(BaseModuleConfig):
+        num_bits: int = Field(4, description="Netmask size (in CIDR notation) to check. Default is 4 bits (16 hosts)")
+
     scope_distance_modifier = 1
 
     async def setup(self):
         self.processed = set()
-        self.num_bits = max(1, int(self.config.get("num_bits", 4)))
+        self.num_bits = max(1, self.config.get("num_bits", 4))
         return True
 
     async def filter_event(self, event):

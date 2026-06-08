@@ -16,8 +16,7 @@ class GitLabBaseModule(BaseModule):
     saas_domains = ["gitlab.com", "gitlab.org"]
 
     async def setup(self):
-        if self.options.get("api_key") is not None:
-            await self.require_api_key()
+        await self.require_api_key()
         return True
 
     async def handle_social(self, event):
