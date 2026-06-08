@@ -523,41 +523,55 @@ class ModuleLoader:
 
     @property
     def config_type_index(self):
-        """{dotted_config_path: frozenset(base_type_names)} for every known option.
+        """{dotted_config_path: TypeAdapter} for every known config option.
 
-        Global keys come from the static BBOTConfig tree; per-module keys from
-        the preloaded AST annotation strings. No module Config is exec'd.
+        Built by walking the materialized config schema (`config_schema`, i.e.
+        global config + every module's exec'd Config), so a single pydantic
+        TypeAdapter per leaf field drives coercion -- no hand-rolled type-name
+        parsing. Adapters are memoized by annotation (many fields share e.g.
+        `Optional[str]`). Nested models are recursed into via `_field_submodel`,
+        so `modules.<name>.<option>` keys fall out of the same walk.
         """
         if self._config_type_index is None:
-            from bbot.core.config.models import (
-                BBOTConfig,
-                BaseModuleConfig,
-                accepted_types_from_annotation,
-                accepted_types_from_string,
-                _field_submodel,
-            )
+            from pydantic import ConfigDict, TypeAdapter
+            from bbot.core.config.models import _field_submodel
+
+            # coerce_numbers_to_str lets a numeric YAML value (e.g. password: 12345678)
+            # validate against a str field; pydantic is otherwise lax-but-not-that-lax.
+            adapter_config = ConfigDict(coerce_numbers_to_str=True)
+            adapter_cache = {}
+
+            def make_adapter(annotation):
+                try:
+                    if annotation in adapter_cache:
+                        return adapter_cache[annotation]
+                    hashable = True
+                except TypeError:
+                    hashable = False
+                try:
+                    adapter = TypeAdapter(annotation, config=adapter_config)
+                except Exception as e:
+                    log.debug(f"config_type_index: no TypeAdapter for {annotation!r}: {e}")
+                    adapter = None
+                if hashable:
+                    adapter_cache[annotation] = adapter
+                return adapter
 
             index = {}
 
-            def walk_static(model, prefix=""):
+            def walk(model, prefix=""):
                 for fname, field in model.model_fields.items():
+                    sub = _field_submodel(field)
                     for key in {fname, getattr(field, "alias", None)} - {None}:
                         dotted = f"{prefix}.{key}" if prefix else key
-                        sub = _field_submodel(field)
-                        if sub is not None and fname != "modules":
-                            walk_static(sub, dotted)
+                        if sub is not None:
+                            walk(sub, dotted)
                         else:
-                            index[dotted] = accepted_types_from_annotation(field.annotation)
+                            adapter = make_adapter(field.annotation)
+                            if adapter is not None:
+                                index[dotted] = adapter
 
-            walk_static(BBOTConfig)
-
-            universal = {n: f.annotation for n, f in BaseModuleConfig.model_fields.items()}
-            for name, data in self._preloaded.items():
-                for field, ann_str in data.get("options_types", {}).items():
-                    index[f"modules.{name}.{field}"] = accepted_types_from_string(ann_str)
-                for field, ann in universal.items():
-                    index.setdefault(f"modules.{name}.{field}", accepted_types_from_annotation(ann))
-
+            walk(self.config_schema)
             self._config_type_index = index
         return self._config_type_index
 

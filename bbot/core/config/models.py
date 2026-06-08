@@ -113,87 +113,6 @@ def _field_submodel(field):
     return None
 
 
-_COLLECTION_NAMES = frozenset({"list", "List", "tuple", "Tuple", "set", "Set", "frozenset", "dict", "Dict"})
-_TRUE_WORDS = frozenset({"true", "1", "yes", "on"})
-_FALSE_WORDS = frozenset({"false", "0", "no", "off"})
-
-
-def accepted_types_from_string(src: str) -> frozenset:
-    """Base type-names a stringified annotation accepts (no exec, pure AST).
-
-    Used to normalize module Config annotations captured at preload time into
-    a set of base type-names that `coerce_value` can act on.
-
-    >>> accepted_types_from_string("bool")
-    frozenset({'bool'})
-    >>> accepted_types_from_string("Optional[int]")
-    frozenset({'int'})
-    >>> accepted_types_from_string("Union[str, list[str]]")
-    frozenset({'str', 'list'})
-    >>> accepted_types_from_string('Literal["manual", "x"]')
-    frozenset({'str'})
-    """
-    import ast as _ast
-
-    try:
-        root = _ast.parse(src, mode="eval").body
-    except SyntaxError:
-        return frozenset()
-
-    def walk(n):
-        t: set = set()
-        if isinstance(n, _ast.Name):
-            t.add(n.id)
-        elif isinstance(n, _ast.Attribute):
-            t.add(n.attr)
-        elif isinstance(n, _ast.BinOp) and isinstance(n.op, _ast.BitOr):
-            t |= walk(n.left) | walk(n.right)
-        elif isinstance(n, _ast.Subscript):
-            base = getattr(n.value, "id", getattr(n.value, "attr", None))
-            elts = n.slice.elts if isinstance(n.slice, _ast.Tuple) else [n.slice]
-            if base in ("Optional", "Union"):
-                for e in elts:
-                    t |= walk(e)
-            elif base == "Literal":
-                t |= {type(e.value).__name__ for e in elts if isinstance(e, _ast.Constant)}
-            elif base == "Annotated":
-                if elts:
-                    t |= walk(elts[0])
-            else:
-                t.add(base)
-        return t
-
-    return frozenset(x for x in walk(root) if x != "NoneType")
-
-
-def accepted_types_from_annotation(annotation) -> frozenset:
-    """Base type-names a real annotation object accepts.
-
-    Used for the static global models (BBOTConfig, WebConfig, etc.) where the
-    annotation is a live type object, not a string.
-    """
-    import typing
-
-    origin = typing.get_origin(annotation)
-    if origin is typing.Literal:
-        return frozenset(type(a).__name__ for a in typing.get_args(annotation))
-    args = typing.get_args(annotation) if origin is typing.Union else (annotation,)
-    out: set = set()
-    for a in args:
-        if a is type(None):
-            continue
-        ao = typing.get_origin(a)
-        if ao is typing.Literal:
-            out |= {type(x).__name__ for x in typing.get_args(a)}
-        elif ao is typing.Annotated or (hasattr(typing, "Annotated") and typing.get_origin(a) is typing.Annotated):
-            inner_args = typing.get_args(a)
-            if inner_args:
-                out |= accepted_types_from_annotation(inner_args[0])
-        else:
-            out.add(getattr(ao or a, "__name__", str(ao or a)))
-    return frozenset(out)
-
-
 def _yaml_scalar(value):
     """yaml.safe_load a raw string, but never coerce to date/time. Non-strings pass through."""
     import datetime as _dt
@@ -210,41 +129,41 @@ def _yaml_scalar(value):
     return value if isinstance(parsed, (_dt.date, _dt.time)) else parsed
 
 
-def coerce_value(value, accepted):
-    """Coerce one config value toward its declared type.
+def coerce_value(value, adapter):
+    """Coerce one config value toward its declared type via a pydantic TypeAdapter.
 
-    `value` may be a raw CLI string OR an already-parsed YAML value.
-    `accepted` is the frozenset of base type-names for the target field, or
-    None/empty when the field is unknown (fall back to default YAML behavior;
-    unknown keys are still caught by validation).
+    `value` may be a raw CLI string OR an already-parsed YAML value. `adapter` is
+    the field's TypeAdapter (from the config type index), or None when the field is
+    unknown -- then fall back to YAML scalar parsing; unknown keys are still caught
+    by validation. Returns `value` unchanged if it can't be validated as the declared
+    type, so the schema pass reports the real error instead of coercion hiding it.
     """
-    is_raw = isinstance(value, str)
-    if not accepted:
-        return _yaml_scalar(value) if is_raw else value
-    if "str" in accepted and not (accepted & _COLLECTION_NAMES):
-        if is_raw:
-            return value
-        if value is None or isinstance(value, (list, dict, set)):
-            return value
-        return str(value)
-    if accepted == frozenset({"bool"}):
-        v = _yaml_scalar(value) if is_raw else value
-        if isinstance(v, bool):
-            return v
-        if isinstance(v, (int, float)):
-            return bool(v)
-        if isinstance(v, str):
-            low = v.strip().lower()
-            if low in _TRUE_WORDS:
-                return True
-            if low in _FALSE_WORDS:
-                return False
-        return v
-    if is_raw:
-        return _yaml_scalar(value)
-    if "str" in accepted and isinstance(value, os.PathLike):
-        return str(value)
-    return value
+    from pydantic import ValidationError
+
+    # pydantic won't coerce os.PathLike -> str, so do it up front.
+    if isinstance(value, os.PathLike):
+        value = str(value)
+
+    if adapter is None:
+        return _yaml_scalar(value) if isinstance(value, str) else value
+
+    if isinstance(value, str):
+        parsed = _yaml_scalar(value)
+        # Keep the raw string for scalar fields (lossless: "1.10", "0755", dates,
+        # bad YAML); only the parsed form can satisfy a list/dict-typed field.
+        primary = parsed if isinstance(parsed, (list, dict)) else value
+        fallback = parsed if primary is value else value
+        for candidate in (primary, fallback):
+            try:
+                return adapter.validate_python(candidate)
+            except ValidationError:
+                pass
+        return value
+
+    try:
+        return adapter.validate_python(value)
+    except ValidationError:
+        return value
 
 
 def coerce_config(config, index, prefix=""):
@@ -557,8 +476,6 @@ __all__ = [
     "ScopeConfig",
     "SeverityLiteral",
     "WebConfig",
-    "accepted_types_from_annotation",
-    "accepted_types_from_string",
     "coerce_config",
     "coerce_value",
     "field_flags",
