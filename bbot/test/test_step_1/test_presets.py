@@ -1194,6 +1194,7 @@ def test_preset_yaml_redacts_secrets():
         "evilcorp.com",
         config={"modules": {"github_org": {"api_key": "ghp_secrettoken123"}}},
     )
+    preset.validate()
     preset = preset.bake()
 
     yaml_plain = preset.to_yaml()
