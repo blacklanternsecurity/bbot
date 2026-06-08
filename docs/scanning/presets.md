@@ -122,7 +122,7 @@ bbot -p ./mypreset.yml --current-preset
 
 ## Advanced Usage
 
-BBOT Presets support advanced features like file-based targets, environment variable substitution, and custom conditions.
+BBOT Presets support advanced features like file-based targets, custom modules, and custom conditions.
 
 ### Files as Targets
 
@@ -154,30 +154,6 @@ module_dirs:
   - /home/user/custom_modules
 ```
 
-### Environment Variables
-
-You can insert environment variables into your preset like this: `${env:<variable>}`:
-
-```yaml title="my_nuclei.yml"
-description: Do a nuclei scan
-
-target:
-  - evilcorp.com
-
-modules:
-  - nuclei
-
-config:
-  modules:
-    nuclei:
-      # allow the nuclei templates to be specified at runtime via an environment variable
-      tags: ${env:NUCLEI_TAGS}
-```
-
-```bash
-NUCLEI_TAGS=apache,nginx bbot -p ./my_nuclei.yml
-```
-
 ### Conditions
 
 Sometimes, you might need to add custom logic to a preset. BBOT supports this via `conditions`. The `conditions` attribute allows you to specify a list of custom conditions that will be evaluated before the scan starts. This is useful for performing last-minute sanity checks, or changing the behavior of the scan based on custom criteria.
@@ -196,16 +172,16 @@ conditions:
 ```
 
 ```yaml title="my_preset.yml"
-description: Enable ffuf but only when the web spider isn't also enabled
+description: Enable webbrute but only when the web spider isn't also enabled
 
 modules:
-  - ffuf
+  - webbrute
 
 conditions:
   - |
     {% if config.web.spider_distance > 0 and config.web.spider_depth > 0 %}
-      {{ warn("Disabling ffuf because the web spider is enabled") }}
-      {{ preset.exclude_module("ffuf") }}
+      {{ warn("Disabling webbrute because the web spider is enabled") }}
+      {{ preset.exclude_module("webbrute") }}
     {% endif %}
 ```
 

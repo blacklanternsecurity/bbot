@@ -16,7 +16,6 @@ classifiers = [
 ]
 dependencies = [
     "pip",
-    "omegaconf>=2.3.0,<3",
     "psutil>=5.9.4,<8.0.0",
     "wordninja>=2.0.0,<3",
     "ansible-runner>=2.3.2,<3",
@@ -42,6 +41,7 @@ dependencies = [
     "pyzmq>=26.0.3,<28.0.0",
     "puremagic>=1.28,<2",
     "pydantic>=2.12.2,<3",
+    "pyyaml>=6.0.0,<7",
     "radixtarget>=4.0.1,<5",
     "asndb>=1.0.4",
     "orjson>=3.10.12,<4",

@@ -1,13 +1,15 @@
 from contextlib import suppress
 
 from bbot.modules.output.base import BaseOutputModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class TXT(BaseOutputModule):
     watched_events = ["*"]
     meta = {"description": "Output to text", "created_date": "2024-04-03", "author": "@TheTechromancer"}
-    options = {"output_file": ""}
-    options_desc = {"output_file": "Output to file"}
+
+    class Config(BaseModuleConfig):
+        output_file: str = Field("", description="Output to file")
 
     output_filename = "output.txt"
 

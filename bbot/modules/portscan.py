@@ -4,6 +4,7 @@ from contextlib import suppress
 from radixtarget import RadixTarget, host_size_key
 
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 # TODO: this module is getting big. It should probably be two modules: one for ping and one for SYN.
@@ -18,35 +19,35 @@ class portscan(BaseModule):
         "created_date": "2024-05-15",
         "author": "@TheTechromancer",
     }
-    options = {
-        "top_ports": 100,
-        "ports": "",
-        # ping scan at 600 packets/s ~= private IP space in 8 hours
-        "rate": 300,
-        "wait": 5,
-        "ping_first": False,
-        "ping_only": False,
-        "adapter": "",
-        "adapter_ip": "",
-        "adapter_mac": "",
-        "router_mac": "",
-        "skip_tags": "",
-        "module_timeout": 259200,  # 3 days
-    }
-    options_desc = {
-        "top_ports": "Top ports to scan (default 100) (to override, specify 'ports')",
-        "ports": "Ports to scan",
-        "rate": "Rate in packets per second",
-        "wait": "Seconds to wait for replies after scan is complete",
-        "ping_first": "Only portscan hosts that reply to pings",
-        "ping_only": "Ping sweep only, no portscan",
-        "adapter": 'Manually specify a network interface, such as "eth0" or "tun0". If not specified, the first network interface found with a default gateway will be used.',
-        "adapter_ip": "Send packets using this IP address. Not needed unless masscan's autodetection fails",
-        "adapter_mac": "Send packets using this as the source MAC address. Not needed unless masscan's autodetection fails",
-        "router_mac": "Send packets to this MAC address as the destination. Not needed unless masscan's autodetection fails",
-        "skip_tags": "Comma-separated event tags that will be excluded from scanning (e.g. 'cdn,waf'). speculate will emit assumed-open ports for these instead.",
-        "module_timeout": "Max time in seconds to spend handling each batch of events",
-    }
+
+    class Config(BaseModuleConfig):
+        top_ports: int = Field(100, description="Top ports to scan (default 100) (to override, specify 'ports')")
+        ports: str = Field("", description="Ports to scan")
+        rate: int = Field(300, description="Rate in packets per second")
+        wait: int = Field(5, description="Seconds to wait for replies after scan is complete")
+        ping_first: bool = Field(False, description="Only portscan hosts that reply to pings")
+        ping_only: bool = Field(False, description="Ping sweep only, no portscan")
+        adapter: str = Field(
+            "",
+            description='Manually specify a network interface, such as "eth0" or "tun0". If not specified, the first network interface found with a default gateway will be used.',
+        )
+        adapter_ip: str = Field(
+            "", description="Send packets using this IP address. Not needed unless masscan's autodetection fails"
+        )
+        adapter_mac: str = Field(
+            "",
+            description="Send packets using this as the source MAC address. Not needed unless masscan's autodetection fails",
+        )
+        router_mac: str = Field(
+            "",
+            description="Send packets to this MAC address as the destination. Not needed unless masscan's autodetection fails",
+        )
+        skip_tags: str = Field(
+            "",
+            description="Comma-separated event tags that will be excluded from scanning (e.g. 'cdn,waf'). speculate will emit assumed-open ports for these instead.",
+        )
+        module_timeout: int = Field(259200, description="Max time in seconds to spend handling each batch of events")
+
     deps_common = ["masscan"]
     batch_size = 1000000
     _shuffle_incoming_queue = False

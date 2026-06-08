@@ -54,8 +54,8 @@ To see a full list of modules and their descriptions, use `bbot -l` or see [List
 Modules are the part of BBOT that does the work -- port scanning, subdomain brute-forcing, API querying, etc. Modules consume [Events](events.md) (`IP_ADDRESS`, `DNS_NAME`, etc.) from each other, process the data in a useful way, then emit the results as new events. You can enable individual modules with `-m`.
 
 ```bash
-# Enable modules: portscan, sslcert, and httpx
-bbot -t www.evilcorp.com -m portscan sslcert httpx
+# Enable modules: portscan, sslcert, and http
+bbot -t www.evilcorp.com -m portscan sslcert http
 ```
 
 ### Types of Modules
@@ -63,7 +63,7 @@ bbot -t www.evilcorp.com -m portscan sslcert httpx
 Modules fall into three categories:
 
 - **Scan Modules**:
-    - These make up the majority of modules. Examples are `portscan`, `sslcert`, `httpx`, etc. Enable with `-m`.
+    - These make up the majority of modules. Examples are `portscan`, `sslcert`, `http`, etc. Enable with `-m`.
 - **Output Modules**:
     - These output scan data to different formats/destinations. `human`, `json`, and `csv` are enabled by default. Enable others with `-om`. (See: [Output](output.md))
 - **Internal Modules**:
@@ -232,7 +232,7 @@ Similar to targets, blacklists can be specified in your preset. The `spider` pre
 description: Recursive web spider
 
 modules:
-  - httpx
+  - http
 
 blacklist:
   # Prevent spider from invalidating sessions by logging out
