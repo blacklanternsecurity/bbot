@@ -34,7 +34,7 @@ class TestNmap_XML(ModuleTestBase):
         speculate_module = module_test.scan.modules.get("speculate")
         if speculate_module:
             speculate_module.open_port_consumers = True
-            speculate_module.emit_open_ports = True
+            speculate_module._always_emit_open_ports = True
 
         await module_test.mock_dns(
             {

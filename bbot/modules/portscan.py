@@ -30,6 +30,7 @@ class portscan(BaseModule):
         "adapter_ip": "",
         "adapter_mac": "",
         "router_mac": "",
+        "skip_tags": "",
         "module_timeout": 259200,  # 3 days
     }
     options_desc = {
@@ -43,6 +44,7 @@ class portscan(BaseModule):
         "adapter_ip": "Send packets using this IP address. Not needed unless masscan's autodetection fails",
         "adapter_mac": "Send packets using this as the source MAC address. Not needed unless masscan's autodetection fails",
         "router_mac": "Send packets to this MAC address as the destination. Not needed unless masscan's autodetection fails",
+        "skip_tags": "Comma-separated event tags that will be excluded from scanning (e.g. 'cdn,waf'). speculate will emit assumed-open ports for these instead.",
         "module_timeout": "Max time in seconds to spend handling each batch of events",
     }
     deps_common = ["masscan"]
@@ -66,6 +68,7 @@ class portscan(BaseModule):
                 self.helpers.parse_port_string(self.ports)
             except ValueError as e:
                 return False, f"Error parsing ports '{self.ports}': {e}"
+        self.skip_tags = {t.strip() for t in self.config.get("skip_tags", "").split(",") if t.strip()}
 
         # keeps track of individual scanned IPs and their open ports
         # this is necessary because we may encounter more hosts with the same IP
@@ -90,6 +93,16 @@ class portscan(BaseModule):
         if returncode and "failed to detect IPv6 address" in ipv6_result.stderr:
             self.warning("It looks like you are not set up for IPv6. IPv6 targets will not be scanned.")
             self.ipv6_support = False
+        return True
+
+    def would_skip(self, event):
+        if not self.skip_tags:
+            return False
+        return bool(self.skip_tags & set(event.tags or ()))
+
+    async def filter_event(self, event):
+        if self.would_skip(event):
+            return False, f"event has tag(s) {self.skip_tags & set(event.tags)}, skipping portscan"
         return True
 
     async def handle_batch(self, *events):
