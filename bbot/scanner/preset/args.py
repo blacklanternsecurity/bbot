@@ -8,18 +8,18 @@ from bbot.core.config.models import coerce_value
 from bbot.core.helpers.misc import chain_lists
 
 
-def _parse_cli_value(raw: str, accepted=None):
+def _parse_cli_value(raw: str, adapter=None):
     """Parse the RHS of a `-c a.b.c=value` argument.
 
-    `accepted` is the frozenset of base type-names for the target field (from the
-    config type index), or None when the field is unknown.  Coercion follows the
-    declared type: string fields keep the literal text (lossless), bool fields
-    produce a real bool, int/float fields use YAML, and unknown fields fall back to
-    plain YAML coercion.
+    `adapter` is the target field's pydantic TypeAdapter (from the config type
+    index), or None when the field is unknown. Coercion follows the declared type:
+    string fields keep the literal text (lossless), bool fields produce a real bool,
+    int/float fields parse via YAML, and unknown fields fall back to plain YAML
+    coercion.
     """
     if raw == "":
         return ""
-    return coerce_value(raw, accepted)
+    return coerce_value(raw, adapter)
 
 
 def parse_dotted_cli(entries, index=None):
@@ -37,8 +37,8 @@ def parse_dotted_cli(entries, index=None):
         path = path.strip()
         if not path:
             raise ValueError(f'Empty key in "{entry}"')
-        accepted = index.get(path) if index is not None else None
-        dotted_set(result, path, _parse_cli_value(raw.strip(), accepted))
+        adapter = index.get(path) if index is not None else None
+        dotted_set(result, path, _parse_cli_value(raw.strip(), adapter))
     return result
 
 
