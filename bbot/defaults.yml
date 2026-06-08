@@ -15,6 +15,10 @@ home: ~/.bbot
 keep_scans: 20
 # Interval for displaying status messages
 status_frequency: 15
+# When system memory exceeds this percentage, ingress is throttled with a per-event sleep
+# that scales linearly from 0s at the threshold up to 5s at threshold+5 (capped at 95%).
+# Last-ditch effort to give the pipeline a chance to drain before OOM.
+max_mem_percent: 90
 # Include the raw data of files (i.e. PDFs, web screenshots) as base64 in the event
 file_blobs: false
 # Include the raw data of directories (i.e. git repos) as tar.gz base64 in the event
@@ -88,6 +92,9 @@ dns:
 web:
   # HTTP proxy
   http_proxy:
+  # Hosts/CIDRs to exclude from HTTP proxy (NO_PROXY equivalent)
+  # Examples: ["localhost", "*.internal.corp", "10.0.0.0/8", "elastic.mycompany.com"]
+  http_proxy_exclude: []
   # Web user-agent
   user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.2151.97
   # Suffix to append to user-agent (e.g. for tracking or identification)
@@ -128,6 +135,16 @@ web:
   # Maximum HTTP requests per second (0 = unlimited)
   # Applies globally across all blasthttp consumers (http probing, web brute, etc.)
   http_rate_limit: 0
+  # HTTP_RESPONSE body disk-spill — keeps body bytes off the Python heap.
+  # Bodies are written to ${scan_home}/temp/bodies/{uuid}.body.zst and served
+  # from a bounded LRU cache; only cache misses touch disk.
+  body_spill:
+    # Master switch
+    enabled: true
+    # In-memory LRU cache budget for hot bodies, in MB
+    cache_mb: 512
+    # zstd level-1 compression on the way to disk
+    compress: true
 
 ### ENGINE ###
 
@@ -314,3 +331,7 @@ omit_event_types:
 interactsh_server: null
 interactsh_token: null
 interactsh_disable: false
+
+# API key for bbot.io services (currently used by ASN lookups via the asndb library)
+# Can also be set via the BBOT_IO_API_KEY environment variable, which takes precedence.
+bbot_io_api_key: null

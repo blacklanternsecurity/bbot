@@ -11,3 +11,10 @@ include:
   - dirbust-light
   - web-screenshots
   - baddns-heavy
+
+config:
+  modules:
+    dnsbrute:
+      recursive_mutations: true
+    dnscommonsrv:
+      recursive_mutations: true

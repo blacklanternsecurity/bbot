@@ -1,7 +1,9 @@
 import re
+from typing import Union
 
 from bbot.errors import HttpCompareError
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 _case_split = re.compile(r"[-_]+")
 
@@ -39,16 +41,17 @@ class paramminer_headers(BaseModule):
         "created_date": "2022-04-15",
         "author": "@liquidsec",
     }
-    options = {
-        "wordlist": "",  # default is defined within setup function
-        "recycle_words": False,
-        "skip_boring_words": True,
-    }
-    options_desc = {
-        "wordlist": "Define the wordlist to be used to derive headers",
-        "recycle_words": "Attempt to use words found during the scan on all other endpoints",
-        "skip_boring_words": "Remove commonly uninteresting words from the wordlist",
-    }
+
+    class Config(BaseModuleConfig):
+        wordlist: Union[str, list[str]] = Field(
+            "",
+            description="Define the wordlist to be used to derive headers. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
+        )
+        recycle_words: bool = Field(
+            False, description="Attempt to use words found during the scan on all other endpoints"
+        )
+        skip_boring_words: bool = Field(True, description="Remove commonly uninteresting words from the wordlist")
+
     # URLs ending with these extensions are known to be case-insensitive — skip case mutation.
     # (Used by paramminer_getparams and paramminer_cookies; HTTP headers are inherently
     # case-insensitive per RFC 7230 so this isn't relevant to paramminer_headers itself.)
@@ -227,7 +230,6 @@ class paramminer_headers(BaseModule):
                     if self.global_blacklist_prefixes and lower_name.startswith(self.global_blacklist_prefixes):
                         return
                 if parameter_name not in self.wl:  # Ensure it's not already in the wordlist
-                    self.debug(f"Adding {parameter_name} to wordlist")
                     self.extracted_words_master.add(parameter_name)
 
         elif event.type == "HTTP_RESPONSE":
@@ -290,7 +292,7 @@ class paramminer_headers(BaseModule):
     async def binary_search(self, compare_helper, url, group, reasons=None, reflection=False):
         if reasons is None:
             reasons = []
-        self.debug(f"Entering recursive binary_search with {len(group):,} sized group")
+            self.debug(f"Entering binary_search with {len(group):,} sized group for URL [{url}]")
         if len(group) == 1 and len(reasons) > 0:
             yield group[0], reasons, reflection
         elif len(group) > 1 or (len(group) == 1 and len(reasons) == 0):
@@ -299,10 +301,6 @@ class paramminer_headers(BaseModule):
                 if match is False:
                     async for r in self.binary_search(compare_helper, url, group_slice, reasons, reflection):
                         yield r
-        else:
-            self.debug(
-                f"binary_search() failed to start with group of size {str(len(group))} and {str(len(reasons))} length reasons"
-            )
 
     async def check_batch(self, compare_helper, url, header_list):
         rand = self.rand_string()

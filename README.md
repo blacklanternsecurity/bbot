@@ -91,7 +91,7 @@ bbot -t evilcorp.com -p spider
 description: Recursive web spider
 
 modules:
-  - httpx
+  - http
 
 blacklist:
   # Prevent spider from invalidating sessions by logging out
@@ -222,6 +222,13 @@ include:
   - dirbust-light
   - web-screenshots
   - baddns-heavy
+
+config:
+  modules:
+    dnsbrute:
+      recursive_mutations: true
+    dnscommonsrv:
+      recursive_mutations: true
 
 ```
 
@@ -390,6 +397,7 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/Stabl
     - [Setting Up a Dev Environment](https://www.blacklanternsecurity.com/bbot/Stable/dev/dev_environment)
     - [BBOT Internal Architecture](https://www.blacklanternsecurity.com/bbot/Stable/dev/architecture)
     - [How to Write a BBOT Module](https://www.blacklanternsecurity.com/bbot/Stable/dev/module_howto)
+    - [Validating & Inspecting Presets](https://www.blacklanternsecurity.com/bbot/Stable/dev/preset_validation)
     - [Unit Tests](https://www.blacklanternsecurity.com/bbot/Stable/dev/tests)
     - [Discord Bot Example](https://www.blacklanternsecurity.com/bbot/Stable/dev/discord_bot)
     - **Code Reference**

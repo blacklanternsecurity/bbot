@@ -1,7 +1,9 @@
 import json
+from typing import Union
 from pathlib import Path
 from bbot.errors import WordlistError
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 # key: <common-protocol-name> value: <legba-protocol-plugin-name>
 # List with `legba -L`
@@ -28,31 +30,38 @@ class legba(BaseModule):
     _module_threads = 25
     scope_distance_modifier = None
 
-    options = {
-        "ssh_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/ssh-betterdefaultpasslist.txt",
-        "ftp_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/ftp-betterdefaultpasslist.txt",
-        "telnet_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/telnet-betterdefaultpasslist.txt",
-        "vnc_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/vnc-betterdefaultpasslist.txt",
-        "mssql_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/mssql-betterdefaultpasslist.txt",
-        "mysql_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/mysql-betterdefaultpasslist.txt",
-        "postgresql_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/postgres-betterdefaultpasslist.txt",
-        "concurrency": 3,
-        "rate_limit": 3,
-        "version": "1.1.1",
-    }
-
-    options_desc = {
-        "ssh_wordlist": "Wordlist URL for SSH combined username:password wordlist, newline separated",
-        "ftp_wordlist": "Wordlist URL for FTP combined username:password wordlist, newline separated",
-        "telnet_wordlist": "Wordlist URL for TELNET combined username:password wordlist, newline separated",
-        "vnc_wordlist": "Wordlist URL for VNC password wordlist, newline separated",
-        "mssql_wordlist": "Wordlist URL for MSSQL combined username:password wordlist, newline separated",
-        "mysql_wordlist": "Wordlist URL for MySQL combined username:password wordlist, newline separated",
-        "postgresql_wordlist": "Wordlist URL for PostgreSQL combined username:password wordlist, newline separated",
-        "concurrency": "Number of concurrent workers, gets overridden for SSH",
-        "rate_limit": "Limit the number of requests per second, gets overridden for SSH",
-        "version": "legba version",
-    }
+    class Config(BaseModuleConfig):
+        ssh_wordlist: Union[str, list[str]] = Field(
+            "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/ssh-betterdefaultpasslist.txt",
+            description="Wordlist for SSH combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
+        )
+        ftp_wordlist: Union[str, list[str]] = Field(
+            "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/ftp-betterdefaultpasslist.txt",
+            description="Wordlist for FTP combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
+        )
+        telnet_wordlist: Union[str, list[str]] = Field(
+            "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/telnet-betterdefaultpasslist.txt",
+            description="Wordlist for TELNET combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
+        )
+        vnc_wordlist: Union[str, list[str]] = Field(
+            "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/vnc-betterdefaultpasslist.txt",
+            description="Wordlist for VNC passwords, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
+        )
+        mssql_wordlist: Union[str, list[str]] = Field(
+            "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/mssql-betterdefaultpasslist.txt",
+            description="Wordlist for MSSQL combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
+        )
+        mysql_wordlist: Union[str, list[str]] = Field(
+            "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/mysql-betterdefaultpasslist.txt",
+            description="Wordlist for MySQL combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
+        )
+        postgresql_wordlist: Union[str, list[str]] = Field(
+            "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Passwords/Default-Credentials/postgres-betterdefaultpasslist.txt",
+            description="Wordlist for PostgreSQL combined username:password, newline separated. Accepts a URL or local file path, or a list of URLs/paths to merge multiple wordlists (duplicates removed).",
+        )
+        concurrency: int = Field(3, description="Number of concurrent workers, gets overridden for SSH")
+        rate_limit: int = Field(3, description="Limit the number of requests per second, gets overridden for SSH")
+        version: str = Field("1.1.1", description="legba version")
 
     deps_ansible = [
         {
@@ -218,6 +227,11 @@ class legba(BaseModule):
                 "1",
             ]
         else:
-            cmd += ["--rate-limit", self.config.rate_limit, "--concurrency", self.config.concurrency]
+            cmd += [
+                "--rate-limit",
+                str(self.config.get("rate_limit")),
+                "--concurrency",
+                str(self.config.get("concurrency")),
+            ]
 
         return cmd, output_path

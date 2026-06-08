@@ -1,10 +1,12 @@
 import random
 import string
+from typing import Union
 
 import blasthttp
 
 from bbot.core.helpers.web.web import iter_batch_results
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class webbrute(BaseModule):
@@ -17,25 +19,20 @@ class webbrute(BaseModule):
         "author": "@liquidsec",
     }
 
-    options = {
-        "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-small-directories.txt",
-        "lines": 5000,
-        "max_depth": 0,
-        "extensions": "",
-        "ignore_case": False,
-        "rate": 0,
-        "concurrency": 50,
-    }
-
-    options_desc = {
-        "wordlist": "Specify wordlist to use when finding directories",
-        "lines": "take only the first N lines from the wordlist when finding directories",
-        "max_depth": "the maximum directory depth to attempt to solve",
-        "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
-        "ignore_case": "Only put lowercase words into the wordlist",
-        "rate": "Maximum requests per second (0 = unlimited)",
-        "concurrency": "Number of concurrent requests per URL being fuzzed",
-    }
+    class Config(BaseModuleConfig):
+        wordlist: Union[str, list[str]] = Field(
+            "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-small-directories.txt",
+            description="Specify wordlist to use when finding directories. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
+        )
+        lines: int = Field(5000, description="take only the first N lines from the wordlist when finding directories")
+        max_depth: int = Field(0, description="the maximum directory depth to attempt to solve")
+        extensions: Union[str, list[str]] = Field(
+            "",
+            description="Optionally include a list of extensions to extend the keyword with (comma separated or YAML list)",
+        )
+        ignore_case: bool = Field(False, description="Only put lowercase words into the wordlist")
+        rate: int = Field(0, description="Maximum requests per second (0 = unlimited)")
+        concurrency: int = Field(50, description="Number of concurrent requests per URL being fuzzed")
 
     banned_characters = {" "}
     blacklist = ["images", "css", "image"]
