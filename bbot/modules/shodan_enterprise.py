@@ -13,7 +13,7 @@ class shodan_enterprise(BaseModule):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="Shodan API Key", sensitive=True, mandatory=True)
+        api_key: str | list[str] = Field("", description="Shodan API Key", sensitive=True, mandatory=True)
         in_scope_only: bool = Field(
             True, description="Only query in-scope IPs. If False, will query up to distance 1."
         )

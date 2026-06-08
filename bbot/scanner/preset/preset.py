@@ -177,6 +177,8 @@ class Preset(metaclass=BasePreset):
         self._module_loader = None
         self._yaml_str = ""
         self._baked = False
+        # whether this preset has been validated+coerced (a precondition for bake())
+        self._validated = False
 
         self._default_output_modules = None
         self._default_internal_modules = None
@@ -396,6 +398,8 @@ class Preset(metaclass=BasePreset):
         # transfer args
         if other._args is not None:
             self._args = other._args
+        # the preset changed -- it must be re-validated before baking
+        self._validated = False
 
     def bake(self, scan=None):
         """
@@ -429,22 +433,17 @@ class Preset(metaclass=BasePreset):
             os.environ.clear()
             os.environ.update(os_environ)
 
+        # bake() requires an already validated + coerced preset. Validation and
+        # coercion are a PRECONDITION (Preset.validate(), the caller's
+        # responsibility) -- enforced here so an unvalidated preset never bakes.
+        if not self._validated:
+            raise ValidationError(
+                "Preset must be validated before baking -- call .validate() first "
+                "(Scanner and the CLI do this for you)."
+            )
+
         # validate log level options
         baked_preset.apply_log_level(apply_core=scan is not None)
-
-        # coerce config values toward their declared types so the runtime gets
-        # real typed values (bool fields hold True/False, not int 1; str fields
-        # hold strings, not YAML-parsed ints from a config file)
-        from bbot.core.config.models import coerce_config
-
-        try:
-            index = baked_preset.module_loader.config_type_index
-            baked_preset.core.custom_config = coerce_config(baked_preset.core.custom_config, index)
-        except Exception:
-            pass
-
-        # validate flags, config options
-        baked_preset.validate()
 
         # now that our requirements / exclusions are validated, we can start enabling modules
         # enable scan modules
@@ -697,15 +696,15 @@ class Preset(metaclass=BasePreset):
         Examples:
             >>> preset = Preset.from_dict({"target": ["evilcorp.com"], "modules": ["portscan"]})
         """
-        from bbot.core.helpers.misc import chain_lists
-        from .validate import validate_preset
+        from .validate import prevalidate_preset
 
-        # Surface preset typos / shape errors up front rather than letting
-        # them propagate to bake() as raw TypeErrors / AttributeErrors. This
-        # covers presets loaded from YAML files, YAML strings, and dicts.
-        errs = validate_preset(preset_dict)
+        # Gate top-level keys only -- .get() below would silently drop a typo like
+        # `modlues:`. Config values + _validated are validate()'s job, not from_dict's.
+        errs = prevalidate_preset(preset_dict)
         if errs:
             raise ValidationError("\n".join(str(e) for e in errs))
+
+        from bbot.core.helpers.misc import chain_lists
 
         # Handle seeds and targets from dict
         # for user-friendliness, we allow both "target" and "targets" to be used. we merge them into a single list.
@@ -981,8 +980,29 @@ class Preset(metaclass=BasePreset):
 
     def validate(self):
         """
-        Validate module/flag exclusions/requirements, and CLI config options if applicable.
+        Coerce config values to their declared types and validate the preset.
+
+        This is a PRECONDITION for bake() (which enforces it): a preset must be
+        validated before it can be baked. Idempotent -- safe to call more than
+        once. Sets ``self._validated = True`` on success and returns ``self`` so
+        it can be chained (e.g. ``preset.validate().bake()``).
         """
+        from bbot.core.config.models import coerce_config
+
+        # Coerce config values toward their declared types
+        try:
+            index = self.module_loader.config_type_index
+            self.core.custom_config = coerce_config(self.core.custom_config, index)
+        except Exception as e:
+            log.debug(f"Config coercion error: {e}")
+
+        # Validate the (coerced) user config against the schema
+        from .validate import validate_preset
+
+        errs = validate_preset({"config": dict(self.core.custom_config)}, module_loader=self.module_loader)
+        if errs:
+            raise ValidationError("\n".join(str(e) for e in errs))
+
         if self._cli:
             self.args.validate()
 
@@ -992,6 +1012,11 @@ class Preset(metaclass=BasePreset):
                 raise ValidationError(
                     get_closest_match(excluded_module, self.module_loader.all_module_choices, msg="module")
                 )
+        # validate declared module names so typos fail early
+        for scan_module in self.explicit_scan_modules:
+            self._is_valid_module(scan_module, "scan", name_only=True)
+        for output_module in self.explicit_output_modules:
+            self._is_valid_module(output_module, "output", name_only=True)
         # validate excluded flags
         for excluded_flag in self.exclude_flags:
             if excluded_flag not in self.module_loader.flag_choices:
@@ -1004,6 +1029,9 @@ class Preset(metaclass=BasePreset):
         for flag in self.flags:
             if flag not in self.module_loader.flag_choices:
                 raise ValidationError(get_closest_match(flag, self.module_loader.flag_choices, msg="flag"))
+
+        self._validated = True
+        return self
 
     @property
     def all_presets(self):

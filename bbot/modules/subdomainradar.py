@@ -18,7 +18,7 @@ class SubdomainRadar(subdomain_enum_apikey):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="SubDomainRadar.io API key", sensitive=True, mandatory=True)
+        api_key: str | list[str] = Field("", description="SubDomainRadar.io API key", sensitive=True, mandatory=True)
         group: Literal["fast", "medium", "deep"] = Field(
             "fast", description="The enumeration group to use. Choose from fast, medium, deep"
         )

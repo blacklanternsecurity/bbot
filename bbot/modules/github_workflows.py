@@ -17,7 +17,7 @@ class github_workflows(github):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="Github token", sensitive=True, mandatory=True)
+        api_key: str | list[str] = Field("", description="Github token", sensitive=True, mandatory=True)
         num_logs: int = Field(1, description="For each workflow fetch the last N successful runs logs (max 100)")
         output_folder: str = Field("", description="Folder to download workflow logs and artifacts to")
 

@@ -18,7 +18,7 @@ class censys_dns(censys):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field(
+        api_key: str | list[str] = Field(
             "", description="Censys.io API Key in the format of 'key:secret'", sensitive=True, mandatory=True
         )
         max_pages: int = Field(5, description="Maximum number of pages to fetch (100 results per page)")

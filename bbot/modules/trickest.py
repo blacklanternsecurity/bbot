@@ -9,7 +9,7 @@ class Trickest(subdomain_enum_apikey):
     meta = {"description": "Query Trickest's API for subdomains", "author": "@amiremami", "created_date": "2024-07-27"}
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="Trickest API key", sensitive=True, mandatory=True)
+        api_key: str | list[str] = Field("", description="Trickest API key", sensitive=True, mandatory=True)
 
     base_url = "https://api.trickest.io/solutions/v1/public/solution/a7cba1f1-df07-4a5c-876a-953f178996be"
     ping_url = f"{base_url}/dataset"

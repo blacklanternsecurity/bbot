@@ -20,7 +20,7 @@ class postman_download(postman):
             "",
             description="Folder to download postman workspaces to. If not specified, downloaded workspaces will be deleted when the scan completes, to minimize disk usage.",
         )
-        api_key: str = Field("", description="Postman API Key", sensitive=True, mandatory=True)
+        api_key: str | list[str] = Field("", description="Postman API Key", sensitive=True, mandatory=True)
 
     scope_distance_modifier = 2
 

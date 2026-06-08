@@ -25,7 +25,7 @@ class censys_ip(censys):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field(
+        api_key: str | list[str] = Field(
             "", description="Censys.io API Key in the format of 'key:secret'", sensitive=True, mandatory=True
         )
         dns_names_limit: int = Field(

@@ -13,6 +13,7 @@ merged dict straight from YAML, and these models only ever validate shape.
 
 from __future__ import annotations
 
+import os
 from typing import Annotated, Any, Literal, Optional
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, field_validator
@@ -223,7 +224,9 @@ def coerce_value(value, accepted):
     if "str" in accepted and not (accepted & _COLLECTION_NAMES):
         if is_raw:
             return value
-        return None if value is None else str(value)
+        if value is None or isinstance(value, (list, dict, set)):
+            return value
+        return str(value)
     if accepted == frozenset({"bool"}):
         v = _yaml_scalar(value) if is_raw else value
         if isinstance(v, bool):
@@ -237,7 +240,11 @@ def coerce_value(value, accepted):
             if low in _FALSE_WORDS:
                 return False
         return v
-    return _yaml_scalar(value) if is_raw else value
+    if is_raw:
+        return _yaml_scalar(value)
+    if "str" in accepted and isinstance(value, os.PathLike):
+        return str(value)
+    return value
 
 
 def coerce_config(config, index, prefix=""):
@@ -462,6 +469,7 @@ class BBOTConfig(BaseModel):
     aggregate: Optional[bool] = None
     dnsresolve: Optional[bool] = None
     cloudcheck: Optional[bool] = None
+    unarchive: Optional[bool] = None
 
     # URL handling
     url_querystring_remove: Optional[bool] = None

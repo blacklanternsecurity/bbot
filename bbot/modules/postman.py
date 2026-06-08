@@ -13,7 +13,7 @@ class postman(postman):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="Postman API Key", sensitive=True, mandatory=True)
+        api_key: str | list[str] = Field("", description="Postman API Key", sensitive=True, mandatory=True)
 
     reject_wildcards = False
 

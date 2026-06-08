@@ -13,7 +13,7 @@ class fullhunt(subdomain_enum_apikey):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="FullHunt API Key", sensitive=True, mandatory=True)
+        api_key: str | list[str] = Field("", description="FullHunt API Key", sensitive=True, mandatory=True)
 
     base_url = "https://fullhunt.io/api/v1"
 

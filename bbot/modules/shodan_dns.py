@@ -9,7 +9,7 @@ class shodan_dns(shodan):
     meta = {"description": "Query Shodan for subdomains", "created_date": "2022-07-03", "author": "@TheTechromancer"}
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="Shodan API key", sensitive=True, mandatory=True)
+        api_key: str | list[str] = Field("", description="Shodan API key", sensitive=True, mandatory=True)
 
     base_url = "https://api.shodan.io"
 

@@ -28,7 +28,7 @@ class ModuleTestBase:
             self, module_test_base, blasthttp_mock, httpserver, httpserver_ssl, monkeypatch, request, caplog, capsys
         ):
             self.name = module_test_base.name
-            self.config = deep_merge(dict(CORE.config), dict(module_test_base.config_overrides))
+            self.config = deep_merge(dict(CORE.custom_config), dict(module_test_base.config_overrides))
 
             self.caplog = caplog
             self.capsys = capsys

@@ -8,7 +8,7 @@ class leakix(subdomain_enum_apikey):
     flags = ["safe", "subdomain-enum", "passive"]
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="LeakIX API Key", sensitive=True, mandatory=True)
+        api_key: str | list[str] = Field("", description="LeakIX API Key", sensitive=True, mandatory=True)
 
     meta = {
         "description": "Query leakix.net for subdomains",

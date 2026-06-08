@@ -13,7 +13,7 @@ class securitytrails(subdomain_enum_apikey):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="SecurityTrails API key", sensitive=True, mandatory=True)
+        api_key: str | list[str] = Field("", description="SecurityTrails API key", sensitive=True, mandatory=True)
 
     base_url = "https://api.securitytrails.com/v1"
     ping_url = f"{base_url}/ping?apikey={{api_key}}"

@@ -14,7 +14,7 @@ class wpscan(BaseModule):
     }
 
     class Config(BaseModuleConfig):
-        api_key: str = Field("", description="WPScan API Key", sensitive=True)
+        api_key: str | list[str] = Field("", description="WPScan API Key", sensitive=True)
         enumerate: str = Field(
             "vp,vt,cb,dbe", description="Enumeration Process see wpscan help documentation (default: vp,vt,cb,dbe)"
         )
