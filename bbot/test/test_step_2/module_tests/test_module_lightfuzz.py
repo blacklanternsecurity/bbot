@@ -1529,8 +1529,10 @@ class Test_Lightfuzz_sqli_delay(Test_Lightfuzz_sqli):
             <hr>
         </section>
         """
-            if "' AND (SLEEP(5)) AND '" in unquote(value):
-                sleep(5)
+            decoded = unquote(value)
+            m = re.search(r"AND \(SLEEP\((\d+)\)\) AND", decoded)
+            if m:
+                sleep(int(m.group(1)))
             return Response(sql_block, status=200)
         return Response(parameter_block, status=200)
 
@@ -1543,9 +1545,11 @@ class Test_Lightfuzz_sqli_delay(Test_Lightfuzz_sqli):
                     web_parameter_emitted = True
 
             if e.type == "FINDING":
+                desc = e.data["description"]
                 if (
-                    "Possible Blind SQL Injection. Parameter: [search] Parameter Type: [GETPARAM] Detection Method: [Delay Probe (1' AND (SLEEP(5)) AND ')]"
-                    in e.data["description"]
+                    "Possible Blind SQL Injection" in desc
+                    and "Delay Probe" in desc
+                    and "1' AND (SLEEP(8)) AND '" in desc
                 ):
                     sqldelay_finding_emitted = True
 
@@ -1590,8 +1594,9 @@ class Test_Lightfuzz_sqli_delay_or_rowindependent(Test_Lightfuzz_sqli):
             # Only the one-shot row-independent MySQL payload triggers a delay.
             # The original AND-based mysql probe does not fire here, simulating
             # a context where the injected value does not match any row.
-            if "OR SLEEP(5) IS NOT NULL LIMIT 1-- -" in decoded:
-                sleep(5)
+            m = re.search(r"OR SLEEP\((\d+)\) IS NOT NULL", decoded)
+            if m:
+                sleep(int(m.group(1)))
             return Response(sql_block, status=200)
         return Response(parameter_block, status=200)
 
@@ -1604,7 +1609,11 @@ class Test_Lightfuzz_sqli_delay_or_rowindependent(Test_Lightfuzz_sqli):
                     web_parameter_emitted = True
             if e.type == "FINDING":
                 desc = e.data["description"]
-                if "Possible Blind SQL Injection" in desc and "OR SLEEP(5) IS NOT NULL LIMIT 1-- -" in desc:
+                if (
+                    "Possible Blind SQL Injection" in desc
+                    and "Delay Probe" in desc
+                    and "OR SLEEP(8) IS NOT NULL LIMIT 1-- -" in desc
+                ):
                     one_shot_delay_finding = True
 
         # Guard against regression of the missing-comma bug: Python string-literal
@@ -1618,8 +1627,51 @@ class Test_Lightfuzz_sqli_delay_or_rowindependent(Test_Lightfuzz_sqli):
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
         assert one_shot_delay_finding, (
-            "One-shot row-independent SLEEP finding not emitted — row-independent blind sqli detection regression."
+            "One-shot row-independent SLEEP finding not emitted - row-independent blind sqli detection regression."
         )
+
+
+class Test_Lightfuzz_sqli_delay_jitter_fp(Test_Lightfuzz_sqli):
+    """Payload-independent jitter must not produce a blind SQLi finding."""
+
+    _jitter_idx = 0
+
+    def request_handler(self, request):
+        from time import sleep
+
+        qs = str(request.query_string.decode())
+        parameter_block = """
+        <section class=search>
+            <form action=/ method=GET>
+                <input type=text placeholder='Search the blog...' name=search>
+                <button type=submit class=button>Search</button>
+            </form>
+        </section>
+        """
+        if "search=" in qs:
+            sql_block = """
+        <section class=blog-header>
+            <h1>0 search results found</h1>
+            <hr>
+        </section>
+        """
+            jitter = [0.1, 0.4, 0.15, 0.5, 0.2, 0.35, 0.45, 0.1, 0.3, 0.25]
+            idx = self.__class__._jitter_idx
+            sleep(jitter[idx % len(jitter)])
+            self.__class__._jitter_idx = idx + 1
+            return Response(sql_block, status=200)
+        return Response(parameter_block, status=200)
+
+    async def setup_after_prep(self, module_test):
+        self.__class__._jitter_idx = 0
+        await super().setup_after_prep(module_test)
+
+    def check(self, module_test, events):
+        for e in events:
+            if e.type == "FINDING" and "SQL Injection" in e.data.get("description", ""):
+                raise AssertionError(
+                    f"False positive: finding emitted under jitter-only conditions: {e.data['description']}"
+                )
 
 
 # Serialization Module (Error Resolution)
