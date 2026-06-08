@@ -1,5 +1,6 @@
 from radixtarget import RadixTarget
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 from bbot.core.helpers.simhash import compute_simhash
 
 
@@ -19,18 +20,15 @@ class waf_bypass(BaseModule):
 
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    options = {
-        "similarity_threshold": 0.90,
-        "search_ip_neighbors": True,
-        "neighbor_cidr": 24,  # subnet size to explore when gathering neighbor IPs
-    }
-
-    options_desc = {
-        "similarity_threshold": "Similarity threshold for content matching",
-        "search_ip_neighbors": "Also check IP neighbors of the target domain",
-        "neighbor_cidr": "CIDR mask (24-31) used for neighbor enumeration when search_ip_neighbors is true",
-    }
     flags = ["active", "safe", "web-heavy"]
+
+    class Config(BaseModuleConfig):
+        similarity_threshold: float = Field(0.90, description="Similarity threshold for content matching")
+        search_ip_neighbors: bool = Field(True, description="Also check IP neighbors of the target domain")
+        neighbor_cidr: int = Field(
+            24, description="CIDR mask (24-31) used for neighbor enumeration when search_ip_neighbors is true"
+        )
+
     meta = {
         "description": "Detects potential WAF bypasses",
         "author": "@liquidsec",
