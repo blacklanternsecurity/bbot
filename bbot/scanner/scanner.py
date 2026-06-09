@@ -1,3 +1,4 @@
+import os
 import sys
 import asyncio
 import logging
@@ -76,7 +77,7 @@ class Scanner:
         _status_code (int): The numerical representation of the current scan status, stored for internal use. It is mapped according to the values in `_status_codes`.
         target (Target): Target of scan (alias to `self.preset.target`).
         preset (Preset): The main scan Preset in its baked form.
-        config (omegaconf.dictconfig.DictConfig): BBOT config (alias to `self.preset.config`).
+        config (dict): BBOT config (alias to `self.preset.config`).
         seeds (Target): Scan seeds (by default this is the same as `target`) (alias to `self.preset.seeds`).
         blacklist (Target): Scan blacklist (this takes ultimate precedence) (alias to `self.preset.blacklist`).
         helpers (ConfigAwareHelper): Helper containing various reusable functions, regexes, etc. (alias to `self.preset.helpers`).
@@ -151,6 +152,8 @@ class Scanner:
                 raise ValidationError(f'Preset must be of type Preset, not "{type(custom_preset).__name__}"')
             base_preset.merge(custom_preset)
 
+        # validation+coercion is a precondition for baking; Scanner does it for the caller
+        base_preset.validate()
         self.preset = base_preset.bake(self)
 
         self._prepped = False
@@ -182,15 +185,31 @@ class Scanner:
         self.name = scan_name.replace("/", "_")
 
         # :)
-        if self.name == "golden_gus":
+        if self.name == "golden_gus" and not os.environ.get("NO_COLOR", ""):
             from base64 import b64decode as _d
 
             _a = _d(
                 "ICAgICAgICAgICAgICBfX18KICAqd29vZiogIF9fL18gIGAuICAuLSIiIi0uCiAgICAgICAgICBcXyxgIHwgXC0nICAvICAgKWAtJykKICAgICAgICAgICAiIikgImAiICAgIFwgICgoImAiCiAgICAgICAgICBfX19ZICAsICAgIC4nNyAvfAogICAgICAgICAoXyxfX18vLi4uLWAgKF8vXy8="
             ).decode()
             _m = _d("R3VzIGhhcyBibGVzc2VkIHlvdXIgc2Nhbi4=").decode()
+            gold = "\033[1;38;5;220m"
+            green = "\033[1;38;5;118m"
+            reset = "\033[0m"
             log_to_stderr(
-                f"\033[1;38;5;220m{_a}\033[0m\n          \033[1;38;5;118m{_m}\033[0m",
+                f"{gold}{_a}{reset}\n          {green}{_m}{reset}",
+                level="HUGESUCCESS",
+                logname=False,
+            )
+        if self.name == "recursive_thetechromancer" and not os.environ.get("NO_COLOR", ""):
+            from base64 import b64decode as _d
+
+            _a = _d(
+                "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4qO/4qO/4qG8G1sxOzM4OzU7MTcwbeKjv+Kjv+Kjv+Kjv+KhheKgguKgghtbMG0KG1sxOzM4OzU7Njlt4qKA4qKA4qKA4qKA4qKA4qKA4qK74qO/G1sxOzM4OzU7MTA0beKjv+Kjv+Khh+KggRtbMTszODs1Ozk4beKggeKggeKiv+KjvxtbMTszODs1OzEzNG3ioJ/ioIHioIHioIHioIHioLjio7/io7/io7fio7/io78bWzE7Mzg7NTsxNzBt4qO/4qCK4qKI4qKA4qKAG1swbQobWzE7Mzg7NTs2OW3iooDiooDiooDioITiooDiooDiooDior8bWzE7Mzg7NTsxMDVt4qO/G1sxOzM4OzU7MTA0beKhv+Kgg+KgguKgghtbMTszODs1Ozk4beKigOKigOKggeKghBtbMTszODs1OzEzNG3ioIDioIDioIDioIDiorHio7/io7/io7/io7/ioZnioLviorfiooQbWzE7Mzg7NTsxNzBt4qKA4qKAG1swbQobWzE7Mzg7NTs2OW3ioITioITioILioILioIHioIHioILioLgbWzE7Mzg7NTsxMDVt4qO/G1sxOzM4OzU7MTA0beKhv+Kjv+Kgt+KgpBtbMTszODs1Ozk4beKggeKggeKggeKggRtbMTszODs1OzEzNG3ioIDioIDioIDioqDio7/io7/io7/io7/io7/io7fio7bio6Tio6Tio6DiooAbWzBtChtbMTszODs1OzY5beKggOKgguKggeKggeKigOKghOKgguKgguKiuBtbMTszODs1OzEwNW3io78bWzE7Mzg7NTsxMDRt4qG34qCW4qCC4qCAG1sxOzM4OzU7OTht4qCA4qCB4qCA4qCAG1sxOzM4OzU7MTM0beKggOKggOKgmOKgieKggeKiu+Kjv+Kjv+Kjv+KguOKiu+Kjv+Kjv+KjvxtbMG0KG1sxOzM4OzU7Njlt4qKA4qKA4qKA4qKA4qKA4qCE4qOg4qO04qO/4qO/G1sxOzM4OzU7MTA0beKjv+Kjv+KgpuKggOKggBtbMTszODs1Ozk4beKjgOKjgOKggOKggBtbMTszODs1OzEzNG3ioIDioITioILioIHiorjio7/iob/ioKPioITioIHioJnioLvio78bWzBtChtbMTszODs1OzY5beKgguKghOKggeKigeKjpOKjvuKjv+Kjv+Kjv+KjvxtbMTszODs1OzEwNW3io78bWzE7Mzg7NTsxMDRt4qO/4qO24qO24qO/G1sxOzM4OzU7OTht4qO/4qO/4qO34qCE4qCA4qCAG1sxOzM4OzU7MTM0beKggOKggOKgiOKgq+KggeKghOKggeKggeKggeKgguKggRtbMG0="
+            ).decode()
+            cyan = "\033[1;38;5;51m"
+            reset = "\033[0m"
+            log_to_stderr(
+                f"{_a}\n{cyan}Never Mind the Electric Reign{reset}",
                 level="HUGESUCCESS",
                 logname=False,
             )
@@ -232,6 +251,7 @@ class Scanner:
         max_redirects = web_config.get("http_max_redirects", 5)
         self.web_max_redirects = max(max_redirects, self.web_spider_distance)
         self.http_proxy = web_config.get("http_proxy", "")
+        self.http_proxy_exclude = web_config.get("http_proxy_exclude", [])
         self.http_timeout = web_config.get("http_timeout", 10)
         self.blasthttp_timeout = web_config.get("blasthttp_timeout", 5)
         self.http_retries = web_config.get("http_retries", 1)
@@ -340,8 +360,12 @@ class Scanner:
             self.dummy_modules.clear()
 
             # save scan preset
+            redact_secrets = self.config.get("redact_secrets", True)
             with open(self.home / "preset.yml", "w") as f:
-                f.write(self.preset.to_yaml())
+                if redact_secrets:
+                    f.write("# Secrets (API keys, tokens, etc.) have been redacted.\n")
+                    f.write('# To include secrets, set "redact_secrets: false" in your preset or BBOT config.\n\n')
+                f.write(self.preset.to_yaml(redact_secrets=redact_secrets))
 
             # log scan overview
             start_msg = f"Scan seeded with {len(self.seeds.event_seeds):,} seed(s)"
@@ -588,7 +612,7 @@ class Scanner:
                 self.debug(f"Setup succeeded for {module.name} ({msg})")
                 succeeded.append(module.name)
             elif status is False:
-                self.warning(f"Setup hard-failed for {module.name}: {msg}")
+                self.error(f"Setup hard-failed for {module.name}: {msg}")
                 self.modules[module.name].set_error_state()
                 hard_failed.append(module.name)
             else:
@@ -714,7 +738,7 @@ class Scanner:
         if module._intercept:
             self.warning(f'Cannot kill module "{module_name}" because it is critical to the scan')
             return
-        module.set_error_state(message=message, clear_outgoing_queue=True)
+        module.set_error_state(message=message, clear_outgoing_queue=True, log_level="info")
         for proc in module._proc_tracker:
             with contextlib.suppress(Exception):
                 proc.send_signal(SIGINT)
@@ -756,6 +780,14 @@ class Scanner:
         mem_percent = mem_status.percent
         prev_delay = self._ingress_delay
         new_delay = self._compute_ingress_delay(mem_percent)
+        # if no module has work in flight or queued, ingress is the only drain — don't throttle it
+        drain_mode = not any(
+            (m.running or m.outgoing_event_queue.qsize() > 0 or m.num_incoming_events > 0)
+            for m in self.modules.values()
+            if not m._intercept
+        )
+        if drain_mode:
+            new_delay = 0.0
         self._ingress_delay = new_delay
         if mem_percent > self.max_mem_percent:
             free_memory_human = self.helpers.bytes_to_human(mem_status.available)
@@ -1369,7 +1401,7 @@ class Scanner:
             error_handler = GzipRotatingFileHandler(
                 str(self.home / "error.log"), maxBytes=1024 * 1024 * 100, backupCount=100
             )
-            error_handler.addFilter(lambda x: x.levelno == logging.TRACE or x.levelno >= logging.ERROR)
+            error_handler.addFilter(lambda x: x.levelno >= logging.ERROR and x.levelno != logging.TRACE)
             self.__log_handlers = [main_handler, debug_handler, error_handler]
         return self.__log_handlers
 
@@ -1411,9 +1443,9 @@ class Scanner:
                     self.verbose(f'Loaded module "{module_name}"')
                     continue
                 except Exception:
-                    self.warning(f"Failed to load module {module_class}")
+                    self.error(f"Failed to load module {module_class}")
             else:
-                self.warning(f'Failed to load unknown module "{module_name}"')
+                self.error(f'Failed to load unknown module "{module_name}"')
             failed.add(module_name)
         return loaded_modules, failed
 

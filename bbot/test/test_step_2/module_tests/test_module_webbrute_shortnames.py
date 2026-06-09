@@ -1,16 +1,14 @@
-from .base import ModuleTestBase, tempwordlist
+from .base import ModuleTestBase
 
 
 class TestWebBruteShortnames(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     module_name = "webbrute_shortnames"
-    test_wordlist = ["11111111", "administrator", "portal", "console", "junkword1", "zzzjunkword2", "directory"]
     config_overrides = {
         "modules": {
             "webbrute_shortnames": {
                 "find_common_prefixes": True,
                 "find_subwords": True,
-                "wordlist": tempwordlist(test_wordlist),
                 "max_predictions": 250,
             }
         }

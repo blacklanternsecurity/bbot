@@ -8,6 +8,7 @@ import orjson
 from bbot.core.helpers.misc import get_file_extension
 from bbot.core.helpers.validators import clean_url
 from bbot.modules.templates.subdomain_enum import subdomain_enum
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 def _parse_cdx_response(text):
@@ -27,14 +28,23 @@ class wayback(subdomain_enum):
         "created_date": "2022-04-01",
         "author": "@liquidsec",
     }
-    options = {"urls": False, "garbage_threshold": 10, "parameters": False, "archive": False, "max_records": 100000}
-    options_desc = {
-        "urls": "emit URLs in addition to DNS_NAMEs",
-        "garbage_threshold": "Dedupe similar urls if they are in a group of this size or higher (lower values == less garbage data)",
-        "parameters": "emit WEB_PARAMETER events for query parameters discovered in archived URLs (requires urls=true)",
-        "archive": "fetch archived versions of dead URLs from the Wayback Machine and emit HTTP_RESPONSE events (requires urls=true)",
-        "max_records": "Maximum number of URLs to fetch from the CDX API",
-    }
+
+    class Config(BaseModuleConfig):
+        urls: bool = Field(False, description="emit URLs in addition to DNS_NAMEs")
+        garbage_threshold: int = Field(
+            10,
+            description="Dedupe similar urls if they are in a group of this size or higher (lower values == less garbage data)",
+        )
+        parameters: bool = Field(
+            False,
+            description="emit WEB_PARAMETER events for query parameters discovered in archived URLs (requires urls=true)",
+        )
+        archive: bool = Field(
+            False,
+            description="fetch archived versions of dead URLs from the Wayback Machine and emit HTTP_RESPONSE events (requires urls=true)",
+        )
+        max_records: int = Field(100000, description="Maximum number of URLs to fetch from the CDX API")
+
     in_scope_only = True
 
     base_url = "http://web.archive.org"

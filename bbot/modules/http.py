@@ -6,6 +6,7 @@ import blasthttp
 
 from bbot.core.helpers.web.web import iter_batch_results
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class http(BaseModule):
@@ -18,18 +19,11 @@ class http(BaseModule):
         "author": "@liquidsec",
     }
 
-    options = {
-        "threads": 50,
-        "in_scope_only": True,
-        "max_response_size": 5242880,
-        "store_responses": False,
-    }
-    options_desc = {
-        "threads": "Number of concurrent requests",
-        "in_scope_only": "Only visit web resources that are in scope.",
-        "max_response_size": "Max response size in bytes",
-        "store_responses": "Save raw HTTP responses to scan folder",
-    }
+    class Config(BaseModuleConfig):
+        threads: int = Field(50, description="Number of concurrent requests")
+        in_scope_only: bool = Field(True, description="Only visit web resources that are in scope.")
+        max_response_size: int = Field(5242880, description="Max response size in bytes")
+        store_responses: bool = Field(False, description="Save raw HTTP responses to scan folder")
 
     scope_distance_modifier = 2
     _shuffle_incoming_queue = False
@@ -293,16 +287,10 @@ class http(BaseModule):
             )
             configs.append(config)
 
-        # Suppress redundant https probes when http already succeeded for the same
-        # (host, port). When probing an unknown port, we try both schemes; if http
-        # works, the port definitely speaks HTTP, and the https result is likely a
-        # proxy artifact (intercepting proxies like Burp terminate TLS themselves,
-        # making any https:// URL "succeed" regardless of whether the target really
-        # speaks TLS). Explicit URL/URL_UNVERIFIED events are never suppressed —
-        # only speculative OPEN_TCP_PORT probes.
-        #
-        # Streaming requires per-pair coordination: emit http immediately, defer
-        # https until http's outcome is known (or the stream ends).
+        # Suppress redundant https probes when http returned a real page (2xx) for
+        # the same (host, port). Only a 2xx counts as "http works" -- 3xx (often
+        # http-to-https redirects), 4xx (e.g. Cloudflare 400 on plain HTTP to TLS
+        # port), and 5xx do NOT suppress the https probe.
         http_succeeded = {}  # key -> bool, set when http result arrives
         deferred_https = {}  # key -> result, awaiting http verdict
 
@@ -326,7 +314,8 @@ class http(BaseModule):
             # Paired OPEN_TCP_PORT probe
             is_http = result.url == port_probes[key]["http"]
             if is_http:
-                http_succeeded[key] = result.success and result.response is not None and result.response.status != 0
+                status = result.response.status if result.response is not None else 0
+                http_succeeded[key] = result.success and 200 <= status < 300
                 await self._process_result(result, stdin[result.url])
                 # If https for this key arrived first and was buffered, resolve it now
                 pending = deferred_https.pop(key, None)
