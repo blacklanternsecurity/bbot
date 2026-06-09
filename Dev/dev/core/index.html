@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.b3_jhd2o.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.oenwm5ng.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1182,7 +1182,13 @@
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">215</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">216</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">217</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">218</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">BBOTCore</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">218</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">219</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">220</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">221</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">222</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">223</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">224</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">BBOTCore</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    This is the first thing that loads when you import BBOT.</span>
 
@@ -1204,7 +1210,13 @@
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_custom_config:</span> <span style="color: #E6EDF3">dict</span> <span style="color: #FF7B72; font-weight: bold">|</span> <span style="color: #79C0FF">None</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">None</span>
 
         <span style="color: #8B949E; font-style: italic"># bare minimum == logging</span>
-        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">logger</span>
+        <span style="color: #FF7B72">try</span><span style="color: #E6EDF3">:</span>
+            <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">logger</span>
+        <span style="color: #FF7B72">except</span> <span style="color: #E6EDF3">BBOTError</span> <span style="color: #FF7B72">as</span> <span style="color: #E6EDF3">e:</span>
+            <span style="color: #FF7B72">import</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">sys</span>
+
+            <span style="color: #E6EDF3">print(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"</span><span style="color: #79C0FF">\n</span><span style="color: #A5D6FF">[CRITICAL] {</span><span style="color: #E6EDF3">e</span><span style="color: #A5D6FF">}</span><span style="color: #79C0FF">\n</span><span style="color: #A5D6FF">"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">file</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">sys</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">stderr)</span>
+            <span style="color: #E6EDF3">sys</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">exit(</span><span style="color: #A5D6FF">1</span><span style="color: #E6EDF3">)</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">log</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">logging</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">getLogger(</span><span style="color: #A5D6FF">"bbot.core"</span><span style="color: #E6EDF3">)</span>
 
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_prep_multiprocessing()</span>
@@ -1455,14 +1467,14 @@
 <p>Return a semi-shallow copy of self. (<code>custom_config</code> is copied, but <code>default_config</code> stays the same)</p>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/core.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">170</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">171</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">172</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">173</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">174</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">175</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">176</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">177</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">copy</span><span style="color: #E6EDF3">(self):</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">176</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">177</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">178</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">179</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">180</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">181</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">182</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">183</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">copy</span><span style="color: #E6EDF3">(self):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Return a semi-shallow copy of self. (`custom_config` is copied, but `default_config` stays the same)</span>
 <span style="color: #A5D6FF">    """</span>
@@ -1484,9 +1496,9 @@
 <p>Merge a config dict into the custom config.</p>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/core.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">162</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">163</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">164</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">merge_custom</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">config):</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">168</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">169</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">170</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">merge_custom</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">config):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""Merge a config dict into the custom config."""</span>
     <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">custom_config</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">deep_merge(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">custom_config,</span> <span style="color: #E6EDF3">dict(config)</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">config</span> <span style="color: #FF7B72">else</span> <span style="color: #E6EDF3">{})</span>
 </code></pre></div></td></tr></table></div>
@@ -1503,9 +1515,9 @@
 <p>Merge a config dict into the default config.</p>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/core.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">166</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">167</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">168</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">merge_default</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">config):</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">172</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">173</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">174</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">merge_default</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">config):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""Merge a config dict into the default config."""</span>
     <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">default_config</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">deep_merge(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">default_config,</span> <span style="color: #E6EDF3">dict(config)</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">config</span> <span style="color: #FF7B72">else</span> <span style="color: #E6EDF3">{})</span>
 </code></pre></div></td></tr></table></div>
@@ -1527,18 +1539,18 @@ Module-level redaction uses the composite schema built lazily by
 (e.g. an unknown module), it passes through unchanged.</p>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/core.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">128</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">129</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">130</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">131</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">132</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">133</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">134</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">134</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">135</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">136</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">137</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">138</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">139</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">no_secrets_config</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">config):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">139</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">140</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">141</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">142</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">143</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">144</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">145</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">no_secrets_config</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">config):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""Return a copy of `config` with every `sensitive=True` field removed.</span>
 
 <span style="color: #A5D6FF">    Sensitivity is read from the per-field `json_schema_extra["sensitive"]`</span>
@@ -1566,15 +1578,15 @@ Module-level redaction uses the composite schema built lazily by
 into a public <code>bbot.yml</code> and a private <code>secrets.yml</code>.</p>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/core.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">141</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">142</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">143</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">144</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">145</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">146</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">147</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">147</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">148</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">149</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">secrets_only_config</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">config):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">149</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">150</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">151</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">152</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">153</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">154</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">155</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">secrets_only_config</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">config):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""Return a copy of `config` containing only `sensitive=True` fields.</span>
 
 <span style="color: #A5D6FF">    Inverse of `no_secrets_config()`. Useful for splitting a merged config</span>
