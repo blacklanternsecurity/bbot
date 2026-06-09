@@ -289,8 +289,23 @@ parameter_blacklist:
   - cf_clearance
   - _abck
   - bm_sz
+  - bm_sv
   - ak_bmsc
   - f5_cspm
+  # CSRF / Anti-Forgery tokens
+  - authenticity_token
+  - csrfmiddlewaretoken
+  - __RequestVerificationToken
+  - antiforgerytoken
+  - __csrf_magic
+  - _wpnonce
+  # ASP.NET session/identity cookies
+  - .ASPXANONYMOUS
+  - .ASPXAUTH
+  # PKCE (Proof Key for Code Exchange)
+  - code_verifier
+  - code_challenge
+  # Analytics
   - _ga
   - _gid
   - _gat

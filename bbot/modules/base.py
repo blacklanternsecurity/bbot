@@ -868,13 +868,13 @@ class BaseModule:
         if self.target_only and "target" not in event.tags:
             return False, "it did not meet target_only filter criteria"
 
-        # limit js URLs to modules that opt in to receive them
-        if (not self.accept_url_special) and event.type.startswith("URL"):
+        # limit events with special URL extensions (e.g. .js) to modules that opt in
+        if not self.accept_url_special:
             extension = getattr(event, "url_extension", "")
             if extension in self.scan.url_extension_special:
                 return (
                     False,
-                    f"it is a special URL (extension {extension}) but the module does not opt in to receive special URLs",
+                    f"it has a special URL extension ({extension}) but the module does not opt in to receive special URLs",
                 )
 
         return True, "precheck succeeded"

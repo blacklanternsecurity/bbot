@@ -1,5 +1,6 @@
 from bbot.errors import HttpCompareError
 from bbot.modules.base import BaseModule
+from bbot.core.helpers.misc import get_waf_strings
 
 """
 Port of https://github.com/iamj0ker/bypass-403/ and https://portswigger.net/bappstore/444407b96d9c4de0adb7aed89e826122
@@ -80,6 +81,10 @@ class bypass403(BaseModule):
     meta = {"description": "Check 403 pages for common bypasses", "created_date": "2022-07-05", "author": "@liquidsec"}
     in_scope_only = True
 
+    async def setup(self):
+        self.waf_yara_rules = self.helpers.yara.compile_strings(get_waf_strings(), nocase=True)
+        return True
+
     async def do_checks(self, compare_helper, event, collapse_threshold):
         results = set()
         error_count = 0
@@ -105,10 +110,10 @@ class bypass403(BaseModule):
 
             # In some cases WAFs will respond with a 200 code which causes a false positive
             if subject_response is not None:
-                for waf_string in self.helpers.get_waf_strings():
-                    if waf_string in subject_response.text:
-                        self.debug("Rejecting result based on presence of WAF string")
-                        return
+                waf_matches = await self.helpers.yara.match(self.waf_yara_rules, subject_response.text)
+                if waf_matches:
+                    self.debug("Rejecting result based on presence of WAF string")
+                    return
 
             if match is False:
                 if str(subject_response.status_code)[0] != "4":
