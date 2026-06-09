@@ -71,6 +71,30 @@ async def test_dns_engine(bbot_scanner):
 
 
 @pytest.mark.asyncio
+async def test_extract_targets_spf_ips(bbot_scanner):
+    """SPF TXT records: extract IPs and CIDRs (ip4:/ip6:) alongside hostnames."""
+    scan = bbot_scanner()
+    await scan._prep()
+    await scan.helpers.dns._mock_dns(
+        {
+            "evilcorp.com": {
+                "TXT": ['"v=spf1 ip4:1.2.3.4 ip4:5.6.7.0/24 ip6:2001:db8::/48 include:cloudprovider.com -all"'],
+            },
+        }
+    )
+    response = await scan.helpers.dns.resolve_full("evilcorp.com", "TXT")
+    extracted = set()
+    for ans in response.response.answers:
+        extracted.update(extract_targets(ans))
+    hosts = {host for _, host in extracted}
+    assert "1.2.3.4" in hosts, "single IPv4 from ip4: mechanism not extracted"
+    assert "5.6.7.0/24" in hosts, "IPv4 CIDR from ip4: mechanism not extracted"
+    assert "2001:db8::/48" in hosts, "IPv6 CIDR from ip6: mechanism not extracted"
+    assert "cloudprovider.com" in hosts, "include: hostname not extracted"
+    assert "5.6.7.0" not in hosts, "bare network address must not be emitted alongside its CIDR"
+
+
+@pytest.mark.asyncio
 async def test_dns_resolution(bbot_scanner):
     """Multi-rdtype resolution + SPF affiliate tagging end-to-end."""
     scan = bbot_scanner()
