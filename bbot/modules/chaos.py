@@ -38,10 +38,10 @@ def _collapse(subdomains, domain, query):
         if full.endswith(suffix):
             fqdns.append(full)
 
-    parent_children = defaultdict(list)
+    parent_children = defaultdict(set)
     for name in fqdns:
         _, parent = name.split(".", 1)
-        parent_children[parent].append(name)
+        parent_children[parent].add(name)
 
     out = set()
     capped = []

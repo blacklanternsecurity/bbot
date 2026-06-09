@@ -133,3 +133,41 @@ class TestChaosApexFlood(ModuleTestBase):
             f"Direct-apex subdomains should not be collapsed; got {emitted}"
         )
         assert "realsub.cluster.blacklanternsecurity.com" in emitted, f"Nested subdomain should survive; got {emitted}"
+
+
+class TestChaosDuplicateInflation(ModuleTestBase):
+    """Duplicate entries from chaos must not inflate the per-parent cap count.
+
+    A parent with fewer unique children than PER_PARENT_CAP must not be
+    collapsed just because chaos returned the same names multiple times.
+    """
+
+    modules_overrides = ["chaos"]
+    config_overrides = {"modules": {"chaos": {"api_key": "asdf"}}}
+
+    async def setup_before_prep(self, module_test):
+        module_test.blasthttp_mock.add_response(
+            url="https://dns.projectdiscovery.io/dns/example.com",
+            match_headers={"Authorization": "asdf"},
+            json={"domain": "example.com", "subdomains": 65},
+        )
+        # 250 unique children (under cap=300), each sent twice -> 500 raw entries.
+        # Cap must count unique, not raw, so none should be collapsed.
+        uniq = [f"svc{i}.cluster" for i in range(250)]
+        flood = uniq + uniq
+        module_test.blasthttp_mock.add_response(
+            url="https://dns.projectdiscovery.io/dns/blacklanternsecurity.com/subdomains",
+            match_headers={"Authorization": "asdf"},
+            json={"domain": "blacklanternsecurity.com", "subdomains": flood},
+        )
+
+    def check(self, module_test, events):
+        assert module_test.scan.modules["chaos"].errored is False
+        emitted = [e.data for e in events if e.module and getattr(e.module, "name", "") == "chaos"]
+        svc = [d for d in emitted if d.startswith("svc")]
+        assert len(svc) == 250, (
+            f"all 250 unique children should survive (cap must count unique, not duplicates); got {len(svc)}"
+        )
+        assert "cluster.blacklanternsecurity.com" not in emitted, (
+            "parent must not be collapsed when unique child count is under the cap"
+        )
