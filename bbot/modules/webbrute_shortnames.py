@@ -2,62 +2,61 @@ import pickle
 import re
 import random
 import string
+from typing import Union
 
-from bbot.modules.ffuf import ffuf
+from bbot.modules.webbrute import webbrute
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
-class ffuf_shortnames(ffuf):
+class webbrute_shortnames(webbrute):
     watched_events = ["URL_HINT"]
     produced_events = ["URL_UNVERIFIED"]
     flags = ["loud", "active", "iis-shortnames", "web-heavy"]
     meta = {
-        "description": "Use ffuf in combination IIS shortnames",
+        "description": "Brute-force IIS shortnames using ML-predicted wordlists",
         "created_date": "2022-07-05",
         "author": "@liquidsec",
     }
 
-    options = {
-        "wordlist_extensions": "",  # default is defined within setup function
-        "max_depth": 1,
-        "version": "2.0.0",
-        "extensions": "",
-        "ignore_redirects": True,
-        "find_common_prefixes": False,
-        "find_delimiters": True,
-        "find_subwords": False,
-        "max_predictions": 250,
-        "rate": 0,
-    }
-
-    options_desc = {
-        "wordlist_extensions": "Specify wordlist to use when making extension lists",
-        "max_depth": "the maximum directory depth to attempt to solve",
-        "version": "ffuf version",
-        "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
-        "ignore_redirects": "Explicitly ignore redirects (301,302)",
-        "find_common_prefixes": "Attempt to automatically detect common prefixes and make additional ffuf runs against them",
-        "find_delimiters": "Attempt to detect common delimiters and make additional ffuf runs against them",
-        "find_subwords": "Attempt to detect subwords and make additional ffuf runs against them",
-        "max_predictions": "The maximum number of predictions to generate per shortname prefix",
-        "rate": "Rate of requests per second (default: 0)",
-    }
+    class Config(BaseModuleConfig):
+        wordlist_extensions: Union[str, list[str]] = Field(
+            "",
+            description="Specify wordlist to use when making extension lists. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
+        )
+        max_depth: int = Field(1, description="the maximum directory depth to attempt to solve")
+        extensions: str = Field(
+            "", description="Optionally include a list of extensions to extend the keyword with (comma separated)"
+        )
+        find_common_prefixes: bool = Field(
+            False,
+            description="Attempt to automatically detect common prefixes and make additional runs against them",
+        )
+        find_delimiters: bool = Field(
+            True, description="Attempt to detect common delimiters and make additional runs against them"
+        )
+        find_subwords: bool = Field(
+            False, description="Attempt to detect subwords and make additional runs against them"
+        )
+        max_predictions: int = Field(
+            250, description="The maximum number of predictions to generate per shortname prefix"
+        )
+        rate: int = Field(0, description="Rate of requests per second (default: 0)")
 
     deps_pip = ["numpy"]
-    deps_common = ["ffuf"]
     in_scope_only = True
 
     supplementary_words = ["html", "ajax", "xml", "json", "api"]
 
-    def generate_templist(self, hint, shortname_type):
-        virtual_file = set()  # Use a set to avoid duplicates
+    async def generate_templist(self, hint, shortname_type):
+        words = await self.helpers.run_in_executor_cpu(self._generate_templist_sync, hint, shortname_type)
+        return words, len(words)
 
+    def _generate_templist_sync(self, hint, shortname_type):
+        words = set()
         for prediction, score in self.predict(hint, self.max_predictions, model=shortname_type):
-            prediction_lower = prediction.lower()  # Convert to lowercase
-            self.debug(f"Got prediction: [{prediction_lower}] from prefix [{hint}] with score [{score}]")
-            virtual_file.add(prediction_lower)  # Add to set to ensure uniqueness
-
-        virtual_file.add(self.canary.lower())  # Ensure canary is also lowercase
-        return self.helpers.tempfile(list(virtual_file), pipe=False), len(virtual_file)
+            words.add(prediction.lower())
+        words.add(self.canary.lower())
+        return list(words)
 
     def predict(self, prefix, n=25, model="endpoint"):
         predictor_name = f"{model}_predictor"
@@ -96,12 +95,13 @@ class ffuf_shortnames(ffuf):
         return True
 
     async def setup(self):
-        self.proxy = self.scan.web_config.get("http_proxy", "")
         self.canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
-        self.ignore_redirects = self.config.get("ignore_redirects")
+        self.blast_client = self.helpers.blasthttp
+        self.waf_yara_rules = self.helpers.yara.compile_strings(self.helpers.get_waf_strings(), nocase=True)
         self.max_predictions = self.config.get("max_predictions")
         self.find_subwords = self.config.get("find_subwords")
-        self.rate = self.config.get("rate", 0)
+        self.rate = self.config.get("rate", 0) or None
+        self.concurrency = 50
 
         class MinimalWordPredictor:
             def __init__(self):
@@ -126,7 +126,7 @@ class ffuf_shortnames(ffuf):
                     return MinimalWordPredictor
                 return super().find_class(module, name)
 
-        self.info("Loading ffuf_shortnames prediction models, could take a while if not cached")
+        self.info("Loading shortname prediction models, could take a while if not cached")
         endpoint_model = await self.helpers.wordlist(
             "https://raw.githubusercontent.com/blacklanternsecurity/wordpredictor/refs/heads/main/trained_models/endpoints.bin"
         )
@@ -146,7 +146,7 @@ class ffuf_shortnames(ffuf):
 
         self.subword_list = []
         if self.find_subwords:
-            self.debug("Acquiring ffuf_shortnames subword list")
+            self.debug("Acquiring shortname subword list")
             subwords = await self.helpers.wordlist(
                 "https://raw.githubusercontent.com/nltk/nltk_data/refs/heads/gh-pages/packages/corpora/words.zip",
                 zip=True,
@@ -187,7 +187,7 @@ class ffuf_shortnames(ffuf):
 
     async def filter_event(self, event):
         if "iis-magic-url" in event.tags:
-            return False, "iis-magic-url URL_HINTs are not solvable by ffuf_shortnames"
+            return False, "iis-magic-url URL_HINTs are not solvable by webbrute_shortnames"
         if event.parent.type != "URL":
             return False, "its parent event is not of type URL"
         return True
@@ -208,13 +208,12 @@ class ffuf_shortnames(ffuf):
         elif "shortname-directory" in event.tags:
             shortname_type = "directory"
         else:
-            self.error("ffuf_shortnames received URL_HINT without proper 'shortname-' tag")
+            self.error("webbrute_shortnames received URL_HINT without proper 'shortname-' tag")
             return
 
         host = f"{event.parent.parsed_url.scheme}://{event.parent.parsed_url.netloc}/"
         if host not in self.per_host_collection.keys():
             self.per_host_collection[host] = [(filename_hint, event.parent.url)]
-
         else:
             self.per_host_collection[host].append((filename_hint, event.parent.url))
 
@@ -227,19 +226,16 @@ class ffuf_shortnames(ffuf):
             used_extensions = self.build_extension_list(event)
 
         if len(filename_hint) == 6:
-            tempfile, tempfile_len = self.generate_templist(filename_hint, shortname_type)
-            self.verbose(
-                f"generated temp word list of size [{str(tempfile_len)}] for filename hint: [{filename_hint}]"
-            )
-
+            words, words_len = await self.generate_templist(filename_hint, shortname_type)
+            self.verbose(f"generated word list of size [{str(words_len)}] for filename hint: [{filename_hint}]")
         else:
-            tempfile = self.helpers.tempfile([filename_hint], pipe=False)
-            tempfile_len = 1
+            words = [filename_hint]
+            words_len = 1
 
-        if tempfile_len > 0:
+        if words_len > 0:
             if shortname_type == "endpoint":
                 for ext in used_extensions:
-                    async for r in self.execute_ffuf(tempfile, root_url, suffix=f".{ext}"):
+                    async for r in self.execute_fuzz(words, root_url, suffix=f".{ext}"):
                         await self.emit_event(
                             r["url"],
                             "URL_UNVERIFIED",
@@ -249,7 +245,7 @@ class ffuf_shortnames(ffuf):
                         )
 
             elif shortname_type == "directory":
-                async for r in self.execute_ffuf(tempfile, root_url, exts=["/"]):
+                async for r in self.execute_fuzz(words, root_url, exts=["/"]):
                     r_url = f"{r['url'].rstrip('/')}/"
                     await self.emit_event(
                         r_url,
@@ -265,15 +261,15 @@ class ffuf_shortnames(ffuf):
                 if delimiter_r:
                     delimiter, prefix, partial_hint = delimiter_r
                     self.verbose(f"Detected delimiter [{delimiter}] in hint [{filename_hint}]")
-                    tempfile, tempfile_len = self.generate_templist(partial_hint, "directory")
-                    ffuf_prefix = f"{prefix}{delimiter}"
-                    async for r in self.execute_ffuf(tempfile, root_url, prefix=ffuf_prefix, exts=["/"]):
+                    words, words_len = await self.generate_templist(partial_hint, "directory")
+                    fuzz_prefix = f"{prefix}{delimiter}"
+                    async for r in self.execute_fuzz(words, root_url, prefix=fuzz_prefix, exts=["/"]):
                         await self.emit_event(
                             r["url"],
                             "URL_UNVERIFIED",
                             parent=event,
                             tags=[f"status-{r['status']}"],
-                            context=f'{{module}} brute-forced directories with detected prefix "{ffuf_prefix}" and found {{event.type}}: {{event.pretty_string}}',
+                            context=f'{{module}} brute-forced directories with detected prefix "{fuzz_prefix}" and found {{event.type}}: {{event.pretty_string}}',
                         )
 
             elif "shortname-endpoint" in event.tags:
@@ -282,23 +278,23 @@ class ffuf_shortnames(ffuf):
                     if delimiter_r:
                         delimiter, prefix, partial_hint = delimiter_r
                         self.verbose(f"Detected delimiter [{delimiter}] in hint [{filename_hint}]")
-                        tempfile, tempfile_len = self.generate_templist(partial_hint, "endpoint")
-                        ffuf_prefix = f"{prefix}{delimiter}"
-                        async for r in self.execute_ffuf(tempfile, root_url, prefix=ffuf_prefix, suffix=f".{ext}"):
+                        words, words_len = await self.generate_templist(partial_hint, "endpoint")
+                        fuzz_prefix = f"{prefix}{delimiter}"
+                        async for r in self.execute_fuzz(words, root_url, prefix=fuzz_prefix, suffix=f".{ext}"):
                             await self.emit_event(
                                 r["url"],
                                 "URL_UNVERIFIED",
                                 parent=event,
                                 tags=[f"status-{r['status']}"],
-                                context=f'{{module}} brute-forced {ext.upper()} files with detected prefix "{ffuf_prefix}" and found {{event.type}}: {{event.pretty_string}}',
+                                context=f'{{module}} brute-forced {ext.upper()} files with detected prefix "{fuzz_prefix}" and found {{event.type}}: {{event.pretty_string}}',
                             )
 
         if self.config.get("find_subwords"):
             subword, suffix = self.find_subword(filename_hint)
             if subword:
                 if "shortname-directory" in event.tags:
-                    tempfile, tempfile_len = self.generate_templist(suffix, "directory")
-                    async for r in self.execute_ffuf(tempfile, root_url, prefix=subword, exts=["/"]):
+                    words, words_len = await self.generate_templist(suffix, "directory")
+                    async for r in self.execute_fuzz(words, root_url, prefix=subword, exts=["/"]):
                         await self.emit_event(
                             r["url"],
                             "URL_UNVERIFIED",
@@ -308,8 +304,8 @@ class ffuf_shortnames(ffuf):
                         )
                 elif "shortname-endpoint" in event.tags:
                     for ext in used_extensions:
-                        tempfile, tempfile_len = self.generate_templist(suffix, "endpoint")
-                        async for r in self.execute_ffuf(tempfile, root_url, prefix=subword, suffix=f".{ext}"):
+                        words, words_len = await self.generate_templist(suffix, "endpoint")
+                        async for r in self.execute_fuzz(words, root_url, prefix=subword, suffix=f".{ext}"):
                             await self.emit_event(
                                 r["url"],
                                 "URL_UNVERIFIED",
@@ -337,21 +333,21 @@ class ffuf_shortnames(ffuf):
                             elif "shortname-directory" in self.shortname_to_event[hint].tags:
                                 shortname_type = "directory"
                             else:
-                                self.error("ffuf_shortnames received URL_HINT without proper 'shortname-' tag")
+                                self.error("webbrute_shortnames received URL_HINT without proper 'shortname-' tag")
                                 continue
 
                             partial_hint = hint[len(prefix) :]
 
                             # safeguard to prevent loading the entire wordlist
                             if len(partial_hint) > 0:
-                                tempfile, tempfile_len = self.generate_templist(partial_hint, shortname_type)
+                                words, words_len = await self.generate_templist(partial_hint, shortname_type)
 
                                 if "shortname-directory" in self.shortname_to_event[hint].tags:
                                     self.verbose(
                                         f"Running common prefix check for URL_HINT: {hint} with prefix: {prefix} and partial_hint: {partial_hint}"
                                     )
 
-                                    async for r in self.execute_ffuf(tempfile, url, prefix=prefix, exts=["/"]):
+                                    async for r in self.execute_fuzz(words, url, prefix=prefix, exts=["/"]):
                                         await self.emit_event(
                                             r["url"],
                                             "URL_UNVERIFIED",
@@ -366,9 +362,7 @@ class ffuf_shortnames(ffuf):
                                         self.verbose(
                                             f"Running common prefix check for URL_HINT: {hint} with prefix: {prefix}, extension: .{ext}, and partial_hint: {partial_hint}"
                                         )
-                                        async for r in self.execute_ffuf(
-                                            tempfile, url, prefix=prefix, suffix=f".{ext}"
-                                        ):
+                                        async for r in self.execute_fuzz(words, url, prefix=prefix, suffix=f".{ext}"):
                                             await self.emit_event(
                                                 r["url"],
                                                 "URL_UNVERIFIED",

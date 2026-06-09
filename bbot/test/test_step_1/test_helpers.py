@@ -963,7 +963,7 @@ async def test_parameter_validation(helpers):
 async def test_rm_temp_dir_at_exit(helpers):
     from bbot.scanner import Scanner
 
-    scan = Scanner("127.0.0.1", modules=["httpx"])
+    scan = Scanner("127.0.0.1", modules=["http"])
     await scan._prep()
 
     temp_dir = scan.home / "temp"
@@ -1134,3 +1134,39 @@ def test_simhash_similarity(helpers):
 
     # Most importantly, verify the ordering is correct
     assert identical_similarity > slight_similarity > moderate_similarity > very_similarity > complete_similarity
+
+
+def test_clean_dns_record():
+    from bbot.core.helpers.misc import clean_dns_record
+
+    assert clean_dns_record("www.example.com.") == "www.example.com"
+    assert clean_dns_record("www.example.com") == "www.example.com"
+    # dnspython to_text() can produce quoted strings for certain record types
+    assert clean_dns_record('"d1jwhzvlef5tfb.example.com"') == "d1jwhzvlef5tfb.example.com"
+    assert clean_dns_record("'d1jwhzvlef5tfb.example.com'") == "d1jwhzvlef5tfb.example.com"
+    # quotes + trailing dot
+    assert clean_dns_record('"d1jwhzvlef5tfb.example.com."') == "d1jwhzvlef5tfb.example.com"
+
+
+@pytest.mark.asyncio
+async def test_asn_helper_passes_api_key(bbot_scanner, monkeypatch):
+    """ASNHelper should forward the configured bbot_io_api_key to ASNDB."""
+    captured = {}
+
+    class FakeASNDB:
+        def __init__(self, bbot_io_api_key=None, verify=True):
+            captured["bbot_io_api_key"] = bbot_io_api_key
+            captured["verify"] = verify
+
+    import asndb
+
+    monkeypatch.setattr(asndb, "ASNDB", FakeASNDB)
+
+    scan = bbot_scanner("8.8.8.8", config={"bbot_io_api_key": "test-key-xyz"})
+    _ = scan.helpers.asn.client
+    assert captured["bbot_io_api_key"] == "test-key-xyz"
+
+    captured.clear()
+    scan2 = bbot_scanner("8.8.8.8")
+    _ = scan2.helpers.asn.client
+    assert captured["bbot_io_api_key"] is None

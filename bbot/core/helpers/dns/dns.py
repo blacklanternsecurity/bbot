@@ -412,7 +412,7 @@ class DNSHelper:
                     return True
 
         if time.time() - self._last_connectivity_warning > interval:
-            self.log.warning("DNS queries are failing, please check your internet connection")
+            self.log.error("DNS queries are failing, please check your internet connection")
             self._last_connectivity_warning = time.time()
         self._errors.clear()
         return False

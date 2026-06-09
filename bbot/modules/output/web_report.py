@@ -1,20 +1,24 @@
 from bbot.modules.output.base import BaseOutputModule
 import markdown
 import html
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class web_report(BaseOutputModule):
-    watched_events = ["URL", "TECHNOLOGY", "FINDING", "VHOST"]
+    watched_events = ["URL", "TECHNOLOGY", "FINDING"]
     meta = {
         "description": "Create a markdown report with web assets",
         "created_date": "2023-02-08",
         "author": "@liquidsec",
     }
-    options = {
-        "output_file": "",
-        "css_theme_file": "https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown.min.css",
-    }
-    options_desc = {"output_file": "Output to file", "css_theme_file": "CSS theme URL for HTML output"}
+
+    class Config(BaseModuleConfig):
+        output_file: str = Field("", description="Output to file")
+        css_theme_file: str = Field(
+            "https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown.min.css",
+            description="CSS theme URL for HTML output",
+        )
+
     deps_pip = ["markdown~=3.4.3"]
 
     async def setup(self):

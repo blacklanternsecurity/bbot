@@ -25,7 +25,8 @@ class TestNats(ModuleTestBase):
         # Wait for NATS to be ready by checking the port
         await self.wait_for_port_open(4222)
 
-        # Connect to NATS
+    async def setup_after_prep(self, module_test):
+        # Connect to NATS (nats-py installed by dependency system during _prep)
         import nats
 
         try:

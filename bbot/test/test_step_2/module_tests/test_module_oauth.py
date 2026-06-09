@@ -166,7 +166,7 @@ class TestOAUTH(ModuleTestBase):
         await module_test.mock_dns({"evilcorp.com": {"A": ["127.0.0.1"]}})
 
         # azure_tenant mocks
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://azmap.dev/api/tenant?domain=evilcorp.com&extract=true",
             json={
                 "tenant_id": "cc74fc12-4142-400e-a653-f98bdeadbeef",
@@ -174,15 +174,15 @@ class TestOAUTH(ModuleTestBase):
                 "email_domains": ["evilcorp.com"],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://odc.officeapps.live.com/odc/v2.1/federationprovider?domain=evilcorp.com",
             json={},
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://login.microsoftonline.com/evilcorp.com/.well-known/openid-configuration",
             json={},
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://login.microsoftonline.com/common/GetCredentialType",
             method="POST",
             json={
@@ -192,25 +192,25 @@ class TestOAUTH(ModuleTestBase):
                 "EstsProperties": {},
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://login.microsoftonline.com/common/userrealm/test@evilcorp.com?api-version=2.0",
             json={},
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://mta-sts.evilcorp.com/.well-known/mta-sts.txt",
             status_code=404,
         )
 
         # oauth module mocks
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://login.windows.net/evilcorp.com/.well-known/openid-configuration",
             json=self.openid_config_azure,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://evilcorp.okta.com/.well-known/openid-configuration",
             json=self.openid_config_okta,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://login.windows.net/cc74fc12-4142-400e-a653-f98bdeadbeef/oauth2/token",
             json={
                 "error": "invalid_grant",
@@ -223,7 +223,7 @@ class TestOAUTH(ModuleTestBase):
             },
             status_code=400,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://evilcorp.okta.com/oauth2/v1/token",
             json={
                 "errorCode": "invalid_client",

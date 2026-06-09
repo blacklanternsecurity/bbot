@@ -5,7 +5,7 @@ class TestVirusTotal(ModuleTestBase):
     config_overrides = {"modules": {"virustotal": {"api_key": "asdf"}}}
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://www.virustotal.com/api/v3/domains/blacklanternsecurity.com/subdomains",
             json={
                 "meta": {"count": 25, "cursor": "eyJsaW1pdCI6IDEwLCAib2Zmc2V0IjogMTB9"},

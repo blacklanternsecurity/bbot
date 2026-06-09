@@ -1,4 +1,5 @@
 from bbot.modules.templates.subdomain_enum import subdomain_enum
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class pgp(subdomain_enum):
@@ -10,15 +11,17 @@ class pgp(subdomain_enum):
         "created_date": "2022-08-10",
         "author": "@TheTechromancer",
     }
-    options = {
-        "search_urls": [
-            "https://keyserver.ubuntu.com/pks/lookup?fingerprint=on&op=vindex&search=<query>",
-            "http://the.earth.li:11371/pks/lookup?fingerprint=on&op=vindex&search=<query>",
-            "https://pgpkeys.eu/pks/lookup?search=<query>&op=index",
-            "https://pgp.mit.edu/pks/lookup?search=<query>&op=index",
-        ]
-    }
-    options_desc = {"search_urls": "PGP key servers to search"}
+
+    class Config(BaseModuleConfig):
+        search_urls: list[str] = Field(
+            [
+                "https://keyserver.ubuntu.com/pks/lookup?fingerprint=on&op=vindex&search=<query>",
+                "http://the.earth.li:11371/pks/lookup?fingerprint=on&op=vindex&search=<query>",
+                "https://pgpkeys.eu/pks/lookup?search=<query>&op=index",
+                "https://pgp.mit.edu/pks/lookup?search=<query>&op=index",
+            ],
+            description="PGP key servers to search",
+        )
 
     async def handle_event(self, event):
         query = self.make_query(event)
@@ -37,7 +40,7 @@ class pgp(subdomain_enum):
         results = set()
         urls = self.config.get("search_urls", [])
         urls = [url.replace("<query>", self.helpers.quote(query)) for url in urls]
-        async for url, response in self.helpers.request_batch(urls):
+        async for url, response in self.helpers.request_batch_stream(urls):
             keyserver = self.helpers.urlparse(url).netloc
             if response is not None:
                 for email in await self.helpers.re.extract_emails(response.text):

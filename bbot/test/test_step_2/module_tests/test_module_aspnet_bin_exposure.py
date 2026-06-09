@@ -4,16 +4,7 @@ import re
 
 class TestAspnetBinExposure(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "aspnet_bin_exposure"]
-    config_overrides = {
-        "modules": {
-            "aspnet_bin_exposure": {
-                "test_dlls": [
-                    "Newtonsoft.Json.dll",
-                ]
-            }
-        }
-    }
+    modules_overrides = ["http", "aspnet_bin_exposure"]
 
     async def setup_before_prep(self, module_test):
         # Simulate successful DLL exposure

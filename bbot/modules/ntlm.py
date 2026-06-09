@@ -1,5 +1,6 @@
 from bbot.errors import NTLMError
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 ntlm_discovery_endpoints = [
     "",
@@ -74,8 +75,9 @@ class ntlm(BaseModule):
         "created_date": "2022-07-25",
         "author": "@liquidsec",
     }
-    options = {"try_all": False}
-    options_desc = {"try_all": "Try every NTLM endpoint"}
+
+    class Config(BaseModuleConfig):
+        try_all: bool = Field(False, description="Try every NTLM endpoint")
 
     in_scope_only = True
 
@@ -96,10 +98,9 @@ class ntlm(BaseModule):
                 urls.add(f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/{endpoint}")
 
         num_urls = len(urls)
-        agen = self.helpers.request_batch(
+        async for url, response in self.helpers.request_batch_stream(
             urls, headers=NTLM_test_header, allow_redirects=False, timeout=self.http_timeout
-        )
-        async for url, response in agen:
+        ):
             ntlm_resp = response.headers.get("WWW-Authenticate", "")
             if not ntlm_resp:
                 continue
@@ -109,7 +110,6 @@ class ntlm(BaseModule):
                 if not ntlm_resp_decoded:
                     continue
 
-                await agen.aclose()
                 self.found.add(found_hash)
                 fqdn = ntlm_resp_decoded.get("FQDN", "")
                 await self.emit_event(

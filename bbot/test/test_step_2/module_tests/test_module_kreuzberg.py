@@ -7,7 +7,7 @@ from ...bbot_fixtures import *
 
 class TestKreuzberg(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["kreuzberg", "filedownload", "httpx", "excavate", "speculate"]
+    modules_overrides = ["kreuzberg", "filedownload", "http", "excavate", "speculate"]
     config_overrides = {
         "web": {
             "spider_distance": 2,

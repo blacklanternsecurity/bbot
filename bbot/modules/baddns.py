@@ -3,6 +3,8 @@ from baddns.lib.loader import load_signatures
 from .base import BaseModule
 
 import logging
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig, SeverityLiteral, ConfidenceLiteral
 
 SEVERITY_LEVELS = ("INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL")
 CONFIDENCE_LEVELS = ("UNKNOWN", "LOW", "MEDIUM", "HIGH", "CONFIRMED")
@@ -45,15 +47,20 @@ class baddns(BaseModule):
         "created_date": "2024-01-18",
         "author": "@liquidsec",
     }
-    options = {"custom_nameservers": [], "min_severity": "LOW", "min_confidence": "MEDIUM", "enabled_submodules": []}
-    options_desc = {
-        "custom_nameservers": "Force BadDNS to use a list of custom nameservers",
-        "min_severity": "Minimum severity to emit (INFO, LOW, MEDIUM, HIGH, CRITICAL)",
-        "min_confidence": "Minimum confidence to emit (UNKNOWN, LOW, MEDIUM, HIGH, CONFIRMED)",
-        "enabled_submodules": "A list of submodules to enable. Empty list (default) enables CNAME, TXT and MX Only",
-    }
+
+    class Config(BaseModuleConfig):
+        custom_nameservers: list[str] = Field(
+            default_factory=list, description="Force BadDNS to use a list of custom nameservers"
+        )
+        min_severity: SeverityLiteral = Field("LOW", description="Minimum severity to emit")
+        min_confidence: ConfidenceLiteral = Field("MEDIUM", description="Minimum confidence to emit")
+        enabled_submodules: list[str] = Field(
+            default_factory=list,
+            description="A list of submodules to enable. Empty list (default) enables CNAME, TXT and MX Only",
+        )
+
     module_threads = 8
-    deps_pip = ["baddns~=2.1.0"]
+    deps_pip = ["baddns~=2.3.0"]
 
     def select_modules(self):
         selected_submodules = []
@@ -95,14 +102,13 @@ class baddns(BaseModule):
         self.custom_nameservers = self.config.get("custom_nameservers", []) or None
         if self.custom_nameservers:
             self.custom_nameservers = self.helpers.chain_lists(self.custom_nameservers)
-        min_severity = self.config.get("min_severity", "LOW").upper()
-        min_confidence = self.config.get("min_confidence", "MEDIUM").upper()
+        min_severity = self.config.get("min_severity").upper()
+        min_confidence = self.config.get("min_confidence").upper()
+        # guard the unvalidated programmatic path (Scanner(config=...) skips validation)
         if min_severity not in SEVERITY_LEVELS:
-            self.warning(f"Invalid min_severity: {min_severity}, defaulting to LOW")
-            min_severity = "LOW"
+            return False, f"Invalid min_severity {min_severity!r}; must be one of {', '.join(SEVERITY_LEVELS)}"
         if min_confidence not in CONFIDENCE_LEVELS:
-            self.warning(f"Invalid min_confidence: {min_confidence}, defaulting to MEDIUM")
-            min_confidence = "MEDIUM"
+            return False, f"Invalid min_confidence {min_confidence!r}; must be one of {', '.join(CONFIDENCE_LEVELS)}"
         self._min_sev_idx = SEVERITY_LEVELS.index(min_severity)
         self._min_conf_idx = CONFIDENCE_LEVELS.index(min_confidence)
         self.signatures = load_signatures()
@@ -130,25 +136,11 @@ class baddns(BaseModule):
             self.warning(f"Task for {module_instance} raised an error: {e}")
             return module_instance, None
 
-    def _new_http_client(self, *args, **kwargs):
-        """Create a non-cached HTTP client for baddns submodules.
-
-        baddns submodules close their HTTP clients during cleanup, so we can't
-        use the caching ``web.AsyncClient`` factory — that would let one
-        submodule close a client that another submodule is still using.
-
-        TODO: revisit this when we switch to blasthttp — the caching/lifecycle
-        model will be different and this workaround may no longer be needed.
-        """
-        from bbot.core.helpers.web.client import BBOTAsyncClient
-
-        return BBOTAsyncClient.from_config(self.scan.config, self.scan.target, *args, persist_cookies=False, **kwargs)
-
     async def handle_event(self, event):
         coroutines = []
         for ModuleClass in self.select_modules():
             kwargs = {
-                "http_client_class": self._new_http_client,
+                "http_client": self.helpers.blasthttp,
                 "dns_client": self.scan.helpers.dns.blastdns,
                 "custom_nameservers": self.custom_nameservers,
                 "signatures": self.signatures,

@@ -1,4 +1,5 @@
 from bbot.modules.base import BaseInterceptModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class portfilter(BaseInterceptModule):
@@ -9,17 +10,15 @@ class portfilter(BaseInterceptModule):
         "created_date": "2025-01-06",
         "author": "@TheTechromancer",
     }
-    options = {
-        "cdn_tags": "cdn,waf",
-        "allowed_cdn_ports": "80,443",
-    }
-    options_desc = {
-        "cdn_tags": "Comma-separated list of tags to skip, e.g. 'cdn,waf'",
-        "allowed_cdn_ports": "Comma-separated list of ports that are allowed to be scanned for CDNs",
-    }
+
+    class Config(BaseModuleConfig):
+        cdn_tags: str = Field("cdn,waf", description="Comma-separated list of tags to skip, e.g. 'cdn,waf'")
+        allowed_cdn_ports: str = Field(
+            "80,443", description="Comma-separated list of ports that are allowed to be scanned for CDNs"
+        )
 
     _priority = 4
-    # we consume URLs but we don't want to automatically enable httpx
+    # we consume URLs but we don't want to automatically enable blasthttp
     _disable_auto_module_deps = True
 
     async def setup(self):

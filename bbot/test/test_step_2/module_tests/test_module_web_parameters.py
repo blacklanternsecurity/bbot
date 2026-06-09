@@ -2,7 +2,7 @@ from .test_module_excavate import TestExcavateParameterExtraction
 
 
 class TestWebParameters(TestExcavateParameterExtraction):
-    modules_overrides = ["excavate", "httpx", "web_parameters"]
+    modules_overrides = ["excavate", "http", "web_parameters"]
 
     def check(self, module_test, events):
         parameters_file = module_test.scan.home / "web_parameters.txt"

@@ -2,6 +2,7 @@ import zipfile
 import json
 from pathlib import Path
 from bbot.modules.templates.postman import postman
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class postman_download(postman):
@@ -13,11 +14,14 @@ class postman_download(postman):
         "created_date": "2024-09-07",
         "author": "@domwhewell-sage",
     }
-    options = {"output_folder": "", "api_key": ""}
-    options_desc = {
-        "output_folder": "Folder to download postman workspaces to. If not specified, downloaded workspaces will be deleted when the scan completes, to minimize disk usage.",
-        "api_key": "Postman API Key",
-    }
+
+    class Config(BaseModuleConfig):
+        output_folder: str = Field(
+            "",
+            description="Folder to download postman workspaces to. If not specified, downloaded workspaces will be deleted when the scan completes, to minimize disk usage.",
+        )
+        api_key: str | list[str] = Field("", description="Postman API Key", sensitive=True, mandatory=True)
+
     scope_distance_modifier = 2
 
     async def setup(self):

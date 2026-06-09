@@ -1,6 +1,5 @@
 import json
 import asyncio
-from contextlib import suppress
 
 from .base import ModuleTestBase
 
@@ -17,24 +16,24 @@ class TestRabbitMQ(ModuleTestBase):
     skip_distro_tests = True
 
     async def setup_before_prep(self, module_test):
-        import aio_pika
+        # Remove any leftover container from a previous failed run
+        proc = await asyncio.create_subprocess_exec(
+            "docker",
+            "rm",
+            "-f",
+            "bbot-test-rabbitmq",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        await proc.wait()
 
         # Start RabbitMQ
         await asyncio.create_subprocess_exec(
             "docker", "run", "-d", "--rm", "--name", "bbot-test-rabbitmq", "-p", "5672:5672", "rabbitmq:3-management"
         )
 
-        # Wait for RabbitMQ to be ready
-        while True:
-            try:
-                # Attempt to connect to RabbitMQ with a timeout
-                connection = await aio_pika.connect_robust("amqp://guest:guest@localhost/")
-                break  # Exit the loop if the connection is successful
-            except Exception as e:
-                with suppress(Exception):
-                    await connection.close()
-                self.log.verbose(f"Waiting for RabbitMQ to be ready: {e}")
-                await asyncio.sleep(0.5)  # Wait a bit before retrying
+        # Wait for RabbitMQ to be ready by checking the port
+        await self.wait_for_port_open(5672)
 
     async def check(self, module_test, events):
         import aio_pika

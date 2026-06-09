@@ -397,11 +397,27 @@ async def test_events(events, helpers):
             dummy=True,
         )
 
-    # test confidence colors and formatting
+    # test the standardized finding color palette
     from bbot.core.event.base import FINDING
 
-    expected_colors = {"CONFIRMED": "🟣", "HIGH": "🔴", "MEDIUM": "🟠", "LOW": "🟡", "UNKNOWN": "⚪"}
-    assert FINDING.confidence_colors == expected_colors
+    assert FINDING.confidence_colors_emoji == {
+        "CONFIRMED": "🟣",
+        "HIGH": "🔴",
+        "MEDIUM": "🟠",
+        "LOW": "🟡",
+        "UNKNOWN": "⚪",
+    }
+    assert FINDING.severity_colors_emoji == {
+        "INFO": "🟦",
+        "LOW": "🟨",
+        "MEDIUM": "🟧",
+        "HIGH": "🟥",
+        "CRITICAL": "🟪",
+    }
+    assert FINDING.severity_colors_rgb["INFO"] == (113, 161, 255)
+    assert FINDING.severity_colors_rgb["CRITICAL"] == (207, 0, 255)
+    assert set(FINDING.confidence_brightness) == {"CONFIRMED", "HIGH", "MEDIUM", "LOW", "UNKNOWN"}
+    assert FINDING.severity_card_colors["CRITICAL"] == "Attention"
 
     # test CONFIRMED gets bold formatting
     confirmed_finding = scan.make_event(
@@ -620,7 +636,7 @@ async def test_events(events, helpers):
     assert hostless_event_json["data"] == "asdf"
     assert "host" not in hostless_event_json
 
-    http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", parent=scan.root_event)
+    http_response = scan.make_event(blasthttp_response, "HTTP_RESPONSE", parent=scan.root_event)
     assert http_response.parent_id == scan.root_event.id
     assert http_response.data["input"] == "http://example.com:80"
     assert (

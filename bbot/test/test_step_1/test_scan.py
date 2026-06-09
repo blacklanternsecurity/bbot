@@ -225,41 +225,41 @@ async def test_stats_attribution():
     mock_scan = SimpleNamespace(status_frequency=60)
     stats = ScanStats(mock_scan)
 
-    httpx_mod = mock_module("httpx", ["URL", "HTTP_RESPONSE"])
+    http_mod = mock_module("http", ["URL", "HTTP_RESPONSE"])
     excavate_mod = mock_module("excavate", ["URL_UNVERIFIED", "WEB_PARAMETER"])
-    ffuf_mod = mock_module("ffuf_shortnames", ["URL_UNVERIFIED"])
-    ffuf2_mod = mock_module("ffuf", ["URL_UNVERIFIED"])
+    webbrute_shortnames_mod = mock_module("webbrute_shortnames", ["URL_UNVERIFIED"])
+    webbrute_mod = mock_module("webbrute", ["URL_UNVERIFIED"])
     speculate_mod = mock_module("speculate", ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS", "FINDING", "ORG_STUB"])
     robots_mod = mock_module("robots", ["URL_UNVERIFIED"])
 
-    # 1) excavate discovers URL_UNVERIFIED from HTTP_RESPONSE, httpx verifies → excavate gets credit
+    # 1) excavate discovers URL_UNVERIFIED from HTTP_RESPONSE, http verifies → excavate gets credit
     for _ in range(5):
         parent = mock_event("URL_UNVERIFIED", excavate_mod)
-        stats.event_produced(mock_event("URL", httpx_mod, parent=parent))
+        stats.event_produced(mock_event("URL", http_mod, parent=parent))
 
-    # 2) ffuf_shortnames discovers URL_UNVERIFIED, httpx verifies → ffuf_shortnames gets credit
+    # 2) webbrute_shortnames discovers URL_UNVERIFIED, http verifies → webbrute_shortnames gets credit
     for _ in range(3):
-        parent = mock_event("URL_UNVERIFIED", ffuf_mod)
-        stats.event_produced(mock_event("URL", httpx_mod, parent=parent))
+        parent = mock_event("URL_UNVERIFIED", webbrute_shortnames_mod)
+        stats.event_produced(mock_event("URL", http_mod, parent=parent))
 
-    # 3) ffuf discovers URL_UNVERIFIED, httpx verifies → ffuf gets credit
-    parent = mock_event("URL_UNVERIFIED", ffuf2_mod)
-    stats.event_produced(mock_event("URL", httpx_mod, parent=parent))
+    # 3) webbrute discovers URL_UNVERIFIED, http verifies → webbrute gets credit
+    parent = mock_event("URL_UNVERIFIED", webbrute_mod)
+    stats.event_produced(mock_event("URL", http_mod, parent=parent))
 
-    # 4) speculate (internal module) creates URL_UNVERIFIED, httpx verifies → httpx keeps credit
+    # 4) speculate (internal module) creates URL_UNVERIFIED, http verifies → http keeps credit
     for _ in range(4):
         parent = mock_event("URL_UNVERIFIED", speculate_mod)
-        stats.event_produced(mock_event("URL", httpx_mod, parent=parent))
+        stats.event_produced(mock_event("URL", http_mod, parent=parent))
 
-    # 5) robots discovers URL_UNVERIFIED, httpx verifies → robots gets credit
+    # 5) robots discovers URL_UNVERIFIED, http verifies → robots gets credit
     for _ in range(2):
         parent = mock_event("URL_UNVERIFIED", robots_mod)
-        stats.event_produced(mock_event("URL", httpx_mod, parent=parent))
+        stats.event_produced(mock_event("URL", http_mod, parent=parent))
 
-    # 6) httpx discovers URL directly from OPEN_TCP_PORT (no URL_UNVERIFIED parent) → httpx keeps credit
+    # 6) http discovers URL directly from OPEN_TCP_PORT (no URL_UNVERIFIED parent) → http keeps credit
     for _ in range(2):
         parent = mock_event("OPEN_TCP_PORT", mock_module("portscan"))
-        stats.event_produced(mock_event("URL", httpx_mod, parent=parent))
+        stats.event_produced(mock_event("URL", http_mod, parent=parent))
 
     # 7) non-URL event types are unaffected
     stats.event_produced(mock_event("DNS_NAME", mock_module("CNAME")))
@@ -267,11 +267,11 @@ async def test_stats_attribution():
 
     # verify per-module produced counts
     assert stats.module_stats["excavate"].produced == {"URL": 5}
-    assert stats.module_stats["ffuf_shortnames"].produced == {"URL": 3}
-    assert stats.module_stats["ffuf"].produced == {"URL": 1}
+    assert stats.module_stats["webbrute_shortnames"].produced == {"URL": 3}
+    assert stats.module_stats["webbrute"].produced == {"URL": 1}
     assert stats.module_stats["robots"].produced == {"URL": 2}
-    # httpx gets credit for speculate's 4 URLs + 2 from OPEN_TCP_PORT = 6
-    assert stats.module_stats["httpx"].produced == {"URL": 6}
+    # http gets credit for speculate's 4 URLs + 2 from OPEN_TCP_PORT = 6
+    assert stats.module_stats["http"].produced == {"URL": 6}
     assert "speculate" not in stats.module_stats
     assert stats.module_stats["CNAME"].produced == {"DNS_NAME": 1}
     assert stats.module_stats["cloudcheck"].produced == {"STORAGE_BUCKET": 1}
@@ -284,11 +284,11 @@ async def test_stats_attribution():
 
     # build a dict of module_name -> produced_str from the table
     table_dict = {row[0]: row[1] for row in rows}
-    assert table_dict["httpx"] == "6 (6 URL)"
+    assert table_dict["http"] == "6 (6 URL)"
     assert table_dict["excavate"] == "5 (5 URL)"
-    assert table_dict["ffuf_shortnames"] == "3 (3 URL)"
+    assert table_dict["webbrute_shortnames"] == "3 (3 URL)"
     assert table_dict["robots"] == "2 (2 URL)"
-    assert table_dict["ffuf"] == "1 (1 URL)"
+    assert table_dict["webbrute"] == "1 (1 URL)"
     assert table_dict["CNAME"] == "1 (1 DNS_NAME)"
     assert table_dict["cloudcheck"] == "1 (1 STORAGE_BUCKET)"
     assert "speculate" not in table_dict
@@ -391,7 +391,7 @@ async def test_exclude_cdn(bbot_scanner, monkeypatch, clean_default_config):
     # then run a scan with --exclude-cdn enabled
     preset = Preset("evilcorp.com")
     preset.parse_args()
-    baked_preset = preset.bake()
+    baked_preset = preset.validate().bake()
     assert baked_preset.to_yaml() == "modules:\n- portfilter\n"
     scan = bbot_scanner("evilcorp.com", preset=preset)
     await scan._prep()
@@ -431,3 +431,92 @@ async def test_scan_name(bbot_scanner):
     await scan._prep()
     assert scan.name == "test_scan_name"
     assert scan.preset.scan_name == "test_scan_name"
+
+
+@pytest.mark.asyncio
+async def test_memory_backpressure_throttle(bbot_scanner, monkeypatch):
+    """Ingress delay scales linearly with memory overshoot, and the scan still completes under pressure."""
+    from types import SimpleNamespace
+
+    mem_percent = [50.0]
+
+    def mock_memory_status():
+        return SimpleNamespace(percent=mem_percent[0], available=1_000_000_000)
+
+    scan = bbot_scanner("127.0.0.1", config={"max_mem_percent": 90})
+    await scan._prep()
+    await scan.helpers.dns._mock_dns({"1.1.1.1.in-addr.arpa": {"PTR": ["one.one.one.one"]}})
+    monkeypatch.setattr("bbot.core.helpers.misc.memory_status", mock_memory_status)
+
+    # delay curve — pure function of memory percent
+    assert scan._compute_ingress_delay(50.0) == 0.0
+    assert scan._compute_ingress_delay(90.0) == 0.0
+    assert scan._compute_ingress_delay(91.0) == pytest.approx(1.0)
+    assert scan._compute_ingress_delay(92.5) == pytest.approx(2.5)
+    assert scan._compute_ingress_delay(95.0) == pytest.approx(5.0)
+    # capped above threshold+5
+    assert scan._compute_ingress_delay(99.0) == pytest.approx(5.0)
+
+    # status loop wires memory_status -> _ingress_delay
+    assert scan._ingress_delay == 0.0
+
+    # the drain-mode bypass only zeros the delay when no module has work; pin a fake task so
+    # the engagement curve below exercises the memory-driven formula, not the bypass
+    target_module = next(m for m in scan.modules.values() if not m._intercept)
+    target_module._task_counter.tasks["fake-task"] = SimpleNamespace(n=1)
+    try:
+        mem_percent[0] = 93.0
+        scan.modules_status(_log=False)
+        assert scan._ingress_delay == pytest.approx(3.0), "delay should engage above threshold"
+
+        mem_percent[0] = 97.0
+        scan.modules_status(_log=False)
+        assert scan._ingress_delay == pytest.approx(5.0), "delay should clamp at the cap"
+
+        mem_percent[0] = 80.0
+        scan.modules_status(_log=False)
+        assert scan._ingress_delay == 0.0, "delay should clear once memory drops back"
+    finally:
+        target_module._task_counter.tasks.pop("fake-task", None)
+
+    # scan still produces events with the throttle disengaged
+    events = [e async for e in scan.async_start()]
+    assert any(e.type == "IP_ADDRESS" for e in events), "scan should still produce events"
+
+
+@pytest.mark.asyncio
+async def test_memory_backpressure_drain_mode_bypass(bbot_scanner, monkeypatch):
+    """Throttle must clear in drain mode: with memory pinned high but no module producing,
+    ingress IS the drain and throttling it traps the scan in a feedback loop."""
+    from types import SimpleNamespace
+
+    mem_percent = [93.0]
+
+    def mock_memory_status():
+        return SimpleNamespace(percent=mem_percent[0], available=1_000_000_000)
+
+    scan = bbot_scanner("127.0.0.1", config={"max_mem_percent": 90})
+    await scan._prep()
+    monkeypatch.setattr("bbot.core.helpers.misc.memory_status", mock_memory_status)
+
+    non_intercept = [m for m in scan.modules.values() if not m._intercept]
+    assert non_intercept, "test requires at least one non-intercept module"
+
+    # simulate a healthy scan: at least one module is mid-handle
+    target_module = non_intercept[0]
+    target_module._task_counter.tasks["fake-task"] = SimpleNamespace(n=1)
+    try:
+        scan.modules_status(_log=False)
+        assert scan._ingress_delay == pytest.approx(3.0), (
+            "throttle should engage when memory is high and a module is running"
+        )
+    finally:
+        target_module._task_counter.tasks.pop("fake-task", None)
+
+    # now drain mode: no module running, no module has queued work
+    for m in non_intercept:
+        assert not m.running
+        assert m.outgoing_event_queue.qsize() == 0
+        assert m.num_incoming_events == 0
+    scan.modules_status(_log=False)
+    assert scan._ingress_delay == 0.0, "throttle must clear in drain mode (no producers, ingress is the drain)"
