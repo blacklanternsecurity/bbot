@@ -363,6 +363,7 @@ class BBOTConfig(BaseModel):
     home: Optional[str] = None
     keep_scans: Optional[int] = None
     status_frequency: Optional[int] = None
+    redact_secrets: Optional[bool] = None
     file_blobs: Optional[bool] = None
     folder_blobs: Optional[bool] = None
     max_mem_percent: Optional[int] = None
