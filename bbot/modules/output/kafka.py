@@ -2,6 +2,7 @@ import json
 from aiokafka import AIOKafkaProducer
 
 from bbot.modules.output.base import BaseOutputModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class Kafka(BaseOutputModule):
@@ -11,14 +12,13 @@ class Kafka(BaseOutputModule):
         "created_date": "2024-11-22",
         "author": "@TheTechromancer",
     }
-    options = {
-        "bootstrap_servers": "localhost:9092",
-        "topic": "bbot_events",
-    }
-    options_desc = {
-        "bootstrap_servers": "A comma-separated list of Kafka server addresses",
-        "topic": "The Kafka topic to publish events to",
-    }
+
+    class Config(BaseModuleConfig):
+        bootstrap_servers: str = Field(
+            "localhost:9092", description="A comma-separated list of Kafka server addresses"
+        )
+        topic: str = Field("bbot_events", description="The Kafka topic to publish events to")
+
     deps_pip = ["aiokafka~=0.12.0"]
 
     async def setup(self):

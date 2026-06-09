@@ -1,4 +1,5 @@
 from .baddns import baddns as baddns_module
+from bbot.core.config.models import BaseModuleConfig, Field, SeverityLiteral, ConfidenceLiteral
 
 
 class baddns_direct(baddns_module):
@@ -10,12 +11,16 @@ class baddns_direct(baddns_module):
         "created_date": "2024-01-29",
         "author": "@liquidsec",
     }
-    options = {"custom_nameservers": [], "min_severity": "LOW", "min_confidence": "MEDIUM"}
-    options_desc = {
-        "custom_nameservers": "Force BadDNS to use a list of custom nameservers",
-        "min_severity": "Minimum severity to emit (INFO, LOW, MEDIUM, HIGH, CRITICAL)",
-        "min_confidence": "Minimum confidence to emit (UNKNOWN, LOW, MEDIUM, HIGH, CONFIRMED)",
-    }
+
+    class Config(BaseModuleConfig):
+        custom_nameservers: list = Field([], description="Force BadDNS to use a list of custom nameservers")
+        min_severity: SeverityLiteral = Field(
+            "LOW", description="Minimum severity to emit (INFO, LOW, MEDIUM, HIGH, CRITICAL)"
+        )
+        min_confidence: ConfidenceLiteral = Field(
+            "MEDIUM", description="Minimum confidence to emit (UNKNOWN, LOW, MEDIUM, HIGH, CONFIRMED)"
+        )
+
     module_threads = 8
     deps_pip = ["baddns~=2.3.0"]
 

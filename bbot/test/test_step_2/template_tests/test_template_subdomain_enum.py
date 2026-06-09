@@ -127,8 +127,10 @@ class TestSubdomainEnumWildcardBaseline(ModuleTestBase):
 
     def check(self, module_test, events):
         assert self.queries == ["walmart.cn"]
-        assert len(events) == 7
-        assert 2 == len(
+        assert len(events) == 6
+        # cross-parent (rdtype, child) dedup in DNSResolve.emit_dns_children collapses
+        # the three walmart.cn->127.0.0.1 edges into a single IP_ADDRESS event
+        assert 1 == len(
             [
                 e
                 for e in events

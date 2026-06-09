@@ -2,6 +2,7 @@ import importlib
 from bbot.modules.base import BaseModule
 
 from bbot.errors import InteractshError
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class lightfuzz(BaseModule):
@@ -9,22 +10,26 @@ class lightfuzz(BaseModule):
     produced_events = ["FINDING"]
     flags = ["active", "loud", "web-heavy", "invasive"]
 
-    options = {
-        "force_common_headers": False,
-        "enabled_submodules": ["sqli", "cmdi", "xss", "path", "ssti", "crypto", "serial", "esi", "ssrf"],
-        "disable_post": False,
-        "try_post_as_get": False,
-        "try_get_as_post": False,
-        "avoid_wafs": True,
-    }
-    options_desc = {
-        "force_common_headers": "Force emit commonly exploitable parameters that may be difficult to detect",
-        "enabled_submodules": "A list of submodules to enable. Empty list enabled all modules.",
-        "disable_post": "Disable processing of POST parameters, avoiding form submissions.",
-        "try_post_as_get": "For each POSTPARAM, also fuzz it as a GETPARAM (in addition to normal POST fuzzing).",
-        "try_get_as_post": "For each GETPARAM, also fuzz it as a POSTPARAM (in addition to normal GET fuzzing).",
-        "avoid_wafs": "Avoid running against confirmed WAFs, which are likely to block lightfuzz requests",
-    }
+    class Config(BaseModuleConfig):
+        force_common_headers: bool = Field(
+            False, description="Force emit commonly exploitable parameters that may be difficult to detect"
+        )
+        enabled_submodules: list[str] = Field(
+            ["sqli", "cmdi", "xss", "path", "ssti", "crypto", "serial", "esi", "ssrf"],
+            description="A list of submodules to enable. Empty list enabled all modules.",
+        )
+        disable_post: bool = Field(
+            False, description="Disable processing of POST parameters, avoiding form submissions."
+        )
+        try_post_as_get: bool = Field(
+            False, description="For each POSTPARAM, also fuzz it as a GETPARAM (in addition to normal POST fuzzing)."
+        )
+        try_get_as_post: bool = Field(
+            False, description="For each GETPARAM, also fuzz it as a POSTPARAM (in addition to normal GET fuzzing)."
+        )
+        avoid_wafs: bool = Field(
+            True, description="Avoid running against confirmed WAFs, which are likely to block lightfuzz requests"
+        )
 
     meta = {
         "description": "Find Web Parameters and Lightly Fuzz them using a heuristic based scanner",
@@ -233,14 +238,19 @@ class lightfuzz(BaseModule):
         return True
 
     @classmethod
-    def help_text(self):
+    def help_text(cls):
         # Call the base class help_text method
         base_help_text = super().help_text()
 
         import importlib
 
+        # classmethod: read defaults from the Config schema (instance config isn't available here)
+        default_submodules = cls.Config.model_fields["enabled_submodules"].get_default(call_default_factory=True)
+        if not isinstance(default_submodules, (list, tuple)):
+            default_submodules = []
+
         submodules = {}
-        for submodule_name in self.options.get("enabled_submodules", []):
+        for submodule_name in default_submodules:
             try:
                 submodule_module = importlib.import_module(f"bbot.modules.lightfuzz.submodules.{submodule_name}")
                 submodule_class = getattr(submodule_module, submodule_name)
