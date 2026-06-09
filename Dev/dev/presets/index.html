@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.h_nb_gwr.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.if8bmg11.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -2267,7 +2267,10 @@ Use <code>target.target</code> to access what's in the target (what <code>in_tar
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1110</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1111</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1112</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1113</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">Preset</span><span style="color: #E6EDF3">(metaclass</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">BasePreset):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1113</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1114</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1115</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1116</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">Preset</span><span style="color: #E6EDF3">(metaclass</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">BasePreset):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    A preset is the central config for a BBOT scan. It contains everything a scan needs to run --</span>
 <span style="color: #A5D6FF">        targets, modules, flags, config options like API keys, etc.</span>
@@ -3124,7 +3127,7 @@ Use <code>target.target</code> to access what's in the target (what <code>in_tar
 
         <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">preset_dict</span>
 
-    <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">to_yaml</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">include_target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">full_config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">sort_keys</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
+    <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">to_yaml</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">include_target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">full_config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">sort_keys</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">redact_secrets</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">        </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">        Return the preset in the form of a YAML string.</span>
 
@@ -3132,6 +3135,7 @@ Use <code>target.target</code> to access what's in the target (what <code>in_tar
 <span style="color: #A5D6FF">            include_target (bool, optional): If True, include seeds, target, and blacklist in the dictionary</span>
 <span style="color: #A5D6FF">            full_config (bool, optional): If True, include the entire config, not just what's changed from the defaults.</span>
 <span style="color: #A5D6FF">            sort_keys (bool, optional): If True, sort YAML keys alphabetically</span>
+<span style="color: #A5D6FF">            redact_secrets (bool, optional): If True, redact secret values from the output</span>
 
 <span style="color: #A5D6FF">        Returns:</span>
 <span style="color: #A5D6FF">            str: The preset in the form of a YAML string</span>
@@ -3144,7 +3148,9 @@ Use <code>target.target</code> to access what's in the target (what <code>in_tar
 <span style="color: #A5D6FF">            modules:</span>
 <span style="color: #A5D6FF">            - portscan</span>
 <span style="color: #A5D6FF">        """</span>
-        <span style="color: #E6EDF3">preset_dict</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">to_dict(include_target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">include_target,</span> <span style="color: #E6EDF3">full_config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">full_config)</span>
+        <span style="color: #E6EDF3">preset_dict</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">to_dict(</span>
+            <span style="color: #E6EDF3">include_target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">include_target,</span> <span style="color: #E6EDF3">full_config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">full_config,</span> <span style="color: #E6EDF3">redact_secrets</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">redact_secrets</span>
+        <span style="color: #E6EDF3">)</span>
         <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">yaml</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">dump(preset_dict,</span> <span style="color: #E6EDF3">sort_keys</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">sort_keys)</span>
 
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">_is_valid_module</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">module,</span> <span style="color: #E6EDF3">module_type,</span> <span style="color: #E6EDF3">name_only</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">raise_error</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">):</span>
@@ -4956,10 +4962,7 @@ performing final validations, and substituting environment variables in preloade
 <p>Return a table of all the presets in the form of a string</p>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1088</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1089</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1090</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1091</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1091</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1092</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1093</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1094</span>
@@ -4973,7 +4976,10 @@ performing final validations, and substituting environment variables in preloade
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1102</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1103</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1104</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1105</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">presets_table</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">include_modules</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1105</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1106</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1107</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1108</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">presets_table</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">include_modules</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Return a table of all the presets in the form of a string</span>
 <span style="color: #A5D6FF">    """</span>
@@ -5210,7 +5216,10 @@ performing final validations, and substituting environment variables in preloade
 <span class="doc doc-object-name doc-function-name">to_yaml</span>
 </h2>
 <div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">to_yaml(</span>
-    <span style="color: #E6EDF3">include_target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">full_config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">sort_keys</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span>
+    <span style="color: #E6EDF3">include_target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">full_config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">sort_keys</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #E6EDF3">redact_secrets</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span>
 <span style="color: #E6EDF3">)</span>
 </code></pre></div>
 <div class="doc doc-contents">
@@ -5245,6 +5254,16 @@ performing final validations, and substituting environment variables in preloade
           –
           <div class="doc-md-description">
 <p>If True, sort YAML keys alphabetically</p>
+</div>
+</li>
+<li class="doc-section-item field-body">
+<b><code>redact_secrets</code></b>
+              (<code><span title="bool">bool</span></code>, default:
+                  <code>False</code>
+)
+          –
+          <div class="doc-md-description">
+<p>If True, redact secret values from the output</p>
 </div>
 </li>
 </ul>
@@ -5288,7 +5307,10 @@ performing final validations, and substituting environment variables in preloade
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">932</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">933</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">934</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">935</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">to_yaml</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">include_target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">full_config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">sort_keys</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">935</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">936</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">937</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">938</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">to_yaml</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">include_target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">full_config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">sort_keys</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">redact_secrets</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Return the preset in the form of a YAML string.</span>
 
@@ -5296,6 +5318,7 @@ performing final validations, and substituting environment variables in preloade
 <span style="color: #A5D6FF">        include_target (bool, optional): If True, include seeds, target, and blacklist in the dictionary</span>
 <span style="color: #A5D6FF">        full_config (bool, optional): If True, include the entire config, not just what's changed from the defaults.</span>
 <span style="color: #A5D6FF">        sort_keys (bool, optional): If True, sort YAML keys alphabetically</span>
+<span style="color: #A5D6FF">        redact_secrets (bool, optional): If True, redact secret values from the output</span>
 
 <span style="color: #A5D6FF">    Returns:</span>
 <span style="color: #A5D6FF">        str: The preset in the form of a YAML string</span>
@@ -5308,7 +5331,9 @@ performing final validations, and substituting environment variables in preloade
 <span style="color: #A5D6FF">        modules:</span>
 <span style="color: #A5D6FF">        - portscan</span>
 <span style="color: #A5D6FF">    """</span>
-    <span style="color: #E6EDF3">preset_dict</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">to_dict(include_target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">include_target,</span> <span style="color: #E6EDF3">full_config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">full_config)</span>
+    <span style="color: #E6EDF3">preset_dict</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">to_dict(</span>
+        <span style="color: #E6EDF3">include_target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">include_target,</span> <span style="color: #E6EDF3">full_config</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">full_config,</span> <span style="color: #E6EDF3">redact_secrets</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">redact_secrets</span>
+    <span style="color: #E6EDF3">)</span>
     <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">yaml</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">dump(preset_dict,</span> <span style="color: #E6EDF3">sort_keys</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">sort_keys)</span>
 </code></pre></div></td></tr></table></div>
 </details>
@@ -5328,10 +5353,7 @@ once. Sets <code>self._validated = True</code> on success and returns <code>self
 it can be chained (e.g. <code>preset.validate().bake()</code>).</p>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/preset/preset.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 981</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 982</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 983</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 984</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 984</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 985</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 986</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;"> 987</span>
@@ -5381,7 +5403,10 @@ it can be chained (e.g. <code>preset.validate().bake()</code>).</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1031</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1032</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1033</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1034</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">validate</span><span style="color: #E6EDF3">(self):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1034</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1035</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1036</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1037</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">validate</span><span style="color: #E6EDF3">(self):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Coerce config values to their declared types and validate the preset.</span>
 
