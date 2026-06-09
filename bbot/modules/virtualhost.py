@@ -3,6 +3,7 @@ import random
 import string
 
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 from bbot.core.helpers.simhash import compute_simhash
 
 
@@ -19,32 +20,32 @@ class virtualhost(BaseModule):
     MAX_RESULTS_FLOOD_PROTECTION = 50
 
     special_virtualhost_list = ["127.0.0.1", "localhost", "host.docker.internal"]
-    options = {
-        "brute_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
-        "force_basehost": "",
-        "brute_lines": 2000,
-        "subdomain_brute": True,
-        "mutation_check": True,
-        "special_hosts": False,
-        "certificate_sans": False,
-        "max_concurrent_requests": 80,
-        "require_inaccessible": True,
-        "wordcloud_check": False,
-        "report_interesting_default_content": True,
-    }
-    options_desc = {
-        "brute_wordlist": "Wordlist containing subdomains",
-        "force_basehost": "Use a custom base host (e.g. evilcorp.com) instead of the default behavior of using the current URL",
-        "brute_lines": "take only the first N lines from the wordlist when finding directories",
-        "subdomain_brute": "Enable subdomain brute-force on target host",
-        "mutation_check": "Enable trying mutations of the target host",
-        "special_hosts": "Enable testing of special virtual host list (localhost, etc.)",
-        "certificate_sans": "Enable extraction and testing of Subject Alternative Names from certificates",
-        "wordcloud_check": "Enable check using scan-wide wordcloud data on target host",
-        "max_concurrent_requests": "Maximum number of concurrent virtual host requests",
-        "require_inaccessible": "Only test virtual hosts that are not directly accessible (for discovering hidden content)",
-        "report_interesting_default_content": "Report interesting default content",
-    }
+
+    class Config(BaseModuleConfig):
+        brute_wordlist: str = Field(
+            "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
+            description="Wordlist containing subdomains",
+        )
+        force_basehost: str = Field(
+            "",
+            description="Use a custom base host (e.g. evilcorp.com) instead of the default behavior of using the current URL",
+        )
+        brute_lines: int = Field(
+            2000, description="Take only the first N lines from the wordlist when finding directories"
+        )
+        subdomain_brute: bool = Field(True, description="Enable subdomain brute-force on target host")
+        mutation_check: bool = Field(True, description="Enable trying mutations of the target host")
+        special_hosts: bool = Field(False, description="Enable testing of special virtual host list (localhost, etc.)")
+        certificate_sans: bool = Field(
+            False, description="Enable extraction and testing of Subject Alternative Names from certificates"
+        )
+        max_concurrent_requests: int = Field(80, description="Maximum number of concurrent virtual host requests")
+        require_inaccessible: bool = Field(
+            True,
+            description="Only test virtual hosts that are not directly accessible (for discovering hidden content)",
+        )
+        wordcloud_check: bool = Field(False, description="Enable check using scan-wide wordcloud data on target host")
+        report_interesting_default_content: bool = Field(True, description="Report interesting default content")
 
     in_scope_only = True
 
