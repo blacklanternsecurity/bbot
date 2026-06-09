@@ -1,4 +1,5 @@
 from bbot.modules.templates.postman import postman
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class postman(postman):
@@ -10,8 +11,10 @@ class postman(postman):
         "created_date": "2024-09-07",
         "author": "@domwhewell-sage",
     }
-    options = {"api_key": ""}
-    options_desc = {"api_key": "Postman API Key"}
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="Postman API Key", sensitive=True, mandatory=True)
+
     reject_wildcards = False
 
     async def handle_event(self, event):

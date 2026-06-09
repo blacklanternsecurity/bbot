@@ -11,6 +11,7 @@
 ############################################################
 
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class builtwith(subdomain_enum_apikey):
@@ -21,10 +22,12 @@ class builtwith(subdomain_enum_apikey):
         "description": "Query Builtwith.com for subdomains",
         "created_date": "2022-08-23",
         "author": "@TheTechromancer",
-        "auth_required": True,
     }
-    options = {"api_key": "", "redirects": True}
-    options_desc = {"api_key": "Builtwith API key", "redirects": "Also look up inbound and outbound redirects"}
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="Builtwith API key", sensitive=True, mandatory=True)
+        redirects: bool = Field(True, description="Also look up inbound and outbound redirects")
+
     base_url = "https://api.builtwith.com"
 
     async def handle_event(self, event):

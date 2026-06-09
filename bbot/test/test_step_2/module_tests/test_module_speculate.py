@@ -63,7 +63,7 @@ class TestSpeculate_OpenPorts(ModuleTestBase):
         # since the dummy module was added after speculate's setup phase
         speculate_module = module_test.scan.modules["speculate"]
         speculate_module.open_port_consumers = True
-        speculate_module.emit_open_ports = True
+        speculate_module._always_emit_open_ports = True
 
     async def setup_before_prep(self, module_test):
         module_test.blasthttp_mock.add_response(

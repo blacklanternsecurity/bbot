@@ -774,6 +774,31 @@ Detect technologies via Nuclei, and FingerprintX
 
 Modules: [0]("")
 
+## **test**
+
+Detect technologies via Nuclei, and FingerprintX
+
+??? note "`test.yml`"
+    ```yaml title="~/.bbot/presets/test.yml"
+    description: Detect technologies via Nuclei, and FingerprintX
+    
+    modules:
+      - nuclei
+      - fingerprintx
+    
+    target:
+      - tesasdft.txt
+    
+    config:
+      modules:
+        nuclei:
+          tags: tech
+    ```
+
+
+
+Modules: [0]("")
+
 ## **web**
 
 Quick web scan
@@ -873,6 +898,7 @@ Here is a the same data, but in a table:
 | spider-heavy      |            | Recursive web spider with more aggressive settings                                                                                                                                                                                                                                                                                                                                                                                                                                                      | 1           | http                                                                                               |
 | subdomain-enum    |            | Enumerate subdomains via APIs, brute-force                                                                                                                                                                                                                                                                                                                                                                                                                                                              | 0           |                                                                                                    |
 | tech-detect       |            | Detect technologies via Nuclei, and FingerprintX                                                                                                                                                                                                                                                                                                                                                                                                                                                        | 2           | fingerprintx, nuclei                                                                               |
+| test              |            | Detect technologies via Nuclei, and FingerprintX                                                                                                                                                                                                                                                                                                                                                                                                                                                        | 2           | fingerprintx, nuclei                                                                               |
 | web               |            | Quick web scan                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | 0           |                                                                                                    |
 | web-heavy         |            | Aggressive web scan                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | 0           |                                                                                                    |
 | web-screenshots   |            | Take screenshots of webpages                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | 0           |                                                                                                    |
