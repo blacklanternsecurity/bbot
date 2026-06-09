@@ -33,7 +33,7 @@ def main():
         decrypted_password = decrypt_password(encrypted_password, key)
         print(decrypted_password, end="")
     except Exception as e:
-        print(f'Error decrypting password "{encrypted_password}": {str(e)}', file=sys.stderr)
+        print(f"Error decrypting sudo password: {type(e).__name__}", file=sys.stderr)
         sys.exit(1)
 
 
