@@ -402,9 +402,9 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     assert result is True
 
     # invasive modules should run without a gate (just warnings)
-    monkeypatch.setattr("sys.argv", ["bbot", "-m", "nuclei"])
+    monkeypatch.setattr("sys.argv", ["bbot", "-m", "dotnetnuke"])
     result = await cli._main()
-    assert result is True, "-m nuclei should run without any special flags"
+    assert result is True, "-m dotnetnuke should run without any special flags"
 
     # install all deps
     monkeypatch.setattr("sys.argv", ["bbot", "--install-all-deps"])
