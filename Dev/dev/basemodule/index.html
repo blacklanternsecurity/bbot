@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.9upuc6ko.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.1ylu11ol.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -4290,13 +4290,13 @@ Defaults to True for passive modules, False otherwise. Can be explicitly set to 
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target_only</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #A5D6FF">"target"</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">tags:</span>
             <span style="color: #FF7B72">return</span> <span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"it did not meet target_only filter criteria"</span>
 
-        <span style="color: #8B949E; font-style: italic"># limit js URLs to modules that opt in to receive them</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">(</span><span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">accept_url_special)</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #E6EDF3">event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">type</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">startswith(</span><span style="color: #A5D6FF">"URL"</span><span style="color: #E6EDF3">):</span>
+        <span style="color: #8B949E; font-style: italic"># limit events with special URL extensions (e.g. .js) to modules that opt in</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">accept_url_special:</span>
             <span style="color: #E6EDF3">extension</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">getattr(event,</span> <span style="color: #A5D6FF">"url_extension"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">""</span><span style="color: #E6EDF3">)</span>
             <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">extension</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">url_extension_special:</span>
                 <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">(</span>
                     <span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span>
-                    <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"it is a special URL (extension {</span><span style="color: #E6EDF3">extension</span><span style="color: #A5D6FF">}) but the module does not opt in to receive special URLs"</span><span style="color: #E6EDF3">,</span>
+                    <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"it has a special URL extension ({</span><span style="color: #E6EDF3">extension</span><span style="color: #A5D6FF">}) but the module does not opt in to receive special URLs"</span><span style="color: #E6EDF3">,</span>
                 <span style="color: #E6EDF3">)</span>
 
         <span style="color: #FF7B72">return</span> <span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"precheck succeeded"</span>
