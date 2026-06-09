@@ -76,6 +76,7 @@ class WebHelper:
         self._http_timeout = self.web_config.get("http_timeout", 20)
         self._http_retries = self.web_config.get("http_retries", 1)
         self._http_proxy = self.web_config.get("http_proxy", None)
+        self._http_proxy_exclude = self.web_config.get("http_proxy_exclude", []) or []
         ua = self.web_config.get("user_agent", "BBOT")
         ua_suffix = self.web_config.get("user_agent_suffix") or ""
         self._user_agent = f"{ua} {ua_suffix}".strip()
@@ -100,11 +101,23 @@ class WebHelper:
         headers = kwargs.pop("headers", None) or {}
         body = kwargs.pop("body", None)
         data = kwargs.pop("data", None)
+        files = kwargs.pop("files", None)
         json_body = kwargs.pop("json", None)
+
+        body_sources = [
+            name
+            for name, val in (("body", body), ("data", data), ("json", json_body), ("files", files))
+            if val is not None
+        ]
+        if len(body_sources) > 1:
+            raise ValueError(
+                f"request() got conflicting body kwargs {body_sources}; pass at most one of body, data, json, files"
+            )
         timeout = kwargs.pop("timeout", self._http_timeout)
         follow_redirects = kwargs.pop("follow_redirects", None)
         max_redirects = kwargs.pop("max_redirects", None)
         proxy = kwargs.pop("proxy", self._http_proxy)
+        no_proxy = kwargs.pop("no_proxy", self._http_proxy_exclude)
         retries = kwargs.pop("retries", self._http_retries)
         params = kwargs.pop("params", None)
         cookies = kwargs.pop("cookies", None)
@@ -191,13 +204,20 @@ class WebHelper:
         }
 
         if body is not None:
-            blast_kwargs["body"] = str(body)
+            blast_kwargs["body"] = body if isinstance(body, (bytes, bytearray)) else str(body)
+        if files is not None:
+            blast_kwargs["files"] = files
         if follow_redirects is not None:
             blast_kwargs["follow_redirects"] = follow_redirects
         if max_redirects is not None:
             blast_kwargs["max_redirects"] = int(max_redirects)
         if proxy:
             blast_kwargs["proxy"] = proxy
+            # no_proxy lists hosts that bypass the proxy; it only has an effect
+            # alongside a proxy (blasthttp errors if it's set without one), so
+            # only forward it when a proxy is actually in play.
+            if no_proxy:
+                blast_kwargs["no_proxy"] = list(no_proxy)
         if max_body_size is not None:
             blast_kwargs["max_body_size"] = int(max_body_size)
         if request_target is not None:
@@ -253,8 +273,6 @@ class WebHelper:
         kwargs.pop("cache_for", None)
         kwargs.pop("client", None)
         kwargs.pop("stream", None)
-        if kwargs.pop("files", None) is not None:
-            log.warning("blasthttp does not support multipart file uploads (files= kwarg)")
 
         # allow vs follow
         allow_redirects = kwargs.pop("allow_redirects", None)
@@ -489,8 +507,12 @@ class WebHelper:
         Allows for optional line-based truncation and caching. Returns the full path of the wordlist
         file or a truncated version of it.
 
+        Also accepts a list of paths/URLs, in which case all wordlists are fetched and merged
+        into a single deduplicated file before being returned.
+
         Args:
-            path (str): The local or remote path of the wordlist.
+            path (str | list): The local or remote path of the wordlist, or a list of paths/URLs
+                to merge into a single deduplicated wordlist.
             lines (int, optional): Number of lines to read from the wordlist.
                 If specified, will return a truncated wordlist with this many lines.
             zip (bool, optional): Whether to unzip the file after downloading. Defaults to False.
@@ -512,47 +534,64 @@ class WebHelper:
 
             Fetching and truncating to the first 100 lines
             >>> wordlist_path = await self.helpers.wordlist("/root/rockyou.txt", lines=100)
+
+            Merging multiple wordlists into one
+            >>> wordlist_path = await self.helpers.wordlist(["/custom.txt", "https://example.com/wordlist.txt"])
         """
         import zipfile
 
         if not path:
             raise WordlistError(f"Invalid wordlist: {path}")
-        if "cache_hrs" not in kwargs:
-            # 4320 hrs = 180 days = 6 months
-            kwargs["cache_hrs"] = 4320
-        if self.parent_helper.is_url(path):
-            filename = await self.download(str(path), **kwargs)
-            if filename is None:
-                raise WordlistError(f"Unable to retrieve wordlist from {path}")
-        else:
-            filename = Path(path).resolve()
-            if not filename.is_file():
-                raise WordlistError(f"Unable to find wordlist at {path}")
 
-        if zip:
-            if not zip_filename:
-                raise WordlistError("zip_filename must be specified when zip is True")
-            try:
-                with zipfile.ZipFile(filename, "r") as zip_ref:
-                    if zip_filename not in zip_ref.namelist():
-                        raise WordlistError(f"File {zip_filename} not found in the zip archive {filename}")
-                    zip_ref.extract(zip_filename, filename.parent)
-                    filename = filename.parent / zip_filename
-            except Exception as e:
-                raise WordlistError(f"Error unzipping file {filename}: {e}")
+        # Handle list of wordlists - fetch each and merge into a single order-preserving deduplicated file,
+        # then fall through to the unified truncation logic below
+        if not isinstance(path, (str, Path)):
+            paths = list(path)
+            all_words = []
+            for p in paths:
+                f = await self.wordlist(p, **kwargs)
+                all_words.extend(self.parent_helper.read_file(f))
+            cache_key = "merged_wordlist:" + ":".join(sorted(str(p) for p in paths))
+            filename = self.parent_helper.cache_filename(cache_key)
+            with open(filename, "w") as f:
+                for word in dict.fromkeys(all_words):
+                    f.write(f"{word}\n")
+        else:
+            if "cache_hrs" not in kwargs:
+                # 4320 hrs = 180 days = 6 months
+                kwargs["cache_hrs"] = 4320
+            if self.parent_helper.is_url(path):
+                filename = await self.download(str(path), **kwargs)
+                if filename is None:
+                    raise WordlistError(f"Unable to retrieve wordlist from {path}")
+            else:
+                filename = Path(path).resolve()
+                if not filename.is_file():
+                    raise WordlistError(f"Unable to find wordlist at {path}")
+
+            if zip:
+                if not zip_filename:
+                    raise WordlistError("zip_filename must be specified when zip is True")
+                try:
+                    with zipfile.ZipFile(filename, "r") as zip_ref:
+                        if zip_filename not in zip_ref.namelist():
+                            raise WordlistError(f"File {zip_filename} not found in the zip archive {filename}")
+                        zip_ref.extract(zip_filename, filename.parent)
+                        filename = filename.parent / zip_filename
+                except Exception as e:
+                    raise WordlistError(f"Error unzipping file {filename}: {e}")
 
         if lines is None:
             return filename
-        else:
-            lines = int(lines)
-            with open(filename) as f:
-                read_lines = f.readlines()
-            cache_key = f"{filename}:{lines}"
-            truncated_filename = self.parent_helper.cache_filename(cache_key)
-            with open(truncated_filename, "w") as f:
-                for line in read_lines[:lines]:
-                    f.write(line)
-            return truncated_filename
+        lines = int(lines)
+        with open(filename) as f:
+            read_lines = f.readlines()
+        cache_key = f"{filename}:{lines}"
+        truncated_filename = self.parent_helper.cache_filename(cache_key)
+        with open(truncated_filename, "w") as f:
+            for line in read_lines[:lines]:
+                f.write(line)
+        return truncated_filename
 
     def beautifulsoup(
         self,
@@ -597,7 +636,7 @@ class WebHelper:
             - Write tests for this function
 
         Examples:
-            >>> soup = self.helpers.beautifulsoup(event.data["body"], "html.parser")
+            >>> soup = self.helpers.beautifulsoup(event.body, "html.parser")
             Perform an html parse of the 'markup' argument and return a soup instance
 
             >>> email_type = soup.find(type="email")

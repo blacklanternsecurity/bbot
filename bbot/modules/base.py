@@ -18,7 +18,7 @@ class BaseModule:
 
         produced_events (List): Event types to produce.
 
-        meta (Dict): Metadata about the module, such as whether authentication is required and a description.
+        meta (Dict): Metadata about the module — description, author, created_date, etc.
 
         flags (List): Flags indicating the type of module (must have at least "passive" or "active").
 
@@ -86,7 +86,7 @@ class BaseModule:
 
     watched_events = []
     produced_events = []
-    meta = {"auth_required": False, "description": "Base module"}
+    meta = {"description": "Base module"}
     flags = []
     options = {}
     options_desc = {}
@@ -661,7 +661,6 @@ class BaseModule:
                 break
             try:
                 event = self.incoming_event_queue.get_nowait()
-                self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
                 async with self._task_counter.count(f"event_postcheck({event})"):
                     acceptable, reason = await self._event_postcheck(event)
                 if acceptable:
@@ -767,7 +766,6 @@ class BaseModule:
                                 break
                         except asyncio.queues.QueueEmpty:
                             continue
-                        self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
                         try:
                             async with self._task_counter.count(f"event_postcheck({event})"):
                                 acceptable, reason = await self._event_postcheck(event)
@@ -782,7 +780,7 @@ class BaseModule:
                                 else:
                                     context = f"{self.name}.handle_event({event})"
                                     self.scan.stats.event_consumed(event, self)
-                                    self.debug(f"Handling {event}")
+                                    self.debug(f"Handling {event} from {getattr(event, 'module', 'unknown_module')}")
                                     try:
                                         await self.run_task(self.handle_event(event), context)
                                     except asyncio.CancelledError:
@@ -939,7 +937,6 @@ class BaseModule:
             if not filter_result:
                 return False, msg
 
-        self.debug(f"{event} passed post-check")
         return True, ""
 
     def _scope_distance_check(self, event):
@@ -1026,17 +1023,26 @@ class BaseModule:
                 if reason and reason != "its type is not in watched_events":
                     self.debug(f"Not queueing {event} because {reason}")
                 return
-            else:
-                self.debug(f"Queueing {event} because {reason}")
             try:
                 self.incoming_event_queue.put_nowait(event)
-                event._module_consumers += 1
+                self._increment_consumer_count(event)
                 async with self.event_received:
                     self.event_received.notify()
                 if event.type != "FINISHED":
                     self.scan._new_activity = True
             except AttributeError:
                 self.debug("Not in an acceptable state to queue incoming event")
+
+    def _increment_consumer_count(self, event):
+        """Increment the event's consumer count when it lands in this module's queue.
+
+        Paired with the matching ``_minimize()`` call when the worker
+        finishes processing. Modules that have no real worker (e.g. the
+        ``python`` output module backing ``Scanner.async_start``)
+        override this to skip the increment — otherwise the count
+        leaks +1 forever and ``_minimize()``'s strip block never fires.
+        """
+        event._module_consumers += 1
 
     async def queue_outgoing_event(self, event, **kwargs):
         """
@@ -1063,36 +1069,30 @@ class BaseModule:
         except AttributeError:
             self.debug("Not in an acceptable state to queue outgoing event")
 
-    def set_error_state(self, message=None, clear_outgoing_queue=False, critical=False):
+    def set_error_state(self, message=None, clear_outgoing_queue=False, critical=False, log_level="error"):
         """
-        Puts the module into an errored state where it cannot accept new events. Optionally logs a warning message.
-
-        The function sets the module's `errored` attribute to True and logs a warning with the optional message.
-        It also clears the incoming event queue to prevent further processing and updates its status to False.
+        Puts the module into an errored state where it cannot accept new events. Optionally logs a message.
 
         Args:
-            message (str, optional): Additional message to be logged along with the warning.
-
-        Returns:
-            None: The function doesn't return anything but updates the `errored` state and clears the incoming event queue.
+            message (str, optional): Additional message to log alongside the state transition.
+            clear_outgoing_queue (bool): Drain the outgoing event queue as well.
+            critical (bool): Log at CRITICAL severity (overrides log_level).
+            log_level (str): Severity to log at when not critical. Use "info" or "verbose" for intentional
+                stops (e.g. user-initiated kill) so they don't appear in error.log.
 
         Examples:
             >>> self.set_error_state()
             >>> self.set_error_state("Failed to connect to the server")
-
-        Notes:
-            - The function sets `self._incoming_event_queue` to False to prevent its further use.
-            - If the module was already in an errored state, the function will not reset the error state or the queue.
+            >>> self.set_error_state("killed by user", log_level="info")
         """
         if not self.errored:
             log_msg = "Setting error state"
             if message is not None:
                 log_msg += f": {message}"
             if critical:
-                log_fn = self.error
+                self.critical(log_msg, trace=False)
             else:
-                log_fn = self.warning
-            log_fn(log_msg)
+                getattr(self, log_level)(log_msg)
             self.errored = True
             # clear incoming queue
             if self.incoming_event_queue is not False:
@@ -1502,7 +1502,13 @@ class BaseModule:
 
     @property
     def auth_required(self):
-        return self.meta.get("auth_required", False)
+        """True iff this module's `class Config` declares any `mandatory=True` field."""
+        cfg = getattr(type(self), "Config", None)
+        if cfg is None:
+            return False
+        from bbot.core.config.models import is_mandatory
+
+        return any(is_mandatory(f) for f in getattr(cfg, "model_fields", {}).values())
 
     @property
     def http_timeout(self):
@@ -1775,21 +1781,21 @@ class BaseModule:
             self.trace()
 
     @classmethod
-    def help_text(self):
+    def help_text(cls):
         """
         Returns a string containing help text for the module.
         This includes the module's description, metadata, events, flags, and available options.
         """
-        # Retrieve the module's metadata, options, events, and flags
-        meta = getattr(self, "meta", {})
-        options = getattr(self, "options", {})
-        options_desc = getattr(self, "options_desc", {})
-        watched_events = getattr(self, "watched_events", [])
-        produced_events = getattr(self, "produced_events", [])
-        flags = getattr(self, "flags", [])
+        from pydantic_core import PydanticUndefined
+
+        # Retrieve the module's metadata, events, and flags
+        meta = getattr(cls, "meta", {})
+        watched_events = getattr(cls, "watched_events", [])
+        produced_events = getattr(cls, "produced_events", [])
+        flags = getattr(cls, "flags", [])
 
         help_text = "\n" + "=" * 40 + "\n"
-        help_text += f"Module Help: {self.__name__}\n"
+        help_text += f"Module Help: {cls.__name__}\n"
         help_text += "=" * 40 + "\n\n"
 
         for key, value in meta.items():
@@ -1804,12 +1810,24 @@ class BaseModule:
         help_text += "\nFlags:\n"
         help_text += "  " + ", ".join(flags) + "\n" if flags else "  None\n"
 
+        # Options come from the module's `class Config`; show only its own declared fields
+        # (mirrors `--list-module-options`), not inherited universal options.
+        config_cls = getattr(cls, "Config", None)
+        own_options = (
+            [name for name in getattr(config_cls, "__annotations__", {}) if name in config_cls.model_fields]
+            if config_cls is not None
+            else []
+        )
         help_text += "\nOptions:\n"
-        if options:
-            for option, default_value in options.items():
-                option_description = options_desc.get(option, "No description available.")
+        if own_options:
+            for option in sorted(own_options):
+                field = config_cls.model_fields[option]
+                default_value = field.get_default(call_default_factory=True)
+                if default_value is PydanticUndefined:
+                    default_value = ""
+                description = field.description or "No description available."
                 help_text += f"  - {option}:\n"
-                help_text += f"      Description: {option_description}\n"
+                help_text += f"      Description: {description}\n"
                 help_text += f"      Default: {default_value}\n"
         else:
             help_text += "  No options available."
@@ -1863,7 +1881,6 @@ class BaseInterceptModule(BaseModule):
                     async with self._task_counter.count(f"event_precheck({event})"):
                         precheck_pass, reason = self._event_precheck(event)
                     if not precheck_pass:
-                        self.debug(f"Not intercepting {event} because precheck failed ({reason})")
                         acceptable = False
                     else:
                         async with self._task_counter.count(f"event_postcheck({event})"):
@@ -1893,7 +1910,6 @@ class BaseInterceptModule(BaseModule):
                             self.debug(f"Not forwarding {event} because {forward_event_reason}")
                             continue
 
-                    self.debug(f"Forwarding {event}")
                     await self.forward_event(event, kwargs)
 
         except asyncio.CancelledError:

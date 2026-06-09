@@ -1,5 +1,8 @@
 import re
+from typing import Union
+
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class medusa(BaseModule):
@@ -14,21 +17,22 @@ class medusa(BaseModule):
     }
     scope_distance_modifier = None
 
-    options = {
-        "snmp_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/SNMP/common-snmp-community-strings.txt",
-        "snmp_versions": ["1", "2C"],  # Only 1 and 2C are available with medusa 2.3.
-        "wait_microseconds": 200,
-        "timeout_s": 5,
-        "threads": 5,
-    }
-
-    options_desc = {
-        "snmp_wordlist": "Wordlist url for SNMP community strings, newline separated (default https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/SNMP/snmp.txt)",
-        "snmp_versions": "List of SNMP versions to attempt against the SNMP server (default ['1', '2C'])",
-        "wait_microseconds": "Wait time after every SNMP request in microseconds (default 200)",
-        "timeout_s": "Wait time for the SNMP response(s) once at the end of all attempts (default 5)",
-        "threads": "Number of communities to be tested concurrently (default 5)",
-    }
+    class Config(BaseModuleConfig):
+        snmp_wordlist: Union[str, list[str]] = Field(
+            "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/SNMP/common-snmp-community-strings.txt",
+            description="Wordlist url for SNMP community strings, newline separated (default https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/SNMP/snmp.txt). Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
+        )
+        # Only 1 and 2C are available with medusa 2.3.
+        snmp_versions: list[str] = Field(
+            ["1", "2C"], description="List of SNMP versions to attempt against the SNMP server (default ['1', '2C'])"
+        )
+        wait_microseconds: int = Field(
+            200, description="Wait time after every SNMP request in microseconds (default 200)"
+        )
+        timeout_s: int = Field(
+            5, description="Wait time for the SNMP response(s) once at the end of all attempts (default 5)"
+        )
+        threads: int = Field(5, description="Number of communities to be tested concurrently (default 5)")
 
     deps_ansible = [
         {

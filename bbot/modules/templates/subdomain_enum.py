@@ -161,6 +161,8 @@ class subdomain_enum(BaseModule):
         return False
 
     async def filter_event(self, event):
+        if not self.config.get("recursive_mutations", True) and any(t.startswith("mutation-") for t in event.tags):
+            return False, "event was discovered by dnsbrute_mutations and recursive_mutations is False"
         query = self.make_query(event)
         # check if wildcard
         is_wildcard = await self._is_wildcard(query)
@@ -199,7 +201,7 @@ class subdomain_enum_apikey(subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive"]
-    meta = {"description": "Query API for subdomains", "auth_required": True}
+    meta = {"description": "Query API for subdomains"}
     options = {"api_key": ""}
     options_desc = {"api_key": "API key"}
 

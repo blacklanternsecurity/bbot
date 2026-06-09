@@ -1,4 +1,5 @@
 from bbot.modules.templates.sql import SQLTemplate
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class MySQL(SQLTemplate):
@@ -8,20 +9,17 @@ class MySQL(SQLTemplate):
         "created_date": "2024-11-13",
         "author": "@TheTechromancer",
     }
-    options = {
-        "username": "root",
-        "password": "bbotislife",
-        "host": "localhost",
-        "port": 3306,
-        "database": "bbot",
-    }
-    options_desc = {
-        "username": "The username to connect to MySQL",
-        "password": "The password to connect to MySQL",
-        "host": "The server running MySQL",
-        "port": "The port to connect to MySQL",
-        "database": "The database name to connect to",
-    }
+
+    class Config(BaseModuleConfig):
+        username: str = Field("root", description="The username to connect to MySQL", sensitive=True)
+        password: str = Field("bbotislife", description="The password to connect to MySQL", sensitive=True)
+        host: str = Field("localhost", description="The server running MySQL")
+        port: int = Field(3306, description="The port to connect to MySQL")
+        database: str = Field("bbot", description="The database name to connect to")
+        retries: int = Field(
+            10, description="Number of times to retry connecting to the database (1 second between retries)"
+        )
+
     deps_pip = ["sqlmodel", "aiomysql"]
     protocol = "mysql+aiomysql"
 

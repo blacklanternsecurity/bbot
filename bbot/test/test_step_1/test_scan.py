@@ -391,7 +391,7 @@ async def test_exclude_cdn(bbot_scanner, monkeypatch, clean_default_config):
     # then run a scan with --exclude-cdn enabled
     preset = Preset("evilcorp.com")
     preset.parse_args()
-    baked_preset = preset.bake()
+    baked_preset = preset.validate().bake()
     assert baked_preset.to_yaml() == "modules:\n- portfilter\n"
     scan = bbot_scanner("evilcorp.com", preset=preset)
     await scan._prep()
@@ -431,3 +431,92 @@ async def test_scan_name(bbot_scanner):
     await scan._prep()
     assert scan.name == "test_scan_name"
     assert scan.preset.scan_name == "test_scan_name"
+
+
+@pytest.mark.asyncio
+async def test_memory_backpressure_throttle(bbot_scanner, monkeypatch):
+    """Ingress delay scales linearly with memory overshoot, and the scan still completes under pressure."""
+    from types import SimpleNamespace
+
+    mem_percent = [50.0]
+
+    def mock_memory_status():
+        return SimpleNamespace(percent=mem_percent[0], available=1_000_000_000)
+
+    scan = bbot_scanner("127.0.0.1", config={"max_mem_percent": 90})
+    await scan._prep()
+    await scan.helpers.dns._mock_dns({"1.1.1.1.in-addr.arpa": {"PTR": ["one.one.one.one"]}})
+    monkeypatch.setattr("bbot.core.helpers.misc.memory_status", mock_memory_status)
+
+    # delay curve — pure function of memory percent
+    assert scan._compute_ingress_delay(50.0) == 0.0
+    assert scan._compute_ingress_delay(90.0) == 0.0
+    assert scan._compute_ingress_delay(91.0) == pytest.approx(1.0)
+    assert scan._compute_ingress_delay(92.5) == pytest.approx(2.5)
+    assert scan._compute_ingress_delay(95.0) == pytest.approx(5.0)
+    # capped above threshold+5
+    assert scan._compute_ingress_delay(99.0) == pytest.approx(5.0)
+
+    # status loop wires memory_status -> _ingress_delay
+    assert scan._ingress_delay == 0.0
+
+    # the drain-mode bypass only zeros the delay when no module has work; pin a fake task so
+    # the engagement curve below exercises the memory-driven formula, not the bypass
+    target_module = next(m for m in scan.modules.values() if not m._intercept)
+    target_module._task_counter.tasks["fake-task"] = SimpleNamespace(n=1)
+    try:
+        mem_percent[0] = 93.0
+        scan.modules_status(_log=False)
+        assert scan._ingress_delay == pytest.approx(3.0), "delay should engage above threshold"
+
+        mem_percent[0] = 97.0
+        scan.modules_status(_log=False)
+        assert scan._ingress_delay == pytest.approx(5.0), "delay should clamp at the cap"
+
+        mem_percent[0] = 80.0
+        scan.modules_status(_log=False)
+        assert scan._ingress_delay == 0.0, "delay should clear once memory drops back"
+    finally:
+        target_module._task_counter.tasks.pop("fake-task", None)
+
+    # scan still produces events with the throttle disengaged
+    events = [e async for e in scan.async_start()]
+    assert any(e.type == "IP_ADDRESS" for e in events), "scan should still produce events"
+
+
+@pytest.mark.asyncio
+async def test_memory_backpressure_drain_mode_bypass(bbot_scanner, monkeypatch):
+    """Throttle must clear in drain mode: with memory pinned high but no module producing,
+    ingress IS the drain and throttling it traps the scan in a feedback loop."""
+    from types import SimpleNamespace
+
+    mem_percent = [93.0]
+
+    def mock_memory_status():
+        return SimpleNamespace(percent=mem_percent[0], available=1_000_000_000)
+
+    scan = bbot_scanner("127.0.0.1", config={"max_mem_percent": 90})
+    await scan._prep()
+    monkeypatch.setattr("bbot.core.helpers.misc.memory_status", mock_memory_status)
+
+    non_intercept = [m for m in scan.modules.values() if not m._intercept]
+    assert non_intercept, "test requires at least one non-intercept module"
+
+    # simulate a healthy scan: at least one module is mid-handle
+    target_module = non_intercept[0]
+    target_module._task_counter.tasks["fake-task"] = SimpleNamespace(n=1)
+    try:
+        scan.modules_status(_log=False)
+        assert scan._ingress_delay == pytest.approx(3.0), (
+            "throttle should engage when memory is high and a module is running"
+        )
+    finally:
+        target_module._task_counter.tasks.pop("fake-task", None)
+
+    # now drain mode: no module running, no module has queued work
+    for m in non_intercept:
+        assert not m.running
+        assert m.outgoing_event_queue.qsize() == 0
+        assert m.num_incoming_events == 0
+    scan.modules_status(_log=False)
+    assert scan._ingress_delay == 0.0, "throttle must clear in drain mode (no producers, ingress is the drain)"

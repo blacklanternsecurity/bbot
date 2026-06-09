@@ -1,4 +1,5 @@
 from bbot.modules.templates.gitlab import GitLabBaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class gitlab_com(GitLabBaseModule):
@@ -13,8 +14,10 @@ class gitlab_com(GitLabBaseModule):
         "author": "@TheTechromancer",
     }
 
-    options = {"api_key": ""}
-    options_desc = {"api_key": "GitLab access token (for gitlab.com/org only)"}
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field(
+            "", description="GitLab access token (for gitlab.com/org only)", sensitive=True
+        )
 
     # This is needed because we are consuming SOCIAL events, which aren't in scope
     scope_distance_modifier = 2

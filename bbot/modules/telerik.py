@@ -1,6 +1,7 @@
 from sys import executable
 
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class telerik(BaseModule):
@@ -153,11 +154,9 @@ class telerik(BaseModule):
 
     RAUConfirmed = []
 
-    options = {"exploit_RAU_crypto": False, "include_subdirs": False}
-    options_desc = {
-        "exploit_RAU_crypto": "Attempt to confirm any RAU AXD detections are vulnerable",
-        "include_subdirs": "Include subdirectories in the scan (off by default)",  # will create many finding events if used in conjunction with web spider or webbrute
-    }
+    class Config(BaseModuleConfig):
+        exploit_RAU_crypto: bool = Field(False, description="Attempt to confirm any RAU AXD detections are vulnerable")
+        include_subdirs: bool = Field(False, description="Include subdirectories in the scan (off by default)")
 
     in_scope_only = True
 
@@ -258,7 +257,6 @@ class telerik(BaseModule):
                         if base_url not in self.RAUConfirmed:
                             self.RAUConfirmed.append(base_url)
                             root_tool_path = self.scan.helpers.tools_dir / "telerik"
-                            self.debug(root_tool_path)
 
                             for version in self.telerikVersions:
                                 command = [
@@ -378,7 +376,7 @@ class telerik(BaseModule):
                     )
 
         elif event.type == "HTTP_RESPONSE":
-            resp_body = event.data.get("body", None)
+            resp_body = event.body
             url = event.url
             if resp_body:
                 if '":{"SerializedParameters":"' in resp_body:

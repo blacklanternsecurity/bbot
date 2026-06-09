@@ -67,7 +67,7 @@ scan = Scanner(
     modules=[HTTP_MODULE],
     output_modules=["python"],
     config={
-        "dns": {"disable": True},
+        "dns": {"minimal": True},
         "scope": {"search_distance": 0},
         "web": {"spider_distance": 10, "spider_depth": 10, "spider_links_per_page": NUM_PAGES},
         "speculate": True,

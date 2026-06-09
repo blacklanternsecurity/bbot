@@ -1,27 +1,51 @@
-import re
+import os
 import logging
 import argparse
-from omegaconf import OmegaConf
 
 from bbot.errors import *
-from bbot.core.helpers.misc import chain_lists, get_closest_match, get_keys_in_dot_syntax
+from bbot.core.config.merge import dotted_set
+from bbot.core.config.models import coerce_value
+from bbot.core.helpers.misc import chain_lists
+
+
+def _parse_cli_value(raw: str, adapter=None):
+    """Parse the RHS of a `-c a.b.c=value` argument.
+
+    `adapter` is the target field's pydantic TypeAdapter (from the config type
+    index), or None when the field is unknown. Coercion follows the declared type:
+    string fields keep the literal text (lossless), bool fields produce a real bool,
+    int/float fields parse via YAML, and unknown fields fall back to plain YAML
+    coercion.
+    """
+    if raw == "":
+        return ""
+    return coerce_value(raw, adapter)
+
+
+def parse_dotted_cli(entries, index=None):
+    """Parse one or more `a.b.c=value` strings into a nested dict.
+
+    If `index` (the config type index from `MODULE_LOADER.config_type_index`) is
+    provided, each value is coerced toward its declared type so string fields keep
+    their literal text and typed fields get real typed values.
+    """
+    result: dict = {}
+    for entry in entries:
+        if "=" not in entry:
+            raise ValueError(f'Expected "key=value" (got {entry!r})')
+        path, _, raw = entry.partition("=")
+        path = path.strip()
+        if not path:
+            raise ValueError(f'Empty key in "{entry}"')
+        adapter = index.get(path) if index is not None else None
+        dotted_set(result, path, _parse_cli_value(raw.strip(), adapter))
+    return result
+
 
 log = logging.getLogger("bbot.presets.args")
 
 
-universal_module_options = {
-    "batch_size": "The number of events to process in a single batch (only applies to batch modules)",
-    "module_threads": "How many event handlers to run in parallel",
-    "module_timeout": "Max time in seconds to spend handling each event or batch of events",
-}
-
-
 class BBOTArgs:
-    # module config options to exclude from validation
-    exclude_from_validation = re.compile(
-        r".*modules\.[a-z0-9_]+\.(?:" + "|".join(universal_module_options.keys()) + ")$"
-    )
-
     scan_examples = [
         (
             "Subdomains",
@@ -150,6 +174,8 @@ class BBOTArgs:
             )
         if self.parsed.event_types:
             args_preset.core.merge_custom({"modules": {"stdout": {"event_types": self.parsed.event_types}}})
+        if self.parsed.no_color:
+            os.environ["NO_COLOR"] = "1"
         if self.parsed.exclude_cdn:
             args_preset.explicit_scan_modules.add("portfilter")
 
@@ -177,6 +203,9 @@ class BBOTArgs:
         if self.parsed.proxy:
             args_preset.core.merge_custom({"web": {"http_proxy": self.parsed.proxy}})
 
+        if self.parsed.no_proxy:
+            args_preset.core.merge_custom({"web": {"http_proxy_exclude": self.parsed.no_proxy}})
+
         if self.parsed.custom_headers:
             args_preset.core.merge_custom({"web": {"http_headers": self.parsed.custom_headers}})
 
@@ -194,11 +223,12 @@ class BBOTArgs:
         if self.parsed.user_agent_suffix:
             args_preset.core.merge_custom({"web": {"user_agent_suffix": self.parsed.user_agent_suffix}})
 
-        # CLI config options (dot-syntax)
+        # CLI config options (dot-syntax) -- parsed type-aware so string fields
+        # keep their literal value (e.g. an all-numeric password isn't coerced to int)
+        index = self._config_type_index()
         for config_arg in self.parsed.config:
             try:
-                # if that fails, try to parse as key=value syntax
-                args_preset.core.merge_custom(OmegaConf.from_cli([config_arg]))
+                args_preset.core.merge_custom(parse_dotted_cli([config_arg], index=index))
             except Exception as e:
                 raise BBOTArgumentError(f'Error parsing command-line config option: "{config_arg}": {e}')
 
@@ -348,6 +378,7 @@ class BBOTArgs:
         output.add_argument("-lo", "--list-output-modules", action="store_true", help="List available output modules")
         output.add_argument("--json", "-j", action="store_true", help="Output scan data in JSON format")
         output.add_argument("--brief", "-br", action="store_true", help="Output only the data itself")
+        output.add_argument("--no-color", action="store_true", help="Disable colored terminal output")
         output.add_argument("--event-types", nargs="+", default=[], help="Choose which event types to display")
         output.add_argument(
             "--exclude-cdn",
@@ -372,6 +403,13 @@ class BBOTArgs:
         misc = p.add_argument_group(title="Misc")
         misc.add_argument("--version", action="store_true", help="show BBOT version and exit")
         misc.add_argument("--proxy", help="Use this proxy for all HTTP requests", metavar="HTTP_PROXY")
+        misc.add_argument(
+            "--no-proxy",
+            nargs="+",
+            default=[],
+            help="Exclude these hosts from proxy (e.g. localhost *.internal.corp 10.0.0.0/8)",
+            metavar="HOST",
+        )
         misc.add_argument(
             "-H",
             "--custom-headers",
@@ -453,17 +491,25 @@ class BBOTArgs:
         if self.parsed.fast_mode:
             self.parsed.preset += ["fast"]
 
+    def _config_type_index(self):
+        """Config type index for type-directed CLI parsing, or None if it can't
+        be built yet (then parsing falls back to plain YAML coercion)."""
+        try:
+            return self.preset.module_loader.config_type_index
+        except Exception:
+            return None
+
     def validate(self):
-        # validate config options
-        sentinel = object()
-        all_options = set(get_keys_in_dot_syntax(self.preset.core.default_config))
-        for c in self.parsed.config:
-            c = c.split("=")[0].strip()
-            v = OmegaConf.select(self.preset.core.default_config, c, default=sentinel)
-            # if option isn't in the default config
-            if v is sentinel:
-                # skip if it's excluded from validation
-                if self.exclude_from_validation.match(c):
-                    continue
-                # otherwise, ensure it exists as a module option
-                raise ValidationError(get_closest_match(c, all_options, msg="config option"))
+        """
+        Validate the CLI `-c key=value` arguments against the composite
+        preset schema. Catches typos like `bbot -c modules.shoudn.api_key=x`
+        with a closest-match suggestion.
+        """
+        from .validate import validate_preset
+
+        if not self.parsed.config:
+            return
+        cli_dict = parse_dotted_cli(self.parsed.config, index=self._config_type_index())
+        errs = validate_preset({"config": cli_dict}, module_loader=self.preset.module_loader)
+        if errs:
+            raise ValidationError("\n".join(str(e) for e in errs))

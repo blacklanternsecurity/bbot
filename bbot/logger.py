@@ -34,6 +34,9 @@ color_suffix = "\033[0m"
 
 
 def colorize(s, level="INFO"):
+    # honor the NO_COLOR convention (https://no-color.org)
+    if os.environ.get("NO_COLOR", ""):
+        return s
     seq = color_mapping.get(level, 15)  # default white
     colored = f"{color_prefix}{seq}m{s}{color_suffix}"
     return colored

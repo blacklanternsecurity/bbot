@@ -1,4 +1,5 @@
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class chaos(subdomain_enum_apikey):
@@ -9,10 +10,10 @@ class chaos(subdomain_enum_apikey):
         "description": "Query ProjectDiscovery's Chaos API for subdomains",
         "created_date": "2022-08-14",
         "author": "@TheTechromancer",
-        "auth_required": True,
     }
-    options = {"api_key": ""}
-    options_desc = {"api_key": "Chaos API key"}
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="Chaos API key", sensitive=True, mandatory=True)
 
     base_url = "https://dns.projectdiscovery.io/dns"
     ping_url = f"{base_url}/example.com"

@@ -10,6 +10,7 @@ import bbot.core.helpers.regexes as bbot_regexes
 from bbot.modules.base import BaseInterceptModule
 from bbot.modules.internal.base import BaseInternalModule
 from urllib.parse import urlparse, urljoin, parse_qs, urlunparse, urldefrag
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 def find_subclasses(obj, base_class):
@@ -335,16 +336,15 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         "author": "@liquidsec",
     }
 
-    options = {
-        "yara_max_match_data": 2000,
-        "custom_yara_rules": "",
-        "speculate_params": False,
-    }
-    options_desc = {
-        "yara_max_match_data": "Sets the maximum amount of text that can extracted from a YARA regex",
-        "custom_yara_rules": "Include custom Yara rules",
-        "speculate_params": "Enable speculative parameter extraction from JSON and XML content",
-    }
+    class Config(BaseModuleConfig):
+        yara_max_match_data: int = Field(
+            2000, description="Sets the maximum amount of text that can extracted from a YARA regex"
+        )
+        custom_yara_rules: str = Field("", description="Include custom Yara rules")
+        speculate_params: bool = Field(
+            False, description="Enable speculative parameter extraction from JSON and XML content"
+        )
+
     scope_distance_modifier = None
     accept_dupes = False
 
@@ -1040,7 +1040,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         ]
 
         self.parameter_extraction = bool(modules_WEB_PARAMETER)
-        self.speculate_params = bool(self.config.get("speculate_params", False))
+        self.speculate_params = self.config.get("speculate_params", False)
         self.remove_querystring = self.scan.config.get("url_querystring_remove", True)
 
         for module in self.scan.modules.values():
@@ -1067,7 +1067,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             p.lower() for p in self.scan.config.get("parameter_blacklist_prefixes", [])
         )
 
-        self.custom_yara_rules = str(self.config.get("custom_yara_rules", ""))
+        self.custom_yara_rules = self.config.get("custom_yara_rules", "")
         if self.custom_yara_rules:
             custom_rules_count = 0
             if Path(self.custom_yara_rules).is_file():
@@ -1210,7 +1210,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             )
 
             # process response data
-            body = event.data.get("body", "")
+            body = event.body
             headers = event.data.get("header-dict", {})
             if body == "" and headers == {}:
                 return

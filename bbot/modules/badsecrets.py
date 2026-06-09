@@ -2,6 +2,8 @@ import multiprocessing
 from pathlib import Path
 from .base import BaseModule
 from badsecrets.base import carve_all_modules
+from bbot.core.config.models import BaseModuleConfig, Field
+from typing import Optional
 
 
 class badsecrets(BaseModule):
@@ -13,10 +15,10 @@ class badsecrets(BaseModule):
         "created_date": "2022-11-19",
         "author": "@liquidsec",
     }
-    options = {"custom_secrets": None}
-    options_desc = {
-        "custom_secrets": "Include custom secrets loaded from a local file",
-    }
+
+    class Config(BaseModuleConfig):
+        custom_secrets: Optional[str] = Field(None, description="Include custom secrets loaded from a local file")
+
     deps_pip = ["badsecrets~=1.0.0"]
 
     async def setup(self):
@@ -37,7 +39,7 @@ class badsecrets(BaseModule):
         return min(4, max(1, multiprocessing.cpu_count() - 1))
 
     async def handle_event(self, event):
-        resp_body = event.data.get("body", None)
+        resp_body = event.body
         resp_headers = event.data.get("header", None)
         resp_cookies = {}
         if resp_headers:
