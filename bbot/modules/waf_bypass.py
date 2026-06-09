@@ -26,7 +26,10 @@ class waf_bypass(BaseModule):
         similarity_threshold: float = Field(0.90, description="Similarity threshold for content matching")
         search_ip_neighbors: bool = Field(True, description="Also check IP neighbors of the target domain")
         neighbor_cidr: int = Field(
-            24, description="CIDR mask (24-31) used for neighbor enumeration when search_ip_neighbors is true"
+            24,
+            ge=24,
+            le=31,
+            description="CIDR mask (24-31) used for neighbor enumeration when search_ip_neighbors is true",
         )
 
     meta = {
@@ -39,7 +42,7 @@ class waf_bypass(BaseModule):
         # Track protected domains and their potential bypass CIDRs
         self.protected_domains = {}  # {domain: event} - track protected domains and store their parent events
         self.domain_ip_map = {}  # {full_domain: set(ips)} - track all IPs for each domain
-        self.content_fingerprints = {}  # {url: {simhash, http_code}} - track the content fingerprints for each URL
+        self.content_fingerprints = {}  # {url: {simhash, http_code}}
         self.similarity_threshold = self.config.get("similarity_threshold", 0.90)
         self.search_ip_neighbors = self.config.get("search_ip_neighbors", True)
         self.neighbor_cidr = int(self.config.get("neighbor_cidr", 24))
@@ -117,40 +120,33 @@ class waf_bypass(BaseModule):
     async def get_url_content(self, url, ip=None):
         """Helper function to fetch content from a URL, optionally through specific IP"""
         try:
+            kwargs = {"url": url}
             if ip:
                 self.debug(f"Fetching with resolve_ip={ip} for {url}")
-                response = await self.helpers.request(url=url, resolve_ip=str(ip))
-                if response:
-                    return response
-                else:
-                    self.debug(f"No content returned for {url} via IP {ip}")
-            else:
-                response = await self.helpers.request(url=url)
-                if not response:
-                    self.debug(f"No response received from {url}")
-                    return None
-                elif response.status_code in [200, 301, 302, 500]:
-                    return response
-                else:
-                    self.debug(
-                        f"Failed to fetch content from {url} - Status: {response.status_code} (not in allowed list)"
-                    )
-                    return None
+                kwargs["resolve_ip"] = str(ip)
+            response = await self.helpers.request(**kwargs)
+            if not response:
+                self.debug(f"No content returned for {url}" + (f" via IP {ip}" if ip else ""))
+                return None
+            if response.status_code not in [200, 301, 302, 500]:
+                self.debug(f"Rejected {url} - Status: {response.status_code} (not in allowed list)")
+                return None
+            return response
         except Exception as e:
             self.debug(f"Error fetching content from {url}: {str(e)}")
         return None
 
     async def check_ip(self, ip, source_domain, protected_domain, source_event):
-        matching_url = next((url for url in self.content_fingerprints.keys() if protected_domain in url), None)
+        matching_url = next(
+            (url for url in self.content_fingerprints if self.helpers.urlparse(url).hostname == protected_domain),
+            None,
+        )
 
         if not matching_url:
             self.debug(f"No matching URL found for {protected_domain} in stored fingerprints")
             return None
 
-        original_response = self.content_fingerprints.get(matching_url)
-        if not original_response:
-            self.debug(f"did not get original response for {matching_url}")
-            return None
+        original_response = self.content_fingerprints[matching_url]
 
         self.verbose(f"Bypass attempt: {protected_domain} via {ip} from {source_domain}")
 
@@ -261,7 +257,7 @@ class waf_bypass(BaseModule):
             # Aggregate by URL and similarity
             agg = {}
             for matching_url, ip, similarity, src_evt in confirmed_bypasses:
-                rec = agg.setdefault((matching_url, similarity), {"ips": [], "event": src_evt})
+                rec = agg.setdefault((matching_url, round(similarity, 2)), {"ips": [], "event": src_evt})
                 rec["ips"].append(ip)
 
             for (matching_url, sim_key), data in agg.items():
