@@ -1299,3 +1299,42 @@ def test_preset_dnsresolve_required_by_dns_name_consumers():
 
     # disabling dnsresolve with no DNS_NAME consumers enabled is allowed
     Preset(exclude_modules=["dnsresolve"]).validate().bake()
+
+
+def test_malformed_yaml_preset_file(tmp_path):
+    """Regression test for https://github.com/blacklanternsecurity/bbot/issues/3158
+
+    Malformed YAML (e.g. bad indentation) must raise a clear ValidationError,
+    not an unhandled exception with a raw traceback.
+    """
+    malformed = tmp_path / "bad_preset.yml"
+    malformed.write_text(
+        "target:\n  - evilcorp.com\nmodules:\n  sslcert:\n    option: value\n   robots:\n    option: value\n"
+    )
+    with pytest.raises(ValidationError, match="YAML syntax error"):
+        Preset.from_yaml_file(str(malformed))
+
+
+def test_malformed_yaml_preset_string():
+    """Regression test for https://github.com/blacklanternsecurity/bbot/issues/3158
+
+    Malformed YAML string must raise ValidationError, not an unhandled yaml.YAMLError.
+    """
+    malformed_yaml = "target:\n  - evilcorp.com\nconfig:\n  key: value\n   bad_indent: oops\n"
+    with pytest.raises(ValidationError, match="YAML syntax error"):
+        Preset.from_yaml_string(malformed_yaml)
+
+
+def test_malformed_yaml_config_file(tmp_path):
+    """Regression test for https://github.com/blacklanternsecurity/bbot/issues/3158
+
+    Malformed YAML in a config file (bbot.yml / secrets.yml) must raise
+    ConfigLoadError with a helpful message, not crash with a raw traceback.
+    """
+    from bbot.core.config.files import BBOTConfigFiles
+    from bbot.errors import ConfigLoadError
+
+    malformed = tmp_path / "bad_config.yml"
+    malformed.write_text("web:\n  http_rate_limit: 100\n   bad_key: value\n")
+    with pytest.raises(ConfigLoadError, match="YAML syntax error"):
+        BBOTConfigFiles._get_config(None, str(malformed))
