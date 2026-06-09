@@ -4905,3 +4905,440 @@ class Test_Lightfuzz_host_url_priming(ModuleTestBase):
         assert any(r.endswith("/host.html") for r in referers), (
             f"action POSTs did not carry Referer pointing to host page; got: {referers}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Keystream-reuse false-positive discrimination
+# ---------------------------------------------------------------------------
+#
+# Unit tests exercising detect_keystream_reuse against:
+#   - TRUE POSITIVES: real XOR-encrypted ciphertexts sharing a keystream
+#   - TRUE NEGATIVES: structured hex IDs that share a prefix by construction
+
+
+def _xor_encrypt(plaintext, key):
+    """XOR plaintext with key (repeating key if shorter)."""
+    return bytes(p ^ key[i % len(key)] for i, p in enumerate(plaintext))
+
+
+def _make_crypto_for_keystream(probe_value, same_param_values=None, additional_params=None):
+    """Build a crypto submodule instance with crafted event data for unit-testing detect_keystream_reuse."""
+    from bbot.modules.lightfuzz.submodules.crypto import crypto
+
+    event_data = {
+        "name": "token",
+        "type": "GETPARAM",
+        "original_value": probe_value,
+        "url": "http://test/page",
+        "same_param_values": same_param_values or [],
+        "additional_params": additional_params or {},
+        "assigned_cookies": {},
+    }
+    event = SimpleNamespace(data=event_data, url="http://test/page", host="test")
+    helpers = SimpleNamespace(
+        calculate_entropy=lambda d: 0,
+        truncate_string=lambda s, n=200: s if len(s) <= n else s[: n - 3] + "...",
+    )
+    lightfuzz = SimpleNamespace(helpers=helpers)
+    return crypto(lightfuzz, event)
+
+
+# -- True negatives: must NOT fire --
+
+
+def test_keystream_fp_mongo_objectid_same_process():
+    """MongoDB ObjectIds from the same process share 9 bytes and differ in a 3-byte counter."""
+    ids = [
+        "65f1a2b3c1d2e3f4a5000001",
+        "65f1a2b3c1d2e3f4a5000002",
+        "65f1a2b3c1d2e3f4a5000003",
+    ]
+    c = _make_crypto_for_keystream(ids[0], same_param_values=ids[1:])
+    c.detect_keystream_reuse(ids[0])
+    assert not c.results, f"FP on same-process Mongo ObjectIds: {c.results}"
+
+
+def test_keystream_fp_mongo_objectid_large_counter_gap():
+    """Mongo ObjectIds with a larger counter gap (still same-process)."""
+    ids = [
+        "65f1a2b3c1d2e3f4a5000001",
+        "65f1a2b3c1d2e3f4a50000ff",
+    ]
+    c = _make_crypto_for_keystream(ids[0], same_param_values=ids[1:])
+    c.detect_keystream_reuse(ids[0])
+    assert not c.results, f"FP on Mongo ObjectIds with counter gap: {c.results}"
+
+
+def test_keystream_fp_hex_timestamps():
+    """Hex-encoded Unix timestamps seconds apart share 3 of 4 bytes."""
+    ids = [
+        "68a1b2c3",
+        "68a1b2c5",
+        "68a1b2c8",
+    ]
+    c = _make_crypto_for_keystream(ids[0], same_param_values=ids[1:])
+    c.detect_keystream_reuse(ids[0])
+    assert not c.results, f"FP on hex timestamps: {c.results}"
+
+
+def test_keystream_fp_sequential_hex_ids():
+    """Sequential 8-byte hex IDs differing in the last 2 bytes."""
+    ids = [
+        "00000000000000a1",
+        "00000000000000a2",
+        "00000000000000a3",
+    ]
+    c = _make_crypto_for_keystream(ids[0], same_param_values=ids[1:])
+    c.detect_keystream_reuse(ids[0])
+    assert not c.results, f"FP on sequential hex IDs: {c.results}"
+
+
+def test_keystream_fp_random_uuid_v4_hex():
+    """Random UUID v4 values (no hyphens) share no meaningful prefix."""
+    ids = [
+        "550e8400e29b41d4a716446655440000",
+        "6ba7b8109dad11d180b400c04fd430c8",
+    ]
+    c = _make_crypto_for_keystream(ids[0], same_param_values=ids[1:])
+    c.detect_keystream_reuse(ids[0])
+    assert not c.results, f"FP on random UUID v4: {c.results}"
+
+
+def test_keystream_fp_snowflake_hex_same_ms():
+    """Snowflake-style IDs in hex: 6-byte timestamp + 2-byte counter."""
+    ts = "0192a1b2c3d4"
+    ids = [
+        ts + "0001",
+        ts + "0002",
+        ts + "0003",
+    ]
+    c = _make_crypto_for_keystream(ids[0], same_param_values=ids[1:])
+    c.detect_keystream_reuse(ids[0])
+    assert not c.results, f"FP on snowflake hex IDs: {c.results}"
+
+
+def test_keystream_fp_sibling_form_fields_incremental():
+    """Two hidden fields carrying sequential hex IDs (e.g. id + parent_id)."""
+    c = _make_crypto_for_keystream(
+        "aabbccdd00000010",
+        additional_params={"parent_id": "aabbccdd00000001"},
+    )
+    c.detect_keystream_reuse("aabbccdd00000010")
+    assert not c.results, f"FP on sibling sequential hex form fields: {c.results}"
+
+
+# -- True positives: MUST fire --
+
+
+def test_keystream_tp_real_xor_shared_prefix():
+    """Two plaintexts sharing a prefix, XOR-encrypted with the same key.
+    Simulates ColdFusion CFMX_COMPAT-style keystream reuse."""
+    key = b"\x5a\x3c\x7e\x1d\x9b\x42\xf0\xa8\x6c\x33\xd1\x07\xe5\x88\x2f\xbb\x44\x19\xc7\x56"
+    pt1 = b"session_id=alice_admin"
+    pt2 = b"session_id=bobby_guest"
+    ct1 = _xor_encrypt(pt1, key)
+    ct2 = _xor_encrypt(pt2, key)
+    hex1, hex2 = ct1.hex(), ct2.hex()
+    c = _make_crypto_for_keystream(hex1, same_param_values=[hex2])
+    c.detect_keystream_reuse(hex1)
+    assert c.results, "Missed real keystream reuse with shared-prefix plaintexts"
+    assert c.results[0]["severity"] in ("HIGH", "MEDIUM")
+
+
+def test_keystream_tp_real_xor_no_shared_prefix():
+    """Two plaintexts with no shared prefix, encrypted with the same key.
+    Detection driven by high ascii_xor_score across the full XOR."""
+    key = b"\xaa\xbb\xcc\xdd\xee\xff\x11\x22\x33\x44"
+    pt1 = b"role=admin"
+    pt2 = b"user=guest"
+    ct1 = _xor_encrypt(pt1, key)
+    ct2 = _xor_encrypt(pt2, key)
+    hex1, hex2 = ct1.hex(), ct2.hex()
+    c = _make_crypto_for_keystream(hex1, same_param_values=[hex2])
+    c.detect_keystream_reuse(hex1)
+    assert c.results, "Missed real keystream reuse with no shared prefix (ascii_score path)"
+
+
+def test_keystream_tp_real_xor_numeric_plaintext():
+    """Plaintexts are numeric strings (e.g. 'skillcd=12345' / 'skillcd=67890'),
+    encrypted with the same key. The diverging region is XOR of ASCII digits."""
+    key = b"\xde\xad\xbe\xef\xca\xfe\xba\xbe\xd0\x0d\x1e\x55\xc0\xff\xee"
+    pt1 = b"skillcd=12345"
+    pt2 = b"skillcd=67890"
+    ct1 = _xor_encrypt(pt1, key)
+    ct2 = _xor_encrypt(pt2, key)
+    hex1, hex2 = ct1.hex(), ct2.hex()
+    c = _make_crypto_for_keystream(hex1, same_param_values=[hex2])
+    c.detect_keystream_reuse(hex1)
+    assert c.results, "Missed real keystream reuse with numeric plaintext divergence"
+
+
+def test_keystream_tp_existing_bug_report_ciphertexts():
+    """The original bug-report ciphertexts (different lengths, 5-byte shared prefix).
+    Verifies the fix doesn't regress the motivating TP."""
+    ct1 = "4E4CDA8A93F87A"
+    ct2 = "4E4CDA8A93FF7B8584EEDB4C8D59A9C3567657"
+    c = _make_crypto_for_keystream(ct1, same_param_values=[ct2])
+    c.detect_keystream_reuse(ct1)
+    assert c.results, "Missed original bug-report keystream reuse ciphertexts"
+    assert c.results[0]["severity"] == "HIGH"
+
+
+def test_keystream_tp_three_ciphertexts_best_pair_wins():
+    """Three ciphertexts: one unrelated, two with real keystream reuse.
+    The detector should find and report the best pair."""
+    key = b"\x5a\x3c\x7e\x1d\x9b\x42\xf0\xa8\x6c\x33\xd1\x07\xe5"
+    pt1 = b"account=admin"
+    pt2 = b"account=guest"
+    ct1 = _xor_encrypt(pt1, key)
+    ct2 = _xor_encrypt(pt2, key)
+    unrelated = "aabbccddee112233"
+    hex1, hex2 = ct1.hex(), ct2.hex()
+    c = _make_crypto_for_keystream(hex1, same_param_values=[unrelated, hex2])
+    c.detect_keystream_reuse(hex1)
+    assert c.results, "Missed keystream reuse when an unrelated value is also present"
+
+
+# End-to-end: MongoDB ObjectId listing page must not fire
+class Test_Lightfuzz_keystream_reuse_mongo_objectid_fp(Test_Lightfuzz_keystream_reuse):
+    landing_page = """
+    <html><body>
+        <h1>Users</h1>
+        <a href="/profile?userId=65f1a2b3c1d2e3f4a5000001">Alice</a>
+        <a href="/profile?userId=65f1a2b3c1d2e3f4a5000002">Bob</a>
+        <a href="/profile?userId=65f1a2b3c1d2e3f4a5000003">Carol</a>
+    </body></html>
+    """
+
+    def check(self, module_test, events):
+        keystream_findings = [
+            e
+            for e in events
+            if e.type == "FINDING" and "Stream Cipher Keystream Reuse" in e.data.get("description", "")
+        ]
+        assert not keystream_findings, (
+            f"FP keystream-reuse on MongoDB ObjectIds: {[f.data.get('description') for f in keystream_findings]}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# WEB_PARAMETER type restored after conversion passes
+# ---------------------------------------------------------------------------
+
+
+class Test_Lightfuzz_type_mutation_restored(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {
+                "enabled_submodules": ["xss"],
+                "try_get_as_post": True,
+                "emit_baseline_responses": False,
+            },
+        },
+    }
+
+    def request_handler(self, request):
+        parameter_block = """
+        <html><body>
+            <form action="/" method="GET">
+                <input type="text" name="q" value="test">
+                <button type="submit">Search</button>
+            </form>
+        </body></html>
+        """
+        return Response(parameter_block, status=200)
+
+    async def setup_after_prep(self, module_test):
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+        self._captured_params = []
+        original_handle = module_test.scan.modules["lightfuzz"].handle_event
+
+        async def tracking_handle(event):
+            await original_handle(event)
+            if event.type == "WEB_PARAMETER":
+                self._captured_params.append(
+                    {
+                        "name": event.data.get("name"),
+                        "type": event.data.get("type"),
+                        "converted_from_get": event.data.get("converted_from_get"),
+                        "converted_from_post": event.data.get("converted_from_post"),
+                    }
+                )
+
+        module_test.scan.modules["lightfuzz"].handle_event = tracking_handle
+
+    def check(self, module_test, events):
+        assert self._captured_params, "No WEB_PARAMETERs were processed by lightfuzz"
+        getparams = [p for p in self._captured_params if p["name"] == "q"]
+        assert getparams, "No GETPARAM 'q' was processed by lightfuzz"
+        for p in getparams:
+            assert p["type"] == "GETPARAM", (
+                f"WEB_PARAMETER '{p['name']}' type was not restored after conversion passes: "
+                f"type={p['type']}, converted_from_get={p['converted_from_get']}"
+            )
+            assert p["converted_from_get"] is None, (
+                f"WEB_PARAMETER '{p['name']}' still has converted_from_get flag after handle_event"
+            )
+            assert p["converted_from_post"] is None, (
+                f"WEB_PARAMETER '{p['name']}' still has converted_from_post flag after handle_event"
+            )
+
+
+# ---------------------------------------------------------------------------
+# cmdi arithmetic canary rejects leading-zero multiplicands
+# ---------------------------------------------------------------------------
+
+
+class Test_Lightfuzz_cmdi_no_leading_zero_arith(Test_Lightfuzz_cmdi):
+    """The arithmetic confirmation cascade must not produce leading-zero
+    multiplicands, which bash interprets as octal (diverging from Python's
+    decimal int()).  This test forces rand_string to return a leading-zero
+    value first, then verifies that the while loop rejects it and the
+    detection still succeeds with a valid pair against a faithful bash mock.
+    """
+
+    _rand_call_idx = 0
+
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+        parameter_block = """
+        <section class=search>
+            <form action=/ method=GET>
+                <input type=text placeholder='Search the blog...' name=search>
+                <button type=submit class=button>Search</button>
+            </form>
+        </section>
+        """
+        if "search=" in qs:
+            value = qs.split("=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+            decoded = unquote(value)
+            # Faithful bash arithmetic: leading-zero literals are octal
+            arith = re.search(r"&& echo \$\(\((\d+)\*(\d+)\)\) &&", decoded)
+            if arith:
+                a_str, b_str = arith.group(1), arith.group(2)
+                try:
+                    a_val = int(a_str, 8) if (len(a_str) > 1 and a_str[0] == "0") else int(a_str)
+                    b_val = int(b_str, 8) if (len(b_str) > 1 and b_str[0] == "0") else int(b_str)
+                    cmdi_value = str(a_val * b_val)
+                except ValueError:
+                    cmdi_value = ""
+            elif "&& echo " in decoded:
+                cmdi_value = decoded.split("&& echo ")[1].split(" ")[0]
+            else:
+                cmdi_value = decoded
+            cmdi_block = f"""
+        <section class=blog-header>
+            <h1>0 search results for '{cmdi_value}'</h1>
+            <hr>
+        </section>
+        """
+            return Response(cmdi_block, status=200)
+        return Response(parameter_block, status=200)
+
+    async def setup_after_prep(self, module_test):
+        # Cycle: first pair always has a leading zero (tests rejection),
+        # second pair is clean.  Repeats for every cmdi submodule instance
+        # so the test works regardless of how many WEB_PARAMETERs excavate
+        # produces.
+        self.__class__._rand_call_idx = 0
+
+        def rand_string(*args, **kwargs):
+            if kwargs.get("numeric_only"):
+                if args and args[0] == 10:
+                    return "1234567890"
+                idx = self.__class__._rand_call_idx
+                self.__class__._rand_call_idx += 1
+                phase = idx % 4
+                if phase == 0:
+                    return "01234"
+                elif phase == 1:
+                    return "56789"
+                elif phase == 2:
+                    return "12345"
+                else:
+                    return "67890"
+            return "AAAAAAAAAAAAAA"
+
+        module_test.scan.modules["lightfuzz"].helpers.rand_string = rand_string
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        cmdi_finding = any(
+            e.type == "FINDING"
+            and "POSSIBLE OS Command Injection" in e.data.get("description", "")
+            and "arithmetic canary (POSIX)" in e.data.get("description", "")
+            for e in events
+        )
+        assert cmdi_finding, (
+            "POSIX arithmetic canary CMDi finding not emitted -- "
+            "leading-zero multiplicand may have been used (bash octal vs Python decimal)"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Connectivity test does not cache None (transient failure)
+# ---------------------------------------------------------------------------
+
+
+class Test_Lightfuzz_connectivity_no_cache_none(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {
+                "enabled_submodules": ["xss"],
+                "emit_baseline_responses": False,
+            },
+        },
+    }
+
+    _request_count = {"connectivity": 0}
+
+    def request_handler(self, request):
+        parameter_block = """
+        <html><body>
+            <form action="/" method="GET">
+                <input type="text" name="q" value="test">
+                <button type="submit">Search</button>
+            </form>
+        </body></html>
+        """
+        return Response(parameter_block, status=200)
+
+    async def setup_after_prep(self, module_test):
+        expect_args = re.compile("/")
+        module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
+
+        lf = module_test.scan.modules["lightfuzz"]
+        original_request = lf.helpers.request
+        self.__class__._request_count = {"connectivity": 0}
+
+        async def flaky_request(url, **kwargs):
+            if kwargs.get("timeout") == 10:
+                self.__class__._request_count["connectivity"] += 1
+                if self.__class__._request_count["connectivity"] == 1:
+                    return None
+            return await original_request(url, **kwargs)
+
+        lf.helpers.request = flaky_request
+
+    def check(self, module_test, events):
+        lf = module_test.scan.modules["lightfuzz"]
+        for url, resp in lf._connectivity_test_cache.items():
+            assert resp is not None, (
+                f"Connectivity cache poisoned with None for {url} -- "
+                f"transient failure was cached, blocking all params on this page"
+            )
+        assert self.__class__._request_count["connectivity"] >= 2, (
+            f"Only {self.__class__._request_count['connectivity']} connectivity request(s) made -- "
+            f"expected retry after transient failure"
+        )

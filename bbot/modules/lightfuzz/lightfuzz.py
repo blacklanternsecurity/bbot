@@ -151,9 +151,10 @@ class lightfuzz(BaseModule):
             if prime_url in cache:
                 return cache[prime_url]
             response = await self.helpers.request(prime_url, timeout=10)
-            if len(cache) >= self._connectivity_test_cache_max:
-                cache.pop(next(iter(cache)))
-            cache[prime_url] = response
+            if response is not None:
+                if len(cache) >= self._connectivity_test_cache_max:
+                    cache.pop(next(iter(cache)))
+                cache[prime_url] = response
             return response
 
     @staticmethod
@@ -329,6 +330,11 @@ class lightfuzz(BaseModule):
                             self.debug(f"Starting {submodule_name} fuzz() (try_get_as_post)")
                             await self.run_submodule(submodule, event)
                 finally:
+                    # Restore the original type so downstream consumers see the
+                    # correct value after the conversion passes.
+                    event.data["type"] = original_type
+                    event.data.pop("converted_from_post", None)
+                    event.data.pop("converted_from_get", None)
                     # Drop the per-event baseline cache once all submodules have run.
                     self._baseline_cache.pop(event.id, None)
             else:

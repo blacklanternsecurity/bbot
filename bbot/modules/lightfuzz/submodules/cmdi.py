@@ -54,7 +54,7 @@ class cmdi(BaseLightfuzz):
         while True:
             arith_a = self.lightfuzz.helpers.rand_string(5, numeric_only=True)
             arith_b = self.lightfuzz.helpers.rand_string(5, numeric_only=True)
-            if int(arith_a) and int(arith_b):
+            if int(arith_a) and int(arith_b) and arith_a[0] != "0" and arith_b[0] != "0":
                 break
         arith_canary = str(int(arith_a) * int(arith_b))
         http_compare = self.compare_baseline(
