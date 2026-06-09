@@ -42,11 +42,12 @@ class TestCRT_DB_Reconnect(ModuleTestBase):
     modules_overrides = ["crt_db"]
 
     async def setup_after_prep(self, module_test):
-        # first fetch raises "connection is closed"; subsequent fetches succeed
         async def fetch_succeed(self, *args, **kwargs):
-            return [{"name_value": "reconnect.blacklanternsecurity.com"}]
+            # args[1] is the query (domain); return a subdomain matching it
+            query = args[1] if len(args) > 1 else "blacklanternsecurity.com"
+            return [{"name_value": f"reconnect.{query}"}]
 
-        async def fetch_then_succeed(self, *args, **kwargs):
+        async def fetch_then_fail(self, *args, **kwargs):
             self._closed = True
             raise ConnectionError("connection is closed")
 
@@ -55,9 +56,8 @@ class TestCRT_DB_Reconnect(ModuleTestBase):
         async def mock_connect(*args, **kwargs):
             self.connect_count += 1
             conn = FakeAsyncpgConn()
-            # first connection's fetch raises closed; second connection succeeds
             if self.connect_count == 1:
-                conn.fetch = fetch_then_succeed.__get__(conn)
+                conn.fetch = fetch_then_fail.__get__(conn)
             else:
                 conn.fetch = fetch_succeed.__get__(conn)
             return conn
@@ -66,6 +66,6 @@ class TestCRT_DB_Reconnect(ModuleTestBase):
 
     def check(self, module_test, events):
         assert self.connect_count >= 2, "Module did not reconnect after closed connection"
-        assert any(e.data == "reconnect.blacklanternsecurity.com" for e in events), (
+        assert any(isinstance(e.data, str) and e.data.startswith("reconnect.") for e in events), (
             "Failed to detect subdomain after reconnect"
         )
