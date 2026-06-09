@@ -19,19 +19,21 @@ class PresetPath:
 
     def find(self, filename):
         filename_path = Path(filename).expanduser()
+        if "/" in str(filename):
+            resolved = filename_path.resolve()
+            if resolved.is_file():
+                self.add_path(resolved.parent)
+                return resolved
+            self.add_path(filename_path.parent)
         extension = filename_path.suffix.lower()
         file_candidates = set()
         extension_candidates = {".yaml", ".yml"}
         if extension:
             extension_candidates.add(extension.lower())
-        else:
-            file_candidates.add(filename_path.stem)
         for ext in extension_candidates:
             file_candidates.add(f"{filename_path.stem}{ext}")
         file_candidates = sorted(file_candidates)
         file_candidates_str = ",".join([str(s) for s in file_candidates])
-        if "/" in str(filename):
-            self.add_path(filename_path.parent)
         log.debug(f"Searching for {file_candidates_str} in {[str(p) for p in self.paths]}")
         for path in self.paths:
             for candidate in file_candidates:
@@ -59,8 +61,9 @@ class PresetPath:
         if not path.is_dir():
             log.debug(f'Path "{path.resolve()}" is not a directory')
             return
-        # preemptively remove any paths that are subdirectories of the new path
-        self.paths = [p for p in self.paths if not p.is_relative_to(path)]
+        # preemptively remove any paths that are subdirectories of the new path,
+        # but never remove the default preset path
+        self.paths = [p for p in self.paths if p == DEFAULT_PRESET_PATH or not p.is_relative_to(path)]
         self.paths.insert(0, path)
 
     def find_file(self, filename):
