@@ -1,10 +1,10 @@
-import re
 from http.cookies import SimpleCookie
 from urllib.parse import urlparse
 
 import blasthttp
 
 from bbot.core.helpers.web.web import iter_batch_results
+from bbot.core.helpers.web.response_event import response_to_event_dict
 from bbot.modules.base import BaseModule
 from bbot.core.config.models import BaseModuleConfig, Field
 
@@ -101,75 +101,7 @@ class http(BaseModule):
 
     def _response_to_json(self, url_input, response):
         """Convert a blasthttp Response to a dict for HTTP_RESPONSE events."""
-        parsed = urlparse(response.url)
-        path = parsed.path or "/"
-
-        # Build raw_header string (required by HTTP_RESPONSE validation).
-        # blasthttp already builds the canonical "Name: Value\r\n..." form
-        # — reuse it instead of rebuilding.
-        status_line = f"HTTP/1.1 {response.status} \r\n"
-        raw_header = f"{status_line}{response.raw_headers}\r\n\r\n"
-
-        # Build header dict (lowercase keys, comma-joined for dupes)
-        header_dict = {}
-        for k, v in response.headers.items():
-            key = k.lower().replace("-", "_")
-            if key in header_dict:
-                header_dict[key] += f", {v}"
-            else:
-                header_dict[key] = v
-
-        content_type = header_dict.get("content_type", "")
-        content_length = int(header_dict.get("content_length", len(response.body_bytes)))
-
-        # Location header for redirects (excavate uses event.redirect_location)
-        location = header_dict.get("location", "")
-
-        # Extract title from HTML
-        title = ""
-        body = response.body
-        title_match = re.search(r"<title[^>]*>(.*?)</title>", body, re.IGNORECASE | re.DOTALL)
-        if title_match:
-            title = title_match.group(1).strip()
-
-        j = {
-            "url": response.url,
-            "input": url_input,
-            "status_code": response.status,
-            "method": "GET",
-            "path": path,
-            "host": parsed.hostname or "",
-            "raw_header": raw_header,
-            "header": header_dict,
-            "content_type": content_type,
-            "content_length": content_length,
-            "title": title,
-            "body": body,
-            "location": location,
-            "hash": {
-                "body_md5": response.hash.body_md5,
-                "body_mmh3": response.hash.body_mmh3,
-                "body_sha256": response.hash.body_sha256,
-                "header_md5": response.hash.header_md5,
-                "header_mmh3": response.hash.header_mmh3,
-                "header_sha256": response.hash.header_sha256,
-            },
-        }
-
-        # Include TLS certificate info when available (HTTPS responses)
-        ci = response.cert_info
-        if ci is not None:
-            j["cert_info"] = {
-                "common_name": ci.common_name,
-                "sans": ci.sans,
-                "emails": ci.emails,
-                "issuer": ci.issuer,
-                "not_before": ci.not_before,
-                "not_after": ci.not_after,
-                "fingerprint_sha256": ci.fingerprint_sha256,
-            }
-
-        return j
+        return response_to_event_dict(response, url_input, method="GET")
 
     async def _process_result(self, result, parent_event):
         """Emit URL + HTTP_RESPONSE events for one batch result. Returns True if status was usable."""

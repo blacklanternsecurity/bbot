@@ -1299,3 +1299,78 @@ def test_preset_dnsresolve_required_by_dns_name_consumers():
 
     # disabling dnsresolve with no DNS_NAME consumers enabled is allowed
     Preset(exclude_modules=["dnsresolve"]).validate().bake()
+
+
+def test_preset_path_no_clobber_default(tmp_path):
+    """Regression: loading a preset via path (e.g. ./scan.yml) must not clobber
+    the default preset search path, even when the preset lives in a parent
+    directory of bbot/presets/. Previously, add_path() would remove
+    DEFAULT_PRESET_PATH from the search list, causing rglob to search the
+    entire tree and match non-YAML files (like .venv/bin/baddns).
+    """
+    from bbot.scanner.preset.path import PresetPath, DEFAULT_PRESET_PATH
+
+    # preset that includes a built-in preset by name (no extension, no path)
+    preset_file = tmp_path / "scan.yml"
+    preset_file.write_text("description: regression test\ninclude:\n  - baddns\n")
+
+    # non-YAML decoy that would match an extensionless rglob for "baddns"
+    decoy_dir = tmp_path / "fake_venv" / "bin"
+    decoy_dir.mkdir(parents=True)
+    decoy = decoy_dir / "baddns"
+    decoy.write_text("#!/usr/bin/env python\nif __name__ == '__main__':\n    pass\n")
+
+    pp = PresetPath()
+    # resolve the top-level file
+    found = pp.find(str(preset_file))
+    assert found == preset_file.resolve()
+    # DEFAULT_PRESET_PATH must survive
+    assert DEFAULT_PRESET_PATH in pp.paths
+
+    # the built-in include must resolve to the real preset, not the decoy
+    found_include = pp.find("baddns")
+    assert found_include.suffix in (".yml", ".yaml")
+    assert "fake_venv" not in str(found_include)
+
+    # full round-trip through Preset
+    preset = Preset.from_yaml_file(str(preset_file))
+    assert "baddns" in preset.explicit_scan_modules
+
+
+def test_malformed_yaml_preset_file(tmp_path):
+    """Regression test for https://github.com/blacklanternsecurity/bbot/issues/3158
+
+    Malformed YAML (e.g. bad indentation) must raise a clear ValidationError,
+    not an unhandled exception with a raw traceback.
+    """
+    malformed = tmp_path / "bad_preset.yml"
+    malformed.write_text(
+        "target:\n  - evilcorp.com\nmodules:\n  sslcert:\n    option: value\n   robots:\n    option: value\n"
+    )
+    with pytest.raises(ValidationError, match="YAML syntax error"):
+        Preset.from_yaml_file(str(malformed))
+
+
+def test_malformed_yaml_preset_string():
+    """Regression test for https://github.com/blacklanternsecurity/bbot/issues/3158
+
+    Malformed YAML string must raise ValidationError, not an unhandled yaml.YAMLError.
+    """
+    malformed_yaml = "target:\n  - evilcorp.com\nconfig:\n  key: value\n   bad_indent: oops\n"
+    with pytest.raises(ValidationError, match="YAML syntax error"):
+        Preset.from_yaml_string(malformed_yaml)
+
+
+def test_malformed_yaml_config_file(tmp_path):
+    """Regression test for https://github.com/blacklanternsecurity/bbot/issues/3158
+
+    Malformed YAML in a config file (bbot.yml / secrets.yml) must raise
+    ConfigLoadError with a helpful message, not crash with a raw traceback.
+    """
+    from bbot.core.config.files import BBOTConfigFiles
+    from bbot.errors import ConfigLoadError
+
+    malformed = tmp_path / "bad_config.yml"
+    malformed.write_text("web:\n  http_rate_limit: 100\n   bad_key: value\n")
+    with pytest.raises(ConfigLoadError, match="YAML syntax error"):
+        BBOTConfigFiles._get_config(None, str(malformed))
