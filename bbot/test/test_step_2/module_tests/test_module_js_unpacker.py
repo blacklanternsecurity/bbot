@@ -140,3 +140,39 @@ class TestJsUnpacker(ModuleTestBase):
         assert any("/about" in str(u) for u in url_events), "Next.js: didn't emit /about route"
         assert any("/contact" in str(u) for u in url_events), "Next.js: didn't emit /contact route"
         assert any("/dashboard" in str(u) for u in url_events), "Next.js: didn't emit /dashboard route"
+
+
+# JWT signed with "keyboard cat" (in badsecrets wordlist), packed with Dean Edwards
+PACKED_JWT_JS = r"""eval(function(p,a,c,k,e,d){e=function(c){return(c<a?'':e(parseInt(c/a)))+((c=c%a)>35?String.fromCharCode(c+29):c.toString(36))};if(!''.replace(/^/,String)){while(c--)d[e(c)]=k[c]||e(c);k=[function(e){return d[e]}];e=function(){return'\\w+'};c=1};while(c--)if(k[c])p=p.replace(new RegExp('\\b'+e(c)+'\\b','g'),k[c]);return p}('0 1 = 1 || {};\n1.2 = "/3/4";\n1.5 = "6.7.8";\n1.9 = a() {\n    0 b = c.d("b");\n    b.e = "f";\n    g.h("9 i");\n};\nc.j("k", 1.9);',22,21,'var|Config|apiBase|api|v2|platformToken|eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9|eyJzdWIiOiJzdmMtdGVzdCIsImlhdCI6MTcxODAwMDAwMCwiZXhwIjoxNzQ5NTM2MDAwLCJyb2xlIjoiYWRtaW4ifQ|G3x7IT4oTz4LNpphnOEcFEuztBOE_zBSs1owpqDluFU|init|function|status|document|getElementById|textContent|connected|console|log|complete|addEventListener|DOMContentLoaded'.split('|'),0,{}))"""
+
+VULN_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzdmMtdGVzdCIsImlhdCI6MTcxODAwMDAwMCwiZXhwIjoxNzQ5NTM2MDAwLCJyb2xlIjoiYWRtaW4ifQ.G3x7IT4oTz4LNpphnOEcFEuztBOE_zBSs1owpqDluFU"
+
+
+class TestJsUnpackerBadsecretsChain(ModuleTestBase):
+    """js_unpacker -> excavate -> badsecrets: a packed JWT with a weak secret should produce a HIGH finding."""
+
+    module_name = "js_unpacker"
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["http", "excavate", "js_unpacker", "badsecrets"]
+
+    async def setup_after_prep(self, module_test):
+        page_html = f"<html><head><script>{PACKED_JWT_JS}</script></head><body>ok</body></html>"
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"},
+            respond_args={"response_data": page_html},
+        )
+
+    def check(self, module_test, events):
+        badsecrets_finding = any(
+            e.type == "FINDING" and "keyboard cat" in e.data["description"] and VULN_JWT in e.data["description"]
+            for e in events
+        )
+        assert badsecrets_finding, "badsecrets should find 'keyboard cat' in unpacked JWT"
+
+        excavate_jwt = any(
+            e.type == "FINDING"
+            and "JWT" in e.data["description"]
+            and "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" in e.data["description"]
+            for e in events
+        )
+        assert excavate_jwt, "excavate should extract JWT from unpacked response"
