@@ -11,7 +11,7 @@ from bbot.modules.base import BaseInterceptModule, BaseModule
 
 class DNSResolve(BaseInterceptModule):
     watched_events = ["*"]
-    produced_events = ["DNS_NAME", "IP_ADDRESS", "RAW_DNS_RECORD"]
+    produced_events = ["DNS_NAME", "IP_ADDRESS", "IP_RANGE", "RAW_DNS_RECORD"]
     meta = {"description": "Perform DNS resolution", "created_date": "2022-04-08", "author": "@TheTechromancer"}
     _priority = 1
     scope_distance_modifier = None
@@ -203,7 +203,8 @@ class DNSResolve(BaseInterceptModule):
                 try:
                     child_event = self.scan.make_event(
                         child_host,
-                        "DNS_NAME",
+                        # auto-detect the type; SPF TXT children can be IP_ADDRESS / IP_RANGE
+                        None,
                         module=module,
                         parent=event,
                         context=f"{rdtype} record for {event.host} contains {{event.type}}: {{event.host}}",

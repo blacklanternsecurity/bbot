@@ -1,14 +1,15 @@
 import logging
-import re
 
-from bbot.core.helpers.regexes import dns_name_extraction_regex, ip_range_regexes, ipv4_regex, ipv6_regex
+from bbot.core.helpers.regexes import (
+    dns_name_extraction_regex,
+    ip_range_regexes,
+    ipv4_regex,
+    ipv6_regex,
+    spf_ip_mechanism_regex,
+)
 from bbot.core.helpers.misc import clean_dns_record
 
 log = logging.getLogger("bbot.core.helpers.dns")
-
-# leading SPF qualifier (+-~?) and ip4:/ip6: mechanism prefix; stripped before IP
-# matching so the "ip6:" in e.g. "ip6:2001:db8::/48" doesn't pollute the match
-_spf_ip_mechanism_prefix = re.compile(r"^[+\-~?]?(?:ip[46]:)?", re.I)
 
 
 # Default rdtypes BBOT cares about during recursive resolution
@@ -21,10 +22,11 @@ def extract_targets(record):
     For structured rdata (A/AAAA/CNAME/NS/PTR/MX/SOA/SRV/etc), blastdns has
     already extracted the embedded names in Rust -- we just hand those back.
 
-    For TXT records we additionally apply hostname/IP/CIDR regexes to the text
-    content, since SPF / DKIM / similar TXT payloads commonly embed hostnames, and
-    SPF in particular embeds IPs and CIDR ranges (ip4:/ip6: mechanisms) worth
-    pivoting on. That regex extraction is BBOT-specific and stays here.
+    For TXT records we additionally apply a hostname regex to the text content,
+    since SPF / DKIM / similar TXT payloads commonly embed hostnames. SPF records
+    (v=spf1) also get the IPs and CIDR ranges from their ip4:/ip6: mechanisms
+    extracted; SPF macros are skipped since they are evaluation-time templates,
+    not literal targets. That regex extraction is BBOT-specific and stays here.
     """
     results = set()
     for rdtype, host in record.extract_targets():
@@ -32,23 +34,35 @@ def extract_targets(record):
         if cleaned:
             results.add((rdtype, cleaned))
 
-    # TXT: pull additional targets out of the free-form text content, token by token
+    # TXT: pull additional targets out of the free-form text content
     is_txt = "TXT" in record.rdata
     if is_txt:
-        for token in record.to_text().split():
-            # strip a leading SPF qualifier and ip4:/ip6: mechanism prefix, if any
-            candidate = _spf_ip_mechanism_prefix.sub("", token)
-            # CIDR range, e.g. SPF "ip4:1.2.3.0/24" -> IP_NETWORK
-            if any(regex.fullmatch(candidate) for regex in ip_range_regexes):
-                results.add(("TXT", candidate))
-                continue
-            # individual IP, e.g. SPF "ip4:1.2.3.4" -> IP_ADDRESS
-            if ipv4_regex.fullmatch(candidate) or ipv6_regex.fullmatch(candidate):
-                results.add(("TXT", candidate))
-                continue
-            # hostnames, e.g. SPF "include:cloudprovider.com", DKIM selectors, etc.
-            for match in dns_name_extraction_regex.finditer(token):
-                cleaned = clean_dns_record(token[match.start() : match.end()])
+        text = record.to_text()
+        if "v=spf1" in text.lower():
+            # SPF (RFC 7208): ip4:/ip6: mechanisms embed IPs and CIDR ranges
+            for token in text.split():
+                # macros (e.g. "exists:%{i}.evilcorp.com") are evaluation-time templates
+                if "%" in token:
+                    continue
+                mechanism = spf_ip_mechanism_regex.match(token)
+                if mechanism:
+                    value = token[mechanism.end() :]
+                    if (
+                        any(r.fullmatch(value) for r in ip_range_regexes)
+                        or ipv4_regex.fullmatch(value)
+                        or ipv6_regex.fullmatch(value)
+                    ):
+                        results.add(("TXT", value))
+                    continue
+                # hostnames, e.g. "include:cloudprovider.com", "redirect=_spf.example.com"
+                for match in dns_name_extraction_regex.finditer(token):
+                    cleaned = clean_dns_record(token[match.start() : match.end()])
+                    if cleaned:
+                        results.add(("TXT", cleaned))
+        else:
+            # non-SPF TXT (DKIM, verification strings, etc.): hostnames only
+            for match in dns_name_extraction_regex.finditer(text):
+                cleaned = clean_dns_record(text[match.start() : match.end()])
                 if cleaned:
                     results.add(("TXT", cleaned))
 
