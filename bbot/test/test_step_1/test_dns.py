@@ -95,7 +95,7 @@ async def test_extract_targets_spf_ips(bbot_scanner):
     assert "1.2.3.4" in hosts, "single IPv4 from ip4: mechanism not extracted"
     assert "5.6.7.0/24" in hosts, "IPv4 CIDR from ip4: mechanism not extracted"
     assert "2001:db8::/48" in hosts, "IPv6 CIDR from ip6: mechanism not extracted"
-    assert "cloudprovider.com" in hosts, "include: hostname not extracted"
+    assert {"cloudprovider.com"} <= hosts, "include: hostname not extracted"
     assert "5.6.7.0" not in hosts, "bare network address must not be emitted alongside its CIDR"
     assert not any("sniff" in host or "%" in host for host in hosts), "SPF macro mechanisms must be skipped"
 
@@ -105,7 +105,7 @@ async def test_extract_targets_spf_ips(bbot_scanner):
     for ans in response.response.answers:
         extracted.update(extract_targets(ans))
     hosts = {host for _, host in extracted}
-    assert "admin.evilcorp.com" in hosts, "hostname extraction from non-SPF TXT must be preserved"
+    assert {"admin.evilcorp.com"} <= hosts, "hostname extraction from non-SPF TXT must be preserved"
     assert "9.9.9.0/24" not in hosts, "CIDR extraction must be gated on v=spf1"
 
 
@@ -131,7 +131,7 @@ async def test_extract_targets_spf_ips_end_to_end(bbot_scanner):
     assert "1.2.3.4" in ip_addresses, "SPF ip4: address was not emitted as an IP_ADDRESS event"
     assert "5.6.7.0/24" in ip_ranges, "SPF ip4: CIDR was not emitted as an IP_RANGE event"
     assert "2001:db8::/48" in ip_ranges, "SPF ip6: CIDR was not emitted as an IP_RANGE event"
-    assert "cloudprovider.com" in dns_names, "SPF include: hostname was not emitted as a DNS_NAME event"
+    assert {"cloudprovider.com"} <= dns_names, "SPF include: hostname was not emitted as a DNS_NAME event"
     assert not any("sniff" in str(e.data) for e in events if e.type in ("DNS_NAME", "IP_ADDRESS", "IP_RANGE")), (
         "SPF macro mechanism must not produce DNS_NAME/IP events"
     )
