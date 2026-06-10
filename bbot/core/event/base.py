@@ -1713,7 +1713,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED):
         return body_bytes.decode("utf-8", errors="replace")
 
     def _data_id(self):
-        return self.data["method"] + "|" + self.data["url"]
+        return self.data["method"] + "|" + self.data["url"] + "|" + str(self.module)
 
     def sanitize_data(self, data):
         url = data.get("url", "")
