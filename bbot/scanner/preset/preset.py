@@ -804,8 +804,14 @@ class Preset(metaclass=BasePreset):
                 yaml_str = open(filename).read()
             except FileNotFoundError:
                 raise PresetNotFoundError(f'Could not find preset at "{filename}" - file does not exist')
+            try:
+                yaml_dict = yaml.safe_load(yaml_str) or {}
+            except yaml.YAMLError as e:
+                raise ValidationError(
+                    f"YAML syntax error in {filename}:\n\n{e}\n\nPlease check the file for indentation or formatting errors."
+                )
             preset = cls.from_dict(
-                yaml.safe_load(yaml_str) or {},
+                yaml_dict,
                 name=filename.stem,
                 _exclude=_exclude,
                 _log=_log,
@@ -830,7 +836,13 @@ class Preset(metaclass=BasePreset):
             >>> - portscan'''
             >>> preset = Preset.from_yaml_string(yaml_string)
         """
-        return cls.from_dict(yaml.safe_load(yaml_preset) or {})
+        try:
+            yaml_dict = yaml.safe_load(yaml_preset) or {}
+        except yaml.YAMLError as e:
+            raise ValidationError(
+                f"YAML syntax error in preset:\n\n{e}\n\nPlease check the YAML for indentation or formatting errors."
+            )
+        return cls.from_dict(yaml_dict)
 
     def to_dict(self, include_target=False, full_config=False, redact_secrets=False):
         """
@@ -911,7 +923,7 @@ class Preset(metaclass=BasePreset):
 
         return preset_dict
 
-    def to_yaml(self, include_target=False, full_config=False, sort_keys=False):
+    def to_yaml(self, include_target=False, full_config=False, sort_keys=False, redact_secrets=False):
         """
         Return the preset in the form of a YAML string.
 
@@ -919,6 +931,7 @@ class Preset(metaclass=BasePreset):
             include_target (bool, optional): If True, include seeds, target, and blacklist in the dictionary
             full_config (bool, optional): If True, include the entire config, not just what's changed from the defaults.
             sort_keys (bool, optional): If True, sort YAML keys alphabetically
+            redact_secrets (bool, optional): If True, redact secret values from the output
 
         Returns:
             str: The preset in the form of a YAML string
@@ -931,7 +944,9 @@ class Preset(metaclass=BasePreset):
             modules:
             - portscan
         """
-        preset_dict = self.to_dict(include_target=include_target, full_config=full_config)
+        preset_dict = self.to_dict(
+            include_target=include_target, full_config=full_config, redact_secrets=redact_secrets
+        )
         return yaml.dump(preset_dict, sort_keys=sort_keys)
 
     def _is_valid_module(self, module, module_type, name_only=False, raise_error=True):

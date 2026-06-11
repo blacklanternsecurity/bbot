@@ -19,6 +19,8 @@ status_frequency: 15
 # that scales linearly from 0s at the threshold up to 5s at threshold+5 (capped at 95%).
 # Last-ditch effort to give the pipeline a chance to drain before OOM.
 max_mem_percent: 90
+# Redact secrets (API keys, tokens, etc.) in the saved preset.yml
+redact_secrets: true
 # Include the raw data of files (i.e. PDFs, web screenshots) as base64 in the event
 file_blobs: false
 # Include the raw data of directories (i.e. git repos) as tar.gz base64 in the event
@@ -287,8 +289,23 @@ parameter_blacklist:
   - cf_clearance
   - _abck
   - bm_sz
+  - bm_sv
   - ak_bmsc
   - f5_cspm
+  # CSRF / Anti-Forgery tokens
+  - authenticity_token
+  - csrfmiddlewaretoken
+  - __RequestVerificationToken
+  - antiforgerytoken
+  - __csrf_magic
+  - _wpnonce
+  # ASP.NET session/identity cookies
+  - .ASPXANONYMOUS
+  - .ASPXAUTH
+  # PKCE (Proof Key for Code Exchange)
+  - code_verifier
+  - code_challenge
+  # Analytics
   - _ga
   - _gid
   - _gat
