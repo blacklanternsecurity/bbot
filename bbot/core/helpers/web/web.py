@@ -13,7 +13,11 @@ from bs4.builder import XMLParsedAsHTMLWarning
 from blasthttp import HTTPStatusError
 
 from bbot.core.helpers.misc import truncate_filename, bytes_to_human, get_exception_chain
-from bbot.errors import WordlistError, WebError
+from cachetools import LRUCache
+
+from bbot.core.helpers.async_helpers import NamedLock
+from bbot.core.helpers.diff import HttpCompare
+from bbot.errors import HttpCompareError, WordlistError, WebError
 
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
@@ -82,6 +86,8 @@ class WebHelper:
         self._user_agent = f"{ua} {ua_suffix}".strip()
         self._custom_headers = self.web_config.get("http_headers", {})
         self._custom_cookies = self.web_config.get("http_cookies", {})
+        self._wildcard_cache = LRUCache(maxsize=50000)
+        self._wildcard_locks = NamedLock(max_size=50000)
 
     @property
     def client(self):
@@ -653,6 +659,68 @@ class WebHelper:
         except Exception as e:
             log.debug(f"Error parsing beautifulsoup: {e}")
             return False
+
+    async def is_http_wildcard_host(self, scheme, host, port):
+        """Detect whether a host returns the same response regardless of URL path.
+
+        Probes two random paths and the root URL via HttpCompare. Cached per
+        (scheme, host, port); 3 HTTP requests on first call, instant thereafter.
+
+        Returns:
+            HttpCompare -- host is a wildcard responder (cached baseline).
+            False       -- host distinguishes responses by path.
+            None        -- probe failed after retry; treat as unknown.
+        """
+        key = (scheme, host, port)
+        if key in self._wildcard_cache:
+            return self._wildcard_cache[key]
+        async with self._wildcard_locks.lock(key):
+            if key in self._wildcard_cache:
+                return self._wildcard_cache[key]
+            result = await self._probe_wildcard_host(scheme, host, port)
+            if result == "retry":
+                log.debug(f"is_http_wildcard_host: first probe failed for {host}:{port}; retrying once")
+                result = await self._probe_wildcard_host(scheme, host, port)
+                if result == "retry":
+                    log.debug(f"is_http_wildcard_host: retry also failed for {host}:{port}; caching as unknown")
+                    self._wildcard_cache[key] = None
+                    return None
+            self._wildcard_cache[key] = result
+            return result
+
+    async def _probe_wildcard_host(self, scheme, host, port):
+        """Single probe attempt. Returns HttpCompare (wildcard), False (not wildcard), or "retry"."""
+        baseline_url_1 = (
+            f"{scheme}://{host}:{port}/{self.parent_helper.rand_string(12)}/{self.parent_helper.rand_string(8)}"
+        )
+        baseline_url_2 = (
+            f"{scheme}://{host}:{port}/{self.parent_helper.rand_string(12)}/{self.parent_helper.rand_string(8)}"
+        )
+        cmp = HttpCompare(
+            baseline_url_1,
+            self.parent_helper,
+            allow_redirects=False,
+            timeout=10,
+            baseline_url_2=baseline_url_2,
+        )
+        try:
+            await cmp._baseline()
+        except HttpCompareError as e:
+            log.debug(f"is_http_wildcard_host: baseline failed for {host}:{port}: {e}")
+            return "retry"
+        root_url = f"{scheme}://{host}:{port}/"
+        try:
+            root_match, root_reasons, _, _ = await cmp.compare(root_url)
+        except HttpCompareError as e:
+            log.debug(f"is_http_wildcard_host: root probe failed for {host}:{port}: {e}")
+            return "retry"
+        if not root_match:
+            log.debug(
+                f"is_http_wildcard_host: {host}:{port} root distinct from random-path baseline ({root_reasons}); not a wildcard"
+            )
+            return False
+        log.verbose(f"is_http_wildcard_host: {scheme}://{host}:{port} is an HTTP wildcard responder")
+        return cmp
 
     def response_to_json(self, response):
         """

@@ -22,9 +22,13 @@ class HttpCompare:
         cookies=None,
         timeout=10,
         on_baseline_ready=None,
+        baseline_url_2=None,
     ):
         self.parent_helper = parent_helper
         self.baseline_url = baseline_url
+        # When set, the second baseline sample uses this URL instead of self.baseline_url,
+        # so the auto-filter captures inter-URL variation (used by wildcard detection).
+        self.baseline_url_2 = baseline_url_2
         self.include_cache_buster = include_cache_buster
         self.method = method
         self.data = data
@@ -70,7 +74,8 @@ class HttpCompare:
 
             if self.include_cache_buster:
                 get_params.update(self.gen_cache_buster())
-            url_2 = self.parent_helper.add_get_params(self.baseline_url, get_params).geturl()
+            second_target = self.baseline_url_2 if self.baseline_url_2 else self.baseline_url
+            url_2 = self.parent_helper.add_get_params(second_target, get_params).geturl()
             baseline_2 = await self.parent_helper.request(
                 url_2,
                 headers=self.merge_dictionaries(
