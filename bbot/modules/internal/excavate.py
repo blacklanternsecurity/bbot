@@ -417,14 +417,12 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             return cached
         verdict = False
         try:
-            response_url = (event.data or {}).get("url", "") if isinstance(event.data, dict) else ""
-            if response_url:
-                parsed = urlparse(response_url)
-                host = parsed.hostname
-                if host:
-                    port = parsed.port or (443 if parsed.scheme == "https" else 80)
-                    cmp = await self.helpers.is_http_wildcard_host(parsed.scheme, host, port)
-                    verdict = cmp not in (False, None)
+            p = event.parsed_url
+            host = p.hostname
+            if host:
+                port = p.port or (443 if p.scheme == "https" else 80)
+                cmp = await self.helpers.is_http_wildcard_host(p.scheme, host, port)
+                verdict = cmp not in (False, None)
         except Exception as e:
             self.debug(f"_host_is_http_wildcard: error checking {event}: {e}")
         try:
