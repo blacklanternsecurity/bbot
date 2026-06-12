@@ -9,7 +9,7 @@ from .misc import rm_at_exit
 log = logging.getLogger("bbot.core.helpers.files")
 
 
-def tempfile(self, content, pipe=True):
+def tempfile(self, content, pipe=True, extension=None):
     """
     Creates a temporary file or named pipe and populates it with content.
 
@@ -29,7 +29,7 @@ def tempfile(self, content, pipe=True):
         >>> tempfile(["Another", "temp", "file"], pipe=False)
         '/home/user/.bbot/temp/someotherfile'
     """
-    filename = self.temp_filename()
+    filename = self.temp_filename(extension)
     rm_at_exit(filename)
     try:
         if type(content) not in (set, list, tuple):

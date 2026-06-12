@@ -23,13 +23,28 @@ num_regex = re.compile(r"\d+")
 _ipv4_regex = r"(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}"
 ipv4_regex = re.compile(_ipv4_regex, re.I)
 
-# IPv6 is complicated, so we have accommodate alternative patterns,
-# :(:[A-F0-9]{1,4}){1,7} == ::1, ::ffff:1
-# ([A-F0-9]{1,4}:){1,7}: == 2001::, 2001:db8::, 2001:db8:0:1:2:3::
-# ([A-F0-9]{1,4}:){1,6}:([A-F0-9]{1,4}) == 2001::1, 2001:db8::1, 2001:db8:0:1:2:3::1
-# ([A-F0-9]{1,4}:){7,7}([A-F0-9]{1,4}) == 1:1:1:1:1:1:1:1, ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
+# IPv6 regex breakdown:
+#
+# (?:                            # —— address body ——
+# We have to individually account for all possible variations of: "N left hextets :: M right hextets" with N+M ≤ 8 or fully expanded 8 hextets.
+#   (?:[A-F0-9]{1,4}:){7}[A-F0-9]{1,4}        # 8 hextets, no compression.
+# | (?:[A-F0-9]{1,4}:){1,7}:                  # 1–7 left, then "::" (0 right).
+# | (?:[A-F0-9]{1,4}:){1,6}:[A-F0-9]{1,4}     # 1–6 left, "::", 1 right.
+# | (?:[A-F0-9]{1,4}:){1,5}(?::[A-F0-9]{1,4}){1,2}  # 1–5 left, "::", 1–2 right.
+# | (?:[A-F0-9]{1,4}:){1,4}(?::[A-F0-9]{1,4}){1,3}  # 1–4 left, "::", 1–3 right.
+# | (?:[A-F0-9]{1,4}:){1,3}(?::[A-F0-9]{1,4}){1,4}  # 1–3 left, "::", 1–4 right.
+# | (?:[A-F0-9]{1,4}:){1,2}(?::[A-F0-9]{1,4}){1,5}  # 1–2 left, "::", 1–5 right.
+# | [A-F0-9]{1,4}:(?::[A-F0-9]{1,4}){1,6}           # 1 left,    "::", 1–6 right.
+# | :(?::[A-F0-9]{1,4}){1,7}                        # 0 left,    "::", 1–7 right.
+# | ::                                              # all zeros.
+# )
+#
+# Notes:
+# - Does not match IPv4-embedded forms (e.g., ::ffff:192.0.2.1).
+# - Does not match zone IDs (e.g., %eth0).
+# - Pure syntax check; will not validate special ranges.
 
-_ipv6_regex = r"(:(:[A-F0-9]{1,4}){1,7}|([A-F0-9]{1,4}:){1,7}:|([A-F0-9]{1,4}:){1,6}:([A-F0-9]{1,4})|([A-F0-9]{1,4}:){7,7}([A-F0-9]{1,4}))"
+_ipv6_regex = r"(?:(?:[A-F0-9]{1,4}:){7}[A-F0-9]{1,4}|(?:[A-F0-9]{1,4}:){1,7}:|(?:[A-F0-9]{1,4}:){1,6}:[A-F0-9]{1,4}|(?:[A-F0-9]{1,4}:){1,5}(?::[A-F0-9]{1,4}){1,2}|(?:[A-F0-9]{1,4}:){1,4}(?::[A-F0-9]{1,4}){1,3}|(?:[A-F0-9]{1,4}:){1,3}(?::[A-F0-9]{1,4}){1,4}|(?:[A-F0-9]{1,4}:){1,2}(?::[A-F0-9]{1,4}){1,5}|[A-F0-9]{1,4}:(?::[A-F0-9]{1,4}){1,6}|:(?::[A-F0-9]{1,4}){1,7}|::)"
 ipv6_regex = re.compile(_ipv6_regex, re.I)
 
 _ip_range_regexes = (
@@ -142,7 +157,14 @@ post_form_regex2 = re.compile(
     re.DOTALL,
 )
 post_form_regex_noaction = re.compile(
-    r"<form[^>]*(?:\baction=[\"']?([^\s\"'<>]+)[\"']?)?[^>]*\bmethod=[\"']?[pP][oO][sS][tT][\"']?[^>]*>([\s\S]*?)<\/form>",
+    # Negative lookahead rejects forms that already carry action= (those are
+    # handled by post_form_regex / post_form_regex2 with the real action URL).
+    # Without it, the action group's `?` makes this regex over-eagerly match
+    # forms with action, capturing '' and emitting a phantom WEB_PARAMETER
+    # whose url falls back to event.url — racing the legitimate emission.
+    # The empty `()` keeps findall's tuple shape (form_action, form_content)
+    # consistent with the other form regexes consumed by GetForm.extract().
+    r"<form(?![^>]*\baction=)()[^>]*\bmethod=[\"']?[pP][oO][sS][tT][\"']?[^>]*>([\s\S]*?)<\/form>",
     re.DOTALL,
 )
 generic_form_regex = re.compile(
@@ -151,9 +173,15 @@ generic_form_regex = re.compile(
 )
 
 select_tag_regex = re.compile(
-    r"<select[^>]+?name=[\"\']?([_\-\.\w]+)[\"\']?[^>]*>(?:\s*<option[^>]*?value=[\"\']?([_\.\-\w]*)[\"\']?[^>]*>)?",
+    r"<select[^>]+?\bname=[\"\']?([_\-\.\w]+)[\"\']?[^>]*>((?:\s*<option\b[^>]*>(?:[^<]*(?:</option>)?)?\s*)*)",
     re.IGNORECASE | re.DOTALL,
 )
+option_tag_regex = re.compile(r"<option\b([^>]*)>", re.IGNORECASE)
+option_value_regex = re.compile(
+    r"""\bvalue\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>'"]+))""",
+    re.IGNORECASE,
+)
+option_selected_regex = re.compile(r"(?<![\-\w])selected(?![\-\w])", re.IGNORECASE)
 
 textarea_tag_regex = re.compile(
     r"<textarea[^>]*?\sname=[\"\']?([\-\._=+\/\w]+)[\"\']?[^>]*?\svalue=[\"\']?([:%\-\._=+\/\w]*)[\"\']?[^>]*?>"
@@ -173,7 +201,9 @@ button_tag_regex2 = re.compile(
 )
 tag_attribute_regex = re.compile(r"<[^>]*(?:href|action|src)\s*=\s*[\"\']?(?!mailto:)([^\'\"\>]+)[\"\']?[^>]*>")
 
-valid_netloc = r"[^\s!@#$%^&()=/?\\'\";~`<>]+"
+_invalid_netloc_chars = r"\s!@#$%^&()=/?\\'\";~`<>"
+# first char must not be a colon, even though it's a valid char for a netloc
+valid_netloc = r"[^" + (_invalid_netloc_chars + ":") + r"]{1}[^" + _invalid_netloc_chars + "]*"
 
 _split_host_port_regex = r"(?:(?P<scheme>[a-z0-9]{1,20})://)?(?:[^?]*@)?(?P<netloc>" + valid_netloc + ")"
 split_host_port_regex = re.compile(_split_host_port_regex, re.I)

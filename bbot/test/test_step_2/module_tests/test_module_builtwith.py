@@ -5,7 +5,7 @@ class TestBuiltWith(ModuleTestBase):
     config_overrides = {"modules": {"builtwith": {"api_key": "asdf"}}}
 
     async def setup_after_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.builtwith.com/v20/api.json?KEY=asdf&LOOKUP=blacklanternsecurity.com&NOMETA=yes&NOATTR=yes&HIDETEXT=yes&HIDEDL=yes",
             json={
                 "Results": [
@@ -90,7 +90,7 @@ class TestBuiltWith(ModuleTestBase):
                 "Trust": None,
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.builtwith.com/redirect1/api.json?KEY=asdf&LOOKUP=blacklanternsecurity.com",
             json={
                 "Lookup": "blacklanternsecurity.com",

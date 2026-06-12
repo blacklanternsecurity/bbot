@@ -4,7 +4,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum
 class certspotter(subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["safe", "subdomain-enum", "passive"]
     meta = {
         "description": "Query Certspotter's API for subdomains",
         "created_date": "2022-07-28",
@@ -20,7 +20,7 @@ class certspotter(subdomain_enum):
     async def parse_results(self, r, query):
         results = set()
         json = r.json()
-        if json:
+        if json and isinstance(json, list):
             for r in json:
                 for dns_name in r.get("dns_names", []):
                     results.add(dns_name.lstrip(".*").rstrip("."))

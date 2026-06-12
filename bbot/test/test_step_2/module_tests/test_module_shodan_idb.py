@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 class TestShodan_IDB(ModuleTestBase):
     config_overrides = {"dns": {"minimal": False}}
 
-    async def setup_before_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         await module_test.mock_dns(
             {
                 "blacklanternsecurity.com": {"A": ["1.2.3.4"]},
@@ -13,7 +13,7 @@ class TestShodan_IDB(ModuleTestBase):
             }
         )
 
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://internetdb.shodan.io/1.2.3.4",
             json={
                 "cpes": [

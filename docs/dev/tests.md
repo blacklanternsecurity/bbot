@@ -10,13 +10,13 @@ We have GitHub Actions that automatically run tests whenever you open a Pull Req
 
 ```bash
 # lint with ruff
-poetry run ruff check
+uv run ruff check
 
 # format code with ruff
-poetry run ruff format
+uv run ruff format
 
 # run all tests with pytest (takes roughly 30 minutes)
-poetry run pytest
+uv run pytest
 ```
 
 ### Running specific tests
@@ -25,18 +25,18 @@ If you only want to run a single test, you can select it with `-k`:
 
 ```bash
 # run only the sslcert test
-poetry run pytest -k test_module_sslcert
+uv run pytest -k test_module_sslcert
 ```
 
 You can also filter like this:
 ```bash
 # run all the module tests except for sslcert
-poetry run pytest -k "test_module_ and not test_module_sslcert"
+uv run pytest -k "test_module_ and not test_module_sslcert"
 ```
 
 If you want to see the output of your module, you can enable `--log-cli-level`:
 ```bash
-poetry run pytest --log-cli-level=DEBUG
+uv run pytest --log-cli-level=DEBUG
 ```
 
 ## Example: Writing a Module Test
@@ -53,7 +53,7 @@ class TestMyModule(ModuleTestBase):
 
     async def setup_after_prep(self, module_test):
         # mock HTTP response
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.com/sudomains?apikey=deadbeef&domain=blacklanternsecurity.com",
             json={
                 "subdomains": [

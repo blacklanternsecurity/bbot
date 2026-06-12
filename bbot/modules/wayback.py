@@ -1,10 +1,11 @@
 from datetime import datetime
 
 from bbot.modules.templates.subdomain_enum import subdomain_enum
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class wayback(subdomain_enum):
-    flags = ["passive", "subdomain-enum", "safe"]
+    flags = ["safe", "passive", "subdomain-enum"]
     watched_events = ["DNS_NAME"]
     produced_events = ["URL_UNVERIFIED", "DNS_NAME"]
     meta = {
@@ -12,11 +13,14 @@ class wayback(subdomain_enum):
         "created_date": "2022-04-01",
         "author": "@liquidsec",
     }
-    options = {"urls": False, "garbage_threshold": 10}
-    options_desc = {
-        "urls": "emit URLs in addition to DNS_NAMEs",
-        "garbage_threshold": "Dedupe similar urls if they are in a group of this size or higher (lower values == less garbage data)",
-    }
+
+    class Config(BaseModuleConfig):
+        urls: bool = Field(False, description="emit URLs in addition to DNS_NAMEs")
+        garbage_threshold: int = Field(
+            10,
+            description="Dedupe similar urls if they are in a group of this size or higher (lower values == less garbage data)",
+        )
+
     in_scope_only = True
 
     base_url = "http://web.archive.org"
@@ -34,7 +38,7 @@ class wayback(subdomain_enum):
                 event_type,
                 event,
                 abort_if=self.abort_if,
-                context=f'{{module}} queried archive.org for "{query}" and found {{event.type}}: {{event.data}}',
+                context=f'{{module}} queried archive.org for "{query}" and found {{event.type}}: {{event.pretty_string}}',
             )
 
     async def query(self, query):
@@ -42,13 +46,13 @@ class wayback(subdomain_enum):
         waybackurl = f"{self.base_url}/cdx/search/cdx?url={self.helpers.quote(query)}&matchType=domain&output=json&fl=original&collapse=original"
         r = await self.helpers.request(waybackurl, timeout=self.http_timeout + 10)
         if not r:
-            self.warning(f'Error connecting to archive.org for query "{query}"')
+            self.verbose(f'Error connecting to archive.org for query "{query}"')
             return results
         try:
             j = r.json()
             assert type(j) == list
         except Exception:
-            self.warning(f'Error JSON-decoding archive.org response for query "{query}"')
+            self.verbose(f'Error JSON-decoding archive.org response for query "{query}"')
             return results
 
         urls = []

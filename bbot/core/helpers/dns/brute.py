@@ -49,7 +49,7 @@ class DNSBrute:
 
         wildcard_domains = await self.parent_helper.dns.is_wildcard_domain(domain, (type, "CNAME"))
         wildcard_rdtypes = set()
-        for domain, rdtypes in wildcard_domains.items():
+        for wildcard_domain, rdtypes in wildcard_domains.items():
             wildcard_rdtypes.update(rdtypes)
         if wildcard_domains:
             self.log.hugewarning(
@@ -57,8 +57,8 @@ class DNSBrute:
             )
             return []
 
-        canaries = self.gen_random_subdomains(self.num_canaries)
-        canaries_list = list(canaries)
+        canaries_list = list(self.gen_random_subdomains(self.num_canaries))
+        canary_set = set(canaries_list)
         canaries_pre = canaries_list[: int(self.num_canaries / 2)]
         canaries_post = canaries_list[int(self.num_canaries / 2) :]
         # sandwich subdomains between canaries
@@ -67,8 +67,8 @@ class DNSBrute:
         results = []
         canaries_triggered = []
         async for hostname, ip, rdtype in self._massdns(module, domain, subdomains, rdtype=type):
-            sub = hostname.split(domain)[0]
-            if sub in canaries:
+            sub = hostname.split(domain)[0].rstrip(".")
+            if sub in canary_set:
                 canaries_triggered.append(sub)
             else:
                 results.append(hostname)

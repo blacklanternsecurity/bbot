@@ -5,7 +5,7 @@ class TestUrlScan(ModuleTestBase):
     config_overrides = {"modules": {"urlscan": {"urls": True}}}
 
     async def setup_after_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://urlscan.io/api/v1/search/?q=blacklanternsecurity.com",
             json={
                 "results": [
@@ -55,4 +55,4 @@ class TestUrlScan(ModuleTestBase):
 
     def check(self, module_test, events):
         assert any(e.data == "asdf.blacklanternsecurity.com" for e in events), "Failed to detect subdomain"
-        assert any(e.data == "https://asdf.blacklanternsecurity.com/cna.html" for e in events), "Failed to detect URL"
+        assert any(e.url == "https://asdf.blacklanternsecurity.com/cna.html" for e in events), "Failed to detect URL"

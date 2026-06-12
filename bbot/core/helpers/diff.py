@@ -21,6 +21,7 @@ class HttpCompare:
         headers=None,
         cookies=None,
         timeout=10,
+        on_baseline_ready=None,
     ):
         self.parent_helper = parent_helper
         self.baseline_url = baseline_url
@@ -33,6 +34,8 @@ class HttpCompare:
         self.headers = headers
         self.cookies = cookies
         self.timeout = 10
+        # Optional async callback fired once with baseline_1 after the baseline is established.
+        self.on_baseline_ready = on_baseline_ready
 
     @staticmethod
     def merge_dictionaries(headers1, headers2):
@@ -87,8 +90,10 @@ class HttpCompare:
             self.baseline = baseline_1
             if baseline_1 is None or baseline_2 is None:
                 log.debug("HTTP error while establishing baseline, aborting")
+                baseline_1_repr = f"HTTP {baseline_1.status_code}" if baseline_1 is not None else "None"
+                baseline_2_repr = f"HTTP {baseline_2.status_code}" if baseline_2 is not None else "None"
                 raise HttpCompareError(
-                    f"Can't get baseline from source URL: {url_1}:{baseline_1} / {url_2}:{baseline_2}"
+                    f"Can't get baseline from source URL: {url_1} ({baseline_1_repr}) / {url_2} ({baseline_2_repr})"
                 )
             if baseline_1.status_code != baseline_2.status_code:
                 log.debug("Status code not stable during baseline, aborting")
@@ -98,7 +103,6 @@ class HttpCompare:
                 baseline_1_json = xmltodict.parse(baseline_1.text)
                 baseline_2_json = xmltodict.parse(baseline_2.text)
             except ExpatError:
-                log.debug(f"Can't HTML parse for {self.baseline_url}. Switching to text parsing as a backup")
                 baseline_1_json = baseline_1.text.split("\n")
                 baseline_2_json = baseline_2.text.split("\n")
 
@@ -129,6 +133,12 @@ class HttpCompare:
             self.baseline_ignore_headers += [x.lower() for x in dynamic_headers]
             self._baselined = True
 
+            if self.on_baseline_ready is not None:
+                try:
+                    await self.on_baseline_ready(baseline_1)
+                except Exception as e:
+                    log.debug(f"on_baseline_ready callback raised: {e}")
+
     def gen_cache_buster(self):
         return {self.parent_helper.rand_string(6): "1"}
 
@@ -139,7 +149,6 @@ class HttpCompare:
             for header, value in list(headers.items()):
                 if header.lower() in self.baseline_ignore_headers:
                     with suppress(KeyError):
-                        log.debug(f'found ignored header "{header}" in headers_{i + 1} and removed')
                         del headers[header]
 
         ddiff = DeepDiff(headers_1, headers_2, ignore_order=True, view="tree", threshold_to_diff_deeper=0)
@@ -148,7 +157,7 @@ class HttpCompare:
             for x in list(ddiff[k]):
                 try:
                     header_value = str(x).split("'")[1]
-                except KeyError:
+                except (KeyError, IndexError):
                     continue
                 differing_headers.append(header_value)
         return differing_headers
@@ -233,35 +242,37 @@ class HttpCompare:
                         if item in subject_response.text:
                             reflection = True
                             break
-        try:
-            subject_json = xmltodict.parse(subject_response.text)
-
-        except ExpatError:
-            log.debug(f"Can't HTML parse for {subject.split('?')[0]}. Switching to text parsing as a backup")
-            subject_json = subject_response.text.split("\n")
-
-        diff_reasons = []
-
-        if self.baseline.status_code != subject_response.status_code:
-            log.debug(
-                f"status code was different [{str(self.baseline.status_code)}] -> [{str(subject_response.status_code)}], no match"
-            )
-            diff_reasons.append("code")
-
-        different_headers = self.compare_headers(self.baseline.headers, subject_response.headers)
-        if different_headers:
-            log.debug("headers were different, no match")
-            diff_reasons.append("header")
-
-        if self.compare_body(self.baseline_json, subject_json) is False:
-            log.debug("difference in HTML body, no match")
-
-            diff_reasons.append("body")
+        diff_reasons = await self.parent_helper.run_in_executor_cpu(
+            self._compare_sync,
+            subject_response,
+            subject,
+        )
 
         if not diff_reasons:
             return (True, [], reflection, subject_response)
         else:
             return (False, diff_reasons, reflection, subject_response)
+
+    def _compare_sync(self, subject_response, subject):
+        """CPU-bound comparison work offloaded from the event loop."""
+        try:
+            subject_json = xmltodict.parse(subject_response.text)
+        except ExpatError:
+            subject_json = subject_response.text.split("\n")
+
+        diff_reasons = []
+
+        if self.baseline.status_code != subject_response.status_code:
+            diff_reasons.append("code")
+
+        different_headers = self.compare_headers(self.baseline.headers, subject_response.headers)
+        if different_headers:
+            diff_reasons.append("header")
+
+        if self.compare_body(self.baseline_json, subject_json) is False:
+            diff_reasons.append("body")
+
+        return diff_reasons
 
     async def canary_check(self, url, mode, rounds=3):
         """

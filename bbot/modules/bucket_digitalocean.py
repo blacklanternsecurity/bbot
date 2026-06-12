@@ -1,21 +1,21 @@
 from bbot.modules.templates.bucket import bucket_template
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class bucket_digitalocean(bucket_template):
     watched_events = ["DNS_NAME", "STORAGE_BUCKET"]
     produced_events = ["STORAGE_BUCKET", "FINDING"]
-    flags = ["active", "safe", "slow", "cloud-enum", "web-thorough"]
+    flags = ["safe", "active", "slow", "cloud-enum", "web-heavy"]
     meta = {
         "description": "Check for DigitalOcean spaces related to target",
         "created_date": "2022-11-08",
         "author": "@TheTechromancer",
     }
-    options = {"permutations": False}
-    options_desc = {
-        "permutations": "Whether to try permutations",
-    }
 
-    cloud_helper_name = "digitalocean"
+    class Config(BaseModuleConfig):
+        permutations: bool = Field(False, description="Whether to try permutations")
+
+    cloudcheck_provider_name = "DigitalOcean"
     delimiters = ("", "-")
     base_domains = ["digitaloceanspaces.com"]
     regions = ["ams3", "fra1", "nyc3", "sfo2", "sfo3", "sgp1"]

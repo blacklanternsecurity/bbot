@@ -1,9 +1,14 @@
 import os
 import sys
-import omegaconf
 from pathlib import Path
 
-from bbot.core.helpers.misc import cpu_architecture, os_platform, os_platform_friendly
+from bbot.core.helpers.misc import (
+    cpu_architecture,
+    cpu_architecture_golang,
+    cpu_architecture_rust,
+    os_platform,
+    os_platform_friendly,
+)
 
 
 REQUESTS_PATCHED = False
@@ -25,11 +30,6 @@ def increase_limit(new_limit):
 
 
 increase_limit(65535)
-
-
-# Custom custom omegaconf resolver to get environment variables
-def env_resolver(env_name, default=None):
-    return os.getenv(env_name, default)
 
 
 def add_to_path(v, k="PATH", environ=None):
@@ -59,26 +59,25 @@ local_bin_dir = str(Path.home() / ".local" / "bin")
 add_to_path(local_bin_dir)
 
 
-# Register the new resolver
-# this allows you to substitute environment variables in your config like "${env:PATH}""
-omegaconf.OmegaConf.register_new_resolver("env", env_resolver)
-
-
 class BBOTEnviron:
     def __init__(self, preset):
         self.preset = preset
 
     def flatten_config(self, config, base="bbot"):
         """
-        Flatten a JSON-like config into a list of environment variables:
-            {"modules": [{"httpx": {"timeout": 5}}]} --> "BBOT_MODULES_HTTPX_TIMEOUT=5"
+        Flatten a JSON-like config into a sequence of (KEY, value) env var pairs:
+            {"modules": {"http": {"threads": 10}}} --> ("BBOT_MODULES_HTTP_THREADS", "10")
+
+        Lists are skipped (they don't translate cleanly to env var values).
+        None values are skipped too, since `str(None)` would write the literal
+        string "None" into the env, which is never a useful value for a consumer.
         """
-        if type(config) == omegaconf.dictconfig.DictConfig:
+        if isinstance(config, dict):
             for k, v in config.items():
                 new_base = f"{base}_{k}"
-                if type(v) == omegaconf.dictconfig.DictConfig:
+                if isinstance(v, dict):
                     yield from self.flatten_config(v, base=new_base)
-                elif type(v) != omegaconf.listconfig.ListConfig:
+                elif v is not None and not isinstance(v, list):
                     yield (new_base.upper(), str(v))
 
     def prepare(self):
@@ -103,6 +102,8 @@ class BBOTEnviron:
         environ["BBOT_OS_PLATFORM"] = os_platform()
         environ["BBOT_OS"] = os_platform_friendly()
         environ["BBOT_CPU_ARCH"] = cpu_architecture()
+        environ["BBOT_CPU_ARCH_GOLANG"] = cpu_architecture_golang()
+        environ["BBOT_CPU_ARCH_RUST"] = cpu_architecture_rust()
 
         # copy config to environment
         bbot_environ = self.flatten_config(self.preset.config)
@@ -117,11 +118,18 @@ class BBOTEnviron:
             environ.pop("HTTP_PROXY", None)
             environ.pop("HTTPS_PROXY", None)
 
+        # handle proxy exclusions (NO_PROXY)
+        http_proxy_exclude = self.preset.config.get("web", {}).get("http_proxy_exclude", [])
+        if http_proxy_exclude:
+            environ["NO_PROXY"] = ",".join(str(x) for x in http_proxy_exclude)
+        else:
+            environ.pop("NO_PROXY", None)
+
         # ssl verification
         import urllib3
 
         urllib3.disable_warnings()
-        ssl_verify = self.preset.config.get("ssl_verify", False)
+        ssl_verify = self.preset.config.get("web", {}).get("ssl_verify", False)
 
         global REQUESTS_PATCHED
         if not ssl_verify and not REQUESTS_PATCHED:

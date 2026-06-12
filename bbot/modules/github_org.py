@@ -1,21 +1,21 @@
 from bbot.modules.templates.github import github
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class github_org(github):
     watched_events = ["ORG_STUB", "SOCIAL"]
     produced_events = ["CODE_REPOSITORY"]
-    flags = ["passive", "subdomain-enum", "safe", "code-enum"]
+    flags = ["safe", "passive", "subdomain-enum", "code-enum"]
     meta = {
         "description": "Query Github's API for organization and member repositories",
         "created_date": "2023-12-14",
         "author": "@domwhewell-sage",
     }
-    options = {"api_key": "", "include_members": True, "include_member_repos": False}
-    options_desc = {
-        "api_key": "Github token",
-        "include_members": "Enumerate organization members",
-        "include_member_repos": "Also enumerate organization members' repositories",
-    }
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="Github token", sensitive=True)
+        include_members: bool = Field(True, description="Enumerate organization members")
+        include_member_repos: bool = Field(False, description="Also enumerate organization members' repositories")
 
     scope_distance_modifier = 2
 
@@ -90,7 +90,7 @@ class github_org(github):
             user = event.data
             self.verbose(f"Validating whether the organization {user} is within our scope...")
             is_org, in_scope = await self.validate_org(user)
-            if "target" in event.tags:
+            if "seed" in event.tags:
                 in_scope = True
             if not is_org or not in_scope:
                 self.verbose(f"Unable to validate that {user} is in-scope, skipping...")

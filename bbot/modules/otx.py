@@ -1,8 +1,9 @@
-from bbot.modules.templates.subdomain_enum import subdomain_enum
+from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
-class otx(subdomain_enum):
-    flags = ["subdomain-enum", "passive", "safe"]
+class otx(subdomain_enum_apikey):
+    flags = ["safe", "subdomain-enum", "passive"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     meta = {
@@ -11,7 +12,14 @@ class otx(subdomain_enum):
         "author": "@TheTechromancer",
     }
 
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="OTX API key", sensitive=True, mandatory=True)
+
     base_url = "https://otx.alienvault.com"
+
+    def prepare_api_request(self, url, kwargs):
+        kwargs["headers"]["X-OTX-API-KEY"] = self.api_key
+        return url, kwargs
 
     def request_url(self, query):
         url = f"{self.base_url}/api/v1/indicators/domain/{self.helpers.quote(query)}/passive_dns"

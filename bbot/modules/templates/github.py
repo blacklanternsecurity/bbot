@@ -44,3 +44,31 @@ class github(BaseModule):
             self.trace(traceback.format_exc())
             return None, f"Error with API ({str(e).strip()})"
         return True
+
+    async def github_graphql_request(self, graphql_query, resp_key):
+        url = f"{self.base_url}/graphql"
+        next_key = ""
+        has_next_page = True
+
+        while has_next_page:
+            query = graphql_query.replace("{NEXT_KEY}", next_key)
+            r = await self.api_request(url, method="POST", json={"query": query})
+            if r is None:
+                break
+            status_code = getattr(r, "status_code", 0)
+            if status_code == 403:
+                self.warning("Github is rate-limiting us (HTTP status: 403)")
+                break
+            try:
+                json = r.json()
+            except Exception as e:
+                self.warning(f"Failed to decode JSON for {r.url} (HTTP status: {status_code}): {e}")
+                break
+
+            data = json.get("data", {}).get(resp_key, {})
+            yield data
+
+            # Update pagination variables
+            page_info = data.get("pageInfo", {})
+            has_next_page = page_info.get("hasNextPage", False)
+            next_key = page_info.get("endCursor", "")

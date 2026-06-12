@@ -1,14 +1,16 @@
 from pathlib import Path
 from .base import ModuleTestBase, tempapkfile
+from bbot.test.bbot_fixtures import bbot_test_dir
 
 
 class TestAPKPure(ModuleTestBase):
     modules_overrides = ["apkpure", "google_playstore", "speculate"]
+    config_overrides = {"modules": {"apkpure": {"output_folder": str(bbot_test_dir / "test_apkpure_files")}}}
     apk_file = tempapkfile()
 
     async def setup_after_prep(self, module_test):
         await module_test.mock_dns({"blacklanternsecurity.com": {"A": ["127.0.0.99"]}})
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://play.google.com/store/search?q=blacklanternsecurity&c=apps",
             text="""<!DOCTYPE html>
             <html>
@@ -20,7 +22,7 @@ class TestAPKPure(ModuleTestBase):
             </body>
             </html>""",
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://play.google.com/store/apps/details?id=com.bbot.test",
             text="""<!DOCTYPE html>
             <html>
@@ -34,7 +36,7 @@ class TestAPKPure(ModuleTestBase):
             </body>
             </html>""",
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://d.apkpure.com/b/XAPK/com.bbot.test?version=latest",
             content=self.apk_file,
             headers={

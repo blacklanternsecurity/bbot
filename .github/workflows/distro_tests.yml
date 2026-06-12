@@ -16,8 +16,8 @@ jobs:
       matrix:
         os: ["ubuntu:22.04", "ubuntu:24.04", "debian", "archlinux", "fedora", "kalilinux/kali-rolling", "parrotsec/security"]
     steps:
-      - uses: actions/checkout@v4
-      - name: Install Python and Poetry
+      - uses: actions/checkout@v6
+      - name: Install Python and uv
         run: |
           if [ -f /etc/os-release ]; then
             . /etc/os-release
@@ -30,7 +30,7 @@ jobs:
             elif [ "$ID" = "arch" ]; then
               pacman -Syu --noconfirm curl docker git bash base-devel
             elif [ "$ID" = "fedora" ]; then
-              dnf install -y curl docker git bash gcc make openssl-devel bzip2-devel libffi-devel zlib-devel xz-devel tk-devel gdbm-devel readline-devel sqlite-devel python3-libdnf5
+              dnf install -y curl docker git bash gcc make patch p7zip p7zip-plugins openssl-devel bzip2-devel libffi-devel zlib-devel xz-devel tk-devel gdbm-devel readline-devel sqlite-devel python3-libdnf5
             elif [ "$ID" = "gentoo" ]; then
               echo "media-libs/libglvnd X" >> /etc/portage/package.use/libglvnd
               emerge-webrsync
@@ -51,22 +51,25 @@ jobs:
             pyenv rehash
             python3.11 -m pip install --user pipx
             python3.11 -m pipx ensurepath
-            pipx install poetry
+            pipx install uv
           "
       - name: Set OS Environment Variable
         run: echo "OS_NAME=${{ matrix.os }}" | sed 's|[:/]|_|g' >> $GITHUB_ENV
       - name: Run tests
         run: |
-          export PATH="$HOME/.local/bin:$PATH"
-          export PATH="$HOME/.pyenv/bin:$PATH"
-          export PATH="$HOME/.pyenv/shims:$PATH"
+          # Preserve pyenv/pipx paths installed under the GitHub-set HOME
+          export PATH="/github/home/.local/bin:$PATH"
+          export PATH="/github/home/.pyenv/bin:$PATH"
+          export PATH="/github/home/.pyenv/shims:$PATH"
+          # Fix HOME to match euid (root) so rustup/cargo don't refuse to build
+          export HOME="$(getent passwd $(whoami) | cut -d: -f6)"
           export BBOT_DISTRO_TESTS=true
-          poetry env use python3.11
-          poetry install
-          poetry run pytest --reruns 2 --exitfirst -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO .
+          uv python pin 3.11
+          uv sync --group dev
+          uv run pytest --reruns 2 --exitfirst -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO .
       - name: Upload Debug Logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pytest-debug-logs-${{ env.OS_NAME }}
           path: pytest_debug.log

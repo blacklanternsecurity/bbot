@@ -1,32 +1,38 @@
 import zipfile
 import fnmatch
+from pathlib import Path
 
 from bbot.modules.templates.github import github
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class github_workflows(github):
     watched_events = ["CODE_REPOSITORY"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "safe", "code-enum"]
+    flags = ["safe", "passive", "code-enum", "download"]
     meta = {
         "description": "Download a github repositories workflow logs and workflow artifacts",
         "created_date": "2024-04-29",
         "author": "@domwhewell-sage",
     }
-    options = {"api_key": "", "num_logs": 1}
-    options_desc = {
-        "api_key": "Github token",
-        "num_logs": "For each workflow fetch the last N successful runs logs (max 100)",
-    }
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="Github token", sensitive=True, mandatory=True)
+        num_logs: int = Field(1, description="For each workflow fetch the last N successful runs logs (max 100)")
+        output_folder: str = Field("", description="Folder to download workflow logs and artifacts to")
 
     scope_distance_modifier = 2
 
     async def setup(self):
-        self.num_logs = int(self.config.get("num_logs", 1))
+        self.num_logs = self.config.get("num_logs", 1)
         if self.num_logs > 100:
             self.log.error("num_logs option is capped at 100")
             return False
-        self.output_dir = self.scan.home / "workflow_logs"
+        output_folder = self.config.get("output_folder", "")
+        if output_folder:
+            self.output_dir = Path(output_folder) / "workflow_logs"
+        else:
+            self.output_dir = self.scan.home / "workflow_logs"
         self.helpers.mkdir(self.output_dir)
         return await super().setup()
 
@@ -35,13 +41,14 @@ class github_workflows(github):
         return r.is_success or getattr(r, "status_code", 0) == 404
 
     async def filter_event(self, event):
-        if event.type == "CODE_REPOSITORY":
-            if "git" not in event.tags and "github" not in event.data.get("url", ""):
-                return False, "event is not a git repository"
+        if "git" not in event.tags:
+            return False, "event is not a git repository"
+        elif "github.com" not in event.url:
+            return False, "event is not a github repository"
         return True
 
     async def handle_event(self, event):
-        repo_url = event.data.get("url")
+        repo_url = event.url
         owner = repo_url.split("/")[-2]
         repo = repo_url.split("/")[-1]
         for workflow in await self.get_workflows(owner, repo):
@@ -145,7 +152,7 @@ class github_workflows(github):
         filename = f"run_{run_id}.zip"
         file_destination = folder / filename
         try:
-            await self.helpers.download(
+            await self.api_download(
                 f"{self.base_url}/repos/{owner}/{repo}/actions/runs/{run_id}/logs",
                 filename=file_destination,
                 headers=self.headers,
@@ -159,7 +166,7 @@ class github_workflows(github):
             status_code = getattr(response, "status_code", 0)
             if status_code == 403:
                 self.warning(
-                    f"The current access key does not have access to workflow {owner}/{repo}/{run_id} (status: {status_code})"
+                    f"The current access key does not have access to workflow {owner}/{repo}/{run_id}, The API key must have the 'repo' scope or read 'Actions' repository permissions (status: {status_code})"
                 )
             else:
                 self.info(
@@ -205,7 +212,7 @@ class github_workflows(github):
         self.helpers.mkdir(folder)
         file_destination = folder / artifact_name
         try:
-            await self.helpers.download(
+            await self.api_download(
                 f"{self.base_url}/repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip",
                 filename=file_destination,
                 headers=self.headers,
@@ -221,6 +228,6 @@ class github_workflows(github):
             status_code = getattr(response, "status_code", 0)
             if status_code == 403:
                 self.warning(
-                    f"The current access key does not have access to workflow artifacts {owner}/{repo}/{artifact_id} (status: {status_code})"
+                    f"The current access key does not have access to workflow artifacts {owner}/{repo}/{artifact_id}, The API key must have the 'repo' scope or read 'Actions' repository permissions (status: {status_code})"
                 )
         return file_destination

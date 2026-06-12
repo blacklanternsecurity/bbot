@@ -61,7 +61,7 @@ target:
 include:
   # include these default presets
   - subdomain-enum
-  - web-basic
+  - web
 
 modules:
   # enable nuclei in addition to the other modules
@@ -122,7 +122,27 @@ bbot -p ./mypreset.yml --current-preset
 
 ## Advanced Usage
 
-BBOT Presets support advanced features like environment variable substitution and custom conditions.
+BBOT Presets support advanced features like file-based targets, custom modules, and custom conditions.
+
+### Files as Targets
+
+You can specify file paths in your preset's `target`, `seeds`, or `blacklist` fields. BBOT will read each file and expand its lines as individual entries:
+
+```yaml title="my_preset.yml"
+target:
+  - targets.txt
+  - extra.evilcorp.com
+
+seeds:
+  - seeds.txt
+
+blacklist:
+  - /home/user/blacklist.txt
+```
+
+Relative paths (like `targets.txt`) are resolved relative to the preset file's directory first, then the current working directory. Absolute paths are used as-is.
+
+You can mix file paths and literal targets in the same list. If an entry doesn't point to an existing file, it is treated as a literal target.
 
 ### Custom Modules
 
@@ -132,30 +152,6 @@ If you want to use a custom BBOT `.py` module, you can either move it into `bbot
 # load extra BBOT modules from this locaation
 module_dirs:
   - /home/user/custom_modules
-```
-
-### Environment Variables
-
-You can insert environment variables into your preset like this: `${env:<variable>}`:
-
-```yaml title="my_nuclei.yml"
-description: Do a nuclei scan
-
-target:
-  - evilcorp.com
-
-modules:
-  - nuclei
-
-config:
-  modules:
-    nuclei:
-      # allow the nuclei templates to be specified at runtime via an environment variable
-      tags: ${env:NUCLEI_TAGS}
-```
-
-```bash
-NUCLEI_TAGS=apache,nginx bbot -p ./my_nuclei.yml
 ```
 
 ### Conditions
@@ -176,16 +172,16 @@ conditions:
 ```
 
 ```yaml title="my_preset.yml"
-description: Enable ffuf but only when the web spider isn't also enabled
+description: Enable webbrute but only when the web spider isn't also enabled
 
 modules:
-  - ffuf
+  - webbrute
 
 conditions:
   - |
     {% if config.web.spider_distance > 0 and config.web.spider_depth > 0 %}
-      {{ warn("Disabling ffuf because the web spider is enabled") }}
-      {{ preset.exclude_module("ffuf") }}
+      {{ warn("Disabling webbrute because the web spider is enabled") }}
+      {{ preset.exclude_module("webbrute") }}
     {% endif %}
 ```
 

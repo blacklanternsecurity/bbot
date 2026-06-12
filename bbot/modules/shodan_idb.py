@@ -1,5 +1,7 @@
 from bbot.modules.base import BaseModule
 import time
+from bbot.core.config.models import BaseModuleConfig, Field
+from typing import Optional
 
 
 class shodan_idb(BaseModule):
@@ -40,17 +42,19 @@ class shodan_idb(BaseModule):
     """
 
     watched_events = ["IP_ADDRESS", "DNS_NAME"]
-    produced_events = ["TECHNOLOGY", "VULNERABILITY", "FINDING", "OPEN_TCP_PORT", "DNS_NAME"]
-    flags = ["passive", "safe", "portscan", "subdomain-enum"]
+    produced_events = ["TECHNOLOGY", "FINDING", "OPEN_TCP_PORT", "DNS_NAME"]
+    flags = ["safe", "passive", "portscan", "subdomain-enum"]
     meta = {
         "description": "Query Shodan's InternetDB for open ports, hostnames, technologies, and vulnerabilities",
         "created_date": "2023-12-22",
         "author": "@TheTechromancer",
     }
-    options = {"retries": None}
-    options_desc = {
-        "retries": "How many times to retry API requests (e.g. after a 429 error). Overrides the global web.api_retries setting."
-    }
+
+    class Config(BaseModuleConfig):
+        retries: Optional[int] = Field(
+            None,
+            description="How many times to retry API requests (e.g. after a 429 error). Overrides the global web.api_retries setting.",
+        )
 
     # we typically don't want to abort this module
     _api_failure_abort_threshold = 9999999999
@@ -91,7 +95,7 @@ class shodan_idb(BaseModule):
 
         r = await self.api_request(url)
         if r is None:
-            self.debug(f"No response for {event.data}")
+            self.debug(f"No response for {event.pretty_string}")
             return
         try:
             data = r.json()
@@ -115,7 +119,7 @@ class shodan_idb(BaseModule):
         """Handles emitting events from returned JSON"""
         data: dict  # has keys: cpes, hostnames, ip, ports, tags, vulns
         ip = str(ip)
-        query_host = ip if event.data == ip else f"{event.data} ({ip})"
+        query_host = ip if event.data == ip else f"{event.pretty_string} ({ip})"
         # ip is a string, ports is a list of ports, the rest is a list of strings
         for hostname in data.get("hostnames", []):
             if hostname != event.data:
@@ -123,27 +127,34 @@ class shodan_idb(BaseModule):
                     hostname,
                     "DNS_NAME",
                     parent=event,
-                    context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found {{event.type}}: {{event.data}}',
+                    context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found {{event.type}}: {{event.pretty_string}}',
                 )
         for cpe in data.get("cpes", []):
             await self.emit_event(
                 {"technology": cpe, "host": str(event.host)},
                 "TECHNOLOGY",
                 parent=event,
-                context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found {{event.type}}: {{event.data}}',
+                context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found {{event.type}}: {{event.pretty_string}}',
             )
         for port in data.get("ports", []):
             await self.emit_event(
                 self.helpers.make_netloc(event.data, port),
                 "OPEN_TCP_PORT",
                 parent=event,
-                context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found {{event.type}}: {{event.data}}',
+                context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found {{event.type}}: {{event.pretty_string}}',
             )
         vulns = data.get("vulns", [])
         if vulns:
             vulns_str = ", ".join([str(v) for v in vulns])
             await self.emit_event(
-                {"description": f"Shodan reported possible vulnerabilities: {vulns_str}", "host": str(event.host)},
+                {
+                    "description": f"Shodan reported possible vulnerabilities: {vulns_str}",
+                    "host": str(event.host),
+                    "cves": vulns,
+                    "name": "Shodan - Possible Vulnerabilities",
+                    "severity": "MEDIUM",
+                    "confidence": "LOW",
+                },
                 "FINDING",
                 parent=event,
                 context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found potential {{event.type}}: {vulns_str}',

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import io
+import os
 import sys
 import logging
 import multiprocessing
@@ -11,16 +12,22 @@ from bbot.core.helpers.misc import chain_lists
 
 
 if multiprocessing.current_process().name == "MainProcess":
+    # the --no-color flag is parsed later, so honor it (and the NO_COLOR env) before any color is printed
+    no_color = "--no-color" in sys.argv or bool(os.environ.get("NO_COLOR", ""))
+    if no_color:
+        os.environ["NO_COLOR"] = "1"
     silent = "-s" in sys.argv or "--silent" in sys.argv
 
     if not silent:
-        ascii_art = rf""" [1;38;5;208m ______ [0m _____   ____ _______
- [1;38;5;208m|  ___ \[0m|  __ \ / __ \__   __|
- [1;38;5;208m| |___) [0m| |__) | |  | | | |
- [1;38;5;208m|  ___ <[0m|  __ <| |  | | | |
- [1;38;5;208m| |___) [0m| |__) | |__| | | |
- [1;38;5;208m|______/[0m|_____/ \____/  |_|
- [1;38;5;208mBIGHUGE[0m BLS OSINT TOOL {__version__}
+        o = "" if no_color else "\033[1;38;5;208m"
+        e = "" if no_color else "\033[0m"
+        ascii_art = rf""" {o} ______ {e} _____   ____ _______
+ {o}|  ___ \{e}|  __ \ / __ \__   __|
+ {o}| |___) {e}| |__) | |  | | | |
+ {o}|  ___ <{e}|  __ <| |  | | | |
+ {o}| |___) {e}| |__) | |__| | | |
+ {o}|______/{e}|_____/ \____/  |_|
+ {o}BIGHUGE{e} BLS OSINT TOOL {__version__}
 
 www.blacklanternsecurity.com/bbot
 """
@@ -56,6 +63,10 @@ async def _main():
             return
         # ensure arguments (-c config options etc.) are valid
         options = preset.args.parsed
+        # apply CLI log level options (e.g. --debug/--verbose/--silent) to the
+        # global core logger even for CLI-only commands (like --install-all-deps)
+        # that don't construct a full Scanner.
+        preset.apply_log_level(apply_core=True)
 
         # print help if no arguments
         if len(sys.argv) == 1:
@@ -90,7 +101,9 @@ async def _main():
                 preset._default_output_modules = options.output_modules
                 preset._default_internal_modules = []
 
-            preset.bake()
+            # Bake a temporary copy of the preset so that flags correctly enable their associated modules before listing them
+            preset.validate()
+            preset = preset.bake()
 
             # --list-modules
             if options.list_modules:
@@ -144,45 +157,58 @@ async def _main():
                 print(row)
             return
 
+        preset.validate()
+        baked_preset = preset.bake()
+
+        # --current-preset / --current-preset-full
+        if options.current_preset or options.current_preset_full:
+            # Ensure we always have a human-friendly description. Prefer an
+            # explicit scan_name if present, otherwise fall back to the
+            # preset name (e.g. "bbot_cli_main").
+            if not baked_preset.description:
+                if baked_preset.scan_name:
+                    baked_preset.description = str(baked_preset.scan_name)
+                elif baked_preset.name:
+                    baked_preset.description = str(baked_preset.name)
+            if options.current_preset_full:
+                print(baked_preset.to_yaml(full_config=True))
+            else:
+                print(baked_preset.to_yaml())
+            sys.exit(0)
+            return
+
         try:
-            scan = Scanner(preset=preset)
+            scan = Scanner(preset=baked_preset)
         except (PresetAbortError, ValidationError) as e:
             log.warning(str(e))
             return
 
-        deadly_modules = [
-            m for m in scan.preset.scan_modules if "deadly" in preset.preloaded_module(m).get("flags", [])
-        ]
-        if deadly_modules and not options.allow_deadly:
-            log.hugewarning(f"You enabled the following deadly modules: {','.join(deadly_modules)}")
-            log.hugewarning("Deadly modules are highly intrusive")
-            log.hugewarning("Please specify --allow-deadly to continue")
-            return False
-
-        # --current-preset
-        if options.current_preset:
-            print(scan.preset.to_yaml())
-            sys.exit(0)
-            return
-
-        # --current-preset-full
-        if options.current_preset_full:
-            print(scan.preset.to_yaml(full_config=True))
-            sys.exit(0)
-            return
-
         # --install-all-deps
         if options.install_all_deps:
-            all_modules = list(preset.module_loader.preloaded())
-            scan.helpers.depsinstaller.force_deps = True
-            succeeded, failed = await scan.helpers.depsinstaller.install(*all_modules)
+            # create a throwaway Scanner solely so that Preset.bake(scan) can perform find_and_replace() on all module configs so that placeholders like "#{BBOT_TOOLS}" are resolved before running Ansible tasks.
+            from bbot.scanner import Scanner as _ScannerForDeps
+
+            preloaded_modules = preset.module_loader.preloaded()
+            modules_for_deps = [
+                k for k, v in preloaded_modules.items() if str(v.get("type", "")) in ("scan", "output")
+            ]
+
+            # dummy scan used only for environment preparation
+            dummy_scan = _ScannerForDeps(preset=preset)
+
+            helper = dummy_scan.helpers
+            log.info("Installing module dependencies")
+            succeeded, failed = await helper.depsinstaller.install(*modules_for_deps)
+            if succeeded:
+                log.success(
+                    f"Successfully installed dependencies for {len(succeeded):,} modules: {','.join(succeeded)}"
+                )
             if failed:
-                log.hugewarning(f"Failed to install dependencies for the following modules: {', '.join(failed)}")
+                log.warning(f"Failed to install dependencies for {len(failed):,} modules: {', '.join(failed)}")
                 return False
-            log.hugesuccess(f"Successfully installed dependencies for the following modules: {', '.join(succeeded)}")
             return True
 
-        scan_name = str(scan.name)
+        await scan._prep()
 
         log.verbose("")
         log.verbose("### MODULES ENABLED ###")
@@ -191,21 +217,46 @@ async def _main():
             log.verbose(row)
 
         scan.helpers.word_cloud.load()
-        await scan._prep()
+
+        scan_name = str(scan.name)
 
         if not options.dry_run:
             log.trace(f"Command: {' '.join(sys.argv)}")
 
-            if sys.stdin.isatty():
+            # In some environments (e.g. tests) stdin may be closed or not support isatty(). Treat those cases as non-interactive.
+            try:
+                stdin_is_tty = sys.stdin.isatty()
+            except (ValueError, io.UnsupportedOperation):
+                stdin_is_tty = False
+
+            if stdin_is_tty:
                 # warn if any targets belong directly to a cloud provider
                 if not scan.preset.strict_scope:
                     for event in scan.target.seeds.event_seeds:
                         if event.type == "DNS_NAME":
-                            cloudcheck_result = scan.helpers.cloudcheck(event.host)
+                            cloudcheck_result = await scan.helpers.cloudcheck.lookup(event.host)
                             if cloudcheck_result:
                                 scan.hugewarning(
                                     f'YOUR TARGET CONTAINS A CLOUD DOMAIN: "{event.host}". You\'re in for a wild ride!'
                                 )
+
+                # warn about loud/invasive modules
+                loud_modules = []
+                invasive_modules = []
+                for m in scan.preset.scan_modules:
+                    flags = scan.preset.preloaded_module(m).get("flags", [])
+                    if "loud" in flags:
+                        loud_modules.append(m)
+                    if "invasive" in flags:
+                        invasive_modules.append(m)
+                if loud_modules:
+                    log.hugewarning(
+                        f"LOUD modules enabled: {','.join(loud_modules)}. These generate a lot of traffic. To exclude, use -ef loud"
+                    )
+                if invasive_modules:
+                    log.hugewarning(
+                        f"INVASIVE modules enabled: {','.join(invasive_modules)}. These may be intrusive or destructive. To exclude, use -ef invasive"
+                    )
 
                 if not options.yes:
                     log.hugesuccess(f"Scan ready. Press enter to execute {scan.name}")
@@ -295,6 +346,8 @@ def main():
     import traceback
     from bbot.core import CORE
 
+    log = logging.getLogger("bbot.cli")
+
     global scan_name
     try:
         asyncio.run(_main())
@@ -305,9 +358,17 @@ def main():
         msg = "Interrupted"
         if scan_name:
             msg = f"You killed {scan_name}"
+        log.warning(msg)
+        log.trace(traceback.format_exc())
         log_to_stderr(msg, level="WARNING")
         if CORE.logger.log_level <= logging.DEBUG:
             log_to_stderr(traceback.format_exc(), level="DEBUG")
+        exit(1)
+    except Exception as e:
+        log.error(f"Unhandled exception: {e}")
+        log.trace(traceback.format_exc())
+        log_to_stderr(f"Unhandled exception: {e}", level="CRITICAL")
+        log_to_stderr(traceback.format_exc(), level="DEBUG")
         exit(1)
 
 

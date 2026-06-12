@@ -3,7 +3,7 @@ from .base import ModuleTestBase
 
 class TestAjaxpro(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "ajaxpro"]
+    modules_overrides = ["http", "ajaxpro"]
     exploit_headers = {"X-Ajaxpro-Method": "AddItem", "Content-Type": "text/json; charset=UTF-8"}
     exploit_response = """
     null; r.error = {"Message":"Constructor on type 'AjaxPro.Services.ICartService' not found.","Type":"System.MissingMethodException"};/*
@@ -35,7 +35,7 @@ class TestAjaxpro(ModuleTestBase):
 
         for e in events:
             if (
-                e.type == "VULNERABILITY"
+                e.type == "FINDING"
                 and "Ajaxpro Deserialization RCE (CVE-2021-23758)" in e.data["description"]
                 and "http://127.0.0.1:8888/ajaxpro/AjaxPro.Services.ICartService,AjaxPro.2.ashx"
                 in e.data["description"]

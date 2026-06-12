@@ -50,7 +50,16 @@ hunt_param_dict = {
         "cfg",
         "config",
     ],
-    "Directory Traversal": ["entry", "download", "attachment", "basepath", "path", "file", "source", "dest"],
+    "Directory Traversal": [
+        "entry",
+        "download",
+        "attachment",
+        "basepath",
+        "path",
+        "file",
+        "source",
+        "dest",
+    ],
     "Local File Include": [
         "file",
         "document",
@@ -273,14 +282,12 @@ hunt_param_dict = {
 class hunt(BaseModule):
     watched_events = ["WEB_PARAMETER"]
     produced_events = ["FINDING"]
-    flags = ["active", "safe", "web-thorough"]
+    flags = ["safe", "active", "web-heavy"]
     meta = {
         "description": "Watch for commonly-exploitable HTTP parameters",
         "author": "@liquidsec",
         "created_date": "2022-07-20",
     }
-    # accept all events regardless of scope distance
-    scope_distance_modifier = None
 
     async def handle_event(self, event):
         p = event.data["name"]
@@ -305,8 +312,13 @@ class hunt(BaseModule):
                     f" Original Value: [{self.helpers.truncate_string(str(event.data['original_value']), 200)}]"
                 )
 
-            data = {"host": str(event.host), "description": description}
-            url = event.data.get("url", "")
-            if url:
-                data["url"] = url
+            data = {
+                "host": str(event.host),
+                "description": description,
+                "name": "Potentially Interesting Parameter",
+                "severity": "INFO",
+                "confidence": "LOW",
+            }
+            if event.url:
+                data["url"] = event.url
             await self.emit_event(data, "FINDING", event)

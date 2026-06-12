@@ -10,7 +10,7 @@ class TestGithub_Codesearch(ModuleTestBase):
         "omit_event_types": [],
         "scope": {"report_distance": 2},
     }
-    modules_overrides = ["github_codesearch", "httpx", "trufflehog"]
+    modules_overrides = ["github_codesearch", "http", "trufflehog"]
 
     github_file_endpoint = (
         "/projectdiscovery/nuclei/06f242e5fce3439b7418877676810cbf57934875/v2/cmd/cve-annotate/main.go"
@@ -38,8 +38,8 @@ Gnl54dJHT+EhlfY=
         respond_args = {"response_data": self.github_file_content}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
-        module_test.httpx_mock.add_response(url="https://api.github.com/zen")
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(url="https://api.github.com/zen")
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/search/code?per_page=100&type=Code&q=blacklanternsecurity.com&page=1",
             json={
                 "total_count": 214,
@@ -76,7 +76,7 @@ Gnl54dJHT+EhlfY=
             [
                 e
                 for e in events
-                if e.type == "URL_UNVERIFIED" and e.data == self.github_file_url and e.scope_distance == 2
+                if e.type == "URL_UNVERIFIED" and e.url == self.github_file_url and e.scope_distance == 2
             ]
         ), "Failed to emit URL_UNVERIFIED"
         assert 1 == len(
@@ -90,7 +90,7 @@ Gnl54dJHT+EhlfY=
             ]
         ), "Failed to emit CODE_REPOSITORY"
         assert 1 == len(
-            [e for e in events if e.type == "URL" and e.data == self.github_file_url and e.scope_distance == 2]
+            [e for e in events if e.type == "URL" and e.url == self.github_file_url and e.scope_distance == 2]
         ), "Failed to visit URL"
         assert 1 == len(
             [

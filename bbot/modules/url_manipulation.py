@@ -1,11 +1,12 @@
 from bbot.errors import HttpCompareError
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class url_manipulation(BaseModule):
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["active", "aggressive", "web-thorough"]
+    flags = ["active", "loud", "web-heavy"]
     meta = {
         "description": "Attempt to identify URL parsing/routing based vulnerabilities",
         "created_date": "2022-09-27",
@@ -13,10 +14,11 @@ class url_manipulation(BaseModule):
     }
     in_scope_only = True
 
-    options = {"allow_redirects": True}
-    options_desc = {
-        "allow_redirects": "Allowing redirects will sometimes create false positives. Disallowing will sometimes create false negatives. Allowed by default."
-    }
+    class Config(BaseModuleConfig):
+        allow_redirects: bool = Field(
+            True,
+            description="Allowing redirects will sometimes create false positives. Disallowing will sometimes create false negatives. Allowed by default.",
+        )
 
     async def setup(self):
         # ([string]method,[string]path,[bool]strip trailing slash)
@@ -45,17 +47,17 @@ class url_manipulation(BaseModule):
     async def handle_event(self, event):
         try:
             compare_helper = self.helpers.http_compare(
-                event.data, allow_redirects=self.allow_redirects, include_cache_buster=False
+                event.url, allow_redirects=self.allow_redirects, include_cache_buster=False
             )
         except HttpCompareError as e:
             self.debug(e)
             return
 
         try:
-            if not await compare_helper.canary_check(event.data, mode="getparam"):
+            if not await compare_helper.canary_check(event.url, mode="getparam"):
                 raise HttpCompareError()
         except HttpCompareError:
-            self.verbose(f'Aborting "{event.data}" due to failed canary check')
+            self.verbose(f'Aborting "{event.url}" due to failed canary check')
             return
 
         for sig in self.signatures:
@@ -65,10 +67,10 @@ class url_manipulation(BaseModule):
                     sig[1], method=sig[0], allow_redirects=self.allow_redirects
                 )
             except HttpCompareError as e:
-                self.debug(f"Encountered HttpCompareError: [{e}] for URL [{event.data}]")
+                self.debug(f"Encountered HttpCompareError: [{e}] for URL [{event.url}]")
 
             if subject_response:
-                subject_content = "".join([str(x) for x in subject_response.headers])
+                subject_content = subject_response.raw_headers
                 if subject_response.text is not None:
                     subject_content += subject_response.text
 
@@ -77,12 +79,19 @@ class url_manipulation(BaseModule):
                         if str(subject_response.status_code).startswith("2"):
                             if "body" in reasons:
                                 reported_signature = f"Modified URL: {sig[1]}"
-                                description = f"Url Manipulation: [{','.join(reasons)}] Sig: [{reported_signature}]"
+                                description = f"URL Manipulation: [{','.join(reasons)}] Sig: [{reported_signature}]"
                                 await self.emit_event(
-                                    {"description": description, "host": str(event.host), "url": event.data},
+                                    {
+                                        "description": description,
+                                        "host": str(event.host),
+                                        "url": event.url,
+                                        "name": "URL Manipulation",
+                                        "severity": "INFO",
+                                        "confidence": "LOW",
+                                    },
                                     "FINDING",
                                     parent=event,
-                                    context=f"{{module}} probed {event.data} and identified {{event.type}}: {description}",
+                                    context=f"{{module}} probed {event.url} and identified {{event.type}}: {description}",
                                 )
                         else:
                             self.debug(f"Status code changed to {str(subject_response.status_code)}, ignoring")

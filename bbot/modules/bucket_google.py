@@ -1,4 +1,5 @@
 from bbot.modules.templates.bucket import bucket_template
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class bucket_google(bucket_template):
@@ -8,18 +9,17 @@ class bucket_google(bucket_template):
 
     watched_events = ["DNS_NAME", "STORAGE_BUCKET"]
     produced_events = ["STORAGE_BUCKET", "FINDING"]
-    flags = ["active", "safe", "cloud-enum", "web-basic"]
+    flags = ["safe", "active", "cloud-enum", "web"]
     meta = {
         "description": "Check for Google object storage related to target",
         "created_date": "2022-11-04",
         "author": "@TheTechromancer",
     }
-    options = {"permutations": False}
-    options_desc = {
-        "permutations": "Whether to try permutations",
-    }
 
-    cloud_helper_name = "google"
+    class Config(BaseModuleConfig):
+        permutations: bool = Field(False, description="Whether to try permutations")
+
+    cloudcheck_provider_name = "Google"
     delimiters = ("", "-", ".", "_")
     base_domains = ["storage.googleapis.com"]
     bad_permissions = [

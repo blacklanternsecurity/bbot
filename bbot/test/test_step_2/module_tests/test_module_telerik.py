@@ -4,14 +4,14 @@ from .base import ModuleTestBase
 
 class TestTelerik(ModuleTestBase):
     targets = ["http://127.0.0.1:8888", "http://127.0.0.1:8888/telerik.aspx"]
-    modules_overrides = ["httpx", "telerik"]
+    modules_overrides = ["http", "telerik"]
     config_overrides = {"modules": {"telerik": {"exploit_RAU_crypto": True}}}
 
     async def setup_before_prep(self, module_test):
         # Simulate Telerik.Web.UI.WebResource.axd?type=rau detection
         expect_args = {"method": "GET", "uri": "/Telerik.Web.UI.WebResource.axd", "query_string": "type=rau"}
         respond_args = {
-            "response_data": '{ "message" : "RadAsyncUpload handler is registered successfully, however, it may not be accessed directly." }'
+            "response_data": '{ "message" : "RadAsyncUpload handler is registered succesfully, however, it may not be accessed directly." }'
         }
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
@@ -91,7 +91,7 @@ class TestTelerik(ModuleTestBase):
                 telerik_axd_detection = True
                 continue
 
-            if e.type == "VULNERABILITY" and "Confirmed Vulnerable Telerik (version: 2014.3.1024)":
+            if e.type == "FINDING" and "Confirmed Vulnerable Telerik (version: 2014.3.1024)" in e.data["description"]:
                 telerik_axd_vulnerable = True
                 continue
 
@@ -131,7 +131,7 @@ class TestTelerikDialogHandler_includesubdirs(TestTelerik):
             },
         }
     }
-    modules_overrides = ["httpx", "telerik"]
+    modules_overrides = ["http", "telerik"]
 
     async def setup_before_prep(self, module_test):
         # Simulate NO SpellCheckHandler detection (not testing for that with this test)

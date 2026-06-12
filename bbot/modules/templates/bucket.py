@@ -1,17 +1,20 @@
+import importlib
+import regex as re
+from functools import cached_property
 from bbot.modules.base import BaseModule
 
 
 class bucket_template(BaseModule):
     watched_events = ["DNS_NAME", "STORAGE_BUCKET"]
     produced_events = ["STORAGE_BUCKET", "FINDING"]
-    flags = ["active", "safe", "cloud-enum", "web-basic"]
+    flags = ["active", "cloud-enum", "web"]
     options = {"permutations": False}
     options_desc = {
         "permutations": "Whether to try permutations",
     }
     scope_distance_modifier = 3
 
-    cloud_helper_name = "amazon|google|digitalocean|etc"
+    cloudcheck_provider_name = "Amazon|Google|DigitalOcean|etc"
     delimiters = ("", ".", "-")
     base_domains = ["s3.amazonaws.com|digitaloceanspaces.com|etc"]
     regions = [None]
@@ -19,8 +22,14 @@ class bucket_template(BaseModule):
 
     async def setup(self):
         self.buckets_tried = set()
-        self.cloud_helper = self.helpers.cloud.providers[self.cloud_helper_name]
         self.permutations = self.config.get("permutations", False)
+        cloudcheck_import_path = "cloudcheck.providers"
+        try:
+            self.cloudcheck_provider = getattr(
+                importlib.import_module(cloudcheck_import_path), self.cloudcheck_provider_name
+            )
+        except (ImportError, AttributeError) as e:
+            return False, f"cloud helper at {cloudcheck_import_path} not found: {e}"
         return True
 
     async def filter_event(self, event):
@@ -33,7 +42,7 @@ class bucket_template(BaseModule):
         return True
 
     def filter_bucket(self, event):
-        if f"cloud-{self.cloud_helper_name}" not in event.tags:
+        if self.cloudcheck_provider_name.lower() not in event.tags:
             return False, "bucket belongs to a different cloud provider"
         return True, ""
 
@@ -58,16 +67,23 @@ class bucket_template(BaseModule):
                 "STORAGE_BUCKET",
                 parent=event,
                 tags=tags,
-                context=f"{{module}} tried {num_buckets:,} bucket variations of {event.data} and found {{event.type}} at {url}",
+                context=f"{{module}} tried {num_buckets:,} bucket variations of {event.pretty_string} and found {{event.type}} at {url}",
             )
 
     async def handle_storage_bucket(self, event):
-        url = event.data["url"]
+        url = event.url
         bucket_name = event.data["name"]
         if self.supports_open_check:
             description, tags = await self._check_bucket_open(bucket_name, url)
             if description:
-                event_data = {"host": event.host, "url": url, "description": description}
+                event_data = {
+                    "host": event.host,
+                    "url": url,
+                    "description": description,
+                    "name": "Open Storage Bucket",
+                    "severity": "LOW",
+                    "confidence": "HIGH",
+                }
                 await self.emit_event(
                     event_data,
                     "FINDING",
@@ -115,7 +131,7 @@ class bucket_template(BaseModule):
                 for bucket_name in new_buckets:
                     url, kwargs = self.build_bucket_request(bucket_name, base_domain, region)
                     bucket_urls_kwargs.append((url, kwargs, (bucket_name, base_domain, region)))
-        async for url, kwargs, (bucket_name, base_domain, region), response in self.helpers.request_custom_batch(
+        async for url, response, (bucket_name, base_domain, region) in self.helpers.request_batch_stream(
             bucket_urls_kwargs
         ):
             existent_bucket, tags = self._check_bucket_exists(bucket_name, response)
@@ -156,13 +172,24 @@ class bucket_template(BaseModule):
         return (msg, tags)
 
     def valid_bucket_name(self, bucket_name):
-        valid = self.cloud_helper.is_valid_bucket_name(bucket_name)
+        valid = self.is_valid_bucket_name(bucket_name)
         if valid and not self.helpers.is_ip(bucket_name):
             bucket_hash = hash(bucket_name)
             if bucket_hash not in self.buckets_tried:
                 self.buckets_tried.add(bucket_hash)
                 return True
         return False
+
+    def is_valid_bucket_name(self, bucket_name):
+        return any(regex.match(bucket_name) for regex in self.bucket_name_regexes)
+
+    @cached_property
+    def bucket_name_regexes(self):
+        return [re.compile(regex) for regex in self.cloudcheck_provider.regexes["STORAGE_BUCKET_NAME"]]
+
+    # @cached_property
+    # def bucket_hostname_regexes(self):
+    #     return [re.compile(regex) for regex in self.cloudcheck_provider.regexes["STORAGE_BUCKET_HOSTNAME"]]
 
     def build_url(self, bucket_name, base_domain, region):
         return f"https://{bucket_name}.{base_domain}/"

@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 
 class Testwpscan(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "wpscan"]
+    modules_overrides = ["http", "wpscan"]
 
     wpscan_output_json = """{
   "banner": {
@@ -1076,8 +1076,7 @@ class Testwpscan(ModuleTestBase):
 
     def check(self, module_test, events):
         findings = [e for e in events if e.type == "FINDING"]
-        vulnerabilities = [e for e in events if e.type == "VULNERABILITY"]
         technologies = [e for e in events if e.type == "TECHNOLOGY"]
-        assert len(findings) == 1
-        assert len(vulnerabilities) == 59
+        # Original expectation: 1 finding + 59 vulnerabilities = 60 FINDING events (all are now FINDING events)
+        assert len(findings) == 60, f"Expected 60 FINDING events, got {len(findings)}"
         assert len(technologies) == 4

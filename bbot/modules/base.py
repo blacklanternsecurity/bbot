@@ -4,9 +4,10 @@ import traceback
 from sys import exc_info
 from contextlib import suppress
 
-from ..errors import ValidationError
 from ..core.helpers.misc import get_size  # noqa
+from ..errors import ValidationError, WebError
 from ..core.helpers.async_helpers import TaskCounter, ShuffleQueue
+from ..core.event import is_event
 
 
 class BaseModule:
@@ -17,9 +18,9 @@ class BaseModule:
 
         produced_events (List): Event types to produce.
 
-        meta (Dict): Metadata about the module, such as whether authentication is required and a description.
+        meta (Dict): Metadata about the module — description, author, created_date, etc.
 
-        flags (List): Flags indicating the type of module (must have at least "safe" or "aggressive" and "passive" or "active").
+        flags (List): Flags indicating the type of module (must have at least "passive" or "active").
 
         deps_modules (List): Other BBOT modules this module depends on. Empty list by default.
 
@@ -51,7 +52,12 @@ class BaseModule:
 
         target_only (bool): Accept only the initial target event(s). Default is False.
 
+        accept_seeds (bool): Accept seed events (events from initial scan seeds).
+            Defaults to True for passive modules, False otherwise. Can be explicitly set to override the default.
+
         in_scope_only (bool): Accept only explicitly in-scope events, regardless of the scan's search distance. Default is False.
+
+        accept_url_special (bool): Accept "special" URLs not typically distributed to web modules, e.g. JS URLs. Default is False.
 
         options (Dict): Customizable options for the module, e.g., {"api_key": ""}. Empty dict by default.
 
@@ -61,13 +67,13 @@ class BaseModule:
 
         batch_size (int): Size of batches processed by handle_batch(). Default is 1.
 
-        batch_wait (int): Seconds to wait before force-submitting a batch. Default is 10.
-
         api_failure_abort_threshold (int): Threshold for setting error state after failed HTTP requests (only takes effect when `api_request()` is used. Default is 5.
 
         _preserve_graph (bool): When set to True, accept events that may be duplicates but are necessary for construction of complete graph. Typically only enabled for output modules that need to maintain full chains of events, e.g. `neo4j` and `json`. Default is False.
 
         _stats_exclude (bool): Whether to exclude this module from scan statistics. Default is False.
+
+        _disable_auto_module_deps (bool): Whether to disable automatic module dependencies. This is useful e.g. if the module consumes URLs, but you don't want to automatically enable the blasthttp module. Default is False.
 
         _qsize (int): Outgoing queue size (0 for infinite). Default is 0.
 
@@ -80,7 +86,7 @@ class BaseModule:
 
     watched_events = []
     produced_events = []
-    meta = {"auth_required": False, "description": "Base module"}
+    meta = {"description": "Base module"}
     flags = []
     options = {}
     options_desc = {}
@@ -99,18 +105,20 @@ class BaseModule:
     scope_distance_modifier = 0
     target_only = False
     in_scope_only = False
-
+    accept_url_special = False
     _module_threads = 1
     _batch_size = 1
-    batch_wait = 10
 
     # disable the module after this many failed attempts in a row
     _api_failure_abort_threshold = 3
+    # whether to retry on 429s when first pinging the API at scan start
+    _ping_retry_on_http_429 = False
 
-    default_discovery_context = "{module} discovered {event.type}: {event.data}"
+    default_discovery_context = "{module} discovered {event.type}: {event.pretty_string}"
 
     _preserve_graph = False
     _stats_exclude = False
+    _disable_auto_module_deps = False
     _qsize = 1000
     _priority = 3
     _name = "base"
@@ -159,6 +167,12 @@ class BaseModule:
 
         self._tasks = []
         self._event_received = None
+        # maximum runtime for each module's handle_event()
+        self._default_handle_event_timeout = self.scan.config.get("module_handle_event_timeout", 60 * 60)  # 1 hour
+        self._default_handle_batch_timeout = self.scan.config.get(
+            "module_handle_batch_timeout", 60 * 60 * 2
+        )  # 2 hours
+        self._event_handler_watchdog_interval = self.event_handler_timeout / 10
 
         # used for optional "per host" tracking
         self._per_host_tracker = set()
@@ -203,6 +217,14 @@ class BaseModule:
             >>>     return True
         """
 
+        return True
+
+    async def setup_deps(self):
+        """
+        Similar to setup(), but reserved for installing dependencies not covered by Ansible.
+
+        This should always be used to install static dependencies like AI models, wordlists, etc.
+        """
         return True
 
     async def handle_event(self, event, **kwargs):
@@ -377,8 +399,9 @@ class BaseModule:
         """
         if url is None:
             url = getattr(self, "ping_url", "")
+        retry_on_http_429 = getattr(self, "_ping_retry_on_http_429", False)
         if url:
-            r = await self.api_request(url)
+            r = await self.api_request(url, retry_on_http_429=retry_on_http_429)
             if getattr(r, "status_code", 0) != 200:
                 response_text = getattr(r, "text", "no response from server")
                 raise ValueError(response_text)
@@ -398,6 +421,13 @@ class BaseModule:
         if module_threads is None:
             module_threads = self._module_threads
         return module_threads
+
+    @property
+    def event_handler_timeout(self):
+        module_timeout = self.config.get("module_timeout", None)
+        if module_timeout is not None:
+            return float(module_timeout)
+        return self._default_handle_event_timeout if self.batch_size <= 1 else self._default_handle_batch_timeout
 
     @property
     def auth_secret(self):
@@ -446,23 +476,31 @@ class BaseModule:
             - If a "FINISHED" event is found, invokes 'finish()' method of the module.
         """
         finish = False
-        async with self._task_counter.count(f"{self.name}.handle_batch()") as counter:
-            submitted = False
-            if self.batch_size <= 1:
-                return
-            if self.num_incoming_events > 0:
-                events, finish = await self._events_waiting()
-                if events and not self.errored:
-                    counter.n = len(events)
-                    self.verbose(f"Handling batch of {len(events):,} events")
-                    submitted = True
-                    async with self.scan._acatch(f"{self.name}.handle_batch()"):
-                        await self.handle_batch(*events)
-                    self.verbose(f"Finished handling batch of {len(events):,} events")
+        submitted = False
+        if self.batch_size <= 1:
+            return
+        if self.num_incoming_events > 0:
+            events, finish = await self._events_waiting()
+            if events and not self.errored:
+                self.verbose(f"Handling batch of {len(events):,} events")
+                event_types = {}
+                for e in events:
+                    event_types[e.type] = event_types.get(e.type, 0) + 1
+                event_types_sorted = sorted(event_types.items(), key=lambda x: x[1], reverse=True)
+                event_types_str = ", ".join(f"{k}: {v}" for k, v in event_types_sorted)
+                submitted = True
+                context = f"{self.name}.handle_batch({event_types_str})"
+                try:
+                    await self.run_task(self.handle_batch(*events), context, n=len(events))
+                except asyncio.CancelledError:
+                    self.debug(f"{context} was cancelled")
+                finally:
+                    for event in events:
+                        event._minimize()
+                self.verbose(f"Finished handling batch of {len(events):,} events")
         if finish:
             context = f"{self.name}.finish()"
-            async with self.scan._acatch(context), self._task_counter.count(context):
-                await self.finish()
+            await self.run_task(self.finish(), context)
         return submitted
 
     def make_event(self, *args, **kwargs):
@@ -491,6 +529,12 @@ class BaseModule:
             if (not args) or getattr(args[0], "module", None) is None:
                 kwargs["module"] = self
         try:
+            if args and is_event(args[0]):
+                raise ValidationError(
+                    f"{self.__class__.__name__}.make_event() does not accept an existing event "
+                    f"({type(args[0]).__name__}) as the first argument. "
+                    "Use update_event(event, ...) or emit_event(event, ...) instead."
+                )
             event = self.scan.make_event(*args, **kwargs)
         except ValidationError as e:
             if raise_error:
@@ -498,6 +542,39 @@ class BaseModule:
             self.warning(f"{e}")
             return
         return event
+
+    def update_event(self, event, **kwargs):
+        """Update an existing event for the scan.
+
+        This is the counterpart to :meth:`make_event` for modifying an existing
+        :class:`bbot.core.event.base.BaseEvent` instance.
+
+        Raises a validation error if the update could not be applied, unless
+        ``raise_error`` is set to False.
+
+        Args:
+            event: The event object to update.
+            **kwargs: Keyword arguments to be passed to the scan's update_event method.
+            raise_error (bool, optional): Whether to raise a validation error if the event could not be updated. Defaults to False.
+
+        Returns:
+            Event or None: The updated event, or None if a validation error occurred and raise_error was False.
+
+        Raises:
+            ValidationError: If the event could not be validated and raise_error is True.
+        """
+        raise_error = kwargs.pop("raise_error", False)
+        module = kwargs.pop("module", None)
+        if module is None and getattr(event, "module", None) is None:
+            kwargs["module"] = self
+        try:
+            updated = self.scan.update_event(event, **kwargs)
+        except ValidationError as e:
+            if raise_error:
+                raise
+            self.warning(f"{e}")
+            return
+        return updated
 
     async def emit_event(self, *args, **kwargs):
         """Emit an event to the event queue and distribute it to interested modules.
@@ -534,7 +611,23 @@ class BaseModule:
             v = event_kwargs.pop(o, None)
             if v is not None:
                 emit_kwargs[o] = v
-        event = self.make_event(*args, **event_kwargs)
+
+        # Two entry points:
+        #  - emit_event(data, ...)           -> create a new event via make_event()
+        #  - emit_event(existing_event, ...) -> update and re‑emit that event
+        if args and is_event(args[0]):
+            event, *rest = args
+            if rest:
+                self.warning(
+                    f"emit_event() was called on {self.name} with an existing event and extra "
+                    f"positional args ({rest}); extra args are ignored. "
+                    "Pass only the event plus keyword arguments, or call make_event() explicitly."
+                )
+            # Update the existing event (e.g. tags/context/module) before emitting
+            event = self.update_event(event, **event_kwargs)
+        else:
+            event = self.make_event(*args, **event_kwargs)
+
         if event is not None:
             children = event.children
             for e in [event] + children:
@@ -568,16 +661,19 @@ class BaseModule:
                 break
             try:
                 event = self.incoming_event_queue.get_nowait()
-                self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
-                acceptable, reason = await self._event_postcheck(event)
+                async with self._task_counter.count(f"event_postcheck({event})"):
+                    acceptable, reason = await self._event_postcheck(event)
                 if acceptable:
                     if event.type == "FINISHED":
                         finish = True
+                        event._minimize()
                     else:
                         events.append(event)
                         self.scan.stats.event_consumed(event, self)
-                elif reason:
-                    self.debug(f"Not accepting {event} because {reason}")
+                else:
+                    event._minimize()
+                    if reason:
+                        self.debug(f"Not accepting {event} because {reason}")
             except asyncio.queues.QueueEmpty:
                 break
         return events, finish
@@ -594,40 +690,32 @@ class BaseModule:
             asyncio.create_task(self._worker(), name=f"{self.scan.name}.{self.name}._worker()")
             for _ in range(self.module_threads)
         ]
+        watchdog_task = asyncio.create_task(
+            self._event_handler_watchdog(),
+            name=f"{self.scan.name}.{self.name}._event_handler_watchdog()",
+        )
+        self._tasks.append(watchdog_task)
 
-    async def _setup(self):
-        """
-        Asynchronously sets up the module by invoking its 'setup()' method.
-
-        This method catches exceptions during setup, sets the module's error state if necessary, and determines the
-        status code based on the result of the setup process.
-
-        Args:
-            None
-
-        Returns:
-            tuple: A tuple containing the module's name, status (True for success, False for hard-fail, None for soft-fail),
-            and an optional status message.
-
-        Raises:
-            Exception: Captured exceptions from the 'setup()' method are logged, but not propagated.
-
-        Notes:
-            - The 'setup()' method can return either a simple boolean status or a tuple of status and message.
-            - A WordlistError exception triggers a soft-fail status.
-            - The debug log will contain setup status information for the module.
-        """
+    async def _setup(self, deps_only=False):
+        """ """
         status_codes = {False: "hard-fail", None: "soft-fail", True: "success"}
 
         status = False
         self.debug(f"Setting up module {self.name}")
         try:
-            result = await self.setup()
-            if type(result) == tuple and len(result) == 2:
-                status, msg = result
-            else:
-                status = result
-                msg = status_codes[status]
+            funcs = [self.setup_deps]
+            if not deps_only:
+                funcs.append(self.setup)
+            for func in funcs:
+                self.debug(f"Running {self.name}.{func.__name__}()")
+                result = await func()
+                if type(result) == tuple and len(result) == 2:
+                    status, msg = result
+                else:
+                    status = result
+                    msg = status_codes[status]
+                if status is False:
+                    break
             self.debug(f"Finished setting up module {self.name}")
         except Exception as e:
             self.set_error_state(f"Unexpected error during module setup: {e}", critical=True)
@@ -659,14 +747,9 @@ class BaseModule:
             - Each event is subject to a post-check via '_event_postcheck()' to decide whether it should be handled.
             - Special 'FINISHED' events trigger the 'finish()' method of the module.
         """
-        async with self.scan._acatch(context=self._worker, unhandled_is_critical=True):
-            try:
+        try:
+            async with self.scan._acatch(context=self._worker, unhandled_is_critical=True):
                 while not self.scan.stopping and not self.errored:
-                    # hold the reigns if our outgoing queue is full
-                    if self._qsize > 0 and self.outgoing_event_queue.qsize() >= self._qsize:
-                        await asyncio.sleep(0.1)
-                        continue
-
                     # if batch wasn't big enough, we wait for the next event before continuing
                     if self.batch_size > 1:
                         submitted = await self._handle_batch()
@@ -683,37 +766,57 @@ class BaseModule:
                                 break
                         except asyncio.queues.QueueEmpty:
                             continue
-                        self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
-                        async with self._task_counter.count(f"event_postcheck({event})"):
-                            acceptable, reason = await self._event_postcheck(event)
-                        if acceptable:
-                            if event.type == "FINISHED":
-                                context = f"{self.name}.finish()"
-                                async with self.scan._acatch(context), self._task_counter.count(context):
-                                    await self.finish()
+                        try:
+                            async with self._task_counter.count(f"event_postcheck({event})"):
+                                acceptable, reason = await self._event_postcheck(event)
+                            if acceptable:
+                                if event.type == "FINISHED":
+                                    context = f"{self.name}.finish()"
+                                    try:
+                                        await self.run_task(self.finish(), context)
+                                    except asyncio.CancelledError:
+                                        self.debug(f"{context} was cancelled")
+                                        continue
+                                else:
+                                    context = f"{self.name}.handle_event({event})"
+                                    self.scan.stats.event_consumed(event, self)
+                                    self.debug(f"Handling {event} from {getattr(event, 'module', 'unknown_module')}")
+                                    try:
+                                        await self.run_task(self.handle_event(event), context)
+                                    except asyncio.CancelledError:
+                                        self.debug(f"{context} was cancelled")
+                                        continue
+                                    self.debug(f"Finished handling {event}")
                             else:
-                                context = f"{self.name}.handle_event({event})"
-                                self.scan.stats.event_consumed(event, self)
-                                self.debug(f"Handling {event}")
-                                async with self.scan._acatch(context), self._task_counter.count(context):
-                                    await self.handle_event(event)
-                                self.debug(f"Finished handling {event}")
-                        else:
-                            self.debug(f"Not accepting {event} because {reason}")
-            except asyncio.CancelledError:
-                # this trace was used for debugging leaked CancelledErrors from inside httpx
-                # self.log.trace("Worker cancelled")
-                raise
-            except BaseException as e:
-                if self.helpers.in_exception_chain(e, (KeyboardInterrupt,)):
-                    self.scan.stop()
-                else:
-                    self.error(f"Critical failure in module {self.name}: {e}")
-                    self.error(traceback.format_exc())
+                                self.debug(f"Not accepting {event} because {reason}")
+                        finally:
+                            event._minimize()
+        except asyncio.CancelledError:
+            raise
+        except RuntimeError as e:
+            self.trace(f"RuntimeError in module {self.name}: {e}")
+        except BaseException as e:
+            if self.helpers.in_exception_chain(e, (KeyboardInterrupt,)):
+                await self.scan.async_stop()
+            else:
+                self.error(f"Critical failure in module {self.name}: {e}")
+                self.error(traceback.format_exc())
         self.log.trace("Worker stopped")
 
     @property
+    def accept_seeds(self):
+        """
+        Returns whether the module accepts seed events.
+        Defaults to True for passive modules, False otherwise.
+        """
+        # Default to True for passive modules, False otherwise
+        return "passive" in self.flags
+
+    @property
     def max_scope_distance(self):
+        """
+        Maximum scope distance for events that are accepted by the module.
+        """
         if self.in_scope_only or self.target_only:
             return 0
         if self.scope_distance_modifier is None:
@@ -755,16 +858,24 @@ class BaseModule:
         if self.errored:
             return False, "module is in error state"
         # exclude non-watched types
-        if not any(t in self.get_watched_events() for t in ("*", event.type)):
+        watched_events = self.get_watched_events()
+        event_type_watched = any(t in watched_events for t in ("*", event.type))
+        # Check if module accepts seeds and event is a seed (only if event type is watched)
+        if self.accept_seeds and "seed" in event.tags and event_type_watched:
+            return True, "it is a seed event and module accepts seeds"
+        if not event_type_watched:
             return False, "its type is not in watched_events"
-        if self.target_only:
-            if "target" not in event.tags:
-                return False, "it did not meet target_only filter criteria"
+        if self.target_only and "target" not in event.tags:
+            return False, "it did not meet target_only filter criteria"
 
-        # exclude certain URLs (e.g. javascript):
-        # TODO: revisit this after httpx rework
-        if event.type.startswith("URL") and self.name != "httpx" and "httpx-only" in event.tags:
-            return False, "its extension was listed in url_extension_httpx_only"
+        # limit events with special URL extensions (e.g. .js) to modules that opt in
+        if not self.accept_url_special:
+            extension = getattr(event, "url_extension", "")
+            if extension in self.scan.url_extension_special:
+                return (
+                    False,
+                    f"it has a special URL extension ({extension}) but the module does not opt in to receive special URLs",
+                )
 
         return True, "precheck succeeded"
 
@@ -826,10 +937,12 @@ class BaseModule:
             if not filter_result:
                 return False, msg
 
-        self.debug(f"{event} passed post-check")
         return True, ""
 
     def _scope_distance_check(self, event):
+        # Seeds bypass scope distance checks
+        if self.accept_seeds and "seed" in event.tags:
+            return True, "it is a seed event and module accepts seeds"
         if self.in_scope_only:
             if event.scope_distance > 0:
                 return False, "it did not meet in_scope_only filter criteria"
@@ -851,6 +964,36 @@ class BaseModule:
                 if callable(callback):
                     async with self.scan._acatch(context), self._task_counter.count(context):
                         await self.helpers.execute_sync_or_async(callback)
+
+    async def run_task(self, coro, name, n=1):
+        """
+        Start a task while tracking it in the module's task counter.
+
+        This lets us keep a detailed module status and selectively cancel tasks when needed, like when handle_event exceeds its max runtime.
+        """
+        task = asyncio.create_task(coro)
+        async with self.scan._acatch(context=name), self._task_counter.count(task_name=name, asyncio_task=task, n=n):
+            return await task
+
+    async def _event_handler_watchdog(self):
+        """
+        Watches handle_event and handle_batch tasks and cancels them if they exceed their max runtime.
+        """
+        while not self.scan.stopping and not self.errored:
+            # if there are events in the outgoing queue, we leave the tasks alone
+            if self.outgoing_event_queue.qsize() > 0:
+                await self.helpers.sleep(self._event_handler_watchdog_interval)
+                continue
+            event_handler_tasks = [
+                t for t in self._task_counter.tasks.values() if t.function_name in ("handle_event", "handle_batch")
+            ]
+            for task in event_handler_tasks:
+                if task.running_for > self.event_handler_timeout:
+                    self.warning(
+                        f"{self.name} Cancelling event handler task {task.task_name} because it's been running for {task.running_for:.1f}s (max timeout is {self.event_handler_timeout})"
+                    )
+                    await task.cancel()
+            await asyncio.sleep(self._event_handler_watchdog_interval)
 
     async def queue_event(self, event):
         """
@@ -880,16 +1023,26 @@ class BaseModule:
                 if reason and reason != "its type is not in watched_events":
                     self.debug(f"Not queueing {event} because {reason}")
                 return
-            else:
-                self.debug(f"Queueing {event} because {reason}")
             try:
                 self.incoming_event_queue.put_nowait(event)
+                self._increment_consumer_count(event)
                 async with self.event_received:
                     self.event_received.notify()
                 if event.type != "FINISHED":
                     self.scan._new_activity = True
             except AttributeError:
                 self.debug("Not in an acceptable state to queue incoming event")
+
+    def _increment_consumer_count(self, event):
+        """Increment the event's consumer count when it lands in this module's queue.
+
+        Paired with the matching ``_minimize()`` call when the worker
+        finishes processing. Modules that have no real worker (e.g. the
+        ``python`` output module backing ``Scanner.async_start``)
+        override this to skip the increment — otherwise the count
+        leaks +1 forever and ``_minimize()``'s strip block never fires.
+        """
+        event._module_consumers += 1
 
     async def queue_outgoing_event(self, event, **kwargs):
         """
@@ -916,36 +1069,30 @@ class BaseModule:
         except AttributeError:
             self.debug("Not in an acceptable state to queue outgoing event")
 
-    def set_error_state(self, message=None, clear_outgoing_queue=False, critical=False):
+    def set_error_state(self, message=None, clear_outgoing_queue=False, critical=False, log_level="error"):
         """
-        Puts the module into an errored state where it cannot accept new events. Optionally logs a warning message.
-
-        The function sets the module's `errored` attribute to True and logs a warning with the optional message.
-        It also clears the incoming event queue to prevent further processing and updates its status to False.
+        Puts the module into an errored state where it cannot accept new events. Optionally logs a message.
 
         Args:
-            message (str, optional): Additional message to be logged along with the warning.
-
-        Returns:
-            None: The function doesn't return anything but updates the `errored` state and clears the incoming event queue.
+            message (str, optional): Additional message to log alongside the state transition.
+            clear_outgoing_queue (bool): Drain the outgoing event queue as well.
+            critical (bool): Log at CRITICAL severity (overrides log_level).
+            log_level (str): Severity to log at when not critical. Use "info" or "verbose" for intentional
+                stops (e.g. user-initiated kill) so they don't appear in error.log.
 
         Examples:
             >>> self.set_error_state()
             >>> self.set_error_state("Failed to connect to the server")
-
-        Notes:
-            - The function sets `self._incoming_event_queue` to False to prevent its further use.
-            - If the module was already in an errored state, the function will not reset the error state or the queue.
+            >>> self.set_error_state("killed by user", log_level="info")
         """
         if not self.errored:
             log_msg = "Setting error state"
             if message is not None:
                 log_msg += f": {message}"
             if critical:
-                log_fn = self.error
+                self.critical(log_msg, trace=False)
             else:
-                log_fn = self.warning
-            log_fn(log_msg)
+                getattr(self, log_level)(log_msg)
             self.errored = True
             # clear incoming queue
             if self.incoming_event_queue is not False:
@@ -1149,6 +1296,7 @@ class BaseModule:
             - cancelling after too many failed attempts
         """
         url = args[0] if args else kwargs.pop("url", "")
+        retry_on_http_429 = kwargs.pop("retry_on_http_429", True)
 
         # loop until we have a successful request
         for _ in range(self.api_retries):
@@ -1174,7 +1322,7 @@ class BaseModule:
                 else:
                     # sleep for a bit if we're being rate limited
                     retry_after = self._get_retry_after(r)
-                    if retry_after or status_code == 429:
+                    if (retry_after or status_code == 429) and retry_on_http_429:
                         sleep_interval = int(retry_after) if retry_after is not None else self._429_sleep_interval
                         if retry_after and retry_after > self._429_max_sleep_interval:
                             self.verbose(
@@ -1193,6 +1341,24 @@ class BaseModule:
 
         return r
 
+    async def api_download(self, url, **kwargs):
+        """
+        A wrapper around the `download()` web helper that incorporates API key cycling.
+        """
+        error = None
+        raise_error = kwargs.pop("raise_error", False)
+        for _ in range(self.api_retries):
+            new_url, kwargs = self.prepare_api_request(url, kwargs)
+            if "raise_error" not in kwargs:
+                kwargs["raise_error"] = True
+            try:
+                return await self.helpers.download(new_url, **kwargs)
+            except WebError as e:
+                error = e
+                self.cycle_api_key()
+        if raise_error:
+            raise error
+
     def _get_retry_after(self, r):
         # try to get retry_after from headers first
         headers = getattr(r, "headers", {})
@@ -1204,7 +1370,10 @@ class BaseModule:
                 if isinstance(body_json, dict):
                     retry_after = body_json.get("retry_after", None)
         if retry_after is not None:
-            return float(retry_after)
+            # we don't allow retry-after smaller than 1 second
+            # this is to prevent cases where APIs erroneously return a retry-after value of 0
+            # e.g. https://github.com/blacklanternsecurity/bbot/issues/2826
+            return max(1.0, float(retry_after))
 
     def _prepare_api_iter_req(self, url, page, page_size, offset, **requests_kwargs):
         """
@@ -1234,7 +1403,7 @@ class BaseModule:
             **requests_kwargs: Arbitrary keyword arguments that will be forwarded to the HTTP request function.
 
         Yields:
-            dict or httpx.Response: If 'json' is True, yields a dictionary containing the parsed JSON data. Otherwise, yields the raw HTTP response.
+            dict or Response: If 'json' is True, yields a dictionary containing the parsed JSON data. Otherwise, yields the raw HTTP response.
 
         Note:
             The loop will continue indefinitely unless manually stopped. Make sure to break out of the loop once the last page has been received.
@@ -1266,7 +1435,7 @@ class BaseModule:
                 new_url, new_kwargs = iter_key(url, page, page_size, offset, **requests_kwargs)
             result = await self.api_request(new_url, **new_kwargs)
             if result is None:
-                self.verbose(f"api_page_iter() got no response for {url}")
+                self.verbose(f"api_page_iter() got no response for {new_url}")
                 break
             try:
                 if _json:
@@ -1333,7 +1502,13 @@ class BaseModule:
 
     @property
     def auth_required(self):
-        return self.meta.get("auth_required", False)
+        """True iff this module's `class Config` declares any `mandatory=True` field."""
+        cfg = getattr(type(self), "Config", None)
+        if cfg is None:
+            return False
+        from bbot.core.config.models import is_mandatory
+
+        return any(is_mandatory(f) for f in getattr(cfg, "model_fields", {}).values())
 
     @property
     def http_timeout(self):
@@ -1606,21 +1781,21 @@ class BaseModule:
             self.trace()
 
     @classmethod
-    def help_text(self):
+    def help_text(cls):
         """
         Returns a string containing help text for the module.
         This includes the module's description, metadata, events, flags, and available options.
         """
-        # Retrieve the module's metadata, options, events, and flags
-        meta = getattr(self, "meta", {})
-        options = getattr(self, "options", {})
-        options_desc = getattr(self, "options_desc", {})
-        watched_events = getattr(self, "watched_events", [])
-        produced_events = getattr(self, "produced_events", [])
-        flags = getattr(self, "flags", [])
+        from pydantic_core import PydanticUndefined
+
+        # Retrieve the module's metadata, events, and flags
+        meta = getattr(cls, "meta", {})
+        watched_events = getattr(cls, "watched_events", [])
+        produced_events = getattr(cls, "produced_events", [])
+        flags = getattr(cls, "flags", [])
 
         help_text = "\n" + "=" * 40 + "\n"
-        help_text += f"Module Help: {self.__name__}\n"
+        help_text += f"Module Help: {cls.__name__}\n"
         help_text += "=" * 40 + "\n\n"
 
         for key, value in meta.items():
@@ -1635,12 +1810,24 @@ class BaseModule:
         help_text += "\nFlags:\n"
         help_text += "  " + ", ".join(flags) + "\n" if flags else "  None\n"
 
+        # Options come from the module's `class Config`; show only its own declared fields
+        # (mirrors `--list-module-options`), not inherited universal options.
+        config_cls = getattr(cls, "Config", None)
+        own_options = (
+            [name for name in getattr(config_cls, "__annotations__", {}) if name in config_cls.model_fields]
+            if config_cls is not None
+            else []
+        )
         help_text += "\nOptions:\n"
-        if options:
-            for option, default_value in options.items():
-                option_description = options_desc.get(option, "No description available.")
+        if own_options:
+            for option in sorted(own_options):
+                field = config_cls.model_fields[option]
+                default_value = field.get_default(call_default_factory=True)
+                if default_value is PydanticUndefined:
+                    default_value = ""
+                description = field.description or "No description available."
                 help_text += f"  - {option}:\n"
-                help_text += f"      Description: {option_description}\n"
+                help_text += f"      Description: {description}\n"
                 help_text += f"      Default: {default_value}\n"
         else:
             help_text += "  No options available."
@@ -1660,11 +1847,12 @@ class BaseInterceptModule(BaseModule):
     """
 
     accept_dupes = True
+    accept_url_special = True
     _intercept = True
 
     async def _worker(self):
-        async with self.scan._acatch(context=self._worker, unhandled_is_critical=True):
-            try:
+        try:
+            async with self.scan._acatch(context=self._worker, unhandled_is_critical=True):
                 while not self.scan.stopping and not self.errored:
                     try:
                         if self.incoming_event_queue is not False:
@@ -1688,16 +1876,18 @@ class BaseInterceptModule(BaseModule):
                         continue
 
                     acceptable = True
+                    # precheck/postcheck must be counted so the module isn't marked finished
+                    # while events are mid-check (is_finished reads _task_counter.value)
                     async with self._task_counter.count(f"event_precheck({event})"):
                         precheck_pass, reason = self._event_precheck(event)
                     if not precheck_pass:
-                        self.debug(f"Not intercepting {event} because precheck failed ({reason})")
                         acceptable = False
-                    async with self._task_counter.count(f"event_postcheck({event})"):
-                        postcheck_pass, reason = await self._event_postcheck(event)
-                    if not postcheck_pass:
-                        self.debug(f"Not intercepting {event} because postcheck failed ({reason})")
-                        acceptable = False
+                    else:
+                        async with self._task_counter.count(f"event_postcheck({event})"):
+                            postcheck_pass, reason = await self._event_postcheck(event)
+                        if not postcheck_pass:
+                            self.debug(f"Not intercepting {event} because postcheck failed ({reason})")
+                            acceptable = False
 
                     # whether to pass the event on to the rest of the scan
                     # defaults to true, unless handle_event returns False
@@ -1705,31 +1895,34 @@ class BaseInterceptModule(BaseModule):
                     forward_event_reason = ""
 
                     if acceptable:
-                        context = f"{self.name}.handle_event({event, kwargs})"
+                        context = f"{self.name}.handle_event({event})"
                         self.scan.stats.event_consumed(event, self)
                         self.debug(f"Intercepting {event}")
-                        async with self.scan._acatch(context), self._task_counter.count(context):
-                            forward_event = await self.handle_event(event, **kwargs)
-                            with suppress(ValueError, TypeError):
-                                forward_event, forward_event_reason = forward_event
+                        try:
+                            forward_event = await self.run_task(self.handle_event(event, **kwargs), context)
+                        except asyncio.CancelledError:
+                            self.debug(f"{context} was cancelled")
+                            continue
+                        with suppress(ValueError, TypeError):
+                            forward_event, forward_event_reason = forward_event
 
                         if forward_event is False:
                             self.debug(f"Not forwarding {event} because {forward_event_reason}")
                             continue
 
-                    self.debug(f"Forwarding {event}")
                     await self.forward_event(event, kwargs)
 
-            except asyncio.CancelledError:
-                # this trace was used for debugging leaked CancelledErrors from inside httpx
-                # self.log.trace("Worker cancelled")
-                raise
-            except BaseException as e:
-                if self.helpers.in_exception_chain(e, (KeyboardInterrupt,)):
-                    self.scan.stop()
-                else:
-                    self.critical(f"Critical failure in intercept module {self.name}: {e}")
-                    self.critical(traceback.format_exc())
+        except asyncio.CancelledError:
+            raise
+        except RuntimeError as e:
+            self.trace(f"RuntimeError in intercept module {self.name}: {e}")
+        except BaseException as e:
+            if self.helpers.in_exception_chain(e, (KeyboardInterrupt,)):
+                await self.scan.async_stop()
+            else:
+                self.critical(f"Critical failure in intercept module {self.name}: {e}")
+                self.critical(traceback.format_exc())
+
         self.log.trace("Worker stopped")
 
     async def get_incoming_event(self):

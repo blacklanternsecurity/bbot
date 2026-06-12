@@ -38,26 +38,21 @@ class BaseOutputModule(BaseModule):
         if self._is_graph_important(event):
             return True, "event is critical to the graph"
 
-        # exclude certain URLs (e.g. javascript):
-        # TODO: revisit this after httpx rework
-        if event.type.startswith("URL") and self.name != "httpx" and "httpx-only" in event.tags:
-            return False, (f"Omitting {event} from output because it's marked as httpx-only")
-
         # omit certain event types
         if event._omit:
-            if "target" in event.tags:
-                reason = "it's a target"
-                self.debug(f"Allowing omitted event: {event} because {reason}")
-            elif event.type in self.get_watched_events():
+            if event.type in self.get_watched_events():
                 reason = "its type is explicitly in watched_events"
                 self.debug(f"Allowing omitted event: {event} because {reason}")
             else:
-                return False, "_omit is True"
+                return False, "its type is omitted in the config"
+
+        if event.always_emit:
+            return True, "event is always emitted"
 
         # internal events like those from speculate, ipneighbor
         # or events that are over our report distance
         if event._internal:
-            return False, "_internal is True"
+            return False, "event is internal and output modules don't accept internal events"
 
         return True, reason
 

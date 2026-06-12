@@ -3,22 +3,25 @@ import json
 import tarfile
 from pathlib import Path
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class docker_pull(BaseModule):
     watched_events = ["CODE_REPOSITORY"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "safe", "slow", "code-enum"]
+    flags = ["safe", "passive", "slow", "code-enum", "download"]
     meta = {
         "description": "Download images from a docker repository",
         "created_date": "2024-03-24",
         "author": "@domwhewell-sage",
     }
-    options = {"all_tags": False, "output_folder": ""}
-    options_desc = {
-        "all_tags": "Download all tags from each registry (Default False)",
-        "output_folder": "Folder to download docker repositories to",
-    }
+
+    class Config(BaseModuleConfig):
+        all_tags: bool = Field(False, description="Download all tags from each registry (Default False)")
+        output_folder: str = Field(
+            "",
+            description="Folder to download docker repositories to. If not specified, downloaded docker images will be deleted when the scan completes, to minimize disk usage.",
+        )
 
     scope_distance_modifier = 2
 
@@ -34,11 +37,11 @@ class docker_pull(BaseModule):
             )
         }
         self.all_tags = self.config.get("all_tags", True)
-        output_folder = self.config.get("output_folder")
+        output_folder = self.config.get("output_folder", "")
         if output_folder:
             self.output_dir = Path(output_folder) / "docker_images"
         else:
-            self.output_dir = self.scan.home / "docker_images"
+            self.output_dir = self.scan.temp_dir / "docker_images"
         self.helpers.mkdir(self.output_dir)
         return await super().setup()
 
@@ -49,7 +52,7 @@ class docker_pull(BaseModule):
         return True
 
     async def handle_event(self, event):
-        repo_url = event.data.get("url")
+        repo_url = event.url
         repo_path = await self.download_docker_repo(repo_url)
         if repo_path:
             self.verbose(f"Downloaded docker repository {repo_url} to {repo_path}")

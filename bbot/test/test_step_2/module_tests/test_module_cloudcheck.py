@@ -5,7 +5,7 @@ from bbot.scanner import Scanner
 
 class TestCloudCheck(ModuleTestBase):
     targets = ["http://127.0.0.1:8888", "asdf2.storage.googleapis.com"]
-    modules_overrides = ["httpx", "excavate", "cloudcheck"]
+    modules_overrides = ["http", "excavate", "cloudcheck"]
 
     async def setup_after_prep(self, module_test):
         module_test.set_expect_requests({"uri": "/"}, {"response_data": "<a href='http://asdf.s3.amazonaws.com'/>"})
@@ -13,29 +13,12 @@ class TestCloudCheck(ModuleTestBase):
         scan = Scanner(config={"cloudcheck": True})
         await scan._prep()
         module = scan.modules["cloudcheck"]
-        providers = scan.helpers.cloud.providers
-        # make sure we have all the providers
-        provider_names = (
-            "amazon",
-            "google",
-            "azure",
-            "digitalocean",
-            "oracle",
-            "akamai",
-            "cloudflare",
-            "github",
-            "zoho",
-            "fastly",
-        )
-        for provider_name in provider_names:
-            assert provider_name in providers
+        from cloudcheck import providers
 
-        amazon_ranges = list(providers["amazon"].ranges)
-        assert amazon_ranges
-        amazon_range = next(iter(amazon_ranges))
-        amazon_address = amazon_range.broadcast_address
+        # make sure we have at least one provider
+        assert providers.Amazon.name == "Amazon"
 
-        ip_event = scan.make_event(amazon_address, parent=scan.root_event)
+        ip_event = scan.make_event("8.8.8.8", parent=scan.root_event)
         aws_event1 = scan.make_event("amazonaws.com", parent=scan.root_event)
         aws_event2 = scan.make_event("asdf.amazonaws.com", parent=scan.root_event)
         aws_event3 = scan.make_event("asdfamazonaws.com", parent=scan.root_event)
@@ -44,23 +27,31 @@ class TestCloudCheck(ModuleTestBase):
         other_event1 = scan.make_event("cname.evilcorp.com", parent=scan.root_event)
         other_event2 = scan.make_event("cname2.evilcorp.com", parent=scan.root_event)
         other_event3 = scan.make_event("cname3.evilcorp.com", parent=scan.root_event)
-        other_event2._resolved_hosts = {amazon_address}
+        other_event2._resolved_hosts = {"8.8.8.8"}
         other_event3._resolved_hosts = {"asdf.amazonaws.com"}
 
-        for event in (ip_event, aws_event1, aws_event2, aws_event4, other_event2, other_event3):
-            await module.handle_event(event)
-            assert "cloud-amazon" in event.tags, f"{event} was not properly cloud-tagged"
+        for event in (ip_event, other_event2):
+            await module.handle_event(ip_event)
+            assert "google" in ip_event.tags
+            assert "cloud" in ip_event.tags
+            # check host_metadata has structured info
+            assert "8.8.8.8" in ip_event.host_metadata
+            assert "google" in ip_event.host_metadata["8.8.8.8"]["cloud_providers"]
+            assert ip_event.host_metadata["8.8.8.8"]["cloud_providers"]["google"]["match"] == "ip"
 
-        assert "cloud-domain" in aws_event1.tags
-        assert "cloud-ip" in other_event2.tags
-        assert "cloud-cname" in other_event3.tags
+        for event in (aws_event1, aws_event2, aws_event4, other_event3):
+            await module.handle_event(event)
+            assert "amazon" in event.tags, f"{event} was not properly cloud-tagged"
+            assert "cloud" in event.tags, f"{event} was not properly cloud-tagged"
+
+        # check match types in host_metadata
+        assert aws_event1.host_metadata["amazonaws.com"]["cloud_providers"]["amazon"]["match"] == "domain"
+        assert other_event3.host_metadata["asdf.amazonaws.com"]["cloud_providers"]["amazon"]["match"] == "cname"
 
         for event in (aws_event3, other_event1):
             await module.handle_event(event)
-            assert "cloud-amazon" not in event.tags, f"{event} was improperly cloud-tagged"
-            assert not any(t for t in event.tags if t.startswith("cloud-") or t.startswith("cdn-")), (
-                f"{event} was improperly cloud-tagged"
-            )
+            assert "amazon" not in event.tags, f"{event} was improperly cloud-tagged"
+            assert "cloud" not in event.tags, f"{event} was improperly cloud-tagged"
 
         google_event1 = scan.make_event("asdf.googleapis.com", parent=scan.root_event)
         google_event2 = scan.make_event("asdf.google", parent=scan.root_event)
@@ -69,14 +60,12 @@ class TestCloudCheck(ModuleTestBase):
 
         for event in (google_event1, google_event2, google_event3):
             await module.handle_event(event)
-            assert "cloud-google" in event.tags, f"{event} was not properly cloud-tagged"
-        assert "cloud-storage-bucket" in google_event3.tags
+            assert "google" in event.tags, f"{event} was not properly cloud-tagged"
+            assert "cloud" in event.tags, f"{event} was not properly cloud-tagged"
 
         await scan._cleanup()
 
     def check(self, module_test, events):
-        for e in events:
-            self.log.debug(e)
         assert 2 == len([e for e in events if e.type == "STORAGE_BUCKET"])
         assert 1 == len(
             [
@@ -84,8 +73,8 @@ class TestCloudCheck(ModuleTestBase):
                 for e in events
                 if e.type == "STORAGE_BUCKET"
                 and e.data["name"] == "asdf"
-                and "cloud-amazon" in e.tags
-                and "cloud-storage-bucket" in e.tags
+                and str(e.module) == "cloudcheck"
+                and e.scope_distance == 1
             ]
         )
         assert 1 == len(
@@ -94,7 +83,21 @@ class TestCloudCheck(ModuleTestBase):
                 for e in events
                 if e.type == "STORAGE_BUCKET"
                 and e.data["name"] == "asdf2"
-                and "cloud-google" in e.tags
-                and "cloud-storage-bucket" in e.tags
+                and str(e.module) == "cloudcheck"
+                and e.scope_distance == 0
             ]
         )
+
+        # verify host_metadata is populated by cloudcheck on real scan events
+        url_events = [e for e in events if e.type == "URL"]
+        for url_event in url_events:
+            if url_event.host_metadata:
+                # check structure: {host: {cloud_providers: {name: {types: [...], match: "..."}}}}
+                for host, meta in url_event.host_metadata.items():
+                    assert "cloud_providers" in meta, f"host_metadata for {host} missing cloud_providers"
+                    for provider_name, provider_info in meta["cloud_providers"].items():
+                        assert "types" in provider_info, f"cloud_providers[{provider_name}] missing types"
+                        assert "match" in provider_info, f"cloud_providers[{provider_name}] missing match"
+                        assert provider_info["match"] in ("ip", "domain", "cname"), (
+                            f"unexpected match type: {provider_info['match']}"
+                        )

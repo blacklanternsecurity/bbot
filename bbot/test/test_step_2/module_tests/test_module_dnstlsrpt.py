@@ -1,6 +1,12 @@
 from .base import ModuleTestBase
 
-raw_smtp_tls_txt = '"v=TLSRPTv1; rua=mailto:tlsrpt@sub.blacklanternsecurity.notreal,mailto:test@on.thirdparty.com, https://tlspost.example.com;"'
+# Mock data is zone-file format: TXT must be quoted to keep the value as a single
+# character-string (otherwise the zone-file lexer splits on whitespace).
+mock_smtp_tls_txt = '"v=TLSRPTv1; rua=mailto:tlsrpt@sub.blacklanternsecurity.notreal,mailto:test@on.thirdparty.com, https://tlspost.example.com;"'
+
+# What the module emits in RAW_DNS_RECORD events (no surrounding quotes from
+# hickory's Display impl).
+raw_smtp_tls_txt = "v=TLSRPTv1; rua=mailto:tlsrpt@sub.blacklanternsecurity.notreal,mailto:test@on.thirdparty.com, https://tlspost.example.com;"
 
 
 class TestDNSTLSRPT(ModuleTestBase):
@@ -19,13 +25,13 @@ class TestDNSTLSRPT(ModuleTestBase):
                 },
                 "_smtp._tls.blacklanternsecurity.notreal": {
                     "A": ["127.0.0.33"],
-                    "TXT": [raw_smtp_tls_txt],
+                    "TXT": [mock_smtp_tls_txt],
                 },
                 "_tls._smtp._tls.blacklanternsecurity.notreal": {
                     "A": ["127.0.0.44"],
                 },
                 "_smtp._tls._smtp._tls.blacklanternsecurity.notreal": {
-                    "TXT": [raw_smtp_tls_txt],
+                    "TXT": [mock_smtp_tls_txt],
                 },
                 "sub.blacklanternsecurity.notreal": {
                     "A": ["127.0.0.55"],
@@ -46,7 +52,7 @@ class TestDNSTLSRPT(ModuleTestBase):
         assert any(e.type == "EMAIL_ADDRESS" and e.data == "test@on.thirdparty.com" for e in events), (
             "Failed to detect third party email address"
         )
-        assert any(e.type == "URL_UNVERIFIED" and e.data == "https://tlspost.example.com/" for e in events), (
+        assert any(e.type == "URL_UNVERIFIED" and e.url == "https://tlspost.example.com/" for e in events), (
             "Failed to detect third party URL"
         )
 

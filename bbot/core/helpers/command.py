@@ -1,6 +1,7 @@
 import os
 import asyncio
 import logging
+import contextlib
 import traceback
 from signal import SIGINT
 from subprocess import CompletedProcess, CalledProcessError, SubprocessError
@@ -123,7 +124,7 @@ async def run_live(self, *command, check=False, text=True, idle_timeout=None, **
                     proc.send_signal(SIGINT)
                     raise
                 except ValueError as e:
-                    command_str = " ".join([str(c) for c in command])
+                    command_str = " ".join(command)
                     log.warning(f"Error executing command {command_str}: {e}")
                     log.trace(traceback.format_exc())
                     continue
@@ -157,7 +158,18 @@ async def run_live(self, *command, check=False, text=True, idle_timeout=None, **
                     command_str = " ".join(command)
                     log.warning(f"Stderr for run_live({command_str}):\n\t{stderr}")
         finally:
-            proc_tracker.remove(proc)
+            proc_tracker.discard(proc)
+            # Kill the subprocess if it's still running (e.g. generator was cancelled/closed)
+            if proc.returncode is None:
+                with contextlib.suppress(Exception):
+                    proc.terminate()
+                try:
+                    await asyncio.wait_for(proc.wait(), timeout=5)
+                except (asyncio.TimeoutError, Exception):
+                    with contextlib.suppress(Exception):
+                        proc.kill()
+                if input_task is not None:
+                    input_task.cancel()
 
 
 async def _spawn_proc(self, *command, **kwargs):
@@ -185,7 +197,9 @@ async def _spawn_proc(self, *command, **kwargs):
     try:
         command, kwargs = self._prepare_command_kwargs(command, kwargs)
     except SubprocessError as e:
-        log.warning(e)
+        command_str = " ".join([str(s) for s in command])
+        log.warning(f"Error running command: '{command_str}': {e}")
+        log.trace(traceback.format_exc())
         return None, None, None
     _input = kwargs.pop("input", None)
     if _input is not None:
@@ -268,7 +282,7 @@ def _prepare_command_kwargs(self, command, kwargs):
         >>> _prepare_command_kwargs(['ls', '-l'], {'sudo': True})
         (['sudo', '-E', '-A', 'LD_LIBRARY_PATH=...', 'PATH=...', 'ls', '-l'], {'limit': 104857600, 'stdout': -1, 'stderr': -1, 'env': environ(...)})
     """
-    # limit = 100MB (this is needed for cases like httpx that are sending large JSON blobs over stdout)
+    # limit = 100MB (this is needed for cases that are sending large JSON blobs over stdout)
     if "limit" not in kwargs:
         kwargs["limit"] = 1024 * 1024 * 100
     if "stdout" not in kwargs:
@@ -279,6 +293,7 @@ def _prepare_command_kwargs(self, command, kwargs):
 
     if len(command) == 1 and isinstance(command[0], (list, tuple)):
         command = command[0]
+
     command = [str(s) for s in command]
 
     if not command:

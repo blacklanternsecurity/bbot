@@ -11,20 +11,23 @@
 ############################################################
 
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class builtwith(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["affiliates", "subdomain-enum", "passive", "safe"]
+    flags = ["safe", "affiliates", "subdomain-enum", "passive"]
     meta = {
         "description": "Query Builtwith.com for subdomains",
         "created_date": "2022-08-23",
         "author": "@TheTechromancer",
-        "auth_required": True,
     }
-    options = {"api_key": "", "redirects": True}
-    options_desc = {"api_key": "Builtwith API key", "redirects": "Also look up inbound and outbound redirects"}
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="Builtwith API key", sensitive=True, mandatory=True)
+        redirects: bool = Field(True, description="Also look up inbound and outbound redirects")
+
     base_url = "https://api.builtwith.com"
 
     async def handle_event(self, event):
@@ -33,25 +36,27 @@ class builtwith(subdomain_enum_apikey):
         subdomains = await self.query(query, parse_fn=self.parse_domains, request_fn=self.request_domains)
         if subdomains:
             for s in subdomains:
-                if s != event:
+                # `s` is a hostname string; compare against the event's data, not the Event object itself.
+                if s != event.data:
                     await self.emit_event(
                         s,
                         "DNS_NAME",
                         parent=event,
-                        context=f'{{module}} queried the BuiltWith API for "{query}" and found {{event.type}}: {{event.data}}',
+                        context=f'{{module}} queried the BuiltWith API for "{query}" and found {{event.type}}: {{event.pretty_string}}',
                     )
         # redirects
         if self.config.get("redirects", True):
             redirects = await self.query(query, parse_fn=self.parse_redirects, request_fn=self.request_redirects)
             if redirects:
                 for r in redirects:
-                    if r != event:
+                    # `r` is a hostname string; compare against the event's data, not the Event object itself.
+                    if r != event.data:
                         await self.emit_event(
                             r,
                             "DNS_NAME",
                             parent=event,
                             tags=["affiliate"],
-                            context=f'{{module}} queried the BuiltWith redirect API for "{query}" and found redirect to {{event.type}}: {{event.data}}',
+                            context=f'{{module}} queried the BuiltWith redirect API for "{query}" and found redirect to {{event.type}}: {{event.pretty_string}}',
                         )
 
     async def request_domains(self, query):

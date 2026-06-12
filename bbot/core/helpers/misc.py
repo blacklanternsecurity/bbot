@@ -7,16 +7,20 @@ import random
 import string
 import asyncio
 import logging
+import functools
 import ipaddress
 import regex as re
 import subprocess as sp
 
+
 from pathlib import Path
 from contextlib import suppress
 from unidecode import unidecode  # noqa F401
+from typing import Iterable, Awaitable, Optional
 from asyncio import create_task, gather, sleep, wait_for  # noqa
 from urllib.parse import urlparse, quote, unquote, urlunparse, urljoin  # noqa F401
 
+from .git import *  # noqa F401
 from .url import *  # noqa F401
 from ... import errors
 from . import regexes as bbot_regexes
@@ -216,26 +220,29 @@ def split_host_port(d):
     host = None
     port = None
     scheme = None
+
+    # first, try to parse as an IP address
     if is_ip(d):
         return make_ip_type(d), port
 
+    # if not an IP address, try to parse as a host:port
     match = bbot_regexes.split_host_port_regex.match(d)
     if match is None:
-        raise ValueError(f'split_port() failed to parse "{d}"')
+        raise ValueError(f'split_host_port() failed to parse "{d}"')
     scheme = match.group("scheme")
     netloc = match.group("netloc")
     if netloc is None:
-        raise ValueError(f'split_port() failed to parse "{d}"')
+        raise ValueError(f'split_host_port() failed to parse "{d}"')
 
     match = bbot_regexes.extract_open_port_regex.match(netloc)
     if match is None:
-        raise ValueError(f'split_port() failed to parse netloc "{netloc}" (original value: {d})')
+        raise ValueError(f'split_host_port() failed to parse netloc "{netloc}" (original value: {d})')
 
     host = match.group(2)
     if host is None:
         host = match.group(1)
     if host is None:
-        raise ValueError(f'split_port() failed to locate host in netloc "{netloc}" (original value: {d})')
+        raise ValueError(f'split_host_port() failed to locate host in netloc "{netloc}" (original value: {d})')
 
     port = match.group(3)
     if port is None and scheme is not None:
@@ -611,11 +618,11 @@ def is_ip(d, version=None, include_network=False):
     """
     ip = None
     try:
-        ip = ipaddress.ip_address(d)
+        ip = cached_ip_address(d)
     except Exception:
         if include_network:
             try:
-                ip = ipaddress.ip_network(d, strict=False)
+                ip = cached_ip_network(d)
             except Exception:
                 pass
     if ip is not None and (version is None or ip.version == version):
@@ -651,6 +658,39 @@ def is_ip_type(i, network=None):
     return ipaddress._IPAddressBase in i.__class__.__mro__
 
 
+# Valid characters in any IP address or CIDR string: hex digits, dot, colon,
+# slash (prefix length), and percent (IPv6 zone ID). A typical hostname like
+# "google.com" fails this check at its first letter.
+_IP_CHARS = frozenset("0123456789abcdefABCDEF.:/%")
+
+
+def _looks_like_ip(s):
+    """Cheap reject for strings that obviously aren't IPs/CIDRs."""
+    for c in s:
+        if c not in _IP_CHARS:
+            return False
+    return True
+
+
+@functools.lru_cache(maxsize=16384)
+def cached_ip_address(s):
+    """
+    Cached wrapper around `ipaddress.ip_address()`. Same semantics: returns an
+    IPv4Address/IPv6Address, or raises ValueError. Exceptions are not cached.
+    """
+    return ipaddress.ip_address(s)
+
+
+@functools.lru_cache(maxsize=16384)
+def cached_ip_network(s):
+    """
+    Cached wrapper around `ipaddress.ip_network(strict=False)`. Same semantics.
+    Exceptions are not cached.
+    """
+    return ipaddress.ip_network(s, strict=False)
+
+
+@functools.lru_cache(maxsize=16384)
 def make_ip_type(s):
     """
     Convert a string to its corresponding IP address or network type.
@@ -676,12 +716,20 @@ def make_ip_type(s):
     """
     if not s:
         raise ValueError(f'Invalid hostname: "{s}"')
-    # IP address
-    with suppress(Exception):
+    # Pass through anything that isn't a string (e.g. an already-parsed IP object).
+    if not isinstance(s, str):
+        return s
+    # Skip the expensive ipaddress parse+raise path for obvious non-IPs.
+    if not _looks_like_ip(s):
+        return s
+    try:
         return ipaddress.ip_address(s)
-    # IP network
-    with suppress(Exception):
+    except ValueError:
+        pass
+    try:
         return ipaddress.ip_network(s, strict=False)
+    except ValueError:
+        pass
     return s
 
 
@@ -831,7 +879,9 @@ def rand_string(length=10, digits=True, numeric_only=False):
     return "".join(random.choice(pool) for _ in range(length))
 
 
-def truncate_string(s, n):
+def truncate_string(s: str, n: int = 200) -> str:
+    if not isinstance(s, str):
+        raise ValueError(f"Expected string, got {type(s)}")
     if len(s) > n:
         return s[: n - 3] + "..."
     else:
@@ -1110,6 +1160,32 @@ def str_or_file(s):
         yield s
 
 
+_comment_re = re.compile(r"\s#")
+
+
+def strip_comments(line):
+    """Strip #-style comments from a line.
+
+    Handles full-line comments (``# ...``) and inline comments (``target # ...``).
+    The ``#`` must be preceded by whitespace to count as an inline comment,
+    so URL fragments like ``http://example.com/page#section`` are preserved.
+
+    Examples:
+        >>> strip_comments("evilcorp.com # main domain")
+        'evilcorp.com'
+        >>> strip_comments("# full line comment")
+        ''
+        >>> strip_comments("http://example.com/page#section")
+        'http://example.com/page#section'
+    """
+    if line.lstrip().startswith("#"):
+        return ""
+    m = _comment_re.search(line)
+    if m:
+        return line[: m.start()]
+    return line
+
+
 split_regex = re.compile(r"[\s,]")
 
 
@@ -1120,6 +1196,7 @@ def chain_lists(
     remove_blank=True,
     validate=False,
     validate_chars='<>:"/\\|?*)',
+    _strip_comments=False,
 ):
     """Chains together list elements, allowing for entries separated by commas.
 
@@ -1135,6 +1212,7 @@ def chain_lists(
         remove_blank (bool, optional): Whether to remove blank entries from the list. Defaults to True.
         validate (bool, optional): Whether to perform validation for undesirable characters. Defaults to False.
         validate_chars (str, optional): When performing validation, what additional set of characters to block (blocks non-printable ascii automatically). Defaults to '<>:"/\\|?*)'
+        _strip_comments (bool, optional): Whether to strip ``#``-style comments from entries and file lines. Defaults to False.
 
     Returns:
         list: The list of chained elements.
@@ -1153,6 +1231,8 @@ def chain_lists(
         l = [l]
     final_list = {}
     for entry in l:
+        if _strip_comments:
+            entry = strip_comments(entry)
         for s in split_regex.split(entry):
             f = s.strip()
             if validate:
@@ -1164,6 +1244,8 @@ def chain_lists(
                     new_msg = str(msg).format(filename=f_path)
                     log.info(new_msg)
                 for line in str_or_file(f):
+                    if _strip_comments:
+                        line = strip_comments(line)
                     final_list[line] = None
             else:
                 final_list[f] = None
@@ -1309,7 +1391,7 @@ def make_netloc(host, port=None):
     return f"{host}:{port}"
 
 
-def which(*executables):
+def which(*executables, path=None):
     """Finds the full path of the first available executable from a list of executables.
 
     Args:
@@ -1325,9 +1407,13 @@ def which(*executables):
     import shutil
 
     for e in executables:
-        location = shutil.which(e)
+        location = shutil.which(e, path=path)
         if location:
-            return location
+            # Resolve directory symlinks but preserve the binary name.
+            # This fixes native 7zip on Fedora where /usr/sbin -> bin symlink
+            # causes codec loading to fail when invoked as /usr/sbin/7z.
+            resolved_dir = os.path.realpath(os.path.dirname(location))
+            return os.path.join(resolved_dir, os.path.basename(location))
 
 
 def search_dict_by_key(key, d):
@@ -1642,18 +1728,18 @@ def filesize(f):
     return 0
 
 
-def rm_rf(f):
+def rm_rf(f, ignore_errors=False):
     """Recursively delete a directory
 
     Args:
         f (str or Path): The directory path to delete.
 
     Examples:
-        >>> rm_rf("/tmp/httpx98323849")
+        >>> rm_rf("/tmp/bbot98323849")
     """
     import shutil
 
-    shutil.rmtree(f)
+    shutil.rmtree(f, ignore_errors=ignore_errors)
 
 
 def clean_old(d, keep=10, filter=lambda x: True, key=latest_mtime, reverse=True, raise_error=False):
@@ -2082,11 +2168,31 @@ def cpu_architecture():
     import platform
 
     uname = platform.uname()
-    arch = uname.machine.lower()
+    return uname.machine.lower()
+
+
+def cpu_architecture_golang():
+    """
+    CPU architecture for GoLang release binaries.
+    """
+    arch = cpu_architecture()
+    # golang uses "arm64" instead of "aarch64"
     if arch.startswith("aarch"):
         return "arm64"
-    elif arch == "x86_64":
+    # golang uses "amd64" instead of "x86_64"
+    if arch == "x86_64":
         return "amd64"
+    return arch
+
+
+def cpu_architecture_rust():
+    """
+    CPU architecture for Rust release binaries.
+    """
+    arch = cpu_architecture()
+    # rust uses "arm64" instead of "aarch64"
+    if arch.startswith("aarch"):
+        return "arm64"
     return arch
 
 
@@ -2284,25 +2390,6 @@ def is_file(f):
     with suppress(Exception):
         return Path(f).is_file()
     return False
-
-
-def cloudcheck(ip):
-    """
-    Check whether an IP address belongs to a cloud provider and returns the provider name, type, and subnet.
-
-    Args:
-        ip (str): The IP address to check.
-
-    Returns:
-        tuple: A tuple containing provider name (str), provider type (str), and subnet (IPv4Network).
-
-    Examples:
-        >>> cloudcheck("168.62.20.37")
-        ('Azure', 'cloud', IPv4Network('168.62.0.0/19'))
-    """
-    import cloudcheck as _cloudcheck
-
-    return _cloudcheck.check(ip)
 
 
 def is_async_function(f):
@@ -2514,27 +2601,16 @@ def weighted_shuffle(items, weights):
         ['banana', 'apple', 'cherry']
 
     Note:
-        The sum of all weights does not have to be 1. They will be normalized internally.
+        Weights must be positive. The sum does not need to be 1.
     """
-    # Create a list of tuples where each tuple is (item, weight)
-    pool = list(zip(items, weights))
-
-    shuffled_items = []
-
-    # While there are still items to be chosen...
-    while pool:
-        # Normalize weights
-        total = sum(weight for item, weight in pool)
-        weights = [weight / total for item, weight in pool]
-
-        # Choose an index based on weight
-        chosen_index = random.choices(range(len(pool)), weights=weights, k=1)[0]
-
-        # Add the chosen item to the shuffled list
-        chosen_item, chosen_weight = pool.pop(chosen_index)
-        shuffled_items.append(chosen_item)
-
-    return shuffled_items
+    # Give each item a random number, but skewed by its weight
+    # (heavier weight → number closer to 1). Sort by that number,
+    # highest first. Items with bigger weights are more likely to
+    # end up near the top, but every item still has a chance.
+    rand = random.random
+    keyed = [(rand() ** (1.0 / w), item) for item, w in zip(items, weights)]
+    keyed.sort(key=lambda x: x[0], reverse=True)
+    return [item for _, item in keyed]
 
 
 def parse_port_string(port_string):
@@ -2584,30 +2660,107 @@ def parse_port_string(port_string):
     return ports
 
 
-async def as_completed(coros):
+async def as_completed(
+    coroutines: Iterable[Awaitable],
+    max_concurrent: Optional[int] = 20,
+):
     """
-    Async generator that yields completed Tasks as they are completed.
+    Yield completed coroutines as they finish with optional concurrency limiting.
+    All coroutines are scheduled as tasks internally for execution.
 
-    Args:
-        coros (iterable): An iterable of coroutine objects or asyncio Tasks.
+    Guarantees cleanup:
+    - If the consumer breaks early or an internal cancellation is detected, all remaining
+      tasks are cancelled and awaited (with return_exceptions=True) to avoid
+      "Task exception was never retrieved" warnings.
+    """
+    it = iter(coroutines)
 
-    Yields:
-        asyncio.Task: A Task object that has completed its execution.
+    running: set[asyncio.Task] = set()
+    limit = max_concurrent or float("inf")
+
+    async def _cancel_and_drain_remaining():
+        if not running:
+            return
+        for t in running:
+            t.cancel()
+        try:
+            await asyncio.gather(*running, return_exceptions=True)
+        finally:
+            running.clear()
+
+    # Prime the running set up to the concurrency limit (or all, if unlimited)
+    try:
+        while len(running) < limit:
+            coro = next(it)
+            running.add(asyncio.create_task(coro))
+    except StopIteration:
+        pass
+
+    # Dedup state for repeated error messages
+    _last_err = {"msg": None, "count": 0}
+
+    try:
+        # Drain: yield completed tasks, backfill from the iterator as slots free up
+        while running:
+            done, running = await asyncio.wait(running, return_when=asyncio.FIRST_COMPLETED)
+            for task in done:
+                # Immediately backfill one slot per completed task, if more work remains
+                try:
+                    coro = next(it)
+                    running.add(asyncio.create_task(coro))
+                except StopIteration:
+                    pass
+
+                # If task raised, handle cancellation gracefully and dedupe noisy repeats
+                if task.exception() is not None:
+                    e = task.exception()
+                    if in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
+                        # Quietly stop if we're being cancelled
+                        log.info("as_completed: cancellation detected; exiting early")
+                        await _cancel_and_drain_remaining()
+                        return
+                    # Build a concise message
+                    msg = f"as_completed yielded exception: {e}"
+                    if msg == _last_err["msg"]:
+                        _last_err["count"] += 1
+                        if _last_err["count"] <= 3:
+                            log.warning(msg)
+                        elif _last_err["count"] % 10 == 0:
+                            log.warning(f"{msg} (repeated {_last_err['count']}x)")
+                        else:
+                            log.debug(msg)
+                    else:
+                        _last_err["msg"] = msg
+                        _last_err["count"] = 1
+                        log.warning(msg)
+                yield task
+    finally:
+        # If the consumer breaks early or an error bubbles, ensure we don't leak tasks
+        await _cancel_and_drain_remaining()
+
+
+def get_waf_strings():
+    """
+    Returns a list of common WAF (Web Application Firewall) detection strings.
+
+    Returns:
+        list: List of WAF detection strings
 
     Examples:
-        >>> async def main():
-        ...     async for task in as_completed([coro1(), coro2(), coro3()]):
-        ...         result = task.result()
-        ...         print(f'Task completed with result: {result}')
-
-        >>> asyncio.run(main())
+        >>> waf_strings = get_waf_strings()
+        >>> "The requested URL was rejected" in waf_strings
+        True
     """
-    tasks = {coro if isinstance(coro, asyncio.Task) else asyncio.create_task(coro): coro for coro in coros}
-    while tasks:
-        done, _ = await asyncio.wait(tasks.keys(), return_when=asyncio.FIRST_COMPLETED)
-        for task in done:
-            tasks.pop(task)
-            yield task
+    return [
+        "The requested URL was rejected",
+        "This content has been blocked",
+        "You don't have permission to access ",
+        "The URL you requested has been blocked",
+        "Request unsuccessful. Incapsula incident",
+        "Access Denied - Sucuri Website Firewall",
+        "Attention Required! | Cloudflare",
+        "Microsoft-Azure-Application-Gateway",
+    ]
 
 
 def clean_dns_record(record):
@@ -2627,14 +2780,12 @@ def clean_dns_record(record):
         >>> clean_dns_record('www.evilcorp.com.')
         'www.evilcorp.com'
 
-        >>> from dns.rrset import from_text
-        >>> record = from_text('www.evilcorp.com', 3600, 'IN', 'A', '1.2.3.4')[0]
-        >>> clean_dns_record(record)
-        '1.2.3.4'
+        >>> clean_dns_record('*.evilcorp.com.')
+        'evilcorp.com'
     """
     if not isinstance(record, str):
         record = str(record.to_text())
-    return str(record).rstrip(".").lower()
+    return str(record).strip("'\"").strip("*.").lower()
 
 
 def truncate_filename(file_path, max_length=255):
@@ -2673,36 +2824,23 @@ def truncate_filename(file_path, max_length=255):
 
 
 def get_keys_in_dot_syntax(config):
-    """Retrieve all keys in an OmegaConf configuration in dot notation.
-
-    This function converts an OmegaConf configuration into a list of keys
-    represented in dot notation.
+    """Retrieve all leaf keys in a nested dict in dot notation.
 
     Args:
-        config (DictConfig): The OmegaConf configuration object.
+        config (dict): A nested dict.
 
     Returns:
-        List[str]: A list of keys in dot notation.
+        List[str]: A list of leaf keys in dot notation.
 
     Examples:
-        >>> config = OmegaConf.create({
-        ...     "web": {
-        ...         "test": True
-        ...     },
-        ...     "db": {
-        ...         "host": "localhost",
-        ...         "port": 5432
-        ...     }
-        ... })
-        >>> get_keys_in_dot_syntax(config)
+        >>> get_keys_in_dot_syntax({"web": {"test": True}, "db": {"host": "localhost", "port": 5432}})
         ['web.test', 'db.host', 'db.port']
     """
-    from omegaconf import OmegaConf
-
-    container = OmegaConf.to_container(config, resolve=True)
     keys = []
 
     def recursive_keys(d, parent_key=""):
+        if not isinstance(d, dict):
+            return
         for k, v in d.items():
             full_key = f"{parent_key}.{k}" if parent_key else k
             if isinstance(v, dict):
@@ -2710,7 +2848,7 @@ def get_keys_in_dot_syntax(config):
             else:
                 keys.append(full_key)
 
-    recursive_keys(container)
+    recursive_keys(config)
     return keys
 
 

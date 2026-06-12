@@ -45,7 +45,7 @@ The `csv` output module produces a CSV like this:
 | ---------- | ----------------------- | ---------- | ------------- | -------------- | -------------------------------------------------------------------------------------------------------- |
 | DNS_NAME   | evilcorp.com            | 1.2.3.4    | TARGET        | 0              | a-record,cdn-github,distance-0,domain,in-scope,mx-record,ns-record,resolved,soa-record,target,txt-record |
 | DNS_NAME   | www.evilcorp.com        | 2.3.4.5    | certspotter   | 0              | a-record,aaaa-record,cdn-github,cname-record,distance-0,in-scope,resolved,subdomain                      |
-| URL        | http://www.evilcorp.com | 2.3.4.5    | httpx         | 0              | a-record,aaaa-record,cdn-github,cname-record,distance-0,in-scope,resolved,subdomain                      |
+| URL        | http://www.evilcorp.com | 2.3.4.5    | http         | 0              | a-record,aaaa-record,cdn-github,cname-record,distance-0,in-scope,resolved,subdomain                      |
 | DNS_NAME   | admin.evilcorp.com      | 5.6.7.8    | otx           | 0              | a-record,aaaa-record,cloud-azure,cname-record,distance-0,in-scope,resolved,subdomain                     |
 
 ### JSON
@@ -88,62 +88,77 @@ mail.evilcorp.com
 
 ![bbot-discord](https://github.com/blacklanternsecurity/bbot/assets/20261699/6d88045c-8eac-43b6-8de9-c621ecf60c2d)
 
-BBOT supports output via webhooks to `discord`, `slack`, and `teams`. To use them, you must specify a webhook URL either in the config:
+BBOT supports output via webhooks to `discord`, `slack`, and `teams`. To use them, you need to enable the output module and configure a webhook URL.
+
+Via preset:
 
 ```yaml title="discord_preset.yml"
+output_modules:
+  - discord
+
 config:
   modules:
     discord:
       webhook_url: https://discord.com/api/webhooks/1234/deadbeef
 ```
 
-...or on the command line:
+Via command line:
+
 ```bash
 bbot -t evilcorp.com -om discord -c modules.discord.webhook_url=https://discord.com/api/webhooks/1234/deadbeef
 ```
 
-By default, only `VULNERABILITY` and `FINDING` events are sent, but this can be customized by setting `event_types` in the config like so:
+By default, only `FINDING` events are sent, but this can be customized by setting `event_types` in the config like so:
 
 ```yaml title="discord_preset.yml"
+output_modules:
+  - discord
+
 config:
   modules:
     discord:
+      webhook_url: https://discord.com/api/webhooks/1234/deadbeef
       event_types:
-        - VULNERABILITY
         - FINDING
         - STORAGE_BUCKET
 ```
 
 ...or on the command line:
 ```bash
-bbot -t evilcorp.com -om discord -c modules.discord.event_types=["STORAGE_BUCKET","FINDING","VULNERABILITY"]
+bbot -t evilcorp.com -om discord -c modules.discord.webhook_url=https://discord.com/api/webhooks/1234/deadbeef -c modules.discord.event_types=["STORAGE_BUCKET","FINDING"]
 ```
 
-You can also filter on the severity of `VULNERABILITY` events by setting `min_severity`:
-
+You can also filter on the severity of `FINDING` events by setting `min_severity`:
 
 ```yaml title="discord_preset.yml"
+output_modules:
+  - discord
+
 config:
   modules:
     discord:
+      webhook_url: https://discord.com/api/webhooks/1234/deadbeef
       min_severity: HIGH
 ```
 
-### HTTP
+### Webhook
 
-The `http` output module sends [events](events.md) in JSON format to a desired HTTP endpoint.
+The `webhook` output module sends [events](events.md) in JSON format to a desired HTTP endpoint.
 
 ```bash
 # POST scan results to localhost
-bbot -t evilcorp.com -om http -c modules.http.url=http://localhost:8000
+bbot -t evilcorp.com -om webhook -c modules.webhook.url=http://localhost:8000
 ```
 
 You can customize the HTTP method if needed. Authentication is also supported:
 
-```yaml title="http_preset.yml"
+```yaml title="webhook_preset.yml"
+output_modules:
+  - webhook
+
 config:
   modules:
-    http:
+    webhook:
       url: https://localhost:8000
       method: PUT
       # Authorization: Bearer
@@ -155,27 +170,33 @@ config:
 
 ### Elasticsearch
 
-When outputting to Elastic, use the `http` output module with the following settings (replace `<your_index>` with your desired index, e.g. `bbot`):
+- Step 1: Spin up a quick Elasticsearch docker image
+
+```bash
+docker run -d -p 9200:9200 --name=bbot-elastic --v "$(pwd)/elastic_data:/usr/share/elasticsearch/data" -e ELASTIC_PASSWORD=bbotislife -m 1GB docker.elastic.co/elasticsearch/elasticsearch:8.16.0
+```
+
+- Step 2: Execute a scan with `elastic` output module
 
 ```bash
 # send scan results directly to elasticsearch
-bbot -t evilcorp.com -om http -c \
-  modules.http.url=http://localhost:8000/<your_index>/_doc \
-  modules.http.siem_friendly=true \
-  modules.http.username=elastic \
-  modules.http.password=changeme
+# note: you can replace "bbot" with your own index name
+bbot -t evilcorp.com -om elastic -c \
+  modules.elastic.url=https://localhost:9200/bbot/_doc \
+  modules.elastic.password=bbotislife
 ```
 
 Alternatively, via a preset:
 
 ```yaml title="elastic_preset.yml"
+output_modules:
+  - elastic
+
 config:
   modules:
-    http:
-      url: http://localhost:8000/<your_index>/_doc
-      siem_friendly: true
-      username: elastic
-      password: changeme
+    elastic:
+      url: http://localhost:9200/bbot/_doc
+      password: bbotislife
 ```
 
 ### Splunk
@@ -185,6 +206,9 @@ The `splunk` output module sends [events](events.md) in JSON format to a desired
 You can customize this output with the following config options:
 
 ```yaml title="splunk_preset.yml"
+output_modules:
+  - splunk
+
 config:
   modules:
     splunk:
@@ -227,6 +251,9 @@ bbot -t evilcorp.com -om postgres -c modules.postgres.database=custom_bbot_db
 ```
 
 ```yaml title="postgres_preset.yml"
+output_modules:
+  - postgres
+
 config:
   modules:
     postgres:
@@ -247,6 +274,9 @@ bbot -t evilcorp.com -om mysql -c modules.mysql.database=custom_bbot_db
 ```
 
 ```yaml title="mysql_preset.yml"
+output_modules:
+  - mysql
+
 config:
   modules:
     mysql:

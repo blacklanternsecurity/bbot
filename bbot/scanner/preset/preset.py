@@ -1,11 +1,9 @@
 import os
 import yaml
 import logging
-import omegaconf
 import traceback
 from copy import copy
 from pathlib import Path
-from contextlib import suppress
 
 from .path import PRESET_PATH
 
@@ -76,8 +74,8 @@ class Preset(metaclass=BasePreset):
         Based on the state of the preset, you can print a warning message, abort the scan, enable/disable modules, etc..
 
     Attributes:
-        target (Target): Target(s) of scan.
-        whitelist (Target): Scan whitelist (by default this is the same as `target`).
+        target (BBOTTarget): The scan target object containing seeds, target, and blacklist.
+            Use `target.target` to access what's in the target (what `in_target()` checks).
         blacklist (Target): Scan blacklist (this takes ultimate precedence).
         helpers (ConfigAwareHelper): Helper containing various reusable functions, regexes, etc.
         output_dir (pathlib.Path): Output directory for scan.
@@ -93,7 +91,7 @@ class Preset(metaclass=BasePreset):
         require_flags (set): Require modules to have these flags. When set, automatically removes offending modules.
         exclude_flags (set): Exclude modules that have any of these flags. When set, automatically removes offending modules.
         module_dirs (set): Custom directories from which to load modules (alias to `self.module_loader.module_dirs`). When set, automatically preloads contained modules.
-        config (omegaconf.dictconfig.DictConfig): BBOT config (alias to `core.config`)
+        config (dict): BBOT config (alias to `core.config`)
         core (BBOTCore): Local copy of BBOTCore object.
         verbose (bool): Whether log level is currently set to verbose. When set, updates log level for all BBOT log handlers.
         debug (bool): Whether log level is currently set to debug. When set, updates log level for all BBOT log handlers.
@@ -115,8 +113,8 @@ class Preset(metaclass=BasePreset):
 
     def __init__(
         self,
-        *targets,
-        whitelist=None,
+        *target,
+        seeds=None,
         blacklist=None,
         modules=None,
         output_modules=None,
@@ -142,8 +140,11 @@ class Preset(metaclass=BasePreset):
         Initializes the Preset class.
 
         Args:
-            *targets (str): Target(s) to scan. Types supported: hostnames, IPs, CIDRs, emails, open ports.
-            whitelist (list, optional): Whitelisted target(s) to scan. Defaults to the same as `targets`.
+            *target (str): Target(s) to scan. These ALWAYS become the target (what `in_target()` checks).
+                Types supported: hostnames, IPs, CIDRs, emails, open ports.
+                Note: Positional arguments always mean target, never seeds.
+            seeds (list, optional): Explicitly define seeds (initial events for passive modules).
+                If not specified, seeds will be backfilled from target when target is defined.
             blacklist (list, optional): Blacklisted target(s). Takes ultimate precedence. Defaults to empty.
             modules (list[str], optional): List of scan modules to enable for the scan. Defaults to empty list.
             output_modules (list[str], optional): List of output modules to use. Defaults to csv, human, and json.
@@ -176,6 +177,8 @@ class Preset(metaclass=BasePreset):
         self._module_loader = None
         self._yaml_str = ""
         self._baked = False
+        # whether this preset has been validated+coerced (a precondition for bake())
+        self._validated = False
 
         self._default_output_modules = None
         self._default_internal_modules = None
@@ -231,7 +234,7 @@ class Preset(metaclass=BasePreset):
         # preset description, default blank
         self.description = description or ""
 
-        # custom conditions, evaluated during .bake()
+        # custom conditions, evaluated during Scanner._prep()
         self.conditions = []
         if conditions is not None:
             for condition in conditions:
@@ -246,7 +249,7 @@ class Preset(metaclass=BasePreset):
         # bbot core config
         self.core = CORE.copy()
         if config is None:
-            config = omegaconf.OmegaConf.create({})
+            config = {}
         # merge custom configs if specified by the user
         self.core.merge_custom(config)
 
@@ -260,12 +263,17 @@ class Preset(metaclass=BasePreset):
         self._module_dirs = set()
         self.module_dirs = module_dirs
 
-        # target / whitelist / blacklist
+        # target / seeds / blacklist
         # these are temporary receptacles until they all get .baked() together
-        self._seeds = set(targets if targets else [])
-        self._whitelist = set(whitelist) if whitelist else whitelist
+        self._target_list = set(target or [])
         self._blacklist = set(blacklist if blacklist else [])
+        # seeds are special. Instead of initializing them as an empty set, we use "None"
+        # to signify they haven't been explicitly set.
+        # after all the merging is done, if seeds are still untouched by the user
+        # (i.e. they are still None), we'll know it's okay to copy them from the targets.
+        self._seeds = set(seeds) if seeds else None
 
+        # _target doesn't get set until .bake()
         self._target = None
 
         # we don't fill self.modules yet (that happens in .bake())
@@ -275,8 +283,6 @@ class Preset(metaclass=BasePreset):
         self.flags.update(set(flags))
         self.exclude_flags.update(set(exclude_flags))
         self.require_flags.update(set(require_flags))
-
-        # log.critical(f"{self.name}: verbose: {self.verbose}, debug: {self.debug}, silent: {self.silent}")
 
     @property
     def bbot_home(self):
@@ -290,15 +296,9 @@ class Preset(metaclass=BasePreset):
 
     @property
     def seeds(self):
-        if self._seeds is None:
+        if self._target is None:
             raise ValueError("Cannot access target before preset is baked (use ._seeds instead)")
         return self.target.seeds
-
-    @property
-    def whitelist(self):
-        if self._target is None:
-            raise ValueError("Cannot access whitelist before preset is baked (use ._whitelist instead)")
-        return self.target.whitelist
 
     @property
     def blacklist(self):
@@ -308,7 +308,7 @@ class Preset(metaclass=BasePreset):
 
     @property
     def preset_dir(self):
-        return self.bbot_home / "presets"
+        return (self.bbot_home / "presets").expanduser().resolve()
 
     @property
     def default_output_modules(self):
@@ -366,13 +366,12 @@ class Preset(metaclass=BasePreset):
         self.flags.update(other.flags)
 
         # target / scope
-        self._seeds.update(other._seeds)
-        # leave whitelist as None until we encounter one
-        if other._whitelist is not None:
-            if self._whitelist is None:
-                self._whitelist = set(other._whitelist)
+        self._target_list.update(other._target_list)
+        if other._seeds is not None:
+            if self._seeds is None:
+                self._seeds = set(other._seeds)
             else:
-                self._whitelist.update(other._whitelist)
+                self._seeds.update(other._seeds)
         self._blacklist.update(other._blacklist)
 
         # module dirs
@@ -399,44 +398,52 @@ class Preset(metaclass=BasePreset):
         # transfer args
         if other._args is not None:
             self._args = other._args
+        # the preset changed -- it must be re-validated before baking
+        self._validated = False
 
     def bake(self, scan=None):
         """
         Return a "baked" copy of this preset, ready for use by a BBOT scan.
 
+        Presets can be merged and modified before baking, but once baked, they are immutable.
+
         Baking a preset finalizes it by populating `preset.modules` based on flags,
         performing final validations, and substituting environment variables in preloaded modules.
-        It also evaluates custom `conditions` as specified in the preset.
 
         This function is automatically called in Scanner.__init__(). There is no need to call it manually.
         """
         self.log_debug("Getting baked")
         # create a copy of self
         baked_preset = copy(self)
-        baked_preset.scan = scan
+
         # copy core
         baked_preset.core = self.core.copy()
-        # copy module loader
-        baked_preset._module_loader = self.module_loader.copy()
-        # prepare os environment
-        os_environ = baked_preset.environ.prepare()
-        # find and replace preloaded modules with os environ
-        # this is different from the config variable substitution because it modifies
-        #  the preloaded modules, i.e. their ansible playbooks
-        baked_preset.module_loader.find_and_replace(**os_environ)
-        # update os environ
-        os.environ.clear()
-        os.environ.update(os_environ)
 
-        # validate flags, config options
-        baked_preset.validate()
+        if scan is not None:
+            baked_preset.scan = scan
+            # copy module loader
+            baked_preset._module_loader = self.module_loader.copy()
+            # prepare os environment
+            os_environ = baked_preset.environ.prepare()
+            # find and replace preloaded modules with os environ
+            # this is different from the config variable substitution because it modifies
+            #  the preloaded modules, i.e. their ansible playbooks
+            baked_preset.module_loader.find_and_replace(**os_environ)
+            # update os environ
+            os.environ.clear()
+            os.environ.update(os_environ)
+
+        # bake() requires an already validated + coerced preset. Validation and
+        # coercion are a PRECONDITION (Preset.validate(), the caller's
+        # responsibility) -- enforced here so an unvalidated preset never bakes.
+        if not self._validated:
+            raise ValidationError(
+                "Preset must be validated before baking -- call .validate() first "
+                "(Scanner and the CLI do this for you)."
+            )
 
         # validate log level options
         baked_preset.apply_log_level(apply_core=scan is not None)
-
-        # assign baked preset to our scan
-        if scan is not None:
-            scan.preset = baked_preset
 
         # now that our requirements / exclusions are validated, we can start enabling modules
         # enable scan modules
@@ -479,19 +486,42 @@ class Preset(metaclass=BasePreset):
             for output_module in self.default_output_modules:
                 baked_preset.add_module(output_module, module_type="output", raise_error=False)
 
+        # dnsresolve is the intercept module that resolves every event, tags wildcards/unresolved,
+        # and rewrites wildcard hits to `_wildcard.parent`. Modules that watch DNS_NAME depend on
+        # those tags to filter false positives; without it, brute-force and passive-enum modules
+        # emit unverified and wildcard-tainted names. This catches all three explicit opt-outs:
+        # `-em dnsresolve`, top-level `dnsresolve: false`, and `dns.disable: true`. We check the
+        # user actions rather than "dnsresolve in modules" so that internal-module-trimming code
+        # paths (e.g. `--list-module-options` setting `_default_internal_modules = []`) don't trip
+        # the gate -- those aren't real scans, and the user hasn't asked to disable anything.
+        dnsresolve_disabled = (
+            "dnsresolve" in baked_preset.exclude_modules
+            or baked_preset.config.get("dnsresolve", True) is False
+            or baked_preset.config.get("dns", {}).get("disable", False)
+        )
+        if dnsresolve_disabled:
+            dns_name_consumers = sorted(
+                m
+                for m in baked_preset.modules
+                if "DNS_NAME" in baked_preset.preloaded_module(m).get("watched_events", [])
+            )
+            if dns_name_consumers:
+                raise ValidationError(
+                    f"dnsresolve is required by these enabled modules but is disabled: {', '.join(dns_name_consumers)}. "
+                    "Use `dns.minimal: true` (resolves A/AAAA only, skips MX/NS/SRV expansion) "
+                    "if you want to reduce DNS overhead while keeping wildcard and unresolved tagging. "
+                    "If you genuinely want no DNS at all, also disable the modules listed above."
+                )
+
         # create target object
         from bbot.scanner.target import BBOTTarget
 
         baked_preset._target = BBOTTarget(
-            *list(self._seeds), whitelist=self._whitelist, blacklist=self._blacklist, strict_scope=self.strict_scope
+            seeds=list(self._seeds) if self._seeds else None,
+            target=list(self._target_list),
+            blacklist=self._blacklist,
+            strict_scope=self.strict_scope,
         )
-
-        # evaluate conditions
-        if baked_preset.conditions:
-            from .conditions import ConditionEvaluator
-
-            evaluator = ConditionEvaluator(baked_preset)
-            evaluator.evaluate()
 
         self._baked = True
         return baked_preset
@@ -562,6 +592,12 @@ class Preset(metaclass=BasePreset):
         return self.scope_config.get("strict", False)
 
     def apply_log_level(self, apply_core=False):
+        """
+        Apply the log level to the preset.
+
+        Args:
+            apply_core (bool, optional): If True, apply the log level to the core logger.
+        """
         # silent takes precedence
         if self.silent:
             self.verbose = False
@@ -569,16 +605,14 @@ class Preset(metaclass=BasePreset):
             if apply_core:
                 self.core.logger.log_level = "CRITICAL"
                 for key in ("verbose", "debug"):
-                    with suppress(omegaconf.errors.ConfigKeyError):
-                        del self.core.custom_config[key]
+                    self.core.custom_config.pop(key, None)
         else:
             # then debug
             if self.debug:
                 self.verbose = False
                 if apply_core:
                     self.core.logger.log_level = "DEBUG"
-                    with suppress(omegaconf.errors.ConfigKeyError):
-                        del self.core.custom_config["verbose"]
+                    self.core.custom_config.pop("verbose", None)
             else:
                 # finally verbose
                 if self.verbose and apply_core:
@@ -625,8 +659,25 @@ class Preset(metaclass=BasePreset):
     def blacklisted(self, host):
         return self.target.blacklisted(host)
 
-    def whitelisted(self, host):
-        return self.target.whitelisted(host)
+    def in_target(self, host):
+        return self.target.in_target(host)
+
+    @staticmethod
+    def _resolve_file_entries(entries):
+        """Resolve relative file paths in target/seeds/blacklist entries via PresetPath.
+
+        Replaces entries that match a file in PresetPath's known directories with
+        their absolute path, so that chain_lists' existing try_files logic can find them.
+        Entries that don't match a file are left as-is.
+        """
+        resolved = []
+        for entry in entries:
+            found = PRESET_PATH.find_file(entry)
+            if found is not None:
+                resolved.append(str(found))
+            else:
+                resolved.append(entry)
+        return resolved
 
     @classmethod
     def from_dict(cls, preset_dict, name=None, _exclude=None, _log=False):
@@ -645,10 +696,46 @@ class Preset(metaclass=BasePreset):
         Examples:
             >>> preset = Preset.from_dict({"target": ["evilcorp.com"], "modules": ["portscan"]})
         """
+        from .validate import prevalidate_preset
+
+        # Gate top-level keys only -- .get() below would silently drop a typo like
+        # `modlues:`. Config values + _validated are validate()'s job, not from_dict's.
+        errs = prevalidate_preset(preset_dict)
+        if errs:
+            raise ValidationError("\n".join(str(e) for e in errs))
+
+        from bbot.core.helpers.misc import chain_lists
+
+        # Handle seeds and targets from dict
+        # for user-friendliness, we allow both "target" and "targets" to be used. we merge them into a single list.
+        target_vals = (preset_dict.get("target") or []) + (preset_dict.get("targets") or [])
+        # resolve relative file paths via PresetPath (which knows the preset's directory)
+        targets = chain_lists(
+            cls._resolve_file_entries(target_vals),
+            try_files=True,
+            msg="Reading targets from preset file: {filename}",
+            _strip_comments=True,
+        )
+        seeds = preset_dict.get("seeds")
+        if seeds is not None:
+            seeds = chain_lists(
+                cls._resolve_file_entries(seeds),
+                try_files=True,
+                msg="Reading seeds from preset file: {filename}",
+                _strip_comments=True,
+            )
+        blacklist = preset_dict.get("blacklist")
+        if blacklist is not None:
+            blacklist = chain_lists(
+                cls._resolve_file_entries(blacklist),
+                try_files=True,
+                msg="Reading blacklist from preset file: {filename}",
+                _strip_comments=True,
+            )
         new_preset = cls(
-            *preset_dict.get("target", []),
-            whitelist=preset_dict.get("whitelist"),
-            blacklist=preset_dict.get("blacklist"),
+            *targets,
+            seeds=seeds,
+            blacklist=blacklist,
             modules=preset_dict.get("modules"),
             output_modules=preset_dict.get("output_modules"),
             exclude_modules=preset_dict.get("exclude_modules"),
@@ -717,8 +804,17 @@ class Preset(metaclass=BasePreset):
                 yaml_str = open(filename).read()
             except FileNotFoundError:
                 raise PresetNotFoundError(f'Could not find preset at "{filename}" - file does not exist')
+            try:
+                yaml_dict = yaml.safe_load(yaml_str) or {}
+            except yaml.YAMLError as e:
+                raise ValidationError(
+                    f"YAML syntax error in {filename}:\n\n{e}\n\nPlease check the file for indentation or formatting errors."
+                )
             preset = cls.from_dict(
-                omegaconf.OmegaConf.create(yaml_str), name=filename.stem, _exclude=_exclude, _log=_log
+                yaml_dict,
+                name=filename.stem,
+                _exclude=_exclude,
+                _log=_log,
             )
             preset._yaml_str = yaml_str
             preset.filename = filename
@@ -740,14 +836,20 @@ class Preset(metaclass=BasePreset):
             >>> - portscan'''
             >>> preset = Preset.from_yaml_string(yaml_string)
         """
-        return cls.from_dict(omegaconf.OmegaConf.create(yaml_preset))
+        try:
+            yaml_dict = yaml.safe_load(yaml_preset) or {}
+        except yaml.YAMLError as e:
+            raise ValidationError(
+                f"YAML syntax error in preset:\n\n{e}\n\nPlease check the YAML for indentation or formatting errors."
+            )
+        return cls.from_dict(yaml_dict)
 
     def to_dict(self, include_target=False, full_config=False, redact_secrets=False):
         """
         Convert this preset into a Python dictionary.
 
         Args:
-            include_target (bool, optional): If True, include target, whitelist, and blacklist in the dictionary
+            include_target (bool, optional): If True, include seeds, target, and blacklist in the dictionary
             full_config (bool, optional): If True, include the entire config, not just what's changed from the defaults.
 
         Returns:
@@ -765,10 +867,9 @@ class Preset(metaclass=BasePreset):
 
         # config
         if full_config:
-            config = self.core.config
+            config = dict(self.core.config)
         else:
-            config = self.core.custom_config
-        config = omegaconf.OmegaConf.to_object(config)
+            config = dict(self.core.custom_config)
         if redact_secrets:
             config = self.core.no_secrets_config(config)
         if config:
@@ -776,15 +877,15 @@ class Preset(metaclass=BasePreset):
 
         # scope
         if include_target:
-            target = sorted(self.target.seeds.inputs)
-            whitelist = []
-            if self.target.whitelist is not None:
-                whitelist = sorted(self.target.whitelist.inputs)
+            target = sorted(self.target.target.inputs)
+            seeds = []
+            if self.target.seeds is not None:
+                seeds = sorted(self.target.seeds.inputs)
             blacklist = sorted(self.target.blacklist.inputs)
             if target:
                 preset_dict["target"] = target
-            if whitelist and whitelist != target:
-                preset_dict["whitelist"] = whitelist
+            if seeds and seeds != target:
+                preset_dict["seeds"] = seeds
             if blacklist:
                 preset_dict["blacklist"] = blacklist
 
@@ -814,7 +915,7 @@ class Preset(metaclass=BasePreset):
         if self.scan_name:
             preset_dict["scan_name"] = self.scan_name
         if self.scan_name and self.output_dir is not None:
-            preset_dict["output_dir"] = self.output_dir
+            preset_dict["output_dir"] = str(self.output_dir)
 
         # conditions
         if self.conditions:
@@ -822,14 +923,15 @@ class Preset(metaclass=BasePreset):
 
         return preset_dict
 
-    def to_yaml(self, include_target=False, full_config=False, sort_keys=False):
+    def to_yaml(self, include_target=False, full_config=False, sort_keys=False, redact_secrets=False):
         """
         Return the preset in the form of a YAML string.
 
         Args:
-            include_target (bool, optional): If True, include target, whitelist, and blacklist in the dictionary
+            include_target (bool, optional): If True, include seeds, target, and blacklist in the dictionary
             full_config (bool, optional): If True, include the entire config, not just what's changed from the defaults.
             sort_keys (bool, optional): If True, sort YAML keys alphabetically
+            redact_secrets (bool, optional): If True, redact secret values from the output
 
         Returns:
             str: The preset in the form of a YAML string
@@ -842,7 +944,9 @@ class Preset(metaclass=BasePreset):
             modules:
             - portscan
         """
-        preset_dict = self.to_dict(include_target=include_target, full_config=full_config)
+        preset_dict = self.to_dict(
+            include_target=include_target, full_config=full_config, redact_secrets=redact_secrets
+        )
         return yaml.dump(preset_dict, sort_keys=sort_keys)
 
     def _is_valid_module(self, module, module_type, name_only=False, raise_error=True):
@@ -891,8 +995,29 @@ class Preset(metaclass=BasePreset):
 
     def validate(self):
         """
-        Validate module/flag exclusions/requirements, and CLI config options if applicable.
+        Coerce config values to their declared types and validate the preset.
+
+        This is a PRECONDITION for bake() (which enforces it): a preset must be
+        validated before it can be baked. Idempotent -- safe to call more than
+        once. Sets ``self._validated = True`` on success and returns ``self`` so
+        it can be chained (e.g. ``preset.validate().bake()``).
         """
+        from bbot.core.config.models import coerce_config
+
+        # Coerce config values toward their declared types
+        try:
+            index = self.module_loader.config_type_index
+            self.core.custom_config = coerce_config(self.core.custom_config, index)
+        except Exception as e:
+            log.debug(f"Config coercion error: {e}")
+
+        # Validate the (coerced) user config against the schema
+        from .validate import validate_preset
+
+        errs = validate_preset({"config": dict(self.core.custom_config)}, module_loader=self.module_loader)
+        if errs:
+            raise ValidationError("\n".join(str(e) for e in errs))
+
         if self._cli:
             self.args.validate()
 
@@ -902,6 +1027,11 @@ class Preset(metaclass=BasePreset):
                 raise ValidationError(
                     get_closest_match(excluded_module, self.module_loader.all_module_choices, msg="module")
                 )
+        # validate declared module names so typos fail early
+        for scan_module in self.explicit_scan_modules:
+            self._is_valid_module(scan_module, "scan", name_only=True)
+        for output_module in self.explicit_output_modules:
+            self._is_valid_module(output_module, "output", name_only=True)
         # validate excluded flags
         for excluded_flag in self.exclude_flags:
             if excluded_flag not in self.module_loader.flag_choices:
@@ -915,25 +1045,25 @@ class Preset(metaclass=BasePreset):
             if flag not in self.module_loader.flag_choices:
                 raise ValidationError(get_closest_match(flag, self.module_loader.flag_choices, msg="flag"))
 
+        self._validated = True
+        return self
+
     @property
     def all_presets(self):
         """
         Recursively find all the presets and return them as a dictionary
         """
-        preset_dir = self.preset_dir
-        home_dir = Path.home()
-
         # first, add local preset dir to PRESET_PATH
         PRESET_PATH.add_path(self.preset_dir)
 
         # ensure local preset directory exists
-        mkdir(preset_dir)
+        mkdir(self.preset_dir)
 
         global DEFAULT_PRESETS
         if DEFAULT_PRESETS is None:
             presets = {}
-            for ext in ("yml", "yaml"):
-                for preset_path in PRESET_PATH:
+            for preset_path in PRESET_PATH:
+                for ext in ("yml", "yaml"):
                     # for every yaml file
                     for original_filename in preset_path.rglob(f"**/*.{ext}"):
                         # not including symlinks
@@ -957,18 +1087,14 @@ class Preset(metaclass=BasePreset):
 
                         local_preset = original_filename
                         # populate symlinks in local preset dir
-                        if not original_filename.is_relative_to(preset_dir):
+                        if not original_filename.is_relative_to(self.preset_dir):
                             relative_preset = original_filename.relative_to(preset_path)
-                            local_preset = preset_dir / relative_preset
+                            local_preset = self.preset_dir / relative_preset
                             mkdir(local_preset.parent, check_writable=False)
                             if not local_preset.exists():
                                 local_preset.symlink_to(original_filename)
 
-                        # collapse home directory into "~"
-                        if local_preset.is_relative_to(home_dir):
-                            local_preset = Path("~") / local_preset.relative_to(home_dir)
-
-                        presets[local_preset] = (loaded_preset, category, preset_path, original_filename)
+                        presets[local_preset.stem] = (loaded_preset, category, preset_path, original_filename)
 
             # sort by name
             DEFAULT_PRESETS = dict(sorted(presets.items(), key=lambda x: x[-1][0].name))
@@ -983,11 +1109,13 @@ class Preset(metaclass=BasePreset):
         if include_modules:
             header.append("Modules")
         for loaded_preset, category, preset_path, original_file in self.all_presets.values():
-            loaded_preset = loaded_preset.bake()
-            num_modules = f"{len(loaded_preset.scan_modules):,}"
+            # Use explicit_scan_modules which contains the raw modules from YAML
+            # This avoids needing to call bake()
+            explicit_modules = loaded_preset.explicit_scan_modules
+            num_modules = f"{len(explicit_modules):,}"
             row = [loaded_preset.name, category, loaded_preset.description, num_modules]
             if include_modules:
-                row.append(", ".join(sorted(loaded_preset.scan_modules)))
+                row.append(", ".join(sorted(explicit_modules)))
             table.append(row)
         return make_table(table, header)
 

@@ -1,0 +1,151 @@
+name: Performance Benchmarks
+
+on:
+  pull_request:
+    paths:
+      - 'bbot/**/*.py'
+      - 'pyproject.toml'
+      - '.github/workflows/benchmark.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0  # Need full history for branch comparison
+
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.11"
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v7
+
+    - name: Install dependencies
+      run: uv sync --group dev
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libmagic1
+
+    # Generate benchmark comparison report using our branch-based script
+    - name: Generate benchmark comparison report
+      run: |
+        uv run python bbot/scripts/benchmark_report.py \
+          --base ${{ github.base_ref }} \
+          --current ${{ github.head_ref }} \
+          --output benchmark_report.md \
+          --keep-results
+      continue-on-error: true
+
+    # Upload benchmark results as artifacts
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v7
+      with:
+        name: benchmark-results
+        path: |
+          benchmark_report.md
+          base_benchmark_results.json
+          current_benchmark_results.json
+        retention-days: 30
+
+    # Comment on PR with benchmark results
+    - name: Comment benchmark results on PR
+      uses: actions/github-script@v9
+      with:
+        script: |
+          const fs = require('fs');
+
+          // Helper: find existing benchmark comments on this PR
+          async function findBenchmarkComments() {
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+
+            console.log(`Found ${comments.data.length} comments on this PR`);
+
+            const benchmarkComments = comments.data.filter(comment =>
+              comment.body.toLowerCase().includes('performance benchmark') &&
+              comment.user.login === 'github-actions[bot]'
+            );
+
+            console.log(`Found ${benchmarkComments.length} existing benchmark comments`);
+            return benchmarkComments;
+          }
+
+          // Helper: post or update the benchmark comment
+          async function upsertComment(body) {
+            const existing = await findBenchmarkComments();
+
+            if (existing.length > 0) {
+              const sorted = existing.sort((a, b) =>
+                new Date(b.created_at) - new Date(a.created_at)
+              );
+
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: sorted[0].id,
+                body: body
+              });
+              console.log(`Updated benchmark comment: ${sorted[0].id}`);
+
+              // Clean up older duplicates
+              for (let i = 1; i < sorted.length; i++) {
+                try {
+                  await github.rest.issues.deleteComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    comment_id: sorted[i].id
+                  });
+                  console.log(`Deleted duplicate comment: ${sorted[i].id}`);
+                } catch (e) {
+                  console.error(`Failed to delete comment ${sorted[i].id}: ${e.message}`);
+                }
+              }
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+              console.log('Created new benchmark comment');
+            }
+          }
+
+          let report;
+          try {
+            report = fs.readFileSync('benchmark_report.md', 'utf8');
+          } catch (e) {
+            console.error('Failed to read benchmark report:', e.message);
+            report = `## Performance Benchmark Report
+
+          > **Failed to generate detailed benchmark comparison**
+          >
+          > The benchmark comparison failed to run. This might be because:
+          > - Benchmark tests don't exist on the base branch yet
+          > - Dependencies are missing
+          > - Test execution failed
+          >
+          > Please check the [workflow logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.
+          >
+          > Benchmark artifacts may be available for download from the workflow run.`;
+          }
+
+          await upsertComment(report);

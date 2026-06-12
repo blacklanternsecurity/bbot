@@ -2,8 +2,8 @@ from .base import ModuleTestBase
 
 
 class TestDNSCommonSRV(ModuleTestBase):
-    targets = ["media.www.test.api.blacklanternsecurity.com"]
-    whitelist = ["blacklanternsecurity.com"]
+    seeds = ["media.www.test.api.blacklanternsecurity.com"]
+    targets = ["blacklanternsecurity.com"]
     modules_overrides = ["dnscommonsrv", "speculate"]
     config_overrides = {"dns": {"minimal": False}}
 
@@ -75,9 +75,15 @@ class TestDNSCommonSRV(ModuleTestBase):
                 and str(e.module) == "dnscommonsrv"
             ]
         ), "Failed to detect subdomain 2"
-        assert 2 == len([e for e in events if e.type == "DNS_NAME" and e.data == "asdf.blacklanternsecurity.com"]), (
-            "Failed to detect subdomain 3"
-        )
+        # asdf.blacklanternsecurity.com is in-scope shared infrastructure: the SRV target of two
+        # different in-scope _ldap records. both parent->child edges are preserved for graph output
+        # (the second as a graph-important re-emission), so it produces two DNS_NAME events.
+        asdf_events = [e for e in events if e.type == "DNS_NAME" and e.data == "asdf.blacklanternsecurity.com"]
+        assert 2 == len(asdf_events), "Failed to detect subdomain 3"
+        assert {str(e.parent.data) for e in asdf_events} == {
+            "_ldap._tcp.gc._msdcs.blacklanternsecurity.com",
+            "_ldap._tcp.gc._msdcs.api.blacklanternsecurity.com",
+        }, "in-scope shared SRV target should keep both cross-parent edges"
         assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "api.blacklanternsecurity.com"]), (
             "Failed to detect subdomain 4"
         )
@@ -112,3 +118,49 @@ class TestDNSCommonSRV(ModuleTestBase):
         assert 10 == len([e for e in events if e.type == "DNS_NAME"])
         assert 5 == len([e for e in events if e.type == "DNS_NAME_UNRESOLVED"])
         assert 5 == len([e for e in events if e.type == "DNS_NAME_UNRESOLVED" and str(e.module) == "speculate"])
+
+
+class TestDNSCommonSRVMutationFilterDefault(ModuleTestBase):
+    """By default (recursive_mutations=False) mutation-tagged events are rejected."""
+
+    module_name = "dnscommonsrv"
+    targets = ["blacklanternsecurity.com"]
+
+    async def setup_after_prep(self, module_test):
+        await module_test.mock_dns({"blacklanternsecurity.com": {"A": ["1.2.3.4"]}})
+        event = module_test.scan.make_event(
+            "mut.blacklanternsecurity.com",
+            "DNS_NAME",
+            parent=module_test.scan.root_event,
+            tags=["mutation-1"],
+        )
+        event.scope_distance = 0
+        result, reason = await module_test.module.filter_event(event)
+        assert result is False
+        assert reason == "event was discovered by dnsbrute_mutations and recursive_mutations is False"
+
+    def check(self, module_test, events):
+        pass
+
+
+class TestDNSCommonSRVRecursiveMutations(ModuleTestBase):
+    """With recursive_mutations=True the mutation tag no longer rejects the event."""
+
+    module_name = "dnscommonsrv"
+    targets = ["blacklanternsecurity.com"]
+    config_overrides = {"modules": {"dnscommonsrv": {"recursive_mutations": True}}}
+
+    async def setup_after_prep(self, module_test):
+        await module_test.mock_dns({"blacklanternsecurity.com": {"A": ["1.2.3.4"]}})
+        event = module_test.scan.make_event(
+            "mut.blacklanternsecurity.com",
+            "DNS_NAME",
+            parent=module_test.scan.root_event,
+            tags=["mutation-1"],
+        )
+        event.scope_distance = 0
+        result = await module_test.module.filter_event(event)
+        assert result is True
+
+    def check(self, module_test, events):
+        pass

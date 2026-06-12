@@ -8,7 +8,7 @@ This feature can be utilized with the command line option `--custom-yara-rules` 
 Example:
 
 ```
-bbot -m httpx --custom-yara-rules=test.yara -t http://example.com/
+bbot -m http --custom-yara-rules=test.yara -t http://example.com/
 ```
 
 Where `test.yara` is a file on the filesystem. The file can contain multiple YARA rules, separated by lines.
@@ -123,27 +123,44 @@ When set to True, the contents returned from a successful extraction via a YARA 
 Consider the following example YARA rule:
 
 ```
-rule SubstackLink
+rule ContainsTitle
 {
     meta:
-        description = "contains a Substack link"
+        description = "Contains an HTML title tag"
         emit_match = true
     strings:
-        $substack_link = /https?:\/\/[a-zA-Z0-9.-]+\.substack\.com/
+        $title_value = /<title>(.*)?<\/title>/i
     condition:
-        $substack_link
+        $title_value
 }
 ```
+
+#### Severity and Confidence
+```
+rule ContainsTitle
+{
+    meta:
+        description = "Contains an HTML title tag"
+        severity = "HIGH"
+        confidence = "CONFIRMED"
+        $title_value = /<title>(.*)?<\/title>/i
+    condition:
+        $title_value
+}
+```
+Confidence and Severity levels will be assigned to the FINDING event produced if there is a match.
+
+
 
 When run against the Black Lantern Security homepage with the following BBOT command:
 
 ```
-bbot -m httpx --custom-yara-rules=substack.yara -t http://www.blacklanternsecurity.com/
+bbot -m http --custom-yara-rules=substack.yara -t http://www.blacklanternsecurity.com/
 
 ```
 
-We get the following result. Note that the finding now contains the actual link that was identified with the regex.
+We get the following result. Note that the finding now contains the actual title tag that was identified with the regex.
 
 ```
-[FINDING] {"description": "Custom Yara Rule [SubstackLink] with description: [contains a Substack link] Matched via identifier [substack_link] and extracted [https://blacklanternsecurity.substack.com]", "host": "www.blacklanternsecurity.com", "url": "https://www.blacklanternsecurity.com/"}    excavate
+[FINDING] {"description": "Custom Yara Rule [ContainsTitle] with description: [Contains an HTML title] Matched via identifier [title_value] and extracted [<title>Black Lantern Security</title>]", "host": "www.blacklanternsecurity.com", "url": "https://www.blacklanternsecurity.com/"}	excavate	(cdn-github, cdn-ip)
 ```

@@ -6,12 +6,13 @@ import json
 import yaml
 from pathlib import Path
 
-from bbot import Preset
+from bbot.scanner import Preset
 from bbot.core.modules import MODULE_LOADER
 
 
 DEFAULT_PRESET = Preset()
 
+os.environ["NO_COLOR"] = "1"
 os.environ["BBOT_TABLE_FORMAT"] = "github"
 
 
@@ -181,6 +182,14 @@ def update_docs():
     assert len(bbot_output_module_table.splitlines()) > 10
     update_md_files("BBOT OUTPUT MODULES", bbot_output_module_table)
 
+    # BBOT universal module options (sourced from BaseModuleConfig)
+    from bbot.core.config.models import BaseModuleConfig
+
+    universal_module_options_table = ""
+    for name, field in BaseModuleConfig.model_fields.items():
+        universal_module_options_table += f"**{name}**: {field.description}\n"
+    update_md_files("BBOT UNIVERSAL MODULE OPTIONS", universal_module_options_table)
+
     # BBOT module options
     bbot_module_options_table = DEFAULT_PRESET.module_loader.modules_options_table()
     assert len(bbot_module_options_table.splitlines()) > 100
@@ -198,15 +207,17 @@ def update_docs():
     update_md_files("BBOT PRESETS", bbot_presets_table)
 
     # BBOT presets
-    for yaml_file, (loaded_preset, category, preset_path, original_filename) in DEFAULT_PRESET.all_presets.items():
+    for _, (loaded_preset, category, preset_path, original_filename) in DEFAULT_PRESET.all_presets.items():
+        str_category = "" if not category else f"/{category}"
+        filename = f"~/.bbot/presets{str_category}/{original_filename.name}"
         preset_yaml = f"""
-```yaml title={yaml_file.name}
+```yaml title={filename}
 {loaded_preset._yaml_str}
 ```
 """
         preset_yaml_expandable = f"""
 <details>
-<summary><b><code>{yaml_file.name}</code></b></summary>
+<summary><b><code>{original_filename.name}</code></b></summary>
 
 ```yaml
 {loaded_preset._yaml_str}
@@ -218,11 +229,12 @@ def update_docs():
         update_md_files(f"BBOT {loaded_preset.name.upper()} PRESET EXPANDABLE", preset_yaml_expandable)
 
     content = []
-    for yaml_file, (loaded_preset, category, preset_path, original_filename) in DEFAULT_PRESET.all_presets.items():
+    for _, (loaded_preset, category, preset_path, original_filename) in DEFAULT_PRESET.all_presets.items():
         yaml_str = loaded_preset._yaml_str
         indent = " " * 4
         yaml_str = f"\n{indent}".join(yaml_str.splitlines())
-        filename = homedir_collapseuser(yaml_file)
+        str_category = "" if not category else f"/{category}"
+        filename = f"~/.bbot/presets{str_category}/{original_filename.name}"
 
         num_modules = len(loaded_preset.scan_modules)
         modules = ", ".join(sorted([f"`{m}`" for m in loaded_preset.scan_modules]))
@@ -233,7 +245,7 @@ def update_docs():
 
 {loaded_preset.description}
 
-??? note "`{filename.name}`"
+??? note "`{original_filename.name}`"
     ```yaml title="{filename}"
     {yaml_str}
     ```

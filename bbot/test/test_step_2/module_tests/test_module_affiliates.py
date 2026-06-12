@@ -3,9 +3,9 @@ from .base import ModuleTestBase
 
 class TestAffiliates(ModuleTestBase):
     targets = ["8.8.8.8"]
-    config_overrides = {"dns": {"minimal": False}}
+    config_overrides = {"dns": {"minimal": False, "filter_ptrs": False}}
 
-    async def setup_before_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         await module_test.mock_dns(
             {
                 "8.8.8.8.in-addr.arpa": {"PTR": ["dns.google"]},

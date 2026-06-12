@@ -343,6 +343,26 @@ class EngineClient(EngineBase):
                 self.context.term()
             except Exception:
                 print(traceback.format_exc(), file=sys.stderr)
+            # terminate the server process/thread
+            if self._server_process is not None:
+                try:
+                    self._server_process.join(timeout=5)
+                    if self._server_process.is_alive():
+                        # threads don't have terminate/kill, only processes do
+                        terminate = getattr(self._server_process, "terminate", None)
+                        if callable(terminate):
+                            terminate()
+                            self._server_process.join(timeout=3)
+                        if self._server_process.is_alive():
+                            kill = getattr(self._server_process, "kill", None)
+                            if callable(kill):
+                                kill()
+                except Exception:
+                    with suppress(Exception):
+                        kill = getattr(self._server_process, "kill", None)
+                        if callable(kill):
+                            kill()
+                self._server_process = None
             # delete socket file on exit
             self.socket_path.unlink(missing_ok=True)
 
@@ -636,7 +656,7 @@ class EngineServer(EngineBase):
         """
         if tasks:
             try:
-                done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED, timeout=timeout)
+                done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED, timeout=timeout)
                 return done
             except BaseException as e:
                 if isinstance(e, (TimeoutError, asyncio.exceptions.TimeoutError)):

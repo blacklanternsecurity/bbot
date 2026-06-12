@@ -195,6 +195,10 @@ class Interactsh:
 
         if self._poll_task is not None:
             self._poll_task.cancel()
+            try:
+                await self._poll_task
+            except (asyncio.CancelledError, Exception):
+                pass
 
         if "success" not in getattr(r, "text", ""):
             raise InteractshError(f"Failed to de-register with interactsh server {self.server}")
@@ -234,7 +238,9 @@ class Interactsh:
 
         try:
             r = await self.parent_helper.request(
-                f"https://{self.server}/poll?id={self.correlation_id}&secret={self.secret}", headers=headers
+                f"https://{self.server}/poll?id={self.correlation_id}&secret={self.secret}",
+                headers=headers,
+                timeout=15,
             )
             if r is None:
                 raise InteractshError("Error polling interact.sh: No response from server")
@@ -272,21 +278,41 @@ class Interactsh:
             return await self._poll_loop(callback)
 
     async def _poll_loop(self, callback):
+        consecutive_failures = 0
+        max_failures = 5
+        log.debug(f"Starting interactsh poll loop (interval={self.poll_interval}s, server={self.server})")
         while 1:
             if self.parent_helper.scan.stopping:
-                await asyncio.sleep(1)
-                continue
+                log.debug("Stopping interactsh poll loop (scan is stopping)")
+                break
             data_list = []
             try:
                 data_list = await self.poll()
+                consecutive_failures = 0
             except InteractshError as e:
-                log.warning(e)
+                consecutive_failures += 1
+                if consecutive_failures == 1:
+                    log.warning(e)
+                elif consecutive_failures >= max_failures:
+                    log.error(f"Interactsh poll failed {max_failures} consecutive times, giving up: {e}")
+                    break
+                else:
+                    log.debug(f"Interactsh poll failure #{consecutive_failures}: {e}")
                 log.trace(traceback.format_exc())
+                backoff = min(self.poll_interval * (2 ** (consecutive_failures - 1)), 300)
+                log.debug(f"Interactsh backing off for {backoff}s after failure #{consecutive_failures}")
+                await asyncio.sleep(backoff)
+                continue
             if not data_list:
+                log.debug(f"Interactsh poll returned no interactions, sleeping {self.poll_interval}s")
                 await asyncio.sleep(self.poll_interval)
                 continue
+            log.debug(f"Interactsh poll returned {len(data_list)} interaction(s)")
             for data in data_list:
                 if data:
+                    protocol = data.get("protocol", "unknown")
+                    full_id = data.get("full-id", "unknown")
+                    log.debug(f"Interactsh interaction: protocol={protocol}, full-id={full_id}")
                     await self.parent_helper.execute_sync_or_async(callback, data)
 
     def _decrypt(self, aes_key, data):
@@ -294,7 +320,7 @@ class Interactsh:
         Decrypts and returns the data received from the interact.sh server.
 
         Uses RSA and AES for decrypting the data. RSA with PKCS1_OAEP and SHA256 is used to decrypt the AES key,
-        and then AES (CFB mode) is used to decrypt the actual data payload.
+        and then AES (CTR mode) is used to decrypt the actual data payload.
 
         Parameters:
             aes_key (str): The AES key for decryption, encrypted with RSA and base64 encoded.
@@ -312,6 +338,7 @@ class Interactsh:
         decode = base64.b64decode(data)
         bs = AES.block_size
         iv = decode[:bs]
-        cryptor = AES.new(key=aes_plain_key, mode=AES.MODE_CFB, IV=iv, segment_size=128)
-        plain_text = cryptor.decrypt(decode)
-        return json.loads(plain_text[16:])
+        ciphertext = decode[bs:]
+        cryptor = AES.new(key=aes_plain_key, mode=AES.MODE_CTR, nonce=b"", initial_value=iv)
+        plain_text = cryptor.decrypt(ciphertext)
+        return json.loads(plain_text)

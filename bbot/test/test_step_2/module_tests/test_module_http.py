@@ -1,63 +1,175 @@
-import json
-import httpx
-
 from .base import ModuleTestBase
 
 
-class TestHTTP(ModuleTestBase):
-    downstream_url = "https://blacklanternsecurity.fakedomain:1234/events"
-    config_overrides = {
-        "modules": {
-            "http": {
-                "url": downstream_url,
-                "method": "PUT",
-                "bearer": "auth_token",
-                "username": "bbot_user",
-                "password": "bbot_password",
-            }
-        }
-    }
+class TestHTTPBase(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888/url", "127.0.0.1:8888"]
+    module_name = "http"
+    modules_overrides = ["http", "excavate"]
+    config_overrides = {"modules": {"http": {"store_responses": True}}}
 
-    def verify_data(self, j):
-        return j["data"] == "blacklanternsecurity.com" and j["type"] == "DNS_NAME"
+    # HTML for a page with a login form
+    html_with_login = """
+<html>
+<body>
+    <form>
+        <input type="text" name="username">
+        <input name="password">
+        <input type="submit" value="Login">
+    </form>
+</body>
+</html>"""
+
+    # HTML for a page without a login form
+    html_without_login = """
+<html>
+<body>
+    <form>
+        <input type="text" name="search">
+        <input type="submit" value="Search">
+    </form>
+</body>
+</html>"""
 
     async def setup_after_prep(self, module_test):
-        self.got_event = False
-        self.headers_correct = False
-        self.method_correct = False
-        self.url_correct = False
+        request_args = {"uri": "/", "headers": {"test": "header"}}
+        respond_args = {"response_data": self.html_without_login}
+        module_test.set_expect_requests(request_args, respond_args)
+        request_args = {"uri": "/url", "headers": {"test": "header"}}
+        respond_args = {"response_data": self.html_with_login}
+        module_test.set_expect_requests(request_args, respond_args)
 
-        async def custom_callback(request):
-            j = json.loads(request.content)
-            if request.url == self.downstream_url:
-                self.url_correct = True
-            if request.method == "PUT":
-                self.method_correct = True
-            if "Authorization" in request.headers:
-                self.headers_correct = True
-            if self.verify_data(j):
-                self.got_event = True
-            return httpx.Response(
-                status_code=200,
-            )
+    def check(self, module_test, events):
+        url = False
+        open_port = False
+        for e in events:
+            if e.type == "HTTP_RESPONSE":
+                if e.data["path"] == "/":
+                    assert "login-page" not in e.tags
+                    open_port = True
+                elif e.data["path"] == "/url":
+                    assert "login-page" in e.tags
+                    url = True
+        assert url, "Failed to visit target URL"
+        assert open_port, "Failed to visit target OPEN_TCP_PORT"
+        saved_response = module_test.scan.home / "http_responses" / "127.0.0.1.8888[slash]url.txt"
+        assert saved_response.is_file(), "Failed to save raw http response"
 
-        module_test.httpx_mock.add_callback(custom_callback)
-        module_test.httpx_mock.add_callback(custom_callback)
-        module_test.httpx_mock.add_response(
-            method="PUT", headers={"Authorization": "bearer auth_token"}, url=self.downstream_url
+
+class TestHTTP_404(ModuleTestBase):
+    targets = ["https://127.0.0.1:9999"]
+    modules_overrides = ["http", "speculate", "excavate"]
+    config_overrides = {"modules": {"speculate": {"ports": "8888,9999"}}}
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            "Redirecting...", status=301, headers={"Location": "https://127.0.0.1:9999"}
+        )
+        module_test.httpserver_ssl.expect_request("/").respond_with_data("404 not found", status=404)
+
+    def check(self, module_test, events):
+        assert 1 == len(
+            [e for e in events if e.type == "URL" and e.url == "http://127.0.0.1:8888/" and "status-301" in e.tags]
+        )
+        assert 1 == len([e for e in events if e.type == "URL" and e.url == "https://127.0.0.1:9999/"])
+
+
+class TestHTTP_Redirect(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["http", "speculate", "excavate"]
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            "Redirecting...", status=301, headers={"Location": "http://www.evilcorp.com"}
         )
 
     def check(self, module_test, events):
-        assert self.got_event is True
-        assert self.headers_correct is True
-        assert self.method_correct is True
-        assert self.url_correct is True
+        assert 1 == len(
+            [e for e in events if e.type == "URL" and e.url == "http://127.0.0.1:8888/" and "status-301" in e.tags]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "URL_UNVERIFIED" and e.url == "http://www.evilcorp.com/" and "affiliate" in e.tags
+            ]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type.startswith("DNS_NAME") and e.data == "www.evilcorp.com" and "affiliate" in e.tags
+            ]
+        )
 
 
-class TestHTTPSIEMFriendly(TestHTTP):
-    modules_overrides = ["http"]
-    config_overrides = {"modules": {"http": dict(TestHTTP.config_overrides["modules"]["http"])}}
-    config_overrides["modules"]["http"]["siem_friendly"] = True
+class TestHTTP_URLBlacklist(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["http", "speculate", "excavate"]
+    config_overrides = {"web": {"spider_distance": 10, "spider_depth": 10}}
 
-    def verify_data(self, j):
-        return j["data"] == {"DNS_NAME": "blacklanternsecurity.com"} and j["type"] == "DNS_NAME"
+    async def setup_after_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            """
+            <a href="/test.aspx"/>
+            <a href="/test.svg"/>
+            <a href="/test.woff2"/>
+            <a href="/test.txt"/>
+            """
+        )
+
+    def check(self, module_test, events):
+        assert 4 == len([e for e in events if e.type == "URL_UNVERIFIED"])
+        assert 3 == len([e for e in events if e.type == "HTTP_RESPONSE"])
+        assert 3 == len([e for e in events if e.type == "URL"])
+        assert 1 == len([e for e in events if e.type == "URL" and e.url == "http://127.0.0.1:8888/"])
+        assert 1 == len([e for e in events if e.type == "URL" and e.url == "http://127.0.0.1:8888/test.aspx"])
+        assert 1 == len([e for e in events if e.type == "URL" and e.url == "http://127.0.0.1:8888/test.txt"])
+        assert not any(e for e in events if "URL" in e.type and ".svg" in e.url)
+        assert not any(e for e in events if "URL" in e.type and ".woff" in e.url)
+
+
+class TestHTTP_querystring_removed(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["http", "speculate", "excavate"]
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data('<a href="/test.php?foo=bar"/>')
+
+    def check(self, module_test, events):
+        assert [e for e in events if e.type == "URL_UNVERIFIED" and e.url == "http://127.0.0.1:8888/test.php"]
+
+
+class TestHTTP_querystring_notremoved(TestHTTP_querystring_removed):
+    config_overrides = {"url_querystring_remove": False}
+
+    def check(self, module_test, events):
+        assert [e for e in events if e.type == "URL_UNVERIFIED" and e.url == "http://127.0.0.1:8888/test.php?foo=bar"]
+
+
+class TestHTTP_custom_headers(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["http", "speculate", "excavate"]
+    config_overrides = {"web": {"http_headers": {"testheader": "testvalue"}}}
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpserver.expect_request("/", headers={"testheader": "testvalue"}).respond_with_data("alive")
+
+    def check(self, module_test, events):
+        # Ensure we received the expected response when the header was present
+        assert [e for e in events if e.type == "URL" and "status-200" in e.tags]
+
+
+class TestHTTP_custom_cookies(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["http", "speculate", "excavate"]
+    config_overrides = {"web": {"http_cookies": {"testcookie": "cookievalue"}}}
+
+    async def setup_after_prep(self, module_test):
+        # Expect a request to "/" with the custom cookie 'testcookie=cookievalue'
+        module_test.httpserver.expect_request("/", headers={"cookie": "testcookie=cookievalue"}).respond_with_data(
+            "alive"
+        )
+
+    def check(self, module_test, events):
+        # Ensure we received the expected response when the cookie was present
+        assert [e for e in events if e.type == "URL" and "status-200" in e.tags]
