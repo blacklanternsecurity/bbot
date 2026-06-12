@@ -1,7 +1,9 @@
 import re
+from typing import Union
 
 from bbot.errors import HttpCompareError
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 _case_split = re.compile(r"[-_]+")
 
@@ -39,16 +41,17 @@ class paramminer_headers(BaseModule):
         "created_date": "2022-04-15",
         "author": "@liquidsec",
     }
-    options = {
-        "wordlist": "",  # default is defined within setup function
-        "recycle_words": False,
-        "skip_boring_words": True,
-    }
-    options_desc = {
-        "wordlist": "Define the wordlist to be used to derive headers. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
-        "recycle_words": "Attempt to use words found during the scan on all other endpoints",
-        "skip_boring_words": "Remove commonly uninteresting words from the wordlist",
-    }
+
+    class Config(BaseModuleConfig):
+        wordlist: Union[str, list[str]] = Field(
+            "",
+            description="Define the wordlist to be used to derive headers. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
+        )
+        recycle_words: bool = Field(
+            False, description="Attempt to use words found during the scan on all other endpoints"
+        )
+        skip_boring_words: bool = Field(True, description="Remove commonly uninteresting words from the wordlist")
+
     # URLs ending with these extensions are known to be case-insensitive — skip case mutation.
     # (Used by paramminer_getparams and paramminer_cookies; HTTP headers are inherently
     # case-insensitive per RFC 7230 so this isn't relevant to paramminer_headers itself.)
@@ -327,7 +330,8 @@ class paramminer_headers(BaseModule):
 
     async def filter_event(self, event):
         # Filter out static endpoints
-        if event.url.endswith(tuple(f".{ext}" for ext in self.config.get("url_extension_static", []))):
+        ext = getattr(event, "url_extension", None)
+        if ext and ext in self.scan.config.get("url_extension_static", []):
             return False
 
         # We don't need to look at WEB_PARAMETERS that we produced

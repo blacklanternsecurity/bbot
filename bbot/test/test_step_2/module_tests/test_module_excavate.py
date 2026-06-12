@@ -5,6 +5,7 @@ from .base import ModuleTestBase, tempwordlist
 from bbot.modules.internal.excavate import ExcavateRule
 
 from pathlib import Path
+import time
 import yara
 
 
@@ -656,6 +657,98 @@ class TestExcavateParameterExtraction(TestExcavate):
         assert found_select_noquotes, "Did not extract parameter(s) from select-tag"
         assert found_form_get_additional_params, "Did not extract additional parameters from GET form"
         assert found_form_post_additional_params, "Did not extract additional parameters from POST form"
+
+
+class TestExcavateSelectTagSelection(ModuleTestBase):
+    """Verify <select> option-value selection logic.
+
+    1. selected_nonfirst -- a non-first option carries `selected` -> we pick it (not the first option)
+    2. first_empty -- first option is empty, no selected -> we keep the empty first value
+       (filter-style forms often use a blank default that matches all results; substituting
+       a specific choice could narrow output to nothing)
+    3. selected_with_empty_first -- first option empty, non-first option carries `selected` -> we pick selected
+    4. selected_empty -- the option with `selected` has an empty value -> we keep the empty
+       selected value (the form's author chose blank as the default; preserve that intent)
+    """
+
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["http", "excavate", "hunt"]
+    select_extract_html = """
+    <html>
+    <body>
+        <form action="/sel1" method="post">
+            <select name="selected_nonfirst">
+                <option value="user">User</option>
+                <option value="admin" selected>Admin</option>
+                <option value="guest">Guest</option>
+            </select>
+            <input type="submit" value="go">
+        </form>
+        <form action="/sel2" method="post">
+            <select name="first_empty">
+                <option value="">-- choose --</option>
+                <option value="staging">Staging</option>
+                <option value="production">Production</option>
+            </select>
+            <input type="submit" value="go">
+        </form>
+        <form action="/sel3" method="post">
+            <select name="selected_with_empty_first">
+                <option value="">-- choose --</option>
+                <option value="us-east" selected>US East</option>
+                <option value="eu-west">EU West</option>
+            </select>
+            <input type="submit" value="go">
+        </form>
+        <form action="/sel4" method="post">
+            <select name="selected_empty">
+                <option value="" selected>None</option>
+                <option value="">blank too</option>
+                <option value="fallback">Fallback</option>
+            </select>
+            <input type="submit" value="go">
+        </form>
+    </body>
+    </html>
+    """
+
+    async def setup_after_prep(self, module_test):
+        respond_args = {"response_data": self.select_extract_html, "headers": {"Content-Type": "text/html"}}
+        module_test.set_expect_requests(respond_args=respond_args)
+
+    def check(self, module_test, events):
+        picked = {}
+        for e in events:
+            if e.type != "WEB_PARAMETER":
+                continue
+            name = e.data.get("name")
+            if name in (
+                "selected_nonfirst",
+                "first_empty",
+                "selected_with_empty_first",
+                "selected_empty",
+            ):
+                picked[name] = e.data.get("original_value")
+
+        assert "selected_nonfirst" in picked, "Did not extract WEB_PARAMETER for selected_nonfirst"
+        assert picked["selected_nonfirst"] == "admin", (
+            f"selected_nonfirst: expected the option with `selected` to win, got {picked['selected_nonfirst']!r}"
+        )
+
+        assert "first_empty" in picked, "Did not extract WEB_PARAMETER for first_empty"
+        assert picked["first_empty"] == "", (
+            f"first_empty: expected the first option's empty value to be preserved when no option is selected, got {picked['first_empty']!r}"
+        )
+
+        assert "selected_with_empty_first" in picked, "Did not extract WEB_PARAMETER for selected_with_empty_first"
+        assert picked["selected_with_empty_first"] == "us-east", (
+            f"selected_with_empty_first: expected `selected` to win over the empty first option, got {picked['selected_with_empty_first']!r}"
+        )
+
+        assert "selected_empty" in picked, "Did not extract WEB_PARAMETER for selected_empty"
+        assert picked["selected_empty"] == "", (
+            f"selected_empty: expected the selected option's empty value to be preserved, got {picked['selected_empty']!r}"
+        )
 
 
 class TestExcavateParameterExtraction_postform_noaction(ModuleTestBase):
@@ -1585,3 +1678,175 @@ class TestExcavateIgnorePDF(ModuleTestBase):
             e for e in events if e.type == "FINDING" and "ftp://ftp.test.notreal" in e.data.get("description", "")
         ]
         assert len(ftp_findings) == 0, f"PDF body should not produce findings, but got: {ftp_findings}"
+
+
+class TestExcavateRedirectParameterScope(ModuleTestBase):
+    """Verify that parameter extraction is skipped for out-of-scope redirect targets.
+
+    When an in-scope HTTP response has a Location header pointing to an external
+    out-of-scope domain, the redirect URL's query parameters should NOT be emitted
+    as WEB_PARAMETER events, because they would inherit the in-scope parent's scope
+    distance and cause lightfuzz to fuzz external endpoints.
+    """
+
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["http", "excavate", "hunt"]
+
+    async def setup_before_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            "",
+            status=302,
+            headers={"Location": "https://login.microsoftonline.com/oauth2/authorize?state=abc123&client_id=test456"},
+        )
+
+    def check(self, module_test, events):
+        # The redirect URL itself should be emitted as URL_UNVERIFIED (that's correct behavior)
+        assert any(e.type == "URL_UNVERIFIED" and "login.microsoftonline.com" in e.url for e in events), (
+            "Redirect URL_UNVERIFIED should still be emitted"
+        )
+
+        # But NO WEB_PARAMETER events should be emitted for the out-of-scope redirect's parameters
+        redirect_params = [
+            e for e in events if e.type == "WEB_PARAMETER" and "login.microsoftonline.com" in e.data.get("url", "")
+        ]
+        assert len(redirect_params) == 0, (
+            f"Out-of-scope redirect parameters should not be extracted, but got: {redirect_params}"
+        )
+
+
+# Verifies excavate extracts parameters from a form whose body is far larger than
+# YARA's `.*` regex ceiling (~4 KB). The fix routes form discovery through an
+# opening-tag-only YARA regex and reads the form body from a bounded slice of the
+# response. Before the fix, this fixture produced zero WEB_PARAMETER events; after
+# it, every field must be extracted, and the work must stay fast.
+class TestExcavateGiantForm(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["http", "excavate", "hunt"]
+
+    GIANT_OPTION_COUNT = 5000
+
+    @classmethod
+    def _build_giant_form_html(cls, option_count):
+        # ~40 bytes per option × N options dominates the form body, easily blowing
+        # past YARA's regex ceiling on `<form>.*</form>` patterns.
+        options = "".join(f'<option value="OPT_{i:05d}">label {i:05d}</option>' for i in range(option_count))
+        return (
+            "<html><body>"
+            '<form action="/giant-submit" method="post">'
+            '<input type="hidden" name="csrf" value="abc123">'
+            '<input type="text" name="search_term" value="">'
+            f'<select name="provider_id">{options}</select>'
+            '<input type="submit" value="go">'
+            "</form>"
+            "</body></html>"
+        )
+
+    async def setup_after_prep(self, module_test):
+        body = self._build_giant_form_html(self.GIANT_OPTION_COUNT)
+        # Sanity check the fixture really is past the YARA cliff.
+        assert len(body) > 100_000, f"giant-form fixture not large enough: {len(body)} bytes"
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"},
+            respond_args={"response_data": body, "status": 200, "headers": {"Content-Type": "text/html"}},
+        )
+        # Stash a start time so check() can do a coarse wall-clock assertion.
+        module_test._giantform_start = time.monotonic()
+
+    def check(self, module_test, events):
+        elapsed = time.monotonic() - module_test._giantform_start
+        # Coarse upper bound: full scan including HTTP fetch should stay snappy on
+        # a normal dev box even with a 200 KB form. The spec calls for sub-200ms
+        # processing of the giant-form HTTP_RESPONSE itself; we allow more slack
+        # here because the wall-clock includes the rest of the scan harness.
+        assert elapsed < 30, f"giant-form scan took {elapsed:.1f}s — likely a pathological regex regression"
+
+        web_params = {e.data.get("name") for e in events if e.type == "WEB_PARAMETER" and isinstance(e.data, dict)}
+        expected = {"provider_id", "csrf", "search_term"}
+        missing = expected - web_params
+        assert not missing, f"WEB_PARAMETERs missing for giant-form fields: {missing}. Got: {sorted(web_params)}"
+
+
+# Same shape as the giant-form test but with a form body that exceeds
+# max_form_bytes. The bound is a defensive cap: forms that don't fit are
+# skipped entirely (no partial extraction). The test asserts excavate doesn't
+# hang or OOM on a multi-hundred-KB form fixture.
+class TestExcavateGiantFormExceedsMaxBytes(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["http", "excavate", "hunt"]
+
+    # Constrain max_form_bytes so we don't have to generate a literal 2 MB
+    # fixture to prove the bound holds — 32 KB is well below the body size
+    # the next fixture generates (~240 KB).
+    config_overrides = {"modules": {"excavate": {"max_form_bytes": 32768}}}
+
+    OPTION_COUNT = 6000  # ~240 KB form body — 7.5× past max_form_bytes
+
+    @classmethod
+    def _build_giant_form_html(cls, option_count):
+        options = "".join(f'<option value="OPT_{i:05d}">label {i:05d}</option>' for i in range(option_count))
+        return (
+            "<html><body>"
+            '<form action="/giant-submit" method="post">'
+            '<input type="hidden" name="csrf" value="abc123">'
+            '<input type="text" name="search_term" value="">'
+            f'<select name="provider_id">{options}</select>'
+            '<input type="submit" value="go">'
+            "</form>"
+            "</body></html>"
+        )
+
+    async def setup_after_prep(self, module_test):
+        body = self._build_giant_form_html(self.OPTION_COUNT)
+        # Sanity check we built something that actually exceeds the configured bound.
+        assert len(body) > 32768 * 5, f"oversized fixture too small: {len(body)} bytes"
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"},
+            respond_args={"response_data": body, "status": 200, "headers": {"Content-Type": "text/html"}},
+        )
+        module_test._oversized_start = time.monotonic()
+
+    def check(self, module_test, events):
+        # Hang/OOM guard: a runaway extractor would push wall-clock well past
+        # this. A correctly-bounded extractor handles even a 240 KB form in seconds.
+        elapsed = time.monotonic() - module_test._oversized_start
+        assert elapsed < 60, f"oversized-form scan took {elapsed:.1f}s — bound likely not enforced"
+
+        # No form-field WEB_PARAMETERs should be emitted for the oversized form
+        # — extraction regex anchors on `</form>` which falls outside the bound.
+        # Other WEB_PARAMETERs (e.g. global `test` header from scan config) are fine.
+        form_fields = {"csrf", "search_term", "provider_id"}
+        emitted = {e.data.get("name") for e in events if e.type == "WEB_PARAMETER" and isinstance(e.data, dict)}
+        leaked = form_fields & emitted
+        assert not leaked, (
+            f"oversized form's fields should be skipped entirely under the bound, but excavate emitted: {leaked}"
+        )
+
+
+# Verifies the opening-tag YARA regex fires regardless of attribute order.
+# Both `<form action=X method=post>` and `<form method=post action=X>` should
+# extract the form's fields.
+class TestExcavateFormAttributeOrder(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["http", "excavate", "hunt"]
+
+    html = """
+    <html><body>
+    <form action="/submit1" method="post">
+        <input type="text" name="action_first" value="v1">
+    </form>
+    <form method="post" action="/submit2">
+        <input type="text" name="method_first" value="v2">
+    </form>
+    </body></html>
+    """
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"},
+            respond_args={"response_data": self.html, "status": 200, "headers": {"Content-Type": "text/html"}},
+        )
+
+    def check(self, module_test, events):
+        names = {e.data.get("name") for e in events if e.type == "WEB_PARAMETER" and isinstance(e.data, dict)}
+        assert "action_first" in names, f"missing action-first form field; got {sorted(names)}"
+        assert "method_first" in names, f"missing method-first form field; got {sorted(names)}"

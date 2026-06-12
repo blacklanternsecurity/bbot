@@ -1,4 +1,5 @@
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class fullhunt(subdomain_enum_apikey):
@@ -9,10 +10,10 @@ class fullhunt(subdomain_enum_apikey):
         "description": "Query the fullhunt.io API for subdomains",
         "created_date": "2022-08-24",
         "author": "@TheTechromancer",
-        "auth_required": True,
     }
-    options = {"api_key": ""}
-    options_desc = {"api_key": "FullHunt API Key"}
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="FullHunt API Key", sensitive=True, mandatory=True)
 
     base_url = "https://fullhunt.io/api/v1"
 

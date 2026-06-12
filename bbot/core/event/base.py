@@ -685,7 +685,7 @@ class BaseEvent:
                 self.web_spider_distance = getattr(parent, "web_spider_distance", 0)
                 event_has_url = getattr(self, "parsed_url", None) is not None
                 for t in parent.tags:
-                    if t in ("affiliate",):
+                    if t in ("affiliate", "from-lightfuzz"):
                         self.add_tag(t)
                     elif t.startswith("mutation-"):
                         self.add_tag(t)
@@ -1135,10 +1135,20 @@ class DefaultEvent(BaseEvent):
 
 
 class DictEvent(BaseEvent):
+    __slots__ = ["url_extension"]
+
     def sanitize_data(self, data):
         url = data.get("url", "")
         if url:
             self.parsed_url = self.validators.validate_url_parsed(url)
+            # extract url_extension from any dict event with a URL
+            url_path = self.parsed_url.path
+            if url_path:
+                parsed_path_lower = str(url_path).lower()
+                extension = get_file_extension(parsed_path_lower)
+                if extension:
+                    self.url_extension = extension
+                    self.add_tag(f"extension-{extension}")
         return data
 
     def _data_load(self, data):
@@ -1366,7 +1376,6 @@ class URL_UNVERIFIED(DictHostEvent):
 
     __slots__ = [
         "web_spider_distance",
-        "url_extension",
         "num_redirects",
     ]
 
@@ -1567,6 +1576,7 @@ class WEB_PARAMETER(DictHostEvent):
             self._data.pop("original_value", None)
             self._data.pop("additional_params", None)
             self._data.pop("assigned_cookies", None)
+            self._data.pop("same_param_values", None)
 
     @property
     def children(self):

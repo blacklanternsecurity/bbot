@@ -3,9 +3,11 @@ import json
 import os
 import shutil
 import yaml
+from typing import Literal
 from itertools import islice
 
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class nuclei(BaseModule):
@@ -18,38 +20,31 @@ class nuclei(BaseModule):
         "author": "@TheTechromancer",
     }
 
-    options = {
-        "version": "3.8.0",
-        "tags": "",
-        "templates": "",
-        "severity": "",
-        "ratelimit": 150,
-        "concurrency": 25,
-        "mode": "manual",
-        "etags": "",
-        "budget": 1,
-        "silent": False,
-        "directory_only": True,
-        "retries": 0,
-        "batch_size": 200,
-        "module_timeout": 21600,  # 6 hours
-    }
-    options_desc = {
-        "version": "nuclei version",
-        "tags": "execute a subset of templates that contain the provided tags",
-        "templates": "template or template directory paths to include in the scan",
-        "severity": "Filter based on severity field available in the template.",
-        "ratelimit": "maximum number of requests to send per second (default 150)",
-        "concurrency": "maximum number of templates to be executed in parallel (default 25)",
-        "mode": "manual | technology | severe | budget. Technology: Only activate based on technology events that match nuclei tags (nuclei -as mode). Manual (DEFAULT): Fully manual settings. Severe: Only critical and high severity templates without intrusive. Budget: Limit Nuclei to a specified number of HTTP requests",
-        "etags": "tags to exclude from the scan",
-        "budget": "Used in budget mode to set the number of allowed requests per host",
-        "silent": "Don't display nuclei's banner or status messages",
-        "directory_only": "Filter out 'file' URL event (default True)",
-        "retries": "number of times to retry a failed request (default 0)",
-        "batch_size": "Number of targets to send to Nuclei per batch (default 200)",
-        "module_timeout": "Max time in seconds to spend handling each batch of events",
-    }
+    class Config(BaseModuleConfig):
+        version: str = Field("3.8.0", description="nuclei version")
+        tags: str = Field("", description="execute a subset of templates that contain the provided tags")
+        templates: str = Field("", description="template or template directory paths to include in the scan")
+        severity: str = Field("", description="Filter based on severity field available in the template.")
+        ratelimit: int = Field(150, description="maximum number of requests to send per second (default 150)")
+        concurrency: int = Field(25, description="maximum number of templates to be executed in parallel (default 25)")
+        mode: Literal["manual", "technology", "severe", "budget"] = Field(
+            "manual",
+            description=(
+                "manual | technology | severe | budget. "
+                "Technology: Only activate based on technology events that match nuclei tags (nuclei -as mode). "
+                "Manual (DEFAULT): Fully manual settings. "
+                "Severe: Only critical and high severity templates without intrusive. "
+                "Budget: Limit Nuclei to a specified number of HTTP requests"
+            ),
+        )
+        etags: str = Field("", description="tags to exclude from the scan")
+        budget: int = Field(1, description="Used in budget mode to set the number of allowed requests per host")
+        silent: bool = Field(False, description="Don't display nuclei's banner or status messages")
+        directory_only: bool = Field(True, description="Filter out 'file' URL event (default True)")
+        retries: int = Field(0, description="number of times to retry a failed request (default 0)")
+        batch_size: int = Field(200, description="Number of targets to send to Nuclei per batch (default 200)")
+        module_timeout: int = Field(21600, description="Max time in seconds to spend handling each batch of events")
+
     deps_ansible = [
         {
             "name": "Download nuclei",
@@ -88,11 +83,11 @@ class nuclei(BaseModule):
             if not self._templates_installed():
                 return False, "Failed to install nuclei templates after retry"
         self.proxy = self.scan.web_config.get("http_proxy", "")
-        self.mode = self.config.get("mode", "severe").lower()
-        self.ratelimit = int(self.config.get("ratelimit", 150))
-        self.concurrency = int(self.config.get("concurrency", 25))
-        self.budget = int(self.config.get("budget", 1))
-        self.silent = self.config.get("silent", False)
+        self.mode = self.config.get("mode")
+        self.ratelimit = self.config.get("ratelimit")
+        self.concurrency = self.config.get("concurrency")
+        self.budget = self.config.get("budget")
+        self.silent = self.config.get("silent")
         self.templates = self.config.get("templates")
         if self.templates:
             self.info(f"Using custom template(s) at: [{self.templates}]")
@@ -107,11 +102,7 @@ class nuclei(BaseModule):
             self.info(f"Limiting nuclei templates to the following severities: [{self.severity}]")
         self.iserver = self.scan.config.get("interactsh_server", None)
         self.itoken = self.scan.config.get("interactsh_token", None)
-        self.retries = int(self.config.get("retries", 0))
-
-        if self.mode not in ("technology", "severe", "manual", "budget"):
-            self.warning(f"Unable to initialize nuclei: invalid mode selected: [{self.mode}]")
-            return False
+        self.retries = self.config.get("retries")
 
         if self.mode == "technology":
             self.info(

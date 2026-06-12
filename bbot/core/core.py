@@ -1,15 +1,14 @@
 import os
 import logging
-from copy import copy
+from copy import copy, deepcopy
 from pathlib import Path
-from contextlib import suppress
-from omegaconf import OmegaConf
 
 from bbot.errors import BBOTError
+from .config.merge import deep_merge
 from .multiprocess import SHARED_INTERPRETER_STATE
 
 
-DEFAULT_CONFIG = None
+DEFAULT_CONFIG: dict | None = None
 
 
 class BBOTCore:
@@ -26,20 +25,21 @@ class BBOTCore:
     - load quickly
     """
 
-    # used for filtering out sensitive config values
-    secrets_strings = ["api_key", "username", "password", "token", "secret", "_id"]
-    # don't filter/remove entries under this key
-    secrets_exclude_keys = ["modules"]
-
     def __init__(self):
         self._logger = None
         self._files_config = None
 
-        self._config = None
-        self._custom_config = None
+        self._config: dict | None = None
+        self._custom_config: dict | None = None
 
         # bare minimum == logging
-        self.logger
+        try:
+            self.logger
+        except BBOTError as e:
+            import sys
+
+            print(f"\n[CRITICAL] {e}\n", file=sys.stderr)
+            sys.exit(1)
         self.log = logging.getLogger("bbot.core")
 
         self._prep_multiprocessing()
@@ -85,22 +85,20 @@ class BBOTCore:
         return self.home / "scans"
 
     @property
-    def config(self):
+    def config(self) -> dict:
         """
-        .config is just .default_config + .custom_config merged together
+        .config is just .default_config + .custom_config merged together.
 
-        any new values should be added to custom_config.
+        Any new values should be added to custom_config.
         """
         if self._config is None:
-            self._config = OmegaConf.merge(self.default_config, self.custom_config)
-            # set read-only flag (change .custom_config instead)
-            OmegaConf.set_readonly(self._config, True)
+            self._config = deep_merge(self.default_config, self.custom_config)
         return self._config
 
     @property
-    def default_config(self):
+    def default_config(self) -> dict:
         """
-        The default BBOT config (from `defaults.yml`). Read-only.
+        The default BBOT config (from `defaults.yml`).
         """
         global DEFAULT_CONFIG
         if DEFAULT_CONFIG is None:
@@ -111,16 +109,14 @@ class BBOTCore:
         return DEFAULT_CONFIG
 
     @default_config.setter
-    def default_config(self, value):
+    def default_config(self, value: dict):
         # we temporarily clear out the config so it can be refreshed if/when default_config changes
         global DEFAULT_CONFIG
         self._config = None
-        DEFAULT_CONFIG = value
-        # set read-only flag (change .custom_config instead)
-        OmegaConf.set_readonly(DEFAULT_CONFIG, True)
+        DEFAULT_CONFIG = dict(value) if value else {}
 
     @property
-    def custom_config(self):
+    def custom_config(self) -> dict:
         """
         Custom BBOT config (from `~/.config/bbot/bbot.yml`)
         """
@@ -131,59 +127,59 @@ class BBOTCore:
         return self._custom_config
 
     @custom_config.setter
-    def custom_config(self, value):
-        # we temporarily clear out the config so it can be refreshed if/when custom_config changes
+    def custom_config(self, value: dict):
         self._config = None
-        # ensure the modules key is always a dictionary
-        modules_entry = value.get("modules", None)
-        if modules_entry is not None and not OmegaConf.is_dict(modules_entry):
-            value["modules"] = {}
-        self._custom_config = value
+        self._custom_config = dict(value) if value else {}
 
     def no_secrets_config(self, config):
-        from .helpers.misc import clean_dict
+        """Return a copy of `config` with every `sensitive=True` field removed.
 
-        with suppress(ValueError):
-            config = OmegaConf.to_object(config)
+        Sensitivity is read from the per-field `json_schema_extra["sensitive"]`
+        flag declared on `BBOTConfig` (and each module's `class Config`).
+        Module-level redaction uses the composite schema built lazily by
+        `MODULE_LOADER.config_schema`; if a key isn't covered by any schema
+        (e.g. an unknown module), it passes through unchanged.
+        """
+        from .config.models import partition_sensitive_config
 
-        return clean_dict(
-            config,
-            *self.secrets_strings,
-            fuzzy=True,
-            exclude_keys=self.secrets_exclude_keys,
-        )
+        return partition_sensitive_config(config, self._config_schema(), keep_sensitive=False)
 
     def secrets_only_config(self, config):
-        from .helpers.misc import filter_dict
+        """Return a copy of `config` containing only `sensitive=True` fields.
 
-        with suppress(ValueError):
-            config = OmegaConf.to_object(config)
+        Inverse of `no_secrets_config()`. Useful for splitting a merged config
+        into a public `bbot.yml` and a private `secrets.yml`.
+        """
+        from .config.models import partition_sensitive_config
 
-        return filter_dict(
-            config,
-            *self.secrets_strings,
-            fuzzy=True,
-            exclude_keys=self.secrets_exclude_keys,
-        )
+        return partition_sensitive_config(config, self._config_schema(), keep_sensitive=True)
+
+    def _config_schema(self):
+        """Resolve the runtime BBOTConfig schema (with per-module configs)."""
+        try:
+            from bbot.core.modules import MODULE_LOADER
+
+            return MODULE_LOADER.config_schema
+        except Exception:
+            from .config.models import BBOTConfig
+
+            return BBOTConfig
 
     def merge_custom(self, config):
-        """
-        Merge a config into the custom config.
-        """
-        self.custom_config = OmegaConf.merge(self.custom_config, OmegaConf.create(config))
+        """Merge a config dict into the custom config."""
+        self.custom_config = deep_merge(self.custom_config, dict(config) if config else {})
 
     def merge_default(self, config):
-        """
-        Merge a config into the default config.
-        """
-        self.default_config = OmegaConf.merge(self.default_config, OmegaConf.create(config))
+        """Merge a config dict into the default config."""
+        self.default_config = deep_merge(self.default_config, dict(config) if config else {})
 
     def copy(self):
         """
         Return a semi-shallow copy of self. (`custom_config` is copied, but `default_config` stays the same)
         """
         core_copy = copy(self)
-        core_copy._custom_config = self._custom_config.copy()
+        core_copy._custom_config = deepcopy(self._custom_config) if self._custom_config else {}
+        core_copy._config = None
         return core_copy
 
     @property

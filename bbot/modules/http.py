@@ -1,11 +1,12 @@
-import re
 from http.cookies import SimpleCookie
 from urllib.parse import urlparse
 
 import blasthttp
 
 from bbot.core.helpers.web.web import iter_batch_results
+from bbot.core.helpers.web.response_event import response_to_event_dict
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class http(BaseModule):
@@ -18,18 +19,11 @@ class http(BaseModule):
         "author": "@liquidsec",
     }
 
-    options = {
-        "threads": 50,
-        "in_scope_only": True,
-        "max_response_size": 5242880,
-        "store_responses": False,
-    }
-    options_desc = {
-        "threads": "Number of concurrent requests",
-        "in_scope_only": "Only visit web resources that are in scope.",
-        "max_response_size": "Max response size in bytes",
-        "store_responses": "Save raw HTTP responses to scan folder",
-    }
+    class Config(BaseModuleConfig):
+        threads: int = Field(50, description="Number of concurrent requests")
+        in_scope_only: bool = Field(True, description="Only visit web resources that are in scope.")
+        max_response_size: int = Field(5242880, description="Max response size in bytes")
+        store_responses: bool = Field(False, description="Save raw HTTP responses to scan folder")
 
     scope_distance_modifier = 2
     _shuffle_incoming_queue = False
@@ -106,75 +100,7 @@ class http(BaseModule):
 
     def _response_to_json(self, url_input, response):
         """Convert a blasthttp Response to a dict for HTTP_RESPONSE events."""
-        parsed = urlparse(response.url)
-        path = parsed.path or "/"
-
-        # Build raw_header string (required by HTTP_RESPONSE validation).
-        # blasthttp already builds the canonical "Name: Value\r\n..." form
-        # — reuse it instead of rebuilding.
-        status_line = f"HTTP/1.1 {response.status} \r\n"
-        raw_header = f"{status_line}{response.raw_headers}\r\n\r\n"
-
-        # Build header dict (lowercase keys, comma-joined for dupes)
-        header_dict = {}
-        for k, v in response.headers.items():
-            key = k.lower().replace("-", "_")
-            if key in header_dict:
-                header_dict[key] += f", {v}"
-            else:
-                header_dict[key] = v
-
-        content_type = header_dict.get("content_type", "")
-        content_length = int(header_dict.get("content_length", len(response.body_bytes)))
-
-        # Location header for redirects (excavate uses event.redirect_location)
-        location = header_dict.get("location", "")
-
-        # Extract title from HTML
-        title = ""
-        body = response.body
-        title_match = re.search(r"<title[^>]*>(.*?)</title>", body, re.IGNORECASE | re.DOTALL)
-        if title_match:
-            title = title_match.group(1).strip()
-
-        j = {
-            "url": response.url,
-            "input": url_input,
-            "status_code": response.status,
-            "method": "GET",
-            "path": path,
-            "host": parsed.hostname or "",
-            "raw_header": raw_header,
-            "header": header_dict,
-            "content_type": content_type,
-            "content_length": content_length,
-            "title": title,
-            "body": body,
-            "location": location,
-            "hash": {
-                "body_md5": response.hash.body_md5,
-                "body_mmh3": response.hash.body_mmh3,
-                "body_sha256": response.hash.body_sha256,
-                "header_md5": response.hash.header_md5,
-                "header_mmh3": response.hash.header_mmh3,
-                "header_sha256": response.hash.header_sha256,
-            },
-        }
-
-        # Include TLS certificate info when available (HTTPS responses)
-        ci = response.cert_info
-        if ci is not None:
-            j["cert_info"] = {
-                "common_name": ci.common_name,
-                "sans": ci.sans,
-                "emails": ci.emails,
-                "issuer": ci.issuer,
-                "not_before": ci.not_before,
-                "not_after": ci.not_after,
-                "fingerprint_sha256": ci.fingerprint_sha256,
-            }
-
-        return j
+        return response_to_event_dict(response, url_input, method="GET")
 
     async def _process_result(self, result, parent_event):
         """Emit URL + HTTP_RESPONSE events for one batch result. Returns True if status was usable."""
@@ -285,16 +211,10 @@ class http(BaseModule):
             )
             configs.append(config)
 
-        # Suppress redundant https probes when http already succeeded for the same
-        # (host, port). When probing an unknown port, we try both schemes; if http
-        # works, the port definitely speaks HTTP, and the https result is likely a
-        # proxy artifact (intercepting proxies like Burp terminate TLS themselves,
-        # making any https:// URL "succeed" regardless of whether the target really
-        # speaks TLS). Explicit URL/URL_UNVERIFIED events are never suppressed —
-        # only speculative OPEN_TCP_PORT probes.
-        #
-        # Streaming requires per-pair coordination: emit http immediately, defer
-        # https until http's outcome is known (or the stream ends).
+        # Suppress redundant https probes when http returned a real page (2xx) for
+        # the same (host, port). Only a 2xx counts as "http works" -- 3xx (often
+        # http-to-https redirects), 4xx (e.g. Cloudflare 400 on plain HTTP to TLS
+        # port), and 5xx do NOT suppress the https probe.
         http_succeeded = {}  # key -> bool, set when http result arrives
         deferred_https = {}  # key -> result, awaiting http verdict
 
@@ -318,7 +238,8 @@ class http(BaseModule):
             # Paired OPEN_TCP_PORT probe
             is_http = result.url == port_probes[key]["http"]
             if is_http:
-                http_succeeded[key] = result.success and result.response is not None and result.response.status != 0
+                status = result.response.status if result.response is not None else 0
+                http_succeeded[key] = result.success and 200 <= status < 300
                 await self._process_result(result, stdin[result.url])
                 # If https for this key arrived first and was buffered, resolve it now
                 pending = deferred_https.pop(key, None)

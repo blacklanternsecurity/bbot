@@ -1,8 +1,11 @@
 import itertools
 import string
+from typing import Union
 from urllib.parse import urlparse
 
+
 from .paramminer_headers import paramminer_headers, _mutate_case
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class paramminer_getparams(paramminer_headers):
@@ -19,27 +22,32 @@ class paramminer_getparams(paramminer_headers):
         "author": "@liquidsec",
     }
     scanned_hosts = []
-    options = {
-        "wordlist": "",  # default is defined within setup function
-        "recycle_words": False,
-        "skip_boring_words": True,
-        "mutate_case": False,
-        "brute_short": False,
-    }
-    options_desc = {
-        "wordlist": "Define the wordlist to be used to derive headers. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
-        "recycle_words": "Attempt to use words found during the scan on all other endpoints",
-        "skip_boring_words": "Remove commonly uninteresting words from the wordlist",
-        "mutate_case": (
-            "Also test case-mutated variants of each entry "
-            "(camelCase for snake_case/kebab-case, Title case for single words). "
-            "Skipped on URLs with case-insensitive backend extensions like .aspx/.cfm."
-        ),
-        "brute_short": (
-            "Generate every 1-, 2-, and 3-letter [a-z] combination and add to the wordlist. "
-            "Costs ~18,278 extra requests per host — opt-in for thorough scans."
-        ),
-    }
+
+    class Config(BaseModuleConfig):
+        wordlist: Union[str, list[str]] = Field(
+            "",
+            description="Define the wordlist to be used to derive headers. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
+        )
+        recycle_words: bool = Field(
+            False, description="Attempt to use words found during the scan on all other endpoints"
+        )
+        skip_boring_words: bool = Field(True, description="Remove commonly uninteresting words from the wordlist")
+        mutate_case: bool = Field(
+            False,
+            description=(
+                "Also test case-mutated variants of each entry "
+                "(camelCase for snake_case/kebab-case, Title case for single words). "
+                "Skipped on URLs with case-insensitive backend extensions like .aspx/.cfm."
+            ),
+        )
+        brute_short: bool = Field(
+            False,
+            description=(
+                "Generate every 1-, 2-, and 3-letter [a-z] combination and add to the wordlist. "
+                "Costs ~18,278 extra requests per host; opt-in for thorough scans."
+            ),
+        )
+
     boring_words = {"utm_source", "utm_campaign", "utm_medium", "utm_term", "utm_content"}
     in_scope_only = True
     compare_mode = "getparam"
