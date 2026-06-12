@@ -696,7 +696,7 @@ class WebHelper:
         baseline_url_2 = (
             f"{scheme}://{host}:{port}/{self.parent_helper.rand_string(12)}/{self.parent_helper.rand_string(8)}"
         )
-        cmp = HttpCompare(
+        compare = HttpCompare(
             baseline_url_1,
             self.parent_helper,
             allow_redirects=False,
@@ -704,13 +704,13 @@ class WebHelper:
             baseline_url_2=baseline_url_2,
         )
         try:
-            await cmp._baseline()
+            await compare._baseline()
         except HttpCompareError as e:
             log.debug(f"is_http_wildcard_host: baseline failed for {host}:{port}: {e}")
             return "retry"
         root_url = f"{scheme}://{host}:{port}/"
         try:
-            root_match, root_reasons, _, _ = await cmp.compare(root_url)
+            root_match, root_reasons, _, _ = await compare.compare(root_url)
         except HttpCompareError as e:
             log.debug(f"is_http_wildcard_host: root probe failed for {host}:{port}: {e}")
             return "retry"
@@ -720,7 +720,7 @@ class WebHelper:
             )
             return False
         log.verbose(f"is_http_wildcard_host: {scheme}://{host}:{port} is an HTTP wildcard responder")
-        return cmp
+        return compare
 
     def response_to_json(self, response):
         """

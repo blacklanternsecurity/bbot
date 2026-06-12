@@ -107,8 +107,8 @@ class webbrute(BaseModule):
         host = p.hostname
         port = p.port or (443 if scheme == "https" else 80)
         if host:
-            cmp = await self.helpers.is_http_wildcard_host(scheme, host, port)
-            if cmp not in (False, None):
+            http_wildcard = await self.helpers.is_http_wildcard_host(scheme, host, port)
+            if http_wildcard not in (False, None):
                 return False, "host is an HTTP wildcard responder"
         return True
 

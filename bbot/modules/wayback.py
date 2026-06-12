@@ -171,8 +171,8 @@ rule akamai_bot_manager_url
             return
 
         host = str(event.host)
-        cmp = await self.helpers.is_http_wildcard_host("https", host, 443)
-        if cmp not in (False, None):
+        http_wildcard = await self.helpers.is_http_wildcard_host("https", host, 443)
+        if http_wildcard not in (False, None):
             self.debug(f"Skipping wayback query for {host}: HTTP wildcard responder")
             return
 
