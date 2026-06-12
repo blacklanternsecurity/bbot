@@ -412,7 +412,9 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
     async def _host_is_http_wildcard(self, event):
         """True if this event's host is an HTTP wildcard responder."""
-        p = event.parsed_url
+        p = getattr(event, "parsed_url", None)
+        if p is None:
+            return False
         host = p.hostname
         if not host:
             return False
