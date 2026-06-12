@@ -4,7 +4,9 @@ from typing import Union
 
 import blasthttp
 
+from bbot.core.helpers.diff import HttpCompare
 from bbot.core.helpers.web.web import iter_batch_results
+from bbot.errors import HttpCompareError
 from bbot.modules.base import BaseModule
 from bbot.core.config.models import BaseModuleConfig, Field
 
@@ -112,148 +114,65 @@ class webbrute(BaseModule):
             headers.append((hk, hv))
         return headers
 
-    def _response_metrics(self, response):
-        """Extract metrics from a response for baseline comparison."""
-        text = response.text or ""
-        return {
-            "status": response.status_code,
-            "length": len(response.content),
-            "words": len(text.split()),
-            "lines": text.count("\n") + 1,
-        }
-
-    def _is_baseline_match(self, metrics, baseline_filter):
-        """Return True if the response matches the baseline (i.e. should be filtered OUT)."""
-        if baseline_filter.get("abort"):
-            return True
-        filter_type = baseline_filter.get("type", "status")
-        if filter_type == "not_status":
-            # Filter anything matching this status (e.g. 404)
-            return metrics["status"] == baseline_filter["status"]
-        elif filter_type == "status_and_size":
-            return metrics["status"] == baseline_filter["status"] and metrics["length"] == baseline_filter["size"]
-        elif filter_type == "status_and_words":
-            return metrics["status"] == baseline_filter["status"] and metrics["words"] == baseline_filter["words"]
-        elif filter_type == "status_and_lines":
-            return metrics["status"] == baseline_filter["status"] and metrics["lines"] == baseline_filter["lines"]
-        elif filter_type == "status_only":
-            return metrics["status"] == baseline_filter["status"]
-        return False
+    # Host-level abort reasons that apply to ALL extensions, not just the one that triggered them.
+    HOST_ABORT_REASONS = {"WAF_BLOCK_PAGE", "CONNECTIVITY_ISSUES", "BASELINE_CHANGED_CODES", "RECEIVED_429"}
 
     async def baseline_fuzz(self, url, exts=None, prefix="", suffix=""):
         if exts is None:
             exts = [""]
         filters = {}
-        headers = self._build_batch_headers()
-        proxy = self.scan.http_proxy or None
+        host_abort = None
 
         for ext in exts:
+            if host_abort is not None:
+                filters[ext] = host_abort
+                continue
+
             self.debug(f"running baseline for URL [{url}] with ext [{ext}]")
 
-            # Generate 4 canary strings of increasing length and batch them
-            canary_configs = []
-            canary_length = 4
-            for _ in range(4):
-                canary_word = "".join(random.choice(string.ascii_lowercase) for _ in range(canary_length))
-                canary_length += 2
-                canary_url = f"{url}{prefix}{canary_word}{suffix}{ext}"
-                canary_configs.append(
-                    blasthttp.BatchConfig(
-                        canary_url,
-                        headers=headers,
-                        timeout=self.scan.http_timeout,
-                        retries=0,
-                        verify_certs=False,
-                        follow_redirects=False,
-                        proxy=proxy,
-                    )
-                )
+            canary_url_1 = f"{url}{prefix}{self.helpers.rand_string(8, digits=False)}{suffix}{ext}"
+            canary_url_2 = f"{url}{prefix}{self.helpers.rand_string(10, digits=False)}{suffix}{ext}"
 
-            canary_results = []
-            canary_waf_count = 0
-            async for result in iter_batch_results(
-                self.blast_client.request_batch_stream(canary_configs, 4, rate_limit=self.rate)
-            ):
-                if result.success:
-                    canary_results.append(self._response_metrics(result.response))
-                    if await self.helpers.yara.match(self.waf_yara_rules, result.response.body):
-                        canary_waf_count += 1
+            compare = HttpCompare(
+                canary_url_1,
+                self.helpers,
+                allow_redirects=False,
+                timeout=self.scan.http_timeout,
+                include_cache_buster=False,
+                baseline_url_2=canary_url_2,
+            )
 
-            # If all canary responses are WAF block pages, the WAF is blocking everything
-            if canary_waf_count == len(canary_results) and canary_waf_count > 0:
-                self.warning(f"All baseline requests for URL [{url}] ext [{ext}] returned WAF block pages, aborting.")
-                filters[ext] = {"abort": True, "reason": "WAF_BLOCK_PAGE"}
+            try:
+                await compare._baseline()
+            except HttpCompareError as e:
+                self.warning(f"Could not establish baseline for URL [{url}] ext [{ext}]: {e}")
+                abort = {"abort": True, "reason": "CONNECTIVITY_ISSUES"}
+                filters[ext] = abort
+                host_abort = abort
                 continue
 
-            # Check we got all 4 responses
-            if len(canary_results) != 4:
-                self.warning(
-                    f"Could not attain baseline for URL [{url}] ext [{ext}] — only got {len(canary_results)}/4 responses. Possible connectivity issues."
-                )
-                filters[ext] = {"abort": True, "reason": "CONNECTIVITY_ISSUES"}
+            baseline_status = compare.baseline.status_code
+
+            if await self.helpers.yara.match(self.waf_yara_rules, compare.baseline.content):
+                self.warning(f"Baseline for URL [{url}] ext [{ext}] returned WAF block page, aborting.")
+                abort = {"abort": True, "reason": "WAF_BLOCK_PAGE"}
+                filters[ext] = abort
+                host_abort = abort
                 continue
 
-            # If status codes differ across canaries, likely load balancing
-            statuses = {r["status"] for r in canary_results}
-            if len(statuses) != 1:
-                self.warning("Got different status codes for each baseline. This could indicate load balancing")
-                filters[ext] = {"abort": True, "reason": "BASELINE_CHANGED_CODES"}
-                continue
-
-            baseline_status = canary_results[0]["status"]
-
-            # All 404s — just look for anything not 404
-            if baseline_status == 404:
-                self.debug("All baseline results were 404, filtering on status != 404")
-                filters[ext] = {"type": "not_status", "status": 404}
-                continue
-
-            # All 403s — possible WAF
-            if baseline_status == 403:
-                self.warning("All baseline requests received 403. A WAF may be actively blocking traffic.")
-
-            # All 429s — rate limiting, abort
             if baseline_status == 429:
                 self.warning(
                     f"Received 429 (Too Many Requests) for URL [{url}]. A WAF or rate limiter is blocking requests, aborting."
                 )
-                filters[ext] = {"abort": True, "reason": "RECEIVED_429"}
+                abort = {"abort": True, "reason": "RECEIVED_429"}
+                filters[ext] = abort
+                host_abort = abort
                 continue
 
-            # Try to find a stable metric for AND filtering
-            # 1. Same body size across all canaries
-            if len({r["length"] for r in canary_results}) == 1:
-                self.debug("All baseline results had the same body size, filtering on status + size")
-                filters[ext] = {
-                    "type": "status_and_size",
-                    "status": baseline_status,
-                    "size": canary_results[0]["length"],
-                }
-                continue
+            if baseline_status == 403:
+                self.warning("All baseline requests received 403. A WAF may be actively blocking traffic.")
 
-            # 2. Same word count
-            if len({r["words"] for r in canary_results}) == 1:
-                self.debug("All baseline results had the same word count, filtering on status + words")
-                filters[ext] = {
-                    "type": "status_and_words",
-                    "status": baseline_status,
-                    "words": canary_results[0]["words"],
-                }
-                continue
-
-            # 3. Same line count
-            if len({r["lines"] for r in canary_results}) == 1:
-                self.debug("All baseline results had the same line count, filtering on status + lines")
-                filters[ext] = {
-                    "type": "status_and_lines",
-                    "status": baseline_status,
-                    "lines": canary_results[0]["lines"],
-                }
-                continue
-
-            # Nothing stable — fall back to status-only
-            self.debug("No stable baseline metric found, filtering on status only")
-            filters[ext] = {"type": "status_only", "status": baseline_status}
+            filters[ext] = {"compare": compare}
 
         return filters
 
@@ -265,7 +184,6 @@ class webbrute(BaseModule):
         suffix="",
         exts=None,
         filters=None,
-        baseline=False,
     ):
         if exts is None:
             exts = [""]
@@ -276,10 +194,14 @@ class webbrute(BaseModule):
         proxy = self.scan.http_proxy or None
 
         for ext in exts:
-            # Check for abort filter; default to filtering 404s if no filter provided
-            ext_filter = filters.get(ext, {"type": "not_status", "status": 404})
+            ext_filter = filters.get(ext, {})
             if ext_filter.get("abort"):
                 self.warning(f"Skipping fuzz for ext [{ext}]: {ext_filter.get('reason', 'ABORT')}")
+                continue
+
+            compare = ext_filter.get("compare")
+            if compare is None:
+                self.debug(f"No baseline for ext [{ext}], skipping")
                 continue
 
             # Build batch configs for this extension
@@ -303,11 +225,6 @@ class webbrute(BaseModule):
 
             self.debug(f"Fuzzing {len(configs)} URLs for ext [{ext}]")
 
-            # Fire all requests via native blasthttp batch (Rust concurrency).
-            # Stream results in completion order — canary detection and hit
-            # collection are order-independent (we only check `canary_found and
-            # hits` after the stream completes), so per-result work overlaps with
-            # in-flight HTTP I/O.
             canary_found = False
             hits = []
             async for result in iter_batch_results(
@@ -319,10 +236,10 @@ class webbrute(BaseModule):
                     continue
 
                 response = result.response
-                metrics = self._response_metrics(response)
 
-                # Check if this matches the baseline (should be filtered out)
-                if ext_filter and self._is_baseline_match(metrics, ext_filter):
+                # HttpCompare: empty diff_reasons = matches baseline = filter out
+                diff_reasons = compare._compare_sync(response, response.url)
+                if not diff_reasons:
                     continue
 
                 # Extract the word from the URL to check for canary
@@ -337,8 +254,7 @@ class webbrute(BaseModule):
                     canary_found = True
                     continue
 
-                # Filter 3xx redirects to site root — these are soft 404s,
-                # not real findings (e.g. mod_userdir sending ~user to /)
+                # Filter 3xx redirects to site root
                 if 300 <= response.status < 400:
                     location = ""
                     for hdr_name, hdr_val in response.headers.items():
@@ -349,47 +265,31 @@ class webbrute(BaseModule):
                         self.debug(f"Filtering redirect-to-root hit: {response.url} -> {location}")
                         continue
 
-                # Filter WAF block pages (can return any status code, including 200)
+                # Filter WAF block pages
                 if await self.helpers.yara.match(self.waf_yara_rules, response.body):
                     self.debug(f"Filtering WAF block page: {response.url}")
                     continue
 
                 hits.append({"url": response.url, "status": response.status})
 
-            # If canary was found in results, the server is returning everything — abort
             if canary_found and hits:
-                self.debug("Found canary in results, all hits are likely false positives — aborting")
+                self.debug("Found canary in results, all hits are likely false positives -- aborting")
                 return
 
-            # Mid-scan validation: one canary check per extension.
-            # Single request — use client.request() directly instead of a
-            # 1-config request_batch_stream loop (the streaming API only
-            # earns its keep with multiple in-flight requests).
-            if hits and not baseline and ext_filter:
-                canary_word = "".join(random.choice(string.ascii_lowercase) for _ in range(4))
-                canary_url = f"{url}{prefix}{canary_word}{suffix}{ext}"
+            # Mid-scan validation: does a fresh canary still match baseline?
+            if hits:
+                canary_url = f"{url}{prefix}{self.helpers.rand_string(8, digits=False)}{suffix}{ext}"
                 try:
-                    canary_response = await self.blast_client.request(
-                        canary_url,
-                        headers=headers,
-                        timeout=self.scan.http_timeout,
-                        retries=0,
-                        verify_certs=False,
-                        follow_redirects=False,
-                        proxy=proxy,
+                    match, reasons, _, _ = await compare.compare(canary_url)
+                except HttpCompareError:
+                    match = False
+                    reasons = ["error"]
+                if not match:
+                    self.verbose(
+                        f"Would have reported {len(hits)} hit(s), but mid-scan baseline check "
+                        f"failed ({reasons}). Aborting the current run against [{url}]"
                     )
-                except Exception as e:
-                    self.debug(f"Mid-scan canary request failed: {e}")
-                    canary_response = None
-                if canary_response is not None:
-                    canary_metrics = self._response_metrics(canary_response)
-                    if not self._is_baseline_match(canary_metrics, ext_filter):
-                        self.verbose(
-                            f"Would have reported {len(hits)} hit(s), but mid-scan baseline check failed. "
-                            "This could be due to a WAF turning on mid-scan."
-                        )
-                        self.verbose(f"Aborting the current run against [{url}]")
-                        return
+                    return
 
             for hit in hits:
                 yield hit

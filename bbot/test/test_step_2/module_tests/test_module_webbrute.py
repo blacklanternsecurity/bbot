@@ -168,6 +168,52 @@ class TestWebBruteWAFFalsePositive(ModuleTestBase):
         assert len(waf_hits) == 0, f"webbrute should filter WAF block pages, but got: {[e.url for e in waf_hits]}"
 
 
+class TestWebBruteDynamicContentFilter(ModuleTestBase):
+    """Server returns 200 with a per-request CSRF token for unknown paths.
+    Without HttpCompare, the baseline would fall through to status-only filtering
+    and report every 200 as a hit. HttpCompare should detect the token as a dynamic
+    position and filter it out, only reporting /admin (genuinely different content)."""
+
+    targets = ["http://127.0.0.1:8888"]
+    module_name = "webbrute"
+    test_wordlist = ["admin", "junkword1", "zzzjunkword2"]
+    config_overrides = {"modules": {"webbrute": {"wordlist": tempwordlist(test_wordlist)}}}
+    modules_overrides = ["webbrute", "http"]
+
+    _counter = 0
+
+    def request_handler(self, request):
+        uri = request.path
+        if uri == "/":
+            return Response("<html>Home</html>", status=200)
+        if uri.lstrip("/").startswith("admin"):
+            return Response("<html><body>Admin Panel - Secret Content</body></html>", status=200)
+        TestWebBruteDynamicContentFilter._counter += 1
+        body = (
+            "<html>\n"
+            "<head><title>Page Not Found</title></head>\n"
+            "<body>\n"
+            "<p>The page you requested could not be found.</p>\n"
+            f'<input type="hidden" name="csrf" value="tok{TestWebBruteDynamicContentFilter._counter:06d}"/>\n'
+            "</body>\n"
+            "</html>"
+        )
+        return Response(body, status=200)
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests_handler(expect_args=re.compile("/.*"), request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        webbrute_urls = [e for e in events if e.type == "URL_UNVERIFIED" and str(e.module) == "webbrute"]
+        assert any("admin" in e.url for e in webbrute_urls), (
+            f"webbrute should find /admin (genuinely different), but got: {[e.url for e in webbrute_urls]}"
+        )
+        junk_hits = [e for e in webbrute_urls if "junkword" in e.url]
+        assert len(junk_hits) == 0, (
+            f"webbrute should filter dynamic-content false positives, but got: {[e.url for e in junk_hits]}"
+        )
+
+
 class TestWebBruteWildcardSkip(ModuleTestBase):
     """When the host is an HTTP wildcard, webbrute should skip fuzzing entirely."""
 
