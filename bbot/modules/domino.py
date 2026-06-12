@@ -1,6 +1,8 @@
 from .base import BaseModule
 
-import logging
+from typing import Optional
+from pydantic import Field
+from bbot.core.config.models import BaseModuleConfig
 from domino.DOMino import Domino
 from domino.lib.errors import DominoError
 from playwright.async_api import async_playwright
@@ -8,20 +10,26 @@ from playwright.async_api import async_playwright
 
 class domino(BaseModule):
     watched_events = ["URL"]
-    produced_events = ["FINDING", "VULNERABILITY"]
+    produced_events = ["FINDING"]
     flags = ["active", "safe"]
     meta = {
         "description": "Check for Client-side Web Vulnerabilities with DOMino",
         "created_date": "2025-04-08",
         "author": "@liquidsec",
     }
+
+    class Config(BaseModuleConfig):
+        rules: Optional[list[str]] = Field(
+            default=None,
+            description="List of rules to run. None for all rules (default).",
+        )
+        suppress_parameter_discovery_reports: bool = Field(
+            default=True,
+            description="Allow parameter discovery to drive rules but suppress reporting the discovery itself",
+        )
+
     module_threads = 3
     deps_pip = ["playwright", "d0m1n0"]
-    options = {"rules": None, "suppress_parameter_discovery_reports": True}
-    options_desc = {
-        "rules": "Comma-separated list of rules to run. 'None' for all rules (default).",
-        "suppress_parameter_discovery_reports": "Allow parameter discovery be used to drive rules but supress reporting the discovery itself",
-    }
 
     async def setup(self):
         import asyncio.base_subprocess
@@ -46,17 +54,12 @@ class domino(BaseModule):
         self.suppress_parameter_discovery_reports = self.config.get("suppress_parameter_discovery_reports", True)
         return True
 
-    @property
-    def log(self):
-        if self._log is None:
-            self._log = logging.getLogger(f"bbot.modules.{self.name}")
-        return self._log
-
     async def handle_event(self, event):
+        url = event.url
         browser_instance = await self.playwright.chromium.launch(headless=True)
-        self.debug(f"Domino starting browser instance for {event.data}")
+        self.debug(f"Domino starting browser instance for {url}")
         try:
-            d = Domino(url=event.data, logger=self.log, json_mode=True, selected_rules=self.rules)
+            d = Domino(url=url, logger=self.log, json_mode=True, selected_rules=self.rules)
             results = await d.run(self.playwright, browser_instance)
         except DominoError as e:
             self.hugewarning(f"Error running Domino, setting error state: {e}")
@@ -65,27 +68,28 @@ class domino(BaseModule):
 
         if results:
             for result in results:
+                if self.suppress_parameter_discovery_reports and "GET Parameter Access" in result["rule_name"]:
+                    continue
+
                 details = result.get("details", [])
                 details_string = f" Details: [{','.join(details)}]" if details else ""
 
                 interactions = result.get("interactions", [])
-                interactions_string = f"Interactions: [{','.join(interactions)}]" if interactions else ""
+                interactions_string = f" Interactions: [{','.join(interactions)}]" if interactions else ""
 
+                severity = result.get("severity", "medium").upper()
                 data = {
-                    "description": f"{result['rule_name']}. Description: {result['description']}.{details_string} Detection URL: [{result['detection_url']}] {interactions_string}",
+                    "name": result["rule_name"],
+                    "description": f"{result['description']}.{details_string} Detection URL: [{result['detection_url']}]{interactions_string}",
                     "host": str(event.host),
+                    "url": result.get("detection_url"),
+                    "severity": severity,
+                    "confidence": "CONFIRMED",
                 }
-
-                if result["severity"] == "high":
-                    data["severity"] = "high"
-                    await self.emit_event(data, "VULNERABILITY", event)
-                else:
-                    if self.suppress_parameter_discovery_reports and "GET Parameter Access" in result["rule_name"]:
-                        continue
-                    await self.emit_event(data, "FINDING", event)
-        self.debug(f"Domino browsers instance shutting down for {event.data}")
+                await self.emit_event(data, "FINDING", event)
+        self.debug(f"Domino browser instance shutting down for {url}")
         await browser_instance.close()
-        self.debug(f"DOMino browser shutdown complete for {event.data}")
+        self.debug(f"DOMino browser shutdown complete for {url}")
 
     async def cleanup(self):
         await self.playwright.stop()

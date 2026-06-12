@@ -2,7 +2,7 @@ description: Run domino with a minimal set of rules to only alert on confirmed v
 
 
 modules:
-  - httpx
+  - http
   - domino
 
 config:
