@@ -35,6 +35,9 @@ class webbrute(BaseModule):
         ignore_case: bool = Field(False, description="Only put lowercase words into the wordlist")
         rate: int = Field(0, description="Maximum requests per second (0 = unlimited)")
         concurrency: int = Field(50, description="Number of concurrent requests per URL being fuzzed")
+        avoid_wafs: bool = Field(
+            True, description="Avoid running against confirmed WAFs, which are likely to block brute-force requests"
+        )
 
     banned_characters = {" "}
     blacklist = ["images", "css", "image"]
@@ -63,6 +66,8 @@ class webbrute(BaseModule):
                 f"Module rate limit ({self.rate} rps) is higher than global http_rate_limit ({global_rate} rps). "
                 f"The more restrictive global setting will be used."
             )
+        self._host_timeouts = {}
+        self._blocked_hosts = set()
         self.verbose(f"Generated dynamic wordlist with length [{str(words_len)}]")
         try:
             self.extensions = self.helpers.chain_lists(self.config.get("extensions", ""), validate=True)
@@ -90,8 +95,9 @@ class webbrute(BaseModule):
             for ext in self.extensions:
                 exts.append(f".{ext}")
 
+        netloc = event.parsed_url.netloc
         filters = await self.baseline_fuzz(fixed_url, exts=exts)
-        async for r in self.execute_fuzz(self.words, fixed_url, exts=exts, filters=filters):
+        async for r in self.execute_fuzz(self.words, fixed_url, netloc, exts=exts, filters=filters):
             await self.emit_event(
                 r["url"],
                 "URL_UNVERIFIED",
@@ -103,6 +109,11 @@ class webbrute(BaseModule):
     async def filter_event(self, event):
         if "endpoint" in event.tags:
             return False, "webbrute doesn't fuzz endpoints"
+        if self.config.get("avoid_wafs", True) and "waf" in event.tags:
+            return False, "host is behind a WAF"
+        netloc = event.parsed_url.netloc
+        if netloc in self._blocked_hosts:
+            return False, f"host [{netloc}] is blocked"
         if await self._is_http_wildcard_host(event) is True:
             return False, "host is an HTTP wildcard responder"
         return True
@@ -180,6 +191,7 @@ class webbrute(BaseModule):
         self,
         words,
         url,
+        netloc,
         prefix="",
         suffix="",
         exts=None,
@@ -194,6 +206,10 @@ class webbrute(BaseModule):
         proxy = self.scan.http_proxy or None
 
         for ext in exts:
+            if netloc in self._blocked_hosts:
+                self.debug(f"Host [{netloc}] is blocked, skipping remaining extensions")
+                return
+
             ext_filter = filters.get(ext, {})
             if ext_filter.get("abort"):
                 self.warning(f"Skipping fuzz for ext [{ext}]: {ext_filter.get('reason', 'ABORT')}")
@@ -225,6 +241,16 @@ class webbrute(BaseModule):
 
             self.debug(f"Fuzzing {len(configs)} URLs for ext [{ext}]")
 
+            # Hits are collected before emission, gated by three false-positive defenses:
+            #   1. Canary: a random word is injected into the wordlist. If it "hits",
+            #      the server is responding uniquely to everything, so all hits are junk.
+            #   2. Mid-scan baseline: after streaming, a fresh random URL is checked
+            #      against the baseline. If it no longer matches, the server's behavior
+            #      drifted during the scan (e.g. WAF kicked in), so hits are unreliable.
+            #   3. Hit cap: if the number of hits exceeds a sqrt-scaled threshold,
+            #      something slipped past the baseline (e.g. the server returns subtly
+            #      unique content per real word but not per random string). The host is
+            #      blocked and all hits are discarded before emission.
             canary_found = False
             hits = []
             async for result in iter_batch_results(
@@ -233,6 +259,11 @@ class webbrute(BaseModule):
                 if self.scan.stopping:
                     return
                 if not result.success:
+                    self._host_timeouts[netloc] = self._host_timeouts.get(netloc, 0) + 1
+                    if self._host_timeouts[netloc] >= 50:
+                        self.verbose(f"Host [{netloc}] has {self._host_timeouts[netloc]} timeouts, blocking host")
+                        self._blocked_hosts.add(netloc)
+                        return
                     continue
 
                 response = result.response
@@ -289,6 +320,17 @@ class webbrute(BaseModule):
                         f"Would have reported {len(hits)} hit(s), but mid-scan baseline check "
                         f"failed ({reasons}). Aborting the current run against [{url}]"
                     )
+                    return
+
+            # sqrt-scaled hit cap: ~28 at 50 words, ~40 at 100, ~126 at 1000, ~283 at 5000
+            if len(words) >= 50:
+                hit_cap = int(4 * (len(words) ** 0.5))
+                if len(hits) > hit_cap:
+                    self.warning(
+                        f"Discarding {len(hits)} hits for [{url}] ext [{ext}] "
+                        f"(exceeds cap of {hit_cap}), likely a filtering failure. Blocking host."
+                    )
+                    self._blocked_hosts.add(netloc)
                     return
 
             for hit in hits:

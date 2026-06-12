@@ -214,6 +214,44 @@ class TestWebBruteDynamicContentFilter(ModuleTestBase):
         )
 
 
+class TestWebBruteHitCap(ModuleTestBase):
+    """Server returns unique content for every path, causing all words to pass
+    HttpCompare. The sqrt-scaled hit cap should detect this as a filtering
+    failure and discard everything before emission."""
+
+    targets = ["http://127.0.0.1:8888"]
+    module_name = "webbrute"
+    # 50 words → cap of int(4 * sqrt(50)) = 28. All 50 will "hit", exceeding the cap.
+    test_wordlist = [f"word{i:03d}" for i in range(50)]
+    config_overrides = {"modules": {"webbrute": {"wordlist": tempwordlist(test_wordlist)}}}
+    modules_overrides = ["webbrute", "http"]
+
+    _counter = 0
+
+    def request_handler(self, request):
+        uri = request.path
+        if uri == "/":
+            return Response("<html>Home</html>", status=200)
+        # Return unique content only for wordlist words (word000-word049).
+        # Random strings (like the canary) get a normal 404 so the canary
+        # doesn't mask the hit cap.
+        segment = uri.strip("/")
+        if segment.startswith("word"):
+            TestWebBruteHitCap._counter += 1
+            body = f"<html><body>Unique page {TestWebBruteHitCap._counter} for {uri}</body></html>"
+            return Response(body, status=200)
+        return Response("Not Found", status=404)
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests_handler(expect_args=re.compile("/.*"), request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        webbrute_urls = [e for e in events if e.type == "URL_UNVERIFIED" and str(e.module) == "webbrute"]
+        assert len(webbrute_urls) == 0, (
+            f"Hit cap should have discarded all hits, but got: {[e.url for e in webbrute_urls]}"
+        )
+
+
 class TestWebBruteWildcardSkip(ModuleTestBase):
     """When the host is an HTTP wildcard, webbrute should skip fuzzing entirely."""
 
