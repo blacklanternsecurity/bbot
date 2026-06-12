@@ -34,13 +34,14 @@ jobs:
 
           COMMITTERS=$(gh api "repos/${{ github.repository }}/pulls/$PR_NUM/commits" --paginate --jq '.[].author.login' | sort -u)
           ALL_EXEMPT=true
+          EXEMPT_LOGINS=""
 
           for LOGIN in $COMMITTERS; do
             # treat commits with no associated GitHub login as non-exempt
             if [ -z "$LOGIN" ] || [ "$LOGIN" = "null" ]; then
               echo "Unknown committer (no GitHub login) — not exempt"
               ALL_EXEMPT=false
-              break
+              continue
             fi
 
             EXEMPT=false
@@ -60,14 +61,16 @@ jobs:
               fi
             fi
 
-            if [ "$EXEMPT" = "false" ]; then
+            if [ "$EXEMPT" = "true" ]; then
+              EXEMPT_LOGINS="${EXEMPT_LOGINS:+$EXEMPT_LOGINS,}$LOGIN"
+            else
               echo "$LOGIN is not exempt — CLA required"
               ALL_EXEMPT=false
-              break
             fi
           done
 
           echo "all_exempt=$ALL_EXEMPT" >> "$GITHUB_OUTPUT"
+          echo "exempt_logins=$EXEMPT_LOGINS" >> "$GITHUB_OUTPUT"
 
       - name: Skip CLA when all committers are exempt
         if: steps.cla-check.outputs.all_exempt == 'true' && github.event_name == 'pull_request_target'
@@ -91,7 +94,7 @@ jobs:
           path-to-signatures: "signatures/version1/cla.json"
           path-to-document: "https://github.com/blacklanternsecurity/CLA/blob/main/ICLA.md"
           branch: "main"
-          allowlist: "dependabot[bot],github-actions[bot],renovate[bot]"
+          allowlist: "dependabot[bot],github-actions[bot],renovate[bot],${{ steps.cla-check.outputs.exempt_logins }}"
           remote-organization-name: "blacklanternsecurity"
           remote-repository-name: "CLA"
           lock-pullrequest-aftermerge: "false"
