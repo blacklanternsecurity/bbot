@@ -200,7 +200,7 @@ class webbrute(BaseModule):
         if exts is None:
             exts = [""]
         if filters is None:
-            filters = {}
+            filters = await self.baseline_fuzz(url, exts=exts, prefix=prefix, suffix=suffix)
 
         headers = self._build_batch_headers()
         proxy = self.scan.http_proxy or None
