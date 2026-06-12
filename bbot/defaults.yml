@@ -324,6 +324,7 @@ parameter_blacklist_prefixes:
   - f5avr
   - incap_
   - visid_incap_
+  - nlbi_
   - AWSALB
   - utm_
   - ApplicationGatewayAffinity
