@@ -75,8 +75,9 @@ class speculate(BaseInternalModule):
         event_in_scope_distance = event.scope_distance <= (self.scan.scope_search_distance + 1)
         speculate_open_ports = self.emit_open_ports and event_in_scope_distance
 
-        # generate individual IP addresses from IP range
-        if event.type == "IP_RANGE":
+        # generate individual IP addresses from IP range (only within search distance;
+        # children land at distance+1, so out-of-range CIDRs produce unreachable churn)
+        if event.type == "IP_RANGE" and event.scope_distance <= self.scan.scope_search_distance:
             net = ipaddress.ip_network(event.data)
             num_ips = net.num_addresses
             ip_range_max_hosts = self.config.get("ip_range_max_hosts", 65536)
