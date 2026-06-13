@@ -11,6 +11,7 @@ include:
   - dirbust-light
   - web-screenshots
   - baddns-heavy
+  - domino-heavy
 
 config:
   modules:
