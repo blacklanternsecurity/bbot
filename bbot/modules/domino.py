@@ -82,7 +82,7 @@ class domino(BaseModule):
                     "name": result["rule_name"],
                     "description": f"{result['description']}.{details_string} Detection URL: [{result['detection_url']}]{interactions_string}",
                     "host": str(event.host),
-                    "url": result.get("detection_url"),
+                    "url": result.get("detection_url") or event.url,
                     "severity": severity,
                     "confidence": "CONFIRMED",
                 }
