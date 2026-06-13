@@ -237,7 +237,7 @@ class gowitness(BaseModule):
                     context=f"{{module}} visited {{event.type}}: {url}",
                 )
                 if url_event and ip:
-                    url_event.add_resolved_host(sys.intern(ip))
+                    url_event.resolved_hosts = (sys.intern(ip),)
                 await self.emit_event(url_event)
 
         # emit technologies
