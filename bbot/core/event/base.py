@@ -183,6 +183,7 @@ class BaseEvent:
         "dns_resolve_distance",
         # Host metadata (cloud providers, ASN, whois, etc.)
         "_host_metadata",
+        "_cloudcheck_done",
         # Memory management
         "_module_consumers",
         # Public attributes

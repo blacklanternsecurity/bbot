@@ -243,7 +243,7 @@ class CloudCheck(BaseInterceptModule):
                 for provider_name, info in cloud_providers.items():
                     # fresh dict — never share parent's inner objects
                     my_cloud_providers[provider_name] = {
-                        "types": info.get("types", []),
+                        "types": list(info.get("types", [])),
                         "match": match_type,
                     }
                     event.add_tag(provider_name)
