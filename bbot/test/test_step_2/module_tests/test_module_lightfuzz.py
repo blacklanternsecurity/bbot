@@ -5027,6 +5027,18 @@ def test_keystream_fp_sibling_form_fields_incremental():
     assert not c.results, f"FP on sibling sequential hex form fields: {c.results}"
 
 
+def test_keystream_fp_decimal_account_numbers():
+    """Digit-only parameter values (account numbers, zip codes, etc.) are valid
+    hex but are plain decimal IDs. Their decoded bytes XOR to small values that
+    trivially pass the ascii_score threshold."""
+    c = _make_crypto_for_keystream(
+        "7276383284",
+        additional_params={"AccountName": "3767190588"},
+    )
+    c.detect_keystream_reuse("7276383284")
+    assert not c.results, f"FP on decimal account numbers: {c.results}"
+
+
 # -- True positives: MUST fire --
 
 
