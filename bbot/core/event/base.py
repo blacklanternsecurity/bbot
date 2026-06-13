@@ -278,7 +278,8 @@ class BaseEvent:
             self.data = self._sanitize_data(data)
         except Exception as e:
             log.trace(traceback.format_exc())
-            raise ValidationError(f'Error sanitizing event data "{data}" for type "{self.type}": {e}')
+            data_preview = str(data)[:200] + "..." if len(str(data)) > 200 else str(data)
+            raise ValidationError(f'Error sanitizing event data "{data_preview}" for type "{self.type}": {e}')
 
         if not self.data:
             raise ValidationError(f'Invalid event data "{data}" for type "{self.type}"')
@@ -688,7 +689,7 @@ class BaseEvent:
                 self.web_spider_distance = getattr(parent, "web_spider_distance", 0)
                 event_has_url = getattr(self, "parsed_url", None) is not None
                 for t in parent.tags:
-                    if t in ("affiliate", "from-lightfuzz"):
+                    if t in ("affiliate", "from-wayback", "from-lightfuzz"):
                         self.add_tag(t)
                     elif t.startswith("mutation-"):
                         self.add_tag(t)
@@ -716,6 +717,26 @@ class BaseEvent:
         if parent_uuid is not None:
             return parent_uuid
         return self._parent_uuid
+
+    @property
+    def archive_url(self):
+        """Traverse the parent chain to find the nearest archive_url.
+
+        The 'from-wayback' tag signals that this event descends from archived content.
+        The actual archive URL is stored only in the data dict of the originating
+        wayback HTTP_RESPONSE; this property walks upward to find it.
+        """
+        if "from-wayback" not in self.tags:
+            return None
+        event = self
+        while event is not None:
+            if isinstance(event.data, dict) and "archive_url" in event.data:
+                return event.data["archive_url"]
+            parent = getattr(event, "parent", None)
+            if parent is None or parent is event:
+                break
+            event = parent
+        return None
 
     @property
     def validators(self):
@@ -1924,6 +1945,7 @@ class FINDING(ClosestHostEvent):
         full_url: Optional[str] = None
         path: Optional[str] = None
         cves: Optional[list[str]] = None
+        archive_url: Optional[str] = None
         _validate_url = field_validator("url")(validators.validate_url)
         _validate_host = field_validator("host")(validators.validate_host)
         _validate_severity = field_validator("severity")(validators.validate_severity)
@@ -2326,7 +2348,8 @@ def make_event(
                 data = validators.validate_host(data)
             except Exception as e:
                 log.trace(traceback.format_exc())
-                raise ValidationError(f'Error sanitizing event data "{data}" for type "{event_type}": {e}')
+                data_preview = str(data)[:200] + "..." if len(str(data)) > 200 else str(data)
+                raise ValidationError(f'Error sanitizing event data "{data_preview}" for type "{event_type}": {e}')
             data_is_ip = is_ip(data)
             if event_type == "DNS_NAME" and data_is_ip:
                 event_type = "IP_ADDRESS"
