@@ -425,11 +425,11 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     def _event_host(self, event):
         """Get the effective host from an event.
 
-        For archived wayback content, data["host"] contains the original target hostname
-        (since data["url"] points to archive.org). For regular events, we use event.host.
+        For archived wayback content, uses data["host"] (the original target hostname).
+        For regular events, uses event.host.
 
         NOTE: Regular HTTP_RESPONSE events also have data["host"], but it contains the
-        resolved IP from the httpx binary — NOT a hostname override.
+        resolved IP — NOT a hostname override.
         """
         if self._is_archived(event) and event.data.get("host"):
             return str(event.data["host"])
@@ -438,9 +438,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     def _event_base_url(self, event):
         """Get the effective base URL from an event.
 
-        For archived wayback content, reconstructs the original URL from override fields
-        (host/scheme/port/path) since parsed_url points to archive.org.
-        For regular events, returns event.parsed_url directly.
+        For archived wayback content, reconstructs the URL from explicit fields
+        (host/scheme/port/path). For regular events, returns event.parsed_url directly.
         """
         if not self._is_archived(event):
             return event.parsed_url

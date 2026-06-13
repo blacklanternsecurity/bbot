@@ -358,10 +358,9 @@ class BaseLightfuzz:
 
     def metadata(self):
         metadata_string = f"Parameter: [{self.event.data['name']}] Parameter Type: [{self.event.data['type']}]{self.conversion_note()}"
-        if self.event.data["original_value"] != "" and self.event.data["original_value"] is not None:
-            metadata_string += (
-                f" Original Value: [{self.lightfuzz.helpers.truncate_string(self.event.data['original_value'], 200)}]"
-            )
+        original_value = self.event.data.get("original_value")
+        if original_value is not None and original_value != "":
+            metadata_string += f" Original Value: [{self.lightfuzz.helpers.truncate_string(original_value, 200)}]"
         # Surface additional_params for param types where they're needed to reproduce findings
         if self.event.data["type"] in ("POSTPARAM", "BODYJSON", "HEADER", "COOKIE"):
             additional_params = self.event.data.get("additional_params", {})

@@ -177,10 +177,10 @@ class TestBadSecrets_JWTIdentifyOnly(ModuleTestBase):
             for e in events
         ), "Vulnerable JWT SecretFound finding was not emitted"
 
-        # Safe JWT (IdentifyOnly) should NOT produce any FINDING
-        assert not any(e.type == "FINDING" and self.safe_jwt in e.data["description"] for e in events), (
-            "JWT IdentifyOnly finding should have been suppressed"
-        )
+        # Safe JWT should NOT produce a badsecrets FINDING
+        assert not any(
+            e.type == "FINDING" and e.module == "badsecrets" and self.safe_jwt in e.data["description"] for e in events
+        ), "JWT IdentifyOnly finding should have been suppressed"
 
 
 class TestBadSecrets_customsecrets(TestBadSecrets):

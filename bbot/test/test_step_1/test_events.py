@@ -630,7 +630,7 @@ async def test_events(events, helpers):
     db_event = scan.make_event("evilcorp.com:80", parent=scan.root_event, context="test context")
     assert db_event.parent == scan.root_event
     assert db_event.parent is scan.root_event
-    db_event._resolved_hosts = {"127.0.0.1"}
+    db_event.resolved_hosts = ("127.0.0.1",)
     db_event.scope_distance = 1
     assert db_event.discovery_context == "test context"
     assert db_event.discovery_path == ["test context"]
@@ -1323,5 +1323,63 @@ async def test_host_metadata():
     j4 = url_event.json()
     assert j4["data_json"]["http_title"] == "Example Domain"
     assert j4["data_json"]["status_code"] == 200
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_web_parameter_minimize_sentinel():
+    """Regression: forward_event distributes events via sequential awaits.
+    A fast module can finish and _minimize() (dropping _module_consumers
+    to 0, stripping original_value) before slower modules are queued.
+    The sentinel hold in forward_event prevents this.
+
+    We reproduce the race deterministically by patching queue_event to
+    call _minimize() immediately after queueing (simulating the worker
+    finishing before the next module is queued).
+    """
+    scan = Scanner("http://example.com", modules=["hunt"])
+    await scan._prep()
+
+    data = {
+        "host": "example.com",
+        "type": "COOKIE",
+        "name": "session",
+        "original_value": "abc123",
+        "url": "https://example.com/",
+        "description": "Set-Cookie Assigned Cookie [session]",
+        "additional_params": {},
+    }
+    event = scan.make_event(data, "WEB_PARAMETER", parent=scan.root_event)
+
+    # Patch every non-intercept module EXCEPT hunt: after queueing,
+    # immediately _minimize() as if the worker finished instantly.
+    # hunt is left un-patched -- it represents the slow module that
+    # still needs original_value when it eventually processes.
+    for module in scan.modules.values():
+        if module._intercept or module.name == "hunt":
+            continue
+        orig_queue = module.queue_event
+
+        async def _instant_finish(ev, _orig=orig_queue):
+            before = ev._module_consumers
+            await _orig(ev)
+            if ev._module_consumers > before:
+                ev._minimize()
+
+        module.queue_event = _instant_finish
+
+    # Reorder modules so fast (patched) output modules are iterated
+    # before hunt.  This guarantees the race: a fast module finishes
+    # and _minimize()s before hunt has been queued.
+    hunt_mod = scan.modules.pop("hunt")
+    scan.modules["hunt"] = hunt_mod
+
+    await scan.egress_module.forward_event(event, {})
+
+    # hunt must have accepted the event and still be holding it
+    assert event._module_consumers >= 1, "no module accepted the event"
+    # The sentinel must have prevented premature stripping
+    assert "original_value" in event.data, "original_value stripped during distribution -- sentinel missing"
 
     await scan._cleanup()

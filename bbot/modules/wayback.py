@@ -64,11 +64,11 @@ class wayback(subdomain_enum):
     _junk_url_yara_rules = {
         # Per-session bot-manager challenge URLs (Akamai-style randomized paths).
         # Counts path segments that contain all three of: uppercase, lowercase,
-        # and digit/underscore/hyphen. The big alternation enumerates the six
+        # and digit/underscore. The big alternation enumerates the six
         # possible orderings of those three character classes within a segment.
         # Threshold of 2 catches every URL in the validation corpus and leaves
         # CamelCase REST paths (/api/v1/MyController/getStuff) untouched because
-        # those don't contain a digit or symbol inside the camelCase segment.
+        # those don't contain a digit or underscore inside the camelCase segment.
         "akamai_bot_manager_url": r"""
 rule akamai_bot_manager_url
 {
@@ -79,7 +79,7 @@ rule akamai_bot_manager_url
         confidence = "HIGH"
 
     strings:
-        $strict_seg = /\/[A-Za-z0-9_-]*([A-Z][A-Za-z0-9_-]*[a-z][A-Za-z0-9_-]*[0-9_-]|[A-Z][A-Za-z0-9_-]*[0-9_-][A-Za-z0-9_-]*[a-z]|[a-z][A-Za-z0-9_-]*[A-Z][A-Za-z0-9_-]*[0-9_-]|[a-z][A-Za-z0-9_-]*[0-9_-][A-Za-z0-9_-]*[A-Z]|[0-9_-][A-Za-z0-9_-]*[A-Z][A-Za-z0-9_-]*[a-z]|[0-9_-][A-Za-z0-9_-]*[a-z][A-Za-z0-9_-]*[A-Z])[A-Za-z0-9_-]*/
+        $strict_seg = /\/[A-Za-z0-9_-]*([A-Z][A-Za-z0-9_-]*[a-z][A-Za-z0-9_-]*[0-9_]|[A-Z][A-Za-z0-9_-]*[0-9_][A-Za-z0-9_-]*[a-z]|[a-z][A-Za-z0-9_-]*[A-Z][A-Za-z0-9_-]*[0-9_]|[a-z][A-Za-z0-9_-]*[0-9_][A-Za-z0-9_-]*[A-Z]|[0-9_][A-Za-z0-9_-]*[A-Z][A-Za-z0-9_-]*[a-z]|[0-9_][A-Za-z0-9_-]*[a-z][A-Za-z0-9_-]*[A-Z])[A-Za-z0-9_-]*/
 
     condition:
         #strict_seg >= 2
@@ -520,7 +520,11 @@ rule akamai_bot_manager_url
 
         # build URL list and mapping back to metadata
         url_metadata = {}
-        for cleaned_url, (raw_url, parent_event) in list(self._archive_cache.items()):
+        for cleaned_url, value in list(self._archive_cache.items()):
+            if not isinstance(value, tuple):
+                self.debug(f"Skipping unpaired archive entry: {cleaned_url}")
+                continue
+            raw_url, parent_event = value
             ext = get_file_extension(cleaned_url)
             if ext and ext in skip_extensions:
                 self.debug(f"Skipping archive fetch for {raw_url} (extension: .{ext})")
