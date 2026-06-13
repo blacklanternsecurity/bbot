@@ -55,10 +55,16 @@ class domino(BaseModule):
         self.suppress_parameter_discovery_reports = self.config.get("suppress_parameter_discovery_reports", True)
         return True
 
+    async def _ensure_browser(self):
+        if not self.browser.is_connected():
+            self.warning("Browser crashed, relaunching")
+            self.browser = await self.playwright.chromium.launch(headless=True)
+
     async def handle_event(self, event):
         url = event.url
         self.debug(f"Domino scanning {url}")
         try:
+            await self._ensure_browser()
             d = Domino(url=url, logger=self.log, json_mode=True, selected_rules=self.rules)
             results = await d.run(self.playwright, self.browser)
         except DominoError as e:
