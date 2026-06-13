@@ -129,6 +129,12 @@ class domino(BaseModule):
             await browser.close()
         await self.playwright.stop()
 
+    def _incoming_dedup_hash(self, event):
+        body_hash = getattr(event, "http_body_hash", "")
+        if body_hash:
+            return hash((event.host, body_hash)), f"body_hash={body_hash}"
+        return hash(event), ""
+
     async def filter_event(self, event):
         if "status-200" not in event.tags:
             self.debug(f"Rejecting URL {event.data} due to lack of 200 status code. Tags: {event.tags}")

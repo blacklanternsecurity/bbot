@@ -1529,6 +1529,14 @@ class URL_UNVERIFIED(DictHostEvent):
     def redirect_location(self, value):
         self.data["redirect_location"] = value
 
+    @property
+    def http_body_hash(self):
+        return self.data.get("http_body_hash", "")
+
+    @http_body_hash.setter
+    def http_body_hash(self, value):
+        self.data["http_body_hash"] = value
+
 
 class URL(URL_UNVERIFIED):
     def __init__(self, *args, **kwargs):
