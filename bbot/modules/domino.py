@@ -33,7 +33,12 @@ class domino(BaseModule):
             description="Number of browser instances to run concurrently. Each instance uses ~800-1600 MB of memory under load.",
         )
 
+    _module_threads = 2
     deps_pip = ["playwright", "d0m1n0"]
+
+    @property
+    def module_threads(self):
+        return self.config.get("browser_instances", 2)
 
     async def setup(self):
         import asyncio.base_subprocess
@@ -53,7 +58,6 @@ class domino(BaseModule):
             self.rules = None
 
         self._browser_count = self.config.get("browser_instances", 2)
-        self.module_threads = self._browser_count
         low_estimate = self._browser_count * 800
         high_estimate = self._browser_count * 1600
         self.warning(
