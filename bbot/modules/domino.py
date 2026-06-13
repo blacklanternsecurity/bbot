@@ -50,17 +50,17 @@ class domino(BaseModule):
             self.rules = None
 
         self.playwright = await async_playwright().start()
+        self.browser = await self.playwright.chromium.launch(headless=True)
 
         self.suppress_parameter_discovery_reports = self.config.get("suppress_parameter_discovery_reports", True)
         return True
 
     async def handle_event(self, event):
         url = event.url
-        browser_instance = await self.playwright.chromium.launch(headless=True)
-        self.debug(f"Domino starting browser instance for {url}")
+        self.debug(f"Domino scanning {url}")
         try:
             d = Domino(url=url, logger=self.log, json_mode=True, selected_rules=self.rules)
-            results = await d.run(self.playwright, browser_instance)
+            results = await d.run(self.playwright, self.browser)
         except DominoError as e:
             self.hugewarning(f"Error running Domino, setting error state: {e}")
             self.errored = True
@@ -87,11 +87,10 @@ class domino(BaseModule):
                     "confidence": "CONFIRMED",
                 }
                 await self.emit_event(data, "FINDING", event)
-        self.debug(f"Domino browser instance shutting down for {url}")
-        await browser_instance.close()
-        self.debug(f"DOMino browser shutdown complete for {url}")
+        self.debug(f"DOMino scan complete for {url}")
 
     async def cleanup(self):
+        await self.browser.close()
         await self.playwright.stop()
 
     async def filter_event(self, event):
