@@ -977,8 +977,17 @@ class Scanner:
             tasks.append(self._stop_task)
 
         self.helpers.cancel_tasks_sync(tasks)
-        # process pool
-        self.helpers.process_pool.shutdown(cancel_futures=True)
+        # kill all pool workers and shut down (same logic as _reset_process_pool
+        # but synchronous, since we're tearing down the scan)
+        pool = self.helpers.process_pool
+        workers = list((pool._processes or {}).values())
+        for proc in workers:
+            if proc.is_alive():
+                proc.terminate()
+        pool.shutdown(wait=False, cancel_futures=True)
+        for proc in workers:
+            if proc.is_alive():
+                proc.kill()
         self.debug("Finished cancelling all scan tasks")
         return tasks
 

@@ -323,6 +323,12 @@ class crypto(BaseLightfuzz):
             # plaintext, so restricting to hex eliminates that class of FP.
             if encoding != "hex":
                 continue
+            # Digit-only strings (e.g. "7276383284") are valid hex but are almost
+            # certainly plain decimal IDs (account numbers, zip codes, etc.). Their
+            # hex-decoded bytes XOR to small values that trivially pass the ascii_score
+            # threshold, producing false keystream-reuse findings.
+            if value.isdigit():
+                continue
             if len(decoded) < 3:
                 continue
             if decoded in seen_bytes:

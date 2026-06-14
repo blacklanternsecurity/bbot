@@ -53,6 +53,9 @@ _ip_range_regexes = (
 )
 ip_range_regexes = [re.compile(r, re.I) for r in _ip_range_regexes]
 
+# SPF qualifier + ip4:/ip6: mechanism prefix, e.g. the "ip4:" in "ip4:1.2.3.0/24" (RFC 7208)
+spf_ip_mechanism_regex = re.compile(r"^[+\-~?]?ip[46]:", re.I)
+
 # all dns names including IP addresses and bare hostnames (e.g. "localhost")
 _dns_name_regex = r"(?:\w(?:[\w-]{0,100}\w)?\.?)+(?:[xX][nN]--)?[^\W_]{1,63}\.?"
 # dns names with periods (e.g. "www.example.com")

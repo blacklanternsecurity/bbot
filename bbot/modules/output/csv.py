@@ -62,7 +62,7 @@ class CSV(BaseOutputModule):
                 "Event type": getattr(event, "type", ""),
                 "Event data": getattr(event, "data", ""),
                 "IP Address": ",".join(
-                    str(x) for x in getattr(event, "resolved_hosts", set()) if self.helpers.is_ip(x)
+                    str(x) for x in getattr(event, "resolved_hosts", frozenset()) if self.helpers.is_ip(x)
                 ),
                 "Source Module": str(getattr(event, "module_sequence", "")),
                 "Scope Distance": str(getattr(event, "scope_distance", "")),

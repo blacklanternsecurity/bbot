@@ -282,7 +282,7 @@ Everything everywhere all at once
 ??? note "`kitchen-sink.yml`"
     ```yaml title="~/.bbot/presets/kitchen-sink.yml"
     description: Everything everywhere all at once
-    
+
     include:
       - subdomain-enum
       - cloud-enum
@@ -294,13 +294,19 @@ Everything everywhere all at once
       - dirbust-light
       - web-screenshots
       - baddns-heavy
-    
+
     config:
       modules:
+        baddns:
+          enable_references: True
         dnsbrute:
           recursive_mutations: true
         dnscommonsrv:
           recursive_mutations: true
+        wayback:
+          urls: True
+          parameters: True
+          archive: True
     ```
 
 
@@ -347,10 +353,11 @@ Aggressive fuzzing: everything in lightfuzz, plus paramminer brute-force paramet
     
     flags:
       - web-paramminer
-    
+
     modules:
       - robots
-    
+      - wayback
+
     config:
       modules:
         lightfuzz:
@@ -358,6 +365,9 @@ Aggressive fuzzing: everything in lightfuzz, plus paramminer brute-force paramet
           disable_post: False
           try_post_as_get: True
           try_get_as_post: True
+        wayback:
+          urls: True
+          parameters: True
     ```
 
 Category: web
@@ -418,6 +428,10 @@ Maximum fuzzing: everything in lightfuzz-heavy, plus the heavy paramminer varian
           avoid_wafs: False
         excavate:
           speculate_params: True # speculate potential parameters extracted from JSON/XML web responses
+        wayback:
+          urls: True
+          parameters: True
+          archive: True
     ```
 
 Category: web
@@ -862,7 +876,78 @@ Take screenshots of webpages
 
 
 
-Modules: [0]("")
+Modules: [3]("`gowitness`, `httpx`, `social`")
+
+## **web-thorough**
+
+Aggressive web scan
+
+??? note "`web-thorough.yml`"
+    ```yaml title="~/.bbot/presets/web-thorough.yml"
+    description: Aggressive web scan
+    
+    include:
+      # include the web-basic preset
+      - web-basic
+    
+    flags:
+      - web-thorough
+    ```
+
+
+
+Modules: [32]("`ajaxpro`, `aspnet_bin_exposure`, `azure_realm`, `baddns`, `badsecrets`, `bucket_amazon`, `bucket_digitalocean`, `bucket_firebase`, `bucket_google`, `bucket_microsoft`, `bypass403`, `dotnetnuke`, `ffuf_shortnames`, `filedownload`, `generic_ssrf`, `git`, `graphql_introspection`, `host_header`, `httpx`, `hunt`, `iis_shortnames`, `lightfuzz`, `ntlm`, `oauth`, `reflected_parameters`, `retirejs`, `robots`, `securitytxt`, `smuggler`, `sslcert`, `telerik`, `url_manipulation`")
+
+## **wayback**
+
+Discover URLs and interesting archived files via the Wayback Machine
+
+??? note "`wayback.yml`"
+    ```yaml title="~/.bbot/presets/wayback.yml"
+    description: Discover URLs and interesting archived files via the Wayback Machine
+
+    include:
+      - subdomain-enum
+
+    modules:
+      - wayback
+
+    config:
+      modules:
+        wayback:
+          urls: True
+    ```
+
+
+
+Modules: [52]("`anubisdb`, `asn`, `azure_realm`, `azure_tenant`, `baddns_direct`, `baddns_zone`, `bevigil`, `bufferoverrun`, `builtwith`, `c99`, `censys_dns`, `certspotter`, `chaos`, `crt`, `crt_db`, `digitorus`, `dnsbimi`, `dnsbrute`, `dnsbrute_mutations`, `dnscaa`, `dnscommonsrv`, `dnsdumpster`, `dnstlsrpt`, `fullhunt`, `github_codesearch`, `github_org`, `hackertarget`, `httpx`, `hunterio`, `ipneighbor`, `leakix`, `myssl`, `oauth`, `otx`, `passivetotal`, `postman`, `postman_download`, `rapiddns`, `securitytrails`, `securitytxt`, `shodan_dns`, `shodan_idb`, `sitedossier`, `social`, `sslcert`, `subdomaincenter`, `subdomainradar`, `trickest`, `urlscan`, `virustotal`, `wayback`, `httpx`")
+
+## **wayback-heavy**
+
+Full Wayback Machine integration - URL discovery, parameter extraction, archived page retrieval, and interesting file detection
+
+??? note "`wayback-heavy.yml`"
+    ```yaml title="~/.bbot/presets/wayback-heavy.yml"
+    description: Full Wayback Machine integration - URL discovery, parameter extraction, archived page retrieval, and interesting file detection
+
+    include:
+      - subdomain-enum
+
+    modules:
+      - wayback
+      - badsecrets
+
+    config:
+      modules:
+        wayback:
+          urls: True
+          parameters: True
+          archive: True
+    ```
+
+
+
+Modules: [53]("`anubisdb`, `asn`, `azure_realm`, `azure_tenant`, `baddns_direct`, `baddns_zone`, `badsecrets`, `bevigil`, `bufferoverrun`, `builtwith`, `c99`, `censys_dns`, `certspotter`, `chaos`, `crt`, `crt_db`, `digitorus`, `dnsbimi`, `dnsbrute`, `dnsbrute_mutations`, `dnscaa`, `dnscommonsrv`, `dnsdumpster`, `dnstlsrpt`, `fullhunt`, `github_codesearch`, `github_org`, `hackertarget`, `httpx`, `hunterio`, `ipneighbor`, `leakix`, `myssl`, `oauth`, `otx`, `passivetotal`, `postman`, `postman_download`, `rapiddns`, `securitytrails`, `securitytxt`, `shodan_dns`, `shodan_idb`, `sitedossier`, `social`, `sslcert`, `subdomaincenter`, `subdomainradar`, `trickest`, `urlscan`, `virustotal`, `wayback`, `httpx`")
 <!-- END BBOT PRESET YAML -->
 
 ## Table of Default Presets
@@ -899,6 +984,8 @@ Here is a the same data, but in a table:
 | subdomain-enum    |            | Enumerate subdomains via APIs, brute-force                                                                                                                                                                                                                                                                                                                                                                                                                                                              | 0           |                                                                                                    |
 | tech-detect       |            | Detect technologies via Nuclei, and FingerprintX                                                                                                                                                                                                                                                                                                                                                                                                                                                        | 2           | fingerprintx, nuclei                                                                               |
 | test              |            | Detect technologies via Nuclei, and FingerprintX                                                                                                                                                                                                                                                                                                                                                                                                                                                        | 2           | fingerprintx, nuclei                                                                               |
+| wayback           |            | Discover URLs and interesting archived files via the Wayback Machine                                                                                                                                                                                                                                                                                                                                                                                                                                    | 52          | anubisdb, asn, azure_realm, azure_tenant, baddns_direct, baddns_zone, bevigil, bufferoverrun, builtwith, c99, censys_dns, certspotter, chaos, crt, crt_db, digitorus, dnsbimi, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, fullhunt, github_codesearch, github_org, hackertarget, httpx, hunterio, ipneighbor, leakix, myssl, oauth, otx, passivetotal, postman, postman_download, rapiddns, securitytrails, securitytxt, shodan_dns, shodan_idb, sitedossier, social, sslcert, subdomaincenter, subdomainradar, trickest, urlscan, virustotal, wayback |
+| wayback-heavy     |            | Full Wayback Machine integration - URL discovery, parameter extraction, archived page retrieval, and interesting file detection                                                                                                                                                                                                                                                                                                                                                                          | 53          | anubisdb, asn, azure_realm, azure_tenant, baddns_direct, baddns_zone, badsecrets, bevigil, bufferoverrun, builtwith, c99, censys_dns, certspotter, chaos, crt, crt_db, digitorus, dnsbimi, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, fullhunt, github_codesearch, github_org, hackertarget, httpx, hunterio, ipneighbor, leakix, myssl, oauth, otx, passivetotal, postman, postman_download, rapiddns, securitytrails, securitytxt, shodan_dns, shodan_idb, sitedossier, social, sslcert, subdomaincenter, subdomainradar, trickest, urlscan, virustotal, wayback |
 | web               |            | Quick web scan                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | 0           |                                                                                                    |
 | web-heavy         |            | Aggressive web scan                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | 0           |                                                                                                    |
 | web-screenshots   |            | Take screenshots of webpages                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | 0           |                                                                                                    |

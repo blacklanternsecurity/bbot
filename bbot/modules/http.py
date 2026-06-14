@@ -37,6 +37,7 @@ class http(BaseModule):
         self.max_response_size = self.config.get("max_response_size", 5242880)
         self.store_responses = self.config.get("store_responses", False)
         self.client = self.helpers.blasthttp
+        self.waf_yara_rule = self.helpers.yara.compile_strings(self.helpers.get_waf_strings(), nocase=True)
         return True
 
     async def filter_event(self, event):
@@ -129,6 +130,13 @@ class http(BaseModule):
             self.debug(f'Discarding 404 from "{url}"')
             return True
 
+        # discard 4xx responses that contain WAF strings
+        if 400 <= status_code < 500:
+            body = j.get("body", "")
+            if body and await self.helpers.yara.match(self.waf_yara_rule, body):
+                self.debug(f'Discarding WAF {status_code} from "{url}"')
+                return True
+
         tags = [f"status-{status_code}"]
         url_context = "{module} visited {event.parent.data} and got status code {event.http_status}"
         if parent_event.type == "OPEN_TCP_PORT":
@@ -138,7 +146,7 @@ class http(BaseModule):
         if url_event:
             response_ip = j.get("host", "")
             if response_ip:
-                url_event.add_resolved_host(response_ip)
+                url_event.resolved_hosts = (response_ip,)
             title = j.get("title", "")
             if title:
                 url_event.http_title = title

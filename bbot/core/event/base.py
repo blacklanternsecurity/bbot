@@ -55,9 +55,10 @@ log = logging.getLogger("bbot.core.event")
 # Shared empty defaults for lazy-init slots. Returned from property accessors
 # when the underlying slot is None — saves ~560 bytes per event compared to
 # allocating real empty containers (set/dict) at __init__ time. Mutating
-# helpers (add_tag, add_resolved_host, etc.) replace the slot with a real
-# container before mutating, so callers never see the singletons in a
-# mutable position.
+# helpers (add_tag, etc.) replace the slot with a real container before
+# mutating, so callers never see the singletons in a mutable position.
+# `_resolved_hosts` has no in-place mutation API — see the resolved_hosts
+# property setter for the assign-once-then-frozen contract.
 _EMPTY_FROZENSET: "frozenset[str]" = frozenset()
 _EMPTY_DICT = MappingProxyType({})
 
@@ -182,6 +183,7 @@ class BaseEvent:
         "dns_resolve_distance",
         # Host metadata (cloud providers, ASN, whois, etc.)
         "_host_metadata",
+        "_cloudcheck_done",
         # Memory management
         "_module_consumers",
         # Public attributes
@@ -276,7 +278,8 @@ class BaseEvent:
             self.data = self._sanitize_data(data)
         except Exception as e:
             log.trace(traceback.format_exc())
-            raise ValidationError(f'Error sanitizing event data "{data}" for type "{self.type}": {e}')
+            data_preview = str(data)[:200] + "..." if len(str(data)) > 200 else str(data)
+            raise ValidationError(f'Error sanitizing event data "{data_preview}" for type "{self.type}": {e}')
 
         if not self.data:
             raise ValidationError(f'Invalid event data "{data}" for type "{self.type}"')
@@ -307,23 +310,24 @@ class BaseEvent:
     @property
     def resolved_hosts(self):
         if is_ip(self.host):
-            return {
-                self.host,
-            }
+            return frozenset({self.host})
         return self._resolved_hosts if self._resolved_hosts is not None else _EMPTY_FROZENSET
 
-    def add_resolved_host(self, host):
-        """Add a host to ``_resolved_hosts``, lazy-allocating the set."""
-        if self._resolved_hosts is None or isinstance(self._resolved_hosts, frozenset):
-            # promote shared singleton / empty to a real mutable set
-            self._resolved_hosts = set(self._resolved_hosts) if self._resolved_hosts else set()
-        self._resolved_hosts.add(host)
+    @resolved_hosts.setter
+    def resolved_hosts(self, value):
+        """Assign ``_resolved_hosts`` as a frozenset (or None for unset).
 
-    def update_resolved_hosts(self, hosts):
-        """Add multiple hosts to ``_resolved_hosts``, lazy-allocating the set."""
-        if self._resolved_hosts is None or isinstance(self._resolved_hosts, frozenset):
-            self._resolved_hosts = set(self._resolved_hosts) if self._resolved_hosts else set()
-        self._resolved_hosts.update(hosts)
+        Resolved hosts are naturally immutable: there is no in-place mutation
+        API. Callers (typically ``dnsresolve``) build the set locally and then
+        assign it once via this setter, after which the slot holds a
+        ``frozenset`` that downstream consumers can read but cannot modify.
+        """
+        if value is None:
+            self._resolved_hosts = None
+        elif isinstance(value, frozenset):
+            self._resolved_hosts = value
+        else:
+            self._resolved_hosts = frozenset(value)
 
     @property
     def dns_children(self):
@@ -685,7 +689,7 @@ class BaseEvent:
                 self.web_spider_distance = getattr(parent, "web_spider_distance", 0)
                 event_has_url = getattr(self, "parsed_url", None) is not None
                 for t in parent.tags:
-                    if t in ("affiliate", "from-lightfuzz"):
+                    if t in ("affiliate", "from-wayback", "from-lightfuzz"):
                         self.add_tag(t)
                     elif t.startswith("mutation-"):
                         self.add_tag(t)
@@ -713,6 +717,26 @@ class BaseEvent:
         if parent_uuid is not None:
             return parent_uuid
         return self._parent_uuid
+
+    @property
+    def archive_url(self):
+        """Traverse the parent chain to find the nearest archive_url.
+
+        The 'from-wayback' tag signals that this event descends from archived content.
+        The actual archive URL is stored only in the data dict of the originating
+        wayback HTTP_RESPONSE; this property walks upward to find it.
+        """
+        if "from-wayback" not in self.tags:
+            return None
+        event = self
+        while event is not None:
+            if isinstance(event.data, dict) and "archive_url" in event.data:
+                return event.data["archive_url"]
+            parent = getattr(event, "parent", None)
+            if parent is None or parent is event:
+                break
+            event = parent
+        return None
 
     @property
     def validators(self):
@@ -1929,6 +1953,7 @@ class FINDING(ClosestHostEvent):
         full_url: Optional[str] = None
         path: Optional[str] = None
         cves: Optional[list[str]] = None
+        archive_url: Optional[str] = None
         _validate_url = field_validator("url")(validators.validate_url)
         _validate_host = field_validator("host")(validators.validate_host)
         _validate_severity = field_validator("severity")(validators.validate_severity)
@@ -2331,7 +2356,8 @@ def make_event(
                 data = validators.validate_host(data)
             except Exception as e:
                 log.trace(traceback.format_exc())
-                raise ValidationError(f'Error sanitizing event data "{data}" for type "{event_type}": {e}')
+                data_preview = str(data)[:200] + "..." if len(str(data)) > 200 else str(data)
+                raise ValidationError(f'Error sanitizing event data "{data_preview}" for type "{event_type}": {e}')
             data_is_ip = is_ip(data)
             if event_type == "DNS_NAME" and data_is_ip:
                 event_type = "IP_ADDRESS"
@@ -2406,7 +2432,7 @@ def event_from_json(j):
             event._uuid = uuid.UUID(event_uuid.split(":")[-1])
 
         resolved_hosts = j.get("resolved_hosts", [])
-        event._resolved_hosts = set(resolved_hosts)
+        event._resolved_hosts = frozenset(resolved_hosts) if resolved_hosts else None
 
         http_title = j.get("http_title", "")
         if http_title:
