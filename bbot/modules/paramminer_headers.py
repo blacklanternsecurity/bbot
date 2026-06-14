@@ -328,6 +328,17 @@ class paramminer_headers(BaseModule):
                 continue
             await self.process_results(event, results)
 
+    def _incoming_dedup_hash(self, event):
+        # dedup by endpoint structure, not full URL string -- value mutations
+        # of the same parameter set (e.g. from lightfuzz probes) are one test surface
+        p = event.parsed_url
+        if event.type == "WEB_PARAMETER":
+            additional_params = event.data.get("additional_params", {})
+            param_keys = tuple(sorted({event.data.get("name", ""), *additional_params.keys()}))
+        else:
+            param_keys = ()
+        return hash((event.type, p.scheme, p.netloc, p.path, param_keys)), "per_endpoint+keys"
+
     async def filter_event(self, event):
         if await self._is_http_wildcard_host(event) is True:
             return False, "host is an HTTP wildcard responder"
