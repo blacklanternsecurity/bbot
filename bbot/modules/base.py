@@ -939,6 +939,29 @@ class BaseModule:
 
         return True, ""
 
+    async def _is_http_wildcard_host(self, event):
+        """Check whether the event's host is an HTTP wildcard responder.
+
+        Extracts scheme/host/port from the event's parsed_url when available,
+        otherwise falls back to ``event.host`` with https/443.  Returns True
+        (wildcard), False (not wildcard), or None (probe failed / no host).
+        """
+        p = getattr(event, "parsed_url", None)
+        if p is not None and p.hostname:
+            host = p.hostname
+            port = p.port or (443 if p.scheme == "https" else 80)
+            scheme = p.scheme
+        elif event.host:
+            host = str(event.host)
+            port = 443
+            scheme = "https"
+        else:
+            return None
+        result = await self.helpers.is_http_wildcard_host(scheme, host, port)
+        if result in (False, None):
+            return result
+        return True
+
     def _scope_distance_check(self, event):
         # Seeds bypass scope distance checks
         if self.accept_seeds and "seed" in event.tags:

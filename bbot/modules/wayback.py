@@ -170,10 +170,8 @@ rule akamai_bot_manager_url
             await self._handle_url_event(event)
             return
 
-        host = str(event.host)
-        http_wildcard = await self.helpers.is_http_wildcard_host("https", host, 443)
-        if http_wildcard not in (False, None):
-            self.debug(f"Skipping wayback query for {host}: HTTP wildcard responder")
+        if await self._is_http_wildcard_host(event) is True:
+            self.debug(f"Skipping wayback query for {event.host}: HTTP wildcard responder")
             return
 
         query = self.make_query(event)

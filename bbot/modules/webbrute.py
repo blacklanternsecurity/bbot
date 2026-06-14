@@ -102,14 +102,8 @@ class webbrute(BaseModule):
         if "endpoint" in event.tags:
             self.debug(f"rejecting URL [{event.url}] because we don't fuzz endpoints")
             return False
-        p = event.parsed_url
-        scheme = p.scheme
-        host = p.hostname
-        port = p.port or (443 if scheme == "https" else 80)
-        if host:
-            http_wildcard = await self.helpers.is_http_wildcard_host(scheme, host, port)
-            if http_wildcard not in (False, None):
-                return False, "host is an HTTP wildcard responder"
+        if await self._is_http_wildcard_host(event) is True:
+            return False, "host is an HTTP wildcard responder"
         return True
 
     def _build_batch_headers(self):

@@ -197,3 +197,27 @@ class TestParamminer_Headers_NoCookieRetention(Paramminer_Headers):
 
         assert found_web_parameter, "WEB_PARAMETER event was not emitted"
         assert not found_web_parameter_false_positive, "WEB_PARAMETER event was emitted with false positive"
+
+
+class TestParamminerHeadersWildcardSkip(ModuleTestBase):
+    """When the host is an HTTP wildcard, paramminer_headers should skip fuzzing entirely."""
+
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["http", "paramminer_headers"]
+    config_overrides = {"modules": {"paramminer_headers": {"wordlist": tempwordlist(["tracestate"])}}}
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"},
+            respond_args={"response_data": "<html><body>hello</body></html>"},
+        )
+
+    async def setup_after_prep(self, module_test):
+        async def mock_wildcard(scheme, host, port):
+            return True
+
+        module_test.scan.helpers.web.is_http_wildcard_host = mock_wildcard
+
+    def check(self, module_test, events):
+        web_params = [e for e in events if e.type == "WEB_PARAMETER" and str(e.module) == "paramminer_headers"]
+        assert len(web_params) == 0, f"paramminer_headers should not fuzz wildcard hosts, but emitted: {web_params}"

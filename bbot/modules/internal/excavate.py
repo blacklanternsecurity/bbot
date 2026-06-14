@@ -412,15 +412,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
     async def _host_is_http_wildcard(self, event):
         """True if this event's host is an HTTP wildcard responder."""
-        p = getattr(event, "parsed_url", None)
-        if p is None:
-            return False
-        host = p.hostname
-        if not host:
-            return False
-        port = p.port or (443 if p.scheme == "https" else 80)
-        http_wildcard = await self.helpers.is_http_wildcard_host(p.scheme, host, port)
-        return http_wildcard not in (False, None)
+        return await self._is_http_wildcard_host(event) is True
 
     def _event_host(self, event):
         """Get the effective host from an event.
