@@ -952,6 +952,7 @@ class BaseModule:
             port = p.port or (443 if p.scheme == "https" else 80)
             scheme = p.scheme
         elif event.host:
+            # may miss HTTP-only wildcard hosts, but not worth doubling probe requests
             host = str(event.host)
             port = 443
             scheme = "https"
