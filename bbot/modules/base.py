@@ -1302,6 +1302,8 @@ class BaseModule:
         for _ in range(self.api_retries):
             if "headers" not in kwargs:
                 kwargs["headers"] = {}
+            if "ssl_verify" not in kwargs:
+                kwargs["ssl_verify"] = self.helpers.web.ssl_verify_infrastructure
             new_url, kwargs = self.prepare_api_request(url, kwargs)
             kwargs["url"] = new_url
 
