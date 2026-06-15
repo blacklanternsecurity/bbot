@@ -286,6 +286,16 @@ class TestParamminerHeadersDedupValueMutations(Paramminer_Headers):
         )
         assert hash_a != hash_d, "Same param keys on different paths should produce different dedup hashes"
 
+        # different focus name, same sibling keys (excavate emits one WP per param) -> distinct
+        hash_e, _ = pm._incoming_dedup_hash(
+            make_wp(
+                url="http://127.0.0.1:8888/page?culture=x&page=1",
+                name="page",
+                additional_params={"culture": "x"},
+            )
+        )
+        assert hash_a != hash_e, "Different focus name with same siblings should produce different dedup hashes"
+
         # HTTP_RESPONSE events: same endpoint collapses regardless
         hash_hr_a, _ = pm._incoming_dedup_hash(make_hr("http://127.0.0.1:8888/page"))
         hash_hr_b, _ = pm._incoming_dedup_hash(make_hr("http://127.0.0.1:8888/page"))
