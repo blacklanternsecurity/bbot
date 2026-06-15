@@ -49,7 +49,8 @@ class WebHelper:
     Attributes:
         parent_helper (object): The parent helper object containing scan configurations.
         http_debug (bool): Flag to indicate whether HTTP debugging is enabled.
-        ssl_verify (bool): Flag to indicate whether SSL verification is enabled.
+        ssl_verify_target (bool): Whether to verify SSL for target-directed traffic (default False).
+        ssl_verify_infrastructure (bool): Whether to verify SSL for non-target traffic (default True).
 
     Examples:
         Basic web request:
@@ -71,7 +72,8 @@ class WebHelper:
         self.web_spider_distance = self.web_config.get("spider_distance", 0)
         self.target = self.preset.target
         self.http_debug = self.web_config.get("debug", False)
-        self.ssl_verify = self.web_config.get("ssl_verify", False)
+        self.ssl_verify_target = self.web_config.get("ssl_verify_target", False)
+        self.ssl_verify_infrastructure = self.web_config.get("ssl_verify_infrastructure", True)
         # Pre-compute config values for request preprocessing
         self._http_timeout = self.web_config.get("http_timeout", 20)
         self._http_retries = self.web_config.get("http_retries", 1)
@@ -122,6 +124,7 @@ class WebHelper:
         params = kwargs.pop("params", None)
         cookies = kwargs.pop("cookies", None)
         auth = kwargs.pop("auth", None)
+        ssl_verify = kwargs.pop("ssl_verify", None)
         max_body_size = kwargs.pop("max_body_size", None)
         request_target = kwargs.pop("request_target", None)
         resolve_ip = kwargs.pop("resolve_ip", None)
@@ -199,7 +202,7 @@ class WebHelper:
             "method": method,
             "headers": header_list,
             "timeout": int(timeout) if timeout else self._http_timeout,
-            "verify_certs": bool(self.ssl_verify),
+            "verify_certs": bool(ssl_verify if ssl_verify is not None else self.ssl_verify_target),
             "retries": int(retries),
         }
 
@@ -251,6 +254,8 @@ class WebHelper:
             proxy (str, optional): HTTP proxy URL.
             allow_redirects (bool, optional): Enables or disables redirection. Defaults to None.
             raise_error (bool, optional): Whether to raise exceptions for HTTP connect, timeout errors. Defaults to False.
+            ssl_verify (bool, optional): Override SSL certificate verification for this request.
+                Defaults to ssl_verify_target for target traffic; pass ssl_verify_infrastructure for API/infra calls.
             request_target (str, optional): Override the HTTP request-line target.
             resolve_ip (str, optional): Connect TCP to this IP instead of DNS resolution.
             ignore_bbot_global_settings (bool, optional): Skip User-Agent/header/cookie merging.
@@ -455,6 +460,8 @@ class WebHelper:
                 kwargs["follow_redirects"] = kwargs.pop("follow_redirects", True)
                 if "method" not in kwargs:
                     kwargs["method"] = "GET"
+                if "ssl_verify" not in kwargs:
+                    kwargs["ssl_verify"] = self.ssl_verify_infrastructure
                 kwargs["raise_error"] = True
                 # Use a longer timeout for downloads (default 5 minutes)
                 if "timeout" not in kwargs:
