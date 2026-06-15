@@ -1151,9 +1151,10 @@ class BaseModule:
         if add:
             self._incoming_dup_tracker.add(event_hash)
         if not is_dup and self._avoid_duplicate_content:
-            body_hash = event.data.get("hash", {}).get("body_mmh3", "") if isinstance(event.data, dict) else ""
+            hash_dict = event.data.get("hash") if isinstance(event.data, dict) else None
+            body_hash = hash_dict.get("body_sha256", "") if isinstance(hash_dict, dict) else ""
             if body_hash:
-                content_key = hash((event.host, body_hash))
+                content_key = hash((event.host, event.port, body_hash))
                 if content_key in self._content_dup_tracker:
                     is_dup = True
                     reason = f"duplicate content (body_hash={body_hash})"

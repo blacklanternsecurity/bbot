@@ -2012,7 +2012,7 @@ class TestExcavateContentDedupDisabled(ModuleTestBase):
 
 
 class TestContentDedupWithURLEvents(ModuleTestBase):
-    """Verify _avoid_duplicate_content works for modules watching URL events (via body_mmh3 hash)."""
+    """Verify _avoid_duplicate_content works for modules watching URL events (via body_sha256 hash)."""
 
     targets = [
         "http://127.0.0.1:8888/page1.html",
