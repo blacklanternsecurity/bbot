@@ -58,7 +58,7 @@ class crt_db(subdomain_enum):
         start = time.time()
         try:
             results = await self.db_conn.fetch(sql, query)
-        except (asyncpg.InterfaceError, ConnectionError):
+        except (asyncpg.InterfaceError, asyncpg.PostgresConnectionError, ConnectionError):
             # connection died between requests; drop it so the next call reconnects
             self.db_conn = None
             raise

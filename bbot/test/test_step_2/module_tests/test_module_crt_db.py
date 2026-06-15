@@ -69,3 +69,26 @@ class TestCRT_DB_Reconnect(ModuleTestBase):
         assert any(isinstance(e.data, str) and e.data.startswith("reconnect.") for e in events), (
             "Failed to detect subdomain after reconnect"
         )
+
+
+class TestCRT_DB_OOM(ModuleTestBase):
+    """When crt.sh's Postgres reports out-of-memory, the module must back off (error state) rather than hammer it."""
+
+    module_name = "crt_db"
+    modules_overrides = ["crt_db"]
+
+    async def setup_after_prep(self, module_test):
+        import asyncpg
+
+        async def fetch_oom(self, *args, **kwargs):
+            raise asyncpg.OutOfMemoryError("out of shared memory")
+
+        async def mock_connect(*args, **kwargs):
+            conn = FakeAsyncpgConn()
+            conn.fetch = fetch_oom.__get__(conn)
+            return conn
+
+        module_test.monkeypatch.setattr("asyncpg.connect", mock_connect)
+
+    def check(self, module_test, events):
+        assert module_test.module.errored is True, "Module did not enter error state on Postgres out-of-memory"
