@@ -252,6 +252,73 @@ class TestWebBruteHitCap(ModuleTestBase):
         )
 
 
+class TestWebBruteCanaryDefense(ModuleTestBase):
+    """Server returns unique content for EVERY path including random strings.
+    The canary fires and aborts, discarding all hits."""
+
+    targets = ["http://127.0.0.1:8888"]
+    module_name = "webbrute"
+    test_wordlist = ["admin", "secret", "login"]
+    config_overrides = {"modules": {"webbrute": {"wordlist": tempwordlist(test_wordlist)}}}
+    modules_overrides = ["webbrute", "http"]
+
+    _counter = 0
+
+    def request_handler(self, request):
+        uri = request.path
+        if uri == "/":
+            return Response("<html>Home</html>", status=200)
+        # Every path (including random canary strings) gets unique content
+        # that differs structurally from the baseline, not just in a filterable position.
+        TestWebBruteCanaryDefense._counter += 1
+        n = TestWebBruteCanaryDefense._counter
+        extra = "".join(f"<p>Section {i}</p>\n" for i in range(n % 5 + 1))
+        body = f"<html><body><h1>Custom page #{n} for {uri}</h1>\n{extra}</body></html>"
+        return Response(body, status=200)
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests_handler(expect_args=re.compile("/.*"), request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        webbrute_urls = [e for e in events if e.type == "URL_UNVERIFIED" and str(e.module) == "webbrute"]
+        assert len(webbrute_urls) == 0, (
+            f"Canary defense should have aborted, but webbrute emitted: {[e.url for e in webbrute_urls]}"
+        )
+
+
+class TestWebBruteMidScanBaselineDrift(ModuleTestBase):
+    """Server matches baseline initially, then drifts (WAF kicks in after N requests).
+    Mid-scan baseline check should detect the drift and abort."""
+
+    targets = ["http://127.0.0.1:8888"]
+    module_name = "webbrute"
+    test_wordlist = ["admin", "secret", "login"]
+    config_overrides = {"modules": {"webbrute": {"wordlist": tempwordlist(test_wordlist)}}}
+    modules_overrides = ["webbrute", "http"]
+
+    _request_count = 0
+
+    def request_handler(self, request):
+        uri = request.path
+        if uri == "/":
+            return Response("<html>Home</html>", status=200)
+        TestWebBruteMidScanBaselineDrift._request_count += 1
+        # First 4 requests: normal 404 (baseline probes + early fuzz).
+        # After that: WAF kicks in, returns block page for everything.
+        if TestWebBruteMidScanBaselineDrift._request_count <= 4:
+            return Response("Not Found", status=404)
+        return Response("<html>Access Denied by WAF</html>", status=200)
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests_handler(expect_args=re.compile("/.*"), request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        webbrute_urls = [e for e in events if e.type == "URL_UNVERIFIED" and str(e.module) == "webbrute"]
+        assert len(webbrute_urls) == 0, (
+            f"Mid-scan baseline drift should have aborted, but webbrute emitted: {[e.url for e in webbrute_urls]}"
+        )
+
+
 class TestWebBruteWildcardSkip(ModuleTestBase):
     """When the host is an HTTP wildcard, webbrute should skip fuzzing entirely."""
 
