@@ -1926,7 +1926,6 @@ class TestExcavateHttpWildcardSkipsUrls(ModuleTestBase):
         )
 
 
-
 class TestExcavateContentDedup(ModuleTestBase):
     """Verify _avoid_duplicate_content=True on excavate skips HTTP_RESPONSE events with duplicate body hashes."""
 
