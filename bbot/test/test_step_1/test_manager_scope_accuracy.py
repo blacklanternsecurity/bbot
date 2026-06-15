@@ -843,6 +843,11 @@ async def test_scope_accuracy_with_special_urls(bbot_scanner, bbot_httpserver):
     scan.modules["dockerhub"].site_url = "http://127.0.0.1:8888"
     scan.modules["dockerhub"].api_url = "http://127.0.0.1:8888/v2"
 
+    async def mock_wildcard(*args, **kwargs):
+        return False
+
+    scan.helpers.web.is_http_wildcard_host = mock_wildcard
+
     from bbot.modules.base import BaseModule
 
     class DummyModule(BaseModule):

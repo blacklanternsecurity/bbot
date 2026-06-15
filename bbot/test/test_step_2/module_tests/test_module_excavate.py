@@ -1883,3 +1883,44 @@ class TestExcavateFormAttributeOrder(ModuleTestBase):
         names = {e.data.get("name") for e in events if e.type == "WEB_PARAMETER" and isinstance(e.data, dict)}
         assert "action_first" in names, f"missing action-first form field; got {sorted(names)}"
         assert "method_first" in names, f"missing method-first form field; got {sorted(names)}"
+
+
+class TestExcavateHttpWildcardSkipsUrls(ModuleTestBase):
+    """On an HTTP wildcard host, excavate should suppress URL_UNVERIFIED but still extract DNS_NAMEs."""
+
+    targets = ["http://127.0.0.1:8888/", "test.notreal"]
+    modules_overrides = ["excavate", "http"]
+    config_overrides = {"web": {"spider_distance": 1, "spider_depth": 1}}
+
+    html_body = """
+    <a href="http://127.0.0.1:8888/should-be-suppressed">link</a>
+    bare hostname: extracted.test.notreal
+    """
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"},
+            respond_args={"response_data": self.html_body, "status": 200},
+        )
+
+    async def setup_after_prep(self, module_test):
+        async def mock_wildcard(scheme, host, port):
+            if host == "127.0.0.1":
+                return True
+            return False
+
+        module_test.scan.helpers.web.is_http_wildcard_host = mock_wildcard
+        await module_test.mock_dns({"extracted.test.notreal": {"A": ["127.0.0.88"]}})
+
+    def check(self, module_test, events):
+        excavate_urls = [
+            e
+            for e in events
+            if e.type == "URL_UNVERIFIED" and str(e.module) == "excavate" and "should-be-suppressed" in e.url
+        ]
+        assert len(excavate_urls) == 0, (
+            f"Excavate should suppress URL_UNVERIFIED on HTTP wildcard host, got: {[e.url for e in excavate_urls]}"
+        )
+        assert any(e.type == "DNS_NAME" and e.data == "extracted.test.notreal" for e in events), (
+            "Excavate should still extract DNS_NAMEs from HTTP wildcard host responses"
+        )

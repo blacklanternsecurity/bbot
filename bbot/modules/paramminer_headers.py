@@ -329,6 +329,9 @@ class paramminer_headers(BaseModule):
             await self.process_results(event, results)
 
     async def filter_event(self, event):
+        if await self._is_http_wildcard_host(event) is True:
+            return False, "host is an HTTP wildcard responder"
+
         # Filter out static endpoints
         ext = getattr(event, "url_extension", None)
         if ext and ext in self.scan.config.get("url_extension_static", []):

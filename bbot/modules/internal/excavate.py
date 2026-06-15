@@ -303,6 +303,9 @@ class ExcavateRule:
         Returns:
         None
         """
+        if event_type == "URL_UNVERIFIED" and await self.excavate._host_is_http_wildcard(event):
+            return
+
         # If a description is not set and is needed, provide a basic one
         if event_type == "FINDING":
             if "description" not in event_data.keys():
@@ -406,6 +409,10 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     def _is_archived(self, event):
         """Check if an event represents archived wayback content."""
         return isinstance(event.data, dict) and "archive_url" in event.data
+
+    async def _host_is_http_wildcard(self, event):
+        """True if this event's host is an HTTP wildcard responder."""
+        return await self._is_http_wildcard_host(event) is True
 
     def _event_host(self, event):
         """Get the effective host from an event.

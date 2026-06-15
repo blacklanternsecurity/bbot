@@ -5354,3 +5354,38 @@ class Test_Lightfuzz_connectivity_no_cache_none(ModuleTestBase):
             f"Only {self.__class__._request_count['connectivity']} connectivity request(s) made -- "
             f"expected retry after transient failure"
         )
+
+
+class TestLightfuzzWildcardSkip(ModuleTestBase):
+    """When the host is an HTTP wildcard, lightfuzz should skip fuzzing entirely."""
+
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {"lightfuzz": {"enabled_submodules": ["sqli"]}},
+    }
+
+    async def setup_before_prep(self, module_test):
+        respond_args = {
+            "response_data": '<form><input name="q" value="test"></form>',
+            "status": 200,
+        }
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"},
+            respond_args=respond_args,
+        )
+
+    async def setup_after_prep(self, module_test):
+        async def mock_wildcard(scheme, host, port):
+            return True
+
+        module_test.scan.helpers.web.is_http_wildcard_host = mock_wildcard
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING" and str(e.module) == "lightfuzz"]
+        web_params_fuzzed = [e for e in events if e.type == "WEB_PARAMETER" and "lightfuzz" in str(e.module).lower()]
+        assert len(findings) == 0, f"lightfuzz should not fuzz wildcard hosts, but emitted findings: {findings}"
+        assert len(web_params_fuzzed) == 0, (
+            f"lightfuzz should not fuzz wildcard hosts, but processed params: {web_params_fuzzed}"
+        )

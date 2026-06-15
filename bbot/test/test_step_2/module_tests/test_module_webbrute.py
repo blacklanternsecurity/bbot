@@ -166,3 +166,35 @@ class TestWebBruteWAFFalsePositive(ModuleTestBase):
             if e.type == "URL_UNVERIFIED" and str(e.module) == "webbrute" and ("admin" in e.url or "secret" in e.url)
         ]
         assert len(waf_hits) == 0, f"webbrute should filter WAF block pages, but got: {[e.url for e in waf_hits]}"
+
+
+class TestWebBruteWildcardSkip(ModuleTestBase):
+    """When the host is an HTTP wildcard, webbrute should skip fuzzing entirely."""
+
+    targets = ["http://127.0.0.1:8888"]
+    module_name = "webbrute"
+    test_wordlist = ["admin", "secret"]
+    config_overrides = {"modules": {"webbrute": {"wordlist": tempwordlist(test_wordlist)}}}
+    modules_overrides = ["webbrute", "http"]
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/admin"},
+            respond_args={"response_data": "alive admin page"},
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"},
+            respond_args={"response_data": "alive"},
+        )
+
+    async def setup_after_prep(self, module_test):
+        async def mock_wildcard(scheme, host, port):
+            return True
+
+        module_test.scan.helpers.web.is_http_wildcard_host = mock_wildcard
+
+    def check(self, module_test, events):
+        webbrute_urls = [e for e in events if e.type == "URL_UNVERIFIED" and str(e.module) == "webbrute"]
+        assert len(webbrute_urls) == 0, (
+            f"webbrute should not fuzz wildcard hosts, but emitted: {[e.url for e in webbrute_urls]}"
+        )

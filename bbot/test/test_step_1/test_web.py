@@ -655,3 +655,46 @@ async def test_api_download_api_key_cycle(bbot_scanner, bbot_httpserver):
     assert seen_auth == ["Bearer k1", "Bearer k1", "Bearer k2"]
 
     await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_is_http_wildcard_host(bbot_scanner):
+    """Test is_http_wildcard_host caching, retry, and return value semantics."""
+    scan = bbot_scanner()
+    await scan._prep()
+
+    web = scan.helpers.web
+    probe_results = []
+
+    async def mock_probe(scheme, host, port):
+        return probe_results.pop(0)
+
+    web._probe_wildcard_host = mock_probe
+
+    # wildcard host: probe returns a truthy sentinel
+    probe_results.append("WILDCARD_CMP")
+    result = await web.is_http_wildcard_host("https", "spa.example.com", 443)
+    assert result == "WILDCARD_CMP"
+    # cached: no more probe calls needed
+    result2 = await web.is_http_wildcard_host("https", "spa.example.com", 443)
+    assert result2 == "WILDCARD_CMP"
+
+    # non-wildcard host: probe returns False
+    probe_results.append(False)
+    result = await web.is_http_wildcard_host("https", "normal.example.com", 443)
+    assert result is False
+
+    # retry once on first failure, succeed on second
+    probe_results.extend(["retry", "WILDCARD_RETRY"])
+    result = await web.is_http_wildcard_host("https", "flaky.example.com", 443)
+    assert result == "WILDCARD_RETRY"
+
+    # both attempts fail: caches None
+    probe_results.extend(["retry", "retry"])
+    result = await web.is_http_wildcard_host("https", "down.example.com", 443)
+    assert result is None
+    # cached as None
+    result2 = await web.is_http_wildcard_host("https", "down.example.com", 443)
+    assert result2 is None
+
+    await scan._cleanup()

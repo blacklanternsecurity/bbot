@@ -100,8 +100,9 @@ class webbrute(BaseModule):
 
     async def filter_event(self, event):
         if "endpoint" in event.tags:
-            self.debug(f"rejecting URL [{event.url}] because we don't fuzz endpoints")
-            return False
+            return False, "webbrute doesn't fuzz endpoints"
+        if await self._is_http_wildcard_host(event) is True:
+            return False, "host is an HTTP wildcard responder"
         return True
 
     def _build_batch_headers(self):
