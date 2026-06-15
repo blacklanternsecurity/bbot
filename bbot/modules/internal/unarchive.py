@@ -77,6 +77,8 @@ class unarchive(BaseInternalModule):
             except FileExistsError:
                 self.warning(f"Destination directory {output_dir} already exists, aborting unarchive for {path}")
                 return False
+            if not await self._check_archive_safe(path, compression_format):
+                return False
             command = [s.format(filename=path, extract_dir=output_dir) for s in cmd_list]
             try:
                 await self.run_process(command, check=True)
@@ -87,3 +89,22 @@ class unarchive(BaseInternalModule):
                 self.warning(f"Error extracting {path}. Error: {e}")
                 return False
             return True
+
+    async def _check_archive_safe(self, path, compression_format):
+        if compression_format in ("zip", "7z"):
+            result = await self.run_process(["7z", "l", "-slt", str(path)])
+            entries = [line.split("= ", 1)[1] for line in result.stdout.splitlines() if line.startswith("Path = ")]
+            # first entry is the archive path itself
+            entries = entries[1:]
+        else:
+            result = await self.run_process(["tar", "-tf", str(path)])
+            entries = result.stdout.splitlines()
+        for entry in entries:
+            entry = entry.strip()
+            if not entry:
+                continue
+            parts = Path(entry).parts
+            if ".." in parts or entry.startswith("/"):
+                self.warning(f"Archive {path} contains path traversal entry: {entry}")
+                return False
+        return True

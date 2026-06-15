@@ -1,4 +1,7 @@
+import io
 import asyncio
+import tarfile
+import zipfile
 
 from pathlib import Path
 from .base import ModuleTestBase
@@ -236,3 +239,60 @@ class TestUnarchive(ModuleTestBase):
         assert 1 == len(extract_event), "Failed to extract tgz"
         extract_path = Path(extract_event[0].data["path"]) / "test.txt"
         assert extract_path.is_file(), "Failed to extract the test file"
+
+
+class TestUnarchiveTraversalCheck(ModuleTestBase):
+    modules_overrides = ["unarchive"]
+
+    async def setup_after_prep(self, module_test):
+        m = module_test.scan.modules["unarchive"]
+        temp_path = Path("/tmp/.bbot_test")
+        temp_path.mkdir(exist_ok=True)
+
+        # safe tar
+        safe_tar = temp_path / "safe.tar"
+        with tarfile.open(safe_tar, "w") as tar:
+            data = b"safe content"
+            info = tarfile.TarInfo(name="subdir/normal.txt")
+            info.size = len(data)
+            tar.addfile(info, io.BytesIO(data))
+
+        # tar with ../ traversal
+        traversal_tar = temp_path / "traversal.tar"
+        with tarfile.open(traversal_tar, "w") as tar:
+            data = b"escaped"
+            info = tarfile.TarInfo(name="../../../tmp/escaped.txt")
+            info.size = len(data)
+            tar.addfile(info, io.BytesIO(data))
+
+        # tar with absolute path
+        absolute_tar = temp_path / "absolute.tar"
+        with tarfile.open(absolute_tar, "w") as tar:
+            data = b"absolute"
+            info = tarfile.TarInfo(name="/etc/cron.d/evil")
+            info.size = len(data)
+            tar.addfile(info, io.BytesIO(data))
+
+        # safe zip
+        safe_zip = temp_path / "safe.zip"
+        with zipfile.ZipFile(safe_zip, "w") as zf:
+            zf.writestr("normal.txt", "safe content")
+
+        # zip with ../ traversal
+        traversal_zip = temp_path / "traversal.zip"
+        with zipfile.ZipFile(traversal_zip, "w") as zf:
+            zf.writestr("../escaped.txt", "escaped")
+
+        self.results = {}
+        self.results["safe_tar"] = await m._check_archive_safe(safe_tar, "tar")
+        self.results["traversal_tar"] = await m._check_archive_safe(traversal_tar, "tar")
+        self.results["absolute_tar"] = await m._check_archive_safe(absolute_tar, "tar")
+        self.results["safe_zip"] = await m._check_archive_safe(safe_zip, "zip")
+        self.results["traversal_zip"] = await m._check_archive_safe(traversal_zip, "zip")
+
+    def check(self, module_test, events):
+        assert self.results["safe_tar"], "Safe tar rejected"
+        assert not self.results["traversal_tar"], "Traversal tar was not rejected"
+        assert not self.results["absolute_tar"], "Absolute path tar was not rejected"
+        assert self.results["safe_zip"], "Safe zip rejected"
+        assert not self.results["traversal_zip"], "Traversal zip was not rejected"
