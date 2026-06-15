@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../../assets/stylesheets/extra-style.a6_gclco.min.css" rel="stylesheet"/></head>
+<link href="../../../assets/stylesheets/extra-style.wah3_oyx.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -910,11 +910,19 @@ which supports global rate limiting via <code>web.http_rate_limit</code>.</p>
 </div>
 </li>
 <li class="doc-section-item field-body">
-<b><code><span title="bbot.core.helpers.web.WebHelper.ssl_verify">ssl_verify</span></code></b>
+<b><code><span title="bbot.core.helpers.web.WebHelper.ssl_verify_target">ssl_verify_target</span></code></b>
               (<code><span title="bool">bool</span></code>)
           –
           <div class="doc-md-description">
-<p>Flag to indicate whether SSL verification is enabled.</p>
+<p>Whether to verify SSL for target-directed traffic (default False).</p>
+</div>
+</li>
+<li class="doc-section-item field-body">
+<b><code><span title="bbot.core.helpers.web.WebHelper.ssl_verify_infrastructure">ssl_verify_infrastructure</span></code></b>
+              (<code><span title="bool">bool</span></code>)
+          –
+          <div class="doc-md-description">
+<p>Whether to verify SSL for non-target traffic (default True).</p>
 </div>
 </li>
 </ul>
@@ -1599,7 +1607,14 @@ which supports global rate limiting via <code>web.http_rate_limit</code>.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">707</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">708</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">709</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">710</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">WebHelper</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">710</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">711</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">712</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">713</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">714</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">715</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">716</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">717</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">WebHelper</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Main utility class for managing HTTP operations in BBOT. Uses blasthttp (Rust) as the</span>
 <span style="color: #A5D6FF">    HTTP engine for all requests, downloads, and wordlist retrieval.</span>
@@ -1610,7 +1625,8 @@ which supports global rate limiting via <code>web.http_rate_limit</code>.</p>
 <span style="color: #A5D6FF">    Attributes:</span>
 <span style="color: #A5D6FF">        parent_helper (object): The parent helper object containing scan configurations.</span>
 <span style="color: #A5D6FF">        http_debug (bool): Flag to indicate whether HTTP debugging is enabled.</span>
-<span style="color: #A5D6FF">        ssl_verify (bool): Flag to indicate whether SSL verification is enabled.</span>
+<span style="color: #A5D6FF">        ssl_verify_target (bool): Whether to verify SSL for target-directed traffic (default False).</span>
+<span style="color: #A5D6FF">        ssl_verify_infrastructure (bool): Whether to verify SSL for non-target traffic (default True).</span>
 
 <span style="color: #A5D6FF">    Examples:</span>
 <span style="color: #A5D6FF">        Basic web request:</span>
@@ -1632,7 +1648,8 @@ which supports global rate limiting via <code>web.http_rate_limit</code>.</p>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">web_spider_distance</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">web_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"spider_distance"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">0</span><span style="color: #E6EDF3">)</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">preset</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">http_debug</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">web_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"debug"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">False</span><span style="color: #E6EDF3">)</span>
-        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">ssl_verify</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">web_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"ssl_verify"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">False</span><span style="color: #E6EDF3">)</span>
+        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">ssl_verify_target</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">web_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"ssl_verify_target"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">False</span><span style="color: #E6EDF3">)</span>
+        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">ssl_verify_infrastructure</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">web_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"ssl_verify_infrastructure"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">True</span><span style="color: #E6EDF3">)</span>
         <span style="color: #8B949E; font-style: italic"># Pre-compute config values for request preprocessing</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_http_timeout</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">web_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"http_timeout"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">20</span><span style="color: #E6EDF3">)</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_http_retries</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">web_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"http_retries"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">1</span><span style="color: #E6EDF3">)</span>
@@ -1683,6 +1700,7 @@ which supports global rate limiting via <code>web.http_rate_limit</code>.</p>
         <span style="color: #E6EDF3">params</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">kwargs</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">pop(</span><span style="color: #A5D6FF">"params"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
         <span style="color: #E6EDF3">cookies</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">kwargs</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">pop(</span><span style="color: #A5D6FF">"cookies"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
         <span style="color: #E6EDF3">auth</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">kwargs</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">pop(</span><span style="color: #A5D6FF">"auth"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
+        <span style="color: #E6EDF3">ssl_verify</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">kwargs</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">pop(</span><span style="color: #A5D6FF">"ssl_verify"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
         <span style="color: #E6EDF3">max_body_size</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">kwargs</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">pop(</span><span style="color: #A5D6FF">"max_body_size"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
         <span style="color: #E6EDF3">request_target</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">kwargs</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">pop(</span><span style="color: #A5D6FF">"request_target"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
         <span style="color: #E6EDF3">resolve_ip</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">kwargs</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">pop(</span><span style="color: #A5D6FF">"resolve_ip"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
@@ -1760,7 +1778,7 @@ which supports global rate limiting via <code>web.http_rate_limit</code>.</p>
             <span style="color: #A5D6FF">"method"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">method,</span>
             <span style="color: #A5D6FF">"headers"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">header_list,</span>
             <span style="color: #A5D6FF">"timeout"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">int(timeout)</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">timeout</span> <span style="color: #FF7B72">else</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_http_timeout,</span>
-            <span style="color: #A5D6FF">"verify_certs"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">bool(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">ssl_verify),</span>
+            <span style="color: #A5D6FF">"verify_certs"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">bool(ssl_verify</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">ssl_verify</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span> <span style="color: #FF7B72">else</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">ssl_verify_target),</span>
             <span style="color: #A5D6FF">"retries"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">int(retries),</span>
         <span style="color: #E6EDF3">}</span>
 
@@ -1812,6 +1830,8 @@ which supports global rate limiting via <code>web.http_rate_limit</code>.</p>
 <span style="color: #A5D6FF">            proxy (str, optional): HTTP proxy URL.</span>
 <span style="color: #A5D6FF">            allow_redirects (bool, optional): Enables or disables redirection. Defaults to None.</span>
 <span style="color: #A5D6FF">            raise_error (bool, optional): Whether to raise exceptions for HTTP connect, timeout errors. Defaults to False.</span>
+<span style="color: #A5D6FF">            ssl_verify (bool, optional): Override SSL certificate verification for this request.</span>
+<span style="color: #A5D6FF">                Defaults to ssl_verify_target for target traffic; pass ssl_verify_infrastructure for API/infra calls.</span>
 <span style="color: #A5D6FF">            request_target (str, optional): Override the HTTP request-line target.</span>
 <span style="color: #A5D6FF">            resolve_ip (str, optional): Connect TCP to this IP instead of DNS resolution.</span>
 <span style="color: #A5D6FF">            ignore_bbot_global_settings (bool, optional): Skip User-Agent/header/cookie merging.</span>
@@ -2016,6 +2036,8 @@ which supports global rate limiting via <code>web.http_rate_limit</code>.</p>
                 <span style="color: #E6EDF3">kwargs[</span><span style="color: #A5D6FF">"follow_redirects"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">kwargs</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">pop(</span><span style="color: #A5D6FF">"follow_redirects"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">True</span><span style="color: #E6EDF3">)</span>
                 <span style="color: #FF7B72">if</span> <span style="color: #A5D6FF">"method"</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">kwargs:</span>
                     <span style="color: #E6EDF3">kwargs[</span><span style="color: #A5D6FF">"method"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">"GET"</span>
+                <span style="color: #FF7B72">if</span> <span style="color: #A5D6FF">"ssl_verify"</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">kwargs:</span>
+                    <span style="color: #E6EDF3">kwargs[</span><span style="color: #A5D6FF">"ssl_verify"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">ssl_verify_infrastructure</span>
                 <span style="color: #E6EDF3">kwargs[</span><span style="color: #A5D6FF">"raise_error"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">True</span>
                 <span style="color: #8B949E; font-style: italic"># Use a longer timeout for downloads (default 5 minutes)</span>
                 <span style="color: #FF7B72">if</span> <span style="color: #A5D6FF">"timeout"</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">kwargs:</span>
@@ -2372,14 +2394,7 @@ document to be parsed.</p>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">596</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">597</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">598</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">599</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">600</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">601</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">602</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">603</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">603</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">604</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">605</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">606</span>
@@ -2431,7 +2446,14 @@ document to be parsed.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">652</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">653</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">654</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">655</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">beautifulsoup</span><span style="color: #E6EDF3">(</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">655</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">656</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">657</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">658</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">659</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">660</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">661</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">662</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">beautifulsoup</span><span style="color: #E6EDF3">(</span>
     <span style="color: #E6EDF3">self,</span>
     <span style="color: #E6EDF3">markup,</span>
     <span style="color: #E6EDF3">features</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"html.parser"</span><span style="color: #E6EDF3">,</span>
@@ -2582,12 +2604,7 @@ A negative value disables caching. Defaults to -1.</p>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">417</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">418</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">419</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">420</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">421</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">422</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">422</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">423</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">424</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">425</span>
@@ -2667,7 +2684,14 @@ A negative value disables caching. Defaults to -1.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">499</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">500</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">501</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">502</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">download</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">url,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">502</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">503</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">504</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">505</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">506</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">507</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">508</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">509</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">download</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">url,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Asynchronous function for downloading files from a given URL. Supports caching with an optional</span>
 <span style="color: #A5D6FF">    time period in hours via the "cache_hrs" keyword argument. In case of successful download,</span>
@@ -2708,6 +2732,8 @@ A negative value disables caching. Defaults to -1.</p>
             <span style="color: #E6EDF3">kwargs[</span><span style="color: #A5D6FF">"follow_redirects"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">kwargs</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">pop(</span><span style="color: #A5D6FF">"follow_redirects"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">True</span><span style="color: #E6EDF3">)</span>
             <span style="color: #FF7B72">if</span> <span style="color: #A5D6FF">"method"</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">kwargs:</span>
                 <span style="color: #E6EDF3">kwargs[</span><span style="color: #A5D6FF">"method"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">"GET"</span>
+            <span style="color: #FF7B72">if</span> <span style="color: #A5D6FF">"ssl_verify"</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">kwargs:</span>
+                <span style="color: #E6EDF3">kwargs[</span><span style="color: #A5D6FF">"ssl_verify"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">ssl_verify_infrastructure</span>
             <span style="color: #E6EDF3">kwargs[</span><span style="color: #A5D6FF">"raise_error"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">True</span>
             <span style="color: #8B949E; font-style: italic"># Use a longer timeout for downloads (default 5 minutes)</span>
             <span style="color: #FF7B72">if</span> <span style="color: #A5D6FF">"timeout"</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">kwargs:</span>
@@ -2880,6 +2906,15 @@ meaning you can override the scan's values if you want.</p>
 </div>
 </li>
 <li class="doc-section-item field-body">
+<b><code>ssl_verify</code></b>
+              (<code><span title="bool">bool</span></code>)
+          –
+          <div class="doc-md-description">
+<p>Override SSL certificate verification for this request.
+Defaults to ssl_verify_target for target traffic; pass ssl_verify_infrastructure for API/infra calls.</p>
+</div>
+</li>
+<li class="doc-section-item field-body">
 <b><code>request_target</code></b>
               (<code><span title="str">str</span></code>)
           –
@@ -2934,10 +2969,7 @@ meaning you can override the scan's values if you want.</p>
 </details>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">230</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">231</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">232</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">233</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">233</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">234</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">235</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">236</span>
@@ -3036,7 +3068,12 @@ meaning you can override the scan's values if you want.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">329</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">330</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">331</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">332</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">request</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">332</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">333</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">334</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">335</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">336</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">337</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">request</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Asynchronous function for making HTTP requests, intended to be the most basic web request function</span>
 <span style="color: #A5D6FF">    used widely across BBOT and within this helper class. Handles various exceptions and timeouts</span>
@@ -3060,6 +3097,8 @@ meaning you can override the scan's values if you want.</p>
 <span style="color: #A5D6FF">        proxy (str, optional): HTTP proxy URL.</span>
 <span style="color: #A5D6FF">        allow_redirects (bool, optional): Enables or disables redirection. Defaults to None.</span>
 <span style="color: #A5D6FF">        raise_error (bool, optional): Whether to raise exceptions for HTTP connect, timeout errors. Defaults to False.</span>
+<span style="color: #A5D6FF">        ssl_verify (bool, optional): Override SSL certificate verification for this request.</span>
+<span style="color: #A5D6FF">            Defaults to ssl_verify_target for target traffic; pass ssl_verify_infrastructure for API/infra calls.</span>
 <span style="color: #A5D6FF">        request_target (str, optional): Override the HTTP request-line target.</span>
 <span style="color: #A5D6FF">        resolve_ip (str, optional): Connect TCP to this IP instead of DNS resolution.</span>
 <span style="color: #A5D6FF">        ignore_bbot_global_settings (bool, optional): Skip User-Agent/header/cookie merging.</span>
@@ -3220,12 +3259,7 @@ async for url, response, tracker in self.helpers.request_batch_stream(reqs):
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">334</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">335</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">336</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">337</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">338</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">339</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">339</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">340</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">341</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">342</span>
@@ -3301,7 +3335,12 @@ async for url, response, tracker in self.helpers.request_batch_stream(reqs):
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">412</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">413</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">414</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">415</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">request_batch_stream</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">urls,</span> <span style="color: #E6EDF3">threads</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">10</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">415</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">416</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">417</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">418</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">419</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">420</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">request_batch_stream</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">urls,</span> <span style="color: #E6EDF3">threads</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">10</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Request multiple URLs in parallel via blasthttp's native Rust batch engine,</span>
 <span style="color: #A5D6FF">    yielding each response as soon as it completes (completion order, not input</span>
@@ -3397,14 +3436,7 @@ async for url, response, tracker in self.helpers.request_batch_stream(reqs):
 <p>Convert web response to JSON object, to a JSON-serializable dict.</p>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">657</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">658</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">659</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">660</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">661</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">662</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">663</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">664</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">664</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">665</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">666</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">667</span>
@@ -3450,7 +3482,14 @@ async for url, response, tracker in self.helpers.request_batch_stream(reqs):
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">707</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">708</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">709</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">710</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">response_to_json</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">response):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">710</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">711</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">712</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">713</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">714</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">715</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">716</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">717</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">response_to_json</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">response):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Convert web response to JSON object, to a JSON-serializable dict.</span>
 <span style="color: #A5D6FF">    """</span>
@@ -3616,14 +3655,7 @@ Defaults to 720 hours (30 days) for remote wordlists.</p>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/helpers/web/web.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">504</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">505</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">506</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">507</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">508</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">509</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">510</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">511</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">511</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">512</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">513</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">514</span>
@@ -3706,7 +3738,14 @@ Defaults to 720 hours (30 days) for remote wordlists.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">591</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">592</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">593</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">594</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">wordlist</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">path,</span> <span style="color: #E6EDF3">lines</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">zip</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">zip_filename</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">594</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">595</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">596</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">597</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">598</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">599</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">600</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">601</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">wordlist</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">path,</span> <span style="color: #E6EDF3">lines</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">zip</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">zip_filename</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Asynchronous function for retrieving wordlists, either from a local path or a URL.</span>
 <span style="color: #A5D6FF">    Allows for optional line-based truncation and caching. Returns the full path of the wordlist</span>

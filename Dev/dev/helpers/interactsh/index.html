@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../../assets/stylesheets/extra-style.a6_gclco.min.css" rel="stylesheet"/></head>
+<link href="../../../assets/stylesheets/extra-style.wah3_oyx.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1298,7 +1298,16 @@ configuration provided by <code>parent_helper</code>.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">341</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">342</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">343</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">344</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">Interactsh</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">344</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">345</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">346</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">347</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">348</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">349</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">350</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">351</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">352</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">353</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">Interactsh</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    A pure python implementation of ProjectDiscovery's interact.sh.</span>
 
@@ -1420,7 +1429,11 @@ configuration provided by <code>parent_helper</code>.</p>
                 <span style="color: #A5D6FF">"correlation-id"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">correlation_id,</span>
             <span style="color: #E6EDF3">}</span>
             <span style="color: #E6EDF3">r</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">request(</span>
-                <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"https://{</span><span style="color: #E6EDF3">server</span><span style="color: #A5D6FF">}/register"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">headers</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">headers,</span> <span style="color: #E6EDF3">json</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">data,</span> <span style="color: #E6EDF3">method</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"POST"</span>
+                <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"https://{</span><span style="color: #E6EDF3">server</span><span style="color: #A5D6FF">}/register"</span><span style="color: #E6EDF3">,</span>
+                <span style="color: #E6EDF3">headers</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">headers,</span>
+                <span style="color: #E6EDF3">json</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">data,</span>
+                <span style="color: #E6EDF3">method</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"POST"</span><span style="color: #E6EDF3">,</span>
+                <span style="color: #E6EDF3">ssl_verify</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">web</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">ssl_verify_infrastructure,</span>
             <span style="color: #E6EDF3">)</span>
             <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">r</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
                 <span style="color: #FF7B72">continue</span>
@@ -1470,7 +1483,11 @@ configuration provided by <code>parent_helper</code>.</p>
         <span style="color: #E6EDF3">data</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"secret-key"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">secret,</span> <span style="color: #A5D6FF">"correlation-id"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">correlation_id}</span>
 
         <span style="color: #E6EDF3">r</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">request(</span>
-            <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"https://{</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">server</span><span style="color: #A5D6FF">}/deregister"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">headers</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">headers,</span> <span style="color: #E6EDF3">json</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">data,</span> <span style="color: #E6EDF3">method</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"POST"</span>
+            <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"https://{</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">server</span><span style="color: #A5D6FF">}/deregister"</span><span style="color: #E6EDF3">,</span>
+            <span style="color: #E6EDF3">headers</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">headers,</span>
+            <span style="color: #E6EDF3">json</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">data,</span>
+            <span style="color: #E6EDF3">method</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"POST"</span><span style="color: #E6EDF3">,</span>
+            <span style="color: #E6EDF3">ssl_verify</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">web</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">ssl_verify_infrastructure,</span>
         <span style="color: #E6EDF3">)</span>
 
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_poll_task</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
@@ -1521,6 +1538,7 @@ configuration provided by <code>parent_helper</code>.</p>
                 <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"https://{</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">server</span><span style="color: #A5D6FF">}/poll?id={</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">correlation_id</span><span style="color: #A5D6FF">}&amp;secret={</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">secret</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">,</span>
                 <span style="color: #E6EDF3">headers</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">headers,</span>
                 <span style="color: #E6EDF3">timeout</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">15</span><span style="color: #E6EDF3">,</span>
+                <span style="color: #E6EDF3">ssl_verify</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">web</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">ssl_verify_infrastructure,</span>
             <span style="color: #E6EDF3">)</span>
             <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">r</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
                 <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">InteractshError(</span><span style="color: #A5D6FF">"Error polling interact.sh: No response from server"</span><span style="color: #E6EDF3">)</span>
@@ -1654,11 +1672,7 @@ task was started, it is cancelled.</p>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/helpers/interactsh.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">169</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">170</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">171</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">172</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">173</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">173</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">174</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">175</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">176</span>
@@ -1689,7 +1703,15 @@ task was started, it is cancelled.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">201</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">202</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">203</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">204</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">deregister</span><span style="color: #E6EDF3">(self):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">204</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">205</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">206</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">207</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">208</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">209</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">210</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">211</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">212</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">deregister</span><span style="color: #E6EDF3">(self):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Deregisters the instance from the interact.sh server and cancels the polling task.</span>
 
@@ -1713,7 +1735,11 @@ task was started, it is cancelled.</p>
     <span style="color: #E6EDF3">data</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"secret-key"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">secret,</span> <span style="color: #A5D6FF">"correlation-id"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">correlation_id}</span>
 
     <span style="color: #E6EDF3">r</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">request(</span>
-        <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"https://{</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">server</span><span style="color: #A5D6FF">}/deregister"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">headers</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">headers,</span> <span style="color: #E6EDF3">json</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">data,</span> <span style="color: #E6EDF3">method</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"POST"</span>
+        <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"https://{</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">server</span><span style="color: #A5D6FF">}/deregister"</span><span style="color: #E6EDF3">,</span>
+        <span style="color: #E6EDF3">headers</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">headers,</span>
+        <span style="color: #E6EDF3">json</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">data,</span>
+        <span style="color: #E6EDF3">method</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"POST"</span><span style="color: #E6EDF3">,</span>
+        <span style="color: #E6EDF3">ssl_verify</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">web</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">ssl_verify_infrastructure,</span>
     <span style="color: #E6EDF3">)</span>
 
     <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_poll_task</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
@@ -1776,15 +1802,7 @@ using an AES key provided by the server response.</p>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/helpers/interactsh.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">206</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">207</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">208</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">209</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">210</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">211</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">212</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">213</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">214</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">214</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">215</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">216</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">217</span>
@@ -1828,7 +1846,16 @@ using an AES key provided by the server response.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">255</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">256</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">257</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">258</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">poll</span><span style="color: #E6EDF3">(self):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">258</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">259</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">260</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">261</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">262</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">263</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">264</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">265</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">266</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">267</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">poll</span><span style="color: #E6EDF3">(self):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Polls the interact.sh server for interactions tied to the current instance.</span>
 
@@ -1866,6 +1893,7 @@ using an AES key provided by the server response.</p>
             <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"https://{</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">server</span><span style="color: #A5D6FF">}/poll?id={</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">correlation_id</span><span style="color: #A5D6FF">}&amp;secret={</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">secret</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">,</span>
             <span style="color: #E6EDF3">headers</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">headers,</span>
             <span style="color: #E6EDF3">timeout</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">15</span><span style="color: #E6EDF3">,</span>
+            <span style="color: #E6EDF3">ssl_verify</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">web</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">ssl_verify_infrastructure,</span>
         <span style="color: #E6EDF3">)</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">r</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
             <span style="color: #FF7B72">raise</span> <span style="color: #E6EDF3">InteractshError(</span><span style="color: #A5D6FF">"Error polling interact.sh: No response from server"</span><span style="color: #E6EDF3">)</span>
@@ -1924,16 +1952,7 @@ function with each interaction data.</p>
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/helpers/interactsh.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">260</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">261</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">262</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">263</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">264</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">265</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">266</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">267</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">268</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">269</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">269</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">270</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">271</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">272</span>
@@ -1942,7 +1961,16 @@ function with each interaction data.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">275</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">276</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">277</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">278</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">poll_loop</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">callback):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">278</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">279</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">280</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">281</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">282</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">283</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">284</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">285</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">286</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">287</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">poll_loop</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">callback):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Starts a polling loop to continuously check for interactions with the interact.sh server.</span>
 
@@ -2096,7 +2124,11 @@ starts an asynchronous polling task to listen for interactions.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">164</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">165</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">166</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">167</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">register</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">callback</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">167</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">168</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">169</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">170</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">171</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">register</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">callback</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Registers the instance with an interact.sh server and sets up polling.</span>
 
@@ -2149,7 +2181,11 @@ starts an asynchronous polling task to listen for interactions.</p>
             <span style="color: #A5D6FF">"correlation-id"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">correlation_id,</span>
         <span style="color: #E6EDF3">}</span>
         <span style="color: #E6EDF3">r</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">request(</span>
-            <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"https://{</span><span style="color: #E6EDF3">server</span><span style="color: #A5D6FF">}/register"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">headers</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">headers,</span> <span style="color: #E6EDF3">json</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">data,</span> <span style="color: #E6EDF3">method</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"POST"</span>
+            <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"https://{</span><span style="color: #E6EDF3">server</span><span style="color: #A5D6FF">}/register"</span><span style="color: #E6EDF3">,</span>
+            <span style="color: #E6EDF3">headers</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">headers,</span>
+            <span style="color: #E6EDF3">json</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">data,</span>
+            <span style="color: #E6EDF3">method</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"POST"</span><span style="color: #E6EDF3">,</span>
+            <span style="color: #E6EDF3">ssl_verify</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent_helper</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">web</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">ssl_verify_infrastructure,</span>
         <span style="color: #E6EDF3">)</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">r</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
             <span style="color: #FF7B72">continue</span>
