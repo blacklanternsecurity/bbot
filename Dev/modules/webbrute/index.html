@@ -7,12 +7,10 @@
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <meta content="OSINT automation for hackers" name="description"/>
 <meta content="TheTechromancer" name="author"/>
-<link href="https://blacklanternsecurity.github.io/bbot/Dev/modules/nuclei/" rel="canonical"/>
-<link href="../list_of_modules/" rel="prev"/>
-<link href="../wayback/" rel="next"/>
+<link href="https://blacklanternsecurity.github.io/bbot/Dev/modules/webbrute/" rel="canonical"/>
 <link href="../../favicon.png" rel="icon"/>
 <meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
-<title>Nuclei - BBOT Docs</title>
+<title>Web Brute-Force (webbrute) - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
@@ -26,7 +24,7 @@
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
 <label class="md-overlay" for="__drawer"></label>
 <div data-md-component="skip">
-<a class="md-skip" href="#nuclei">
+<a class="md-skip" href="#web-brute-force-webbrute">
           Skip to content
         </a>
 </div>
@@ -52,7 +50,7 @@
 <div class="md-header__topic" data-md-component="header-topic">
 <span class="md-ellipsis">
             
-              Nuclei
+              Web Brute-Force (webbrute)
             
           </span>
 </div>
@@ -108,7 +106,7 @@
 <nav aria-label="Tabs" class="md-tabs" data-md-component="tabs">
 <div class="md-grid">
 <ul class="md-tabs__list">
-<li class="md-tabs__item md-tabs__item--active">
+<li class="md-tabs__item">
 <a class="md-tabs__link" href="../..">
           
   
@@ -152,9 +150,9 @@
 </a>
 </div>
 <ul class="md-nav__list" data-md-scrollfix="">
-<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
-<input checked="" class="md-nav__toggle md-toggle" id="__nav_1" type="checkbox"/>
-<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -165,7 +163,7 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="true" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<nav aria-expanded="false" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
 <label class="md-nav__title" for="__nav_1">
 <span class="md-nav__icon md-icon"></span>
             
@@ -175,9 +173,9 @@
 
           </label>
 <ul class="md-nav__list" data-md-scrollfix="">
-<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<li class="md-nav__item md-nav__item--nested">
 <input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_1" type="checkbox"/>
-<label class="md-nav__link" for="__nav_1_1" id="__nav_1_1_label" tabindex="">
+<label class="md-nav__link" for="__nav_1_1" id="__nav_1_1_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -237,9 +235,9 @@
 </ul>
 </nav>
 </li>
-<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<li class="md-nav__item md-nav__item--nested">
 <input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_2" type="checkbox"/>
-<label class="md-nav__link" for="__nav_1_2" id="__nav_1_2_label" tabindex="">
+<label class="md-nav__link" for="__nav_1_2" id="__nav_1_2_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -385,9 +383,9 @@
 </ul>
 </nav>
 </li>
-<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
-<input checked="" class="md-nav__toggle md-toggle" id="__nav_1_3" type="checkbox"/>
-<label class="md-nav__link" for="__nav_1_3" id="__nav_1_3_label" tabindex="">
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_3" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_3" id="__nav_1_3_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -398,7 +396,7 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="true" aria-labelledby="__nav_1_3_label" class="md-nav" data-md-level="2">
+<nav aria-expanded="false" aria-labelledby="__nav_1_3_label" class="md-nav" data-md-level="2">
 <label class="md-nav__title" for="__nav_1_3">
 <span class="md-nav__icon md-icon"></span>
             
@@ -420,20 +418,8 @@
   </span>
 </a>
 </li>
-<li class="md-nav__item md-nav__item--active">
-<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
-<label class="md-nav__link md-nav__link--active" for="__toc">
-<span class="md-ellipsis">
-    
-  
-    Nuclei
-  
-
-    
-  </span>
-<span class="md-nav__icon md-icon"></span>
-</label>
-<a class="md-nav__link md-nav__link--active" href="./">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../nuclei/">
 <span class="md-ellipsis">
     
   
@@ -443,121 +429,6 @@
     
   </span>
 </a>
-<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
-<label class="md-nav__title" for="__toc">
-<span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
-<li class="md-nav__item">
-<a class="md-nav__link" href="#overview">
-<span class="md-ellipsis">
-      
-        Overview
-      
-    </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#default-behavior">
-<span class="md-ellipsis">
-      
-        Default Behavior
-      
-    </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#specifying-custom-templates">
-<span class="md-ellipsis">
-      
-        Specifying custom templates
-      
-    </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#configuration-and-options">
-<span class="md-ellipsis">
-      
-        Configuration and Options
-      
-    </span>
-</a>
-<nav aria-label="Configuration and Options" class="md-nav">
-<ul class="md-nav__list">
-<li class="md-nav__item">
-<a class="md-nav__link" href="#modes">
-<span class="md-ellipsis">
-      
-        Modes
-      
-    </span>
-</a>
-<nav aria-label="Modes" class="md-nav">
-<ul class="md-nav__list">
-<li class="md-nav__item">
-<a class="md-nav__link" href="#manual">
-<span class="md-ellipsis">
-      
-        Manual
-      
-    </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#severe">
-<span class="md-ellipsis">
-      
-        Severe
-      
-    </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#technology">
-<span class="md-ellipsis">
-      
-        Technology
-      
-    </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#budget">
-<span class="md-ellipsis">
-      
-        Budget
-      
-    </span>
-</a>
-</li>
-</ul>
-</nav>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#nuclei-pass-through-options">
-<span class="md-ellipsis">
-      
-        Nuclei pass-through options
-      
-    </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#example-commands">
-<span class="md-ellipsis">
-      
-        Example Commands
-      
-    </span>
-</a>
-</li>
-</ul>
-</nav>
-</li>
-</ul>
-</nav>
 </li>
 <li class="md-nav__item">
 <a class="md-nav__link" href="../wayback/">
@@ -598,9 +469,9 @@
 </ul>
 </nav>
 </li>
-<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<li class="md-nav__item md-nav__item--nested">
 <input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_4" type="checkbox"/>
-<label class="md-nav__link" for="__nav_1_4" id="__nav_1_4_label" tabindex="">
+<label class="md-nav__link" for="__nav_1_4" id="__nav_1_4_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -1000,163 +871,172 @@
 </div>
 <div class="md-content" data-md-component="content">
 <article class="md-content__inner md-typeset">
-<h1 id="nuclei">Nuclei</h1>
+<h1 id="web-brute-force-webbrute">Web Brute-Force (webbrute)</h1>
 <h2 id="overview">Overview</h2>
-<p>BBOT integrates with <a href="https://github.com/projectdiscovery/nuclei">Nuclei</a>, an open-source web vulnerability scanner by Project Discovery. This is one of the ways BBOT makes it possible to go from a single target domain/IP all the way to confirmed vulnerabilities, in one scan.</p>
-<p><img alt="Nuclei Killchain" src="https://github.com/blacklanternsecurity/bbot/assets/24899338/7174c4ba-4a6e-4596-bb89-5a0c5f5abe74"/></p>
-<ul>
-<li>The BBOT Nuclei module ingests <strong>[URL]</strong> events and emits events of type <strong>[FINDING]</strong></li>
-<li>Findings will inherit their severity from the Nuclei templates</li>
-</ul>
-<h2 id="default-behavior">Default Behavior</h2>
-<ul>
-<li>By default, only "directory URLs" (URLs ending in a slash) will be scanned, but ALL templates will be used (<strong>BE CAREFUL!</strong>)</li>
-<li>Because it's aggressive and potentially destructive, Nuclei is tagged as both <strong>loud</strong> and <strong>invasive</strong>. BBOT will warn you before starting the scan, but no special flag is needed to enable it.</li>
-</ul>
-<h2 id="specifying-custom-templates">Specifying custom templates</h2>
-<p>You can specify individual nuclei templates by setting the <code>modules.nuclei.templates</code> to their comma-separated filenames:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>nuclei<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.nuclei.templates<span style="color: #FF7B72; font-weight: bold">=</span>http/takeovers/airee-takeover.yaml,http/takeovers/cargo-takeover.yaml
+<p><code>webbrute</code> is BBOT's built-in web directory and file brute-forcer, similar to tools like <a href="https://github.com/ffuf/ffuf">ffuf</a> or <a href="https://owasp.org/www-project-dirbuster/">DirBuster</a>. It discovers hidden directories and files by sending a wordlist of common path names to a target and identifying responses that differ from the baseline (i.e., the server's default response to a nonexistent path).</p>
+<p>Unlike standalone tools, webbrute runs as part of BBOT's recursive pipeline. URLs discovered by other modules (spidering, wayback, etc.) are automatically fuzzed, and webbrute's discoveries feed back into the pipeline for further processing.</p>
+<p>Webbrute is powered by <a href="https://github.com/blacklanternsecurity/blasthttp">blasthttp</a>, our custom-built native Rust HTTP engine, giving it performance comparable to ffuf.</p>
+<h2 id="quick-start">Quick Start</h2>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Basic directory brute-force</span>
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>example.com<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>webbrute
+
+<span style="color: #8B949E; font-style: italic"># With file extensions</span>
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>example.com<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>webbrute<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.webbrute.extensions<span style="color: #FF7B72; font-weight: bold">=</span>php,asp,jsp
+
+<span style="color: #8B949E; font-style: italic"># Aggressive mode with larger wordlist and recursion</span>
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>example.com<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>dirbust-heavy
 </code></pre></div>
-<p>...or via the config:</p>
+<h2 id="features">Features</h2>
+<h3 id="extensions">Extensions</h3>
+<p>By default, webbrute tests each word as both a bare path (<code>/admin</code>) and as a directory (<code>/admin/</code>). You can add file extensions to also test paths like <code>/admin.php</code>, <code>/admin.asp</code>, etc.</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">nuclei</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">    </span><span style="color: #7EE787">templates</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http/takeovers/airee-takeover.yaml,http/takeovers/cargo-takeover.yaml</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">webbrute</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">extensions</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">php</span>
+<span style="color: #6E7681">      </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">asp</span>
+<span style="color: #6E7681">      </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">aspx</span>
+<span style="color: #6E7681">      </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">jsp</span>
 </code></pre></div>
-<h2 id="configuration-and-options">Configuration and Options</h2>
-<p>The Nuclei module has many configuration options:</p>
-<!-- BBOT MODULE OPTIONS NUCLEI -->
+<p>Each extension gets its own independent baseline, so a server that behaves differently for <code>.php</code> vs <code>.jsp</code> requests is handled correctly.</p>
+<h3 id="recursive-fuzzing">Recursive Fuzzing</h3>
+<p>With <code>max_depth</code> set above 0, webbrute will recursively fuzz directories it discovers. For example, if it finds <code>/admin/</code>, it will fuzz <code>/admin/</code> with the same wordlist to discover <code>/admin/config/</code>, and so on up to the configured depth.</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">webbrute</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">max_depth</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">3</span>
+</code></pre></div>
+<h3 id="wordlists">Wordlists</h3>
+<p>The default wordlist is <a href="https://github.com/danielmiessler/SecLists/tree/master/Discovery/Web-Content">raft-small-directories</a> from SecLists, limited to the first 5000 lines. You can specify a custom wordlist or merge multiple wordlists (duplicates are automatically removed):</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">webbrute</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">wordlist</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-small-directories.txt</span>
+<span style="color: #6E7681">      </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">/path/to/custom-words.txt</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">lines</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">10000</span>
+</code></pre></div>
+<h3 id="rate-limiting">Rate Limiting</h3>
+<p>Webbrute respects BBOT's global <code>http_rate_limit</code> setting and also has its own per-module rate limit:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">webbrute</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">rate</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">100</span><span style="color: #6E7681">        </span><span style="color: #8B949E; font-style: italic"># max requests per second (0 = unlimited)</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">concurrency</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">50</span><span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># concurrent requests per URL</span>
+</code></pre></div>
+<p>If both a module rate and a global rate are set, the more restrictive one wins.</p>
+<h2 id="waf-detection-and-avoidance">WAF Detection and Avoidance</h2>
+<p>Brute-forcing through a WAF wastes time and can get your IP blocked. Webbrute handles WAFs at multiple levels:</p>
+<h3 id="pre-scan-avoid_wafs">Pre-Scan: <code>avoid_wafs</code></h3>
+<p>When <code>avoid_wafs</code> is enabled (the default), webbrute skips any URL whose host has been tagged as being behind a WAF by BBOT's <code>cloudcheck</code> module. This prevents wasting thousands of requests against a host that will block them.</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">webbrute</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">avoid_wafs</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span><span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># default</span>
+</code></pre></div>
+<h3 id="baseline-waf-block-page-and-429-detection">Baseline: WAF Block Page and 429 Detection</h3>
+<p>During baseline setup, webbrute checks whether the server's response to random paths contains known WAF block page signatures (detected via YARA rules). If the baseline itself is a WAF block page, the host is skipped immediately. The same check catches 429 (Too Many Requests) responses.</p>
+<h3 id="in-stream-waf-page-filtering">In-Stream: WAF Page Filtering</h3>
+<p>During fuzzing, every response is checked against the same WAF YARA rules. Individual responses that match WAF signatures are silently filtered, even if they have a 200 status code. This catches WAFs that start blocking mid-scan after a burst of requests.</p>
+<h3 id="timeout-tracking">Timeout Tracking</h3>
+<p>Some WAFs silently drop packets rather than returning error pages. Webbrute tracks connection failures per host across the entire scan. If a host accumulates 50 timeouts, it is blocked for the remainder of the scan, preventing the module from draining its entire wordlist against a dead connection.</p>
+<h2 id="false-positive-prevention">False Positive Prevention</h2>
+<p>Web brute-forcing is inherently noisy. Servers return custom error pages, dynamic content, and catch-all redirects that make it difficult to distinguish real hits from junk. Webbrute uses several layers of defense to prevent false positives.</p>
+<h3 id="baseline-filtering-httpcompare">Baseline Filtering (HttpCompare)</h3>
+<p>Before fuzzing begins, webbrute sends two requests with random paths and uses HttpCompare (a DeepDiff-based response comparison engine) to diff them. Any positions that vary between the two (timestamps, CSRF tokens, request IDs) are marked as dynamic and excluded from future comparisons. During fuzzing, each response is compared against this baseline. Only responses that differ in non-dynamic ways (status code, headers, or body content) are considered potential hits.</p>
+<p>This catches a common class of false positives that simpler tools miss: servers that return 200 for all paths with subtly different content (e.g., a per-request CSRF token embedded in a custom 404 page).</p>
+<h3 id="redirect-to-root-filtering">Redirect-to-Root Filtering</h3>
+<p>3xx responses that redirect to <code>/</code> or the base URL are filtered. This is a common catch-all pattern where servers redirect all unknown paths to the homepage.</p>
+<h3 id="three-layer-post-stream-validation">Three-Layer Post-Stream Validation</h3>
+<p>Hits are collected during the response stream but are not emitted immediately. Before anything reaches the rest of the pipeline, three checks run in sequence:</p>
+<ol>
+<li>
+<p><strong>Canary check</strong>: A random word is injected into the wordlist alongside the real words. If the canary word appears in the hits, it means the server is returning unique content for random paths too, and all hits are likely false positives. Everything is discarded.</p>
+</li>
+<li>
+<p><strong>Mid-scan baseline validation</strong>: After streaming completes, a fresh random URL is sent and compared against the original baseline. If it no longer matches (e.g., a WAF started blocking mid-scan, or the server's behavior changed), the baseline has drifted and the hits are unreliable. Everything is discarded.</p>
+</li>
+<li>
+<p><strong>Hit cap</strong>: If the number of hits exceeds a threshold scaled to the wordlist size (<code>4 * sqrt(wordlist_length)</code>), something has slipped past the other defenses. This catches edge cases where the server returns subtly unique content for real dictionary words but not for random strings. The host is blocked and all hits are discarded before emission.</p>
+</li>
+</ol>
+<h2 id="configuration-reference">Configuration Reference</h2>
 <table>
 <thead>
 <tr>
-<th>Config Option</th>
+<th>Option</th>
 <th>Type</th>
-<th>Description</th>
 <th>Default</th>
+<th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>modules.nuclei.batch_size</td>
+<td><code>wordlist</code></td>
+<td>string or list</td>
+<td>raft-small-directories</td>
+<td>Wordlist URL(s) or path(s). Multiple wordlists are merged with deduplication.</td>
+</tr>
+<tr>
+<td><code>lines</code></td>
 <td>int</td>
-<td>Number of targets to send to Nuclei per batch (default 200)</td>
-<td>200</td>
+<td>5000</td>
+<td>Use only the first N lines from the wordlist.</td>
 </tr>
 <tr>
-<td>modules.nuclei.budget</td>
+<td><code>max_depth</code></td>
 <td>int</td>
-<td>Used in budget mode to set the number of allowed requests per host</td>
-<td>1</td>
-</tr>
-<tr>
-<td>modules.nuclei.concurrency</td>
-<td>int</td>
-<td>maximum number of templates to be executed in parallel (default 25)</td>
-<td>25</td>
-</tr>
-<tr>
-<td>modules.nuclei.directory_only</td>
-<td>bool</td>
-<td>Filter out 'file' URL event (default True)</td>
-<td>True</td>
-</tr>
-<tr>
-<td>modules.nuclei.etags</td>
-<td>str</td>
-<td>tags to exclude from the scan</td>
-<td></td>
-</tr>
-<tr>
-<td>modules.nuclei.mode</td>
-<td>str</td>
-<td>manual | technology | severe | budget. Technology: Only activate based on technology events that match nuclei tags (nuclei -as mode). Manual (DEFAULT): Fully manual settings. Severe: Only critical and high severity templates without intrusive. Budget: Limit Nuclei to a specified number of HTTP requests</td>
-<td>manual</td>
-</tr>
-<tr>
-<td>modules.nuclei.module_timeout</td>
-<td>int</td>
-<td>Max time in seconds to spend handling each batch of events</td>
-<td>21600</td>
-</tr>
-<tr>
-<td>modules.nuclei.ratelimit</td>
-<td>int</td>
-<td>maximum number of requests to send per second (default 150)</td>
-<td>150</td>
-</tr>
-<tr>
-<td>modules.nuclei.retries</td>
-<td>int</td>
-<td>number of times to retry a failed request (default 0)</td>
 <td>0</td>
+<td>Maximum directory depth for recursive fuzzing. 0 = root only.</td>
 </tr>
 <tr>
-<td>modules.nuclei.severity</td>
-<td>str</td>
-<td>Filter based on severity field available in the template.</td>
-<td></td>
+<td><code>extensions</code></td>
+<td>string or list</td>
+<td>(none)</td>
+<td>File extensions to append (e.g., <code>php,asp,jsp</code>).</td>
 </tr>
 <tr>
-<td>modules.nuclei.silent</td>
+<td><code>ignore_case</code></td>
 <td>bool</td>
-<td>Don't display nuclei's banner or status messages</td>
-<td>False</td>
+<td>false</td>
+<td>Lowercase all wordlist entries (deduplicates case variants).</td>
 </tr>
 <tr>
-<td>modules.nuclei.tags</td>
-<td>str</td>
-<td>execute a subset of templates that contain the provided tags</td>
-<td></td>
+<td><code>rate</code></td>
+<td>int</td>
+<td>0</td>
+<td>Max requests per second. 0 = unlimited (subject to global <code>http_rate_limit</code>).</td>
 </tr>
 <tr>
-<td>modules.nuclei.templates</td>
-<td>str</td>
-<td>template or template directory paths to include in the scan</td>
-<td></td>
+<td><code>concurrency</code></td>
+<td>int</td>
+<td>50</td>
+<td>Number of concurrent requests per URL being fuzzed.</td>
 </tr>
 <tr>
-<td>modules.nuclei.version</td>
-<td>str</td>
-<td>nuclei version</td>
-<td>3.8.0</td>
+<td><code>avoid_wafs</code></td>
+<td>bool</td>
+<td>true</td>
+<td>Skip URLs behind confirmed WAFs.</td>
 </tr>
 </tbody>
 </table>
-<!-- END BBOT MODULE OPTIONS NUCLEI -->
-<p>Most of these you probably will <strong>NOT</strong> want to change. In particular, we advise against changing the version of Nuclei, as it's possible the latest version won't work right with BBOT.</p>
-<p>We also do not recommend changing <strong>directory_only</strong> mode. This will cause Nuclei to process every URL. Because BBOT is recursive, this can get very out-of-hand very quickly, depending on which other modules are in use.</p>
-<h3 id="modes">Modes</h3>
-<p>The modes with the Nuclei module are generally in place to help you limit the number of templates you are scanning with, to make your scans quicker.</p>
-<h4 id="manual">Manual</h4>
-<p>This is the default setting, and will use all templates. However, if you're looking to do something particular, you might pair this with some of the pass-through options shown in the next setting.</p>
-<h4 id="severe">Severe</h4>
-<p><strong>severe</strong> mode uses only high/critical severity templates. It also excludes the intrusive tag. This is intended to be a shortcut for times when you need to rapidly identify high severity vulnerabilities but can't afford the full scan. Because most templates are INFO, LOW, or MEDIUM, your scan will finish much faster.</p>
-<h4 id="technology">Technology</h4>
-<p>This is equivalent to the Nuclei '-as' scan option. It only use templates that match detected technologies, using wappalyzer-based signatures. This can be a nice way to run a light-weight scan that still has a chance to find some good vulnerabilities.</p>
-<h4 id="budget">Budget</h4>
-<p>Budget mode is unique to BBOT.</p>
-<p>For larger scans with thousands of targets, doing a FULL Nuclei scan (1000s of Requests) for each is not realistic.
-As an alternative to the other modes, you can take advantage of Nuclei's "collapsible" template feature.</p>
-<p>For only the cost of one (or more) "extra" request(s) per host, it can activate several hundred modules. These are modules which happen to look at a BaseUrl, and typically look for a specific string or other attribute. Nuclei is smart about reusing the request data when it can, and we can use this to our advantage.</p>
-<p>The budget parameter is the # of extra requests per host you are willing to send to "feed" Nuclei templates (defaults to 1).
-For those times when vulnerability scanning isn't the main focus, but you want to look for easy wins.</p>
-<p>Of course, there is a rapidly diminishing return when you set he value to more than a handful. Eventually, this becomes 1 template per 1 budget value increase. However, in the 1-10 range there is a lot of value. This graphic should give you a rough visual idea of this concept.</p>
-<p><img alt="Nuclei Budget Mode" src="https://github.com/blacklanternsecurity/bbot/assets/24899338/08a3429c-5a73-437b-84de-27c07d85a529"/></p>
-<h3 id="nuclei-pass-through-options">Nuclei pass-through options</h3>
-<p>Most of the rest of the options are usually passed straight through to Nuclei when its executed. You can do things like set specific <strong>tags</strong> to include, (or exclude with <strong>etags</strong>), exactly how you'd do with Nuclei directly. You can also limit the templates with <strong>severity</strong>.</p>
-<p>The <strong>ratelimit</strong> and <strong>concurrency</strong> settings default to the same defaults that Nuclei does. These are relatively sane settings, but if you are in a sensitive environment it can certainly help to turn them down.</p>
-<p><strong>templates</strong> will allow you to set your own templates directory. This can be very useful if you have your own custom templates that you want to use with BBOT.</p>
-<h3 id="example-commands">Example Commands</h3>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Scan a SINGLE target with a basic port scan and web modules</span>
-bbot<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>web<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>portscan<span style="color: #6E7681"> </span>nuclei<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>app.evilcorp.com
+<h2 id="presets">Presets</h2>
+<p>BBOT includes two presets for directory brute-forcing:</p>
+<h3 id="dirbust-light"><code>dirbust-light</code></h3>
+<p>Surface-level directory discovery with a smaller wordlist. Good for quick scans.</p>
+<ul>
+<li>Wordlist: raft-small-directories (first 1000 lines)</li>
+<li>No extensions, no recursion</li>
+<li>WAF avoidance enabled</li>
+</ul>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>example.com<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>dirbust-light
 </code></pre></div>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Scanning MULTIPLE targets</span>
-bbot<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>web<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>portscan<span style="color: #6E7681"> </span>nuclei<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>app1.evilcorp.com<span style="color: #6E7681"> </span>app2.evilcorp.com<span style="color: #6E7681"> </span>app3.evilcorp.com
-</code></pre></div>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Scanning MULTIPLE targets while performing subdomain enumeration</span>
-bbot<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>web<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>portscan<span style="color: #6E7681"> </span>nuclei<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>app1.evilcorp.com<span style="color: #6E7681"> </span>app2.evilcorp.com<span style="color: #6E7681"> </span>app3.evilcorp.com
-</code></pre></div>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Scanning MULTIPLE targets on a BUDGET</span>
-bbot<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>web<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>portscan<span style="color: #6E7681"> </span>nuclei<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.nuclei.mode<span style="color: #FF7B72; font-weight: bold">=</span>budget<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>app1.evilcorp.com<span style="color: #6E7681"> </span>app2.evilcorp.com<span style="color: #6E7681"> </span>app3.evilcorp.com
+<h3 id="dirbust-heavy"><code>dirbust-heavy</code></h3>
+<p>Aggressive recursive brute-forcing with a large extension list. Includes spidering and wayback URL extraction to discover additional directories to fuzz. WAF avoidance is disabled so brute-forcing proceeds even against WAF-protected hosts.</p>
+<ul>
+<li>Wordlist: raft-small-directories (first 5000 lines)</li>
+<li>Extensions: php, asp, aspx, ashx, asmx, jsp, jspx, cfm, zip, conf, config, xml, json, yml, yaml</li>
+<li>Recursive to depth 3</li>
+<li>Includes spider and wayback modules</li>
+<li><code>avoid_wafs</code> disabled</li>
+</ul>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>example.com<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>dirbust-heavy
 </code></pre></div>
 </article>
 </div>
