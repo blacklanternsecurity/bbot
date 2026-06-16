@@ -129,10 +129,10 @@ class BBOTEnviron:
         import urllib3
 
         urllib3.disable_warnings()
-        ssl_verify = self.preset.config.get("web", {}).get("ssl_verify", False)
+        ssl_verify_infrastructure = self.preset.config.get("web", {}).get("ssl_verify_infrastructure", True)
 
         global REQUESTS_PATCHED
-        if not ssl_verify and not REQUESTS_PATCHED:
+        if not ssl_verify_infrastructure and not REQUESTS_PATCHED:
             REQUESTS_PATCHED = True
             import requests
             import functools

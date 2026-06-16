@@ -1883,3 +1883,184 @@ class TestExcavateFormAttributeOrder(ModuleTestBase):
         names = {e.data.get("name") for e in events if e.type == "WEB_PARAMETER" and isinstance(e.data, dict)}
         assert "action_first" in names, f"missing action-first form field; got {sorted(names)}"
         assert "method_first" in names, f"missing method-first form field; got {sorted(names)}"
+
+
+class TestExcavateHttpWildcardSkipsUrls(ModuleTestBase):
+    """On an HTTP wildcard host, excavate should suppress URL_UNVERIFIED but still extract DNS_NAMEs."""
+
+    targets = ["http://127.0.0.1:8888/", "test.notreal"]
+    modules_overrides = ["excavate", "http"]
+    config_overrides = {"web": {"spider_distance": 1, "spider_depth": 1}}
+
+    html_body = """
+    <a href="http://127.0.0.1:8888/should-be-suppressed">link</a>
+    bare hostname: extracted.test.notreal
+    """
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"},
+            respond_args={"response_data": self.html_body, "status": 200},
+        )
+
+    async def setup_after_prep(self, module_test):
+        async def mock_wildcard(scheme, host, port):
+            if host == "127.0.0.1":
+                return True
+            return False
+
+        module_test.scan.helpers.web.is_http_wildcard_host = mock_wildcard
+        await module_test.mock_dns({"extracted.test.notreal": {"A": ["127.0.0.88"]}})
+
+    def check(self, module_test, events):
+        excavate_urls = [
+            e
+            for e in events
+            if e.type == "URL_UNVERIFIED" and str(e.module) == "excavate" and "should-be-suppressed" in e.url
+        ]
+        assert len(excavate_urls) == 0, (
+            f"Excavate should suppress URL_UNVERIFIED on HTTP wildcard host, got: {[e.url for e in excavate_urls]}"
+        )
+        assert any(e.type == "DNS_NAME" and e.data == "extracted.test.notreal" for e in events), (
+            "Excavate should still extract DNS_NAMEs from HTTP wildcard host responses"
+        )
+
+
+class TestExcavateContentDedup(ModuleTestBase):
+    """Verify _avoid_duplicate_content=True on excavate skips HTTP_RESPONSE events with duplicate body hashes."""
+
+    targets = [
+        "http://127.0.0.1:8888/dir1/page.html",
+        "http://127.0.0.1:8888/dir2/page.html",
+        "http://127.0.0.1:8888/other/page.html",
+    ]
+    modules_overrides = ["excavate", "http"]
+    config_overrides = {"web": {"spider_distance": 0, "spider_depth": 0}, "omit_event_types": []}
+
+    duplicate_body = "<html><body><a href='./found.html'>click</a></body></html>"
+    unique_body = "<html><body><a href='./unique.html'>click</a></body></html>"
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/dir1/page.html"},
+            respond_args={"response_data": self.duplicate_body},
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/dir2/page.html"},
+            respond_args={"response_data": self.duplicate_body},
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/other/page.html"},
+            respond_args={"response_data": self.unique_body},
+        )
+        module_test.httpserver.no_handler_status_code = 404
+
+    def check(self, module_test, events):
+        excavate = module_test.scan.modules["excavate"]
+        assert len(excavate._content_dup_tracker) > 0, "Content dedup tracker was empty"
+
+        url_events = [e for e in events if e.type == "URL_UNVERIFIED"]
+        urls = {e.url for e in url_events}
+
+        assert "http://127.0.0.1:8888/other/unique.html" in urls, "Unique page link not extracted"
+
+        dir1_found = "http://127.0.0.1:8888/dir1/found.html" in urls
+        dir2_found = "http://127.0.0.1:8888/dir2/found.html" in urls
+        assert dir1_found or dir2_found, "Neither duplicate page was processed"
+        assert not (dir1_found and dir2_found), (
+            "Both duplicate pages were processed — content dedup failed to skip the second one"
+        )
+
+
+class TestExcavateContentDedupDisabled(ModuleTestBase):
+    """Verify that with _avoid_duplicate_content=False, duplicate content on different URLs is NOT deduped."""
+
+    targets = [
+        "http://127.0.0.1:8888/dir1/page.html",
+        "http://127.0.0.1:8888/dir2/page.html",
+    ]
+    modules_overrides = ["excavate", "http"]
+    config_overrides = {"web": {"spider_distance": 0, "spider_depth": 0}, "omit_event_types": []}
+
+    duplicate_body = "<html><body><a href='./found.html'>click</a></body></html>"
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/dir1/page.html"},
+            respond_args={"response_data": self.duplicate_body},
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/dir2/page.html"},
+            respond_args={"response_data": self.duplicate_body},
+        )
+        module_test.httpserver.no_handler_status_code = 404
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["excavate"]._avoid_duplicate_content = False
+
+    def check(self, module_test, events):
+        url_events = [e for e in events if e.type == "URL_UNVERIFIED"]
+        urls = {e.url for e in url_events}
+
+        dir1_found = "http://127.0.0.1:8888/dir1/found.html" in urls
+        dir2_found = "http://127.0.0.1:8888/dir2/found.html" in urls
+        assert dir1_found and dir2_found, (
+            f"Both duplicate pages should be processed when _avoid_duplicate_content=False, "
+            f"got dir1={dir1_found}, dir2={dir2_found}"
+        )
+
+
+class TestContentDedupWithURLEvents(ModuleTestBase):
+    """Verify _avoid_duplicate_content works for modules watching URL events (via body_sha256 hash)."""
+
+    targets = [
+        "http://127.0.0.1:8888/page1.html",
+        "http://127.0.0.1:8888/page2.html",
+        "http://127.0.0.1:8888/different.html",
+    ]
+    modules_overrides = ["excavate", "http"]
+    config_overrides = {"web": {"spider_distance": 0, "spider_depth": 0}, "omit_event_types": []}
+
+    duplicate_body = "<html><body>identical content</body></html>"
+    unique_body = "<html><body>different content</body></html>"
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/page1.html"},
+            respond_args={"response_data": self.duplicate_body},
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/page2.html"},
+            respond_args={"response_data": self.duplicate_body},
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/different.html"},
+            respond_args={"response_data": self.unique_body},
+        )
+        module_test.httpserver.no_handler_status_code = 404
+
+    async def setup_after_prep(self, module_test):
+        class URLConsumer(BaseModule):
+            watched_events = ["URL"]
+            _name = "url_consumer"
+            _avoid_duplicate_content = True
+            events_seen = []
+
+            async def handle_event(self, event):
+                self.events_seen.append(event)
+
+        module_test.scan.modules["url_consumer"] = URLConsumer(module_test.scan)
+
+    def check(self, module_test, events):
+        consumer = module_test.scan.modules["url_consumer"]
+        seen_urls = {e.url for e in consumer.events_seen if e.type == "URL"}
+
+        assert "http://127.0.0.1:8888/different.html" in seen_urls, "Unique URL should be processed"
+
+        page1_seen = "http://127.0.0.1:8888/page1.html" in seen_urls
+        page2_seen = "http://127.0.0.1:8888/page2.html" in seen_urls
+        assert page1_seen or page2_seen, "At least one duplicate-content URL should be processed"
+        assert not (page1_seen and page2_seen), (
+            "Both duplicate-content URLs were processed — content dedup failed for URL events"
+        )
+        assert len(consumer._content_dup_tracker) > 0, "Content dedup tracker should have entries"

@@ -67,8 +67,21 @@ class dnscaa(BaseModule):
             if not isinstance(caa, dict):
                 continue
 
-            tag = (caa.get("tag") or "").lower()
+            raw_tag = caa.get("tag")
+            # hickory wraps unrecognized CAA properties as {"Unknown": "name"}
+            if isinstance(raw_tag, dict):
+                raw_tag = raw_tag.get("Unknown", "")
+            if not isinstance(raw_tag, str):
+                continue
+            tag = raw_tag.lower()
+
             value = caa.get("value") or {}
+            # hickory wraps unrecognized values as {"Unknown": [byte_array]}
+            if isinstance(value, dict) and isinstance(value.get("Unknown"), list):
+                try:
+                    value = {"raw_text": bytes(value["Unknown"]).decode()}
+                except (ValueError, UnicodeDecodeError):
+                    continue
 
             # iodef -> "Url" containing mailto: or https:// for incident reporting
             if tag == "iodef":
@@ -89,6 +102,15 @@ class dnscaa(BaseModule):
                                 tags=tags,
                                 parent=event,
                             )
+
+            # contactemail (RFC 8657) -> email for CA to contact domain owner
+            elif tag == "contactemail":
+                raw_text = value.get("raw_text") if isinstance(value, dict) else None
+                if raw_text and self._emails:
+                    for match in email_regex.finditer(raw_text):
+                        await self.emit_event(
+                            raw_text[match.start() : match.end()], "EMAIL_ADDRESS", tags=tags, parent=event
+                        )
 
             # issue / issuewild -> "Issuer" containing the CA's domain
             elif tag.startswith("issue"):

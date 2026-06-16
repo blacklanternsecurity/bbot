@@ -1053,8 +1053,8 @@ class Preset(metaclass=BasePreset):
         """
         Recursively find all the presets and return them as a dictionary
         """
-        # first, add local preset dir to PRESET_PATH
-        PRESET_PATH.add_path(self.preset_dir)
+        # first, add local preset dir to PRESET_PATH (listable so -lp enumerates it)
+        PRESET_PATH.add_path(self.preset_dir, listable=True)
 
         # ensure local preset directory exists
         mkdir(self.preset_dir)
@@ -1062,7 +1062,7 @@ class Preset(metaclass=BasePreset):
         global DEFAULT_PRESETS
         if DEFAULT_PRESETS is None:
             presets = {}
-            for preset_path in PRESET_PATH:
+            for preset_path in PRESET_PATH.listable_paths:
                 for ext in ("yml", "yaml"):
                     # for every yaml file
                     for original_filename in preset_path.rglob(f"**/*.{ext}"):

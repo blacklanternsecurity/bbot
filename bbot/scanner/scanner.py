@@ -328,7 +328,7 @@ class Scanner:
         creates the scan's output folder, loads its modules, and calls their .setup() methods.
         """
         # expand async seed types (e.g. ASN → IP ranges)
-        ssl_verify = self.preset.web_config.get("ssl_verify", False)
+        ssl_verify = self.preset.web_config.get("ssl_verify_infrastructure", True)
         await self.preset.target.generate_children(ssl_verify=ssl_verify)
 
         # evaluate preset conditions (may abort the scan)

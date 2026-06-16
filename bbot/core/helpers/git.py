@@ -7,10 +7,8 @@ def sanitize_git_repo(repo_folder: Path):
     config_file = repo_folder / ".git" / "config"
     if config_file.exists():
         config_file.rename(repo_folder / "git_config_original")
-    # move the index file
-    index_file = repo_folder / ".git" / "index"
-    if index_file.exists():
-        index_file.rename(repo_folder / "git_index_original")
+    # leave .git/index in place -- it's binary metadata (filename-to-SHA mappings),
+    # not a security risk, and removing it breaks tools that need to clone the repo
     # move the hooks folder
     hooks_folder = repo_folder / ".git" / "hooks"
     if hooks_folder.exists():
