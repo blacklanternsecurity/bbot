@@ -365,6 +365,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
     watched_events = ["HTTP_RESPONSE", "RAW_TEXT"]
     produced_events = ["URL_UNVERIFIED", "WEB_PARAMETER"]
+    _avoid_duplicate_content = True
     flags = ["safe", "passive"]
     meta = {
         "description": "Passively extract juicy tidbits from scan data",

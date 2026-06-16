@@ -156,6 +156,9 @@ class ScanIngress(BaseInterceptModule):
                 continue
         raise asyncio.queues.QueueEmpty()
 
+    async def _event_postcheck(self, event):
+        return await self._event_postcheck_inner(event)
+
     def is_incoming_duplicate(self, event, add=False):
         """
         Calculate whether an event is a duplicate in the context of the module that emitted it
