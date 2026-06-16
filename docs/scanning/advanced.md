@@ -179,3 +179,5 @@ EXAMPLES
 
 ```
 <!-- END BBOT HELP OUTPUT -->
+
+[Next Up: Configuration -->](./configuration.md){ .md-button .md-button--primary }

@@ -2,7 +2,7 @@
 
 Normally, [Presets](presets.md) are used to configure a scan. However, there may be cases where you want to change BBOT's global defaults so a certain option is always set, even if it's not specified in a preset.
 
-BBOT has a YAML config at `~/.config/bbot.yml`. This is the first config that BBOT loads, so it's a good place to put default settings like `http_proxy`, `max_threads`, or `http_user_agent`. You can also put any module settings here, including **API keys**.
+BBOT has a YAML config at `~/.config/bbot/bbot.yml`. This is the first config that BBOT loads, so it's a good place to put default settings like `http_proxy`, `max_threads`, or `http_user_agent`. You can also put any module settings here, including **API keys**.
 
 For a list of all possible config options, see:
 
@@ -32,7 +32,7 @@ bbot -t evilcorp.com -c http_proxy=http://127.0.0.1:8080
 
 Or, in `~/.config/bbot/bbot.yml`:
 
-```yaml title="~/.bbot/config/bbot.yml"
+```yaml title="~/.config/bbot/bbot.yml"
 http_proxy: http://127.0.0.1:8080
 ```
 
@@ -41,7 +41,7 @@ These two are equivalent.
 Config options specified via the command-line take precedence over all others. You can give BBOT a custom config file with `-c myconf.yml`, or individual arguments like this: `-c modules.shodan_dns.api_key=deadbeef`. To display the full and current BBOT config, including any command-line arguments, use `bbot -c`.
 
 Note that placing the following in `bbot.yml`:
-```yaml title="~/.bbot/config/bbot.yml"
+```yaml title="~/.config/bbot/bbot.yml"
 modules:
   shodan_dns:
     api_key: deadbeef

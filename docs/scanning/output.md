@@ -298,7 +298,7 @@ mail.evilcorp.com
 portal.evilcorp.com
 ```
 
-## Neo4j
+### Neo4j
 
 Neo4j is the funnest (and prettiest) way to view and interact with BBOT data.
 
@@ -371,6 +371,55 @@ This is not an exhaustive list of clauses, filters, or other means to use cypher
 
 Additional note: these sample queries are dependent on the existence of the data in the target neo4j database.
 
+### Emails
+
+The `emails` output module writes any email addresses found belonging to the target domain to a file (`emails.txt` by default).
+
+### Web Report
+
+The `web_report` output module generates a markdown report of web assets, including URLs, technologies, and findings.
+
+### Nmap XML
+
+The `nmap_xml` output module exports open ports, DNS names, IP addresses, and protocols in Nmap XML format for compatibility with tools that consume Nmap output.
+
+### Message Queues
+
+BBOT supports streaming events as JSON to several message queue systems:
+
+| Module | Description | Key Config |
+|--------|-------------|------------|
+| `kafka` | Publish to a Kafka topic | `bootstrap_servers`, `topic` |
+| `rabbitmq` | Publish to a RabbitMQ queue | `url`, `queue` |
+| `nats` | Publish to a NATS subject | `servers`, `subject` |
+| `zeromq` | Publish to a ZeroMQ PUB socket | `zmq_address` |
+| `websocket` | Stream to a WebSocket endpoint | `url`, `token` |
+
+These can be enabled like any other output module:
+
+```bash
+bbot -t evilcorp.com -om kafka -c modules.kafka.bootstrap_servers=localhost:9092 modules.kafka.topic=bbot_events
+```
+
+### MongoDB
+
+The `mongo` output module sends events to a MongoDB database.
+
+```yaml title="mongo_preset.yml"
+output_modules:
+  - mongo
+
+config:
+  modules:
+    mongo:
+      uri: mongodb://localhost:27017
+      database: bbot
+```
+
+### Python API
+
+The `python` output module is used when running BBOT via the Python API. It enables programmatic access to events as they are produced. See the [Developer Documentation](../dev/index.md) for details.
+
 ### Web_parameters
 
 The `web_parameters` output module will utilize BBOT web parameter extraction capabilities, and output the resulting parameters to a file (web_parameters.txt, by default). Web parameter extraction is disabled by default, but will automatically be enabled when a module is included that consumes WEB_PARAMETER events (including the `web_parameters` output module itself).
@@ -379,4 +428,6 @@ This can be useful for those who want to discover new common web parameters or t
 
 ```bash
 bbot -t evilcorp.com -m paramminer_getparams -c modules.paramminer_getparams.wordlist=/path/to/your/new/wordlist.txt
-``` 
+```
+
+[Next Up: Tips and Tricks -->](./tips_and_tricks.md){ .md-button .md-button--primary } 

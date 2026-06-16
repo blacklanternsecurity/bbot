@@ -8,6 +8,17 @@ An Event is a piece of data discovered by BBOT. Examples include `IP_ADDRESS`, `
 event type      event data          source module    tags
 ```
 
+## Findings
+
+All vulnerability discoveries, security-relevant observations, and other notable results in BBOT are emitted as **`FINDING`** events.
+
+Each finding has a **severity** and a **confidence**:
+
+* **Severity** indicates impact: `INFO`, `LOW`, `MEDIUM`, `HIGH`, or `CRITICAL`
+* **Confidence** indicates how certain the finding is: `CONFIRMED`, `HIGH`, `MEDIUM`, `LOW`, or `UNKNOWN`
+
+Together, these let you quickly prioritize results -- e.g. a `CRITICAL` severity with `CONFIRMED` confidence is immediately actionable, while a `MEDIUM` severity with `LOW` confidence may need manual verification.
+
 ## Event Attributes
 
 Each BBOT event has the following attributes. Not all of these attributes are visible in the terminal output. However, they are always saved in `output.json` in the scan output folder. If you want to see them on the terminal, you can use `--json`.
@@ -31,6 +42,7 @@ Each BBOT event has the following attributes. Not all of these attributes are vi
 - `.tags`: a list of tags describing the event (e.g. `mx-record`, `http-title`, etc.)
 - `.module`: the module that discovered the event
 - `.module_sequence`: the recent sequence of modules that were executed to discover the event (including omitted events)
+- `.host_metadata`: cloud provider, ASN, and other metadata about the host (when available)
 - `.discovery_context`: a description of the context in which the event was discovered
 - `.discovery_path`: a list of every discovery context leading to this event
 - `.parent_chain`: a list of every event UUID leading to the discovery of this event (corresponds exactly to `.discovery_path`)
@@ -43,6 +55,7 @@ These attributes allow us to construct a visual graph of events (e.g. in [Neo4j]
   "id": "DNS_NAME:33bc005c2bdfea4d73e07db733bd11861cf6520e",
   "uuid": "DNS_NAME:6c96d512-090a-47f0-82e4-6860e46aac13",
   "scope_description": "in-scope",
+  "netloc": "link.evilcorp.com",
   "data": "link.evilcorp.com",
   "host": "link.evilcorp.com",
   "resolved_hosts": [
@@ -66,16 +79,16 @@ These attributes allow us to construct a visual graph of events (e.g. in [Neo4j]
   "web_spider_distance": 0,
   "scope_distance": 0,
   "scan": "SCAN:b6ef48bc036bc8d001595ae5061846a7e6beadb6",
-  "timestamp": "2024-10-18T15:40:13.716880+00:00",
+  "timestamp": 1729266013.71688,
   "parent": "DNS_NAME:94c92b7eaed431b37ae2a757fec4e678cc3bd213",
   "parent_uuid": "DNS_NAME:c737dffa-d4f0-4b6e-a72d-cc8c05bd892e",
   "tags": [
-    "subdomain",
     "a-record",
+    "aaaa-record",
     "cdn-akamai",
-    "in-scope",
     "cname-record",
-    "aaaa-record"
+    "in-scope",
+    "subdomain"
   ],
   "module": "speculate",
   "module_sequence": "speculate->speculate",
@@ -140,13 +153,4 @@ Below is a full list of event types along with which modules produce/consume the
 | WEB_PARAMETER       | 7                     | 4                     | hunt, lightfuzz, paramminer_cookies, paramminer_getparams, paramminer_headers, reflected_parameters, web_parameters                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | excavate, paramminer_cookies, paramminer_getparams, paramminer_headers                                                                                                                                                                                                                                                                                                                                                                                                                    |
 <!-- END BBOT EVENTS -->
 
-## Findings
-
-All vulnerability discoveries, security-relevant observations, and other notable results in BBOT are emitted as **`FINDING`** events.
-
-Each finding has a **severity** and a **confidence**:
-
-* **Severity** indicates impact: `INFO`, `LOW`, `MEDIUM`, `HIGH`, or `CRITICAL`
-* **Confidence** indicates how certain the finding is: `CONFIRMED`, `HIGH`, `MEDIUM`, `LOW`, or `UNKNOWN`
-
-Together, these let you quickly prioritize results -- e.g. a `CRITICAL` severity with `CONFIRMED` confidence is immediately actionable, while a `MEDIUM` severity with `LOW` confidence may need manual verification.
+[Next Up: Output -->](./output.md){ .md-button .md-button--primary }
