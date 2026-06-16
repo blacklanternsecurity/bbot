@@ -1,4 +1,6 @@
+import os
 import io
+import shutil
 import zipfile
 from pathlib import Path
 
@@ -18,10 +20,10 @@ class TestGithub_Workflows(ModuleTestBase):
     zip_content = data.getvalue()
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/zen", match_headers={"Authorization": "token asdf"}
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/orgs/blacklanternsecurity",
             match_headers={"Authorization": "token asdf"},
             json={
@@ -57,7 +59,7 @@ class TestGithub_Workflows(ModuleTestBase):
                 "type": "Organization",
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/orgs/blacklanternsecurity/repos?per_page=100&page=1",
             match_headers={"Authorization": "token asdf"},
             json=[
@@ -164,7 +166,7 @@ class TestGithub_Workflows(ModuleTestBase):
                 }
             ],
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/workflows?per_page=100&page=1",
             match_headers={"Authorization": "token asdf"},
             json={
@@ -185,7 +187,7 @@ class TestGithub_Workflows(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/workflows/22452226/runs?status=success&per_page=1",
             match_headers={"Authorization": "token asdf"},
             json={
@@ -432,7 +434,7 @@ class TestGithub_Workflows(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/runs/8839360698/logs",
             match_headers={"Authorization": "token asdf"},
             headers={
@@ -440,11 +442,11 @@ class TestGithub_Workflows(ModuleTestBase):
             },
             status_code=302,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://productionresultssa10.blob.core.windows.net/actions-results/7beb304e-f42c-4830-a027-4f5dec53107d/workflow-job-run-3a559e2a-952e-58d2-b8db-2e604a9266d7/logs/steps/step-logs-0e34a19a-18b0-4208-b27a-f8c031db2d17.txt?rsct=text%2Fplain&se=2024-04-26T16%3A25%3A39Z&sig=a%2FiN8dOw0e3tiBQZAfr80veI8OYChb9edJ1eFY136B4%3D&sp=r&spr=https&sr=b&st=2024-04-26T16%3A15%3A34Z&sv=2021-12-02",
             content=self.zip_content,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/runs/8839360698/artifacts",
             match_headers={"Authorization": "token asdf"},
             json={
@@ -472,7 +474,7 @@ class TestGithub_Workflows(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/artifacts/1829832535/zip",
             match_headers={"Authorization": "token asdf"},
             headers={
@@ -480,7 +482,7 @@ class TestGithub_Workflows(ModuleTestBase):
             },
             status_code=302,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://pipelinesghubeus22.actions.githubusercontent.com/uYHz4cw2WwYcB2EU57uoCs3MaEDiz8veiVlAtReP3xevBriD1h/_apis/pipelines/1/runs/214601/signedartifactscontent?artifactName=build.tar.gz&urlExpires=2024-08-20T14%3A41%3A41.8000556Z&urlSigningMethod=HMACV2&urlSignature=OOBxLx4eE5A8uHjxOIvQtn3cLFQOBW927mg0hcTHO6U%3D",
             content=self.zip_content,
         )
@@ -524,3 +526,53 @@ class TestGithub_Workflows(ModuleTestBase):
         for filesystem_event in filesystem_events:
             file = Path(filesystem_event.data["path"])
             assert file.is_file(), "Destination file does not exist"
+
+
+class TestGithubWorkflowsSymlinkCheck(ModuleTestBase):
+    modules_overrides = ["github_workflows"]
+    config_overrides = {"modules": {"github_workflows": {"api_key": "asdf"}}}
+
+    async def setup_before_prep(self, module_test):
+        module_test.blasthttp_mock.add_response(url="https://api.github.com/zen")
+
+    async def setup_after_prep(self, module_test):
+        m = module_test.scan.modules["github_workflows"]
+
+        symlink_target = Path("/tmp/.bbot_test/symlink_target")
+        if symlink_target.exists():
+            shutil.rmtree(symlink_target)
+        symlink_target.mkdir(parents=True, exist_ok=True)
+
+        # symlink at the repo level: output_dir/owner/repo -> symlink_target
+        owner_dir = m.output_dir / "testowner"
+        owner_dir.mkdir(parents=True, exist_ok=True)
+        repo_symlink = owner_dir / "testrepo"
+        os.symlink(str(symlink_target), str(repo_symlink))
+
+        # symlink at the owner level: output_dir/badowner -> symlink_target
+        bad_owner = m.output_dir / "badowner"
+        os.symlink(str(symlink_target), str(bad_owner))
+
+        # symlink at the output_dir level itself
+        output_dir_symlink_base = Path("/tmp/.bbot_test/fake_output_dir")
+        output_dir_symlink_base.mkdir(parents=True, exist_ok=True)
+        output_dir_link = Path("/tmp/.bbot_test/output_dir_link")
+        if output_dir_link.is_symlink() or output_dir_link.exists():
+            output_dir_link.unlink()
+        os.symlink(str(output_dir_symlink_base), str(output_dir_link))
+
+        saved_output_dir = m.output_dir
+        m.output_dir = output_dir_link
+
+        self.results = {}
+        self.results["output_dir_symlink"] = m._check_output_path(output_dir_link / "owner" / "repo")
+        m.output_dir = saved_output_dir
+        self.results["normal_path"] = m._check_output_path(m.output_dir / "clean" / "repo")
+        self.results["repo_symlink"] = m._check_output_path(repo_symlink)
+        self.results["owner_symlink"] = m._check_output_path(bad_owner / "anyrepo")
+
+    def check(self, module_test, events):
+        assert self.results["normal_path"], "Normal path was rejected"
+        assert not self.results["repo_symlink"], "Symlink at repo level was not rejected"
+        assert not self.results["owner_symlink"], "Symlink at owner level was not rejected"
+        assert not self.results["output_dir_symlink"], "Symlink at output_dir level was not rejected"

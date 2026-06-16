@@ -4,10 +4,10 @@ include:
   - iis-shortnames
 
 modules:
-  - ffuf
+  - webbrute
 
 config:
   modules:
-    ffuf:
+    webbrute:
       # wordlist size = 1000
       lines: 1000

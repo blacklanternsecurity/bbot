@@ -1,6 +1,7 @@
 import re
 
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 valid_chars = "ETAONRISHDLFCMUGYPWBVKJXQZ0123456789_-$~()&!#%'@^`{}]]"
 
@@ -22,15 +23,19 @@ class iis_shortnames(BaseModule):
         "created_date": "2022-04-15",
         "author": "@liquidsec",
     }
-    options = {"detect_only": True, "max_node_count": 50, "speculate_magic_urls": True}
-    options_desc = {
-        "detect_only": "Only detect the vulnerability and do not run the shortname scanner",
-        "max_node_count": "Limit how many nodes to attempt to resolve on any given recursion branch",
-        "speculate_magic_urls": "Attempt to discover iis 'magic' special folders",
-    }
+
+    class Config(BaseModuleConfig):
+        detect_only: bool = Field(
+            True, description="Only detect the vulnerability and do not run the shortname scanner"
+        )
+        max_node_count: int = Field(
+            50, description="Limit how many nodes to attempt to resolve on any given recursion branch"
+        )
+        speculate_magic_urls: bool = Field(True, description="Attempt to discover iis 'magic' special folders")
+
     in_scope_only = True
 
-    _module_threads = 8
+    _module_threads = 4
 
     # Gateway error codes from reverse proxies / CDNs — not IIS shortname signals
     gateway_error_codes = {502, 503, 504}
@@ -142,7 +147,7 @@ class iis_shortnames(BaseModule):
                 url = f"{target}{payload}{suffix}"
                 urls_and_kwargs.append((url, kwargs, (c, file_part)))
 
-        async for url, kwargs, (c, file_part), response in self.helpers.request_custom_batch(urls_and_kwargs):
+        async for url, response, (c, file_part) in self.helpers.request_batch_stream(urls_and_kwargs):
             if response is not None:
                 if response.status_code == affirmative_status_code:
                     if file_part == "stem":
@@ -183,7 +188,7 @@ class iis_shortnames(BaseModule):
             kwargs = {"method": method}
             urls_and_kwargs.append((url, kwargs, c))
 
-        async for url, kwargs, c, response in self.helpers.request_custom_batch(urls_and_kwargs):
+        async for url, response, c in self.helpers.request_batch_stream(urls_and_kwargs):
             if response is not None:
                 if response.status_code == affirmative_status_code:
                     found_results = True

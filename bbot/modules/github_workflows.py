@@ -3,6 +3,7 @@ import fnmatch
 from pathlib import Path
 
 from bbot.modules.templates.github import github
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class github_workflows(github):
@@ -13,19 +14,17 @@ class github_workflows(github):
         "description": "Download a github repositories workflow logs and workflow artifacts",
         "created_date": "2024-04-29",
         "author": "@domwhewell-sage",
-        "auth_required": True,
     }
-    options = {"api_key": "", "num_logs": 1, "output_folder": ""}
-    options_desc = {
-        "api_key": "Github token",
-        "num_logs": "For each workflow fetch the last N successful runs logs (max 100)",
-        "output_folder": "Folder to download workflow logs and artifacts to",
-    }
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="Github token", sensitive=True, mandatory=True)
+        num_logs: int = Field(1, description="For each workflow fetch the last N successful runs logs (max 100)")
+        output_folder: str = Field("", description="Folder to download workflow logs and artifacts to")
 
     scope_distance_modifier = 2
 
     async def setup(self):
-        self.num_logs = int(self.config.get("num_logs", 1))
+        self.num_logs = self.config.get("num_logs", 1)
         if self.num_logs > 100:
             self.log.error("num_logs option is capped at 100")
             return False
@@ -147,8 +146,26 @@ class github_workflows(github):
             runs.append(item)
         return runs
 
+    def _check_output_path(self, folder):
+        if self.output_dir.is_symlink():
+            self.warning(f"Refusing to write through symlink: {self.output_dir}")
+            return False
+        try:
+            rel = folder.relative_to(self.output_dir)
+        except ValueError:
+            return False
+        current = self.output_dir
+        for part in rel.parts:
+            current = current / part
+            if current.is_symlink():
+                self.warning(f"Refusing to write through symlink: {current}")
+                return False
+        return True
+
     async def download_run_logs(self, owner, repo, run_id):
         folder = self.output_dir / owner / repo
+        if not self._check_output_path(folder):
+            return []
         self.helpers.mkdir(folder)
         filename = f"run_{run_id}.zip"
         file_destination = folder / filename
@@ -210,8 +227,10 @@ class github_workflows(github):
 
     async def download_run_artifacts(self, owner, repo, artifact_id, artifact_name):
         folder = self.output_dir / owner / repo
+        if not self._check_output_path(folder):
+            return None
         self.helpers.mkdir(folder)
-        file_destination = folder / artifact_name
+        file_destination = folder / Path(artifact_name).name
         try:
             await self.api_download(
                 f"{self.base_url}/repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip",

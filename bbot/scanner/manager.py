@@ -145,12 +145,19 @@ class ScanIngress(BaseInterceptModule):
         return self._module_priority_weights
 
     async def get_incoming_event(self):
+        # memory-pressure backpressure: scan-level delay scales 0s→5s as memory crosses 90→95%.
+        # delay is 0 in the common case so this is a near-free check.
+        if self.scan._ingress_delay > 0:
+            await asyncio.sleep(self.scan._ingress_delay)
         for q in self.helpers.weighted_shuffle(self.incoming_queues, self.module_priority_weights):
             try:
                 return q.get_nowait()
             except (asyncio.queues.QueueEmpty, AttributeError):
                 continue
         raise asyncio.queues.QueueEmpty()
+
+    async def _event_postcheck(self, event):
+        return await self._event_postcheck_inner(event)
 
     def is_incoming_duplicate(self, event, add=False):
         """
@@ -267,11 +274,21 @@ class ScanEgress(BaseInterceptModule):
         if -1 < event.scope_distance < 1:
             self.scan.word_cloud.absorb_event(event)
 
-        for mod in self.scan.modules.values():
+        # Hold a sentinel on _module_consumers during distribution so it
+        # never transiently hits 0 between sequential queue_event() awaits
+        # (which would let a fast module's _minimize() strip fields that
+        # slower modules still need).
+        event._module_consumers += 1
+        for module in self.scan.modules.values():
             # don't distribute events to intercept modules
-            if not mod._intercept:
-                await mod.queue_event(event)
+            if module._intercept:
+                continue
+            # graph-important events are duplicates re-emitted only to preserve graph structure.
+            # a module that isn't graph-preserving and doesn't accept dupes would just drop them
+            # at its postcheck, so skip queueing entirely and avoid the churn (outcome unchanged)
+            if event._graph_important and not (module.preserve_graph or module.accept_dupes):
+                continue
+            await module.queue_event(event)
 
-        # if no module accepted this event, minimize it now
-        if event._module_consumers <= 0:
-            event._minimize()
+        # release the sentinel; _minimize() decrements and strips if count hits 0
+        event._minimize()

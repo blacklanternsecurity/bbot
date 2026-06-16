@@ -22,6 +22,7 @@
 from bbot.modules.base import BaseModule
 
 from bbot.core.helpers.regexes import dns_name_extraction_regex, email_regex, url_regexes
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class dnscaa(BaseModule):
@@ -29,18 +30,13 @@ class dnscaa(BaseModule):
     produced_events = ["DNS_NAME", "EMAIL_ADDRESS", "URL_UNVERIFIED"]
     flags = ["safe", "subdomain-enum", "email-enum", "passive"]
     meta = {"description": "Check for CAA records", "author": "@colin-stubbs", "created_date": "2024-05-26"}
-    options = {
-        "in_scope_only": True,
-        "dns_names": True,
-        "emails": True,
-        "urls": True,
-    }
-    options_desc = {
-        "in_scope_only": "Only check in-scope domains",
-        "dns_names": "emit DNS_NAME events",
-        "emails": "emit EMAIL_ADDRESS events",
-        "urls": "emit URL_UNVERIFIED events",
-    }
+
+    class Config(BaseModuleConfig):
+        in_scope_only: bool = Field(True, description="Only check in-scope domains")
+        dns_names: bool = Field(True, description="emit DNS_NAME events")
+        emails: bool = Field(True, description="emit EMAIL_ADDRESS events")
+        urls: bool = Field(True, description="emit URL_UNVERIFIED events")
+
     # accept DNS_NAMEs out to 2 hops if in_scope_only is False
     scope_distance_modifier = 2
 
@@ -71,8 +67,21 @@ class dnscaa(BaseModule):
             if not isinstance(caa, dict):
                 continue
 
-            tag = (caa.get("tag") or "").lower()
+            raw_tag = caa.get("tag")
+            # hickory wraps unrecognized CAA properties as {"Unknown": "name"}
+            if isinstance(raw_tag, dict):
+                raw_tag = raw_tag.get("Unknown", "")
+            if not isinstance(raw_tag, str):
+                continue
+            tag = raw_tag.lower()
+
             value = caa.get("value") or {}
+            # hickory wraps unrecognized values as {"Unknown": [byte_array]}
+            if isinstance(value, dict) and isinstance(value.get("Unknown"), list):
+                try:
+                    value = {"raw_text": bytes(value["Unknown"]).decode()}
+                except (ValueError, UnicodeDecodeError):
+                    continue
 
             # iodef -> "Url" containing mailto: or https:// for incident reporting
             if tag == "iodef":
@@ -93,6 +102,15 @@ class dnscaa(BaseModule):
                                 tags=tags,
                                 parent=event,
                             )
+
+            # contactemail (RFC 8657) -> email for CA to contact domain owner
+            elif tag == "contactemail":
+                raw_text = value.get("raw_text") if isinstance(value, dict) else None
+                if raw_text and self._emails:
+                    for match in email_regex.finditer(raw_text):
+                        await self.emit_event(
+                            raw_text[match.start() : match.end()], "EMAIL_ADDRESS", tags=tags, parent=event
+                        )
 
             # issue / issuewild -> "Issuer" containing the CA's domain
             elif tag.startswith("issue"):

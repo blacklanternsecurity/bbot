@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Optional
 from zoneinfo import ZoneInfo
 from copy import copy, deepcopy
+from types import MappingProxyType
 from contextlib import suppress
 from radixtarget import RadixTarget
 from pydantic import BaseModel, field_validator
@@ -35,6 +36,7 @@ from bbot.core.helpers import (
     domain_stem,
     make_netloc,
     make_ip_type,
+    cached_ip_address,
     recursive_decode,
     sha1,
     smart_decode,
@@ -48,6 +50,17 @@ from bbot.core.helpers.web.envelopes import BaseEnvelope
 
 
 log = logging.getLogger("bbot.core.event")
+
+
+# Shared empty defaults for lazy-init slots. Returned from property accessors
+# when the underlying slot is None — saves ~560 bytes per event compared to
+# allocating real empty containers (set/dict) at __init__ time. Mutating
+# helpers (add_tag, etc.) replace the slot with a real container before
+# mutating, so callers never see the singletons in a mutable position.
+# `_resolved_hosts` has no in-place mutation API — see the resolved_hosts
+# property setter for the assign-once-then-frozen contract.
+_EMPTY_FROZENSET: "frozenset[str]" = frozenset()
+_EMPTY_DICT = MappingProxyType({})
 
 
 class BaseEvent:
@@ -102,8 +115,8 @@ class BaseEvent:
             "parent": "OPEN_TCP_PORT:cf7e6a937b161217eaed99f0c566eae045d094c7",
             "tags": ["in-scope", "distance-0", "dir", "status-301"],
             "http_title": "301 Moved Permanently",
-            "module": "httpx",
-            "module_sequence": "httpx"
+            "module": "http",
+            "module_sequence": "http"
         }
         ```
     """
@@ -161,12 +174,16 @@ class BaseEvent:
         "_internal",
         "_dummy",
         "_module",
-        # DNS-related attributes
-        "dns_children",
-        "raw_dns_records",
+        # DNS-related attributes — backing slots; public access via the
+        # ``dns_children`` / ``raw_dns_records`` properties so a None
+        # underlying slot transparently reads as an empty dict (lazy-init
+        # saves ~128 bytes per event).
+        "_dns_children",
+        "_raw_dns_records",
         "dns_resolve_distance",
         # Host metadata (cloud providers, ASN, whois, etc.)
         "_host_metadata",
+        "_cloudcheck_done",
         # Memory management
         "_module_consumers",
         # Public attributes
@@ -213,7 +230,10 @@ class BaseEvent:
         self._hash = None
         self._data = None
         self.__host = None
-        self._tags = set()
+        # Lazy-init: replaced with a real set/dict on first mutation.
+        # Reading via the property returns a shared empty frozenset/dict
+        # so callers never see None.
+        self._tags = None
         self._port = None
         self._omit = False
         self.__words = None
@@ -225,9 +245,9 @@ class BaseEvent:
         self._scope_distance = None
         self._module_priority = None
         self._graph_important = False
-        self._resolved_hosts = set()
-        self.dns_children = {}
-        self.raw_dns_records = {}
+        self._resolved_hosts = None
+        self._dns_children = None
+        self._raw_dns_records = None
         self._discovery_context = ""
         self._module_consumers = 0
 
@@ -258,7 +278,8 @@ class BaseEvent:
             self.data = self._sanitize_data(data)
         except Exception as e:
             log.trace(traceback.format_exc())
-            raise ValidationError(f'Error sanitizing event data "{data}" for type "{self.type}": {e}')
+            data_preview = str(data)[:200] + "..." if len(str(data)) > 200 else str(data)
+            raise ValidationError(f'Error sanitizing event data "{data_preview}" for type "{self.type}": {e}')
 
         if not self.data:
             raise ValidationError(f'Invalid event data "{data}" for type "{self.type}"')
@@ -289,10 +310,48 @@ class BaseEvent:
     @property
     def resolved_hosts(self):
         if is_ip(self.host):
-            return {
-                self.host,
-            }
-        return self._resolved_hosts
+            return frozenset({self.host})
+        return self._resolved_hosts if self._resolved_hosts is not None else _EMPTY_FROZENSET
+
+    @resolved_hosts.setter
+    def resolved_hosts(self, value):
+        """Assign ``_resolved_hosts`` as a frozenset (or None for unset).
+
+        Resolved hosts are naturally immutable: there is no in-place mutation
+        API. Callers (typically ``dnsresolve``) build the set locally and then
+        assign it once via this setter, after which the slot holds a
+        ``frozenset`` that downstream consumers can read but cannot modify.
+        """
+        if value is None:
+            self._resolved_hosts = None
+        elif isinstance(value, frozenset):
+            self._resolved_hosts = value
+        else:
+            self._resolved_hosts = frozenset(value)
+
+    @property
+    def dns_children(self):
+        return self._dns_children if self._dns_children is not None else _EMPTY_DICT
+
+    @property
+    def raw_dns_records(self):
+        return self._raw_dns_records if self._raw_dns_records is not None else _EMPTY_DICT
+
+    def add_dns_child(self, rdtype, host):
+        """Record a DNS child host under ``rdtype``, lazy-allocating dict + child set."""
+        if self._dns_children is None:
+            self._dns_children = {}
+        existing = self._dns_children.get(rdtype)
+        if existing is None:
+            self._dns_children[rdtype] = {host}
+        else:
+            existing.add(host)
+
+    def set_raw_dns_record(self, rdtype, answers):
+        """Store the raw DNS answer list for ``rdtype``, lazy-allocating the dict."""
+        if self._raw_dns_records is None:
+            self._raw_dns_records = {}
+        self._raw_dns_records[rdtype] = answers
 
     @data.setter
     def data(self, data):
@@ -474,7 +533,7 @@ class BaseEvent:
 
     @property
     def tags(self):
-        return self._tags
+        return self._tags if self._tags is not None else _EMPTY_FROZENSET
 
     @tags.setter
     def tags(self, tags):
@@ -485,6 +544,8 @@ class BaseEvent:
             self.add_tag(tag)
 
     def add_tag(self, tag):
+        if self._tags is None:
+            self._tags = set()
         self._tags.add(sys.intern(tagify(tag)))
 
     def add_tags(self, tags):
@@ -492,6 +553,8 @@ class BaseEvent:
             self.add_tag(tag)
 
     def remove_tag(self, tag):
+        if not self._tags:
+            return
         with suppress(KeyError):
             self._tags.remove(sys.intern(tagify(tag)))
 
@@ -626,7 +689,7 @@ class BaseEvent:
                 self.web_spider_distance = getattr(parent, "web_spider_distance", 0)
                 event_has_url = getattr(self, "parsed_url", None) is not None
                 for t in parent.tags:
-                    if t in ("affiliate",):
+                    if t in ("affiliate", "from-wayback", "from-lightfuzz"):
                         self.add_tag(t)
                     elif t.startswith("mutation-"):
                         self.add_tag(t)
@@ -654,6 +717,26 @@ class BaseEvent:
         if parent_uuid is not None:
             return parent_uuid
         return self._parent_uuid
+
+    @property
+    def archive_url(self):
+        """Traverse the parent chain to find the nearest archive_url.
+
+        The 'from-wayback' tag signals that this event descends from archived content.
+        The actual archive URL is stored only in the data dict of the originating
+        wayback HTTP_RESPONSE; this property walks upward to find it.
+        """
+        if "from-wayback" not in self.tags:
+            return None
+        event = self
+        while event is not None:
+            if isinstance(event.data, dict) and "archive_url" in event.data:
+                return event.data["archive_url"]
+            parent = getattr(event, "parent", None)
+            if parent is None or parent is event:
+                break
+            event = parent
+        return None
 
     @property
     def validators(self):
@@ -703,6 +786,11 @@ class BaseEvent:
         process this event, heavy payload data is stripped to free memory.
         """
         self._module_consumers = max(0, self._module_consumers - 1)
+        if self._module_consumers <= 0:
+            # release container slots; lazy-init pattern means None == empty
+            self._dns_children = None
+            self._raw_dns_records = None
+            self._resolved_hosts = None
 
     def clone(self):
         # Create a shallow copy of the event first
@@ -1071,10 +1159,20 @@ class DefaultEvent(BaseEvent):
 
 
 class DictEvent(BaseEvent):
+    __slots__ = ["url_extension"]
+
     def sanitize_data(self, data):
         url = data.get("url", "")
         if url:
             self.parsed_url = self.validators.validate_url_parsed(url)
+            # extract url_extension from any dict event with a URL
+            url_path = self.parsed_url.path
+            if url_path:
+                parsed_path_lower = str(url_path).lower()
+                extension = get_file_extension(parsed_path_lower)
+                if extension:
+                    self.url_extension = extension
+                    self.add_tag(f"extension-{extension}")
         return data
 
     def _data_load(self, data):
@@ -1203,7 +1301,7 @@ class CODE_REPOSITORY(DictHostEvent):
 class IP_ADDRESS(BaseEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        ip = ipaddress.ip_address(self.data)
+        ip = cached_ip_address(self.data)
         self.add_tag(f"ipv{ip.version}")
         if ip.is_private:
             self.add_tag("private-ip")
@@ -1213,7 +1311,7 @@ class IP_ADDRESS(BaseEvent):
         return validators.validate_host(data)
 
     def _host(self):
-        return ipaddress.ip_address(self.data)
+        return cached_ip_address(self.data)
 
 
 class DnsEvent(BaseEvent):
@@ -1302,7 +1400,6 @@ class URL_UNVERIFIED(DictHostEvent):
 
     __slots__ = [
         "web_spider_distance",
-        "url_extension",
         "num_redirects",
     ]
 
@@ -1497,6 +1594,14 @@ class WEB_PARAMETER(DictHostEvent):
         "envelopes",
     ]
 
+    def _minimize(self):
+        super()._minimize()
+        if self._module_consumers <= 0:
+            self._data.pop("original_value", None)
+            self._data.pop("additional_params", None)
+            self._data.pop("assigned_cookies", None)
+            self._data.pop("same_param_values", None)
+
     @property
     def children(self):
         # if we have any subparams, raise a new WEB_PARAMETER for each one
@@ -1602,6 +1707,45 @@ class HTTP_RESPONSE(URL_UNVERIFIED):
         if str(self.http_status).startswith("3"):
             self.num_redirects += 1
 
+        # Spill body to disk if a per-scan store is available. The body
+        # is removed from `_data` so JSON / human renderers don't see it;
+        # readers use the `.body` property which lazy-loads from the store.
+        # When spill is disabled (no store on the scan), body stays in
+        # `_data` and `.body` falls back to reading it from there.
+        store = getattr(getattr(self, "scan", None), "body_spill_store", None)
+        if store is not None and isinstance(self._data, dict) and "body" in self._data:
+            body = self._data.pop("body")
+            if isinstance(body, str):
+                body_bytes = body.encode("utf-8", errors="replace")
+            elif isinstance(body, (bytes, bytearray, memoryview)):
+                body_bytes = bytes(body)
+            else:
+                body_bytes = str(body).encode("utf-8", errors="replace")
+            if body_bytes:
+                store.write(str(self._uuid), body_bytes)
+
+    @property
+    def body(self):
+        """
+        The HTTP response body as a string.
+
+        With spill enabled, the body lives in the per-scan ``BodySpillStore``
+        (LRU cache + disk file). Cache hits are instant; misses re-read
+        from disk. After ``_minimize()`` fires the body is gone and this
+        property returns ``""``.
+
+        With spill disabled, falls back to ``self._data["body"]``.
+        """
+        store = getattr(getattr(self, "scan", None), "body_spill_store", None)
+        if store is None:
+            if isinstance(self._data, dict):
+                return self._data.get("body", "") or ""
+            return ""
+        body_bytes = store.read(str(self._uuid))
+        if not body_bytes:
+            return ""
+        return body_bytes.decode("utf-8", errors="replace")
+
     def _data_id(self):
         return self.data["method"] + "|" + self.data["url"]
 
@@ -1664,8 +1808,14 @@ class HTTP_RESPONSE(URL_UNVERIFIED):
     def _minimize(self):
         super()._minimize()
         if self._module_consumers <= 0:
+            store = getattr(getattr(self, "scan", None), "body_spill_store", None)
+            if store is not None:
+                store.evict_and_delete(str(self._uuid))
+            # `body` may still be in _data if spill was disabled at creation
             self._data.pop("body", None)
             self._data.pop("raw_header", None)
+            self._data.pop("header", None)
+            self._data.pop("cert_info", None)
 
     @property
     def raw_response(self):
@@ -1673,8 +1823,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED):
         Formats the status code, headers, and body into a single string formatted as an HTTP/1.1 response.
         """
         raw_header = self.data.get("raw_header", "")
-        body = self.data.get("body", "")
-        return f"{raw_header}{body}"
+        return f"{raw_header}{self.body}"
 
     @property
     def http_status(self):
@@ -1737,20 +1886,46 @@ class FINDING(ClosestHostEvent):
                     parts.append(f"{n} {sev}")
             return f"{event_type}: {self.count} ({', '.join(parts)})"
 
-    severity_colors = {
-        "CRITICAL": "🟪",
-        "HIGH": "🟥",
-        "MEDIUM": "🟧",
-        "LOW": "🟨",
-        "INFO": "⬜",
+    # Standard finding color palette. Single source of truth for every output module.
+    # Severity selects the hue (blue, yellow, orange, red, purple); confidence dims it.
+    severity_colors_rgb = {
+        "INFO": (113, 161, 255),
+        "LOW": (255, 215, 0),
+        "MEDIUM": (255, 135, 0),
+        "HIGH": (255, 0, 0),
+        "CRITICAL": (207, 0, 255),
+    }
+    confidence_brightness = {
+        "CONFIRMED": 1.00,
+        "HIGH": 0.88,
+        "MEDIUM": 0.77,
+        "LOW": 0.66,
+        "UNKNOWN": 0.55,
     }
 
-    confidence_colors = {
+    # emoji rendering of the same palette, for chat-based output (Slack, Discord, Teams)
+    severity_colors_emoji = {
+        "INFO": "🟦",
+        "LOW": "🟨",
+        "MEDIUM": "🟧",
+        "HIGH": "🟥",
+        "CRITICAL": "🟪",
+    }
+    confidence_colors_emoji = {
         "CONFIRMED": "🟣",
         "HIGH": "🔴",
         "MEDIUM": "🟠",
         "LOW": "🟡",
         "UNKNOWN": "⚪",
+    }
+
+    # Adaptive Card style names for Microsoft Teams output
+    severity_card_colors = {
+        "CRITICAL": "Attention",
+        "HIGH": "Attention",
+        "MEDIUM": "Warning",
+        "LOW": "Good",
+        "INFO": "Accent",
     }
 
     def sanitize_data(self, data):
@@ -1769,6 +1944,7 @@ class FINDING(ClosestHostEvent):
         full_url: Optional[str] = None
         path: Optional[str] = None
         cves: Optional[list[str]] = None
+        archive_url: Optional[str] = None
         _validate_url = field_validator("url")(validators.validate_url)
         _validate_host = field_validator("host")(validators.validate_host)
         _validate_severity = field_validator("severity")(validators.validate_severity)
@@ -1827,6 +2003,31 @@ class TECHNOLOGY(DictHostEvent):
         if url:
             return f"{tech} ({url})"
         return tech
+
+
+class VIRTUAL_HOST(DictHostEvent):
+    class _data_validator(BaseModel):
+        host: str
+        virtual_host: str
+        url: Optional[str] = None
+        description: Optional[str] = None
+        ip: Optional[str] = None
+        _validate_url = field_validator("url")(validators.validate_url)
+        _validate_host = field_validator("host")(validators.validate_host)
+
+    def _data_id(self):
+        virtual_host = self.data.get("virtual_host", "")
+        return f"{self.host}:{virtual_host}"
+
+    def _pretty_string(self):
+        return self.data.get("virtual_host", "")
+
+    def _data_human(self):
+        virtual_host = self.data.get("virtual_host", "")
+        url = self.data.get("url", "")
+        if url:
+            return f"{virtual_host} ({url})"
+        return virtual_host
 
 
 class PROTOCOL(DictHostEvent):
@@ -2171,7 +2372,8 @@ def make_event(
                 data = validators.validate_host(data)
             except Exception as e:
                 log.trace(traceback.format_exc())
-                raise ValidationError(f'Error sanitizing event data "{data}" for type "{event_type}": {e}')
+                data_preview = str(data)[:200] + "..." if len(str(data)) > 200 else str(data)
+                raise ValidationError(f'Error sanitizing event data "{data_preview}" for type "{event_type}": {e}')
             data_is_ip = is_ip(data)
             if event_type == "DNS_NAME" and data_is_ip:
                 event_type = "IP_ADDRESS"
@@ -2246,7 +2448,7 @@ def event_from_json(j):
             event._uuid = uuid.UUID(event_uuid.split(":")[-1])
 
         resolved_hosts = j.get("resolved_hosts", [])
-        event._resolved_hosts = set(resolved_hosts)
+        event._resolved_hosts = frozenset(resolved_hosts) if resolved_hosts else None
 
         http_title = j.get("http_title", "")
         if http_title:

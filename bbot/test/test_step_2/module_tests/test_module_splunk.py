@@ -1,5 +1,5 @@
 import json
-import httpx
+from bbot.test.mock_blasthttp import MockResponse
 
 from .base import ModuleTestBase
 
@@ -43,13 +43,13 @@ class TestSplunk(ModuleTestBase):
                 self.headers_correct = True
             if self.verify_data(j):
                 self.got_event = True
-            return httpx.Response(
+            return MockResponse(
                 status_code=200,
             )
 
-        module_test.httpx_mock.add_callback(custom_callback)
-        module_test.httpx_mock.add_callback(custom_callback)
-        module_test.httpx_mock.add_response()
+        module_test.blasthttp_mock.add_callback(custom_callback)
+        module_test.blasthttp_mock.add_callback(custom_callback)
+        module_test.blasthttp_mock.add_response()
 
     def check(self, module_test, events):
         assert self.got_event is True

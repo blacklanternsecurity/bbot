@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import io
+import os
 import sys
 import logging
 import multiprocessing
@@ -11,16 +12,22 @@ from bbot.core.helpers.misc import chain_lists
 
 
 if multiprocessing.current_process().name == "MainProcess":
+    # the --no-color flag is parsed later, so honor it (and the NO_COLOR env) before any color is printed
+    no_color = "--no-color" in sys.argv or bool(os.environ.get("NO_COLOR", ""))
+    if no_color:
+        os.environ["NO_COLOR"] = "1"
     silent = "-s" in sys.argv or "--silent" in sys.argv
 
     if not silent:
-        ascii_art = rf""" [1;38;5;208m ______ [0m _____   ____ _______
- [1;38;5;208m|  ___ \[0m|  __ \ / __ \__   __|
- [1;38;5;208m| |___) [0m| |__) | |  | | | |
- [1;38;5;208m|  ___ <[0m|  __ <| |  | | | |
- [1;38;5;208m| |___) [0m| |__) | |__| | | |
- [1;38;5;208m|______/[0m|_____/ \____/  |_|
- [1;38;5;208mBIGHUGE[0m BLS OSINT TOOL {__version__}
+        o = "" if no_color else "\033[1;38;5;208m"
+        e = "" if no_color else "\033[0m"
+        ascii_art = rf""" {o} ______ {e} _____   ____ _______
+ {o}|  ___ \{e}|  __ \ / __ \__   __|
+ {o}| |___) {e}| |__) | |  | | | |
+ {o}|  ___ <{e}|  __ <| |  | | | |
+ {o}| |___) {e}| |__) | |__| | | |
+ {o}|______/{e}|_____/ \____/  |_|
+ {o}BIGHUGE{e} BLS OSINT TOOL {__version__}
 
 www.blacklanternsecurity.com/bbot
 """
@@ -95,6 +102,7 @@ async def _main():
                 preset._default_internal_modules = []
 
             # Bake a temporary copy of the preset so that flags correctly enable their associated modules before listing them
+            preset.validate()
             preset = preset.bake()
 
             # --list-modules
@@ -149,6 +157,7 @@ async def _main():
                 print(row)
             return
 
+        preset.validate()
         baked_preset = preset.bake()
 
         # --current-preset / --current-preset-full
@@ -337,6 +346,8 @@ def main():
     import traceback
     from bbot.core import CORE
 
+    log = logging.getLogger("bbot.cli")
+
     global scan_name
     try:
         asyncio.run(_main())
@@ -347,9 +358,17 @@ def main():
         msg = "Interrupted"
         if scan_name:
             msg = f"You killed {scan_name}"
+        log.warning(msg)
+        log.trace(traceback.format_exc())
         log_to_stderr(msg, level="WARNING")
         if CORE.logger.log_level <= logging.DEBUG:
             log_to_stderr(traceback.format_exc(), level="DEBUG")
+        exit(1)
+    except Exception as e:
+        log.error(f"Unhandled exception: {e}")
+        log.trace(traceback.format_exc())
+        log_to_stderr(f"Unhandled exception: {e}", level="CRITICAL")
+        log_to_stderr(traceback.format_exc(), level="DEBUG")
         exit(1)
 
 

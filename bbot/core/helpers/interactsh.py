@@ -140,7 +140,11 @@ class Interactsh:
                 "correlation-id": self.correlation_id,
             }
             r = await self.parent_helper.request(
-                f"https://{server}/register", headers=headers, json=data, method="POST"
+                f"https://{server}/register",
+                headers=headers,
+                json=data,
+                method="POST",
+                ssl_verify=self.parent_helper.web.ssl_verify_infrastructure,
             )
             if r is None:
                 continue
@@ -190,7 +194,11 @@ class Interactsh:
         data = {"secret-key": self.secret, "correlation-id": self.correlation_id}
 
         r = await self.parent_helper.request(
-            f"https://{self.server}/deregister", headers=headers, json=data, method="POST"
+            f"https://{self.server}/deregister",
+            headers=headers,
+            json=data,
+            method="POST",
+            ssl_verify=self.parent_helper.web.ssl_verify_infrastructure,
         )
 
         if self._poll_task is not None:
@@ -241,6 +249,7 @@ class Interactsh:
                 f"https://{self.server}/poll?id={self.correlation_id}&secret={self.secret}",
                 headers=headers,
                 timeout=15,
+                ssl_verify=self.parent_helper.web.ssl_verify_infrastructure,
             )
             if r is None:
                 raise InteractshError("Error polling interact.sh: No response from server")

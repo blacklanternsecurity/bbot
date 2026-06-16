@@ -5,7 +5,7 @@ from .base import ModuleTestBase, tempwordlist
 
 class Paramminer_Headers(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "paramminer_headers"]
+    modules_overrides = ["http", "paramminer_headers"]
     config_overrides = {"modules": {"paramminer_headers": {"wordlist": tempwordlist(["junkword1", "tracestate"])}}}
 
     headers_body = """
@@ -80,7 +80,7 @@ class TestParamminer_Headers_noreflection(Paramminer_Headers):
 
 
 class TestParamminer_Headers_extract(Paramminer_Headers):
-    modules_overrides = ["httpx", "paramminer_headers", "excavate"]
+    modules_overrides = ["http", "paramminer_headers", "excavate"]
     config_overrides = {
         "modules": {
             "paramminer_headers": {"wordlist": tempwordlist(["junkword1", "tracestate"]), "recycle_words": True}
@@ -135,7 +135,7 @@ class TestParamminer_Headers_extract(Paramminer_Headers):
 
 
 class TestParamminer_Headers_extract_norecycle(TestParamminer_Headers_extract):
-    modules_overrides = ["httpx", "excavate"]
+    modules_overrides = ["http", "excavate"]
     config_overrides = {}
 
     async def setup_after_prep(self, module_test):
@@ -197,3 +197,112 @@ class TestParamminer_Headers_NoCookieRetention(Paramminer_Headers):
 
         assert found_web_parameter, "WEB_PARAMETER event was not emitted"
         assert not found_web_parameter_false_positive, "WEB_PARAMETER event was emitted with false positive"
+
+
+class TestParamminerHeadersWildcardSkip(ModuleTestBase):
+    """When the host is an HTTP wildcard, paramminer_headers should skip fuzzing entirely."""
+
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["http", "paramminer_headers"]
+    config_overrides = {"modules": {"paramminer_headers": {"wordlist": tempwordlist(["tracestate"])}}}
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"},
+            respond_args={"response_data": "<html><body>hello</body></html>"},
+        )
+
+    async def setup_after_prep(self, module_test):
+        async def mock_wildcard(scheme, host, port):
+            return True
+
+        module_test.scan.helpers.web.is_http_wildcard_host = mock_wildcard
+
+    def check(self, module_test, events):
+        web_params = [e for e in events if e.type == "WEB_PARAMETER" and str(e.module) == "paramminer_headers"]
+        assert len(web_params) == 0, f"paramminer_headers should not fuzz wildcard hosts, but emitted: {web_params}"
+
+
+class TestParamminerHeadersDedupValueMutations(Paramminer_Headers):
+    """Value mutations of the same parameter set on the same endpoint should collapse to one test surface."""
+
+    async def setup_after_prep(self, module_test):
+        await super().setup_after_prep(module_test)
+        pm = module_test.scan.modules["paramminer_headers"]
+
+        def make_wp(**kwargs):
+            defaults = {"host": "127.0.0.1:8888", "type": "GETPARAM", "original_value": "x"}
+            defaults.update(kwargs)
+            return module_test.scan.make_event(defaults, "WEB_PARAMETER", dummy=True)
+
+        def make_hr(url):
+            return module_test.scan.make_event(
+                {
+                    "url": url,
+                    "status_code": 200,
+                    "header-dict": {},
+                    "body": "",
+                    "raw_header": "HTTP/1.1 200 OK\r\n\r\n",
+                    "method": "GET",
+                },
+                "HTTP_RESPONSE",
+                dummy=True,
+            )
+
+        # same endpoint, same param keys, different values (simulates lightfuzz probe cycling)
+        hash_a, _ = pm._incoming_dedup_hash(
+            make_wp(
+                url="http://127.0.0.1:8888/page?culture=probe_a&page=1",
+                name="culture",
+                additional_params={"page": "1"},
+            )
+        )
+        hash_b, _ = pm._incoming_dedup_hash(
+            make_wp(
+                url="http://127.0.0.1:8888/page?culture=probe_b&page=2",
+                name="culture",
+                additional_params={"page": "2"},
+            )
+        )
+        assert hash_a == hash_b, "Value mutations of same param keys should produce same dedup hash"
+
+        # different param keys on same path -> distinct
+        hash_c, _ = pm._incoming_dedup_hash(
+            make_wp(
+                url="http://127.0.0.1:8888/page?culture=x&page=1&csrf=tok",
+                name="culture",
+                additional_params={"page": "1", "csrf": "tok"},
+            )
+        )
+        assert hash_a != hash_c, "Different param key sets should produce different dedup hashes"
+
+        # different path, same keys -> distinct
+        hash_d, _ = pm._incoming_dedup_hash(
+            make_wp(
+                url="http://127.0.0.1:8888/other?culture=x&page=1",
+                name="culture",
+                additional_params={"page": "1"},
+            )
+        )
+        assert hash_a != hash_d, "Same param keys on different paths should produce different dedup hashes"
+
+        # different focus name, same sibling keys (excavate emits one WP per param) -> distinct
+        hash_e, _ = pm._incoming_dedup_hash(
+            make_wp(
+                url="http://127.0.0.1:8888/page?culture=x&page=1",
+                name="page",
+                additional_params={"culture": "x"},
+            )
+        )
+        assert hash_a != hash_e, "Different focus name with same siblings should produce different dedup hashes"
+
+        # HTTP_RESPONSE events: same endpoint collapses regardless
+        hash_hr_a, _ = pm._incoming_dedup_hash(make_hr("http://127.0.0.1:8888/page"))
+        hash_hr_b, _ = pm._incoming_dedup_hash(make_hr("http://127.0.0.1:8888/page"))
+        assert hash_hr_a == hash_hr_b, "HTTP_RESPONSE events for same endpoint should produce same dedup hash"
+
+        # WEB_PARAMETER and HTTP_RESPONSE for same URL should NOT collide
+        assert hash_a != hash_hr_a, "WEB_PARAMETER and HTTP_RESPONSE should not share dedup hashes"
+
+    def check(self, module_test, events):
+        super().check(module_test, events)

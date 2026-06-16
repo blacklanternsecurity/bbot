@@ -1,7 +1,8 @@
 import sys
+import yaml
 from pathlib import Path
-from omegaconf import OmegaConf
 
+from .merge import deep_merge
 from ...logger import log_to_stderr
 from ...errors import ConfigLoadError
 
@@ -18,24 +19,36 @@ class BBOTConfigFiles:
     def __init__(self, core):
         self.core = core
 
-    def _get_config(self, filename, name="config"):
+    def _get_config(self, filename, name="config") -> dict:
         filename = Path(filename).resolve()
+        if not filename.exists():
+            return {}
         try:
-            conf = OmegaConf.load(str(filename))
+            with open(filename) as f:
+                conf = yaml.safe_load(f) or {}
+            if not isinstance(conf, dict):
+                raise ConfigLoadError(
+                    f"Error parsing config at {filename}: expected a YAML mapping at the top level, "
+                    f"got {type(conf).__name__}"
+                )
             cli_silent = any(x in sys.argv for x in ("-s", "--silent"))
             if __name__ == "__main__" and not cli_silent:
                 log_to_stderr(f"Loaded {name} from {filename}")
             return conf
+        except ConfigLoadError:
+            raise
+        except yaml.YAMLError as e:
+            raise ConfigLoadError(
+                f"YAML syntax error in {filename}:\n\n{e}\n\nPlease check the file for indentation or formatting errors."
+            )
         except Exception as e:
-            if filename.exists():
-                raise ConfigLoadError(f"Error parsing config at {filename}:\n\n{e}")
-            return OmegaConf.create()
+            raise ConfigLoadError(f"Error parsing config at {filename}:\n\n{e}")
 
-    def get_custom_config(self):
-        return OmegaConf.merge(
+    def get_custom_config(self) -> dict:
+        return deep_merge(
             self._get_config(self.config_filename, name="config"),
             self._get_config(self.secrets_filename, name="secrets"),
         )
 
-    def get_default_config(self):
+    def get_default_config(self) -> dict:
         return self._get_config(self.defaults_filename, name="defaults")

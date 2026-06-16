@@ -1,7 +1,7 @@
 description: Run nuclei scans against all discovered targets
 
 modules:
-  - httpx
+  - http
   - nuclei
   - portfilter
 

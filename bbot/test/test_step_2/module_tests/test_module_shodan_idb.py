@@ -13,7 +13,7 @@ class TestShodan_IDB(ModuleTestBase):
             }
         )
 
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://internetdb.shodan.io/1.2.3.4",
             json={
                 "cpes": [

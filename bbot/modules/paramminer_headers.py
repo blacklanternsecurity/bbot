@@ -1,7 +1,9 @@
 import re
+from typing import Union
 
 from bbot.errors import HttpCompareError
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 _case_split = re.compile(r"[-_]+")
 
@@ -39,16 +41,17 @@ class paramminer_headers(BaseModule):
         "created_date": "2022-04-15",
         "author": "@liquidsec",
     }
-    options = {
-        "wordlist": "",  # default is defined within setup function
-        "recycle_words": False,
-        "skip_boring_words": True,
-    }
-    options_desc = {
-        "wordlist": "Define the wordlist to be used to derive headers",
-        "recycle_words": "Attempt to use words found during the scan on all other endpoints",
-        "skip_boring_words": "Remove commonly uninteresting words from the wordlist",
-    }
+
+    class Config(BaseModuleConfig):
+        wordlist: Union[str, list[str]] = Field(
+            "",
+            description="Define the wordlist to be used to derive headers. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
+        )
+        recycle_words: bool = Field(
+            False, description="Attempt to use words found during the scan on all other endpoints"
+        )
+        skip_boring_words: bool = Field(True, description="Remove commonly uninteresting words from the wordlist")
+
     # URLs ending with these extensions are known to be case-insensitive — skip case mutation.
     # (Used by paramminer_getparams and paramminer_cookies; HTTP headers are inherently
     # case-insensitive per RFC 7230 so this isn't relevant to paramminer_headers itself.)
@@ -112,7 +115,7 @@ class paramminer_headers(BaseModule):
         "zx-request-id",
         "zx-timer",
     }
-    _module_threads = 12
+    _module_threads = 4
     in_scope_only = True
     compare_mode = "header"
     default_wordlist = "paramminer_headers.txt"
@@ -227,7 +230,6 @@ class paramminer_headers(BaseModule):
                     if self.global_blacklist_prefixes and lower_name.startswith(self.global_blacklist_prefixes):
                         return
                 if parameter_name not in self.wl:  # Ensure it's not already in the wordlist
-                    self.debug(f"Adding {parameter_name} to wordlist")
                     self.extracted_words_master.add(parameter_name)
 
         elif event.type == "HTTP_RESPONSE":
@@ -257,32 +259,40 @@ class paramminer_headers(BaseModule):
                 self.debug(f"Encountered HttpCompareError: [{e}] for URL [{event.url}]")
             await self.process_results(event, results)
 
+    max_count = 95
+
     async def count_test(self, url):
         baseline = await self.helpers.request(url)
         if baseline is None:
             return
         if str(baseline.status_code)[0] in {"4", "5"}:
             return
-        for count, args, kwargs in self.gen_count_args(url):
+
+        # Binary search for the maximum count the server accepts
+        lo, hi = 0, self.max_count
+        result = None
+        while lo <= hi:
+            mid = (lo + hi) // 2
+            if mid == 0:
+                break
+            args, kwargs = self.build_count_test_request(url, mid)
             r = await self.helpers.request(*args, **kwargs)
             if r is not None and str(r.status_code)[0] not in {"4", "5"}:
-                return count
+                result = mid
+                lo = mid + 1
+            else:
+                hi = mid - 1
+        return result
 
-    def gen_count_args(self, url):
-        header_count = 95
-        while 1:
-            if header_count < 0:
-                break
-            fake_headers = {}
-            for i in range(0, header_count):
-                fake_headers[self.rand_string(14)] = self.rand_string(14)
-            yield header_count, (url,), {"headers": fake_headers}
-            header_count -= 5
+    def build_count_test_request(self, url, count):
+        """Build a test request with `count` fake parameters. Returns (args, kwargs) for helpers.request()."""
+        fake_headers = {self.rand_string(14): self.rand_string(14) for _ in range(count)}
+        return (url,), {"headers": fake_headers}
 
     async def binary_search(self, compare_helper, url, group, reasons=None, reflection=False):
         if reasons is None:
             reasons = []
-        self.debug(f"Entering recursive binary_search with {len(group):,} sized group")
+            self.debug(f"Entering binary_search with {len(group):,} sized group for URL [{url}]")
         if len(group) == 1 and len(reasons) > 0:
             yield group[0], reasons, reflection
         elif len(group) > 1 or (len(group) == 1 and len(reasons) == 0):
@@ -291,10 +301,6 @@ class paramminer_headers(BaseModule):
                 if match is False:
                     async for r in self.binary_search(compare_helper, url, group_slice, reasons, reflection):
                         yield r
-        else:
-            self.debug(
-                f"binary_search() failed to start with group of size {str(len(group))} and {str(len(reasons))} length reasons"
-            )
 
     async def check_batch(self, compare_helper, url, header_list):
         rand = self.rand_string()
@@ -322,9 +328,28 @@ class paramminer_headers(BaseModule):
                 continue
             await self.process_results(event, results)
 
+    def _incoming_dedup_hash(self, event):
+        # dedup by endpoint structure, not full URL string -- value mutations
+        # of the same parameter set (e.g. from lightfuzz probes) are one test surface
+        p = getattr(event, "parsed_url", None)
+        if p is None:
+            return hash(event), ""
+        if event.type == "WEB_PARAMETER":
+            name = event.data.get("name", "")
+            additional_params = event.data.get("additional_params") or {}
+            param_keys = tuple(sorted(additional_params.keys()))
+        else:
+            name = ""
+            param_keys = ()
+        return hash((event.type, p.scheme, p.netloc, p.path, name, param_keys)), "per_endpoint+keys"
+
     async def filter_event(self, event):
+        if await self._is_http_wildcard_host(event) is True:
+            return False, "host is an HTTP wildcard responder"
+
         # Filter out static endpoints
-        if event.url.endswith(tuple(f".{ext}" for ext in self.config.get("url_extension_static", []))):
+        ext = getattr(event, "url_extension", None)
+        if ext and ext in self.scan.config.get("url_extension_static", []):
             return False
 
         # We don't need to look at WEB_PARAMETERS that we produced

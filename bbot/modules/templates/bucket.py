@@ -131,7 +131,7 @@ class bucket_template(BaseModule):
                 for bucket_name in new_buckets:
                     url, kwargs = self.build_bucket_request(bucket_name, base_domain, region)
                     bucket_urls_kwargs.append((url, kwargs, (bucket_name, base_domain, region)))
-        async for url, kwargs, (bucket_name, base_domain, region), response in self.helpers.request_custom_batch(
+        async for url, response, (bucket_name, base_domain, region) in self.helpers.request_batch_stream(
             bucket_urls_kwargs
         ):
             existent_bucket, tags = self._check_bucket_exists(bucket_name, response)

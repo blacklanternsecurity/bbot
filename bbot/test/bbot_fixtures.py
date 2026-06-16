@@ -7,12 +7,12 @@ import logging
 import tldextract
 import pytest_httpserver
 from pathlib import Path
-from omegaconf import OmegaConf  # noqa
 
 from werkzeug.wrappers import Request
 
 from bbot.errors import *  # noqa: F401
 from bbot.core import CORE
+from bbot.core.config.merge import deep_merge
 from bbot.scanner import Preset
 from bbot.core.helpers.misc import mkdir, rand_string
 
@@ -49,13 +49,14 @@ def tempapkfile():
 
 @pytest.fixture
 def clean_default_config(monkeypatch):
-    clean_config = OmegaConf.merge(
-        CORE.files_config.get_default_config(), {"modules": DEFAULT_PRESET.module_loader.configs()}
+    clean_config = deep_merge(
+        CORE.files_config.get_default_config(),
+        {"modules": DEFAULT_PRESET.module_loader.configs()},
     )
     with monkeypatch.context() as m:
         m.setattr("bbot.core.core.DEFAULT_CONFIG", clean_config)
         # Also clear CORE's custom_config to ensure Preset.copy() gets a clean core
-        m.setattr(CORE, "_custom_config", OmegaConf.create({}))
+        m.setattr(CORE, "_custom_config", {})
         yield
 
 
@@ -98,7 +99,7 @@ def helpers(scan):
     return scan.helpers
 
 
-httpx_response = {
+blasthttp_response = {
     "timestamp": "2022-11-14T12:14:27.377566416-05:00",
     "hash": {
         "body_md5": "84238dfc8092e5d9c0dac8ef93371a07",
@@ -223,7 +224,9 @@ def events(scan):
             parent=scan.root_event,
             module=dummy_module,
         )
-        http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", parent=scan.root_event, module=dummy_module)
+        http_response = scan.make_event(
+            blasthttp_response, "HTTP_RESPONSE", parent=scan.root_event, module=dummy_module
+        )
         storage_bucket = scan.make_event(
             {"name": "storage", "url": "https://storage.blob.core.windows.net"},
             "STORAGE_BUCKET",

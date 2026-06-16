@@ -10,7 +10,7 @@ class TestGithub_Codesearch(ModuleTestBase):
         "omit_event_types": [],
         "scope": {"report_distance": 2},
     }
-    modules_overrides = ["github_codesearch", "httpx", "trufflehog"]
+    modules_overrides = ["github_codesearch", "http", "trufflehog"]
 
     github_file_endpoint = (
         "/projectdiscovery/nuclei/06f242e5fce3439b7418877676810cbf57934875/v2/cmd/cve-annotate/main.go"
@@ -38,8 +38,8 @@ Gnl54dJHT+EhlfY=
         respond_args = {"response_data": self.github_file_content}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
-        module_test.httpx_mock.add_response(url="https://api.github.com/zen")
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(url="https://api.github.com/zen")
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/search/code?per_page=100&type=Code&q=blacklanternsecurity.com&page=1",
             json={
                 "total_count": 214,

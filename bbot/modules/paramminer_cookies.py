@@ -1,4 +1,7 @@
+from typing import Union
+
 from .paramminer_headers import paramminer_headers
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class paramminer_cookies(paramminer_headers):
@@ -14,18 +17,19 @@ class paramminer_cookies(paramminer_headers):
         "created_date": "2022-06-27",
         "author": "@liquidsec",
     }
-    options = {
-        "wordlist": "",  # default is defined within setup function
-        "recycle_words": False,
-        "skip_boring_words": True,
-    }
-    options_desc = {
-        "wordlist": "Define the wordlist to be used to derive cookies",
-        "recycle_words": "Attempt to use words found during the scan on all other endpoints",
-        "skip_boring_words": "Remove commonly uninteresting words from the wordlist",
-    }
+
+    class Config(BaseModuleConfig):
+        wordlist: Union[str, list[str]] = Field(
+            "",
+            description="Define the wordlist to be used to derive cookies. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
+        )
+        recycle_words: bool = Field(
+            False, description="Attempt to use words found during the scan on all other endpoints"
+        )
+        skip_boring_words: bool = Field(True, description="Remove commonly uninteresting words from the wordlist")
+
     scanned_hosts = []
-    _module_threads = 12
+    _module_threads = 4
     in_scope_only = True
     compare_mode = "cookie"
     default_wordlist = "paramminer_cookies.txt"
@@ -34,11 +38,8 @@ class paramminer_cookies(paramminer_headers):
         cookies = {p: self.rand_string(14) for p in cookie_list}
         return await compare_helper.compare(url, cookies=cookies, check_reflection=(len(cookie_list) == 1))
 
-    def gen_count_args(self, url):
-        cookie_count = 40
-        while 1:
-            if cookie_count < 0:
-                break
-            fake_cookies = {self.rand_string(14): self.rand_string(14) for _ in range(0, cookie_count)}
-            yield cookie_count, (url,), {"cookies": fake_cookies}
-            cookie_count -= 5
+    max_count = 40
+
+    def build_count_test_request(self, url, count):
+        fake_cookies = {self.rand_string(14): self.rand_string(14) for _ in range(count)}
+        return (url,), {"cookies": fake_cookies}

@@ -66,7 +66,11 @@ class reflected_parameters(BaseModule):
         param_type = event.data["type"]
 
         if param_type == "GETPARAM":
-            url = f"{url}?{parameter_name}={parameter_value}&c4n4ry={canary_value}"
+            url = self.helpers.add_get_params(
+                url,
+                {parameter_name: parameter_value, "c4n4ry": canary_value},
+                encode=False,
+            ).geturl()
         elif param_type == "COOKIE":
             cookies.update(params)
         elif param_type == "HEADER":

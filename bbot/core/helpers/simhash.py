@@ -11,10 +11,11 @@ class SimHashHelper:
     @staticmethod
     def compute_simhash(text, bits=64, truncate=True, normalization_filter=None):
         """
-        Static method for computing SimHash that can be used with multiprocessing.
+        Static method for computing a SimHash fingerprint.
 
-        This method is designed to be used with run_in_executor_mp() for CPU-intensive
-        SimHash computations across multiple processes.
+        Designed to be called via run_in_executor_cpu(): the work is short and the
+        input is truncated to ~3KB inside the helper, so a thread pool avoids the
+        pickle/spawn overhead of a process pool.
 
         Args:
             text (str): The text to hash

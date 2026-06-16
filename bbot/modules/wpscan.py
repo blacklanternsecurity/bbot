@@ -1,5 +1,6 @@
 import json
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class wpscan(BaseModule):
@@ -12,24 +13,19 @@ class wpscan(BaseModule):
         "author": "@domwhewell-sage",
     }
 
-    options = {
-        "api_key": "",
-        "enumerate": "vp,vt,cb,dbe",
-        "threads": 5,
-        "request_timeout": 5,
-        "connection_timeout": 2,
-        "disable_tls_checks": True,
-        "force": False,
-    }
-    options_desc = {
-        "api_key": "WPScan API Key",
-        "enumerate": "Enumeration Process see wpscan help documentation (default: vp,vt,cb,dbe)",
-        "threads": "How many wpscan threads to spawn (default is 5)",
-        "request_timeout": "The request timeout in seconds (default 5)",
-        "connection_timeout": "The connection timeout in seconds (default 2)",
-        "disable_tls_checks": "Disables the SSL/TLS certificate verification (Default True)",
-        "force": "Do not check if the target is running WordPress or returns a 403",
-    }
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="WPScan API Key", sensitive=True)
+        enumerate: str = Field(
+            "vp,vt,cb,dbe", description="Enumeration Process see wpscan help documentation (default: vp,vt,cb,dbe)"
+        )
+        threads: int = Field(5, description="How many wpscan threads to spawn (default is 5)")
+        request_timeout: int = Field(5, description="The request timeout in seconds (default 5)")
+        connection_timeout: int = Field(2, description="The connection timeout in seconds (default 2)")
+        disable_tls_checks: bool = Field(
+            True, description="Disables the SSL/TLS certificate verification (Default True)"
+        )
+        force: bool = Field(False, description="Do not check if the target is running WordPress or returns a 403")
+
     deps_apt = ["curl", "make", "gcc"]
     deps_ansible = [
         {
@@ -58,7 +54,10 @@ class wpscan(BaseModule):
         },
         {
             "name": "Install wpscan gem",
-            "gem": {"name": "wpscan", "state": "latest", "user_install": False},
+            # Pin to 3.8.28 (requires Ruby >= 3.0). wpscan 4.0.0 requires Ruby >= 3.3,
+            # which is newer than the Ruby shipped by Ubuntu 24.04 (3.2.3) and the bbot
+            # CI runners. Bump this when the runners ship Ruby 3.3+.
+            "gem": {"name": "wpscan", "version": "3.8.28", "user_install": False},
             "become": True,
         },
     ]
@@ -170,7 +169,7 @@ class wpscan(BaseModule):
                         source_event,
                     )
             else:
-                url_event = self.make_event(url, "URL_UNVERIFIED", parent=source_event, tags=["httpx-safe"])
+                url_event = self.make_event(url, "URL_UNVERIFIED", parent=source_event, tags=["blasthttp-safe"])
                 if url_event:
                     yield url_event
                 yield self.make_event(
@@ -242,7 +241,7 @@ class wpscan(BaseModule):
         for name, plugin in plugins_json.items():
             url = plugin.get("location", base_url)
             if url != base_url:
-                url_event = self.make_event(url, "URL_UNVERIFIED", parent=source_event, tags=["httpx-safe"])
+                url_event = self.make_event(url, "URL_UNVERIFIED", parent=source_event, tags=["blasthttp-safe"])
                 if url_event:
                     yield url_event
             version = plugin.get("version", {}).get("number", "")

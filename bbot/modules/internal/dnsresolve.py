@@ -1,17 +1,17 @@
 import sys
-import ipaddress
 from contextlib import suppress
 
 from blastdns import DNSResult
 
 from bbot.errors import ValidationError
+from bbot.core.helpers.misc import cached_ip_address
 from bbot.core.helpers.dns.helpers import all_rdtypes, extract_targets, record_to_text
 from bbot.modules.base import BaseInterceptModule, BaseModule
 
 
 class DNSResolve(BaseInterceptModule):
     watched_events = ["*"]
-    produced_events = ["DNS_NAME", "IP_ADDRESS", "RAW_DNS_RECORD"]
+    produced_events = ["DNS_NAME", "IP_ADDRESS", "IP_RANGE", "RAW_DNS_RECORD"]
     meta = {"description": "Perform DNS resolution", "created_date": "2022-04-08", "author": "@TheTechromancer"}
     _priority = 1
     scope_distance_modifier = None
@@ -43,6 +43,8 @@ class DNSResolve(BaseInterceptModule):
 
         self.host_module = self.HostModule(self.scan)
         self.children_emitted = set()
+        self.in_scope_children = set()
+        self.child_edges_emitted = set()
         self.children_emitted_raw = set()
         self.hosts_resolved = set()
 
@@ -132,10 +134,14 @@ class DNSResolve(BaseInterceptModule):
             )
             main_host_event.add_tag(f"runaway-dns-{dns_resolve_distance}")
         else:
-            # emit dns children
-            await self.emit_dns_children_raw(main_host_event, dns_tags)
-            if not self.minimal:
-                await self.emit_dns_children(main_host_event)
+            # graph-important events are edge-only re-emissions of an already-processed host;
+            # skip re-walking their children (the canonical emission already did so, and
+            # re-walking would re-emit the same cross-parent edges once per parent)
+            if not event._graph_important:
+                # emit dns children
+                await self.emit_dns_children_raw(main_host_event, dns_tags)
+                if not self.minimal:
+                    await self.emit_dns_children(main_host_event)
 
             # emit the main DNS_NAME or IP_ADDRESS
             if (
@@ -197,7 +203,8 @@ class DNSResolve(BaseInterceptModule):
                 try:
                     child_event = self.scan.make_event(
                         child_host,
-                        "DNS_NAME",
+                        # auto-detect the type; SPF TXT children can be IP_ADDRESS / IP_RANGE
+                        None,
                         module=module,
                         parent=event,
                         context=f"{rdtype} record for {event.host} contains {{event.type}}: {{event.host}}",
@@ -210,17 +217,39 @@ class DNSResolve(BaseInterceptModule):
                 if rdtype == "PTR":
                     child_event.add_tag("ptr")
 
-                child_hash = hash(f"{event.host}:{module}:{child_host}")
+                child_hash = hash(f"{module}:{child_host}")
                 # if we haven't emitted this one before
                 if child_hash not in self.children_emitted:
+                    child_in_scope = self.preset.in_scope(child_host)
                     # and it's either in-scope or inside our dns search distance
-                    if self.preset.in_scope(child_host) or child_event.scope_distance <= self._dns_search_distance:
+                    if child_in_scope or child_event.scope_distance <= self._dns_search_distance:
                         self.children_emitted.add(child_hash)
+                        if child_in_scope:
+                            # remember in-scope children (so cross-parent dups are recognized without
+                            # a second scope lookup) and record this parent->child edge
+                            self.in_scope_children.add(child_hash)
+                            self.child_edges_emitted.add(hash(f"{event.host}:{module}:{child_host}"))
                         # if it's a hostname and it's only one hop away, mark it as affiliate
                         if child_event.type == "DNS_NAME" and child_event.scope_distance == 1:
                             child_event.add_tag("affiliate")
                         self.debug(f"Queueing DNS child for {event}: {child_event}")
                         await self.emit_event(child_event)
+                # the child entity was already emitted, but a genuinely new in-scope parent->child
+                # edge is worth preserving for graph outputs (neo4j/json) so shared in-scope
+                # infrastructure keeps every edge. out-of-scope dups and same-parent re-processing
+                # stay collapsed (out-of-scope children never enter in_scope_children).
+                elif child_hash in self.in_scope_children:
+                    # parent-aware key: tells a genuinely new parent->child edge apart from the same
+                    # host being re-processed (children_emitted drops the parent, so it can't)
+                    edge_hash = hash(f"{event.host}:{module}:{child_host}")
+                    if edge_hash not in self.child_edges_emitted:
+                        self.child_edges_emitted.add(edge_hash)
+                        # _graph_important must imply the event reaches output; an omitted type is
+                        # dropped there regardless, so don't flag it (keeps _graph_important => not _omit)
+                        if child_event.type not in self.scan.omitted_event_types:
+                            child_event._graph_important = True
+                            self.debug(f"Queueing graph-important DNS child edge for {event}: {child_event}")
+                            await self.emit_event(child_event)
 
     async def emit_dns_children_raw(self, event, dns_tags):
         for rdtype, answers in event.raw_dns_records.items():
@@ -243,11 +272,13 @@ class DNSResolve(BaseInterceptModule):
     def check_scope(self, event):
         in_target = False
         blacklisted = False
-        dns_children = getattr(event, "dns_children", {})
+        dns_children = event.dns_children
+        # collect all resolved hosts locally then assign once; resolved_hosts
+        # is naturally immutable (frozenset) and has no in-place mutation API
+        all_hosts = set()
         for rdtype in ("A", "AAAA", "CNAME"):
             hosts = dns_children.get(rdtype, [])
-            # update resolved hosts
-            event.resolved_hosts.update(sys.intern(h) for h in hosts)
+            all_hosts.update(sys.intern(h) for h in hosts)
             for host in hosts:
                 # having a CNAME to an in-scope host doesn't make you in-scope
                 if rdtype != "CNAME":
@@ -263,6 +294,8 @@ class DNSResolve(BaseInterceptModule):
                             blacklisted = True
                             event.add_tag("blacklisted")
                             event.add_tag(f"dns-blacklisted-{rdtype}")
+        if all_hosts:
+            event.resolved_hosts = all_hosts
         if blacklisted:
             in_target = False
         return in_target, blacklisted
@@ -286,18 +319,15 @@ class DNSResolve(BaseInterceptModule):
 
             event.add_tag(f"{rdtype}-record")
             # blastdns hands us an already-unique list[Record] -- store as-is, no copy
-            event.raw_dns_records[rdtype] = answers
+            event.set_raw_dns_record(rdtype, answers)
             for answer in answers:
                 for _rdtype, host in extract_targets(answer):
                     _rdtype = sys.intern(_rdtype)
                     host = sys.intern(host)
-                    try:
-                        event.dns_children[_rdtype].add(host)
-                    except KeyError:
-                        event.dns_children[_rdtype] = {host}
+                    event.add_dns_child(_rdtype, host)
                     # check for private IPs
                     try:
-                        ip = ipaddress.ip_address(host)
+                        ip = cached_ip_address(host)
                         if ip.is_private:
                             event.add_tag("private-ip")
                     except ValueError:

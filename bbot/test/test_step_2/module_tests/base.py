@@ -2,10 +2,10 @@ import pytest
 import asyncio
 import logging
 import pytest_asyncio
-from omegaconf import OmegaConf
 
 from ...bbot_fixtures import *
 from bbot.scanner import Scanner
+from bbot.core.config.merge import deep_merge
 from bbot.core.helpers.misc import rand_string
 
 log = logging.getLogger("bbot.test.modules")
@@ -25,15 +25,15 @@ class ModuleTestBase:
 
     class ModuleTest:
         def __init__(
-            self, module_test_base, httpx_mock, httpserver, httpserver_ssl, monkeypatch, request, caplog, capsys
+            self, module_test_base, blasthttp_mock, httpserver, httpserver_ssl, monkeypatch, request, caplog, capsys
         ):
             self.name = module_test_base.name
-            self.config = OmegaConf.merge(CORE.config, OmegaConf.create(module_test_base.config_overrides))
+            self.config = deep_merge(dict(CORE.custom_config), dict(module_test_base.config_overrides))
 
             self.caplog = caplog
             self.capsys = capsys
 
-            self.httpx_mock = httpx_mock
+            self.blasthttp_mock = blasthttp_mock
             self.httpserver = httpserver
             self.httpserver_ssl = httpserver_ssl
             self.monkeypatch = monkeypatch
@@ -51,7 +51,7 @@ class ModuleTestBase:
                     if module_type == "output":
                         output_modules.append(module)
                     elif module_type == "internal" and not module == "dnsresolve":
-                        self.config = OmegaConf.merge(self.config, {module: True})
+                        self.config = deep_merge(self.config, {module: True})
 
             seeds = module_test_base.seeds or None
 
@@ -92,7 +92,7 @@ class ModuleTestBase:
 
     @pytest_asyncio.fixture
     async def module_test(
-        self, httpx_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request, caplog, capsys
+        self, blasthttp_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request, caplog, capsys
     ):
         # If a test uses docker, we can't run it in the distro tests
         if os.getenv("BBOT_DISTRO_TESTS") and self.skip_distro_tests:
@@ -100,7 +100,7 @@ class ModuleTestBase:
 
         self.log.info(f"Starting {self.name} module test")
         module_test = self.ModuleTest(
-            self, httpx_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request, caplog, capsys
+            self, blasthttp_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request, caplog, capsys
         )
         self.log.debug("Executing setup_before_prep()")
         await self.setup_before_prep(module_test)
@@ -108,6 +108,8 @@ class ModuleTestBase:
         await module_test.scan._prep()
         self.log.debug("Mocking DNS")
         await module_test.mock_dns({"blacklanternsecurity.com": {"A": ["127.0.0.88"]}})
+        self.log.debug("Disabling HTTP wildcard detection for test")
+        module_test.scan.helpers.web.is_http_wildcard_host = self._mock_http_wildcard
         self.log.debug("Executing setup_after_prep()")
         await self.setup_after_prep(module_test)
         self.log.debug("Starting scan")
@@ -169,6 +171,10 @@ class ModuleTestBase:
 
     async def setup_after_prep(self, module_test):
         pass
+
+    @staticmethod
+    async def _mock_http_wildcard(*args, **kwargs):
+        return False
 
     async def wait_for_port_open(self, port):
         while not await self.is_port_open("localhost", port):

@@ -12,12 +12,18 @@ class aspnet_bin_exposure(BaseModule):
     }
 
     in_scope_only = True
+    _module_threads = 2
+
     test_dlls = [
         "Telerik.Web.UI.dll",
         "Newtonsoft.Json.dll",
         "System.Net.Http.dll",
         "EntityFramework.dll",
         "AjaxControlToolkit.dll",
+    ]
+    _techniques = [
+        "b/(S(X))in/###DLL_PLACEHOLDER###/(S(X))/",
+        "(S(X))/b/(S(X))in/###DLL_PLACEHOLDER###",
     ]
 
     @staticmethod
@@ -27,54 +33,52 @@ class aspnet_bin_exposure(BaseModule):
     def _incoming_dedup_hash(self, event):
         return hash(self.normalize_url(event.url))
 
+    @staticmethod
+    def _is_dll_download(response):
+        return (
+            response is not None
+            and response.status_code == 200
+            and "content-type" in response.headers
+            and "application/x-msdownload" in response.headers["content-type"]
+        )
+
     async def handle_event(self, event):
         normalized_url = self.normalize_url(event.url)
+        kwargs = {"method": "GET", "allow_redirects": False, "timeout": 10}
+
+        probes = []
         for test_dll in self.test_dlls:
-            for technique in ["b/(S(X))in/###DLL_PLACEHOLDER###/(S(X))/", "(S(X))/b/(S(X))in/###DLL_PLACEHOLDER###"]:
+            for technique in self._techniques:
                 test_url = f"{normalized_url}{technique.replace('###DLL_PLACEHOLDER###', test_dll)}"
-                self.debug(f"Sending test URL: [{test_url}]")
-                kwargs = {"method": "GET", "allow_redirects": False, "timeout": 10}
-                test_result = await self.helpers.request(test_url, **kwargs)
-                if test_result:
-                    if test_result.status_code == 200 and (
-                        "content-type" in test_result.headers
-                        and "application/x-msdownload" in test_result.headers["content-type"]
-                    ):
-                        self.debug(
-                            f"Got positive result for probe with test url: [{test_url}]. Status Code: [{test_result.status_code}] Content Length: [{len(test_result.content)}]"
-                        )
+                probes.append((test_url, kwargs, technique))
 
-                        if test_result.status_code == 200 and (
-                            "content-type" in test_result.headers
-                            and "application/x-msdownload" in test_result.headers["content-type"]
-                        ):
-                            confirm_url = (
-                                f"{normalized_url}{technique.replace('###DLL_PLACEHOLDER###', 'oopsnotarealdll.dll')}"
-                            )
-                            confirm_result = await self.helpers.request(confirm_url, **kwargs)
+        async for test_url, test_result, technique in self.helpers.request_batch_stream(probes, threads=10):
+            if not self._is_dll_download(test_result):
+                continue
 
-                            if confirm_result and (
-                                confirm_result.status_code != 200
-                                or not (
-                                    "content-type" in confirm_result.headers
-                                    and "application/x-msdownload" in confirm_result.headers["content-type"]
-                                )
-                            ):
-                                description = f"IIS Bin Directory DLL Exposure. Detection Url: [{test_url}]"
-                                await self.emit_event(
-                                    {
-                                        "name": "IIS Bin Directory DLL Exposure",
-                                        "severity": "HIGH",
-                                        "confidence": "HIGH",
-                                        "host": str(event.host),
-                                        "url": normalized_url,
-                                        "description": description,
-                                    },
-                                    "FINDING",
-                                    event,
-                                    context="{module} detected IIS Bin Directory DLL Exposure vulnerability",
-                                )
-                                return True
+            self.debug(
+                f"Got positive result for probe with test url: [{test_url}]. Status Code: [{test_result.status_code}] Content Length: [{len(test_result.content)}]"
+            )
+
+            confirm_url = f"{normalized_url}{technique.replace('###DLL_PLACEHOLDER###', 'oopsnotarealdll.dll')}"
+            confirm_result = await self.helpers.request(confirm_url, **kwargs)
+
+            if confirm_result and not self._is_dll_download(confirm_result):
+                description = f"IIS Bin Directory DLL Exposure. Detection Url: [{test_url}]"
+                await self.emit_event(
+                    {
+                        "name": "IIS Bin Directory DLL Exposure",
+                        "severity": "HIGH",
+                        "confidence": "HIGH",
+                        "host": str(event.host),
+                        "url": normalized_url,
+                        "description": description,
+                    },
+                    "FINDING",
+                    event,
+                    context="{module} detected IIS Bin Directory DLL Exposure vulnerability",
+                )
+                return True
 
     async def filter_event(self, event):
         if "dir" in event.tags:

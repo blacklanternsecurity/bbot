@@ -5,14 +5,14 @@ from .base import ModuleTestBase
 
 class TestGowitness(ModuleTestBase):
     targets = ["127.0.0.1:8888"]
-    modules_overrides = ["gowitness", "httpx", "social", "excavate"]
+    modules_overrides = ["gowitness", "http", "social", "excavate"]
     import shutil
     from pathlib import Path
 
     home_dir = Path("/tmp/.bbot_gowitness_test")
     shutil.rmtree(home_dir, ignore_errors=True)
     config_overrides = {
-        "force_deps": True,
+        "deps": {"behavior": "force_install"},
         "home": str(home_dir),
         "scope": {"report_distance": 2},
         "omit_event_types": [],
@@ -143,14 +143,14 @@ class TestGowitness_MultiPort(ModuleTestBase):
     """
 
     targets = ["http://127.0.0.1:8888", "https://127.0.0.1:9999"]
-    modules_overrides = ["gowitness", "httpx"]
+    modules_overrides = ["gowitness", "http"]
 
     import shutil
 
     home_dir = Path("/tmp/.bbot_gowitness_multiport_test")
     shutil.rmtree(home_dir, ignore_errors=True)
     config_overrides = {
-        "force_deps": True,
+        "deps": {"behavior": "force_install"},
         "home": str(home_dir),
         "omit_event_types": [],
     }

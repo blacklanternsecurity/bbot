@@ -1,4 +1,5 @@
 from bbot.modules.templates.censys import censys
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class censys_dns(censys):
@@ -14,13 +15,13 @@ class censys_dns(censys):
         "description": "Query the Censys API for subdomains",
         "created_date": "2022-08-04",
         "author": "@TheTechromancer",
-        "auth_required": True,
     }
-    options = {"api_key": "", "max_pages": 5}
-    options_desc = {
-        "api_key": "Censys.io API Key in the format of 'key:secret'",
-        "max_pages": "Maximum number of pages to fetch (100 results per page)",
-    }
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field(
+            "", description="Censys.io API Key in the format of 'key:secret'", sensitive=True, mandatory=True
+        )
+        max_pages: int = Field(5, description="Maximum number of pages to fetch (100 results per page)")
 
     async def setup(self):
         self.max_pages = self.config.get("max_pages", 5)

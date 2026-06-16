@@ -7,16 +7,17 @@ flags:
   - iis-shortnames
 
 modules:
-  - ffuf
+  - webbrute
   - wayback
 
 config:
   modules:
     iis_shortnames:
-      # we exploit the shortnames vulnerability to produce URL_HINTs which are consumed by ffuf_shortnames
+      # we exploit the shortnames vulnerability to produce URL_HINTs which are consumed by webbrute_shortnames
       detect_only: False
-    ffuf:
-      depth: 3
+    webbrute:
+      avoid_wafs: False
+      max_depth: 3
       lines: 5000
       extensions:
         - php

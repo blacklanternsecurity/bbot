@@ -1,4 +1,5 @@
 from bbot.modules.templates.censys import censys
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class censys_ip(censys):
@@ -21,14 +22,19 @@ class censys_ip(censys):
         "description": "Query the Censys API for hosts by IP address",
         "created_date": "2026-01-26",
         "author": "@TheTechromancer",
-        "auth_required": True,
     }
-    options = {"api_key": "", "dns_names_limit": 100, "in_scope_only": True}
-    options_desc = {
-        "api_key": "Censys.io API Key in the format of 'key:secret'",
-        "dns_names_limit": "Maximum number of DNS names to extract from dns.names (default 100)",
-        "in_scope_only": "Only query in-scope IPs. If False, will query up to distance 1.",
-    }
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field(
+            "", description="Censys.io API Key in the format of 'key:secret'", sensitive=True, mandatory=True
+        )
+        dns_names_limit: int = Field(
+            100, description="Maximum number of DNS names to extract from dns.names (default 100)"
+        )
+        in_scope_only: bool = Field(
+            True, description="Only query in-scope IPs. If False, will query up to distance 1."
+        )
+
     scope_distance_modifier = 1
 
     async def setup(self):

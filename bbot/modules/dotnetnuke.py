@@ -83,7 +83,7 @@ class dotnetnuke(BaseModule):
                     )
                     detected = True
                     break
-        resp_body = event.data.get("body", None)
+        resp_body = event.body
         if resp_body:
             for body_signature in self.DNN_signatures_body:
                 if body_signature in resp_body:
