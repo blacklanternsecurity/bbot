@@ -450,6 +450,16 @@ def pytest_sessionfinish(session, exitstatus):
         for handler in handlers:
             logger.removeHandler(handler)
 
+    # Kill any orphaned ProcessPoolExecutor workers that could block exit
+    import multiprocessing
+
+    for child in multiprocessing.active_children():
+        if child.is_alive():
+            child.terminate()
+            child.join(timeout=5)
+            if child.is_alive():
+                child.kill()
+
     # Wipe out BBOT home dir
     shutil.rmtree("/tmp/.bbot_test", ignore_errors=True)
 

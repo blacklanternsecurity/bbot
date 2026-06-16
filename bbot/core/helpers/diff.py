@@ -21,9 +21,14 @@ class HttpCompare:
         headers=None,
         cookies=None,
         timeout=10,
+        on_baseline_ready=None,
+        baseline_url_2=None,
     ):
         self.parent_helper = parent_helper
         self.baseline_url = baseline_url
+        # When set, the second baseline sample uses this URL instead of self.baseline_url,
+        # so the auto-filter captures inter-URL variation (used by wildcard detection).
+        self.baseline_url_2 = baseline_url_2
         self.include_cache_buster = include_cache_buster
         self.method = method
         self.data = data
@@ -33,6 +38,8 @@ class HttpCompare:
         self.headers = headers
         self.cookies = cookies
         self.timeout = 10
+        # Optional async callback fired once with baseline_1 after the baseline is established.
+        self.on_baseline_ready = on_baseline_ready
 
     @staticmethod
     def merge_dictionaries(headers1, headers2):
@@ -67,7 +74,8 @@ class HttpCompare:
 
             if self.include_cache_buster:
                 get_params.update(self.gen_cache_buster())
-            url_2 = self.parent_helper.add_get_params(self.baseline_url, get_params).geturl()
+            second_target = self.baseline_url_2 if self.baseline_url_2 else self.baseline_url
+            url_2 = self.parent_helper.add_get_params(second_target, get_params).geturl()
             baseline_2 = await self.parent_helper.request(
                 url_2,
                 headers=self.merge_dictionaries(
@@ -119,6 +127,7 @@ class HttpCompare:
                     "date",
                     "last-modified",
                     "content-length",
+                    "connection",
                     "ETag",
                     "X-Pad",
                     "X-Backside-Transport",
@@ -129,6 +138,12 @@ class HttpCompare:
 
             self.baseline_ignore_headers += [x.lower() for x in dynamic_headers]
             self._baselined = True
+
+            if self.on_baseline_ready is not None:
+                try:
+                    await self.on_baseline_ready(baseline_1)
+                except Exception as e:
+                    log.debug(f"on_baseline_ready callback raised: {e}")
 
     def gen_cache_buster(self):
         return {self.parent_helper.rand_string(6): "1"}

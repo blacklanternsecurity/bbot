@@ -242,7 +242,8 @@ class portscan(BaseModule):
         # make_targets() call — before dnsresolve has populated it. Seed
         # resolved_hosts from the parent so hostnames still correlate to IPs.
         if parent_is_dns_name and parent_event._resolved_hosts:
-            event._resolved_hosts = set(parent_event._resolved_hosts)
+            # share the parent's frozenset by reference — it's immutable
+            event._resolved_hosts = parent_event._resolved_hosts
 
         await self.emit_event(event)
         return event

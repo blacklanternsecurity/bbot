@@ -521,19 +521,28 @@ async def test_http_ssl(bbot_scanner, bbot_httpserver_ssl):
     # test user agent + custom headers
     bbot_httpserver_ssl.expect_request(uri=endpoint).respond_with_data("test_http_ssl_yep")
 
-    scan1 = bbot_scanner("127.0.0.1", config={"web": {"ssl_verify": True, "debug": True}})
-    scan2 = bbot_scanner("127.0.0.1", config={"web": {"ssl_verify": False, "debug": True}})
+    # ssl_verify_target controls target-directed traffic
+    scan1 = bbot_scanner("127.0.0.1", config={"web": {"ssl_verify_target": True, "debug": True}})
+    scan2 = bbot_scanner("127.0.0.1", config={"web": {"ssl_verify_target": False, "debug": True}})
     await scan1._prep()
     await scan2._prep()
 
     r1 = await scan1.helpers.request(url)
-    assert r1 is None, "Request to self-signed SSL server went through even with ssl_verify=True"
+    assert r1 is None, "Request to self-signed SSL server went through even with ssl_verify_target=True"
     r2 = await scan2.helpers.request(url)
-    assert r2 is not None, "Request to self-signed SSL server failed even with ssl_verify=False"
+    assert r2 is not None, "Request to self-signed SSL server failed even with ssl_verify_target=False"
     assert r2.status_code == 200 and r2.text == "test_http_ssl_yep"
 
     await scan1._cleanup()
     await scan2._cleanup()
+
+    # ssl_verify per-request override (used by infrastructure callers like api_request/download)
+    scan3 = bbot_scanner("127.0.0.1", config={"web": {"ssl_verify_target": True, "debug": True}})
+    await scan3._prep()
+    r3 = await scan3.helpers.request(url, ssl_verify=False)
+    assert r3 is not None, "Per-request ssl_verify=False override did not bypass verification"
+    assert r3.status_code == 200 and r3.text == "test_http_ssl_yep"
+    await scan3._cleanup()
 
 
 @pytest.mark.asyncio
@@ -644,5 +653,48 @@ async def test_api_download_api_key_cycle(bbot_scanner, bbot_httpserver):
 
     # verify the requests occurred in expected order with expected API keys
     assert seen_auth == ["Bearer k1", "Bearer k1", "Bearer k2"]
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_is_http_wildcard_host(bbot_scanner):
+    """Test is_http_wildcard_host caching, retry, and return value semantics."""
+    scan = bbot_scanner()
+    await scan._prep()
+
+    web = scan.helpers.web
+    probe_results = []
+
+    async def mock_probe(scheme, host, port):
+        return probe_results.pop(0)
+
+    web._probe_wildcard_host = mock_probe
+
+    # wildcard host: probe returns a truthy sentinel
+    probe_results.append("WILDCARD_CMP")
+    result = await web.is_http_wildcard_host("https", "spa.example.com", 443)
+    assert result == "WILDCARD_CMP"
+    # cached: no more probe calls needed
+    result2 = await web.is_http_wildcard_host("https", "spa.example.com", 443)
+    assert result2 == "WILDCARD_CMP"
+
+    # non-wildcard host: probe returns False
+    probe_results.append(False)
+    result = await web.is_http_wildcard_host("https", "normal.example.com", 443)
+    assert result is False
+
+    # retry once on first failure, succeed on second
+    probe_results.extend(["retry", "WILDCARD_RETRY"])
+    result = await web.is_http_wildcard_host("https", "flaky.example.com", 443)
+    assert result == "WILDCARD_RETRY"
+
+    # both attempts fail: caches None
+    probe_results.extend(["retry", "retry"])
+    result = await web.is_http_wildcard_host("https", "down.example.com", 443)
+    assert result is None
+    # cached as None
+    result2 = await web.is_http_wildcard_host("https", "down.example.com", 443)
+    assert result2 is None
 
     await scan._cleanup()

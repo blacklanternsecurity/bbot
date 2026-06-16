@@ -1,9 +1,38 @@
+from types import SimpleNamespace
+from urllib.parse import urlparse, parse_qs
+
+import pytest
+
 from .base import ModuleTestBase, tempwordlist
 from werkzeug.wrappers import Response
 import re
 
+from bbot.core.helpers.url import add_get_params
+from bbot.modules.reflected_parameters import reflected_parameters as reflected_parameters_module
+
 from .test_module_paramminer_getparams import TestParamminer_Getparams
 from .test_module_paramminer_headers import helper
+
+
+@pytest.mark.asyncio
+async def test_reflected_parameters_send_probe_with_canary_merges_querystring():
+    captured = {}
+
+    async def fake_request(**kwargs):
+        captured["url"] = kwargs["url"]
+        return None
+
+    mod = SimpleNamespace(
+        helpers=SimpleNamespace(add_get_params=add_get_params, request=fake_request),
+        debug=lambda *_a, **_kw: None,
+    )
+    event = SimpleNamespace(url="https://x.test/path?init=true", data={"type": "GETPARAM"})
+
+    await reflected_parameters_module.send_probe_with_canary(mod, event, "p", "PROBE", "C4N", cookies={})
+
+    assert captured["url"].count("?") == 1
+    qs = parse_qs(urlparse(captured["url"]).query)
+    assert qs == {"init": ["true"], "p": ["PROBE"], "c4n4ry": ["C4N"]}
 
 
 class TestReflected_parameters_fromexcavate(ModuleTestBase):

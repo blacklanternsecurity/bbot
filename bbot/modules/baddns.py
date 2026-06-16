@@ -60,7 +60,7 @@ class baddns(BaseModule):
         )
 
     module_threads = 8
-    deps_pip = ["baddns~=2.3.0"]
+    deps_pip = ["baddns~=2.4.0"]
 
     def select_modules(self):
         selected_submodules = []

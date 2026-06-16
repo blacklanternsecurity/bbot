@@ -328,7 +328,7 @@ class Scanner:
         creates the scan's output folder, loads its modules, and calls their .setup() methods.
         """
         # expand async seed types (e.g. ASN → IP ranges)
-        ssl_verify = self.preset.web_config.get("ssl_verify", False)
+        ssl_verify = self.preset.web_config.get("ssl_verify_infrastructure", True)
         await self.preset.target.generate_children(ssl_verify=ssl_verify)
 
         # evaluate preset conditions (may abort the scan)
@@ -360,8 +360,12 @@ class Scanner:
             self.dummy_modules.clear()
 
             # save scan preset
+            redact_secrets = self.config.get("redact_secrets", True)
             with open(self.home / "preset.yml", "w") as f:
-                f.write(self.preset.to_yaml())
+                if redact_secrets:
+                    f.write("# Secrets (API keys, tokens, etc.) have been redacted.\n")
+                    f.write('# To include secrets, set "redact_secrets: false" in your preset or BBOT config.\n\n')
+                f.write(self.preset.to_yaml(redact_secrets=redact_secrets))
 
             # log scan overview
             start_msg = f"Scan seeded with {len(self.seeds.event_seeds):,} seed(s)"
@@ -973,8 +977,17 @@ class Scanner:
             tasks.append(self._stop_task)
 
         self.helpers.cancel_tasks_sync(tasks)
-        # process pool
-        self.helpers.process_pool.shutdown(cancel_futures=True)
+        # kill all pool workers and shut down (same logic as _reset_process_pool
+        # but synchronous, since we're tearing down the scan)
+        pool = self.helpers.process_pool
+        workers = list((pool._processes or {}).values())
+        for proc in workers:
+            if proc.is_alive():
+                proc.terminate()
+        pool.shutdown(wait=False, cancel_futures=True)
+        for proc in workers:
+            if proc.is_alive():
+                proc.kill()
         self.debug("Finished cancelling all scan tasks")
         return tasks
 

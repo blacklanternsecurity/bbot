@@ -33,7 +33,13 @@ class BBOTCore:
         self._custom_config: dict | None = None
 
         # bare minimum == logging
-        self.logger
+        try:
+            self.logger
+        except BBOTError as e:
+            import sys
+
+            print(f"\n[CRITICAL] {e}\n", file=sys.stderr)
+            sys.exit(1)
         self.log = logging.getLogger("bbot.core")
 
         self._prep_multiprocessing()

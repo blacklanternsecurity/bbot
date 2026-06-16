@@ -156,6 +156,9 @@ class ScanIngress(BaseInterceptModule):
                 continue
         raise asyncio.queues.QueueEmpty()
 
+    async def _event_postcheck(self, event):
+        return await self._event_postcheck_inner(event)
+
     def is_incoming_duplicate(self, event, add=False):
         """
         Calculate whether an event is a duplicate in the context of the module that emitted it
@@ -271,6 +274,11 @@ class ScanEgress(BaseInterceptModule):
         if -1 < event.scope_distance < 1:
             self.scan.word_cloud.absorb_event(event)
 
+        # Hold a sentinel on _module_consumers during distribution so it
+        # never transiently hits 0 between sequential queue_event() awaits
+        # (which would let a fast module's _minimize() strip fields that
+        # slower modules still need).
+        event._module_consumers += 1
         for module in self.scan.modules.values():
             # don't distribute events to intercept modules
             if module._intercept:
@@ -282,6 +290,5 @@ class ScanEgress(BaseInterceptModule):
                 continue
             await module.queue_event(event)
 
-        # if no module accepted this event, minimize it now
-        if event._module_consumers <= 0:
-            event._minimize()
+        # release the sentinel; _minimize() decrements and strips if count hits 0
+        event._minimize()

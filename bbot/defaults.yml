@@ -19,6 +19,8 @@ status_frequency: 15
 # that scales linearly from 0s at the threshold up to 5s at threshold+5 (capped at 95%).
 # Last-ditch effort to give the pipeline a chance to drain before OOM.
 max_mem_percent: 90
+# Redact secrets (API keys, tokens, etc.) in the saved preset.yml
+redact_secrets: true
 # Include the raw data of files (i.e. PDFs, web screenshots) as base64 in the event
 file_blobs: false
 # Include the raw data of directories (i.e. git repos) as tar.gz base64 in the event
@@ -130,8 +132,10 @@ web:
   debug: false
   # Maximum number of HTTP redirects to follow
   http_max_redirects: 5
-  # Whether to verify SSL certificates
-  ssl_verify: false
+  # Whether to verify SSL certificates for target-directed traffic (probes, crawls, etc.)
+  ssl_verify_target: false
+  # Whether to verify SSL certificates for non-target traffic (APIs, wordlist downloads, etc.)
+  ssl_verify_infrastructure: true
   # Maximum HTTP requests per second (0 = unlimited)
   # Applies globally across all blasthttp consumers (http probing, web brute, etc.)
   http_rate_limit: 0
@@ -284,11 +288,27 @@ parameter_blacklist:
   - sessionid
   - csrftoken
   - __cf_bm
+  - _cfuvid
   - cf_clearance
   - _abck
   - bm_sz
+  - bm_sv
   - ak_bmsc
   - f5_cspm
+  # CSRF / Anti-Forgery tokens
+  - authenticity_token
+  - csrfmiddlewaretoken
+  - __RequestVerificationToken
+  - antiforgerytoken
+  - __csrf_magic
+  - _wpnonce
+  # ASP.NET session/identity cookies
+  - .ASPXANONYMOUS
+  - .ASPXAUTH
+  # PKCE (Proof Key for Code Exchange)
+  - code_verifier
+  - code_challenge
+  # Analytics
   - _ga
   - _gid
   - _gat
@@ -307,6 +327,7 @@ parameter_blacklist_prefixes:
   - f5avr
   - incap_
   - visid_incap_
+  - nlbi_
   - AWSALB
   - utm_
   - ApplicationGatewayAffinity

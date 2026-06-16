@@ -328,9 +328,28 @@ class paramminer_headers(BaseModule):
                 continue
             await self.process_results(event, results)
 
+    def _incoming_dedup_hash(self, event):
+        # dedup by endpoint structure, not full URL string -- value mutations
+        # of the same parameter set (e.g. from lightfuzz probes) are one test surface
+        p = getattr(event, "parsed_url", None)
+        if p is None:
+            return hash(event), ""
+        if event.type == "WEB_PARAMETER":
+            name = event.data.get("name", "")
+            additional_params = event.data.get("additional_params") or {}
+            param_keys = tuple(sorted(additional_params.keys()))
+        else:
+            name = ""
+            param_keys = ()
+        return hash((event.type, p.scheme, p.netloc, p.path, name, param_keys)), "per_endpoint+keys"
+
     async def filter_event(self, event):
+        if await self._is_http_wildcard_host(event) is True:
+            return False, "host is an HTTP wildcard responder"
+
         # Filter out static endpoints
-        if event.url.endswith(tuple(f".{ext}" for ext in self.config.get("url_extension_static", []))):
+        ext = getattr(event, "url_extension", None)
+        if ext and ext in self.scan.config.get("url_extension_static", []):
             return False
 
         # We don't need to look at WEB_PARAMETERS that we produced

@@ -2754,6 +2754,11 @@ def get_waf_strings():
     return [
         "The requested URL was rejected",
         "This content has been blocked",
+        "The URL you requested has been blocked",
+        "Request unsuccessful. Incapsula incident",
+        "Access Denied - Sucuri Website Firewall",
+        "Attention Required! | Cloudflare",
+        "Microsoft-Azure-Application-Gateway",
     ]
 
 

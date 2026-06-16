@@ -108,6 +108,8 @@ class ModuleTestBase:
         await module_test.scan._prep()
         self.log.debug("Mocking DNS")
         await module_test.mock_dns({"blacklanternsecurity.com": {"A": ["127.0.0.88"]}})
+        self.log.debug("Disabling HTTP wildcard detection for test")
+        module_test.scan.helpers.web.is_http_wildcard_host = self._mock_http_wildcard
         self.log.debug("Executing setup_after_prep()")
         await self.setup_after_prep(module_test)
         self.log.debug("Starting scan")
@@ -169,6 +171,10 @@ class ModuleTestBase:
 
     async def setup_after_prep(self, module_test):
         pass
+
+    @staticmethod
+    async def _mock_http_wildcard(*args, **kwargs):
+        return False
 
     async def wait_for_port_open(self, port):
         while not await self.is_port_open("localhost", port):

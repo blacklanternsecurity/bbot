@@ -16,6 +16,7 @@ config:
       # we exploit the shortnames vulnerability to produce URL_HINTs which are consumed by webbrute_shortnames
       detect_only: False
     webbrute:
+      avoid_wafs: False
       max_depth: 3
       lines: 5000
       extensions:

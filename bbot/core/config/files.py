@@ -37,6 +37,10 @@ class BBOTConfigFiles:
             return conf
         except ConfigLoadError:
             raise
+        except yaml.YAMLError as e:
+            raise ConfigLoadError(
+                f"YAML syntax error in {filename}:\n\n{e}\n\nPlease check the file for indentation or formatting errors."
+            )
         except Exception as e:
             raise ConfigLoadError(f"Error parsing config at {filename}:\n\n{e}")
 

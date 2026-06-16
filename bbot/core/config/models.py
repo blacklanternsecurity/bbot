@@ -295,7 +295,8 @@ class WebConfig(BaseModel):
     max_sleep_interval_429: Optional[int] = Field(default=None, alias="429_max_sleep_interval")
     debug: Optional[bool] = None
     http_max_redirects: Optional[int] = None
-    ssl_verify: Optional[bool] = None
+    ssl_verify_target: Optional[bool] = None
+    ssl_verify_infrastructure: Optional[bool] = None
 
 
 class EngineConfig(BaseModel):
@@ -363,6 +364,7 @@ class BBOTConfig(BaseModel):
     home: Optional[str] = None
     keep_scans: Optional[int] = None
     status_frequency: Optional[int] = None
+    redact_secrets: Optional[bool] = None
     file_blobs: Optional[bool] = None
     folder_blobs: Optional[bool] = None
     max_mem_percent: Optional[int] = None
