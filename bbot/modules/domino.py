@@ -30,7 +30,7 @@ class domino(BaseModule):
         )
         browser_instances: int = Field(
             default=2,
-            description="Number of browser instances to run concurrently. Each instance uses ~800-1600 MB of memory under load.",
+            description="Number of concurrent browser instances. Each uses ~800-1600 MB of memory under load.",
         )
 
     _module_threads = 2
@@ -67,42 +67,28 @@ class domino(BaseModule):
         )
 
         self.playwright = await async_playwright().start()
-        self._browser_pool = asyncio.Queue()
-        for _ in range(self._browser_count):
-            browser = await self.playwright.chromium.launch(headless=True)
-            await self._browser_pool.put(browser)
-
         self.suppress_parameter_discovery_reports = self.config.get("suppress_parameter_discovery_reports", True)
         return True
-
-    async def _get_browser(self):
-        browser = await self._browser_pool.get()
-        if not browser.is_connected():
-            self.warning("Browser crashed, relaunching")
-            browser = await self.playwright.chromium.launch(headless=True)
-        return browser
 
     async def handle_event(self, event):
         url = event.url
         self.debug(f"Domino scanning {url}")
-        browser = await self._get_browser()
+        browser = await self.playwright.chromium.launch(headless=True)
         try:
             d = Domino(url=url, logger=self.log, json_mode=True, selected_rules=self.rules)
             results = await asyncio.wait_for(d.run(self.playwright, browser), timeout=120)
         except asyncio.TimeoutError:
-            self.warning(f"Domino scan timed out after 120s for {url}, killing browser")
-            try:
-                await browser.close()
-            except Exception:
-                pass
-            browser = await self.playwright.chromium.launch(headless=True)
+            self.warning(f"Domino scan timed out after 120s for {url}")
             return
         except DominoError as e:
             self.hugewarning(f"Error running Domino, setting error state: {e}")
             self.errored = True
             return
         finally:
-            await self._browser_pool.put(browser)
+            try:
+                await browser.close()
+            except Exception:
+                pass
 
         if results:
             for result in results:
@@ -128,9 +114,6 @@ class domino(BaseModule):
         self.debug(f"DOMino scan complete for {url}")
 
     async def cleanup(self):
-        while not self._browser_pool.empty():
-            browser = await self._browser_pool.get()
-            await browser.close()
         await self.playwright.stop()
 
     def _incoming_dedup_hash(self, event):
