@@ -113,17 +113,17 @@ wheels = [
 
 [[package]]
 name = "asndb"
-version = "1.0.4"
+version = "1.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "blasthttp" },
     { name = "cachetools" },
-    { name = "httpx" },
     { name = "radixtarget" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/82/2b/86f8d056d24476aeb0f7e63fb971b870f7018e728d9272a05232157cae30/asndb-1.0.4.tar.gz", hash = "sha256:23989a4a09e66b76a86b1a36eea78138b4a3001b5f909bb89e110635bb1723f2", size = 18956, upload-time = "2026-03-27T20:45:56.192Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1b/3a/e93d97e0455dbee83611bd3d61bc936e05ad361fcdb1131a1c4d257c6627/asndb-1.1.0.tar.gz", hash = "sha256:435a9741ea66d68b817c9c1054729f88c3d5eba94b96ca991b159ad40b23d0ca", size = 18987, upload-time = "2026-06-16T03:45:25.777Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e1/d7/a9084a90ea60919f84c39dc2302d802c9047b87373fcc2309898ca4095d9/asndb-1.0.4-py3-none-any.whl", hash = "sha256:a62e4f5872e12cbd4b146c7583f7bf2a5239e43ed20a63728295058ee3f1a3db", size = 18467, upload-time = "2026-03-27T20:45:57.022Z" },
+    { url = "https://files.pythonhosted.org/packages/95/c4/89dafea4540b2590d1bd114438a6003abc3fd7047ea5eed02b0a0abf3d89/asndb-1.1.0-py3-none-any.whl", hash = "sha256:5cb47356014b20bbbca1114babc7cdc1227c5b81caf1638ab693e05f2a222b5f", size = 18509, upload-time = "2026-06-16T03:45:26.44Z" },
 ]
 
 [[package]]
@@ -260,7 +260,7 @@ docs = [
 requires-dist = [
     { name = "ansible-core", specifier = ">=2.17,<3" },
     { name = "ansible-runner", specifier = ">=2.3.2,<3" },
-    { name = "asndb", specifier = ">=1.0.4" },
+    { name = "asndb", specifier = ">=1.1.0" },
     { name = "beautifulsoup4", specifier = ">=4.12.2,<5" },
     { name = "blastdns", specifier = ">=1.9.0,<2" },
     { name = "blasthttp", specifier = ">=0.9.0" },

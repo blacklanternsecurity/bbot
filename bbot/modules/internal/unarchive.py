@@ -77,6 +77,8 @@ class unarchive(BaseInternalModule):
             except FileExistsError:
                 self.warning(f"Destination directory {output_dir} already exists, aborting unarchive for {path}")
                 return False
+            if not await self._check_archive_safe(path, compression_format):
+                return False
             command = [s.format(filename=path, extract_dir=output_dir) for s in cmd_list]
             try:
                 await self.run_process(command, check=True)
@@ -87,3 +89,35 @@ class unarchive(BaseInternalModule):
                 self.warning(f"Error extracting {path}. Error: {e}")
                 return False
             return True
+
+    async def _check_archive_safe(self, path, compression_format):
+        if compression_format in ("zip", "7z"):
+            result = await self.run_process(["7z", "l", "-slt", str(path)])
+            output_lines = result.stdout.splitlines()
+            entries = [line.split("= ", 1)[1] for line in output_lines if line.startswith("Path = ")]
+            entries = entries[1:]
+            # reject symlink/hardlink entries
+            for line in output_lines:
+                if line.startswith("Link = ") or (
+                    line.startswith("Attributes = ") and line.split("= ", 1)[1].strip().startswith("l")
+                ):
+                    self.warning(f"Archive {path} contains symlink or link entry")
+                    return False
+        else:
+            result = await self.run_process(["tar", "-tf", str(path)])
+            entries = result.stdout.splitlines()
+            # reject symlink/hardlink entries via verbose listing
+            verbose = await self.run_process(["tar", "-tvf", str(path)])
+            for line in verbose.stdout.splitlines():
+                if line and line[0] in ("l", "h"):
+                    self.warning(f"Archive {path} contains symlink or hardlink entry")
+                    return False
+        for entry in entries:
+            entry = entry.strip()
+            if not entry:
+                continue
+            parts = Path(entry).parts
+            if ".." in parts or entry.startswith("/"):
+                self.warning(f"Archive {path} contains path traversal entry: {entry}")
+                return False
+        return True
