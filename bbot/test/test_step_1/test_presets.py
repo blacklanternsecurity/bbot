@@ -1374,3 +1374,71 @@ def test_malformed_yaml_config_file(tmp_path):
     malformed.write_text("web:\n  http_rate_limit: 100\n   bad_key: value\n")
     with pytest.raises(ConfigLoadError, match="YAML syntax error"):
         BBOTConfigFiles._get_config(None, str(malformed))
+
+
+def test_all_presets_ignores_non_preset_yaml(tmp_path):
+    """Regression test for https://github.com/blacklanternsecurity/bbot/issues/3189
+
+    When -p loads a preset from an arbitrary directory (e.g. $HOME), that
+    directory must NOT be searched by all_presets / -lp. Otherwise every
+    .yml file under it (Ansible collections, CI configs, etc.) is parsed
+    and produces warning spam.
+    """
+    import bbot.scanner.preset.preset as preset_mod
+    from bbot.scanner.preset.path import PresetPath
+
+    # create a valid preset in tmp_path (simulates ~/my_preset.yml)
+    preset_file = tmp_path / "my_preset.yml"
+    preset_file.write_text("description: test preset\nmodules:\n  - sslcert\n")
+
+    # create non-preset yaml files nearby (simulates Ansible, CI, etc.)
+    junk_dir = tmp_path / "ansible"
+    junk_dir.mkdir()
+    (junk_dir / "playbook.yml").write_text("hosts: all\ntasks: []\n")
+    (tmp_path / "ci.yml").write_text("on: push\njobs: {}\n")
+
+    # save and replace global state so we get a clean PRESET_PATH
+    orig_preset_path = preset_mod.PRESET_PATH
+    orig_default_presets = preset_mod.DEFAULT_PRESETS
+    try:
+        fresh_path = PresetPath()
+        preset_mod.PRESET_PATH = fresh_path
+        # also patch the path module's reference
+        import bbot.scanner.preset.path as path_mod
+
+        orig_path_singleton = path_mod.PRESET_PATH
+        path_mod.PRESET_PATH = fresh_path
+
+        # simulate -p /tmp/xxx/my_preset.yml: find() adds tmp_path to search paths
+        found = fresh_path.find(str(preset_file))
+        assert found == preset_file.resolve()
+        # tmp_path is now in search paths (needed for include resolution)
+        assert tmp_path.resolve() in fresh_path.paths
+
+        # reset the cached presets so all_presets re-enumerates
+        preset_mod.DEFAULT_PRESETS = None
+
+        preset = Preset()
+
+        # collect warnings emitted during all_presets enumeration
+        import logging
+
+        warnings = []
+        handler = logging.Handler()
+        handler.emit = lambda record: (
+            warnings.append(record.getMessage()) if record.levelno >= logging.WARNING else None
+        )
+        preset_logger = logging.getLogger("bbot.presets")
+        preset_logger.addHandler(handler)
+        try:
+            preset.all_presets
+        finally:
+            preset_logger.removeHandler(handler)
+
+        # no warnings should reference the junk files from tmp_path
+        junk_warnings = [w for w in warnings if "playbook.yml" in w or "ci.yml" in w]
+        assert not junk_warnings, f"all_presets tried to parse non-preset YAML files: {junk_warnings}"
+    finally:
+        preset_mod.DEFAULT_PRESETS = orig_default_presets
+        preset_mod.PRESET_PATH = orig_preset_path
+        path_mod.PRESET_PATH = orig_path_singleton
