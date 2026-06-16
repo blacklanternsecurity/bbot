@@ -666,3 +666,27 @@ class TestWaybackArchive429Retry(ModuleTestBase):
         assert len(http_responses) == 1, (
             f"Expected 1 archived HTTP_RESPONSE after 429 retry, got {len(http_responses)}"
         )
+
+
+class TestWaybackWildcardSkip(ModuleTestBase):
+    """When the target host is an HTTP wildcard, wayback should skip the CDX query entirely."""
+
+    module_name = "wayback"
+    modules_overrides = ["wayback"]
+    targets = ["blacklanternsecurity.com"]
+
+    async def setup_after_prep(self, module_test):
+        async def mock_wildcard(scheme, host, port):
+            return True
+
+        module_test.scan.helpers.web.is_http_wildcard_host = mock_wildcard
+        # CDX response that should NOT be queried
+        module_test.blasthttp_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
+            json=[["original"], ["http://asdf.blacklanternsecurity.com"]],
+        )
+
+    def check(self, module_test, events):
+        assert not any(e.data == "asdf.blacklanternsecurity.com" for e in events), (
+            "Wayback should have skipped CDX query for wildcard host"
+        )

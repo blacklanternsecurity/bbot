@@ -43,12 +43,12 @@ dependencies = [
     "pydantic>=2.12.2,<3",
     "pyyaml>=6.0.0,<7",
     "radixtarget>=4.0.1,<5",
-    "asndb>=1.0.4",
+    "asndb>=1.1.0",
     "orjson>=3.10.12,<4",
     "ansible-core>=2.17,<3",
     "tldextract>=5.3.0,<6",
     "cloudcheck>=10.0.0,<11",
-    "blasthttp>=0.8.0",
+    "blasthttp>=0.9.0",
     "blastdns>=1.9.0,<2",
     "zstandard>=0.22,<1",
 ]
@@ -80,7 +80,7 @@ dev = [
     "pytest-httpx>=0.35",
     "pytest-benchmark>=4,<6",
     "baddns~=2.4.0",
-    "ruff==0.15.16",
+    "ruff==0.15.17",
     "maturin>=1.4,<2",
 ]
 docs = [

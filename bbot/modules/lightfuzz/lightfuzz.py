@@ -366,6 +366,9 @@ class lightfuzz(BaseModule):
                 self.debug(f"Error in interact.sh: {e}")
 
     async def filter_event(self, event):
+        if await self._is_http_wildcard_host(event) is True:
+            return False, "host is an HTTP wildcard responder"
+
         # Unless configured specifically to do so, avoid running against confirmed WAFs
         if self.avoid_wafs and "waf" in event.tags:
             # Use parsed_url.geturl() for both URL and WEB_PARAMETER events

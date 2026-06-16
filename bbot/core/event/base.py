@@ -1823,7 +1823,6 @@ class HTTP_RESPONSE(URL_UNVERIFIED):
             self._data.pop("body", None)
             self._data.pop("raw_header", None)
             self._data.pop("header", None)
-            self._data.pop("hash", None)
             self._data.pop("cert_info", None)
 
     @property
@@ -2012,6 +2011,31 @@ class TECHNOLOGY(DictHostEvent):
         if url:
             return f"{tech} ({url})"
         return tech
+
+
+class VIRTUAL_HOST(DictHostEvent):
+    class _data_validator(BaseModel):
+        host: str
+        virtual_host: str
+        url: Optional[str] = None
+        description: Optional[str] = None
+        ip: Optional[str] = None
+        _validate_url = field_validator("url")(validators.validate_url)
+        _validate_host = field_validator("host")(validators.validate_host)
+
+    def _data_id(self):
+        virtual_host = self.data.get("virtual_host", "")
+        return f"{self.host}:{virtual_host}"
+
+    def _pretty_string(self):
+        return self.data.get("virtual_host", "")
+
+    def _data_human(self):
+        virtual_host = self.data.get("virtual_host", "")
+        url = self.data.get("url", "")
+        if url:
+            return f"{virtual_host} ({url})"
+        return virtual_host
 
 
 class PROTOCOL(DictHostEvent):

@@ -21,6 +21,8 @@ config:
       recursive_mutations: true
     dnscommonsrv:
       recursive_mutations: true
+    webbrute:
+      avoid_wafs: False
     wayback:
       urls: True
       parameters: True
