@@ -73,8 +73,9 @@ class domino(BaseModule):
     async def handle_event(self, event):
         url = event.url
         self.debug(f"Domino scanning {url}")
-        browser = await self.playwright.chromium.launch(headless=True)
+        browser = None
         try:
+            browser = await self.playwright.chromium.launch(headless=True)
             d = Domino(url=url, logger=self.log, json_mode=True, selected_rules=self.rules)
             results = await asyncio.wait_for(d.run(self.playwright, browser), timeout=120)
         except asyncio.TimeoutError:
@@ -84,11 +85,16 @@ class domino(BaseModule):
             self.hugewarning(f"Error running Domino, setting error state: {e}")
             self.errored = True
             return
+        except Exception as e:
+            self.hugewarning(f"Playwright/Domino fatal error ({type(e).__name__}: {e}), disabling module")
+            self.errored = True
+            return
         finally:
-            try:
-                await browser.close()
-            except Exception:
-                pass
+            if browser is not None:
+                try:
+                    await browser.close()
+                except Exception:
+                    pass
 
         if results:
             for result in results:
