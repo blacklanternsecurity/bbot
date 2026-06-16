@@ -178,6 +178,14 @@ class TestHTTP_custom_cookies(ModuleTestBase):
 
 
 class TestHTTP_429_retry(ModuleTestBase):
+    """Test the module's own defer→cooldown→retry→succeed path.
+
+    blasthttp_retries=1 means blasthttp makes up to 2 wire attempts per request.
+    We return 429 for the first 2 requests (exhausting blasthttp's retry),
+    so the module's 429 handler engages and defers with a cooldown. The 3rd
+    request (from the module's retry after cooldown) succeeds.
+    """
+
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["http"]
     config_overrides = {"web": {"429_sleep_interval": 1, "429_max_sleep_interval": 1}}
@@ -187,14 +195,14 @@ class TestHTTP_429_retry(ModuleTestBase):
 
         def handler(request):
             self.request_count += 1
-            if self.request_count <= 1:
+            if self.request_count <= 2:
                 return Response("rate limited", status=429, headers={"Retry-After": "1"})
             return Response("<html><body>OK</body></html>")
 
         module_test.httpserver.expect_request("/").respond_with_handler(handler)
 
     def check(self, module_test, events):
-        assert self.request_count >= 2, "Expected retry after 429"
+        assert self.request_count >= 3, "Expected at least 3 requests (2 blasthttp attempts + 1 module retry)"
         assert any(e.type == "URL" and "status-200" in e.tags for e in events), (
             "Expected URL with status-200 after successful retry"
         )

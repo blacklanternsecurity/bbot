@@ -45,7 +45,7 @@ class http(BaseModule):
         self._max_429_retries = 3
         self._429_default_interval = self.scan.web_config.get("429_sleep_interval", 30)
         self._429_max_interval = self.scan.web_config.get("429_max_sleep_interval", 60)
-        self._wakeup_pending = False
+        self._wakeup_target = 0
         return True
 
     async def filter_event(self, event):
@@ -136,10 +136,11 @@ class http(BaseModule):
         still_deferred = []
         flushed = 0
         earliest_resume = None
+        now = time.monotonic()
         for event in self._deferred_events:
             host = str(event.host)
             resume_time = self._host_cooldowns.get(host, 0)
-            if time.monotonic() >= resume_time:
+            if now >= resume_time:
                 event._429_retry = True
                 self.incoming_event_queue.put_nowait(event)
                 flushed += 1
@@ -148,17 +149,20 @@ class http(BaseModule):
                 if earliest_resume is None or resume_time < earliest_resume:
                     earliest_resume = resume_time
         self._deferred_events = still_deferred
+        # prune expired cooldowns
+        self._host_cooldowns = {h: t for h, t in self._host_cooldowns.items() if t > now}
         if flushed:
             async with self.event_received:
                 self.event_received.notify()
-        if still_deferred and earliest_resume is not None and not self._wakeup_pending:
-            delay = max(0.1, earliest_resume - time.monotonic())
-            self._wakeup_pending = True
-            self.helpers.create_task(self._deferred_wakeup(delay))
+        if still_deferred and earliest_resume is not None:
+            if not self._wakeup_target or earliest_resume < self._wakeup_target:
+                delay = max(0.1, earliest_resume - time.monotonic())
+                self._wakeup_target = earliest_resume
+                self.helpers.create_task(self._deferred_wakeup(delay))
 
     async def _deferred_wakeup(self, delay):
         await self.helpers.sleep(delay)
-        self._wakeup_pending = False
+        self._wakeup_target = 0
         await self._flush_deferred()
 
     def _build_headers(self):
@@ -281,11 +285,12 @@ class http(BaseModule):
                 paired_probe_urls[schemes["https"]] = key
 
         if not stdin:
-            if self._deferred_events and not self._wakeup_pending:
+            if self._deferred_events:
                 earliest = min(self._host_cooldowns.get(str(e.host), 0) for e in self._deferred_events)
-                delay = max(0.1, earliest - time.monotonic())
-                self._wakeup_pending = True
-                self.helpers.create_task(self._deferred_wakeup(delay))
+                if not self._wakeup_target or earliest < self._wakeup_target:
+                    delay = max(0.1, earliest - time.monotonic())
+                    self._wakeup_target = earliest
+                    self.helpers.create_task(self._deferred_wakeup(delay))
             return
 
         headers = self._build_headers()
@@ -339,14 +344,18 @@ class http(BaseModule):
                 )
                 continue
 
+            # Non-429 response -- clear any retry tracking for this URL
+            _retry_parent = stdin.get(result.url)
+            if _retry_parent is not None:
+                self._429_retry_counts.pop(self._incoming_dedup_hash(_retry_parent), None)
+
             key = paired_probe_urls.get(result.url)
             if key is None:
                 # Non-paired URL -- emit immediately
-                parent_event = stdin.get(result.url)
-                if parent_event is None:
+                if _retry_parent is None:
                     self.warning(f"Unable to correlate parent event for: {result.url}")
                     continue
-                await self._process_result(result, parent_event)
+                await self._process_result(result, _retry_parent)
                 continue
 
             # Paired OPEN_TCP_PORT probe
