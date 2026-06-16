@@ -447,3 +447,112 @@ class TestDockerPull(ModuleTestBase):
         filesystem_event = filesystem_events[0]
         folder = Path(filesystem_event.data["path"])
         assert folder.is_file(), "Destination tar doesn't exist"
+
+
+class TestDockerPullParsing(ModuleTestBase):
+    modules_overrides = ["docker_pull"]
+
+    async def setup_after_prep(self, module_test):
+        self.docker_pull = module_test.scan.modules["docker_pull"]
+
+    def check(self, module_test, events):
+        m = self.docker_pull
+
+        # standard Docker Hub header
+        realm, service, scope = m._parse_www_authenticate(
+            'Bearer realm="https://auth.docker.io/token",service="registry.docker.io",scope="repository:library/nginx:pull"'
+        )
+        assert realm == "https://auth.docker.io/token"
+        assert service == "registry.docker.io"
+        assert scope == "repository:library/nginx:pull"
+
+        # whitespace between fields
+        realm, service, scope = m._parse_www_authenticate(
+            'Bearer realm="https://auth.docker.io/token", service="registry.docker.io", scope="repository:lib/nginx:pull"'
+        )
+        assert realm == "https://auth.docker.io/token"
+        assert service == "registry.docker.io"
+
+        # different field ordering
+        realm, service, scope = m._parse_www_authenticate(
+            'Bearer service="registry.docker.io",realm="https://auth.docker.io/token",scope="repo:pull"'
+        )
+        assert realm == "https://auth.docker.io/token"
+
+        # missing fields return empty strings
+        realm, service, scope = m._parse_www_authenticate('Bearer realm="https://auth.docker.io/token"')
+        assert realm == "https://auth.docker.io/token"
+        assert service == ""
+        assert scope == ""
+
+        # empty/garbage header
+        realm, service, scope = m._parse_www_authenticate("")
+        assert realm == ""
+
+        # injection attempt: extra quotes in value
+        realm, service, scope = m._parse_www_authenticate(
+            'Bearer realm="https://evil.com",junk="x",service="registry.docker.io",scope="repo:pull"'
+        )
+        assert realm == "https://evil.com"
+
+        # injection attempt: realm value containing comma
+        realm, service, scope = m._parse_www_authenticate(
+            'Bearer realm="https://evil.com?a=1,b=2",service="registry.docker.io",scope="repo:pull"'
+        )
+        # the comma inside the value will split wrong, but the result is still safe
+        # because _validate_realm catches it
+        assert not m._validate_realm("https://registry-1.docker.io/v2/foo", realm)
+
+        # realm validation: same TLD passes
+        assert m._validate_realm("https://registry-1.docker.io/v2/foo/tags/list", "https://auth.docker.io/token")
+
+        # realm validation: different TLD rejected
+        assert not m._validate_realm("https://registry-1.docker.io/v2/foo/tags/list", "http://169.254.169.254/foo")
+        assert not m._validate_realm("https://registry-1.docker.io/v2/foo/tags/list", "https://evil.com/token")
+
+        # realm validation: empty realm rejected
+        assert not m._validate_realm("https://registry-1.docker.io/v2/foo/tags/list", "")
+
+
+class TestDockerPullRealmValidation(ModuleTestBase):
+    modules_overrides = ["speculate", "dockerhub", "docker_pull"]
+
+    async def setup_before_prep(self, module_test):
+        module_test.blasthttp_mock.add_response(
+            url="https://hub.docker.com/v2/users/blacklanternsecurity",
+            json={"id": "test", "uuid": "test", "username": "blacklanternsecurity", "type": "User"},
+        )
+        module_test.blasthttp_mock.add_response(
+            url="https://hub.docker.com/v2/repositories/blacklanternsecurity?page_size=25&page=1",
+            json={
+                "count": 1,
+                "next": None,
+                "previous": None,
+                "results": [
+                    {
+                        "name": "testimage",
+                        "namespace": "blacklanternsecurity",
+                        "repository_type": "image",
+                        "status": 1,
+                    }
+                ],
+            },
+        )
+        # realm points to a non-HTTPS internal address
+        module_test.blasthttp_mock.add_response(
+            url="https://registry-1.docker.io/v2/blacklanternsecurity/testimage/tags/list",
+            json={"errors": [{"code": "UNAUTHORIZED", "message": "authentication required"}]},
+            headers={
+                "www-authenticate": 'Bearer realm="http://169.254.169.254/latest/meta-data",service="registry.docker.io",scope="blacklanternsecurity/testimage:pull"'
+            },
+            status_code=401,
+        )
+        module_test.blasthttp_mock.add_response(
+            url="http://169.254.169.254/latest/meta-data?service=registry.docker.io&scope=blacklanternsecurity/testimage:pull",
+            json={"token": "test_token_value"},
+        )
+
+    def check(self, module_test, events):
+        docker_pull_module = module_test.scan.modules["docker_pull"]
+        auth_header = docker_pull_module.headers.get("Authorization", "")
+        assert "test_token_value" not in auth_header, "Module followed a non-HTTPS realm"
