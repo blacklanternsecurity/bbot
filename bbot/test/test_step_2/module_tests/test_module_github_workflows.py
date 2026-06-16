@@ -533,7 +533,7 @@ class TestGithubWorkflowsSymlinkCheck(ModuleTestBase):
     config_overrides = {"modules": {"github_workflows": {"api_key": "asdf"}}}
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(url="https://api.github.com/zen")
+        module_test.blasthttp_mock.add_response(url="https://api.github.com/zen")
 
     async def setup_after_prep(self, module_test):
         m = module_test.scan.modules["github_workflows"]
