@@ -47,9 +47,6 @@ class waf_bypass(BaseModule):
         self.search_ip_neighbors = self.config.get("search_ip_neighbors", True)
         self.neighbor_cidr = int(self.config.get("neighbor_cidr", 24))
 
-        if self.search_ip_neighbors and not (24 <= self.neighbor_cidr <= 31):
-            self.warning(f"Invalid neighbor_cidr {self.neighbor_cidr}. Must be between 24 and 31.")
-            return False
         # Keep track of (protected_domain, ip) pairs we have already attempted to bypass
         self.attempted_bypass_pairs = set()
         # Keep track of any IPs that came from hosts that are "cloud-ips"
