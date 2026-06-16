@@ -132,8 +132,10 @@ web:
   debug: false
   # Maximum number of HTTP redirects to follow
   http_max_redirects: 5
-  # Whether to verify SSL certificates
-  ssl_verify: false
+  # Whether to verify SSL certificates for target-directed traffic (probes, crawls, etc.)
+  ssl_verify_target: false
+  # Whether to verify SSL certificates for non-target traffic (APIs, wordlist downloads, etc.)
+  ssl_verify_infrastructure: true
   # Maximum HTTP requests per second (0 = unlimited)
   # Applies globally across all blasthttp consumers (http probing, web brute, etc.)
   http_rate_limit: 0

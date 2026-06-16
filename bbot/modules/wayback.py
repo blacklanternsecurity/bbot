@@ -170,6 +170,10 @@ rule akamai_bot_manager_url
             await self._handle_url_event(event)
             return
 
+        if await self._is_http_wildcard_host(event) is True:
+            self.debug(f"Skipping wayback query for {event.host}: HTTP wildcard responder")
+            return
+
         query = self.make_query(event)
         results, interesting_files = await self.query(query)
         for result, event_type in results:

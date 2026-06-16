@@ -153,6 +153,9 @@ class http(BaseModule):
             location = j.get("location", "")
             if location:
                 url_event.redirect_location = location
+            response_hash = j.get("hash")
+            if response_hash:
+                url_event.data["hash"] = response_hash
             if url_event != parent_event:
                 await self.emit_event(url_event)
             content_type = j.get("header", {}).get("content_type", "unspecified").split(";")[0]
