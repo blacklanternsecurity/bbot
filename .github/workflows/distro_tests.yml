@@ -23,8 +23,11 @@ jobs:
             . /etc/os-release
             if [ "$ID" = "ubuntu" ] || [ "$ID" = "debian" ] || [ "$ID" = "kali" ] || [ "$ID" = "parrotsec" ]; then
               export DEBIAN_FRONTEND=noninteractive
-              apt-get update
-              apt-get -y install curl git bash build-essential docker.io libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev
+              for attempt in 1 2 3; do
+                apt-get update && apt-get -y install curl git bash build-essential docker.io libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev && break
+                echo "apt-get failed (attempt $attempt/3), retrying in 10s..."
+                sleep 10
+              done
             elif [ "$ID" = "alpine" ]; then
               apk add --no-cache bash gcc g++ musl-dev libffi-dev docker curl git make openssl-dev bzip2-dev zlib-dev xz-dev sqlite-dev
             elif [ "$ID" = "arch" ]; then
@@ -38,33 +41,18 @@ jobs:
             fi
           fi
 
-          # Re-run the script with bash
-          exec bash -c "
-            curl https://pyenv.run | bash
-            export PATH=\"$HOME/.pyenv/bin:\$PATH\"
-            export PATH=\"$HOME/.local/bin:\$PATH\"
-            eval \"\$(pyenv init --path)\"
-            eval \"\$(pyenv init -)\"
-            eval \"\$(pyenv virtualenv-init -)\"
-            pyenv install 3.11
-            pyenv global 3.11
-            pyenv rehash
-            python3.11 -m pip install --user pipx
-            python3.11 -m pipx ensurepath
-            pipx install uv
-          "
+          # Install uv (standalone binary, no Python prerequisite)
+          curl -LsSf https://astral.sh/uv/install.sh | sh
       - name: Set OS Environment Variable
         run: echo "OS_NAME=${{ matrix.os }}" | sed 's|[:/]|_|g' >> $GITHUB_ENV
       - name: Run tests
         run: |
-          # Preserve pyenv/pipx paths installed under the GitHub-set HOME
           export PATH="/github/home/.local/bin:$PATH"
-          export PATH="/github/home/.pyenv/bin:$PATH"
-          export PATH="/github/home/.pyenv/shims:$PATH"
           # Fix HOME to match euid (root) so rustup/cargo don't refuse to build
           export HOME="$(getent passwd $(whoami) | cut -d: -f6)"
           export BBOT_DISTRO_TESTS=true
-          uv python pin 3.11
+          uv python install 3.12
+          uv python pin 3.12
           uv sync --group dev
           uv run pytest --reruns 2 --exitfirst -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO .
       - name: Upload Debug Logs
