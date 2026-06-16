@@ -22,6 +22,9 @@ class TestDNSCAA(ModuleTestBase):
                         '1 issue "digicert.com; cansignhttpexchanges=yes"',
                         '0 issuewild "letsencrypt.org"',
                         '128 issuewild "pki.goog; cansignhttpexchanges=yes"',
+                        '0 contactemail "contact@blacklanternsecurity.notreal"',
+                        '0 contactphone "+1-555-123-4567"',
+                        '0 somefuturetag "whatever"',
                     ],
                 },
                 "caa.blacklanternsecurity.notreal": {"A": ["127.0.0.22"]},
@@ -50,6 +53,9 @@ class TestDNSCAA(ModuleTestBase):
         ), "Failed to detect URL"
         assert any(e.type == "EMAIL_ADDRESS" and e.data == "caa@blacklanternsecurity.notreal" for e in events), (
             "Failed to detect email address"
+        )
+        assert any(e.type == "EMAIL_ADDRESS" and e.data == "contact@blacklanternsecurity.notreal" for e in events), (
+            "Failed to detect contactemail address"
         )
         # make sure we're not checking CAA records for out-of-scope hosts
         assert not any(str(e.host) == "caa.comodoca.com" for e in events)

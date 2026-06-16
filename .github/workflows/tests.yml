@@ -46,7 +46,7 @@ jobs:
           name: pytest-debug-logs-${{ env.PYTHON_VERSION }}
           path: pytest_debug.log
       - name: Upload Code Coverage
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./cov.xml

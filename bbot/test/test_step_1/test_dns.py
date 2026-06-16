@@ -71,6 +71,74 @@ async def test_dns_engine(bbot_scanner):
 
 
 @pytest.mark.asyncio
+async def test_extract_targets_spf_ips(bbot_scanner):
+    """SPF TXT records: extract IPs and CIDRs (ip4:/ip6:) alongside hostnames."""
+    scan = bbot_scanner()
+    await scan._prep()
+    await scan.helpers.dns._mock_dns(
+        {
+            "evilcorp.com": {
+                "TXT": [
+                    '"v=spf1 ip4:1.2.3.4 ip4:5.6.7.0/24 ip6:2001:db8::/48 include:cloudprovider.com exists:%{i}.sniff.evilcorp.com -all"'
+                ],
+            },
+            "nospf.evilcorp.com": {
+                "TXT": ['"google-site-verification=abc123 contact admin.evilcorp.com ip4:9.9.9.0/24"'],
+            },
+        }
+    )
+    response = await scan.helpers.dns.resolve_full("evilcorp.com", "TXT")
+    extracted = set()
+    for ans in response.response.answers:
+        extracted.update(extract_targets(ans))
+    hosts = {host for _, host in extracted}
+    assert "1.2.3.4" in hosts, "single IPv4 from ip4: mechanism not extracted"
+    assert "5.6.7.0/24" in hosts, "IPv4 CIDR from ip4: mechanism not extracted"
+    assert "2001:db8::/48" in hosts, "IPv6 CIDR from ip6: mechanism not extracted"
+    assert {"cloudprovider.com"} <= hosts, "include: hostname not extracted"
+    assert "5.6.7.0" not in hosts, "bare network address must not be emitted alongside its CIDR"
+    assert not any("sniff" in host or "%" in host for host in hosts), "SPF macro mechanisms must be skipped"
+
+    # non-SPF TXT records are not eligible for IP/CIDR extraction, only hostnames
+    response = await scan.helpers.dns.resolve_full("nospf.evilcorp.com", "TXT")
+    extracted = set()
+    for ans in response.response.answers:
+        extracted.update(extract_targets(ans))
+    hosts = {host for _, host in extracted}
+    assert {"admin.evilcorp.com"} <= hosts, "hostname extraction from non-SPF TXT must be preserved"
+    assert "9.9.9.0/24" not in hosts, "CIDR extraction must be gated on v=spf1"
+
+
+@pytest.mark.asyncio
+async def test_extract_targets_spf_ips_end_to_end(bbot_scanner):
+    """SPF TXT record all the way through the scan: IPs/CIDRs emitted as IP_ADDRESS / IP_RANGE events."""
+    scan = bbot_scanner("evilcorp.com", config={"dns": {"minimal": False}, "scope": {"report_distance": 1}})
+    await scan._prep()
+    await scan.helpers.dns._mock_dns(
+        {
+            "evilcorp.com": {
+                "TXT": [
+                    '"v=spf1 ip4:1.2.3.4 ip4:5.6.7.0/24 ip6:2001:db8::/48 include:cloudprovider.com exists:%{i}.sniff.evilcorp.com -all"'
+                ],
+            },
+            "cloudprovider.com": {"A": ["4.3.2.1"]},
+        }
+    )
+    events = [e async for e in scan.async_start()]
+    ip_addresses = {e.data for e in events if e.type == "IP_ADDRESS"}
+    ip_ranges = {e.data for e in events if e.type == "IP_RANGE"}
+    dns_names = {e.data for e in events if e.type == "DNS_NAME"}
+    assert "1.2.3.4" in ip_addresses, "SPF ip4: address was not emitted as an IP_ADDRESS event"
+    assert "5.6.7.0/24" in ip_ranges, "SPF ip4: CIDR was not emitted as an IP_RANGE event"
+    assert "2001:db8::/48" in ip_ranges, "SPF ip6: CIDR was not emitted as an IP_RANGE event"
+    assert {"cloudprovider.com"} <= dns_names, "SPF include: hostname was not emitted as a DNS_NAME event"
+    assert not any("sniff" in str(e.data) for e in events if e.type in ("DNS_NAME", "IP_ADDRESS", "IP_RANGE")), (
+        "SPF macro mechanism must not produce DNS_NAME/IP events"
+    )
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
 async def test_dns_resolution(bbot_scanner):
     """Multi-rdtype resolution + SPF affiliate tagging end-to-end."""
     scan = bbot_scanner()

@@ -1,0 +1,12 @@
+description: Discover URLs and interesting archived files via the Wayback Machine
+
+include:
+  - subdomain-enum
+
+modules:
+  - wayback
+
+config:
+  modules:
+    wayback:
+      urls: True

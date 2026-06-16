@@ -8,6 +8,7 @@ flags:
 
 modules:
   - robots
+  - wayback
 
 config:
   modules:
@@ -16,3 +17,6 @@ config:
       disable_post: False
       try_post_as_get: True
       try_get_as_post: True
+    wayback:
+      urls: True
+      parameters: True

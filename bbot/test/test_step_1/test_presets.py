@@ -1299,3 +1299,146 @@ def test_preset_dnsresolve_required_by_dns_name_consumers():
 
     # disabling dnsresolve with no DNS_NAME consumers enabled is allowed
     Preset(exclude_modules=["dnsresolve"]).validate().bake()
+
+
+def test_preset_path_no_clobber_default(tmp_path):
+    """Regression: loading a preset via path (e.g. ./scan.yml) must not clobber
+    the default preset search path, even when the preset lives in a parent
+    directory of bbot/presets/. Previously, add_path() would remove
+    DEFAULT_PRESET_PATH from the search list, causing rglob to search the
+    entire tree and match non-YAML files (like .venv/bin/baddns).
+    """
+    from bbot.scanner.preset.path import PresetPath, DEFAULT_PRESET_PATH
+
+    # preset that includes a built-in preset by name (no extension, no path)
+    preset_file = tmp_path / "scan.yml"
+    preset_file.write_text("description: regression test\ninclude:\n  - baddns\n")
+
+    # non-YAML decoy that would match an extensionless rglob for "baddns"
+    decoy_dir = tmp_path / "fake_venv" / "bin"
+    decoy_dir.mkdir(parents=True)
+    decoy = decoy_dir / "baddns"
+    decoy.write_text("#!/usr/bin/env python\nif __name__ == '__main__':\n    pass\n")
+
+    pp = PresetPath()
+    # resolve the top-level file
+    found = pp.find(str(preset_file))
+    assert found == preset_file.resolve()
+    # DEFAULT_PRESET_PATH must survive
+    assert DEFAULT_PRESET_PATH in pp.paths
+
+    # the built-in include must resolve to the real preset, not the decoy
+    found_include = pp.find("baddns")
+    assert found_include.suffix in (".yml", ".yaml")
+    assert "fake_venv" not in str(found_include)
+
+    # full round-trip through Preset
+    preset = Preset.from_yaml_file(str(preset_file))
+    assert "baddns" in preset.explicit_scan_modules
+
+
+def test_malformed_yaml_preset_file(tmp_path):
+    """Regression test for https://github.com/blacklanternsecurity/bbot/issues/3158
+
+    Malformed YAML (e.g. bad indentation) must raise a clear ValidationError,
+    not an unhandled exception with a raw traceback.
+    """
+    malformed = tmp_path / "bad_preset.yml"
+    malformed.write_text(
+        "target:\n  - evilcorp.com\nmodules:\n  sslcert:\n    option: value\n   robots:\n    option: value\n"
+    )
+    with pytest.raises(ValidationError, match="YAML syntax error"):
+        Preset.from_yaml_file(str(malformed))
+
+
+def test_malformed_yaml_preset_string():
+    """Regression test for https://github.com/blacklanternsecurity/bbot/issues/3158
+
+    Malformed YAML string must raise ValidationError, not an unhandled yaml.YAMLError.
+    """
+    malformed_yaml = "target:\n  - evilcorp.com\nconfig:\n  key: value\n   bad_indent: oops\n"
+    with pytest.raises(ValidationError, match="YAML syntax error"):
+        Preset.from_yaml_string(malformed_yaml)
+
+
+def test_malformed_yaml_config_file(tmp_path):
+    """Regression test for https://github.com/blacklanternsecurity/bbot/issues/3158
+
+    Malformed YAML in a config file (bbot.yml / secrets.yml) must raise
+    ConfigLoadError with a helpful message, not crash with a raw traceback.
+    """
+    from bbot.core.config.files import BBOTConfigFiles
+    from bbot.errors import ConfigLoadError
+
+    malformed = tmp_path / "bad_config.yml"
+    malformed.write_text("web:\n  http_rate_limit: 100\n   bad_key: value\n")
+    with pytest.raises(ConfigLoadError, match="YAML syntax error"):
+        BBOTConfigFiles._get_config(None, str(malformed))
+
+
+def test_all_presets_ignores_non_preset_yaml(tmp_path):
+    """Regression test for https://github.com/blacklanternsecurity/bbot/issues/3189
+
+    When -p loads a preset from an arbitrary directory (e.g. $HOME), that
+    directory must NOT be searched by all_presets / -lp. Otherwise every
+    .yml file under it (Ansible collections, CI configs, etc.) is parsed
+    and produces warning spam.
+    """
+    import bbot.scanner.preset.preset as preset_mod
+    from bbot.scanner.preset.path import PresetPath
+
+    # create a valid preset in tmp_path (simulates ~/my_preset.yml)
+    preset_file = tmp_path / "my_preset.yml"
+    preset_file.write_text("description: test preset\nmodules:\n  - sslcert\n")
+
+    # create non-preset yaml files nearby (simulates Ansible, CI, etc.)
+    junk_dir = tmp_path / "ansible"
+    junk_dir.mkdir()
+    (junk_dir / "playbook.yml").write_text("hosts: all\ntasks: []\n")
+    (tmp_path / "ci.yml").write_text("on: push\njobs: {}\n")
+
+    # save and replace global state so we get a clean PRESET_PATH
+    orig_preset_path = preset_mod.PRESET_PATH
+    orig_default_presets = preset_mod.DEFAULT_PRESETS
+    try:
+        fresh_path = PresetPath()
+        preset_mod.PRESET_PATH = fresh_path
+        # also patch the path module's reference
+        import bbot.scanner.preset.path as path_mod
+
+        orig_path_singleton = path_mod.PRESET_PATH
+        path_mod.PRESET_PATH = fresh_path
+
+        # simulate -p /tmp/xxx/my_preset.yml: find() adds tmp_path to search paths
+        found = fresh_path.find(str(preset_file))
+        assert found == preset_file.resolve()
+        # tmp_path is now in search paths (needed for include resolution)
+        assert tmp_path.resolve() in fresh_path.paths
+
+        # reset the cached presets so all_presets re-enumerates
+        preset_mod.DEFAULT_PRESETS = None
+
+        preset = Preset()
+
+        # collect warnings emitted during all_presets enumeration
+        import logging
+
+        warnings = []
+        handler = logging.Handler()
+        handler.emit = lambda record: (
+            warnings.append(record.getMessage()) if record.levelno >= logging.WARNING else None
+        )
+        preset_logger = logging.getLogger("bbot.presets")
+        preset_logger.addHandler(handler)
+        try:
+            preset.all_presets
+        finally:
+            preset_logger.removeHandler(handler)
+
+        # no warnings should reference the junk files from tmp_path
+        junk_warnings = [w for w in warnings if "playbook.yml" in w or "ci.yml" in w]
+        assert not junk_warnings, f"all_presets tried to parse non-preset YAML files: {junk_warnings}"
+    finally:
+        preset_mod.DEFAULT_PRESETS = orig_default_presets
+        preset_mod.PRESET_PATH = orig_preset_path
+        path_mod.PRESET_PATH = orig_path_singleton

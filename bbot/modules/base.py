@@ -106,6 +106,7 @@ class BaseModule:
     target_only = False
     in_scope_only = False
     accept_url_special = False
+    _avoid_duplicate_content = False
     _module_threads = 1
     _batch_size = 1
 
@@ -144,6 +145,7 @@ class BaseModule:
         self._outgoing_event_queue = None
         # track incoming events to prevent unwanted duplicates
         self._incoming_dup_tracker = set()
+        self._content_dup_tracker = set()
         # tracks which subprocesses are running under this module
         self._proc_tracker = set()
         # seconds since we've submitted a batch
@@ -868,13 +870,13 @@ class BaseModule:
         if self.target_only and "target" not in event.tags:
             return False, "it did not meet target_only filter criteria"
 
-        # limit js URLs to modules that opt in to receive them
-        if (not self.accept_url_special) and event.type.startswith("URL"):
+        # limit events with special URL extensions (e.g. .js) to modules that opt in
+        if not self.accept_url_special:
             extension = getattr(event, "url_extension", "")
             if extension in self.scan.url_extension_special:
                 return (
                     False,
-                    f"it is a special URL (extension {extension}) but the module does not opt in to receive special URLs",
+                    f"it has a special URL extension ({extension}) but the module does not opt in to receive special URLs",
                 )
 
         return True, "precheck succeeded"
@@ -938,6 +940,30 @@ class BaseModule:
                 return False, msg
 
         return True, ""
+
+    async def _is_http_wildcard_host(self, event):
+        """Check whether the event's host is an HTTP wildcard responder.
+
+        Extracts scheme/host/port from the event's parsed_url when available,
+        otherwise falls back to ``event.host`` with https/443.  Returns True
+        (wildcard), False (not wildcard), or None (probe failed / no host).
+        """
+        p = getattr(event, "parsed_url", None)
+        if p is not None and p.hostname:
+            host = p.hostname
+            port = p.port or (443 if p.scheme == "https" else 80)
+            scheme = p.scheme
+        elif event.host:
+            # may miss HTTP-only wildcard hosts, but not worth doubling probe requests
+            host = str(event.host)
+            port = 443
+            scheme = "https"
+        else:
+            return None
+        result = await self.helpers.is_http_wildcard_host(scheme, host, port)
+        if result in (False, None):
+            return result
+        return True
 
     def _scope_distance_check(self, event):
         # Seeds bypass scope distance checks
@@ -1121,9 +1147,21 @@ class BaseModule:
             return True, msg
         with suppress(TypeError, ValueError):
             event_hash, reason = event_hash
-        is_dup = event_hash in self._incoming_dup_tracker
-        if add:
+        is_post = isinstance(event.data, dict) and event.data.get("method", "") == "POST"
+        is_dup = event_hash in self._incoming_dup_tracker and not is_post
+        if add and not is_post:
             self._incoming_dup_tracker.add(event_hash)
+        if not is_dup and self._avoid_duplicate_content:
+            hash_dict = event.data.get("hash") if isinstance(event.data, dict) else None
+            body_hash = hash_dict.get("body_sha256", "") if isinstance(hash_dict, dict) else ""
+            # skip dedup for empty bodies (e.g. 302 redirects) where the useful data is in headers
+            if body_hash and body_hash != "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855":
+                content_key = hash((event.host, event.port, body_hash))
+                if content_key in self._content_dup_tracker:
+                    is_dup = True
+                    reason = f"duplicate content (body_hash={body_hash})"
+                if add:
+                    self._content_dup_tracker.add(content_key)
         return is_dup, reason
 
     def _incoming_dedup_hash(self, event):
@@ -1302,6 +1340,8 @@ class BaseModule:
         for _ in range(self.api_retries):
             if "headers" not in kwargs:
                 kwargs["headers"] = {}
+            if "ssl_verify" not in kwargs:
+                kwargs["ssl_verify"] = self.helpers.web.ssl_verify_infrastructure
             new_url, kwargs = self.prepare_api_request(url, kwargs)
             kwargs["url"] = new_url
 
@@ -1955,6 +1995,3 @@ class BaseInterceptModule(BaseModule):
             self.incoming_event_queue.put_nowait((event, kwargs))
         except AttributeError:
             self.debug("Not in an acceptable state to queue incoming event")
-
-    async def _event_postcheck(self, event):
-        return await self._event_postcheck_inner(event)
