@@ -147,6 +147,9 @@ class github_workflows(github):
         return runs
 
     def _check_output_path(self, folder):
+        if self.output_dir.is_symlink():
+            self.warning(f"Refusing to write through symlink: {self.output_dir}")
+            return False
         try:
             rel = folder.relative_to(self.output_dir)
         except ValueError:
@@ -227,7 +230,7 @@ class github_workflows(github):
         if not self._check_output_path(folder):
             return None
         self.helpers.mkdir(folder)
-        file_destination = folder / artifact_name
+        file_destination = folder / Path(artifact_name).name
         try:
             await self.api_download(
                 f"{self.base_url}/repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip",

@@ -283,12 +283,21 @@ class TestUnarchiveTraversalCheck(ModuleTestBase):
         with zipfile.ZipFile(traversal_zip, "w") as zf:
             zf.writestr("../escaped.txt", "escaped")
 
+        # tar with symlink entry
+        symlink_tar = temp_path / "symlink.tar"
+        with tarfile.open(symlink_tar, "w") as tar:
+            info = tarfile.TarInfo(name="evil_link")
+            info.type = tarfile.SYMTYPE
+            info.linkname = "/etc/passwd"
+            tar.addfile(info)
+
         self.results = {}
         self.results["safe_tar"] = await m._check_archive_safe(safe_tar, "tar")
         self.results["traversal_tar"] = await m._check_archive_safe(traversal_tar, "tar")
         self.results["absolute_tar"] = await m._check_archive_safe(absolute_tar, "tar")
         self.results["safe_zip"] = await m._check_archive_safe(safe_zip, "zip")
         self.results["traversal_zip"] = await m._check_archive_safe(traversal_zip, "zip")
+        self.results["symlink_tar"] = await m._check_archive_safe(symlink_tar, "tar")
 
     def check(self, module_test, events):
         assert self.results["safe_tar"], "Safe tar rejected"
@@ -296,3 +305,4 @@ class TestUnarchiveTraversalCheck(ModuleTestBase):
         assert not self.results["absolute_tar"], "Absolute path tar was not rejected"
         assert self.results["safe_zip"], "Safe zip rejected"
         assert not self.results["traversal_zip"], "Traversal zip was not rejected"
+        assert not self.results["symlink_tar"], "Symlink tar was not rejected"

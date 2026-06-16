@@ -93,12 +93,25 @@ class unarchive(BaseInternalModule):
     async def _check_archive_safe(self, path, compression_format):
         if compression_format in ("zip", "7z"):
             result = await self.run_process(["7z", "l", "-slt", str(path)])
-            entries = [line.split("= ", 1)[1] for line in result.stdout.splitlines() if line.startswith("Path = ")]
-            # first entry is the archive path itself
+            output_lines = result.stdout.splitlines()
+            entries = [line.split("= ", 1)[1] for line in output_lines if line.startswith("Path = ")]
             entries = entries[1:]
+            # reject symlink/hardlink entries
+            for line in output_lines:
+                if line.startswith("Link = ") or (
+                    line.startswith("Attributes = ") and line.split("= ", 1)[1].strip().startswith("l")
+                ):
+                    self.warning(f"Archive {path} contains symlink or link entry")
+                    return False
         else:
             result = await self.run_process(["tar", "-tf", str(path)])
             entries = result.stdout.splitlines()
+            # reject symlink/hardlink entries via verbose listing
+            verbose = await self.run_process(["tar", "-tvf", str(path)])
+            for line in verbose.stdout.splitlines():
+                if line and line[0] in ("l", "h"):
+                    self.warning(f"Archive {path} contains symlink or hardlink entry")
+                    return False
         for entry in entries:
             entry = entry.strip()
             if not entry:
