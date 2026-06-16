@@ -13,9 +13,17 @@ bbot -t evilcorp.com -f subdomain-enum -m gowitness -n my_scan -o .
 
 If you reuse a scan name, BBOT will automatically append to your previous output files.
 
-## Targets (`-t`)
+## Targets (`-t`), Seeds (`-s`), and Blacklists (`-b`)
 
-Targets declare what's in-scope, and seed a scan with initial data. BBOT accepts an unlimited number of targets. They can be any of the following:
+BBOT uses three related concepts to control scope and drive a scan:
+
+- **Targets (`-t`)** define what is **in-scope**. Active modules (e.g. `nuclei`, `portscan`) will only touch targets and their children.
+- **Seeds (`-s`)** are the starting data that gets fed into modules. If you don't specify `-s`, **your targets are automatically used as seeds**.
+- **Blacklists (`-b`)** define what is **never touched**. Anything matching the blacklist is excluded, even if it would otherwise be in-scope.
+
+### Accepted Input Types
+
+Targets, seeds, and blacklists all accept the same input types:
 
 - `DNS_NAME` (`evilcorp.com`)
 - `IP_ADDRESS` (`1.2.3.4`)
@@ -23,14 +31,17 @@ Targets declare what's in-scope, and seed a scan with initial data. BBOT accepts
 - `OPEN_TCP_PORT` (`192.168.0.1:80`)
 - `URL` (`https://www.evilcorp.com`)
 - `EMAIL_ADDRESS` (`bob@evilcorp.com`)
+- `ASN` (`ASN:17178` or `AS17178`)
+- `USERNAME` (`USER:bobsmith`)
 - `ORG_STUB` (`ORG:evilcorp`)
-- `USER_STUB` (`USER:bobsmith`)
 - `FILESYSTEM` (`FILESYSTEM:/tmp/asdf`)
 - `MOBILE_APP` (`MOBILE_APP:https://play.google.com/store/apps/details?id=com.evilcorp.app`)
 
+Blacklists additionally accept **regex patterns** prefixed with `RE:` (see [Blacklist by Regex](#blacklist-by-regex)).
+
 Note that BBOT only discriminates down to the host level. This means, for example, if you specify a URL `https://www.evilcorp.com` as the target, the scan will be *seeded* with that URL, but the scope of the scan will be the entire host, `www.evilcorp.com`. Other ports/URLs on that same host may also be scanned.
 
-You can specify targets directly on the command line, load them from files, or both! For example:
+You can specify inputs directly on the command line, load them from files, or both:
 
 ```bash
 $ cat targets.txt
@@ -45,7 +56,71 @@ https://www.evilcorp.co.uk
 $ bbot -t targets.txt fsociety.com 5.6.7.0/24 -m portscan
 ```
 
-On start, BBOT automatically converts Targets into [Events](events.md).
+On start, BBOT automatically converts these inputs into [Events](events.md).
+
+### Why Separate Targets and Seeds?
+
+Separating targets from seeds lets you keep a tight scope while still allowing passive discovery outside of it. When BBOT discovers something out-of-scope via a seed, it will still report it, but active modules won't touch it.
+
+For example, say your target has subdomains that resolve both inside and outside an IP range that defines your scope. You can set the IP range as the **target** and the domain as a **seed**:
+
+```bash
+bbot -t 192.168.1.0/24 -s evilcorp.com -f subdomain-enum -m nuclei
+```
+
+Any discovered `evilcorp.com` subdomains that resolve within `192.168.1.0/24` will be actively scanned by Nuclei. Others will be discovered and reported, but not touched by active modules.
+
+### Blacklists
+
+`-b` / `--blacklist` takes ultimate precedence. Anything in the blacklist is completely excluded from the scan, even if it would otherwise be in-scope based on your targets or seeds.
+
+```bash
+# Scan evilcorp.com, but exclude internal.evilcorp.com and its children
+bbot -t evilcorp.com -b internal.evilcorp.com -f subdomain-enum -m portscan nuclei
+```
+
+#### Blacklist by Regex
+
+Blacklists also accept regex patterns. These regexes are checked against the full URL, including the host and path.
+
+To specify a regex, prefix the pattern with `RE:`. For example, to exclude all events containing "signout":
+
+```bash
+bbot -t evilcorp.com -b "RE:signout"
+```
+
+Note that this would blacklist both of the following events:
+
+- `[URL]       http://evilcorp.com/signout.aspx`
+- `[DNS_NAME]  signout.evilcorp.com`
+
+If you only want to blacklist the URL, you could narrow the regex like so:
+
+```bash
+bbot -t evilcorp.com -b 'RE:signout\.aspx$'
+```
+
+Similar to targets, blacklists can be specified in your preset. The `spider` preset makes use of this to prevent the spider from following logout links:
+
+```yaml title="spider.yml"
+description: Recursive web spider
+
+modules:
+  - http
+
+blacklist:
+  # Prevent spider from invalidating sessions by logging out
+  - "RE:/.*(sign|log)[_-]?out"
+
+config:
+  web:
+    # how many links to follow in a row
+    spider_distance: 2
+    # don't follow links whose directory depth is higher than 4
+    spider_depth: 4
+    # maximum number of links to follow per page
+    spider_links_per_page: 25
+```
 
 ## Modules (`-m`)
 
@@ -154,7 +229,7 @@ For details on how Ansible playbooks are attached to BBOT modules, see [How to W
 
 For pentesters and bug bounty hunters, staying in scope is extremely important. BBOT takes this seriously, meaning that active modules (e.g. `nuclei`) will only touch in-scope resources.
 
-By default, scope is whatever you specify with `-t`. This includes child subdomains. For example, if you specify `-t evilcorp.com`, all its subdomains (`www.evilcorp.com`, `mail.evilcorp.com`, etc.) also become in-scope.
+As described [above](#targets-t-seeds-s-and-blacklists-b), targets (`-t`) define what is in-scope and blacklists (`-b`) define what is excluded. Scope includes child subdomains by default -- for example, `-t evilcorp.com` puts `www.evilcorp.com`, `mail.evilcorp.com`, etc. in-scope automatically.
 
 ### Scope Distance
 
@@ -179,74 +254,6 @@ If you want to scan **_only_** that specific target hostname and none of its chi
 
 Note that `--strict-scope` only applies to targets, but not blacklists. This means that if you put `internal.evilcorp.com` in your blacklist, you can be sure none of its subdomains will be scanned, even when using `--strict-scope`.
 
-### Targets, Seeds, and Blacklists
-
-BBOT uses three related concepts to control scope and how a scan is driven:
-
-- **Targets (`-t` / `--targets`)**: Define what is in-scope. These also act as scan seeds if seeds aren't explicitly defined.
-- **Seeds (`-s` / `--seeds`)**: Seeds define the starting point for the scan. They drive **passive** modules and can be outside of the explicit target list (out of scope) for those passive modules. If you don’t specify `--seeds`, BBOT will automatically use your targets as seeds.
-- **Blacklists (`-b` / `--blacklist`)**: Define what is **never** touched. Anything matching the blacklist is excluded from the scan, even if it would otherwise be in-scope.
-
-This separation lets you, for example, keep a tight target list for what’s considered in-scope, while still allowing passive modules to discover new subdomains that may ultimately be in-scope. The blacklist helps to mask-off anything that you know should not be scanned.
-
-For example, lets say you have a target with subdomains that resolve both within, and outside of an IP range that defines your scope. You can set the IP range as the **target**, and then safely let BBOT explore the domain defined in **seeds**. Any discovered assets that are in your scope will automatically be assessed by active modules.
-
-```bash
-bbot -t 192.168.1.0/24 -s evilcorp.com -f subdomain-enum -m nuclei
-```
-In this example, any discovered `evilcorp.com` subdomains that resolve within `192.168.1.0/24` will be scanned by `Nuclei`. Any others will be discovered, but not touched by active modules. 
-
-#### Blacklists
-
-`--blacklist` takes ultimate precedence. Anything in the blacklist is completely excluded from the scan, even if it would otherwise be in-scope based on your targets or seeds.
-
-```bash
-# Scan evilcorp.com, but exclude internal.evilcorp.com and its children
-bbot -t evilcorp.com --blacklist internal.evilcorp.com -f subdomain-enum -m portscan nuclei
-```
-
-#### Blacklist by Regex
-
-Blacklists also accept regex patterns. These regexes are are checked against the full URL, including the host and path.
-
-To specify a regex, prefix the pattern with `RE:`. For example, to exclude all events containing "signout", you could do:
-
-```bash
-bbot -t evilcorp.com --blacklist "RE:signout"
-```
-
-Note that this would blacklist both of the following events:
-
-- `[URL]       http://evilcorp.com/signout.aspx`
-- `[DNS_NAME]  signout.evilcorp.com`
-
-If you only want to blacklist the URL, you could narrow the regex like so:
-
-```bash
-bbot -t evilcorp.com --blacklist 'RE:signout\.aspx$'
-```
-
-Similar to targets, blacklists can be specified in your preset. The `spider` preset makes use of this to prevent the spider from following logout links:
-
-```yaml title="spider.yml"
-description: Recursive web spider
-
-modules:
-  - http
-
-blacklist:
-  # Prevent spider from invalidating sessions by logging out
-  - "RE:/.*(sign|log)[_-]?out"
-
-config:
-  web:
-    # how many links to follow in a row
-    spider_distance: 2
-    # don't follow links whose directory depth is higher than 4
-    spider_depth: 4
-    # maximum number of links to follow per page
-    spider_links_per_page: 25
-```
 
 ## DNS Wildcards
 
@@ -281,4 +288,4 @@ dns:
   wildcard_tests: 20
 ```
 
-If that doesn't work you can consider [blacklisting](#targets-seeds-and-blacklists) the offending domain.
+If that doesn't work you can consider [blacklisting](#blacklists) the offending domain.
