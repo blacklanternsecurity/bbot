@@ -153,14 +153,18 @@ class shodan_idb(BaseModule):
                 parent=event,
                 context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found {{event.type}}: {{event.pretty_string}}',
             )
-        vulns = data.get("vulns", [])
+        vulns = list(dict.fromkeys(data.get("vulns", [])))
         if vulns:
+            await self._enrich_cves(vulns)
             cve_entries = []
             for cve_id in vulns:
-                details = await self._get_cve_details(cve_id)
+                details = self._cve_cache.get(cve_id)
                 cvss = None
                 if details:
-                    cvss = details.get("cvss_v3") or details.get("cvss") or details.get("cvss_v2")
+                    for key in ("cvss_v3", "cvss", "cvss_v2"):
+                        cvss = details.get(key)
+                        if cvss is not None:
+                            break
                 cve_entries.append({"cve": cve_id, "cvss": cvss, "severity": self._cvss_to_severity(cvss)})
             # sort highest CVSS first so the worst shows up first
             cve_entries.sort(key=lambda e: (e["cvss"] is None, -(e["cvss"] or 0), e["cve"]))
@@ -189,29 +193,21 @@ class shodan_idb(BaseModule):
                 context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found potential {{event.type}}: {vulns_str}',
             )
 
-    async def _get_cve_details(self, cve_id):
-        """Look up a CVE in Shodan's CVEDB, caching results for the lifetime of the scan."""
-        if cve_id in self._cve_cache:
-            return self._cve_cache[cve_id]
-        url = f"{self.cvedb_url}/{cve_id}"
-
-        # respect the same 1-req-per-second rate limit as the InternetDB endpoint
-        current_time = time.time()
-        time_since_last = current_time - self.last_request_time
-        if time_since_last < 1:
-            await self.helpers.sleep(1 - time_since_last)
-        self.last_request_time = time.time()
-
-        details = None
-        r = await self.api_request(url)
-        if r is not None and r.status_code == 200:
-            try:
-                details = r.json()
-            except Exception as e:
-                self.verbose(f"Error parsing JSON response from {url}: {e}")
-                self.trace()
-        self._cve_cache[cve_id] = details
-        return details
+    async def _enrich_cves(self, cve_ids):
+        """Batch-fetch CVE details from Shodan's CVEDB, skipping any already cached."""
+        uncached = [cve_id for cve_id in cve_ids if cve_id not in self._cve_cache]
+        if not uncached:
+            return
+        probes = [(f"{self.cvedb_url}/{cve_id}", {}, cve_id) for cve_id in uncached]
+        async for url, response, cve_id in self.helpers.request_batch_stream(probes, threads=10):
+            details = None
+            if response is not None and response.status_code == 200:
+                try:
+                    details = response.json()
+                except Exception as e:
+                    self.verbose(f"Error parsing JSON response from {url}: {e}")
+                    self.trace()
+            self._cve_cache[cve_id] = details
 
     @classmethod
     def _cvss_to_severity(cls, score):
