@@ -106,6 +106,7 @@ class BaseModule:
     target_only = False
     in_scope_only = False
     accept_url_special = False
+    _avoid_duplicate_content = False
     _module_threads = 1
     _batch_size = 1
 
@@ -144,6 +145,7 @@ class BaseModule:
         self._outgoing_event_queue = None
         # track incoming events to prevent unwanted duplicates
         self._incoming_dup_tracker = set()
+        self._content_dup_tracker = set()
         # tracks which subprocesses are running under this module
         self._proc_tracker = set()
         # seconds since we've submitted a batch
@@ -1145,9 +1147,21 @@ class BaseModule:
             return True, msg
         with suppress(TypeError, ValueError):
             event_hash, reason = event_hash
-        is_dup = event_hash in self._incoming_dup_tracker
-        if add:
+        is_post = isinstance(event.data, dict) and event.data.get("method", "") == "POST"
+        is_dup = event_hash in self._incoming_dup_tracker and not is_post
+        if add and not is_post:
             self._incoming_dup_tracker.add(event_hash)
+        if not is_dup and self._avoid_duplicate_content:
+            hash_dict = event.data.get("hash") if isinstance(event.data, dict) else None
+            body_hash = hash_dict.get("body_sha256", "") if isinstance(hash_dict, dict) else ""
+            # skip dedup for empty bodies (e.g. 302 redirects) where the useful data is in headers
+            if body_hash and body_hash != "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855":
+                content_key = hash((event.host, event.port, body_hash))
+                if content_key in self._content_dup_tracker:
+                    is_dup = True
+                    reason = f"duplicate content (body_hash={body_hash})"
+                if add:
+                    self._content_dup_tracker.add(content_key)
         return is_dup, reason
 
     def _incoming_dedup_hash(self, event):
@@ -1981,6 +1995,3 @@ class BaseInterceptModule(BaseModule):
             self.incoming_event_queue.put_nowait((event, kwargs))
         except AttributeError:
             self.debug("Not in an acceptable state to queue incoming event")
-
-    async def _event_postcheck(self, event):
-        return await self._event_postcheck_inner(event)
