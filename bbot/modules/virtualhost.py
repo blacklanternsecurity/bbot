@@ -9,11 +9,9 @@ from bbot.core.helpers.simhash import compute_simhash
 
 class virtualhost(BaseModule):
     watched_events = ["URL"]
-    produced_events = ["VIRTUAL_HOST", "DNS_NAME", "HTTP_RESPONSE"]
+    produced_events = ["VIRTUAL_HOST", "DNS_NAME_UNVERIFIED", "HTTP_RESPONSE"]
     flags = ["active", "loud", "slow"]
     meta = {"description": "Fuzz for virtual hosts", "created_date": "2022-05-02", "author": "@liquidsec"}
-
-    deps_pip = ["pyOpenSSL~=25.3.0"]
 
     SIMILARITY_THRESHOLD = 0.8
     CANARY_LENGTH = 12
@@ -186,7 +184,7 @@ class virtualhost(BaseModule):
                     )
 
             # Phase 3: Special virtual host list
-            if self.config.get("special_hosts", True):
+            if self.config.get("special_hosts", False):
                 self.verbose(f"=== Starting special virtual hosts check on {normalized_url} ===")
                 await self._run_virtualhost_phase(
                     "Special virtual host list",
@@ -201,7 +199,7 @@ class virtualhost(BaseModule):
                 )
 
             # Phase 4: Obtain subject alternate names from certicate and analyze them
-            if self.config.get("certificate_sans", True):
+            if self.config.get("certificate_sans", False):
                 self.verbose(f"=== Starting certificate SAN analysis on {normalized_url} ===")
                 if is_https:
                     subject_alternate_names = await self._analyze_subject_alternate_names(normalized_url)
@@ -315,24 +313,18 @@ class virtualhost(BaseModule):
 
     def _get_canary_random_host(self, host, basehost, mode="subdomain"):
         """Generate a random host for the canary"""
-        # Seed RNG with domain to get consistent canary hosts for same domain
-        random.seed(host)
+        rng = random.Random(host)
 
-        # Generate canary hostname based on mode
         if mode == "mutation":
-            # Prepend random 4-character string with dash to existing hostname
-            random_prefix = "".join(random.choice(string.ascii_lowercase) for i in range(4))
+            random_prefix = "".join(rng.choice(string.ascii_lowercase) for i in range(4))
             canary_host = f"{random_prefix}-{host}"
         elif mode == "subdomain":
-            # Default subdomain mode - add random subdomain
-            canary_host = "".join(random.choice(string.ascii_lowercase) for i in range(self.CANARY_LENGTH)) + basehost
+            canary_host = "".join(rng.choice(string.ascii_lowercase) for i in range(self.CANARY_LENGTH)) + basehost
         elif mode == "random_append":
-            # Append random string to existing hostname (first domain level)
-            random_suffix = "".join(random.choice(string.ascii_lowercase) for i in range(4))
+            random_suffix = "".join(rng.choice(string.ascii_lowercase) for i in range(4))
             canary_host = f"{host.split('.')[0]}{random_suffix}.{'.'.join(host.split('.')[1:])}"
         elif mode == "random":
-            # Fully random hostname with .com TLD
-            random_host = "".join(random.choice(string.ascii_lowercase) for i in range(self.CANARY_LENGTH))
+            random_host = "".join(rng.choice(string.ascii_lowercase) for i in range(self.CANARY_LENGTH))
             canary_host = f"{random_host}.com"
         else:
             raise ValueError(f"Invalid canary mode: {mode}")
@@ -652,12 +644,11 @@ class virtualhost(BaseModule):
                         f"ADDED RESULT {len(virtual_host_results)}: {result['probe_host']} (similarity: {result['similarity']:.3f}) [Status: {result['status_code']} | Size: {result['content_length']} bytes]"
                     )
 
-                    # Early exit if we're clearly hitting false positives
                     if len(virtual_host_results) >= self.MAX_RESULTS_FLOOD_PROTECTION:
                         self.warning(
-                            f"RESULT FLOOD DETECTED: found {len(virtual_host_results)} virtual hosts (limit: {self.MAX_RESULTS_FLOOD_PROTECTION}), likely false positives - stopping further tests and skipping reporting"
+                            f"RESULT FLOOD DETECTED: found {len(virtual_host_results)} virtual hosts (limit: {self.MAX_RESULTS_FLOOD_PROTECTION}), likely false positives - discarding results"
                         )
-                        break
+                        return []
 
         except Exception as e:
             if getattr(self.scan, "stopping", False) or getattr(self.scan, "aborting", False):
