@@ -127,6 +127,7 @@ class HttpCompare:
                     "date",
                     "last-modified",
                     "content-length",
+                    "connection",
                     "ETag",
                     "X-Pad",
                     "X-Backside-Transport",

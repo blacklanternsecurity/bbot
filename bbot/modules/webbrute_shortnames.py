@@ -161,6 +161,8 @@ class webbrute_shortnames(webbrute):
 
         self.per_host_collection = {}
         self.shortname_to_event = {}
+        self._host_timeouts = {}
+        self._blocked_hosts = set()
 
         return True
 
@@ -221,6 +223,7 @@ class webbrute_shortnames(webbrute):
 
         root_stub = "/".join(event.parsed_url.path.split("/")[:-1])
         root_url = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}{root_stub}/"
+        netloc = event.parsed_url.netloc
 
         if shortname_type == "endpoint":
             used_extensions = self.build_extension_list(event)
@@ -235,7 +238,7 @@ class webbrute_shortnames(webbrute):
         if words_len > 0:
             if shortname_type == "endpoint":
                 for ext in used_extensions:
-                    async for r in self.execute_fuzz(words, root_url, suffix=f".{ext}"):
+                    async for r in self.execute_fuzz(words, root_url, netloc, suffix=f".{ext}"):
                         await self.emit_event(
                             r["url"],
                             "URL_UNVERIFIED",
@@ -245,7 +248,7 @@ class webbrute_shortnames(webbrute):
                         )
 
             elif shortname_type == "directory":
-                async for r in self.execute_fuzz(words, root_url, exts=["/"]):
+                async for r in self.execute_fuzz(words, root_url, netloc, exts=["/"]):
                     r_url = f"{r['url'].rstrip('/')}/"
                     await self.emit_event(
                         r_url,
@@ -263,7 +266,7 @@ class webbrute_shortnames(webbrute):
                     self.verbose(f"Detected delimiter [{delimiter}] in hint [{filename_hint}]")
                     words, words_len = await self.generate_templist(partial_hint, "directory")
                     fuzz_prefix = f"{prefix}{delimiter}"
-                    async for r in self.execute_fuzz(words, root_url, prefix=fuzz_prefix, exts=["/"]):
+                    async for r in self.execute_fuzz(words, root_url, netloc, prefix=fuzz_prefix, exts=["/"]):
                         await self.emit_event(
                             r["url"],
                             "URL_UNVERIFIED",
@@ -280,7 +283,9 @@ class webbrute_shortnames(webbrute):
                         self.verbose(f"Detected delimiter [{delimiter}] in hint [{filename_hint}]")
                         words, words_len = await self.generate_templist(partial_hint, "endpoint")
                         fuzz_prefix = f"{prefix}{delimiter}"
-                        async for r in self.execute_fuzz(words, root_url, prefix=fuzz_prefix, suffix=f".{ext}"):
+                        async for r in self.execute_fuzz(
+                            words, root_url, netloc, prefix=fuzz_prefix, suffix=f".{ext}"
+                        ):
                             await self.emit_event(
                                 r["url"],
                                 "URL_UNVERIFIED",
@@ -294,7 +299,7 @@ class webbrute_shortnames(webbrute):
             if subword:
                 if "shortname-directory" in event.tags:
                     words, words_len = await self.generate_templist(suffix, "directory")
-                    async for r in self.execute_fuzz(words, root_url, prefix=subword, exts=["/"]):
+                    async for r in self.execute_fuzz(words, root_url, netloc, prefix=subword, exts=["/"]):
                         await self.emit_event(
                             r["url"],
                             "URL_UNVERIFIED",
@@ -305,7 +310,7 @@ class webbrute_shortnames(webbrute):
                 elif "shortname-endpoint" in event.tags:
                     for ext in used_extensions:
                         words, words_len = await self.generate_templist(suffix, "endpoint")
-                        async for r in self.execute_fuzz(words, root_url, prefix=subword, suffix=f".{ext}"):
+                        async for r in self.execute_fuzz(words, root_url, netloc, prefix=subword, suffix=f".{ext}"):
                             await self.emit_event(
                                 r["url"],
                                 "URL_UNVERIFIED",
@@ -327,6 +332,7 @@ class webbrute_shortnames(webbrute):
                     self.verbose(f"Found common prefix: [{prefix}] for host [{host}]")
                     for hint_tuple in hint_tuple_list:
                         hint, url = hint_tuple
+                        netloc = self.shortname_to_event[hint].parsed_url.netloc
                         if hint.startswith(prefix):
                             if "shortname-endpoint" in self.shortname_to_event[hint].tags:
                                 shortname_type = "endpoint"
@@ -347,7 +353,7 @@ class webbrute_shortnames(webbrute):
                                         f"Running common prefix check for URL_HINT: {hint} with prefix: {prefix} and partial_hint: {partial_hint}"
                                     )
 
-                                    async for r in self.execute_fuzz(words, url, prefix=prefix, exts=["/"]):
+                                    async for r in self.execute_fuzz(words, url, netloc, prefix=prefix, exts=["/"]):
                                         await self.emit_event(
                                             r["url"],
                                             "URL_UNVERIFIED",
@@ -362,7 +368,9 @@ class webbrute_shortnames(webbrute):
                                         self.verbose(
                                             f"Running common prefix check for URL_HINT: {hint} with prefix: {prefix}, extension: .{ext}, and partial_hint: {partial_hint}"
                                         )
-                                        async for r in self.execute_fuzz(words, url, prefix=prefix, suffix=f".{ext}"):
+                                        async for r in self.execute_fuzz(
+                                            words, url, netloc, prefix=prefix, suffix=f".{ext}"
+                                        ):
                                             await self.emit_event(
                                                 r["url"],
                                                 "URL_UNVERIFIED",
