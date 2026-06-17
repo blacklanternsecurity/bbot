@@ -76,8 +76,8 @@ ruff format --check  # verify formatting without changes
 ### Git Workflow
 
 - `stable` - production releases
-- `dev` - active development, PR target
-- Feature branches are created from `dev`
+- `dev` - active development, **almost all PRs should target this branch**
+- Feature branches should be created from `dev`
 
 ---
 
