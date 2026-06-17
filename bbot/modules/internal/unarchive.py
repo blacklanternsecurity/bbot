@@ -53,7 +53,8 @@ class unarchive(BaseInternalModule):
 
         # Use the appropriate extraction method based on the file type
         self.info(f"Extracting {path} to {output_dir}")
-        success = await self.extract_file(path, output_dir)
+        budget = [self._max_extracted_size]
+        success = await self.extract_file(path, output_dir, budget)
 
         # If the extraction was successful, emit the event
         if success:
@@ -68,7 +69,9 @@ class unarchive(BaseInternalModule):
             with suppress(OSError):
                 output_dir.rmdir()
 
-    async def extract_file(self, path, output_dir):
+    async def extract_file(self, path, output_dir, budget=None):
+        if budget is None:
+            budget = [self._max_extracted_size]
         extension, mime_type, description, confidence = get_magic_info(path)
         compression_format = get_compression(mime_type)
         cmd_list = self.compression_methods.get(compression_format, [])
@@ -79,28 +82,26 @@ class unarchive(BaseInternalModule):
             except FileExistsError:
                 self.warning(f"Destination directory {output_dir} already exists, aborting unarchive for {path}")
                 return False
-            if not await self._check_archive_safe(path, compression_format):
+            if not await self._check_archive_safe(path, compression_format, budget):
                 return False
             command = [s.format(filename=path, extract_dir=output_dir) for s in cmd_list]
             try:
                 await self.run_process(command, check=True)
                 extracted_size = sum(f.stat().st_size for f in output_dir.rglob("*") if f.is_file())
-                if extracted_size > self._max_extracted_size:
+                budget[0] -= extracted_size
+                if budget[0] < 0:
                     self.helpers.rm_rf(output_dir)
-                    self.warning(
-                        f"Extracted size {extracted_size:,} bytes exceeds limit "
-                        f"({self._max_extracted_size:,} bytes), removing {output_dir}"
-                    )
+                    self.warning(f"Cumulative extracted size exceeds limit, removing {output_dir}")
                     return False
                 for item in output_dir.iterdir():
                     if item.is_file():
-                        await self.extract_file(item, output_dir / item.stem)
+                        await self.extract_file(item, output_dir / item.stem, budget)
             except Exception as e:
                 self.warning(f"Error extracting {path}. Error: {e}")
                 return False
             return True
 
-    async def _check_archive_safe(self, path, compression_format):
+    async def _check_archive_safe(self, path, compression_format, budget=None):
         if compression_format in ("zip", "7z"):
             result = await self.run_process(["7z", "l", "-slt", str(path)])
             output_lines = result.stdout.splitlines()
@@ -113,15 +114,38 @@ class unarchive(BaseInternalModule):
                 ):
                     self.warning(f"Archive {path} contains symlink or link entry")
                     return False
+            # check declared uncompressed size before extracting
+            declared_size = 0
+            for line in output_lines:
+                if line.startswith("Size = "):
+                    with suppress(ValueError):
+                        declared_size += int(line.split("= ", 1)[1].strip())
+            if budget is not None and declared_size > budget[0]:
+                self.warning(
+                    f"Archive {path} declared size {declared_size:,} bytes exceeds remaining budget "
+                    f"({budget[0]:,} bytes), skipping"
+                )
+                return False
         else:
             result = await self.run_process(["tar", "-tf", str(path)])
             entries = result.stdout.splitlines()
             # reject symlink/hardlink entries via verbose listing
             verbose = await self.run_process(["tar", "-tvf", str(path)])
+            declared_size = 0
             for line in verbose.stdout.splitlines():
                 if line and line[0] in ("l", "h"):
                     self.warning(f"Archive {path} contains symlink or hardlink entry")
                     return False
+                parts = line.split()
+                if len(parts) >= 3:
+                    with suppress(ValueError):
+                        declared_size += int(parts[2])
+            if budget is not None and declared_size > budget[0]:
+                self.warning(
+                    f"Archive {path} declared size {declared_size:,} bytes exceeds remaining budget "
+                    f"({budget[0]:,} bytes), skipping"
+                )
+                return False
         for entry in entries:
             entry = entry.strip()
             if not entry:
