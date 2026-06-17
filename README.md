@@ -1,6 +1,6 @@
 [![bbot_banner](https://github.com/user-attachments/assets/f02804ce-9478-4f1e-ac4d-9cf5620a3214)](https://github.com/blacklanternsecurity/bbot)
 
-[![Python Version](https://img.shields.io/badge/python-3.10+-FF8400)](https://www.python.org) [![License](https://img.shields.io/badge/license-AGPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![DEF CON Recon Village 2024](https://img.shields.io/badge/DEF%20CON%20Demo%20Labs-2023-FF8400.svg)](https://www.reconvillage.org/talks) [![PyPi Downloads](https://static.pepy.tech/personalized-badge/bbot?right_color=orange&left_color=grey)](https://pepy.tech/project/bbot) [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot) [![Discord](https://img.shields.io/discord/859164869970362439)](https://discord.com/invite/PZqkgxu5SA)
+[![Python Version](https://img.shields.io/badge/python-3.10+-FF8400)](https://www.python.org) [![License](https://img.shields.io/badge/license-AGPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![PyPi Downloads](https://static.pepy.tech/personalized-badge/bbot?right_color=orange&left_color=grey)](https://pepy.tech/project/bbot) [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot) [![Discord](https://img.shields.io/discord/859164869970362439)](https://discord.com/invite/PZqkgxu5SA)
 
 ### **BEE·bot** is a multipurpose scanner inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot), built to automate your **Recon**, **Bug Bounties**, and **ASM**!
 
@@ -20,7 +20,7 @@ pipx install --pip-args '\--pre' bbot
 
 _For more installation methods, including [Docker](https://hub.docker.com/r/blacklanternsecurity/bbot), see [Getting Started](https://www.blacklanternsecurity.com/bbot/Stable/)_
 
-> **Speed tip:** BBOT's DNS engine spins up ten workers per resolver in `/etc/resolv.conf`. Adding more unfiltered resolvers dramatically speeds up scans. See the [sample resolv.conf](docs/data/resolv-sample.conf) and [Tips and Tricks](https://www.blacklanternsecurity.com/bbot/Stable/scanning/tips_and_tricks/#speed-up-scans-with-more-dns-resolvers) for details.
+> **Speed tip:** BBOT's DNS resolver ([blastdns](https://github.com/blacklanternsecurity/blastdns)) spins up multiple threads per resolver in `/etc/resolv.conf`. Adding more unfiltered resolvers dramatically speeds up scans. See the [sample resolv.conf](docs/data/resolv-sample.conf) and [Tips and Tricks](https://www.blacklanternsecurity.com/bbot/Stable/scanning/tips_and_tricks/#speed-up-scans-with-more-dns-resolvers) for details.
 
 ## Example Commands
 
@@ -225,10 +225,18 @@ include:
 
 config:
   modules:
+    baddns:
+      enable_references: True
     dnsbrute:
       recursive_mutations: true
     dnscommonsrv:
       recursive_mutations: true
+    webbrute:
+      avoid_wafs: False
+    wayback:
+      urls: True
+      parameters: True
+      archive: True
 
 ```
 
@@ -386,6 +394,7 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/Stabl
     - **Modules**
         - [List of Modules](https://www.blacklanternsecurity.com/bbot/Stable/modules/list_of_modules)
         - [Nuclei](https://www.blacklanternsecurity.com/bbot/Stable/modules/nuclei)
+        - [Wayback](https://www.blacklanternsecurity.com/bbot/Stable/modules/wayback)
         - [Custom YARA Rules](https://www.blacklanternsecurity.com/bbot/Stable/modules/custom_yara_rules)
         - [Lightfuzz (DAST)](https://www.blacklanternsecurity.com/bbot/Stable/modules/lightfuzz)
     - **Misc**
@@ -395,6 +404,7 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/Stabl
 - **Developer Manual**
     - [Development Overview](https://www.blacklanternsecurity.com/bbot/Stable/dev/)
     - [Setting Up a Dev Environment](https://www.blacklanternsecurity.com/bbot/Stable/dev/dev_environment)
+    - [Core Dependencies](https://www.blacklanternsecurity.com/bbot/Stable/dev/core_dependencies)
     - [BBOT Internal Architecture](https://www.blacklanternsecurity.com/bbot/Stable/dev/architecture)
     - [How to Write a BBOT Module](https://www.blacklanternsecurity.com/bbot/Stable/dev/module_howto)
     - [Validating & Inspecting Presets](https://www.blacklanternsecurity.com/bbot/Stable/dev/preset_validation)
@@ -407,7 +417,6 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/Stabl
         - [Target](https://www.blacklanternsecurity.com/bbot/Stable/dev/target)
         - [BaseModule](https://www.blacklanternsecurity.com/bbot/Stable/dev/basemodule)
         - [BBOTCore](https://www.blacklanternsecurity.com/bbot/Stable/dev/core)
-        - [Engine](https://www.blacklanternsecurity.com/bbot/Stable/dev/engine)
         - **Helpers**
             - [Overview](https://www.blacklanternsecurity.com/bbot/Stable/dev/helpers/)
             - [Command](https://www.blacklanternsecurity.com/bbot/Stable/dev/helpers/command)
