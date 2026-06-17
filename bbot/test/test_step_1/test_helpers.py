@@ -1025,10 +1025,13 @@ def _init():
     libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
     libc.prctl(_PR_SET_PDEATHSIG, signal.SIGTERM, 0, 0, 0)
 
+def _get_pid():
+    return os.getpid()
+
 pool = ProcessPoolExecutor(max_workers=2, initializer=_init)
-futures = [pool.submit(time.sleep, 3600) for _ in range(2)]
-time.sleep(2)
-pids = [p.pid for p in pool._processes.values()]
+pids = [pool.submit(_get_pid).result(timeout=30) for _ in range(2)]
+# keep workers busy so they stay alive
+[pool.submit(time.sleep, 3600) for _ in range(2)]
 print(json.dumps(pids), flush=True)
 time.sleep(3600)
 """
@@ -1039,6 +1042,7 @@ time.sleep(3600)
     try:
         proc = subprocess.Popen([sys.executable, script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         line = proc.stdout.readline()
+        assert line, f"Worker script exited early, stderr: {proc.stderr.read().decode()}"
         worker_pids = json.loads(line)
         assert len(worker_pids) >= 2
 
