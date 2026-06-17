@@ -1,5 +1,8 @@
 import os
 import sys
+import signal
+import ctypes
+import ctypes.util
 import asyncio
 import logging
 from pathlib import Path
@@ -23,6 +26,19 @@ from .async_helpers import get_event_loop
 from bbot.scanner.target import BaseTarget
 
 log = logging.getLogger("bbot.core.helpers")
+
+_PR_SET_PDEATHSIG = 1
+
+
+def _pool_worker_init():
+    """Set PR_SET_PDEATHSIG so pool workers die when the parent process dies.
+
+    Linux-only. Prevents zombie worker accumulation after OOM kills, SIGKILL, etc.
+    """
+    if not hasattr(os, "uname") or os.uname().sysname != "Linux":
+        return
+    libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
+    libc.prctl(_PR_SET_PDEATHSIG, signal.SIGTERM, 0, 0, 0)
 
 
 class ConfigAwareHelper:
@@ -220,7 +236,7 @@ class ConfigAwareHelper:
         # we spawn 1 fewer processes than cores
         # this helps to avoid locking up the system or competing with the main python process for cpu time
         num_processes = max(1, mp.cpu_count() - 1)
-        pool_kwargs = {"max_workers": num_processes}
+        pool_kwargs = {"max_workers": num_processes, "initializer": _pool_worker_init}
         # max_tasks_per_child replaces workers after N tasks, preventing memory leaks
         # and reducing the chance of a degraded worker process causing hangs
         if sys.version_info >= (3, 11):

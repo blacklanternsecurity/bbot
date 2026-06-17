@@ -1,3 +1,6 @@
+import os
+import sys
+import time
 import asyncio
 import datetime
 import ipaddress
@@ -1002,6 +1005,51 @@ async def test_run_in_executor_mp(helpers):
     # pool should still work after a timeout (was replaced by _reset_process_pool)
     result = await helpers.run_in_executor_mp(_cpu_work, 50_000, _timeout=30)
     assert result == sum(range(50_000))
+
+
+@pytest.mark.skipif(not hasattr(os, "uname") or os.uname().sysname != "Linux", reason="PR_SET_PDEATHSIG is Linux-only")
+def test_pool_workers_die_with_parent():
+    """Pool workers must not survive when the parent is SIGKILL'd (OOM, crash, etc.)."""
+    import json
+    import signal
+    import subprocess
+
+    script = """
+import os, sys, json, time
+from bbot.core.helpers.helper import ConfigAwareHelper
+
+pool = ConfigAwareHelper._create_process_pool()
+# submit blocking work so workers are alive
+futures = [pool.submit(time.sleep, 3600) for _ in range(2)]
+time.sleep(0.5)
+pids = [p.pid for p in pool._processes.values()]
+print(json.dumps(pids), flush=True)
+time.sleep(3600)
+"""
+    proc = subprocess.Popen([sys.executable, "-c", script], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    line = proc.stdout.readline()
+    worker_pids = json.loads(line)
+    assert len(worker_pids) >= 2
+
+    # simulate OOM kill
+    os.kill(proc.pid, signal.SIGKILL)
+    proc.wait()
+
+    time.sleep(2)
+
+    alive = []
+    for pid in worker_pids:
+        try:
+            os.kill(pid, 0)
+            alive.append(pid)
+        except OSError:
+            pass
+
+    # clean up survivors so they don't leak into other tests
+    for pid in alive:
+        os.kill(pid, signal.SIGKILL)
+
+    assert not alive, f"Pool workers {alive} survived parent SIGKILL (zombie leak)"
 
 
 def test_simhash_similarity(helpers):
