@@ -1014,7 +1014,6 @@ def test_pool_workers_die_with_parent():
     import subprocess
     import tempfile
 
-    # write the script to a file so spawn-mode workers can import the initializer
     script = """
 import os, sys, json, time, signal, ctypes, ctypes.util
 from concurrent.futures import ProcessPoolExecutor
@@ -1023,13 +1022,19 @@ _PR_SET_PDEATHSIG = 1
 
 def _init():
     libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
-    libc.prctl(_PR_SET_PDEATHSIG, signal.SIGTERM, 0, 0, 0)
+    libc.prctl(_PR_SET_PDEATHSIG, signal.SIGKILL, 0, 0, 0)
 
 def _get_pid():
     return os.getpid()
 
 pool = ProcessPoolExecutor(max_workers=2, initializer=_init)
-pids = [pool.submit(_get_pid).result(timeout=30) for _ in range(2)]
+# loop until we've seen both workers (sequential submission can hit the same one)
+pids = set()
+for _ in range(20):
+    pids.add(pool.submit(_get_pid).result(timeout=30))
+    if len(pids) >= 2:
+        break
+pids = list(pids)
 # keep workers busy so they stay alive
 [pool.submit(time.sleep, 3600) for _ in range(2)]
 print(json.dumps(pids), flush=True)
@@ -1038,6 +1043,16 @@ time.sleep(3600)
     with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write(script)
         script_path = f.name
+
+    def _is_running(pid):
+        """Check /proc to distinguish running processes from zombies."""
+        try:
+            with open(f"/proc/{pid}/stat") as f:
+                # format: "pid (comm) state ..." -- state after the last ')'
+                state = f.read().split(")")[-1].strip().split()[0]
+                return state not in ("Z", "X", "x")
+        except (OSError, IndexError):
+            return False
 
     try:
         proc = subprocess.Popen([sys.executable, script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -1052,13 +1067,7 @@ time.sleep(3600)
 
         time.sleep(2)
 
-        alive = []
-        for pid in worker_pids:
-            try:
-                os.kill(pid, 0)
-                alive.append(pid)
-            except OSError:
-                pass
+        alive = [pid for pid in worker_pids if _is_running(pid)]
 
         # clean up survivors so they don't leak into other tests
         for pid in alive:

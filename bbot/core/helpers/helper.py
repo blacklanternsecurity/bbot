@@ -34,9 +34,11 @@ def _pool_worker_init():
     """Set PR_SET_PDEATHSIG so pool workers die when the parent process dies.
 
     Prevents zombie worker accumulation after OOM kills, SIGKILL, etc.
+    Uses SIGKILL because ProcessPoolExecutor's `except BaseException` catches
+    SIGTERM's SystemExit, keeping workers alive until the broken pipe surfaces.
     """
     libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
-    libc.prctl(_PR_SET_PDEATHSIG, signal.SIGTERM, 0, 0, 0)
+    libc.prctl(_PR_SET_PDEATHSIG, signal.SIGKILL, 0, 0, 0)
 
 
 class ConfigAwareHelper:
