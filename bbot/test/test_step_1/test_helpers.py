@@ -1027,18 +1027,19 @@ def _init():
 def _get_pid():
     return os.getpid()
 
-pool = ProcessPoolExecutor(max_workers=2, initializer=_init)
-# loop until we've seen both workers (sequential submission can hit the same one)
-pids = set()
-for _ in range(20):
-    pids.add(pool.submit(_get_pid).result(timeout=30))
-    if len(pids) >= 2:
-        break
-pids = list(pids)
-# keep workers busy so they stay alive
-[pool.submit(time.sleep, 3600) for _ in range(2)]
-print(json.dumps(pids), flush=True)
-time.sleep(3600)
+if __name__ == "__main__":
+    pool = ProcessPoolExecutor(max_workers=2, initializer=_init)
+    # loop until we've seen both workers (sequential submission can hit the same one)
+    pids = set()
+    for _ in range(20):
+        pids.add(pool.submit(_get_pid).result(timeout=30))
+        if len(pids) >= 2:
+            break
+    pids = list(pids)
+    # keep workers busy so they stay alive
+    [pool.submit(time.sleep, 3600) for _ in range(2)]
+    print(json.dumps(pids), flush=True)
+    time.sleep(3600)
 """
     with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write(script)
