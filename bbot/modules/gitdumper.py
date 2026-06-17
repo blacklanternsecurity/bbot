@@ -309,5 +309,17 @@ class gitdumper(BaseModule):
         try:
             await self.run_process(command, env={"GIT_TERMINAL_PROMPT": "0"}, cwd=folder, check=True)
         except CalledProcessError as e:
-            # Still emit the event even if the checkout fails
             self.debug(f"Error running git checkout in {folder}. STDERR: {repr(e.stderr)}")
+            self._write_empty_index(folder)
+
+    @staticmethod
+    def _write_empty_index(folder):
+        """Replace the index with a valid empty one so downstream tools
+        never read attacker-controlled index entries (CVE-2025-10283)."""
+        import hashlib
+        import struct
+
+        header = b"DIRC" + struct.pack(">II", 2, 0)
+        index_path = folder / ".git" / "index"
+        if index_path.exists():
+            index_path.write_bytes(header + hashlib.sha1(header).digest())

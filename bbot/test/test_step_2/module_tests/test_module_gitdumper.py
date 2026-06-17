@@ -1,3 +1,5 @@
+import hashlib
+import struct
 from pathlib import Path
 from .base import ModuleTestBase
 from bbot.test.bbot_fixtures import bbot_test_dir
@@ -385,3 +387,32 @@ class TestGitDumper_NoDirlisting(TestGitDumper_Dirlisting):
         module_test.set_expect_requests(
             expect_args={"uri": "/test/.git/logs/HEAD"}, respond_args={"response_data": self.logs_head}
         )
+
+
+class TestGitDumper_WriteEmptyIndex:
+    def test_replaces_malicious_index(self, tmp_path):
+        from bbot.modules.gitdumper import gitdumper
+
+        git_dir = tmp_path / ".git"
+        git_dir.mkdir()
+        index_path = git_dir / "index"
+        index_path.write_bytes(b"DIRC\x00\x00\x00\x02\x00\x00\x00\x01" + b"\x41" * 100)
+
+        gitdumper._write_empty_index(tmp_path)
+
+        data = index_path.read_bytes()
+        assert data[:4] == b"DIRC"
+        version, num_entries = struct.unpack(">II", data[4:12])
+        assert version == 2
+        assert num_entries == 0
+        assert data[12:] == hashlib.sha1(data[:12]).digest()
+
+    def test_no_op_when_index_missing(self, tmp_path):
+        from bbot.modules.gitdumper import gitdumper
+
+        git_dir = tmp_path / ".git"
+        git_dir.mkdir()
+
+        gitdumper._write_empty_index(tmp_path)
+
+        assert not (git_dir / "index").exists()
