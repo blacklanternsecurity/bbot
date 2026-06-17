@@ -33,10 +33,8 @@ _PR_SET_PDEATHSIG = 1
 def _pool_worker_init():
     """Set PR_SET_PDEATHSIG so pool workers die when the parent process dies.
 
-    Linux-only. Prevents zombie worker accumulation after OOM kills, SIGKILL, etc.
+    Prevents zombie worker accumulation after OOM kills, SIGKILL, etc.
     """
-    if not hasattr(os, "uname") or os.uname().sysname != "Linux":
-        return
     libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
     libc.prctl(_PR_SET_PDEATHSIG, signal.SIGTERM, 0, 0, 0)
 

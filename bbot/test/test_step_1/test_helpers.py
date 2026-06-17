@@ -1007,49 +1007,62 @@ async def test_run_in_executor_mp(helpers):
     assert result == sum(range(50_000))
 
 
-@pytest.mark.skipif(not hasattr(os, "uname") or os.uname().sysname != "Linux", reason="PR_SET_PDEATHSIG is Linux-only")
 def test_pool_workers_die_with_parent():
     """Pool workers must not survive when the parent is SIGKILL'd (OOM, crash, etc.)."""
     import json
     import signal
     import subprocess
+    import tempfile
 
+    # write the script to a file so spawn-mode workers can import the initializer
     script = """
-import os, sys, json, time
-from bbot.core.helpers.helper import ConfigAwareHelper
+import os, sys, json, time, signal, ctypes, ctypes.util
+from concurrent.futures import ProcessPoolExecutor
 
-pool = ConfigAwareHelper._create_process_pool()
-# submit blocking work so workers are alive
+_PR_SET_PDEATHSIG = 1
+
+def _init():
+    libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
+    libc.prctl(_PR_SET_PDEATHSIG, signal.SIGTERM, 0, 0, 0)
+
+pool = ProcessPoolExecutor(max_workers=2, initializer=_init)
 futures = [pool.submit(time.sleep, 3600) for _ in range(2)]
-time.sleep(0.5)
+time.sleep(2)
 pids = [p.pid for p in pool._processes.values()]
 print(json.dumps(pids), flush=True)
 time.sleep(3600)
 """
-    proc = subprocess.Popen([sys.executable, "-c", script], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    line = proc.stdout.readline()
-    worker_pids = json.loads(line)
-    assert len(worker_pids) >= 2
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+        f.write(script)
+        script_path = f.name
 
-    # simulate OOM kill
-    os.kill(proc.pid, signal.SIGKILL)
-    proc.wait()
+    try:
+        proc = subprocess.Popen([sys.executable, script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        line = proc.stdout.readline()
+        worker_pids = json.loads(line)
+        assert len(worker_pids) >= 2
 
-    time.sleep(2)
+        # simulate OOM kill
+        os.kill(proc.pid, signal.SIGKILL)
+        proc.wait()
 
-    alive = []
-    for pid in worker_pids:
-        try:
-            os.kill(pid, 0)
-            alive.append(pid)
-        except OSError:
-            pass
+        time.sleep(2)
 
-    # clean up survivors so they don't leak into other tests
-    for pid in alive:
-        os.kill(pid, signal.SIGKILL)
+        alive = []
+        for pid in worker_pids:
+            try:
+                os.kill(pid, 0)
+                alive.append(pid)
+            except OSError:
+                pass
 
-    assert not alive, f"Pool workers {alive} survived parent SIGKILL (zombie leak)"
+        # clean up survivors so they don't leak into other tests
+        for pid in alive:
+            os.kill(pid, signal.SIGKILL)
+
+        assert not alive, f"Pool workers {alive} survived parent SIGKILL (zombie leak)"
+    finally:
+        os.unlink(script_path)
 
 
 def test_simhash_similarity(helpers):
