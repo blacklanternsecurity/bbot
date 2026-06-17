@@ -47,7 +47,7 @@ bbot -t evilcorp.com -f subdomain-enum -c dns.brute_threads=5000
 
 ### Speed Up Scans with More DNS Resolvers
 
-By far the most effective way to speed up a BBOT scan is to **add more resolvers to `/etc/resolv.conf`**. BBOT's DNS engine (blastdns) spins up ten workers per resolver, so more resolvers = more parallelism = faster scans.
+By far the most effective way to speed up a BBOT scan is to **add more resolvers to `/etc/resolv.conf`**. BBOT's DNS resolver (blastdns) spins up multiple threads per resolver (default: `5`, configurable via `dns.threads`), so more resolvers = more parallelism = faster scans.
 
 For OSINT, it's critical that every resolver is **unfiltered**. Specialized resolvers that try to block ads, malicious domains, etc. will intentionally omit results. Below is a sample `/etc/resolv.conf` with 11 unfiltered public resolvers:
 
@@ -55,7 +55,7 @@ For OSINT, it's critical that every resolver is **unfiltered**. Specialized reso
 --8<-- "docs/data/resolv-sample.conf"
 ```
 
-Copy this to `/etc/resolv.conf` (or append the `nameserver` lines to your existing config). With all 11 resolvers, blastdns will run 110 workers in parallel instead of the typical 10-30 you get from a default OS config.
+Copy this to `/etc/resolv.conf` (or append the `nameserver` lines to your existing config). With all 11 resolvers at the default 5 threads each, blastdns will run 55 workers in parallel instead of the typical 5-15 you get from a default OS config.
 
 !!! tip
     If your system uses `systemd-resolved` or `resolvconf`, you may need to configure the upstream forwarders there instead of editing `/etc/resolv.conf` directly.
