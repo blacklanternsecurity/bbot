@@ -1025,17 +1025,14 @@ def _init():
     libc.prctl(_PR_SET_PDEATHSIG, signal.SIGKILL, 0, 0, 0)
 
 def _get_pid():
+    time.sleep(1)
     return os.getpid()
 
 if __name__ == "__main__":
     pool = ProcessPoolExecutor(max_workers=2, initializer=_init)
-    # loop until we've seen both workers (sequential submission can hit the same one)
-    pids = set()
-    for _ in range(20):
-        pids.add(pool.submit(_get_pid).result(timeout=30))
-        if len(pids) >= 2:
-            break
-    pids = list(pids)
+    # submit concurrently so both workers are occupied (each takes 1s)
+    futs = [pool.submit(_get_pid) for _ in range(2)]
+    pids = list(set(f.result(timeout=30) for f in futs))
     # keep workers busy so they stay alive
     [pool.submit(time.sleep, 3600) for _ in range(2)]
     print(json.dumps(pids), flush=True)
