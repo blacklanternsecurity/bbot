@@ -42,6 +42,7 @@ nav:
 - Developer Manual:
   - Development Overview: dev/index.md
   - Setting Up a Dev Environment: dev/dev_environment.md
+  - Core Dependencies: dev/core_dependencies.md
   - BBOT Internal Architecture: dev/architecture.md
   - How to Write a BBOT Module: dev/module_howto.md
   - Validating & Inspecting Presets: dev/preset_validation.md
