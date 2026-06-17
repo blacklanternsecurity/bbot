@@ -299,7 +299,7 @@ class TestPostman_Download(ModuleTestBase):
                 e
                 for e in events
                 if e.type == "FILESYSTEM"
-                and "postman_workspaces/BlackLanternSecurity BBOT [Public]" in e.data["path"]
+                and "postman_workspaces/blacklanternsecurity-bbot-public" in e.data["path"]
                 and "postman" in e.tags
                 and e.scope_distance == 1
             ]
