@@ -1239,7 +1239,7 @@ class TestTrufflehog(ModuleTestBase):
                 e
                 for e in filesystem_events
                 if e.data["path"].endswith(
-                    "/postman_workspaces/BlackLanternSecurity BBOT [Public]/3a7e4bdc-7ff7-4dd4-8eaa-61ddce1c3d1b.zip"
+                    "/postman_workspaces/blacklanternsecurity-bbot-public/3a7e4bdc-7ff7-4dd4-8eaa-61ddce1c3d1b.zip"
                 )
                 and Path(e.data["path"]).is_file()
             ]
@@ -1310,7 +1310,7 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
                 e
                 for e in filesystem_events
                 if e.data["path"].endswith(
-                    "/postman_workspaces/BlackLanternSecurity BBOT [Public]/3a7e4bdc-7ff7-4dd4-8eaa-61ddce1c3d1b.zip"
+                    "/postman_workspaces/blacklanternsecurity-bbot-public/3a7e4bdc-7ff7-4dd4-8eaa-61ddce1c3d1b.zip"
                 )
                 and Path(e.data["path"]).is_file()
             ]
