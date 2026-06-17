@@ -30,6 +30,12 @@ from .helpers.misc import (
 
 log = logging.getLogger("bbot.module_loader")
 
+
+class _SafeUnpickler(pickle.Unpickler):
+    def find_class(self, module, name):
+        raise pickle.UnpicklingError(f"Forbidden class: {module}.{name}")
+
+
 bbot_code_dir = Path(__file__).parent.parent
 
 
@@ -450,7 +456,7 @@ class ModuleLoader:
             if self.preload_cache_file.is_file():
                 with suppress(Exception):
                     with open(self.preload_cache_file, "rb") as f:
-                        self._preload_cache = pickle.load(f)
+                        self._preload_cache = _SafeUnpickler(f).load()
         return self._preload_cache
 
     @preload_cache.setter

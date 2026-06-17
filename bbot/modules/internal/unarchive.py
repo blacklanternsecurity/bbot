@@ -14,6 +14,8 @@ class unarchive(BaseInternalModule):
         "author": "@domwhewell-sage",
     }
 
+    _max_extracted_size = 1_000_000_000  # 1 GB
+
     async def setup(self):
         self.ignore_compressions = ["application/java-archive", "application/vnd.android.package-archive"]
         self.compression_methods = {
@@ -82,6 +84,14 @@ class unarchive(BaseInternalModule):
             command = [s.format(filename=path, extract_dir=output_dir) for s in cmd_list]
             try:
                 await self.run_process(command, check=True)
+                extracted_size = sum(f.stat().st_size for f in output_dir.rglob("*") if f.is_file())
+                if extracted_size > self._max_extracted_size:
+                    self.helpers.rm_rf(output_dir)
+                    self.warning(
+                        f"Extracted size {extracted_size:,} bytes exceeds limit "
+                        f"({self._max_extracted_size:,} bytes), removing {output_dir}"
+                    )
+                    return False
                 for item in output_dir.iterdir():
                     if item.is_file():
                         await self.extract_file(item, output_dir / item.stem)
