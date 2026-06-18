@@ -11,7 +11,6 @@ import json
 import subprocess
 import sys
 import os
-import signal
 import socket
 import textwrap
 import time
@@ -181,7 +180,7 @@ class TestE2E:
 
         # check output.json for clean completion
         output_json = tmp_path / "scans" / "e2e_shutdown" / "output.json"
-        assert output_json.is_file(), f"output.json not found"
+        assert output_json.is_file(), "output.json not found"
         events = [json.loads(line) for line in output_json.read_text().splitlines() if line.strip()]
         scan_events = [e for e in events if e.get("type") == "SCAN"]
         statuses = [e.get("data_json", {}).get("status") for e in scan_events]
