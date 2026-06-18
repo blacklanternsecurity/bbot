@@ -38,10 +38,6 @@ class WordlistError(BBOTError):
     pass
 
 
-class CurlError(BBOTError):
-    pass
-
-
 class PresetNotFoundError(BBOTError):
     pass
 

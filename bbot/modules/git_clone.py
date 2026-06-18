@@ -52,7 +52,17 @@ class git_clone(github):
         folder = self.output_dir / owner
         self.helpers.mkdir(folder)
 
-        command = ["git", "-C", folder, "clone", repository_url]
+        safe_flags = [
+            "-c",
+            "core.fsmonitor=false",
+            "-c",
+            "core.sshCommand=echo",
+            "-c",
+            "core.symlinks=false",
+            "-c",
+            "transfer.fsckObjects=true",
+        ]
+        command = ["git"] + safe_flags + ["-C", folder, "clone", repository_url]
         env = {"GIT_TERMINAL_PROMPT": "0"}
 
         try:

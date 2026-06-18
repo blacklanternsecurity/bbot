@@ -5,18 +5,18 @@
 - `ERROR: No matching distribution found for bbot`
 - `bash: /home/user/.local/bin/bbot: /home/user/.local/pipx/venvs/bbot/bin/python: bad interpreter`
 
-If you get errors resembling any of the above, it's probably because your Python version is too old. To install a newer version (3.9+ is required), you will need to do something like this:
+If you get errors resembling any of the above, it's probably because your Python version is too old. To install a newer version (3.10+ is required), you will need to do something like this:
 ```bash
 # install a newer version of python
-sudo apt install python3.9 python3.9-venv
+sudo apt install python3.10 python3.10-venv
 # install pipx
-python3.9 -m pip install --user pipx
+python3.10 -m pip install --user pipx
 # add pipx to your path
-python3.9 -m pipx ensurepath
+python3.10 -m pipx ensurepath
 # reboot
 reboot
 # install bbot
-python3.9 -m pipx install bbot
+python3.10 -m pipx install bbot
 # run bbot
 bbot --help
 ```

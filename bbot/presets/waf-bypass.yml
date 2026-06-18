@@ -1,0 +1,19 @@
+description: WAF bypass detection with subdomain enumeration
+
+flags:
+  # enable subdomain enumeration to find potential bypass targets
+  - subdomain-enum
+
+modules:
+  # explicitly enable the waf_bypass module for detection
+  - waf_bypass
+  # ensure http is enabled for web probing
+  - http
+
+config:
+  # waf_bypass module configuration
+  modules:
+    waf_bypass:
+      similarity_threshold: 0.90
+      search_ip_neighbors: true
+      neighbor_cidr: 24 

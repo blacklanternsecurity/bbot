@@ -1,4 +1,6 @@
+import os
 import io
+import shutil
 import zipfile
 from pathlib import Path
 
@@ -524,3 +526,53 @@ class TestGithub_Workflows(ModuleTestBase):
         for filesystem_event in filesystem_events:
             file = Path(filesystem_event.data["path"])
             assert file.is_file(), "Destination file does not exist"
+
+
+class TestGithubWorkflowsSymlinkCheck(ModuleTestBase):
+    modules_overrides = ["github_workflows"]
+    config_overrides = {"modules": {"github_workflows": {"api_key": "asdf"}}}
+
+    async def setup_before_prep(self, module_test):
+        module_test.blasthttp_mock.add_response(url="https://api.github.com/zen")
+
+    async def setup_after_prep(self, module_test):
+        m = module_test.scan.modules["github_workflows"]
+
+        symlink_target = Path("/tmp/.bbot_test/symlink_target")
+        if symlink_target.exists():
+            shutil.rmtree(symlink_target)
+        symlink_target.mkdir(parents=True, exist_ok=True)
+
+        # symlink at the repo level: output_dir/owner/repo -> symlink_target
+        owner_dir = m.output_dir / "testowner"
+        owner_dir.mkdir(parents=True, exist_ok=True)
+        repo_symlink = owner_dir / "testrepo"
+        os.symlink(str(symlink_target), str(repo_symlink))
+
+        # symlink at the owner level: output_dir/badowner -> symlink_target
+        bad_owner = m.output_dir / "badowner"
+        os.symlink(str(symlink_target), str(bad_owner))
+
+        # symlink at the output_dir level itself
+        output_dir_symlink_base = Path("/tmp/.bbot_test/fake_output_dir")
+        output_dir_symlink_base.mkdir(parents=True, exist_ok=True)
+        output_dir_link = Path("/tmp/.bbot_test/output_dir_link")
+        if output_dir_link.is_symlink() or output_dir_link.exists():
+            output_dir_link.unlink()
+        os.symlink(str(output_dir_symlink_base), str(output_dir_link))
+
+        saved_output_dir = m.output_dir
+        m.output_dir = output_dir_link
+
+        self.results = {}
+        self.results["output_dir_symlink"] = m._check_output_path(output_dir_link / "owner" / "repo")
+        m.output_dir = saved_output_dir
+        self.results["normal_path"] = m._check_output_path(m.output_dir / "clean" / "repo")
+        self.results["repo_symlink"] = m._check_output_path(repo_symlink)
+        self.results["owner_symlink"] = m._check_output_path(bad_owner / "anyrepo")
+
+    def check(self, module_test, events):
+        assert self.results["normal_path"], "Normal path was rejected"
+        assert not self.results["repo_symlink"], "Symlink at repo level was not rejected"
+        assert not self.results["owner_symlink"], "Symlink at owner level was not rejected"
+        assert not self.results["output_dir_symlink"], "Symlink at output_dir level was not rejected"

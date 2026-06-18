@@ -146,8 +146,26 @@ class github_workflows(github):
             runs.append(item)
         return runs
 
+    def _check_output_path(self, folder):
+        if self.output_dir.is_symlink():
+            self.warning(f"Refusing to write through symlink: {self.output_dir}")
+            return False
+        try:
+            rel = folder.relative_to(self.output_dir)
+        except ValueError:
+            return False
+        current = self.output_dir
+        for part in rel.parts:
+            current = current / part
+            if current.is_symlink():
+                self.warning(f"Refusing to write through symlink: {current}")
+                return False
+        return True
+
     async def download_run_logs(self, owner, repo, run_id):
         folder = self.output_dir / owner / repo
+        if not self._check_output_path(folder):
+            return []
         self.helpers.mkdir(folder)
         filename = f"run_{run_id}.zip"
         file_destination = folder / filename
@@ -209,8 +227,10 @@ class github_workflows(github):
 
     async def download_run_artifacts(self, owner, repo, artifact_id, artifact_name):
         folder = self.output_dir / owner / repo
+        if not self._check_output_path(folder):
+            return None
         self.helpers.mkdir(folder)
-        file_destination = folder / artifact_name
+        file_destination = folder / Path(artifact_name).name
         try:
             await self.api_download(
                 f"{self.base_url}/repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip",

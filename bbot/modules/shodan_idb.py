@@ -64,10 +64,20 @@ class shodan_idb(BaseModule):
     _qsize = 100
 
     base_url = "https://internetdb.shodan.io"
+    cvedb_url = "https://cvedb.shodan.io/cve"
+
+    # CVSS v3 score thresholds per FIRST.org / NVD
+    _cvss_severity_thresholds = (
+        (9.0, "CRITICAL"),
+        (7.0, "HIGH"),
+        (4.0, "MEDIUM"),
+        (0.1, "LOW"),
+    )
 
     async def setup(self):
         await super().setup()
         self.last_request_time = 0
+        self._cve_cache = {}
         return True
 
     def _incoming_dedup_hash(self, event):
@@ -143,22 +153,74 @@ class shodan_idb(BaseModule):
                 parent=event,
                 context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found {{event.type}}: {{event.pretty_string}}',
             )
-        vulns = data.get("vulns", [])
+        vulns = list(dict.fromkeys(data.get("vulns", [])))
         if vulns:
+            await self._enrich_cves(vulns)
+            cve_entries = []
+            for cve_id in vulns:
+                details = self._cve_cache.get(cve_id)
+                cvss = None
+                if details:
+                    for key in ("cvss_v3", "cvss", "cvss_v2"):
+                        cvss = details.get(key)
+                        if cvss is not None:
+                            break
+                cve_entries.append({"cve": cve_id, "cvss": cvss, "severity": self._cvss_to_severity(cvss)})
+            # sort highest CVSS first so the worst shows up first
+            cve_entries.sort(key=lambda e: (e["cvss"] is None, -(e["cvss"] or 0), e["cve"]))
+
+            cve_parts = []
+            for entry in cve_entries:
+                sev = entry["severity"] or "UNKNOWN"
+                cvss_str = f"{entry['cvss']}" if entry["cvss"] is not None else "no CVSS"
+                cve_parts.append(f"{entry['cve']} [{sev}, {cvss_str}]")
+            description = f"Shodan reported possible vulnerabilities for {query_host}: {', '.join(cve_parts)}"
+
             vulns_str = ", ".join([str(v) for v in vulns])
             await self.emit_event(
                 {
-                    "description": f"Shodan reported possible vulnerabilities: {vulns_str}",
+                    "description": description,
                     "host": str(event.host),
                     "cves": vulns,
                     "name": "Shodan - Possible Vulnerabilities",
-                    "severity": "MEDIUM",
+                    # always INFO: shodan_idb only matches banners — there is no exploitation
+                    # or in-product confirmation that any of these CVEs are actually present
+                    "severity": "INFO",
                     "confidence": "LOW",
                 },
                 "FINDING",
                 parent=event,
                 context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found potential {{event.type}}: {vulns_str}',
             )
+
+    async def _enrich_cves(self, cve_ids):
+        """Batch-fetch CVE details from Shodan's CVEDB, skipping any already cached."""
+        uncached = [cve_id for cve_id in cve_ids if cve_id not in self._cve_cache]
+        if not uncached:
+            return
+        probes = [(f"{self.cvedb_url}/{cve_id}", {}, cve_id) for cve_id in uncached]
+        async for url, response, cve_id in self.helpers.request_batch_stream(probes, threads=10):
+            details = None
+            if response is not None and response.status_code == 200:
+                try:
+                    details = response.json()
+                except Exception as e:
+                    self.verbose(f"Error parsing JSON response from {url}: {e}")
+                    self.trace()
+            self._cve_cache[cve_id] = details
+
+    @classmethod
+    def _cvss_to_severity(cls, score):
+        if score is None:
+            return None
+        try:
+            score = float(score)
+        except (TypeError, ValueError):
+            return None
+        for threshold, label in cls._cvss_severity_thresholds:
+            if score >= threshold:
+                return label
+        return None
 
     def get_ip(self, event):
         """
