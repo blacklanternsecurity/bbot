@@ -124,7 +124,9 @@ class webbrute_shortnames(webbrute):
             def find_class(self, module, name):
                 if name == "MinimalWordPredictor":
                     return MinimalWordPredictor
-                return super().find_class(module, name)
+                if module.startswith("numpy"):
+                    return super().find_class(module, name)
+                raise pickle.UnpicklingError(f"Forbidden class: {module}.{name}")
 
         self.info("Loading shortname prediction models, could take a while if not cached")
         endpoint_model = await self.helpers.wordlist(

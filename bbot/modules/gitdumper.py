@@ -267,7 +267,10 @@ class gitdumper(BaseModule):
         for url in urls:
             git_index = url.path.find(".git")
             file_url = url.geturl()
-            filename = folder / url.path[git_index:]
+            filename = (folder / url.path[git_index:]).resolve()
+            if not filename.is_relative_to(folder.resolve()):
+                self.warning(f"Path traversal detected, skipping: {url.path}")
+                continue
             self.helpers.mkdir(filename.parent)
             if hash(str(file_url)) not in self.urls_downloaded:
                 self.verbose(f"Downloading {file_url} to {filename}")
@@ -279,8 +282,19 @@ class gitdumper(BaseModule):
             self.debug(f"Unable to download git files to {folder}")
             return False
 
+    _safe_git_flags = [
+        "-c",
+        "core.fsmonitor=false",
+        "-c",
+        "core.sshCommand=echo",
+        "-c",
+        "core.symlinks=false",
+        "-c",
+        "transfer.fsckObjects=true",
+    ]
+
     async def git_catfile(self, hash, option="-t", folder=Path()):
-        command = ["git", "cat-file", option, hash]
+        command = ["git"] + self._safe_git_flags + ["cat-file", option, hash]
         try:
             output = await self.run_process(command, env={"GIT_TERMINAL_PROMPT": "0"}, cwd=folder, check=True)
         except CalledProcessError:
@@ -291,10 +305,21 @@ class gitdumper(BaseModule):
     async def git_checkout(self, folder):
         self.helpers.sanitize_git_repo(folder)
         self.verbose(f"Running git checkout to reconstruct the git repository at {folder}")
-        # we do "checkout head -- ." because the sanitization deletes the index file, and it needs to be reconstructed
-        command = ["git", "checkout", "HEAD", "--", "."]
+        command = ["git"] + self._safe_git_flags + ["checkout", "HEAD", "--", "."]
         try:
             await self.run_process(command, env={"GIT_TERMINAL_PROMPT": "0"}, cwd=folder, check=True)
         except CalledProcessError as e:
-            # Still emit the event even if the checkout fails
             self.debug(f"Error running git checkout in {folder}. STDERR: {repr(e.stderr)}")
+            self._write_empty_index(folder)
+
+    @staticmethod
+    def _write_empty_index(folder):
+        """Replace the index with a valid empty one so downstream tools
+        never read attacker-controlled index entries (CVE-2025-10283)."""
+        import hashlib
+        import struct
+
+        header = b"DIRC" + struct.pack(">II", 2, 0)
+        index_path = folder / ".git" / "index"
+        if index_path.exists():
+            index_path.write_bytes(header + hashlib.sha1(header).digest())

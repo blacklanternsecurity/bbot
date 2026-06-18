@@ -61,15 +61,18 @@ class postman_download(postman):
 
     def save_workspace(self, workspace, environments, collections):
         zip_path = None
-        # Create a folder for the workspace
         name = workspace["name"]
         id = workspace["id"]
-        folder = self.output_dir / name
+        safe_name = self.helpers.tagify(name)
+        folder = self.output_dir / safe_name
+        if not folder.resolve().is_relative_to(self.output_dir.resolve()):
+            self.warning(f"Workspace name {name!r} resulted in path traversal, skipping")
+            return None
         self.helpers.mkdir(folder)
         zip_path = folder / f"{id}.zip"
 
         # Main Workspace
-        self.add_json_to_zip(zip_path, workspace, f"{name}.postman_workspace.json")
+        self.add_json_to_zip(zip_path, workspace, f"{safe_name}.postman_workspace.json")
 
         # Workspace Environments
         if environments:
@@ -81,7 +84,8 @@ class postman_download(postman):
             if collections:
                 for collection in collections:
                     collection_name = collection["info"]["name"]
-                    self.add_json_to_zip(zip_path, collection, f"{collection_name}.postman_collection.json")
+                    safe_collection_name = self.helpers.tagify(collection_name)
+                    self.add_json_to_zip(zip_path, collection, f"{safe_collection_name}.postman_collection.json")
         return zip_path
 
     def add_json_to_zip(self, zip_path, data, filename):
