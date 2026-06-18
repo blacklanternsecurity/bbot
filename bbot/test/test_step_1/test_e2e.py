@@ -14,15 +14,27 @@ import os
 import socket
 import textwrap
 import time
+from pathlib import Path
 
 import pytest
+
+
+def _find_repo_root():
+    """Find the bbot repo root from the source tree, without requiring git."""
+    # Walk up from this test file to find pyproject.toml
+    d = Path(__file__).resolve().parent
+    for _ in range(10):
+        if (d / "pyproject.toml").is_file():
+            return str(d)
+        d = d.parent
+    raise FileNotFoundError("could not locate repo root (no pyproject.toml found)")
 
 
 @pytest.fixture(scope="module")
 def bbot_venv(tmp_path_factory):
     """Create a fresh virtualenv and pip-install bbot from the local checkout."""
     venv_dir = tmp_path_factory.mktemp("bbot_e2e_venv")
-    repo_root = subprocess.check_output(["git", "rev-parse", "--show-toplevel"]).decode().strip()
+    repo_root = _find_repo_root()
 
     subprocess.check_call([sys.executable, "-m", "venv", str(venv_dir)])
     pip = str(venv_dir / "bin" / "pip")
