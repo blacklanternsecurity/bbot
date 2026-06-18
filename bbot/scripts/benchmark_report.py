@@ -47,7 +47,11 @@ def checkout_branch(branch: str, repo_path: Path = None):
 
 
 def run_benchmarks(output_file: Path, repo_path: Path = None) -> bool:
-    """Run benchmarks and save results to JSON file."""
+    """Run benchmarks and save results to JSON file.
+
+    Returns True if benchmark JSON was written (even if some tests failed),
+    False only if benchmarks truly didn't produce any data.
+    """
     print(f"Running benchmarks, saving to {output_file}")
 
     # Check if benchmarks directory exists
@@ -57,23 +61,35 @@ def run_benchmarks(output_file: Path, repo_path: Path = None) -> bool:
         print("This branch likely doesn't have benchmark tests yet.")
         return False
 
-    try:
-        cmd = [
-            "uv",
-            "run",
-            "python",
-            "-m",
-            "pytest",
-            "bbot/test/benchmarks/",
-            "--benchmark-only",
-            f"--benchmark-json={output_file}",
-            "-q",
-        ]
-        run_command(cmd, cwd=repo_path, capture_output=False)
+    cmd = [
+        "uv",
+        "run",
+        "python",
+        "-m",
+        "pytest",
+        "bbot/test/benchmarks/",
+        "--benchmark-only",
+        f"--benchmark-json={output_file}",
+        "-q",
+    ]
+    result = subprocess.run(cmd, cwd=repo_path, capture_output=True, text=True)
+
+    # Print pytest output so failures are visible in CI logs
+    if result.stdout:
+        print(result.stdout)
+    if result.stderr:
+        print(result.stderr)
+
+    if result.returncode != 0:
+        print(f"Pytest exited with code {result.returncode}")
+
+    # pytest-benchmark writes JSON regardless of test failures;
+    # treat the run as successful if the output file has data
+    if output_file.exists() and output_file.stat().st_size > 0:
         return True
-    except subprocess.CalledProcessError:
-        print("Benchmarks failed for current state")
-        return False
+
+    print("Benchmark output file was not written")
+    return False
 
 
 def load_benchmark_data(filepath: Path) -> Dict[str, Any]:
