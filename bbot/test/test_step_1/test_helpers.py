@@ -1015,7 +1015,7 @@ def test_pool_workers_die_with_parent():
     import tempfile
 
     script = """
-import os, sys, json, time, signal, ctypes, ctypes.util
+import os, sys, json, time, signal, ctypes, ctypes.util, multiprocessing as mp
 from concurrent.futures import ProcessPoolExecutor
 
 _PR_SET_PDEATHSIG = 1
@@ -1028,15 +1028,17 @@ def _get_pid():
     time.sleep(1)
     return os.getpid()
 
-if __name__ == "__main__":
-    pool = ProcessPoolExecutor(max_workers=2, initializer=_init)
-    # submit concurrently so both workers are occupied (each takes 1s)
-    futs = [pool.submit(_get_pid) for _ in range(2)]
-    pids = list(set(f.result(timeout=30) for f in futs))
-    # keep workers busy so they stay alive
-    [pool.submit(time.sleep, 3600) for _ in range(2)]
-    print(json.dumps(pids), flush=True)
-    time.sleep(3600)
+# use fork context explicitly -- forkserver on 3.14 adds an intermediary process
+# that complicates the parent-death chain; PR_SET_PDEATHSIG itself is start-method-agnostic
+ctx = mp.get_context("fork")
+pool = ProcessPoolExecutor(max_workers=2, initializer=_init, mp_context=ctx)
+# submit concurrently so both workers are occupied (each takes 1s)
+futs = [pool.submit(_get_pid) for _ in range(2)]
+pids = list(set(f.result(timeout=30) for f in futs))
+# keep workers busy so they stay alive
+[pool.submit(time.sleep, 3600) for _ in range(2)]
+print(json.dumps(pids), flush=True)
+time.sleep(3600)
 """
     with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write(script)
