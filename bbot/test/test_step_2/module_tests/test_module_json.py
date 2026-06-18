@@ -25,6 +25,15 @@ class TestJSON(ModuleTestBase):
         scan = scan_json[0]
         assert scan["data_json"]["name"] == module_test.scan.name
         assert scan["data_json"]["id"] == module_test.scan.id
+        network = scan["data_json"]["network"]
+        assert isinstance(network, dict)
+        assert "hostname" in network
+        assert "interfaces" in network
+        assert isinstance(network["interfaces"], dict)
+        for iface_addrs in network["interfaces"].values():
+            for family in iface_addrs.values():
+                for entry in family:
+                    assert "address" in entry
         assert scan["id"] == module_test.scan.id
         assert scan["uuid"] == str(module_test.scan.root_event.uuid)
         assert scan["parent_uuid"] == str(module_test.scan.root_event.uuid)

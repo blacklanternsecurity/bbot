@@ -1,5 +1,7 @@
 import os
 import sys
+import socket
+import struct
 import asyncio
 import logging
 import traceback
@@ -121,6 +123,7 @@ class Scanner:
         """
         self._root_event = None
         self._finish_event = None
+        self._network_info = None
         self.start_time = None
         self.end_time = None
         self.duration = None
@@ -1306,6 +1309,7 @@ class Scanner:
                 j.update({i: v})
         j["target"] = self.preset.target.json
         j["preset"] = self.preset.to_dict(redact_secrets=True)
+        j["network"] = self.network_info
         if self.start_time is not None:
             j["started_at"] = self.start_time.timestamp()
         if self.end_time is not None:
@@ -1315,6 +1319,69 @@ class Scanner:
         if self.duration_human is not None:
             j["duration"] = self.duration_human
         return j
+
+    @property
+    def network_info(self):
+        if self._network_info is None:
+            self._network_info = self._collect_network_info()
+        return self._network_info
+
+    @staticmethod
+    def _collect_network_info():
+        import psutil
+
+        info = {}
+
+        try:
+            info["hostname"] = socket.gethostname()
+        except Exception:
+            pass
+
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            try:
+                s.connect(("1.1.1.1", 80))
+                info["primary_ip"] = s.getsockname()[0]
+            finally:
+                s.close()
+        except Exception:
+            pass
+
+        try:
+            interfaces = {}
+            for iface, addrs in psutil.net_if_addrs().items():
+                iface_addrs = {}
+                for addr in addrs:
+                    if addr.family == socket.AF_INET:
+                        iface_addrs.setdefault("ipv4", []).append({"address": addr.address, "netmask": addr.netmask})
+                    elif addr.family == socket.AF_INET6:
+                        iface_addrs.setdefault("ipv6", []).append({"address": addr.address, "netmask": addr.netmask})
+                if iface_addrs:
+                    interfaces[iface] = iface_addrs
+            if interfaces:
+                info["interfaces"] = interfaces
+        except Exception:
+            pass
+
+        try:
+            routes = []
+            with open("/proc/net/route") as f:
+                for line in f.readlines()[1:]:
+                    parts = line.strip().split("\t")
+                    if len(parts) >= 8 and parts[1] == "00000000":
+                        gw_bytes = struct.pack("<I", int(parts[2], 16))
+                        routes.append(
+                            {
+                                "gateway": socket.inet_ntoa(gw_bytes),
+                                "interface": parts[0],
+                            }
+                        )
+            if routes:
+                info["default_routes"] = routes
+        except Exception:
+            pass
+
+        return info
 
     def debug(self, *args, trace=False, **kwargs):
         log.debug(*args, extra={"scan_id": self.id}, **kwargs)
