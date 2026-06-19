@@ -42,7 +42,7 @@ class domino(BaseModule):
         return self.config.get("browser_instances", 2)
 
     async def setup(self):
-        import asyncio.base_subprocess  # noqa: used for monkey-patch below
+        import asyncio.base_subprocess  # noqa: E402
 
         def quiet_transport_del(self):
             try:
