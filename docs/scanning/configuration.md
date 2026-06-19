@@ -164,10 +164,10 @@ web:
   spider_depth: 1
   # Set the maximum number of links that can be followed per page
   spider_links_per_page: 25
-  # HTTP timeout (for Python requests; API calls, etc.)
+  # HTTP timeout for target-directed traffic (probes, crawls, etc.)
   http_timeout: 10
-  # HTTP timeout (for blasthttp)
-  blasthttp_timeout: 5
+  # HTTP timeout for non-target traffic (APIs, wordlist downloads, etc.)
+  http_timeout_infrastructure: 10
   # Custom HTTP headers (e.g. cookies, etc.)
   # in the format { "Header-Key": "header_value" }
   # These are attached to all in-scope HTTP requests
@@ -179,8 +179,6 @@ web:
   api_retries: 2
   # HTTP retries - try again if the raw connection fails
   http_retries: 1
-  # HTTP retries (for blasthttp)
-  blasthttp_retries: 1
   # Default sleep interval when rate limited by 429 (and retry-after isn't provided)
   429_sleep_interval: 30
   # Maximum sleep interval when rate limited by 429 (and an excessive retry-after is provided)
@@ -189,8 +187,10 @@ web:
   debug: false
   # Maximum number of HTTP redirects to follow
   http_max_redirects: 5
-  # Whether to verify SSL certificates
-  ssl_verify: false
+  # Whether to verify SSL certificates for target-directed traffic (probes, crawls, etc.)
+  ssl_verify_target: false
+  # Whether to verify SSL certificates for non-target traffic (APIs, wordlist downloads, etc.)
+  ssl_verify_infrastructure: true
   # Maximum HTTP requests per second (0 = unlimited)
   # Applies globally across all blasthttp consumers (http probing, web brute, etc.)
   http_rate_limit: 0
