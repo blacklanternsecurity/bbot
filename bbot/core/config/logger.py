@@ -184,6 +184,14 @@ class BBOTLogger:
             new_handlers.remove(handler)
             self.listener.handlers = tuple(new_handlers)
 
+    def include_logger(self, logger):
+        if logger not in self.loggers:
+            self.loggers.append(logger)
+        if self.log_level is not None:
+            logger.setLevel(self.log_level)
+        for handler in self.log_handlers.values():
+            self.add_log_handler(handler)
+
     def stderr_filter(self, record):
         if record.levelno == logging.TRACE and self.log_level > logging.DEBUG:
             return False

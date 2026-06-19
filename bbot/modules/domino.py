@@ -1,6 +1,7 @@
+from asyncio import wait_for, TimeoutError as AsyncTimeoutError
+
 from .base import BaseModule
 
-import asyncio
 from typing import Optional
 from pydantic import Field
 from bbot.core.config.models import BaseModuleConfig
@@ -41,7 +42,7 @@ class domino(BaseModule):
         return self.config.get("browser_instances", 2)
 
     async def setup(self):
-        import asyncio.base_subprocess
+        import asyncio.base_subprocess  # noqa: used for monkey-patch below
 
         def quiet_transport_del(self):
             try:
@@ -51,11 +52,7 @@ class domino(BaseModule):
 
         asyncio.base_subprocess.BaseSubprocessTransport.__del__ = quiet_transport_del
 
-        rules = self.config.get("rules")
-        if rules is not None:
-            self.rules = rules
-        else:
-            self.rules = None
+        self.rules = self.config.get("rules")
 
         self._browser_count = self.config.get("browser_instances", 2)
         low_estimate = self._browser_count * 800
@@ -77,8 +74,8 @@ class domino(BaseModule):
         try:
             browser = await self.playwright.chromium.launch(headless=True)
             d = Domino(url=url, logger=self.log, json_mode=True, selected_rules=self.rules)
-            results = await asyncio.wait_for(d.run(self.playwright, browser), timeout=120)
-        except asyncio.TimeoutError:
+            results = await wait_for(d.run(self.playwright, browser), timeout=120)
+        except AsyncTimeoutError:
             self.warning(f"Domino scan timed out after 120s for {url}")
             return
         except DominoError as e:
