@@ -656,6 +656,7 @@ class ModuleLoader:
         legacy_options_keyword: str | None = None
         legacy_options_line: int | None = None
         disable_auto_module_deps = False
+        is_external = False
         with open(module_file) as f:
             python_code = f.read()
         # take a hash of the code so we can keep track of when it changes
@@ -778,6 +779,9 @@ class ModuleLoader:
                         if any(target.id == "_disable_auto_module_deps" for target in class_attr.targets):
                             if type(class_attr.value.value) == bool:
                                 disable_auto_module_deps = class_attr.value.value
+                        if any(target.id == "_is_external" for target in class_attr.targets):
+                            if type(class_attr.value.value) == bool:
+                                is_external = class_attr.value.value
 
         # Reject the pre-3.0 options/options_desc dict format. Those dicts are
         # silently ignored by the new loader: defaults disappear and setting
@@ -828,6 +832,7 @@ class ModuleLoader:
                 "common": deps_common,
             },
             "sudo": len(deps_apt) > 0,
+            "is_external": is_external,
             "disable_auto_module_deps": disable_auto_module_deps,
         }
         ansible_task_list = list(ansible_tasks)

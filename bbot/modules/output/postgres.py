@@ -3,6 +3,7 @@ from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class Postgres(SQLTemplate):
+    _is_external = True
     watched_events = ["*"]
     meta = {
         "description": "Output scan data to a SQLite database",

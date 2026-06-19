@@ -217,7 +217,7 @@ Enumerate email addresses from APIs, web crawling, etc.
     flags:
       - email-enum
     
-    output_modules:
+    external_output_modules:
       - emails
     ```
 
@@ -744,9 +744,11 @@ Enumerate subdomains via APIs, brute-force
       # enable every module with the subdomain-enum flag
       - subdomain-enum
     
-    output_modules:
-      # output unique subdomains to TXT file
+    local_output_modules:
+      - csv
+      - json
       - subdomains
+      - txt
     
     config:
       dns:

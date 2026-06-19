@@ -4,6 +4,7 @@ from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class webhook(BaseOutputModule):
+    _is_external = True
     watched_events = ["*"]
     meta = {
         "description": "Send every event to a custom URL via a webhook",

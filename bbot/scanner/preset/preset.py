@@ -84,7 +84,7 @@ class Preset(metaclass=BasePreset):
         description (str): Description of preset.
         modules (set): Combined modules to enable for the scan. Includes scan modules, internal modules, and output modules.
         scan_modules (set): Modules to enable for the scan.
-        output_modules (set): Output modules to enable for the scan. (note: if no output modules are specified, this is not populated until .bake())
+        output_modules (set): All output modules enabled for the scan (local + external). Not populated until .bake().
         internal_modules (set): Internal modules for the scan. (note: not populated until .bake())
         exclude_modules (set): Modules to exclude from the scan. When set, automatically removes excluded modules.
         flags (set): Flags to enable for the scan. When set, automatically enables modules.
@@ -117,7 +117,8 @@ class Preset(metaclass=BasePreset):
         seeds=None,
         blacklist=None,
         modules=None,
-        output_modules=None,
+        local_output_modules=None,
+        external_output_modules=None,
         exclude_modules=None,
         flags=None,
         require_flags=None,
@@ -147,7 +148,8 @@ class Preset(metaclass=BasePreset):
                 If not specified, seeds will be backfilled from target when target is defined.
             blacklist (list, optional): Blacklisted target(s). Takes ultimate precedence. Defaults to empty.
             modules (list[str], optional): List of scan modules to enable for the scan. Defaults to empty list.
-            output_modules (list[str], optional): List of output modules to use. Defaults to csv, human, and json.
+            local_output_modules (list[str], optional): Local output modules (e.g. csv, json, txt). Overrides defaults when specified.
+            external_output_modules (list[str], optional): External output modules (e.g. discord, neo4j). Empty by default.
             exclude_modules (list[str], optional): List of modules to exclude from the scan.
             require_flags (list[str], optional): Only enable modules if they have these flags.
             exclude_flags (list[str], optional): Don't enable modules if they have any of these flags.
@@ -195,10 +197,14 @@ class Preset(metaclass=BasePreset):
             modules = []
         if isinstance(modules, str):
             modules = [modules]
-        if output_modules is None:
-            output_modules = []
-        if isinstance(output_modules, str):
-            output_modules = [output_modules]
+        if local_output_modules is None:
+            local_output_modules = []
+        if isinstance(local_output_modules, str):
+            local_output_modules = [local_output_modules]
+        if external_output_modules is None:
+            external_output_modules = []
+        if isinstance(external_output_modules, str):
+            external_output_modules = [external_output_modules]
         if exclude_modules is None:
             exclude_modules = []
         if isinstance(exclude_modules, str):
@@ -219,7 +225,13 @@ class Preset(metaclass=BasePreset):
         # these are used only for preserving the modules as specified in the original preset
         # this is to ensure the preset looks the same when reserialized
         self.explicit_scan_modules = set() if modules is None else set(modules)
-        self.explicit_output_modules = set() if output_modules is None else set(output_modules)
+        self.explicit_local_output_modules = set() if local_output_modules is None else set(local_output_modules)
+        self.explicit_external_output_modules = (
+            set() if external_output_modules is None else set(external_output_modules)
+        )
+        # additional output modules (additive on top of defaults, used by CLI -om)
+        self.additional_local_output_modules = set()
+        self.additional_external_output_modules = set()
 
         # whether to force-start the scan (ignoring conditional aborts and failed module setups)
         self.force_start = force_start
@@ -278,7 +290,8 @@ class Preset(metaclass=BasePreset):
 
         # we don't fill self.modules yet (that happens in .bake())
         self.explicit_scan_modules.update(set(modules))
-        self.explicit_output_modules.update(set(output_modules))
+        self.explicit_local_output_modules.update(set(local_output_modules))
+        self.explicit_external_output_modules.update(set(external_output_modules))
         self.exclude_modules.update(set(exclude_modules))
         self.flags.update(set(flags))
         self.exclude_flags.update(set(exclude_flags))
@@ -315,7 +328,7 @@ class Preset(metaclass=BasePreset):
         if self._default_output_modules is not None:
             output_modules = self._default_output_modules
         else:
-            output_modules = ["python", "csv", "txt", "json"]
+            output_modules = ["csv", "txt", "json"]
             if self._cli:
                 output_modules.append("stdout")
         return output_modules
@@ -362,7 +375,10 @@ class Preset(metaclass=BasePreset):
         self.exclude_flags.update(other.exclude_flags)
         # then it's okay to start enabling modules
         self.explicit_scan_modules.update(other.explicit_scan_modules)
-        self.explicit_output_modules.update(other.explicit_output_modules)
+        self.explicit_local_output_modules.update(other.explicit_local_output_modules)
+        self.explicit_external_output_modules.update(other.explicit_external_output_modules)
+        self.additional_local_output_modules.update(other.additional_local_output_modules)
+        self.additional_external_output_modules.update(other.additional_external_output_modules)
         self.flags.update(other.flags)
 
         # target / scope
@@ -450,14 +466,34 @@ class Preset(metaclass=BasePreset):
         for module in baked_preset.explicit_scan_modules:
             baked_preset.add_module(module, module_type="scan")
 
-        # enable output modules
-        output_modules_to_enable = set(baked_preset.explicit_output_modules)
-        default_output_modules = self.default_output_modules
-        output_module_override = any(m in default_output_modules for m in output_modules_to_enable)
-        # if none of the default output modules have been explicitly specified, enable them all
-        if not output_module_override:
-            output_modules_to_enable.update(self.default_output_modules)
-        for module in output_modules_to_enable:
+        # enable local output modules (use defaults if none explicitly specified)
+        local_output_modules = set(baked_preset.explicit_local_output_modules)
+        if not local_output_modules:
+            local_output_modules.update(self.default_output_modules)
+
+        # enable external output modules (explicit only, before adding CLI additions)
+        external_output_modules = set(baked_preset.explicit_external_output_modules)
+
+        # warn if -om didn't actually add anything new (once only)
+        all_additional = self.additional_local_output_modules | self.additional_external_output_modules
+        base_modules = (local_output_modules | external_output_modules) - baked_preset.exclude_modules
+        if all_additional and not (all_additional - base_modules):
+            current = ",".join(sorted(base_modules))
+            specified = ",".join(sorted(all_additional))
+            log.warning(
+                f'-om is additive. Your choice "-om {specified}" did not change the output modules'
+                f" (currently: {current}). To remove output modules, use -eom."
+            )
+            self.additional_local_output_modules.clear()
+            self.additional_external_output_modules.clear()
+
+        # add CLI -om modules on top
+        local_output_modules.update(baked_preset.additional_local_output_modules)
+        for module in local_output_modules:
+            baked_preset.add_module(module, module_type="output", raise_error=False)
+
+        external_output_modules.update(baked_preset.additional_external_output_modules)
+        for module in external_output_modules:
             baked_preset.add_module(module, module_type="output", raise_error=False)
 
         # enable internal modules
@@ -737,7 +773,8 @@ class Preset(metaclass=BasePreset):
             seeds=seeds,
             blacklist=blacklist,
             modules=preset_dict.get("modules"),
-            output_modules=preset_dict.get("output_modules"),
+            local_output_modules=preset_dict.get("local_output_modules"),
+            external_output_modules=preset_dict.get("external_output_modules"),
             exclude_modules=preset_dict.get("exclude_modules"),
             flags=preset_dict.get("flags"),
             require_flags=preset_dict.get("require_flags"),
@@ -900,8 +937,12 @@ class Preset(metaclass=BasePreset):
             preset_dict["flags"] = sorted(self.flags)
         if self.explicit_scan_modules:
             preset_dict["modules"] = sorted(self.explicit_scan_modules)
-        if self.explicit_output_modules:
-            preset_dict["output_modules"] = sorted(self.explicit_output_modules)
+        all_local = self.explicit_local_output_modules | self.additional_local_output_modules
+        all_external = self.explicit_external_output_modules | self.additional_external_output_modules
+        if all_local:
+            preset_dict["local_output_modules"] = sorted(all_local)
+        if all_external:
+            preset_dict["external_output_modules"] = sorted(all_external)
 
         # log verbosity
         if self.verbose:
@@ -1030,7 +1071,11 @@ class Preset(metaclass=BasePreset):
         # validate declared module names so typos fail early
         for scan_module in self.explicit_scan_modules:
             self._is_valid_module(scan_module, "scan", name_only=True)
-        for output_module in self.explicit_output_modules:
+        for output_module in self.explicit_local_output_modules:
+            self._is_valid_module(output_module, "output", name_only=True)
+        for output_module in self.explicit_external_output_modules:
+            self._is_valid_module(output_module, "output", name_only=True)
+        for output_module in self.additional_local_output_modules | self.additional_external_output_modules:
             self._is_valid_module(output_module, "output", name_only=True)
         # validate excluded flags
         for excluded_flag in self.exclude_flags:

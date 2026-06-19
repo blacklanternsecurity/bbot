@@ -32,6 +32,7 @@ class neo4j(BaseOutputModule):
     > docker start <CONTAINER_ID>
     """
 
+    _is_external = True
     watched_events = ["*"]
     meta = {"description": "Output to Neo4j", "created_date": "2022-04-07", "author": "@TheTechromancer"}
 

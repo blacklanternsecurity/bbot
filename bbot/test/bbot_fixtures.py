@@ -28,6 +28,16 @@ DEFAULT_PRESET = Preset()
 
 available_modules = list(DEFAULT_PRESET.module_loader.configs(type="scan"))
 available_output_modules = list(DEFAULT_PRESET.module_loader.configs(type="output"))
+available_local_output_modules = [
+    m
+    for m in available_output_modules
+    if not DEFAULT_PRESET.module_loader.preloaded().get(m, {}).get("is_external", False)
+]
+available_external_output_modules = [
+    m
+    for m in available_output_modules
+    if DEFAULT_PRESET.module_loader.preloaded().get(m, {}).get("is_external", False)
+]
 available_internal_modules = list(DEFAULT_PRESET.module_loader.configs(type="internal"))
 
 

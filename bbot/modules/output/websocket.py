@@ -8,6 +8,7 @@ from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class Websocket(BaseOutputModule):
+    _is_external = True
     watched_events = ["*"]
     meta = {"description": "Output to websockets", "created_date": "2022-04-15", "author": "@TheTechromancer"}
 

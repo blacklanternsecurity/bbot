@@ -5,6 +5,7 @@ from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class NATS(BaseOutputModule):
+    _is_external = True
     watched_events = ["*"]
     meta = {
         "description": "Output scan data to a NATS subject",

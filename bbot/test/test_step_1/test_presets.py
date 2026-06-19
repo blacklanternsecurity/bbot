@@ -67,7 +67,7 @@ async def test_preset_yaml(clean_default_config):
         seeds=["evilcorp.com", "www.evilcorp.ce"],
         blacklist=["test.www.evilcorp.ce"],
         modules=["sslcert"],
-        output_modules=["json"],
+        local_output_modules=["json"],
         exclude_modules=["ipneighbor"],
         flags=["subdomain-enum"],
         require_flags=["safe"],
@@ -119,7 +119,7 @@ modules:
   - baddns
   - robots
 
-output_modules:
+local_output_modules:
   - csv
   - json
 
@@ -241,10 +241,12 @@ async def test_preset_scope(clean_default_config):
     assert not preset1_baked.in_scope("evilcorp.com")
     assert not preset1_baked.in_scope("asdf.test.www.evilcorp.ce")
 
-    preset4 = Preset(output_modules="neo4j")
-    set(preset1.output_modules) == {"python", "csv", "txt", "json", "stdout"}
+    preset4 = Preset(external_output_modules=["neo4j"])
     preset1.merge(preset4)
-    set(preset1.output_modules) == {"python", "csv", "txt", "json", "stdout", "neo4j"}
+    merged_baked = preset1.validate().bake()
+    assert "neo4j" in merged_baked.output_modules
+    for default in ("csv", "txt", "json"):
+        assert default in merged_baked.output_modules
 
     # test preset merging + seeds/target interaction
 
@@ -511,10 +513,11 @@ async def test_preset_module_resolution(clean_default_config):
 
     # make sure we have the expected defaults
     assert not preset.scan_modules
-    assert set(preset.output_modules) == {"python", "csv", "txt", "json"}
+    assert set(preset.output_modules) == {"csv", "txt", "json"}
     assert set(preset.internal_modules) == {
         "aggregate",
         "excavate",
+        "python",
         "unarchive",
         "speculate",
         "cloudcheck",
@@ -572,8 +575,8 @@ async def test_preset_module_resolution(clean_default_config):
     assert baked_preset.modules == {
         "wayback",
         "cloudcheck",
-        "python",
         "json",
+        "python",
         "speculate",
         "dnsresolve",
         "aggregate",
@@ -973,12 +976,12 @@ async def test_preset_module_disablement(clean_default_config):
     assert "excavate" not in preset.internal_modules
     assert "aggregate" in preset.internal_modules
 
-    # internal module disablement
+    # output module disablement
     preset = Preset().validate().bake()
-    assert set(preset.output_modules) == {"python", "txt", "csv", "json"}
+    assert set(preset.output_modules) == {"txt", "csv", "json"}
     preset = Preset(exclude_modules=["txt", "csv"]).validate().bake()
-    assert set(preset.output_modules) == {"python", "json"}
-    preset = Preset(output_modules=["json"]).validate().bake()
+    assert set(preset.output_modules) == {"json"}
+    preset = Preset(local_output_modules=["json"]).validate().bake()
     assert set(preset.output_modules) == {"json"}
 
 
@@ -1442,3 +1445,111 @@ def test_all_presets_ignores_non_preset_yaml(tmp_path):
         preset_mod.DEFAULT_PRESETS = orig_default_presets
         preset_mod.PRESET_PATH = orig_preset_path
         path_mod.PRESET_PATH = orig_path_singleton
+
+
+async def test_preset_output_module_split(clean_default_config):
+    import logging
+
+    # Python API: local_output_modules overrides defaults
+    preset = Preset(local_output_modules=["json"])
+    baked = preset.validate().bake()
+    assert set(baked.output_modules) == {"json"}
+
+    # Python API: external_output_modules adds external, local defaults stay
+    preset = Preset(external_output_modules=["neo4j"])
+    baked = preset.validate().bake()
+    assert "neo4j" in baked.output_modules
+    for default in ("csv", "txt", "json"):
+        assert default in baked.output_modules
+
+    # Python API: both explicit lists together
+    preset = Preset(local_output_modules=["json", "csv"], external_output_modules=["discord"])
+    baked = preset.validate().bake()
+    assert set(baked.output_modules) == {"json", "csv", "discord"}
+
+    # CLI -om is additive (additional_* sets)
+    preset = Preset()
+    preset.additional_local_output_modules.add("subdomains")
+    baked = preset.validate().bake()
+    assert "subdomains" in baked.output_modules
+    for default in ("csv", "txt", "json"):
+        assert default in baked.output_modules
+
+    # CLI -om with external module
+    preset = Preset()
+    preset.additional_external_output_modules.add("websocket")
+    baked = preset.validate().bake()
+    assert "websocket" in baked.output_modules
+    for default in ("csv", "txt", "json"):
+        assert default in baked.output_modules
+
+    # CLI -eom removes from defaults
+    preset = Preset()
+    preset.exclude_modules.add("json")
+    baked = preset.validate().bake()
+    assert "json" not in baked.output_modules
+    assert "csv" in baked.output_modules
+
+    # -om additive + -eom removal together
+    preset = Preset()
+    preset.additional_local_output_modules.add("subdomains")
+    preset.exclude_modules.add("txt")
+    baked = preset.validate().bake()
+    assert "subdomains" in baked.output_modules
+    assert "txt" not in baked.output_modules
+    assert "csv" in baked.output_modules
+
+    # redundant -om warning fires when no new modules added
+    warnings = []
+    handler = logging.Handler()
+    handler.emit = lambda record: warnings.append(record.getMessage()) if record.levelno >= logging.WARNING else None
+    log = logging.getLogger("bbot.presets")
+    log.addHandler(handler)
+    try:
+        preset = Preset()
+        preset.additional_local_output_modules.add("json")
+        preset.validate().bake()
+        assert any("-om is additive" in w for w in warnings), f"Expected redundant -om warning, got: {warnings}"
+    finally:
+        log.removeHandler(handler)
+
+    # redundant -om warning does NOT fire when module is actually new
+    warnings.clear()
+    log.addHandler(handler)
+    try:
+        preset = Preset()
+        preset.additional_local_output_modules.add("subdomains")
+        preset.validate().bake()
+        assert not any("-om is additive" in w for w in warnings), f"Unexpected warning for new module: {warnings}"
+    finally:
+        log.removeHandler(handler)
+
+    # YAML: old output_modules key gives migration error
+    from bbot.errors import ValidationError
+
+    with pytest.raises(ValidationError, match="local_output_modules"):
+        Preset.from_yaml_string("output_modules:\n  - json\n")
+
+    # YAML: local_output_modules override
+    preset = Preset.from_yaml_string("local_output_modules:\n  - json\n  - csv\n")
+    baked = preset.validate().bake()
+    assert set(baked.output_modules) == {"json", "csv"}
+
+    # YAML: external_output_modules
+    preset = Preset.from_yaml_string("external_output_modules:\n  - neo4j\n")
+    baked = preset.validate().bake()
+    assert "neo4j" in baked.output_modules
+    for default in ("csv", "txt", "json"):
+        assert default in baked.output_modules
+
+
+async def test_preset_output_module_wrong_list(clean_default_config):
+    from bbot.scanner.preset.validate import validate_preset
+
+    # local module in external list
+    errors = validate_preset({"external_output_modules": ["csv"]})
+    assert any("local output module" in str(e) for e in errors)
+
+    # external module in local list
+    errors = validate_preset({"local_output_modules": ["discord"]})
+    assert any("external output module" in str(e) for e in errors)

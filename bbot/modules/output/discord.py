@@ -3,6 +3,7 @@ from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class Discord(WebhookOutputModule):
+    _is_external = True
     watched_events = ["*"]
     meta = {
         "description": "Message a Discord channel when certain events are encountered",

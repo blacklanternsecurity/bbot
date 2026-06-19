@@ -540,7 +540,7 @@ async def test_manager_scope_accuracy_correct(bbot_scanner, bbot_httpserver, bbo
         "127.0.0.33",
         seeds=["127.0.0.111/31"],
         modules=["http"],
-        output_modules=["python"],
+        local_output_modules=[],
         _config={
             "dns": {"minimal": False, "search_distance": 2},
             "scope": {"search_distance": 0, "report_distance": 0},

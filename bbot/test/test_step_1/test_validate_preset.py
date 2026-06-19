@@ -110,7 +110,7 @@ def test_validate_preset_modules_as_string_no_cascade():
 
 
 def test_validate_preset_non_string_module_entry_no_crash():
-    """A non-string entry in modules/output_modules/exclude_modules (e.g. a dangling YAML
+    """A non-string entry in module lists (e.g. a dangling YAML
     list item -> None) must be reported as a type error, never raise TypeError."""
     # dangling YAML item -> None
     errs = validate_preset({"modules": ["nuclei", None]})
@@ -124,7 +124,7 @@ def test_validate_preset_non_string_module_entry_no_crash():
     assert any('Did you mean "nuclei"' in str(e) for e in errs)
 
     # int and unhashable (dict) entries must not crash the set membership / difflib calls
-    errs = validate_preset({"output_modules": [123], "exclude_modules": [{"a": 1}]})
+    errs = validate_preset({"local_output_modules": [123], "exclude_modules": [{"a": 1}]})
     assert len(errs) == 2
     assert all("string" in e.message for e in errs)
 
@@ -135,7 +135,7 @@ def test_validate_preset_top_level_typo_suggests_preset_field():
         ("modlues", "modules"),
         ("flgas", "flags"),
         ("targest", "target"),
-        ("output_moduels", "output_modules"),
+        ("local_output_moduels", "local_output_modules"),
     ]
     for typo, expected in cases:
         errs = validate_preset({typo: ["x"]})

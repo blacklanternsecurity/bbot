@@ -16,7 +16,7 @@ from __future__ import annotations
 import os
 from typing import Annotated, Any, Literal, Optional
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, field_validator
+from pydantic import BaseModel, BeforeValidator, ConfigDict, field_validator, model_validator
 from pydantic import Field as _PydanticField
 from pydantic_core import PydanticUndefined
 
@@ -441,11 +441,23 @@ class PresetSchema(BaseModel):
     blacklist: Optional[list[str]] = None
 
     modules: Optional[list[str]] = None
-    output_modules: Optional[list[str]] = None
+    local_output_modules: Optional[list[str]] = None
+    external_output_modules: Optional[list[str]] = None
     exclude_modules: Optional[list[str]] = None
     flags: Optional[list[str]] = None
     require_flags: Optional[list[str]] = None
     exclude_flags: Optional[list[str]] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_legacy_output_modules(cls, data):
+        if isinstance(data, dict) and "output_modules" in data:
+            raise ValueError(
+                '"output_modules" has been replaced by "local_output_modules" and "external_output_modules". '
+                "Local output modules (csv, json, txt, etc.) go in local_output_modules. "
+                "External output modules (discord, neo4j, slack, etc.) go in external_output_modules."
+            )
+        return data
 
     config: Optional[dict[str, Any]] = None
     module_dirs: Optional[list[str]] = None

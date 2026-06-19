@@ -4,6 +4,7 @@ from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class Splunk(BaseOutputModule):
+    _is_external = True
     watched_events = ["*"]
     meta = {
         "description": "Send every event to a splunk instance through HTTP Event Collector",

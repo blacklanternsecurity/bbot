@@ -9,7 +9,7 @@ async def test_config(bbot_scanner):
         "speculate": True,
         "modules": {
             "ipneighbor": {"num_bits": 8},
-            "python": {"module_timeout": 60},
+            "json": {"module_timeout": 60},
             "speculate": {"module_timeout": 60},
         },
     }
@@ -18,7 +18,7 @@ async def test_config(bbot_scanner):
     assert scan1.config["web"]["user_agent"] == "BBOT Test User-Agent"
     assert scan1.config["status_frequency"] == 5
     assert scan1.modules["ipneighbor"].config["num_bits"] == 8
-    assert scan1.modules["python"].config["module_timeout"] == 60
+    assert scan1.modules["json"].config["module_timeout"] == 60
     assert scan1.modules["speculate"].config["module_timeout"] == 60
 
     await scan1._cleanup()

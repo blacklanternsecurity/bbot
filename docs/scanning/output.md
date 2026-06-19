@@ -9,7 +9,51 @@ If you reuse a scan name, it will append to its original output files and levera
 
 ## Output Modules
 
-Multiple simultaneous output formats are possible because of **output modules**. Output modules are similar to normal modules except they are enabled with `-om`.
+Multiple simultaneous output formats are possible because of **output modules**. BBOT splits output modules into two categories:
+
+- **Local output modules** write to local files or stdout: `csv`, `json`, `txt`, `stdout`, `subdomains`, `asset_inventory`, `nmap_xml`, `web_parameters`, `web_report`
+- **External output modules** send data to external services: `discord`, `slack`, `teams`, `neo4j`, `elastic`, `mongo`, `mysql`, `postgres`, `splunk`, `sqlite`, `kafka`, `nats`, `rabbitmq`, `zeromq`, `emails`, `webhook`, `websocket`
+
+By default, BBOT enables local output modules (`csv`, `json`, `txt`, and `stdout` for the CLI). External output modules are never enabled by default.
+
+### Configuring Output Modules
+
+**In a preset YAML file**, use `local_output_modules` and `external_output_modules`. These are explicit -- what you list is what you get:
+
+```yaml title="my_preset.yml"
+# only json output (replaces defaults)
+local_output_modules:
+  - json
+
+# also send to discord
+external_output_modules:
+  - discord
+```
+
+**On the command line**, `-om` is **additive** -- it adds modules on top of whatever is already configured:
+
+```bash
+# adds discord on top of the default local outputs
+bbot -t evilcorp.com -om discord
+
+# adds subdomains output on top of defaults
+bbot -t evilcorp.com -om subdomains
+```
+
+To **remove** output modules, use `-eom`:
+
+```bash
+# remove txt and csv, keep json/stdout
+bbot -t evilcorp.com -eom txt,csv
+
+# add discord, remove stdout
+bbot -t evilcorp.com -om discord -eom stdout
+```
+
+BBOT will warn you if `-om` doesn't actually change anything (e.g. `-om json` when json is already a default).
+
+!!! note
+    The old `output_modules` preset key has been replaced by `local_output_modules` and `external_output_modules`. If you have existing presets using `output_modules`, you will see an error with migration instructions.
 
 ### STDOUT
 
@@ -93,7 +137,7 @@ BBOT supports output via webhooks to `discord`, `slack`, and `teams`. To use the
 Via preset:
 
 ```yaml title="discord_preset.yml"
-output_modules:
+external_output_modules:
   - discord
 
 config:
@@ -111,7 +155,7 @@ bbot -t evilcorp.com -om discord -c modules.discord.webhook_url=https://discord.
 By default, only `FINDING` events are sent, but this can be customized by setting `event_types` in the config like so:
 
 ```yaml title="discord_preset.yml"
-output_modules:
+external_output_modules:
   - discord
 
 config:
@@ -131,7 +175,7 @@ bbot -t evilcorp.com -om discord -c modules.discord.webhook_url=https://discord.
 You can also filter on the severity of `FINDING` events by setting `min_severity`:
 
 ```yaml title="discord_preset.yml"
-output_modules:
+external_output_modules:
   - discord
 
 config:
@@ -153,7 +197,7 @@ bbot -t evilcorp.com -om webhook -c modules.webhook.url=http://localhost:8000
 You can customize the HTTP method if needed. Authentication is also supported:
 
 ```yaml title="webhook_preset.yml"
-output_modules:
+external_output_modules:
   - webhook
 
 config:
@@ -189,7 +233,7 @@ bbot -t evilcorp.com -om elastic -c \
 Alternatively, via a preset:
 
 ```yaml title="elastic_preset.yml"
-output_modules:
+external_output_modules:
   - elastic
 
 config:
@@ -206,7 +250,7 @@ The `splunk` output module sends [events](events.md) in JSON format to a desired
 You can customize this output with the following config options:
 
 ```yaml title="splunk_preset.yml"
-output_modules:
+external_output_modules:
   - splunk
 
 config:
@@ -251,7 +295,7 @@ bbot -t evilcorp.com -om postgres -c modules.postgres.database=custom_bbot_db
 ```
 
 ```yaml title="postgres_preset.yml"
-output_modules:
+external_output_modules:
   - postgres
 
 config:
@@ -274,7 +318,7 @@ bbot -t evilcorp.com -om mysql -c modules.mysql.database=custom_bbot_db
 ```
 
 ```yaml title="mysql_preset.yml"
-output_modules:
+external_output_modules:
   - mysql
 
 config:

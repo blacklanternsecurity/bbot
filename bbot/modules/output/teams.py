@@ -3,6 +3,7 @@ from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class Teams(WebhookOutputModule):
+    _is_external = True
     watched_events = ["*"]
     meta = {
         "description": "Message a Teams channel when certain events are encountered",

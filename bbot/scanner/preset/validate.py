@@ -270,12 +270,12 @@ def validate_preset(preset_dict: Any, module_loader=None) -> list[PresetValidati
         # built/exec'd. Report it instead of letting it propagate out of this API.
         errors.append(PresetValidationError("preset", "", str(e)))
 
-    # Module names listed in top-level `modules`/`output_modules`/`exclude_modules`
-    # aren't covered by the composite schema (they're a list of strings, not a
-    # nested mapping). Check them explicitly, with the same closest-match hint.
+    # Module names listed in top-level module lists aren't covered by the
+    # composite schema (they're a list of strings, not a nested mapping).
+    # Check them explicitly, with the same closest-match hint.
     # Skip non-list values; the schema pass above already flagged the type error,
     # and iterating a string here would yield bogus per-character lookups.
-    for key in ("modules", "output_modules", "exclude_modules"):
+    for key in ("modules", "local_output_modules", "external_output_modules", "exclude_modules"):
         value = preset_dict.get(key)
         if not isinstance(value, list):
             continue
@@ -287,6 +287,26 @@ def validate_preset(preset_dict: Any, module_loader=None) -> list[PresetValidati
             if name not in known_modules:
                 hint = get_closest_match(name, known_modules, msg="module")
                 errors.append(PresetValidationError(where="preset", path=key, message=hint))
+                continue
+            # validate local/external placement
+            preloaded = module_loader.preloaded().get(name, {})
+            is_external = preloaded.get("is_external", False)
+            if key == "local_output_modules" and is_external:
+                errors.append(
+                    PresetValidationError(
+                        where="preset",
+                        path=key,
+                        message=f'"{name}" is an external output module. Move it to external_output_modules.',
+                    )
+                )
+            elif key == "external_output_modules" and not is_external:
+                errors.append(
+                    PresetValidationError(
+                        where="preset",
+                        path=key,
+                        message=f'"{name}" is a local output module. Move it to local_output_modules.',
+                    )
+                )
 
     return errors
 

@@ -432,7 +432,7 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, blasthttp_mock
     scan = bbot_scanner(
         "evilcorp.com",
         config={"speculate": True, "dns": {"minimal": False}},
-        output_modules=["python"],
+        local_output_modules=[],
         force_start=True,
     )
 
@@ -520,7 +520,8 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, blasthttp_mock
 async def test_module_loading(bbot_scanner):
     scan2 = bbot_scanner(
         modules=list(available_modules),
-        output_modules=list(available_output_modules),
+        local_output_modules=list(available_local_output_modules),
+        external_output_modules=list(available_external_output_modules),
         config={i: True for i in available_internal_modules if i != "dnsresolve"},
         force_start=True,
     )

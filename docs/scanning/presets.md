@@ -17,8 +17,11 @@ description: Enumerate subdomains via APIs, brute-force
 flags:
   - subdomain-enum
 
-output_modules:
+local_output_modules:
+  - csv
+  - json
   - subdomains
+  - txt
 
 ```
 <!-- END BBOT SUBDOMAIN ENUM PRESET -->

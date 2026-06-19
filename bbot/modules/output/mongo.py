@@ -12,6 +12,7 @@ class Mongo(BaseOutputModule):
     docker run --rm -p 27017:27017 mongo
     """
 
+    _is_external = True
     watched_events = ["*"]
     meta = {
         "description": "Output scan data to a MongoDB database",

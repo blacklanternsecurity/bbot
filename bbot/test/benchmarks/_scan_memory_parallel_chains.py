@@ -87,7 +87,7 @@ targets = [f"http://127.0.0.1:{port}/seed{i}/page0" for i in range(NUM_SEEDS)]
 scan = Scanner(
     *targets,
     modules=[HTTP_MODULE],
-    output_modules=["python"],
+    local_output_modules=[],
     config={
         "dns": {"minimal": True},
         "scope": {"search_distance": 0},

@@ -4,6 +4,7 @@ from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class Emails(TXT):
+    _is_external = True
     watched_events = ["EMAIL_ADDRESS"]
     flags = ["safe", "email-enum"]
     meta = {

@@ -6,6 +6,7 @@ from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class ZeroMQ(BaseOutputModule):
+    _is_external = True
     watched_events = ["*"]
     meta = {
         "description": "Output scan data to a ZeroMQ socket (PUB)",

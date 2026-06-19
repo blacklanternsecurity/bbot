@@ -5,6 +5,7 @@ from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class Slack(WebhookOutputModule):
+    _is_external = True
     watched_events = ["*"]
     meta = {
         "description": "Message a Slack channel when certain events are encountered",

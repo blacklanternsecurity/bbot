@@ -6,6 +6,7 @@ from bbot.modules.base import BaseModule
 class BaseOutputModule(BaseModule):
     accept_dupes = True
     _type = "output"
+    _is_external = False
     scope_distance_modifier = None
     _stats_exclude = True
     _shuffle_incoming_queue = False

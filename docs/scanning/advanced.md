@@ -40,7 +40,7 @@ usage: bbot [-h] [-t TARGET [TARGET ...]] [-s SEEDS [SEEDS ...]]
                [-ef FLAG [FLAG ...]] [-n SCAN_NAME] [-v] [-d] [-S] [--force]
                [-y] [--fast-mode] [--dry-run] [--current-preset]
                [--current-preset-full] [-mh MODULE] [-o DIR]
-               [-om MODULE [MODULE ...]] [-lo] [--json] [--brief] [--no-color]
+               [-om MODULE [MODULE ...]] [-eom MODULE [MODULE ...]] [-lo] [--json] [--brief] [--no-color]
                [--event-types EVENT_TYPES [EVENT_TYPES ...]] [--exclude-cdn]
                [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps]
                [--install-all-deps] [--version] [--proxy HTTP_PROXY]
@@ -107,7 +107,9 @@ Output:
   -o DIR, --output-dir DIR
                         Directory to output scan results
   -om MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
-                        Output module(s). Choices: asset_inventory,csv,discord,elastic,emails,json,kafka,mongo,mysql,nats,neo4j,nmap_xml,postgres,python,rabbitmq,slack,splunk,sqlite,stdout,subdomains,teams,txt,web_parameters,web_report,webhook,websocket,zeromq
+                        Add output module(s). Choices: asset_inventory,csv,discord,elastic,emails,json,kafka,mongo,mysql,nats,neo4j,nmap_xml,postgres,rabbitmq,slack,splunk,sqlite,stdout,subdomains,teams,txt,web_parameters,web_report,webhook,websocket,zeromq
+  -eom MODULE [MODULE ...], --exclude-output-modules MODULE [MODULE ...]
+                        Exclude output module(s)
   -lo, --list-output-modules
                         List available output modules
   --json, -j            Output scan data in JSON format

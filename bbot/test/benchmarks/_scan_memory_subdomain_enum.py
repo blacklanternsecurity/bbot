@@ -30,7 +30,7 @@ CHECKPOINT_EVERY = 1000  # mid-scan census cadence (events seen)
 scan = Scanner(
     "example.com",
     modules=[],
-    output_modules=["python"],
+    local_output_modules=[],
     config={
         "dns": {"disable": True},
         "scope": {"search_distance": 0},

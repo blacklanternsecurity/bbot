@@ -7,6 +7,7 @@ class Elastic(webhook):
     docker run -d -p 9200:9200 --name=bbot-elastic --v "$(pwd)/elastic_data:/usr/share/elasticsearch/data" -e ELASTIC_PASSWORD=bbotislife -m 1GB docker.elastic.co/elasticsearch/elasticsearch:8.16.0
     """
 
+    _is_external = True
     watched_events = ["*"]
     meta = {
         "description": "Send scan results to Elasticsearch",

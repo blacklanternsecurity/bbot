@@ -13,7 +13,7 @@ async def test_python_api(clean_default_config):
         events1.append(event)
     assert any(e.type == "IP_ADDRESS" and e.data == "127.0.0.1" for e in events1)
     # make sure output files work
-    scan2 = Scanner("127.0.0.1", output_modules=["json"], scan_name="python_api_test")
+    scan2 = Scanner("127.0.0.1", local_output_modules=["json"], scan_name="python_api_test")
     await scan2._prep()
     await scan2.async_start_without_generator()
     scan_home = scan2.helpers.scans_dir / "python_api_test"
@@ -26,7 +26,7 @@ async def test_python_api(clean_default_config):
     assert debug_log.is_file()
     assert "python_api_test" in open(debug_log).read()
 
-    scan3 = Scanner("127.0.0.1", output_modules=["json"], scan_name="scan_logging_test")
+    scan3 = Scanner("127.0.0.1", local_output_modules=["json"], scan_name="scan_logging_test")
     await scan3._prep()
     await scan3.async_start_without_generator()
 
@@ -51,8 +51,8 @@ async def test_python_api(clean_default_config):
 
     # output modules override
     scan5 = Scanner()
-    assert set(scan5.preset.output_modules) == {"csv", "json", "python", "txt"}
-    scan6 = Scanner(output_modules=["json"])
+    assert set(scan5.preset.output_modules) == {"csv", "json", "txt"}
+    scan6 = Scanner(local_output_modules=["json"])
     assert set(scan6.preset.output_modules) == {"json"}
 
     # custom target types
@@ -78,7 +78,7 @@ async def test_python_api_sync(clean_default_config):
         events1.append(event)
     assert any(e.type == "IP_ADDRESS" and e.data == "127.0.0.1" for e in events1)
     # make sure output files work
-    scan2 = Scanner("127.0.0.1", output_modules=["json"], scan_name="python_api_test")
+    scan2 = Scanner("127.0.0.1", local_output_modules=["json"], scan_name="python_api_test")
     await scan2._prep()
     await scan2.async_start_without_generator()
     out_file = scan2.helpers.scans_dir / "python_api_test" / "output.json"
@@ -126,7 +126,7 @@ async def test_python_api_validation():
     assert str(error.value) == 'Could not find scan module "asdf". Did you mean "asn"?'
     # invalid output module
     with pytest.raises(ValidationError) as error:
-        Scanner(output_modules=["asdf"])
+        Scanner(local_output_modules=["asdf"])
     assert str(error.value) == 'Could not find output module "asdf". Did you mean "nats"?'
     # invalid excluded module
     with pytest.raises(ValidationError) as error:
@@ -152,7 +152,7 @@ async def test_python_api_validation():
     assert str(error.value) == 'Could not find scan module "json". Did you mean "asn"?'
     # normal module as output module
     with pytest.raises(ValidationError) as error:
-        Scanner(output_modules=["robots"])
+        Scanner(local_output_modules=["robots"])
     assert str(error.value) == 'Could not find output module "robots". Did you mean "rabbitmq"?'
     # invalid preset type
     with pytest.raises(ValidationError) as error:

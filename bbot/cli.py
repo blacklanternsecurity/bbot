@@ -98,7 +98,7 @@ async def _main():
                     preset.add_module(module, module_type=module_type)
 
             if options.modules or options.output_modules or options.flags:
-                preset._default_output_modules = options.output_modules
+                preset._default_output_modules = []
                 preset._default_internal_modules = []
 
             # Bake a temporary copy of the preset so that flags correctly enable their associated modules before listing them

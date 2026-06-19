@@ -41,15 +41,18 @@ class ModuleTestBase:
             self.preloaded = DEFAULT_PRESET.module_loader.preloaded()
 
             # handle output, internal module types
-            output_modules = None
+            local_output_modules = []
+            external_output_modules = []
             modules = list(module_test_base.modules)
-            output_modules = ["python"]
             for module in list(modules):
                 module_type = self.preloaded[module]["type"]
                 if module_type in ("internal", "output"):
                     modules.remove(module)
                     if module_type == "output":
-                        output_modules.append(module)
+                        if self.preloaded[module].get("is_external", False):
+                            external_output_modules.append(module)
+                        else:
+                            local_output_modules.append(module)
                     elif module_type == "internal" and not module == "dnsresolve":
                         self.config = deep_merge(self.config, {module: True})
 
@@ -58,7 +61,8 @@ class ModuleTestBase:
             self.scan = Scanner(
                 *module_test_base.targets,
                 modules=modules,
-                output_modules=output_modules,
+                local_output_modules=local_output_modules,
+                external_output_modules=external_output_modules,
                 scan_name=module_test_base._scan_name,
                 config=self.config,
                 seeds=seeds,

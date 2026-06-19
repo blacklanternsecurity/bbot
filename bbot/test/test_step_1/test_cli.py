@@ -322,26 +322,26 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     assert "| dnsbrute " not in out
     assert "| http " in out
 
-    # output modules override
+    # -om is additive (adds to defaults)
     caplog.clear()
     assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "-om", "csv,json", "-y"])
     result = await cli._main()
     assert result is True
-    assert "Loaded 2/2 output modules, (csv,json)" in caplog.text
+    assert "Loaded 4 local output module(s) (csv,json,stdout,txt)" in caplog.text
     caplog.clear()
     monkeypatch.setattr("sys.argv", ["bbot", "-em", "csv,json", "-y"])
     result = await cli._main()
     assert result is True
-    assert "Loaded 3/3 output modules, (python,stdout,txt)" in caplog.text
+    assert "Loaded 2 local output module(s) (stdout,txt)" in caplog.text
 
-    # output modules override
+    # -om adds non-default local module on top of defaults
     caplog.clear()
     assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "-om", "subdomains", "-y"])
     result = await cli._main()
     assert result is True
-    assert "Loaded 6/6 output modules, (csv,json,python,stdout,subdomains,txt)" in caplog.text
+    assert "Loaded 5 local output module(s) (csv,json,stdout,subdomains,txt)" in caplog.text
 
     # internal modules override
     caplog.clear()
@@ -349,17 +349,20 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     monkeypatch.setattr("sys.argv", ["bbot", "-y"])
     result = await cli._main()
     assert result is True
-    assert "Loaded 6/6 internal modules (aggregate,cloudcheck,dnsresolve,excavate,speculate,unarchive)" in caplog.text
+    assert (
+        "Loaded 7/7 internal modules (aggregate,cloudcheck,dnsresolve,excavate,python,speculate,unarchive)"
+        in caplog.text
+    )
     caplog.clear()
     monkeypatch.setattr("sys.argv", ["bbot", "-em", "excavate", "speculate", "-y"])
     result = await cli._main()
     assert result is True
-    assert "Loaded 4/4 internal modules (aggregate,cloudcheck,dnsresolve,unarchive)" in caplog.text
+    assert "Loaded 5/5 internal modules (aggregate,cloudcheck,dnsresolve,python,unarchive)" in caplog.text
     caplog.clear()
     monkeypatch.setattr("sys.argv", ["bbot", "-c", "speculate=false", "-y"])
     result = await cli._main()
     assert result is True
-    assert "Loaded 5/5 internal modules (aggregate,cloudcheck,dnsresolve,excavate,unarchive)" in caplog.text
+    assert "Loaded 6/6 internal modules (aggregate,cloudcheck,dnsresolve,excavate,python,unarchive)" in caplog.text
 
     # custom target type
     out, err = capsys.readouterr()
@@ -631,7 +634,8 @@ def test_cli_module_validation(monkeypatch, caplog):
     monkeypatch.setattr("sys.argv", ["bbot", "-om", "websocket", "-c", "modules.websocket.url=", "-y"])
     cli.main()
     lines = caplog.text.splitlines()
-    assert "Loaded 6/6 output modules, (csv,json,python,stdout,txt,websocket)" in caplog.text
+    assert "Loaded 4 local output module(s) (csv,json,stdout,txt)" in caplog.text
+    assert "Loaded 1 external output module(s) (websocket)" in caplog.text
     assert 1 == len(
         [
             l
@@ -665,7 +669,7 @@ def test_cli_module_validation(monkeypatch, caplog):
     )
     cli.main()
     lines = caplog.text.splitlines()
-    assert "Loaded 1/1 output modules, (websocket)" in caplog.text
+    assert "Loaded 1 external output module(s) (websocket)" in caplog.text
     assert 1 == len(
         [
             l

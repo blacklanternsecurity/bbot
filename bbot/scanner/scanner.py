@@ -563,7 +563,7 @@ class Scanner:
 
         if not self._stopping:
             # queue final scan event with output modules
-            output_modules = [m for m in self.modules.values() if m._type == "output" and m.name != "python"]
+            output_modules = [m for m in self.modules.values() if m._type == "output"]
             for m in output_modules:
                 await m.queue_event(scan_finish_event)
             # wait until output modules are flushed
@@ -710,10 +710,20 @@ class Scanner:
             if len(failed_output) > 0:
                 msg = f"Failed to load {len(failed_output):,} output modules: {','.join(failed_output)}"
                 self._fail_setup(msg)
+
             if loaded_output_modules:
-                self.info(
-                    f"Loaded {len(loaded_output_modules):,}/{len(self.preset.output_modules):,} output modules, ({','.join(loaded_output_modules)})"
+                loaded_local = sorted(
+                    n for n in loaded_output_modules if not self.preset.preloaded_module(n).get("is_external", False)
                 )
+                loaded_external = sorted(
+                    n for n in loaded_output_modules if self.preset.preloaded_module(n).get("is_external", False)
+                )
+                if loaded_local:
+                    self.info(f"Loaded {len(loaded_local):,} local output module(s) ({','.join(loaded_local)})")
+                if loaded_external:
+                    self.info(
+                        f"Loaded {len(loaded_external):,} external output module(s) ({','.join(loaded_external)})"
+                    )
 
             # builtin intercept modules
             self.ingress_module = ScanIngress(self)

@@ -4,9 +4,11 @@ flags:
   # enable every module with the subdomain-enum flag
   - subdomain-enum
 
-output_modules:
-  # output unique subdomains to TXT file
+local_output_modules:
+  - csv
+  - json
   - subdomains
+  - txt
 
 config:
   dns:
