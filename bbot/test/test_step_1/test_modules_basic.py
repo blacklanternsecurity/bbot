@@ -432,7 +432,7 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, blasthttp_mock
     scan = bbot_scanner(
         "evilcorp.com",
         config={"speculate": True, "dns": {"minimal": False}},
-        output_modules=["python"],
+        exclude_output_modules=["csv", "json", "txt"],
         force_start=True,
     )
 
