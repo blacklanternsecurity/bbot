@@ -225,10 +225,18 @@ include:
 
 config:
   modules:
+    baddns:
+      enable_references: True
     dnsbrute:
       recursive_mutations: true
     dnscommonsrv:
       recursive_mutations: true
+    webbrute:
+      avoid_wafs: False
+    wayback:
+      urls: True
+      parameters: True
+      archive: True
 
 ```
 
@@ -386,8 +394,9 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/Stabl
     - **Modules**
         - [List of Modules](https://www.blacklanternsecurity.com/bbot/Stable/modules/list_of_modules)
         - [Nuclei](https://www.blacklanternsecurity.com/bbot/Stable/modules/nuclei)
+        - [Wayback](https://www.blacklanternsecurity.com/bbot/Stable/modules/wayback)
         - [Custom YARA Rules](https://www.blacklanternsecurity.com/bbot/Stable/modules/custom_yara_rules)
-        - [Lightfuzz (DAST)](https://www.blacklanternsecurity.com/bbot/Stable/modules/lightfuzz)
+        - [Lightfuzz](https://www.blacklanternsecurity.com/bbot/Stable/modules/lightfuzz)
     - **Misc**
         - [Contribution](https://www.blacklanternsecurity.com/bbot/Stable/contribution)
         - [Release History](https://www.blacklanternsecurity.com/bbot/Stable/release_history)

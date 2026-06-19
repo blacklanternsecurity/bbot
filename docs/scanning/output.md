@@ -16,13 +16,13 @@ Multiple simultaneous output formats are possible because of **output modules**.
 The `stdout` output module is what you see when you execute BBOT in the terminal. By default it looks the same as the [`txt`](#txt) module, but it has options you can customize. You can filter by event type, choose the data format (`text`, `json`), and which fields you want to see:
 
 <!-- BBOT MODULE OPTIONS STDOUT -->
-| Config Option                | Type   | Description                                      | Default   |
-|------------------------------|--------|--------------------------------------------------|-----------|
-| modules.stdout.accept_dupes  | bool   | Whether to show duplicate events, default True   | True      |
-| modules.stdout.event_fields  | list   | Which event fields to display                    | []        |
-| modules.stdout.event_types   | list   | Which events to display, default all event types | []        |
-| modules.stdout.format        | str    | Which text format to display, choices: text,json | text      |
-| modules.stdout.in_scope_only | bool   | Whether to only show in-scope events             | False     |
+| Config Option                | Type                    | Description                                      | Default   |
+|------------------------------|-------------------------|--------------------------------------------------|-----------|
+| modules.stdout.accept_dupes  | bool                    | Whether to show duplicate events, default True   | True      |
+| modules.stdout.event_fields  | list                    | Which event fields to display                    | []        |
+| modules.stdout.event_types   | list                    | Which events to display, default all event types | []        |
+| modules.stdout.format        | Literal['text', 'json'] | Which text format to display, choices: text,json | text      |
+| modules.stdout.in_scope_only | bool                    | Whether to only show in-scope events             | False     |
 <!-- END BBOT MODULE OPTIONS STDOUT -->
 
 ### TXT
