@@ -185,7 +185,12 @@ class http(BaseModule):
     async def _process_result(self, result, parent_event):
         """Emit URL + HTTP_RESPONSE events for one batch result. Returns True if status was usable."""
         if not result.success:
-            self.debug(f"blasthttp error for {result.url}: {result.error}")
+            error_str = str(result.error)
+            retries = self.scan.http_retries
+            if "timeout" in error_str.lower():
+                self.verbose(f"HTTP timeout for {result.url} (after {retries + 1} attempt(s))")
+            else:
+                self.debug(f"HTTP error for {result.url}: {error_str}")
             return False
 
         response = result.response
@@ -295,8 +300,8 @@ class http(BaseModule):
 
         headers = self._build_headers()
         proxy = self.scan.http_proxy or None
-        timeout = self.scan.blasthttp_timeout
-        retries = self.scan.blasthttp_retries
+        timeout = self.scan.http_timeout
+        retries = self.scan.http_retries
 
         configs = []
         for url in stdin:

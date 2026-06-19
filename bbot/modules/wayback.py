@@ -252,7 +252,7 @@ rule akamai_bot_manager_url
         for archive_url, (cleaned_url, raw_url) in url_metadata.items():
             try:
                 r = await self.helpers.request(
-                    archive_url, method="HEAD", timeout=self.http_timeout + 30, follow_redirects=True
+                    archive_url, method="HEAD", timeout=self.http_timeout_infrastructure + 30, follow_redirects=True
                 )
             except Exception as e:
                 self.debug(f"Interesting file HEAD check error for {raw_url}: {e}")
@@ -320,7 +320,9 @@ rule akamai_bot_manager_url
         last_error = None
         for i in range(3):
             try:
-                r = await self.helpers.request(waybackurl, timeout=self.http_timeout + 60, raise_error=True)
+                r = await self.helpers.request(
+                    waybackurl, timeout=self.http_timeout_infrastructure + 60, raise_error=True
+                )
             except Exception as e:
                 last_error = str(e)
                 r = None
@@ -610,7 +612,11 @@ rule akamai_bot_manager_url
         """
         try:
             r = await self.helpers.request(
-                archive_url, method="HEAD", timeout=self.http_timeout + 30, follow_redirects=True, raise_error=True
+                archive_url,
+                method="HEAD",
+                timeout=self.http_timeout_infrastructure + 30,
+                follow_redirects=True,
+                raise_error=True,
             )
         except Exception as e:
             self.debug(f"HEAD pre-check failed for {raw_url}: {e}")
@@ -638,7 +644,7 @@ rule akamai_bot_manager_url
         for attempt in range(self._archive_per_request_retries):
             try:
                 r = await self.helpers.request(
-                    archive_url, timeout=self.http_timeout + 60, follow_redirects=True, raise_error=True
+                    archive_url, timeout=self.http_timeout_infrastructure + 60, follow_redirects=True, raise_error=True
                 )
             except Exception as e:
                 r = None
