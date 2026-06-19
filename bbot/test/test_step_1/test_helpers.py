@@ -1196,3 +1196,71 @@ async def test_asn_helper_passes_api_key(bbot_scanner, monkeypatch):
     scan2 = bbot_scanner("8.8.8.8")
     _ = scan2.helpers.asn.client
     assert captured["bbot_io_api_key"] is None
+
+
+@pytest.mark.asyncio
+async def test_asn_helper_circuit_breaker(bbot_scanner, monkeypatch):
+    """ASNHelper should stop making requests after consecutive failures."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    import asndb
+
+    mock_client = MagicMock()
+    mock_client.lookup_ip = AsyncMock(side_effect=Exception("connection refused"))
+    monkeypatch.setattr(asndb, "ASNDB", lambda **kw: mock_client)
+
+    scan = bbot_scanner("8.8.8.8")
+    asn_helper = scan.helpers.asn
+    assert asn_helper.FAILURE_THRESHOLD == 5
+
+    # First FAILURE_THRESHOLD calls should each hit the network and return UNKNOWN_ASN
+    for i in range(asn_helper.FAILURE_THRESHOLD):
+        result = await asn_helper.ip_to_subnets(f"1.2.3.{i}")
+        assert result == asn_helper.UNKNOWN_ASN
+        assert not asn_helper._circuit_broken or i == asn_helper.FAILURE_THRESHOLD - 1
+
+    # Circuit should now be broken
+    assert asn_helper._circuit_broken
+    assert mock_client.lookup_ip.call_count == asn_helper.FAILURE_THRESHOLD
+
+    # Subsequent calls should return immediately without hitting the network
+    for i in range(10):
+        result = await asn_helper.ip_to_subnets(f"5.6.7.{i}")
+        assert result == asn_helper.UNKNOWN_ASN
+    assert mock_client.lookup_ip.call_count == asn_helper.FAILURE_THRESHOLD
+
+
+@pytest.mark.asyncio
+async def test_asn_helper_circuit_breaker_resets_on_success(bbot_scanner, monkeypatch):
+    """A successful lookup should reset the consecutive failure counter."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    import asndb
+
+    call_count = 0
+
+    async def lookup_ip_side_effect(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count <= 3:
+            raise Exception("connection refused")
+        return {"asn": 15169, "subnets": ["8.8.8.0/24"], "asn_name": "GOOGLE", "org": "Google", "country": "US"}
+
+    mock_client = MagicMock()
+    mock_client.lookup_ip = AsyncMock(side_effect=lookup_ip_side_effect)
+    monkeypatch.setattr(asndb, "ASNDB", lambda **kw: mock_client)
+
+    scan = bbot_scanner("8.8.8.8")
+    asn_helper = scan.helpers.asn
+
+    # 3 failures
+    for i in range(3):
+        await asn_helper.ip_to_subnets(f"1.2.3.{i}")
+    assert asn_helper._consecutive_failures == 3
+    assert not asn_helper._circuit_broken
+
+    # 1 success should reset the counter
+    result = await asn_helper.ip_to_subnets("8.8.8.8")
+    assert result["asn"] == 15169
+    assert asn_helper._consecutive_failures == 0
+    assert not asn_helper._circuit_broken

@@ -20,7 +20,7 @@ from bbot.core.config.logger import GzipRotatingFileHandler
 from bbot.core.multiprocess import SHARED_INTERPRETER_STATE
 from bbot.core.helpers.async_helpers import async_to_sync_gen
 from bbot.logger import log_to_stderr
-from bbot.errors import BBOTError, ScanError, ValidationError
+from bbot.errors import ASNResolutionError, BBOTError, ScanError, ValidationError
 from bbot.constants import (
     get_scan_status_code,
     get_scan_status_name,
@@ -327,9 +327,16 @@ class Scanner:
         Expands async seed types (e.g. ASN → IP ranges), evaluates preset conditions,
         creates the scan's output folder, loads its modules, and calls their .setup() methods.
         """
-        # expand async seed types (e.g. ASN → IP ranges)
+        # expand async seed types (e.g. ASN -> IP ranges)
         ssl_verify = self.preset.web_config.get("ssl_verify_infrastructure", True)
-        await self.preset.target.generate_children(ssl_verify=ssl_verify)
+        try:
+            await self.preset.target.generate_children(ssl_verify=ssl_verify)
+        except ASNResolutionError as e:
+            raise ScanError(
+                f"Failed to resolve ASN target ({e}). "
+                f"The bbot.io ASN API could not be reached; this may be due to regional network restrictions or a temporary outage. "
+                f"To scan this ASN's networks, look up its prefixes (e.g. at bgp.tools) and pass them directly: bbot -t 1.2.3.0/24 5.6.0.0/16"
+            )
 
         # evaluate preset conditions (may abort the scan)
         if self.preset.conditions:
