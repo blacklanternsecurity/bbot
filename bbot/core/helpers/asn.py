@@ -84,7 +84,7 @@ class ASNHelper:
                 log.warning(f"Invalid ASN format: {asn}")
                 return self.UNKNOWN_ASN
         try:
-            response = await self.client.lookup_asn(str(asn), include_subnets=True)
+            response = await self.client.lookup_asn(asn, include_subnets=True)
         except Exception as e:
             log.warning(f"ASN lookup failed for AS{asn}: {e}")
             self._record_failure()
