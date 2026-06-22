@@ -514,6 +514,89 @@ class TestExcavateNonHttpScheme(TestExcavate):
         assert found_wss_url, "wss:// should be converted to https:// URL_UNVERIFIED"
 
 
+class TestExcavateAIApplicationPositive(TestExcavate):
+    # A realistic client-side bundle that wires up multiple LLM providers and leaks provider keys.
+    ai_app_html = (
+        """
+        <html>
+        <head><script src="https://cdn.example.com/app.js"></script></head>
+        <body>
+        <script>
+        import { ChatOpenAI } from "@langchain/openai";
+        import OpenAI from "openai";
+        const client = new OpenAI({ apiKey: "sk-"""
+        + ("A" * 48)
+        + """" });
+        async function ask(q) {
+            const r = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+            });
+        }
+        const ANTHROPIC_KEY = "sk-ant-api03-"""
+        + ("Ab12_-" * 16)
+        + """";
+        const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=AIza"""
+        + ("Ab12-_Cd34" * 3 + "Ab123")
+        + """";
+        const ANTHROPIC_ENDPOINT = "https://api.anthropic.com/v1/messages";
+        </script>
+        </body>
+        </html>
+        """
+    )
+
+    async def setup_before_prep(self, module_test):
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": self.ai_app_html}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check(self, module_test, events):
+        # TECHNOLOGY events lowercase the technology field in core, so compare case-insensitively.
+        technologies = [e.data.get("technology", "").lower() for e in events if e.type == "TECHNOLOGY"]
+        for expected_tech in [
+            "OpenAI API",
+            "Anthropic API",
+            "Google Generative AI (Gemini) API",
+            "LLM chat-completion endpoint",
+            "LangChain",
+            "OpenAI SDK",
+        ]:
+            assert expected_tech.lower() in technologies, f"Did not emit TECHNOLOGY for {expected_tech}"
+
+        finding_descriptions = [e.data.get("description", "") for e in events if e.type == "FINDING"]
+        for provider in ["OpenAI", "Anthropic", "Google AI (Gemini)"]:
+            assert any(f"leaked {provider} API key" in d for d in finding_descriptions), (
+                f"Did not emit FINDING for leaked {provider} API key"
+            )
+        # ensure secrets are redacted, not echoed in full
+        assert not any(("A" * 48) in d for d in finding_descriptions), "Full secret leaked into FINDING description"
+
+
+class TestExcavateAIApplicationNegative(TestExcavate):
+    # Benign content that mentions AI and contains a non-AI secret format; must not trigger the extractor.
+    benign_html = (
+        "<html><body>"
+        "<p>We use artificial intelligence and machine learning to delight customers.</p>"
+        "<p>Our payment provider key looks like sk_live_" + ("A" * 24) + " (Stripe, not an LLM key).</p>"
+        "<p>The blockchain language model marketing page is over here.</p>"
+        "</body></html>"
+    )
+
+    async def setup_before_prep(self, module_test):
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": self.benign_html}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check(self, module_test, events):
+        assert not any(e.type == "FINDING" and "API key" in e.data.get("description", "") for e in events), (
+            "False-positive AI provider key FINDING on benign content"
+        )
+        assert not any(e.type == "TECHNOLOGY" and "llm" in e.data.get("technology", "").lower() for e in events), (
+            "False-positive LLM TECHNOLOGY on benign content"
+        )
+
+
 class TestExcavateParameterExtraction(TestExcavate):
     # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
     modules_overrides = ["excavate", "http", "hunt"]
