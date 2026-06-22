@@ -76,7 +76,7 @@ dev = [
     "pytest>=8.3.1,<10",
     "pytest-asyncio==1.4.0",
     "uvicorn>=0.32,<0.50",
-    "fastapi>=0.115.5,<0.137.0",
+    "fastapi>=0.115.5,<0.139.0",
     "pytest-httpx>=0.35",
     "pytest-benchmark>=4,<6",
     "baddns~=2.4.0",
