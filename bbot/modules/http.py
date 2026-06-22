@@ -81,10 +81,15 @@ class http(BaseModule):
                 url_hash = hash((event.host, event.port, has_spider_max))
             urls = [url]
         else:
-            # OPEN_TCP_PORT — probe both http and https
+            # OPEN_TCP_PORT — probe both http and https (but skip mismatched well-known ports)
             host = event.host
             port = event.port
-            urls = [f"http://{host}:{port}/", f"https://{host}:{port}/"]
+            if port == 443:
+                urls = [f"https://{host}:{port}/"]
+            elif port == 80:
+                urls = [f"http://{host}:{port}/"]
+            else:
+                urls = [f"http://{host}:{port}/", f"https://{host}:{port}/"]
             url_hash = hash((host, port, has_spider_max))
         if url_hash is None:
             url_hash = hash((urls[0], has_spider_max))
