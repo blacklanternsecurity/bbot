@@ -111,7 +111,7 @@ class BaseEventSeed(metaclass=EventSeedRegistry):
         """
         return data, None, None
 
-    async def _generate_children(self, ssl_verify=False):
+    async def _generate_children(self, helpers=None):
         return []
 
     def _override_input(self, input):
@@ -290,39 +290,15 @@ class ASN(BaseEventSeed):
     def _override_input(self, input):
         return f"ASN:{self.data}"
 
-    MAX_RETRIES = 3
-    RETRY_DELAY = 3
-
-    async def _generate_children(self, ssl_verify=False):
-        import asyncio
-        import logging
-
-        from asndb import ASNDB
-
-        log = logging.getLogger("bbot.core.event.helpers")
-        client = ASNDB(verify=ssl_verify)
-        last_error = None
-        for attempt in range(1, self.MAX_RETRIES + 1):
-            try:
-                asn_data = await client.lookup_asn(str(self.data), include_subnets=True)
-                children = []
-                if asn_data:
-                    subnets = asn_data.get("subnets")
-                    if isinstance(subnets, str):
-                        subnets = [subnets]
-                    if subnets:
-                        for cidr in subnets:
-                            children.append(cidr)
-                return children
-            except Exception as e:
-                last_error = e
-                log.warning(f"ASN resolution attempt {attempt}/{self.MAX_RETRIES} failed for AS{self.data}: {e}")
-                if attempt < self.MAX_RETRIES:
-                    await asyncio.sleep(self.RETRY_DELAY)
-
-        from bbot.errors import ASNResolutionError
-
-        raise ASNResolutionError(f"AS{self.data}: {last_error}")
+    # ASNs are essentially a superset of IP_RANGES. This resolves the ASN to its
+    # subnets via the shared ASN helper and emits each CIDR as a child seed,
+    # which is later resolved to an IP_RANGE seed and added to the target.
+    async def _generate_children(self, helpers=None):
+        asn_data = await helpers.asn.asn_to_subnets(self.data)
+        subnets = asn_data.get("subnets") or []
+        if isinstance(subnets, str):
+            subnets = [subnets]
+        return list(subnets)
 
     @staticmethod
     def handle_match(match):
