@@ -84,12 +84,13 @@ class http(BaseModule):
             # OPEN_TCP_PORT — probe both http and https (but skip mismatched well-known ports)
             host = event.host
             port = event.port
+            netloc = self.helpers.make_netloc(host, port)
             if port == 443:
-                urls = [f"https://{host}:{port}/"]
+                urls = [f"https://{netloc}/"]
             elif port == 80:
-                urls = [f"http://{host}:{port}/"]
+                urls = [f"http://{netloc}/"]
             else:
-                urls = [f"http://{host}:{port}/", f"https://{host}:{port}/"]
+                urls = [f"http://{netloc}/", f"https://{netloc}/"]
             url_hash = hash((host, port, has_spider_max))
         if url_hash is None:
             url_hash = hash((urls[0], has_spider_max))
