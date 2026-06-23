@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.wkhw5gg1.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.ytm_2jcr.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1061,6 +1061,27 @@
 <p>If you reuse a scan name, it will append to its original output files and leverage the previous.</p>
 <h2 id="output-modules">Output Modules</h2>
 <p>Multiple simultaneous output formats are possible because of <strong>output modules</strong>. Output modules are similar to normal modules except they are enabled with <code>-om</code>.</p>
+<p>By default, <code>csv</code>, <code>txt</code>, and <code>json</code> output modules are always enabled. The <code>-om</code> flag is <strong>additive</strong> -- it adds modules on top of the defaults:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># default output: csv, txt, json</span>
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum
+
+<span style="color: #8B949E; font-style: italic"># add discord on top of defaults (csv + txt + json + discord)</span>
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>discord
+
+<span style="color: #8B949E; font-style: italic"># add multiple output modules</span>
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>discord<span style="color: #6E7681"> </span>slack
+</code></pre></div>
+<p>To remove default output modules, use <code>-eom</code> (<code>--exclude-output-modules</code>):</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># only json output (exclude csv and txt)</span>
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-eom<span style="color: #6E7681"> </span>csv<span style="color: #6E7681"> </span>txt
+</code></pre></div>
+<p>In a preset YAML, the same behavior applies:</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">my_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">discord</span><span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># added on top of defaults</span>
+
+<span style="color: #7EE787">exclude_output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">csv</span><span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># remove csv from defaults</span>
+</code></pre></div>
 <h3 id="stdout">STDOUT</h3>
 <p>The <code>stdout</code> output module is what you see when you execute BBOT in the terminal. By default it looks the same as the <a href="#txt"><code>txt</code></a> module, but it has options you can customize. You can filter by event type, choose the data format (<code>text</code>, <code>json</code>), and which fields you want to see:</p>
 <!-- BBOT MODULE OPTIONS STDOUT -->
