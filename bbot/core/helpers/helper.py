@@ -36,7 +36,12 @@ def _pool_worker_init():
     Prevents zombie worker accumulation after OOM kills, SIGKILL, etc.
     Uses SIGKILL because ProcessPoolExecutor's `except BaseException` catches
     SIGTERM's SystemExit, keeping workers alive until the broken pipe surfaces.
+
+    prctl is Linux-specific, so this is a no-op elsewhere (the symbol is absent
+    on other platforms and would otherwise raise, breaking the whole pool).
     """
+    if not sys.platform.startswith("linux"):
+        return
     libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
     libc.prctl(_PR_SET_PDEATHSIG, signal.SIGKILL, 0, 0, 0)
 

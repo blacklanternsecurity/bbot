@@ -1007,6 +1007,7 @@ async def test_run_in_executor_mp(helpers):
     assert result == sum(range(50_000))
 
 
+@pytest.mark.skipif(not sys.platform.startswith("linux"), reason="PR_SET_PDEATHSIG is Linux-only")
 def test_pool_workers_die_with_parent():
     """Pool workers must not survive when the parent is SIGKILL'd (OOM, crash, etc.)."""
     import json
