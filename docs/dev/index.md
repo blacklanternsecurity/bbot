@@ -68,7 +68,7 @@ For more details, including which types of targets are valid, see [Targets](../s
 
 #### Other Custom Options
 
-In many cases, using a [Preset](../scanning/presets.md) like `subdomain-enum` is sufficient. However, the `Scanner` is flexible and accepts many other arguments that can override the default functionality. You can specify [`flags`](../scanning/index.md#flags-f), [`modules`](../scanning/index.md#modules-m), [`output_modules`](../output.md), a [target list / `seeds` / `blacklist`](../scanning/index.md#targets-seeds-and-blacklists), and custom [`config` options](../scanning/configuration.md):
+In many cases, using a [Preset](../scanning/presets.md) like `subdomain-enum` is sufficient. However, the `Scanner` is flexible and accepts many other arguments. You can specify [`flags`](../scanning/index.md#flags-f), [`modules`](../scanning/index.md#modules-m), [`output_modules`](../output.md) (additive on top of defaults), a [target list / `seeds` / `blacklist`](../scanning/index.md#targets-seeds-and-blacklists), and custom [`config` options](../scanning/configuration.md):
 
 ```python
 # create a scan against multiple targets

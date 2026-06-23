@@ -11,6 +11,36 @@ If you reuse a scan name, it will append to its original output files and levera
 
 Multiple simultaneous output formats are possible because of **output modules**. Output modules are similar to normal modules except they are enabled with `-om`.
 
+By default, `csv`, `txt`, and `json` output modules are always enabled. The `-om` flag is **additive** -- it adds modules on top of the defaults:
+
+```bash
+# default output: csv, txt, json
+bbot -t evilcorp.com -f subdomain-enum
+
+# add discord on top of defaults (csv + txt + json + discord)
+bbot -t evilcorp.com -f subdomain-enum -om discord
+
+# add multiple output modules
+bbot -t evilcorp.com -f subdomain-enum -om discord slack
+```
+
+To remove default output modules, use `-eom` (`--exclude-output-modules`):
+
+```bash
+# only json output (exclude csv and txt)
+bbot -t evilcorp.com -f subdomain-enum -eom csv txt
+```
+
+In a preset YAML, the same behavior applies:
+
+```yaml title="my_preset.yml"
+output_modules:
+  - discord  # added on top of defaults
+
+exclude_output_modules:
+  - csv  # remove csv from defaults
+```
+
 ### STDOUT
 
 The `stdout` output module is what you see when you execute BBOT in the terminal. By default it looks the same as the [`txt`](#txt) module, but it has options you can customize. You can filter by event type, choose the data format (`text`, `json`), and which fields you want to see:

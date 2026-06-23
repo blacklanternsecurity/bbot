@@ -391,6 +391,7 @@ class BBOTConfig(BaseModel):
     dnsresolve: Optional[bool] = None
     cloudcheck: Optional[bool] = None
     unarchive: Optional[bool] = None
+    python: Optional[bool] = None
 
     # URL handling
     url_querystring_remove: Optional[bool] = None
@@ -443,6 +444,7 @@ class PresetSchema(BaseModel):
     modules: Optional[list[str]] = None
     output_modules: Optional[list[str]] = None
     exclude_modules: Optional[list[str]] = None
+    exclude_output_modules: Optional[list[str]] = None
     flags: Optional[list[str]] = None
     require_flags: Optional[list[str]] = None
     exclude_flags: Optional[list[str]] = None

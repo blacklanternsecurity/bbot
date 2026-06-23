@@ -159,6 +159,7 @@ class BBOTArgs:
 
         # modules + flags
         args_preset.exclude_modules.update(set(self.parsed.exclude_modules))
+        args_preset.exclude_output_modules.update(set(self.parsed.exclude_output_modules))
         args_preset.exclude_flags.update(set(self.parsed.exclude_flags))
         args_preset.require_flags.update(set(self.parsed.require_flags))
         args_preset.explicit_scan_modules.update(set(self.parsed.modules))
@@ -372,7 +373,15 @@ class BBOTArgs:
             "--output-modules",
             nargs="+",
             default=[],
-            help=f"Output module(s). Choices: {','.join(sorted(self.preset.module_loader.output_module_choices))}",
+            help=f"Add output module(s). Choices: {','.join(sorted(self.preset.module_loader.output_module_choices))}",
+            metavar="MODULE",
+        )
+        output.add_argument(
+            "-eom",
+            "--exclude-output-modules",
+            nargs="+",
+            default=[],
+            help="Exclude output module(s)",
             metavar="MODULE",
         )
         output.add_argument("-lo", "--list-output-modules", action="store_true", help="List available output modules")
@@ -440,6 +449,7 @@ class BBOTArgs:
         self.parsed.modules = chain_lists(self.parsed.modules)
         self.parsed.exclude_modules = chain_lists(self.parsed.exclude_modules)
         self.parsed.output_modules = chain_lists(self.parsed.output_modules)
+        self.parsed.exclude_output_modules = chain_lists(self.parsed.exclude_output_modules)
         self.parsed.targets = chain_lists(
             self.parsed.targets, try_files=True, msg="Reading targets from file: {filename}", _strip_comments=True
         )

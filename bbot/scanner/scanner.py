@@ -403,9 +403,9 @@ class Scanner:
                 intercept_module._incoming_event_queue = interqueue
                 prev_intercept_module._outgoing_event_queue = interqueue
 
-            # abort if there are no output modules
+            # abort if there are no output modules (unless the user explicitly excluded them)
             num_output_modules = len([m for m in self.modules.values() if m._type == "output"])
-            if num_output_modules < 1:
+            if num_output_modules < 1 and not self.preset.exclude_output_modules:
                 raise ScanError("Failed to load output modules. Aborting.")
             # abort if any of the module .setup()s hard-failed (i.e. they errored or returned False)
             total_failed = len(hard_failed + soft_failed)
@@ -569,7 +569,7 @@ class Scanner:
 
         if not self._stopping:
             # queue final scan event with output modules
-            output_modules = [m for m in self.modules.values() if m._type == "output" and m.name != "python"]
+            output_modules = [m for m in self.modules.values() if m._type == "output"]
             for m in output_modules:
                 await m.queue_event(scan_finish_event)
             # wait until output modules are flushed
