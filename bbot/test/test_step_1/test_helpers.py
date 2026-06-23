@@ -1,3 +1,6 @@
+import os
+import sys
+import time
 import asyncio
 import datetime
 import ipaddress
@@ -1002,6 +1005,78 @@ async def test_run_in_executor_mp(helpers):
     # pool should still work after a timeout (was replaced by _reset_process_pool)
     result = await helpers.run_in_executor_mp(_cpu_work, 50_000, _timeout=30)
     assert result == sum(range(50_000))
+
+
+@pytest.mark.skipif(not sys.platform.startswith("linux"), reason="PR_SET_PDEATHSIG is Linux-only")
+def test_pool_workers_die_with_parent():
+    """Pool workers must not survive when the parent is SIGKILL'd (OOM, crash, etc.)."""
+    import json
+    import signal
+    import subprocess
+    import tempfile
+
+    script = """
+import os, sys, json, time, signal, ctypes, ctypes.util, multiprocessing as mp
+from concurrent.futures import ProcessPoolExecutor
+
+_PR_SET_PDEATHSIG = 1
+
+def _init():
+    libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
+    libc.prctl(_PR_SET_PDEATHSIG, signal.SIGKILL, 0, 0, 0)
+
+def _get_pid():
+    time.sleep(1)
+    return os.getpid()
+
+# use fork context explicitly -- forkserver on 3.14 adds an intermediary process
+# that complicates the parent-death chain; PR_SET_PDEATHSIG itself is start-method-agnostic
+ctx = mp.get_context("fork")
+pool = ProcessPoolExecutor(max_workers=2, initializer=_init, mp_context=ctx)
+# submit concurrently so both workers are occupied (each takes 1s)
+futs = [pool.submit(_get_pid) for _ in range(2)]
+pids = list(set(f.result(timeout=30) for f in futs))
+# keep workers busy so they stay alive
+[pool.submit(time.sleep, 3600) for _ in range(2)]
+print(json.dumps(pids), flush=True)
+time.sleep(3600)
+"""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+        f.write(script)
+        script_path = f.name
+
+    def _is_running(pid):
+        """Check /proc to distinguish running processes from zombies."""
+        try:
+            with open(f"/proc/{pid}/stat") as f:
+                # format: "pid (comm) state ..." -- state after the last ')'
+                state = f.read().split(")")[-1].strip().split()[0]
+                return state not in ("Z", "X", "x")
+        except (OSError, IndexError):
+            return False
+
+    try:
+        proc = subprocess.Popen([sys.executable, script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        line = proc.stdout.readline()
+        assert line, f"Worker script exited early, stderr: {proc.stderr.read().decode()}"
+        worker_pids = json.loads(line)
+        assert len(worker_pids) >= 2
+
+        # simulate OOM kill
+        os.kill(proc.pid, signal.SIGKILL)
+        proc.wait()
+
+        time.sleep(2)
+
+        alive = [pid for pid in worker_pids if _is_running(pid)]
+
+        # clean up survivors so they don't leak into other tests
+        for pid in alive:
+            os.kill(pid, signal.SIGKILL)
+
+        assert not alive, f"Pool workers {alive} survived parent SIGKILL (zombie leak)"
+    finally:
+        os.unlink(script_path)
 
 
 def test_simhash_similarity(helpers):
