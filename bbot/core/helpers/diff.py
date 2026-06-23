@@ -60,6 +60,14 @@ class _BaselineSnapshot:
             self._spill_store.evict_and_delete(self._spill_key)
             self._spill_key = None
 
+    def __del__(self):
+        # Reclaim the spilled body when the snapshot is GC'd (HttpCompare
+        # instances are mostly short-lived locals, so this fires promptly).
+        try:
+            self._cleanup()
+        except Exception:
+            pass
+
 
 class HttpCompare:
     def __init__(
