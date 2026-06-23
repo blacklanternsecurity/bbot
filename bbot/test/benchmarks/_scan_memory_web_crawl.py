@@ -65,7 +65,7 @@ threading.Thread(target=server.serve_forever, daemon=True).start()
 scan = Scanner(
     f"http://127.0.0.1:{port}/",
     modules=[HTTP_MODULE],
-    output_modules=["python"],
+    exclude_output_modules=["csv", "json", "txt"],
     config={
         "dns": {"minimal": True},
         "scope": {"search_distance": 0},

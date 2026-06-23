@@ -1,3 +1,6 @@
+import os
+import sys
+import time
 import asyncio
 import datetime
 import ipaddress
@@ -1004,6 +1007,78 @@ async def test_run_in_executor_mp(helpers):
     assert result == sum(range(50_000))
 
 
+@pytest.mark.skipif(not sys.platform.startswith("linux"), reason="PR_SET_PDEATHSIG is Linux-only")
+def test_pool_workers_die_with_parent():
+    """Pool workers must not survive when the parent is SIGKILL'd (OOM, crash, etc.)."""
+    import json
+    import signal
+    import subprocess
+    import tempfile
+
+    script = """
+import os, sys, json, time, signal, ctypes, ctypes.util, multiprocessing as mp
+from concurrent.futures import ProcessPoolExecutor
+
+_PR_SET_PDEATHSIG = 1
+
+def _init():
+    libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
+    libc.prctl(_PR_SET_PDEATHSIG, signal.SIGKILL, 0, 0, 0)
+
+def _get_pid():
+    time.sleep(1)
+    return os.getpid()
+
+# use fork context explicitly -- forkserver on 3.14 adds an intermediary process
+# that complicates the parent-death chain; PR_SET_PDEATHSIG itself is start-method-agnostic
+ctx = mp.get_context("fork")
+pool = ProcessPoolExecutor(max_workers=2, initializer=_init, mp_context=ctx)
+# submit concurrently so both workers are occupied (each takes 1s)
+futs = [pool.submit(_get_pid) for _ in range(2)]
+pids = list(set(f.result(timeout=30) for f in futs))
+# keep workers busy so they stay alive
+[pool.submit(time.sleep, 3600) for _ in range(2)]
+print(json.dumps(pids), flush=True)
+time.sleep(3600)
+"""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+        f.write(script)
+        script_path = f.name
+
+    def _is_running(pid):
+        """Check /proc to distinguish running processes from zombies."""
+        try:
+            with open(f"/proc/{pid}/stat") as f:
+                # format: "pid (comm) state ..." -- state after the last ')'
+                state = f.read().split(")")[-1].strip().split()[0]
+                return state not in ("Z", "X", "x")
+        except (OSError, IndexError):
+            return False
+
+    try:
+        proc = subprocess.Popen([sys.executable, script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        line = proc.stdout.readline()
+        assert line, f"Worker script exited early, stderr: {proc.stderr.read().decode()}"
+        worker_pids = json.loads(line)
+        assert len(worker_pids) >= 2
+
+        # simulate OOM kill
+        os.kill(proc.pid, signal.SIGKILL)
+        proc.wait()
+
+        time.sleep(2)
+
+        alive = [pid for pid in worker_pids if _is_running(pid)]
+
+        # clean up survivors so they don't leak into other tests
+        for pid in alive:
+            os.kill(pid, signal.SIGKILL)
+
+        assert not alive, f"Pool workers {alive} survived parent SIGKILL (zombie leak)"
+    finally:
+        os.unlink(script_path)
+
+
 def test_simhash_similarity(helpers):
     """Test SimHash helper with increasingly different HTML pages."""
 
@@ -1196,3 +1271,71 @@ async def test_asn_helper_passes_api_key(bbot_scanner, monkeypatch):
     scan2 = bbot_scanner("8.8.8.8")
     _ = scan2.helpers.asn.client
     assert captured["bbot_io_api_key"] is None
+
+
+@pytest.mark.asyncio
+async def test_asn_helper_circuit_breaker(bbot_scanner, monkeypatch):
+    """ASNHelper should stop making requests after consecutive failures."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    import asndb
+
+    mock_client = MagicMock()
+    mock_client.lookup_ip = AsyncMock(side_effect=Exception("connection refused"))
+    monkeypatch.setattr(asndb, "ASNDB", lambda **kw: mock_client)
+
+    scan = bbot_scanner("8.8.8.8")
+    asn_helper = scan.helpers.asn
+    assert asn_helper.FAILURE_THRESHOLD == 5
+
+    # First FAILURE_THRESHOLD calls should each hit the network and return UNKNOWN_ASN
+    for i in range(asn_helper.FAILURE_THRESHOLD):
+        result = await asn_helper.ip_to_subnets(f"1.2.3.{i}")
+        assert result == asn_helper.UNKNOWN_ASN
+        assert not asn_helper._circuit_broken or i == asn_helper.FAILURE_THRESHOLD - 1
+
+    # Circuit should now be broken
+    assert asn_helper._circuit_broken
+    assert mock_client.lookup_ip.call_count == asn_helper.FAILURE_THRESHOLD
+
+    # Subsequent calls should return immediately without hitting the network
+    for i in range(10):
+        result = await asn_helper.ip_to_subnets(f"5.6.7.{i}")
+        assert result == asn_helper.UNKNOWN_ASN
+    assert mock_client.lookup_ip.call_count == asn_helper.FAILURE_THRESHOLD
+
+
+@pytest.mark.asyncio
+async def test_asn_helper_circuit_breaker_resets_on_success(bbot_scanner, monkeypatch):
+    """A successful lookup should reset the consecutive failure counter."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    import asndb
+
+    call_count = 0
+
+    async def lookup_ip_side_effect(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count <= 3:
+            raise Exception("connection refused")
+        return {"asn": 15169, "subnets": ["8.8.8.0/24"], "asn_name": "GOOGLE", "org": "Google", "country": "US"}
+
+    mock_client = MagicMock()
+    mock_client.lookup_ip = AsyncMock(side_effect=lookup_ip_side_effect)
+    monkeypatch.setattr(asndb, "ASNDB", lambda **kw: mock_client)
+
+    scan = bbot_scanner("8.8.8.8")
+    asn_helper = scan.helpers.asn
+
+    # 3 failures
+    for i in range(3):
+        await asn_helper.ip_to_subnets(f"1.2.3.{i}")
+    assert asn_helper._consecutive_failures == 3
+    assert not asn_helper._circuit_broken
+
+    # 1 success should reset the counter
+    result = await asn_helper.ip_to_subnets("8.8.8.8")
+    assert result["asn"] == 15169
+    assert asn_helper._consecutive_failures == 0
+    assert not asn_helper._circuit_broken

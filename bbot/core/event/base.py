@@ -2020,14 +2020,18 @@ class VIRTUAL_HOST(DictHostEvent):
         return f"{self.host}:{virtual_host}"
 
     def _pretty_string(self):
-        return self.data.get("virtual_host", "")
-
-    def _data_human(self):
         virtual_host = self.data.get("virtual_host", "")
         url = self.data.get("url", "")
+        description = self.data.get("description", "")
+        parts = [virtual_host]
         if url:
-            return f"{virtual_host} ({url})"
-        return virtual_host
+            parts.append(f"({url})")
+        if description:
+            parts.append(description)
+        return " ".join(parts)
+
+    def _data_human(self):
+        return self._pretty_string()
 
 
 class PROTOCOL(DictHostEvent):
