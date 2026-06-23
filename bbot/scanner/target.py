@@ -410,7 +410,7 @@ class BBOTTarget:
     def __eq__(self, other):
         return self.hash == other.hash
 
-    async def generate_children(self, helpers=None):
+    async def generate_children(self, helpers):
         """
         Generate children for the target, for seed types that expand into other seed types.
         E.g. ASN targets are expanded into their constituent IP ranges.

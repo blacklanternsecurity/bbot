@@ -111,7 +111,7 @@ class BaseEventSeed(metaclass=EventSeedRegistry):
         """
         return data, None, None
 
-    async def _generate_children(self, helpers=None):
+    async def _generate_children(self, helpers):
         return []
 
     def _override_input(self, input):
@@ -293,7 +293,7 @@ class ASN(BaseEventSeed):
     # ASNs are essentially a superset of IP_RANGES. This resolves the ASN to its
     # subnets via the shared ASN helper and emits each CIDR as a child seed,
     # which is later resolved to an IP_RANGE seed and added to the target.
-    async def _generate_children(self, helpers=None):
+    async def _generate_children(self, helpers):
         asn_data = await helpers.asn.asn_to_subnets(self.data)
         subnets = asn_data.get("subnets") or []
         if isinstance(subnets, str):

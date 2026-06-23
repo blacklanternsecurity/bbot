@@ -383,6 +383,7 @@ async def test_asn_targets(bbot_scanner):
     assert "ASN:15169" in target.seeds.inputs
 
     # Test ASN target expansion with real asndb (Google's AS15169)
+    scan = bbot_scanner("ASN:15169")
     target = BBOTTarget(target=["ASN:15169"])
 
     # Verify initial state
@@ -390,7 +391,7 @@ async def test_asn_targets(bbot_scanner):
     initial_seeds = len(target.seeds.event_seeds)
 
     # Generate children (expand ASN to IP ranges)
-    await target.generate_children()
+    await target.generate_children(helpers=scan.helpers)
 
     # After expansion, should have additional IP range seeds
     assert len(target.seeds.event_seeds) > initial_seeds
@@ -474,7 +475,8 @@ async def test_asn_targets_edge_cases(bbot_scanner):
 
     initial_seeds = len(target.seeds.event_seeds)
     with patch("asndb.ASNDB", return_value=mock_empty_client):
-        await target.generate_children()
+        scan = bbot_scanner("ASN:99999")
+        await target.generate_children(helpers=scan.helpers)
 
     # Should not add any new seeds for empty ASN
     assert len(target.seeds.event_seeds) == initial_seeds
