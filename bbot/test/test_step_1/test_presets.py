@@ -241,10 +241,12 @@ async def test_preset_scope(clean_default_config):
     assert not preset1_baked.in_scope("evilcorp.com")
     assert not preset1_baked.in_scope("asdf.test.www.evilcorp.ce")
 
-    preset4 = Preset(output_modules="neo4j")
-    set(preset1.output_modules) == {"python", "csv", "txt", "json", "stdout"}
+    preset4 = Preset(output_modules=["neo4j"])
     preset1.merge(preset4)
-    set(preset1.output_modules) == {"python", "csv", "txt", "json", "stdout", "neo4j"}
+    merged_baked = preset1.validate().bake()
+    assert "neo4j" in merged_baked.output_modules
+    for default in ("csv", "txt", "json"):
+        assert default in merged_baked.output_modules
 
     # test preset merging + seeds/target interaction
 
@@ -511,10 +513,11 @@ async def test_preset_module_resolution(clean_default_config):
 
     # make sure we have the expected defaults
     assert not preset.scan_modules
-    assert set(preset.output_modules) == {"python", "csv", "txt", "json"}
+    assert set(preset.output_modules) == {"csv", "txt", "json"}
     assert set(preset.internal_modules) == {
         "aggregate",
         "excavate",
+        "python",
         "unarchive",
         "speculate",
         "cloudcheck",
@@ -973,13 +976,14 @@ async def test_preset_module_disablement(clean_default_config):
     assert "excavate" not in preset.internal_modules
     assert "aggregate" in preset.internal_modules
 
-    # internal module disablement
+    # output module disablement
     preset = Preset().validate().bake()
-    assert set(preset.output_modules) == {"python", "txt", "csv", "json"}
+    assert set(preset.output_modules) == {"txt", "csv", "json"}
     preset = Preset(exclude_modules=["txt", "csv"]).validate().bake()
-    assert set(preset.output_modules) == {"python", "json"}
-    preset = Preset(output_modules=["json"]).validate().bake()
     assert set(preset.output_modules) == {"json"}
+    # output_modules is additive, so specifying json still includes defaults
+    preset = Preset(output_modules=["subdomains"]).validate().bake()
+    assert set(preset.output_modules) == {"csv", "txt", "json", "subdomains"}
 
 
 async def test_preset_override(clean_default_config):

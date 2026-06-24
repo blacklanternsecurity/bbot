@@ -119,6 +119,7 @@ class Preset(metaclass=BasePreset):
         modules=None,
         output_modules=None,
         exclude_modules=None,
+        exclude_output_modules=None,
         flags=None,
         require_flags=None,
         exclude_flags=None,
@@ -147,8 +148,9 @@ class Preset(metaclass=BasePreset):
                 If not specified, seeds will be backfilled from target when target is defined.
             blacklist (list, optional): Blacklisted target(s). Takes ultimate precedence. Defaults to empty.
             modules (list[str], optional): List of scan modules to enable for the scan. Defaults to empty list.
-            output_modules (list[str], optional): List of output modules to use. Defaults to csv, human, and json.
+            output_modules (list[str], optional): Additional output modules to enable (additive on top of defaults).
             exclude_modules (list[str], optional): List of modules to exclude from the scan.
+            exclude_output_modules (list[str], optional): Output modules to exclude (e.g. to remove defaults).
             require_flags (list[str], optional): Only enable modules if they have these flags.
             exclude_flags (list[str], optional): Don't enable modules if they have any of these flags.
             module_dirs (list[str], optional): additional directories to load modules from.
@@ -186,6 +188,7 @@ class Preset(metaclass=BasePreset):
         # modules / flags
         self.modules = set()
         self.exclude_modules = set()
+        self.exclude_output_modules = set()
         self.flags = set()
         self.exclude_flags = set()
         self.require_flags = set()
@@ -203,6 +206,10 @@ class Preset(metaclass=BasePreset):
             exclude_modules = []
         if isinstance(exclude_modules, str):
             exclude_modules = [exclude_modules]
+        if exclude_output_modules is None:
+            exclude_output_modules = []
+        if isinstance(exclude_output_modules, str):
+            exclude_output_modules = [exclude_output_modules]
         if flags is None:
             flags = []
         if isinstance(flags, str):
@@ -280,6 +287,7 @@ class Preset(metaclass=BasePreset):
         self.explicit_scan_modules.update(set(modules))
         self.explicit_output_modules.update(set(output_modules))
         self.exclude_modules.update(set(exclude_modules))
+        self.exclude_output_modules.update(set(exclude_output_modules))
         self.flags.update(set(flags))
         self.exclude_flags.update(set(exclude_flags))
         self.require_flags.update(set(require_flags))
@@ -315,7 +323,7 @@ class Preset(metaclass=BasePreset):
         if self._default_output_modules is not None:
             output_modules = self._default_output_modules
         else:
-            output_modules = ["python", "csv", "txt", "json"]
+            output_modules = ["csv", "txt", "json"]
             if self._cli:
                 output_modules.append("stdout")
         return output_modules
@@ -358,6 +366,7 @@ class Preset(metaclass=BasePreset):
         # modules + flags
         # establish requirements / exclusions first
         self.exclude_modules.update(other.exclude_modules)
+        self.exclude_output_modules.update(other.exclude_output_modules)
         self.require_flags.update(other.require_flags)
         self.exclude_flags.update(other.exclude_flags)
         # then it's okay to start enabling modules
@@ -450,13 +459,10 @@ class Preset(metaclass=BasePreset):
         for module in baked_preset.explicit_scan_modules:
             baked_preset.add_module(module, module_type="scan")
 
-        # enable output modules
-        output_modules_to_enable = set(baked_preset.explicit_output_modules)
-        default_output_modules = self.default_output_modules
-        output_module_override = any(m in default_output_modules for m in output_modules_to_enable)
-        # if none of the default output modules have been explicitly specified, enable them all
-        if not output_module_override:
-            output_modules_to_enable.update(self.default_output_modules)
+        # enable output modules (always additive: defaults + explicit, minus excluded)
+        output_modules_to_enable = set(self.default_output_modules)
+        output_modules_to_enable.update(baked_preset.explicit_output_modules)
+        output_modules_to_enable -= baked_preset.exclude_output_modules
         for module in output_modules_to_enable:
             baked_preset.add_module(module, module_type="output", raise_error=False)
 
@@ -481,8 +487,8 @@ class Preset(metaclass=BasePreset):
                     self.log_debug(f'Enabling module "{module}" because it has flag "{flag}"')
                     baked_preset.add_module(module, module_type, raise_error=False)
 
-        # ensure we have output modules
-        if not baked_preset.output_modules:
+        # ensure we have output modules (unless the user explicitly excluded them)
+        if not baked_preset.output_modules and not baked_preset.exclude_output_modules:
             for output_module in self.default_output_modules:
                 baked_preset.add_module(output_module, module_type="output", raise_error=False)
 
@@ -739,6 +745,7 @@ class Preset(metaclass=BasePreset):
             modules=preset_dict.get("modules"),
             output_modules=preset_dict.get("output_modules"),
             exclude_modules=preset_dict.get("exclude_modules"),
+            exclude_output_modules=preset_dict.get("exclude_output_modules"),
             flags=preset_dict.get("flags"),
             require_flags=preset_dict.get("require_flags"),
             exclude_flags=preset_dict.get("exclude_flags"),
@@ -896,6 +903,8 @@ class Preset(metaclass=BasePreset):
             preset_dict["exclude_flags"] = sorted(self.exclude_flags)
         if self.exclude_modules:
             preset_dict["exclude_modules"] = sorted(self.exclude_modules)
+        if self.exclude_output_modules:
+            preset_dict["exclude_output_modules"] = sorted(self.exclude_output_modules)
         if self.flags:
             preset_dict["flags"] = sorted(self.flags)
         if self.explicit_scan_modules:
@@ -1026,6 +1035,11 @@ class Preset(metaclass=BasePreset):
             if excluded_module not in self.module_loader.all_module_choices:
                 raise ValidationError(
                     get_closest_match(excluded_module, self.module_loader.all_module_choices, msg="module")
+                )
+        for excluded_module in self.exclude_output_modules:
+            if excluded_module not in self.module_loader.output_module_choices:
+                raise ValidationError(
+                    get_closest_match(excluded_module, self.module_loader.output_module_choices, msg="output module")
                 )
         # validate declared module names so typos fail early
         for scan_module in self.explicit_scan_modules:
