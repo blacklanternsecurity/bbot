@@ -1068,6 +1068,18 @@ class Testwpscan(ModuleTestBase):
   "used_memory_humanised": "214.957 MB"
 }"""
 
+    async def setup_before_prep(self, module_test):
+        # wpscan's setup() verifies the binary is present; pretend it is so the
+        # happy-path test doesn't depend on wpscan actually being installed.
+        original_which = module_test.scan.helpers.which
+
+        def which(*executables, **kwargs):
+            if "wpscan" in executables:
+                return "/usr/bin/wpscan"
+            return original_which(*executables, **kwargs)
+
+        module_test.monkeypatch.setattr(module_test.scan.helpers, "which", which)
+
     async def setup_after_prep(self, module_test):
         async def wpscan_mock_run(*command, **kwargs):
             return CompletedProcess(command, 0, self.wpscan_output_json, "")
@@ -1080,3 +1092,38 @@ class Testwpscan(ModuleTestBase):
         # Original expectation: 1 finding + 59 vulnerabilities = 60 FINDING events (all are now FINDING events)
         assert len(findings) == 60, f"Expected 60 FINDING events, got {len(findings)}"
         assert len(technologies) == 4
+
+
+class TestwpscanError(Testwpscan):
+    """wpscan is installed but fails to execute (run() returns None) -- must degrade gracefully."""
+
+    async def setup_after_prep(self, module_test):
+        async def wpscan_mock_run(*command, **kwargs):
+            return None
+
+        module_test.monkeypatch.setattr(module_test.scan.helpers, "run", wpscan_mock_run)
+
+    def check(self, module_test, events):
+        assert not [e for e in events if e.type == "FINDING"], "wpscan emitted findings despite failing to run"
+        log_text = "\n".join(r.message for r in module_test.caplog.records)
+        assert "object has no attribute 'stdout'" not in log_text, "wpscan crashed instead of degrading gracefully"
+
+
+class TestwpscanNotInstalled(Testwpscan):
+    """wpscan is not installed -- setup() soft-fails and the module is disabled."""
+
+    async def setup_before_prep(self, module_test):
+        original_which = module_test.scan.helpers.which
+
+        def which(*executables, **kwargs):
+            if "wpscan" in executables:
+                return None
+            return original_which(*executables, **kwargs)
+
+        module_test.monkeypatch.setattr(module_test.scan.helpers, "which", which)
+
+    async def setup_after_prep(self, module_test):
+        pass
+
+    def check(self, module_test, events):
+        assert "wpscan" not in module_test.scan.modules, "wpscan should be disabled when not installed"

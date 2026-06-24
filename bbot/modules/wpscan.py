@@ -64,6 +64,7 @@ class wpscan(BaseModule):
 
     async def setup(self):
         self.processed = set()
+        self.run_warning = False
         self.ignore_events = ["xmlrpc", "readme"]
         self.api_key = self.config.get("api_key", "")
         self.enumerate = self.config.get("enumerate", "vp,vt,cb,dbe")
@@ -73,6 +74,8 @@ class wpscan(BaseModule):
         self.connection_timeout = self.config.get("connection_timeout", 2)
         self.disable_tls_checks = self.config.get("disable_tls_checks", True)
         self.force = self.config.get("force", False)
+        if not self.helpers.which("wpscan"):
+            return None, "wpscan is not installed (could not find 'wpscan' on PATH)"
         return True
 
     async def filter_event(self, event):
@@ -97,15 +100,21 @@ class wpscan(BaseModule):
 
     async def handle_http_response(self, source_event):
         url = source_event.parsed_url._replace(path="/").geturl()
-        command = self.construct_command(url)
-        output = await self.run_process(command)
-        for new_event in self.parse_wpscan_output(output.stdout, url, source_event):
-            await self.emit_event(new_event)
+        await self.run_wpscan(url, source_event)
 
     async def handle_technology(self, source_event):
         url = self.get_base_url(source_event)
+        await self.run_wpscan(url, source_event)
+
+    async def run_wpscan(self, url, source_event):
         command = self.construct_command(url)
         output = await self.run_process(command)
+        if output is None:
+            # wpscan could not be executed (e.g. not installed); warn once instead of erroring per event
+            if not self.run_warning:
+                self.run_warning = True
+                self.warning("Failed to execute wpscan. Is it installed and on your PATH?")
+            return
         for new_event in self.parse_wpscan_output(output.stdout, url, source_event):
             await self.emit_event(new_event)
 
