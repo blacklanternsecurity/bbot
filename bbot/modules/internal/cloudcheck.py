@@ -27,8 +27,23 @@ class CloudCheck(BaseInterceptModule):
     _lookup_cache_size = 100_000
 
     async def setup(self):
-        # perform a test lookup during setup to force signature update
-        await self.helpers.cloudcheck.lookup("8.8.8.8")
+        # perform a test lookup during setup to force signature update.
+        # if cloudcheck can't fetch its signatures (e.g. network/TLS problem,
+        # offline), don't crash the scan — degrade gracefully. cloud tagging
+        # by IP/domain will be unavailable, but static storage-bucket regexes
+        # (loaded from the cloudcheck package below) and per-event lookups
+        # (already wrapped in try/except) keep working.
+        from cloudcheck import CloudCheckError
+
+        try:
+            await self.helpers.cloudcheck.lookup("8.8.8.8")
+        except CloudCheckError as e:
+            self.warning(
+                f"Failed to load cloud provider signatures ({e}); continuing with cloud detection degraded. "
+                f"If this is caused by a TLS-intercepting proxy on a network you trust, you can set "
+                f"ssl_verify_infrastructure: false to allow the fetch — note this turns off certificate "
+                f"verification for non-target traffic, so only do so if you understand the risk."
+            )
         # build the storage-bucket regexes + the YARA prefilter eagerly so we
         # don't pay an asyncio.Lock acquire on every handle_event
         self._storage_bucket_regexes, self._bucket_yara = self._build_bucket_matchers()
