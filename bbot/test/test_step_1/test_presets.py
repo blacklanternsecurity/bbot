@@ -1,3 +1,5 @@
+import tempfile
+
 from ..bbot_fixtures import *  # noqa F401
 
 from bbot.scanner import Scanner, Preset
@@ -1446,3 +1448,70 @@ def test_all_presets_ignores_non_preset_yaml(tmp_path):
         preset_mod.DEFAULT_PRESETS = orig_default_presets
         preset_mod.PRESET_PATH = orig_preset_path
         path_mod.PRESET_PATH = orig_path_singleton
+
+
+def test_config_isolated_during_tests():
+    # the suite must never resolve to the user's real ~/.config/bbot
+    from bbot.core import CORE
+
+    config_dir = CORE.files_config.config_dir
+    real_config_dir = (Path.home() / ".config" / "bbot").resolve()
+    assert config_dir != real_config_dir
+    assert str(config_dir).startswith(str(Path(tempfile.gettempdir()).resolve()))
+
+
+def test_config_reset_and_staleness(tmp_path, monkeypatch):
+    from bbot.core import CORE
+    from bbot.core.modules import MODULE_LOADER
+
+    files = CORE.files_config
+    monkeypatch.setattr(files, "config_dir", tmp_path)
+    monkeypatch.setattr(files, "config_filename", tmp_path / "bbot.yml")
+    monkeypatch.setattr(files, "secrets_filename", tmp_path / "secrets.yml")
+    config_file = tmp_path / "bbot.yml"
+
+    current = MODULE_LOADER._config_schema_hash(dict(CORE.default_config))
+
+    # no config on disk yet -> not stale
+    assert MODULE_LOADER.config_is_stale() is False
+
+    # first run: files don't exist -> generated, hash stamped in the header
+    MODULE_LOADER.ensure_config_files()
+    assert config_file.is_file()
+    assert (tmp_path / "secrets.yml").is_file()
+    assert f"# bbot-config-hash: {current}" in config_file.read_text()
+    assert MODULE_LOADER._read_config_hash(config_file) == current
+    assert MODULE_LOADER.config_is_stale() is False
+
+    # a pre-stamp (2.x) config has no header stamp -> stale
+    config_file.write_text("# NOTICE\n# scope:\n#   strict: false\n")
+    assert MODULE_LOADER._read_config_hash(config_file) is None
+    assert MODULE_LOADER.config_is_stale() is True
+    # a changed option set -> stale
+    config_file.write_text("# bbot-config-hash: deadbeef\n# scope:\n#   strict: false\n")
+    assert MODULE_LOADER.config_is_stale() is True
+
+    # reset: backs up existing files, regenerates, restamps
+    backups = MODULE_LOADER.reset_config_files()
+    assert set(backups) == {tmp_path / "bbot.yml.bak", tmp_path / "secrets.yml.bak"}
+    assert MODULE_LOADER._read_config_hash(config_file) == current
+    assert MODULE_LOADER.config_is_stale() is False
+
+    # a second reset must not clobber the first backup
+    backups2 = MODULE_LOADER.reset_config_files()
+    assert set(backups2) == {tmp_path / "bbot.yml.bak.1", tmp_path / "secrets.yml.bak.1"}
+    assert (tmp_path / "bbot.yml.bak").is_file()
+
+
+def test_config_schema_hash_is_structural():
+    from bbot.core.modules import MODULE_LOADER
+
+    base = {"web": {"http_timeout": 10}, "scope": {"strict": False}}
+    # value changes don't move the hash
+    assert MODULE_LOADER._config_schema_hash(base) == MODULE_LOADER._config_schema_hash(
+        {"web": {"http_timeout": 99}, "scope": {"strict": True}}
+    )
+    # a renamed/added/removed option does
+    assert MODULE_LOADER._config_schema_hash(base) != MODULE_LOADER._config_schema_hash(
+        {"web": {"http_timeout_target": 10}, "scope": {"strict": False}}
+    )

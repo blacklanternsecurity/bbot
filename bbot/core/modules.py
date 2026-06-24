@@ -3,7 +3,9 @@ import ast
 import sys
 import yaml
 import atexit
+import shutil
 import pickle
+import hashlib
 import logging
 import importlib
 import traceback
@@ -1059,35 +1061,118 @@ class ModuleLoader:
         module_list.sort(key=lambda x: x[-1]["type"], reverse=True)
         return module_list
 
+    # header line that stamps the option set a config file was generated against
+    _config_hash_prefix = "bbot-config-hash: "
+
     def ensure_config_files(self):
+        """Create the user's `bbot.yml` / `secrets.yml` if missing.
+
+        The generated files are a fully-commented snapshot of the current
+        defaults, written once and never overwritten. Each one carries a hash
+        of the current option key-paths in its header, so a later run can tell
+        (via `config_is_stale`) whether the options have since changed.
+        """
         files = self.core.files_config
         mkdir(files.config_dir)
 
-        comment_notice = (
-            "# NOTICE: THESE ENTRIES ARE COMMENTED BY DEFAULT\n"
-            + "# Please be sure to uncomment when inserting API keys, etc.\n"
-        )
-
         config_obj = dict(self.core.default_config)
+        schema_hash = self._config_schema_hash(config_obj)
 
-        # ensure bbot.yml
         if not files.config_filename.exists():
             log_to_stderr(f"Creating BBOT config at {files.config_filename}")
-            no_secrets_config = self.core.no_secrets_config(config_obj)
-            yaml_str = yaml.dump(no_secrets_config, sort_keys=False)
-            yaml_str = comment_notice + "\n".join(f"# {line}" for line in yaml_str.splitlines())
-            with open(str(files.config_filename), "w") as f:
-                f.write(yaml_str)
-
-        # ensure secrets.yml
+            self._write_config_template(files.config_filename, self.core.no_secrets_config(config_obj), schema_hash)
         if not files.secrets_filename.exists():
             log_to_stderr(f"Creating BBOT secrets at {files.secrets_filename}")
-            secrets_only_config = self.core.secrets_only_config(config_obj)
-            yaml_str = yaml.dump(secrets_only_config, sort_keys=False)
-            yaml_str = comment_notice + "\n".join(f"# {line}" for line in yaml_str.splitlines())
-            with open(str(files.secrets_filename), "w") as f:
-                f.write(yaml_str)
+            self._write_config_template(files.secrets_filename, self.core.secrets_only_config(config_obj), schema_hash)
             files.secrets_filename.chmod(0o600)
+
+    def config_is_stale(self):
+        """True if the user's config exists but was generated against a different
+        option set, or predates option-set stamping (no stamp in its header).
+        False for a config that doesn't exist yet or matches the current set.
+        """
+        if not self.core.files_config.config_filename.exists():
+            return False
+        stored_hash = self._read_config_hash(self.core.files_config.config_filename)
+        if stored_hash is None:
+            return True
+        return stored_hash != self._config_schema_hash(dict(self.core.default_config))
+
+    def reset_config_files(self):
+        """Regenerate `bbot.yml` / `secrets.yml` from the current defaults,
+        backing up any existing files to `*.bak`. Returns the backup paths.
+
+        Destructive: the regenerated files are a fresh commented template, so
+        any options the user uncommented are not carried over.
+        """
+        files = self.core.files_config
+        mkdir(files.config_dir)
+        config_obj = dict(self.core.default_config)
+        schema_hash = self._config_schema_hash(config_obj)
+
+        backups = []
+        for path in (files.config_filename, files.secrets_filename):
+            if path.exists():
+                backup = self._next_backup_path(path)
+                shutil.copy2(path, backup)
+                backups.append(backup)
+
+        self._write_config_template(files.config_filename, self.core.no_secrets_config(config_obj), schema_hash)
+        self._write_config_template(files.secrets_filename, self.core.secrets_only_config(config_obj), schema_hash)
+        files.secrets_filename.chmod(0o600)
+        return backups
+
+    @staticmethod
+    def _next_backup_path(path):
+        """First free `<name>.bak`, `<name>.bak.1`, `<name>.bak.2`, ... so an
+        existing backup from a previous reset isn't clobbered."""
+        backup = path.with_name(path.name + ".bak")
+        i = 1
+        while backup.exists():
+            backup = path.with_name(f"{path.name}.bak.{i}")
+            i += 1
+        return backup
+
+    @classmethod
+    def _read_config_hash(cls, path):
+        """Read the option-set stamp from a config file's header, or None if it
+        has no stamp (e.g. a config generated before stamping existed)."""
+        marker = f"# {cls._config_hash_prefix}"
+        with open(path) as f:
+            for line in f:
+                if line.startswith(marker):
+                    return line[len(marker) :].strip()
+        return None
+
+    @classmethod
+    def _write_config_template(cls, path, config_dict, schema_hash):
+        header = (
+            "# NOTICE: THESE ENTRIES ARE COMMENTED BY DEFAULT\n"
+            "# Please be sure to uncomment when inserting API keys, etc.\n"
+            f"# {cls._config_hash_prefix}{schema_hash}\n"
+        )
+        yaml_str = yaml.dump(config_dict, sort_keys=False)
+        yaml_str = header + "\n".join(f"# {line}" for line in yaml_str.splitlines())
+        with open(str(path), "w") as f:
+            f.write(yaml_str)
+
+    @classmethod
+    def _config_schema_hash(cls, config_obj):
+        """Hash the set of option key-paths (not their values), so the stamp
+        only changes when options are added, removed, or renamed."""
+        paths = "\n".join(sorted(cls._config_leaf_paths(config_obj)))
+        return hashlib.sha256(paths.encode()).hexdigest()
+
+    @classmethod
+    def _config_leaf_paths(cls, config_obj, prefix=""):
+        paths = []
+        for key, value in config_obj.items():
+            path = f"{prefix}{key}"
+            if isinstance(value, dict) and value:
+                paths.extend(cls._config_leaf_paths(value, prefix=f"{path}."))
+            else:
+                paths.append(path)
+        return paths
 
 
 MODULE_LOADER = ModuleLoader()

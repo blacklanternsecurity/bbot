@@ -68,6 +68,14 @@ async def _main():
         # that don't construct a full Scanner.
         preset.apply_log_level(apply_core=True)
 
+        # warn (once) if the on-disk config predates / doesn't match the current option set
+        if not options.reset_config and preset.module_loader.config_is_stale():
+            log.warning(
+                f"Your BBOT config at {preset.core.files_config.config_filename} was generated with an "
+                "older version of bbot with different settings. Run `bbot --reset-config` to regenerate it "
+                "from current defaults."
+            )
+
         # print help if no arguments
         if len(sys.argv) == 1:
             print(preset.args.parser.format_help())
@@ -77,6 +85,36 @@ async def _main():
         # --version
         if options.version:
             print(__version__)
+            sys.exit(0)
+            return
+
+        # --reset-config
+        if options.reset_config:
+            files = preset.core.files_config
+            log.hugewarning(
+                "Resetting your BBOT config to current defaults. Any settings you have customized "
+                "(uncommented) WILL BE WIPED OUT."
+            )
+            log.warning(f"Files to reset: {files.config_filename} , {files.secrets_filename}")
+            log.warning("A backup of each existing file will be saved with a .bak extension.")
+            try:
+                stdin_is_tty = sys.stdin.isatty()
+            except (ValueError, io.UnsupportedOperation):
+                stdin_is_tty = False
+            if not options.yes:
+                if not stdin_is_tty:
+                    log.error("Refusing to reset config without confirmation; re-run with --yes to proceed.")
+                    sys.exit(1)
+                    return
+                answer = input("Continue? [y/N] ").strip().lower()
+                if answer not in ("y", "yes"):
+                    log.info("Aborted. No changes made.")
+                    sys.exit(0)
+                    return
+            backups = preset.module_loader.reset_config_files()
+            log.success(f"Reset BBOT config at {files.config_filename}")
+            for b in backups:
+                log.info(f"Backup saved: {b}")
             sys.exit(0)
             return
 
