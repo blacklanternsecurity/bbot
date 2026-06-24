@@ -7,7 +7,6 @@ import yaml
 import atexit
 import shutil
 import pickle
-import hashlib
 import logging
 import tempfile
 import importlib
@@ -1064,16 +1063,13 @@ class ModuleLoader:
         module_list.sort(key=lambda x: x[-1]["type"], reverse=True)
         return module_list
 
-    # header line that stamps the option set a config file was generated against
-    _config_hash_prefix = "bbot-config-hash: "
-
     def _generated_config_files(self):
         """The config files BBOT generates, each paired with the content it
         should currently hold and the CLI flag that regenerates it.
 
-        Creation, staleness detection, and reset all iterate this list, so the
-        two files stay fully independent: a `secrets.yml` full of API keys is
-        never touched just because `bbot.yml`'s options changed, and vice versa.
+        Creation and reset both iterate this list, so the two files stay fully
+        independent: a `secrets.yml` full of API keys is never touched just
+        because `bbot.yml`'s options changed, and vice versa.
         """
         files = self.core.files_config
         config_obj = dict(self.core.default_config)
@@ -1098,29 +1094,13 @@ class ModuleLoader:
         """Create any of the user's generated config files that are missing.
 
         Each file is a fully-commented snapshot of the current defaults,
-        written once and never overwritten, carrying a hash of its own option
-        key-paths in its header so a later run can tell (via
-        `stale_config_files`) whether that file's options have since changed.
+        written once and never overwritten.
         """
         mkdir(self.core.files_config.config_dir)
         for spec in self._generated_config_files():
             if not spec["path"].exists():
                 log_to_stderr(f"Creating BBOT {spec['label']} at {spec['path']}")
                 self._write_config_template(spec["path"], spec["content"], secret=spec["secret"])
-
-    def stale_config_files(self):
-        """Generated config files that exist but were stamped against a
-        different option set, or predate stamping (no header stamp). Each
-        returned spec includes the file path and the CLI flag that regenerates
-        just that file."""
-        stale = []
-        for spec in self._generated_config_files():
-            if not spec["path"].exists():
-                continue
-            stored_hash = self._read_config_hash(spec["path"])
-            if stored_hash is None or stored_hash != self._config_schema_hash(spec["content"]):
-                stale.append(spec)
-        return stale
 
     def reset_config_files(self, labels):
         """Regenerate the named generated config files (`"config"` and/or
@@ -1157,22 +1137,10 @@ class ModuleLoader:
         return backup
 
     @classmethod
-    def _read_config_hash(cls, path):
-        """Read the option-set stamp from a config file's header, or None if it
-        has no stamp (e.g. a config generated before stamping existed)."""
-        marker = f"# {cls._config_hash_prefix}"
-        with open(path) as f:
-            for line in f:
-                if line.startswith(marker):
-                    return line[len(marker) :].strip()
-        return None
-
-    @classmethod
     def _write_config_template(cls, path, config_dict, secret=False):
         header = (
             "# NOTICE: THESE ENTRIES ARE COMMENTED BY DEFAULT\n"
             "# Please be sure to uncomment when inserting API keys, etc.\n"
-            f"# {cls._config_hash_prefix}{cls._config_schema_hash(config_dict)}\n"
         )
         yaml_str = yaml.dump(config_dict, sort_keys=False)
         yaml_str = header + "\n".join(f"# {line}" for line in yaml_str.splitlines())
@@ -1209,24 +1177,6 @@ class ModuleLoader:
             with suppress(FileNotFoundError):
                 os.unlink(tmp)
             raise
-
-    @classmethod
-    def _config_schema_hash(cls, config_obj):
-        """Hash the set of option key-paths (not their values), so the stamp
-        only changes when options are added, removed, or renamed."""
-        paths = "\n".join(sorted(cls._config_leaf_paths(config_obj)))
-        return hashlib.sha256(paths.encode()).hexdigest()
-
-    @classmethod
-    def _config_leaf_paths(cls, config_obj, prefix=""):
-        paths = []
-        for key, value in config_obj.items():
-            path = f"{prefix}{key}"
-            if isinstance(value, dict) and value:
-                paths.extend(cls._config_leaf_paths(value, prefix=f"{path}."))
-            else:
-                paths.append(path)
-        return paths
 
 
 MODULE_LOADER = ModuleLoader()

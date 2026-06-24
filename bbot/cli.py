@@ -75,16 +75,6 @@ async def _main():
             if requested
         ]
 
-        # warn (once) about any generated config file that predates / no longer
-        # matches the current option set -- but not one we're about to reset
-        for spec in preset.module_loader.stale_config_files():
-            if spec["label"] in reset_labels:
-                continue
-            log.warning(
-                f"Your BBOT {spec['label']} at {spec['path']} was generated with an older version of bbot "
-                f"with different settings. Run `bbot {spec['reset_flag']}` to regenerate it from current defaults."
-            )
-
         # print help if no arguments
         if len(sys.argv) == 1:
             print(preset.args.parser.format_help())
@@ -209,7 +199,31 @@ async def _main():
                 print(row)
             return
 
-        preset.validate()
+        try:
+            preset.validate()
+        except ValidationError as e:
+            log.error(str(e))
+            # if a bad option actually lives in one of the user's generated
+            # config files (vs, say, a -c CLI typo), point them at the matching
+            # reset flag -- validate each file's own contents to be sure
+            import yaml
+            from bbot.scanner.preset.validate import validate_preset
+
+            for spec in preset.module_loader._generated_config_files():
+                if not spec["path"].exists():
+                    continue
+                try:
+                    file_config = yaml.safe_load(spec["path"].read_text()) or {}
+                except yaml.YAMLError:
+                    continue
+                if isinstance(file_config, dict) and validate_preset(
+                    {"config": file_config}, module_loader=preset.module_loader
+                ):
+                    log.info(
+                        f"Some options in {spec['path']} are not recognized. If they are left over from an "
+                        f"older version of BBOT, regenerate it from current defaults with: bbot {spec['reset_flag']}"
+                    )
+            return
         baked_preset = preset.bake()
 
         # --current-preset / --current-preset-full
