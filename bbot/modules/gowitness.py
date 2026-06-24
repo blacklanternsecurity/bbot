@@ -182,99 +182,99 @@ class gowitness(BaseModule):
                 self.warning(f"Gowitness timed out while visiting the following URLs: {urls_str}", trace=False)
                 return
 
-            await self.emit_results(db_path)
+            try:
+                await self.emit_results(db_path)
+            except aiosqlite.Error as e:
+                # gowitness exited before writing a usable database (chrome likely failed to
+                # launch), so the whole batch produced nothing
+                self.warning(
+                    f"Gowitness produced no results for {len(events)} URLs; chrome may have failed to launch ({e})",
+                    trace=False,
+                )
         finally:
             # discard the batch database; the screenshots themselves live on disk
             db_path.unlink(missing_ok=True)
 
     async def emit_results(self, db_path):
-        # gowitness result_id -> the URL it visited, used to attribute child rows back to their page
-        result_urls = {}
-
-        # screenshots
-        async for row in self._read_rows(db_path, "SELECT * FROM results"):
-            raw_url = row["url"]
-            result_urls[row["id"]] = raw_url
-            final_url = row["final_url"]
-            filename = self.screenshot_path / row["filename"]
-            filename = filename.relative_to(self.scan.home)
-            # NOTE: this prevents long filenames from causing problems in BBOT, but gowitness will still fail to save it.
-            filename = self.helpers.truncate_filename(filename)
-            parent_event = self._resolve_parent(raw_url)
-            if parent_event is None:
-                self.warning(f"Could not correlate screenshot to parent event for URL: {raw_url}")
-                continue
-            await self.emit_event(
-                {"path": str(filename), "url": final_url},
-                "WEBSCREENSHOT",
-                parent=parent_event,
-                context=f"{{module}} visited {final_url} and saved {{event.type}} to {filename}",
-            )
-            self.screenshot_count += 1
-
-        # network logs -> URLs (one event per unique URL within the batch)
-        seen_urls = set()
-        async for row in self._read_rows(db_path, "SELECT * FROM network_logs"):
-            url = row["url"]
-            if not (url and url.startswith("http")) or url in seen_urls:
-                continue
-            seen_urls.add(url)
-            raw_parent_url = result_urls.get(row["result_id"])
-            if raw_parent_url is None:
-                continue
-            parent_event = self._resolve_parent(raw_parent_url)
-            if parent_event is None:
-                self.warning(f"Could not correlate network log to parent event for URL: {raw_parent_url}")
-                continue
-            ip = row["remote_ip"]
-            url_event = self.make_event(
-                url,
-                "URL_UNVERIFIED",
-                parent=parent_event,
-                tags=[f"status-{row['status_code']}", "spider-danger"],
-                context=f"{{module}} visited {{event.type}}: {url}",
-            )
-            if url_event and ip:
-                url_event.resolved_hosts = (sys.intern(ip),)
-            await self.emit_event(url_event)
-
-        # technologies
-        async for row in self._read_rows(db_path, "SELECT * FROM technologies"):
-            raw_parent_url = result_urls.get(row["result_id"])
-            if raw_parent_url is None:
-                continue
-            parent_event = self._resolve_parent(raw_parent_url)
-            if parent_event is None:
-                self.warning(f"Could not correlate technology to parent event for URL: {raw_parent_url}")
-                continue
-            technology = row["value"]
-            parent_url = self.helpers.clean_url(raw_parent_url).geturl()
-            await self.emit_event(
-                {"technology": technology, "url": parent_url, "host": str(parent_event.host)},
-                "TECHNOLOGY",
-                parent=parent_event,
-                context=f"{{module}} visited {parent_url} and found {{event.type}}: {technology}",
-            )
-
-    async def _read_rows(self, db_path, query):
-        """Yield rows from a batch's gowitness database, tolerating a missing schema.
-
-        When chrome fails to launch, gowitness exits before creating its tables,
-        leaving an empty database. Treat that as zero rows instead of raising.
-        """
         if not db_path.is_file():
             return
         async with aiosqlite.connect(str(db_path)) as con:
             con.row_factory = aiosqlite.Row
             con.text_factory = self.helpers.smart_decode
-            try:
-                cur = await con.execute(query)
-            except aiosqlite.OperationalError as e:
-                self.debug(f"No gowitness results in {db_path.name} ({e})")
-                return
-            async with cur:
+
+            # gowitness result_id -> the URL it visited, used to attribute child rows back to their page
+            result_urls = {}
+
+            # screenshots
+            async with con.execute("SELECT * FROM results") as cur:
                 async for row in cur:
-                    yield dict(row)
+                    row = dict(row)
+                    raw_url = row["url"]
+                    result_urls[row["id"]] = raw_url
+                    final_url = row["final_url"]
+                    filename = self.screenshot_path / row["filename"]
+                    filename = filename.relative_to(self.scan.home)
+                    # NOTE: this prevents long filenames from causing problems in BBOT, but gowitness will still fail to save it.
+                    filename = self.helpers.truncate_filename(filename)
+                    parent_event = self._resolve_parent(raw_url)
+                    if parent_event is None:
+                        self.warning(f"Could not correlate screenshot to parent event for URL: {raw_url}")
+                        continue
+                    await self.emit_event(
+                        {"path": str(filename), "url": final_url},
+                        "WEBSCREENSHOT",
+                        parent=parent_event,
+                        context=f"{{module}} visited {final_url} and saved {{event.type}} to {filename}",
+                    )
+                    self.screenshot_count += 1
+
+            # network logs -> URLs (one event per unique URL within the batch)
+            seen_urls = set()
+            async with con.execute("SELECT * FROM network_logs") as cur:
+                async for row in cur:
+                    row = dict(row)
+                    url = row["url"]
+                    if not (url and url.startswith("http")) or url in seen_urls:
+                        continue
+                    seen_urls.add(url)
+                    raw_parent_url = result_urls.get(row["result_id"])
+                    if raw_parent_url is None:
+                        continue
+                    parent_event = self._resolve_parent(raw_parent_url)
+                    if parent_event is None:
+                        self.warning(f"Could not correlate network log to parent event for URL: {raw_parent_url}")
+                        continue
+                    ip = row["remote_ip"]
+                    url_event = self.make_event(
+                        url,
+                        "URL_UNVERIFIED",
+                        parent=parent_event,
+                        tags=[f"status-{row['status_code']}", "spider-danger"],
+                        context=f"{{module}} visited {{event.type}}: {url}",
+                    )
+                    if url_event and ip:
+                        url_event.resolved_hosts = (sys.intern(ip),)
+                    await self.emit_event(url_event)
+
+            # technologies
+            async with con.execute("SELECT * FROM technologies") as cur:
+                async for row in cur:
+                    row = dict(row)
+                    raw_parent_url = result_urls.get(row["result_id"])
+                    if raw_parent_url is None:
+                        continue
+                    parent_event = self._resolve_parent(raw_parent_url)
+                    if parent_event is None:
+                        self.warning(f"Could not correlate technology to parent event for URL: {raw_parent_url}")
+                        continue
+                    technology = row["value"]
+                    parent_url = self.helpers.clean_url(raw_parent_url).geturl()
+                    await self.emit_event(
+                        {"technology": technology, "url": parent_url, "host": str(parent_event.host)},
+                        "TECHNOLOGY",
+                        parent=parent_event,
+                        context=f"{{module}} visited {parent_url} and found {{event.type}}: {technology}",
+                    )
 
     def construct_command(self, db_path):
         # base executable
