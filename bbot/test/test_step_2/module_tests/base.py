@@ -41,9 +41,8 @@ class ModuleTestBase:
             self.preloaded = DEFAULT_PRESET.module_loader.preloaded()
 
             # handle output, internal module types
-            output_modules = None
+            output_modules = []
             modules = list(module_test_base.modules)
-            output_modules = ["python"]
             for module in list(modules):
                 module_type = self.preloaded[module]["type"]
                 if module_type in ("internal", "output"):
@@ -55,10 +54,13 @@ class ModuleTestBase:
 
             seeds = module_test_base.seeds or None
 
+            default_output_modules = [m for m in ("csv", "json", "txt") if m not in output_modules]
+
             self.scan = Scanner(
                 *module_test_base.targets,
                 modules=modules,
                 output_modules=output_modules,
+                exclude_output_modules=default_output_modules,
                 scan_name=module_test_base._scan_name,
                 config=self.config,
                 seeds=seeds,

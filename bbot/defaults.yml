@@ -186,6 +186,8 @@ aggregate: True
 dnsresolve: True
 # Cloud provider tagging
 cloudcheck: True
+# Python API event bridge
+python: True
 
 # Strip querystring from URLs by default
 url_querystring_remove: True
