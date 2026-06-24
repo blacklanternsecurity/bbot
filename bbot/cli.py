@@ -68,12 +68,21 @@ async def _main():
         # that don't construct a full Scanner.
         preset.apply_log_level(apply_core=True)
 
-        # warn (once) if the on-disk config predates / doesn't match the current option set
-        if not options.reset_config and preset.module_loader.config_is_stale():
+        # which generated config files the user is regenerating this run
+        reset_labels = [
+            label
+            for label, requested in (("config", options.reset_config), ("secrets", options.reset_secrets))
+            if requested
+        ]
+
+        # warn (once) about any generated config file that predates / no longer
+        # matches the current option set -- but not one we're about to reset
+        for spec in preset.module_loader.stale_config_files():
+            if spec["label"] in reset_labels:
+                continue
             log.warning(
-                f"Your BBOT config at {preset.core.files_config.config_filename} was generated with an "
-                "older version of bbot with different settings. Run `bbot --reset-config` to regenerate it "
-                "from current defaults."
+                f"Your BBOT {spec['label']} at {spec['path']} was generated with an older version of bbot "
+                f"with different settings. Run `bbot {spec['reset_flag']}` to regenerate it from current defaults."
             )
 
         # print help if no arguments
@@ -88,14 +97,19 @@ async def _main():
             sys.exit(0)
             return
 
-        # --reset-config
-        if options.reset_config:
-            files = preset.core.files_config
+        # --reset-config / --reset-secrets
+        if reset_labels:
+            reset_paths = [
+                spec["path"]
+                for spec in preset.module_loader._generated_config_files()
+                if spec["label"] in reset_labels
+            ]
             log.hugewarning(
-                "Resetting your BBOT config to current defaults. Any settings you have customized "
-                "(uncommented) WILL BE WIPED OUT."
+                "Regenerating from current defaults. Any settings you have customized "
+                "(uncommented) in these files WILL BE WIPED OUT:"
             )
-            log.warning(f"Files to reset: {files.config_filename} , {files.secrets_filename}")
+            for p in reset_paths:
+                log.warning(f"  {p}")
             log.warning("A backup of each existing file will be saved with a .bak extension.")
             try:
                 stdin_is_tty = sys.stdin.isatty()
@@ -111,8 +125,8 @@ async def _main():
                     log.info("Aborted. No changes made.")
                     sys.exit(0)
                     return
-            backups = preset.module_loader.reset_config_files()
-            log.success(f"Reset BBOT config at {files.config_filename}")
+            backups = preset.module_loader.reset_config_files(reset_labels)
+            log.success("Regenerated config files from current defaults.")
             for b in backups:
                 log.info(f"Backup saved: {b}")
             sys.exit(0)

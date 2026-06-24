@@ -1,12 +1,15 @@
+import os
 import re
 import ast
 import sys
+import stat
 import yaml
 import atexit
 import shutil
 import pickle
 import hashlib
 import logging
+import tempfile
 import importlib
 import traceback
 from copy import copy
@@ -1064,62 +1067,82 @@ class ModuleLoader:
     # header line that stamps the option set a config file was generated against
     _config_hash_prefix = "bbot-config-hash: "
 
+    def _generated_config_files(self):
+        """The config files BBOT generates, each paired with the content it
+        should currently hold and the CLI flag that regenerates it.
+
+        Creation, staleness detection, and reset all iterate this list, so the
+        two files stay fully independent: a `secrets.yml` full of API keys is
+        never touched just because `bbot.yml`'s options changed, and vice versa.
+        """
+        files = self.core.files_config
+        config_obj = dict(self.core.default_config)
+        return [
+            {
+                "label": "config",
+                "path": files.config_filename,
+                "content": self.core.no_secrets_config(config_obj),
+                "secret": False,
+                "reset_flag": "--reset-config",
+            },
+            {
+                "label": "secrets",
+                "path": files.secrets_filename,
+                "content": self.core.secrets_only_config(config_obj),
+                "secret": True,
+                "reset_flag": "--reset-secrets",
+            },
+        ]
+
     def ensure_config_files(self):
-        """Create the user's `bbot.yml` / `secrets.yml` if missing.
+        """Create any of the user's generated config files that are missing.
 
-        The generated files are a fully-commented snapshot of the current
-        defaults, written once and never overwritten. Each one carries a hash
-        of the current option key-paths in its header, so a later run can tell
-        (via `config_is_stale`) whether the options have since changed.
+        Each file is a fully-commented snapshot of the current defaults,
+        written once and never overwritten, carrying a hash of its own option
+        key-paths in its header so a later run can tell (via
+        `stale_config_files`) whether that file's options have since changed.
         """
-        files = self.core.files_config
-        mkdir(files.config_dir)
+        mkdir(self.core.files_config.config_dir)
+        for spec in self._generated_config_files():
+            if not spec["path"].exists():
+                log_to_stderr(f"Creating BBOT {spec['label']} at {spec['path']}")
+                self._write_config_template(spec["path"], spec["content"], secret=spec["secret"])
 
-        config_obj = dict(self.core.default_config)
-        schema_hash = self._config_schema_hash(config_obj)
+    def stale_config_files(self):
+        """Generated config files that exist but were stamped against a
+        different option set, or predate stamping (no header stamp). Each
+        returned spec includes the file path and the CLI flag that regenerates
+        just that file."""
+        stale = []
+        for spec in self._generated_config_files():
+            if not spec["path"].exists():
+                continue
+            stored_hash = self._read_config_hash(spec["path"])
+            if stored_hash is None or stored_hash != self._config_schema_hash(spec["content"]):
+                stale.append(spec)
+        return stale
 
-        if not files.config_filename.exists():
-            log_to_stderr(f"Creating BBOT config at {files.config_filename}")
-            self._write_config_template(files.config_filename, self.core.no_secrets_config(config_obj), schema_hash)
-        if not files.secrets_filename.exists():
-            log_to_stderr(f"Creating BBOT secrets at {files.secrets_filename}")
-            self._write_config_template(files.secrets_filename, self.core.secrets_only_config(config_obj), schema_hash)
-            files.secrets_filename.chmod(0o600)
+    def reset_config_files(self, labels):
+        """Regenerate the named generated config files (`"config"` and/or
+        `"secrets"`) from current defaults, backing up existing files to
+        `*.bak`. Returns the backup paths.
 
-    def config_is_stale(self):
-        """True if the user's config exists but was generated against a different
-        option set, or predates option-set stamping (no stamp in its header).
-        False for a config that doesn't exist yet or matches the current set.
+        Destructive: a regenerated file is a fresh commented template, so any
+        options the user uncommented in it are not carried over.
         """
-        if not self.core.files_config.config_filename.exists():
-            return False
-        stored_hash = self._read_config_hash(self.core.files_config.config_filename)
-        if stored_hash is None:
-            return True
-        return stored_hash != self._config_schema_hash(dict(self.core.default_config))
-
-    def reset_config_files(self):
-        """Regenerate `bbot.yml` / `secrets.yml` from the current defaults,
-        backing up any existing files to `*.bak`. Returns the backup paths.
-
-        Destructive: the regenerated files are a fresh commented template, so
-        any options the user uncommented are not carried over.
-        """
-        files = self.core.files_config
-        mkdir(files.config_dir)
-        config_obj = dict(self.core.default_config)
-        schema_hash = self._config_schema_hash(config_obj)
-
+        mkdir(self.core.files_config.config_dir)
         backups = []
-        for path in (files.config_filename, files.secrets_filename):
+        for spec in self._generated_config_files():
+            if spec["label"] not in labels:
+                continue
+            path = spec["path"]
             if path.exists():
                 backup = self._next_backup_path(path)
+                # copy2 preserves the file's permissions, so a backup of a
+                # hardened secrets.yml stays just as locked-down
                 shutil.copy2(path, backup)
                 backups.append(backup)
-
-        self._write_config_template(files.config_filename, self.core.no_secrets_config(config_obj), schema_hash)
-        self._write_config_template(files.secrets_filename, self.core.secrets_only_config(config_obj), schema_hash)
-        files.secrets_filename.chmod(0o600)
+            self._write_config_template(path, spec["content"], secret=spec["secret"])
         return backups
 
     @staticmethod
@@ -1145,16 +1168,47 @@ class ModuleLoader:
         return None
 
     @classmethod
-    def _write_config_template(cls, path, config_dict, schema_hash):
+    def _write_config_template(cls, path, config_dict, secret=False):
         header = (
             "# NOTICE: THESE ENTRIES ARE COMMENTED BY DEFAULT\n"
             "# Please be sure to uncomment when inserting API keys, etc.\n"
-            f"# {cls._config_hash_prefix}{schema_hash}\n"
+            f"# {cls._config_hash_prefix}{cls._config_schema_hash(config_dict)}\n"
         )
         yaml_str = yaml.dump(config_dict, sort_keys=False)
         yaml_str = header + "\n".join(f"# {line}" for line in yaml_str.splitlines())
-        with open(str(path), "w") as f:
-            f.write(yaml_str)
+        if secret:
+            cls._write_secret_text(path, yaml_str)
+        else:
+            with open(str(path), "w") as f:
+                f.write(yaml_str)
+
+    @staticmethod
+    def _write_secret_text(path, text):
+        """Write a secrets file so it is never readable by anyone but the owner,
+        even for an instant. The content is written to a private temp file
+        (mkstemp creates it 0600) and atomically renamed into place; an existing
+        file's own permissions are preserved in case the user hardened them
+        further (e.g. 0400). If owner-only permissions can't be guaranteed, the
+        secret is not written."""
+        path = Path(path)
+        mode = 0o600
+        with suppress(FileNotFoundError):
+            existing_mode = stat.S_IMODE(path.stat().st_mode)
+            # keep the user's perms only if they're already owner-only
+            if not existing_mode & 0o077:
+                mode = existing_mode
+        fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp")
+        try:
+            os.fchmod(fd, mode)
+            with os.fdopen(fd, "w") as f:
+                f.write(text)
+            if stat.S_IMODE(os.stat(tmp).st_mode) & 0o077:
+                raise BBOTError(f"Refusing to write secrets to {path}: could not restrict permissions to owner-only")
+            os.replace(tmp, str(path))
+        except BaseException:
+            with suppress(FileNotFoundError):
+                os.unlink(tmp)
+            raise
 
     @classmethod
     def _config_schema_hash(cls, config_obj):

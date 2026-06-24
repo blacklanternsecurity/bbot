@@ -414,7 +414,12 @@ class BBOTArgs:
         misc.add_argument(
             "--reset-config",
             action="store_true",
-            help="Regenerate config files from current defaults (overwrites; backs up to .bak)",
+            help="Regenerate bbot.yml from current defaults (overwrites; backs up to .bak)",
+        )
+        misc.add_argument(
+            "--reset-secrets",
+            action="store_true",
+            help="Regenerate secrets.yml from current defaults (overwrites; backs up to .bak)",
         )
         misc.add_argument("--proxy", help="Use this proxy for all HTTP requests", metavar="HTTP_PROXY")
         misc.add_argument(

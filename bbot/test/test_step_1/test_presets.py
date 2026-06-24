@@ -1,3 +1,4 @@
+import stat
 import tempfile
 
 from ..bbot_fixtures import *  # noqa F401
@@ -1460,6 +1461,10 @@ def test_config_isolated_during_tests():
     assert str(config_dir).startswith(str(Path(tempfile.gettempdir()).resolve()))
 
 
+def _stale_labels(module_loader):
+    return {spec["label"] for spec in module_loader.stale_config_files()}
+
+
 def test_config_reset_and_staleness(tmp_path, monkeypatch):
     from bbot.core import CORE
     from bbot.core.modules import MODULE_LOADER
@@ -1469,38 +1474,52 @@ def test_config_reset_and_staleness(tmp_path, monkeypatch):
     monkeypatch.setattr(files, "config_filename", tmp_path / "bbot.yml")
     monkeypatch.setattr(files, "secrets_filename", tmp_path / "secrets.yml")
     config_file = tmp_path / "bbot.yml"
+    secrets_file = tmp_path / "secrets.yml"
 
-    current = MODULE_LOADER._config_schema_hash(dict(CORE.default_config))
+    # the two files are stamped with independent, different hashes
+    config_hash = MODULE_LOADER._config_schema_hash(CORE.no_secrets_config(dict(CORE.default_config)))
+    secrets_hash = MODULE_LOADER._config_schema_hash(CORE.secrets_only_config(dict(CORE.default_config)))
+    assert config_hash != secrets_hash
 
-    # no config on disk yet -> not stale
-    assert MODULE_LOADER.config_is_stale() is False
+    # no config on disk yet -> nothing stale
+    assert _stale_labels(MODULE_LOADER) == set()
 
-    # first run: files don't exist -> generated, hash stamped in the header
+    # first run: files don't exist -> generated, each stamped with its own hash
     MODULE_LOADER.ensure_config_files()
-    assert config_file.is_file()
-    assert (tmp_path / "secrets.yml").is_file()
-    assert f"# bbot-config-hash: {current}" in config_file.read_text()
-    assert MODULE_LOADER._read_config_hash(config_file) == current
-    assert MODULE_LOADER.config_is_stale() is False
+    assert config_file.is_file() and secrets_file.is_file()
+    assert MODULE_LOADER._read_config_hash(config_file) == config_hash
+    assert MODULE_LOADER._read_config_hash(secrets_file) == secrets_hash
+    assert _stale_labels(MODULE_LOADER) == set()
+    # secrets.yml is owner-only from the start
+    assert stat.S_IMODE(secrets_file.stat().st_mode) == 0o600
 
-    # a pre-stamp (2.x) config has no header stamp -> stale
+    # only bbot.yml goes stale -> detection flags only "config"
+    config_file.write_text("# bbot-config-hash: deadbeef\n# scope:\n#   strict: false\n")
+    assert _stale_labels(MODULE_LOADER) == {"config"}
+    # a pre-stamp (2.x) file (no header stamp) is also stale
     config_file.write_text("# NOTICE\n# scope:\n#   strict: false\n")
     assert MODULE_LOADER._read_config_hash(config_file) is None
-    assert MODULE_LOADER.config_is_stale() is True
-    # a changed option set -> stale
-    config_file.write_text("# bbot-config-hash: deadbeef\n# scope:\n#   strict: false\n")
-    assert MODULE_LOADER.config_is_stale() is True
+    assert _stale_labels(MODULE_LOADER) == {"config"}
 
-    # reset: backs up existing files, regenerates, restamps
-    backups = MODULE_LOADER.reset_config_files()
-    assert set(backups) == {tmp_path / "bbot.yml.bak", tmp_path / "secrets.yml.bak"}
-    assert MODULE_LOADER._read_config_hash(config_file) == current
-    assert MODULE_LOADER.config_is_stale() is False
+    # resetting "config" must not touch secrets.yml (where API keys live)
+    secrets_before = secrets_file.read_text()
+    backups = MODULE_LOADER.reset_config_files(["config"])
+    assert set(backups) == {tmp_path / "bbot.yml.bak"}
+    assert secrets_file.read_text() == secrets_before
+    assert _stale_labels(MODULE_LOADER) == set()
+
+    # a backup of a hardened secrets.yml keeps its tightened permissions
+    secrets_file.chmod(0o400)
+    backups = MODULE_LOADER.reset_config_files(["secrets"])
+    assert set(backups) == {tmp_path / "secrets.yml.bak"}
+    assert stat.S_IMODE((tmp_path / "secrets.yml.bak").stat().st_mode) == 0o400
+    # the regenerated secrets.yml is still owner-only
+    assert stat.S_IMODE(secrets_file.stat().st_mode) & 0o077 == 0
 
     # a second reset must not clobber the first backup
-    backups2 = MODULE_LOADER.reset_config_files()
-    assert set(backups2) == {tmp_path / "bbot.yml.bak.1", tmp_path / "secrets.yml.bak.1"}
-    assert (tmp_path / "bbot.yml.bak").is_file()
+    backups2 = MODULE_LOADER.reset_config_files(["secrets"])
+    assert set(backups2) == {tmp_path / "secrets.yml.bak.1"}
+    assert (tmp_path / "secrets.yml.bak").is_file()
 
 
 def test_config_schema_hash_is_structural():
@@ -1515,3 +1534,70 @@ def test_config_schema_hash_is_structural():
     assert MODULE_LOADER._config_schema_hash(base) != MODULE_LOADER._config_schema_hash(
         {"web": {"http_timeout_target": 10}, "scope": {"strict": False}}
     )
+
+
+def test_config_reset_both_and_independent_detection(tmp_path, monkeypatch):
+    from bbot.core import CORE
+    from bbot.core.modules import MODULE_LOADER
+
+    files = CORE.files_config
+    monkeypatch.setattr(files, "config_dir", tmp_path)
+    monkeypatch.setattr(files, "config_filename", tmp_path / "bbot.yml")
+    monkeypatch.setattr(files, "secrets_filename", tmp_path / "secrets.yml")
+    config_file = tmp_path / "bbot.yml"
+    secrets_file = tmp_path / "secrets.yml"
+
+    MODULE_LOADER.ensure_config_files()
+    assert _stale_labels(MODULE_LOADER) == set()
+
+    # only secrets.yml goes stale -> detection flags only "secrets"
+    secrets_file.write_text("# bbot-config-hash: deadbeef\n# interactsh_token:\n")
+    assert _stale_labels(MODULE_LOADER) == {"secrets"}
+
+    # break both -> both reported
+    config_file.write_text("# bbot-config-hash: deadbeef\n# scope:\n")
+    assert _stale_labels(MODULE_LOADER) == {"config", "secrets"}
+
+    # reset both at once
+    backups = MODULE_LOADER.reset_config_files(["config", "secrets"])
+    assert {b.name for b in backups} == {"bbot.yml.bak", "secrets.yml.bak"}
+    assert _stale_labels(MODULE_LOADER) == set()
+
+
+def test_config_secret_file_permissions(tmp_path):
+    from bbot.core.modules import MODULE_LOADER
+
+    target = tmp_path / "secrets.yml"
+
+    # a brand-new secret file is owner-only, never world/group readable
+    MODULE_LOADER._write_secret_text(target, "secret a")
+    assert stat.S_IMODE(target.stat().st_mode) == 0o600
+    assert target.read_text() == "secret a"
+
+    # the user hardened it further -> rewrite preserves the tighter perms
+    target.chmod(0o400)
+    MODULE_LOADER._write_secret_text(target, "secret b")
+    assert stat.S_IMODE(target.stat().st_mode) == 0o400
+    assert target.read_text() == "secret b"
+
+    # an existing file with loose perms -> tightened back to owner-only
+    target.chmod(0o644)
+    MODULE_LOADER._write_secret_text(target, "secret c")
+    assert stat.S_IMODE(target.stat().st_mode) == 0o600
+    assert target.read_text() == "secret c"
+
+
+def test_config_secret_file_refuses_insecure(tmp_path, monkeypatch):
+    from bbot.core.modules import MODULE_LOADER
+    from bbot.errors import BBOTError
+
+    target = tmp_path / "secrets.yml"
+
+    # simulate a filesystem where we can't restrict permissions: the secret is
+    # not written, and no temp file is left behind
+    real_fchmod = os.fchmod
+    monkeypatch.setattr(os, "fchmod", lambda fd, mode: real_fchmod(fd, 0o644))
+    with pytest.raises(BBOTError, match="could not restrict permissions"):
+        MODULE_LOADER._write_secret_text(target, "secret stuff")
+    assert not target.exists()
+    assert list(tmp_path.glob(".secrets.yml.*")) == []
