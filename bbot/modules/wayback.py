@@ -1,4 +1,5 @@
 import re
+import bisect
 from collections import Counter
 from datetime import datetime
 from urllib.parse import parse_qs, urlparse, urlunparse
@@ -100,20 +101,62 @@ rule akamai_bot_manager_url
         counts = Counter(segments)
         return counts.most_common(1)[0][1] > self._max_path_segment_repeats
 
+    # Per-URL match threshold for the YARA junk-URL rules.
+    # The akamai_bot_manager_url rule requires #strict_seg >= 2.
+    _junk_url_match_threshold = 2
+
     def _filter_urls_sync(self, urls):
-        """Drop blacklisted, garbage, and YARA-junk URLs in one pass. Returns (kept, junk_dropped)."""
-        kept = []
-        junk_dropped = 0
+        """Drop blacklisted, garbage, and YARA-junk URLs in one pass. Returns (kept, junk_dropped).
+
+        YARA matching is batched: all candidate URLs are concatenated into
+        a single UTF-8 blob (newline-delimited) and matched once, then
+        string instance offsets are mapped back to individual URLs and
+        counted per-URL against ``_junk_url_match_threshold``. Batching
+        replaces a per-URL ``rules.match()`` call and cuts allocation
+        pressure to a single match invocation.
+        """
+        # Phase 1: cheap filters (blacklist + garbage)
+        candidates = []
         for url in urls:
             if any(bl in url for bl in self.url_blacklist):
                 continue
             if self._is_garbage_url(url):
                 continue
-            if self._junk_url_rules.match(data=url):
-                junk_dropped += 1
-                continue
-            kept.append(url)
-        return kept, junk_dropped
+            candidates.append(url)
+
+        if not candidates:
+            return [], 0
+
+        # Phase 2: batch YARA match on concatenated blob.
+        # YARA reports match offsets in bytes, so the blob and the offset
+        # table must both be built from the UTF-8 encodings. A char-count
+        # offset table is misaligned for any URL containing multibyte chars.
+        junk_set = set()
+        encoded = [url.encode("utf-8") for url in candidates]
+        blob = b"\n".join(encoded)
+        matches = self._junk_url_rules.match(data=blob)
+        if matches:
+            offsets = []
+            pos = 0
+            for enc in encoded:
+                offsets.append(pos)
+                pos += len(enc) + 1
+
+            match_counts = [0] * len(candidates)
+            for m in matches:
+                for s in m.strings:
+                    for instance in s.instances:
+                        idx = bisect.bisect_right(offsets, instance.offset) - 1
+                        if 0 <= idx < len(candidates):
+                            match_counts[idx] += 1
+
+            threshold = self._junk_url_match_threshold
+            for idx, count in enumerate(match_counts):
+                if count >= threshold:
+                    junk_set.add(idx)
+
+        kept = [url for idx, url in enumerate(candidates) if idx not in junk_set]
+        return kept, len(junk_set)
 
     def _is_interesting_file(self, url):
         ext = get_file_extension(url)
