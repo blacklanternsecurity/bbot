@@ -1,3 +1,6 @@
+import stat
+import tempfile
+
 from ..bbot_fixtures import *  # noqa F401
 
 from bbot.scanner import Scanner, Preset
@@ -1446,3 +1449,117 @@ def test_all_presets_ignores_non_preset_yaml(tmp_path):
         preset_mod.DEFAULT_PRESETS = orig_default_presets
         preset_mod.PRESET_PATH = orig_preset_path
         path_mod.PRESET_PATH = orig_path_singleton
+
+
+def test_config_isolated_during_tests():
+    # the suite must never resolve to the user's real ~/.config/bbot
+    from bbot.core import CORE
+
+    config_dir = CORE.files_config.config_dir
+    real_config_dir = (Path.home() / ".config" / "bbot").resolve()
+    assert config_dir != real_config_dir
+    assert str(config_dir).startswith(str(Path(tempfile.gettempdir()).resolve()))
+
+
+def test_config_reset(tmp_path, monkeypatch):
+    from bbot.core import CORE
+    from bbot.core.modules import MODULE_LOADER
+
+    files = CORE.files_config
+    monkeypatch.setattr(files, "config_dir", tmp_path)
+    monkeypatch.setattr(files, "config_filename", tmp_path / "bbot.yml")
+    monkeypatch.setattr(files, "secrets_filename", tmp_path / "secrets.yml")
+    config_file = tmp_path / "bbot.yml"
+    secrets_file = tmp_path / "secrets.yml"
+
+    # first run: files don't exist -> generated as commented templates
+    MODULE_LOADER.ensure_config_files()
+    assert config_file.is_file() and secrets_file.is_file()
+    # secrets.yml is owner-only from the start
+    assert stat.S_IMODE(secrets_file.stat().st_mode) == 0o600
+
+    # resetting "config" backs up the existing file and must not touch
+    # secrets.yml (where API keys live)
+    config_file.write_text("scope:\n  strict: false\n")
+    secrets_before = secrets_file.read_text()
+    backups = MODULE_LOADER.reset_config_files(["config"])
+    assert set(backups) == {tmp_path / "bbot.yml.bak"}
+    assert (tmp_path / "bbot.yml.bak").read_text() == "scope:\n  strict: false\n"
+    assert secrets_file.read_text() == secrets_before
+    # the regenerated file is a fresh commented template
+    assert "# NOTICE" in config_file.read_text()
+
+    # a backup of a hardened secrets.yml keeps its tightened permissions
+    secrets_file.chmod(0o400)
+    backups = MODULE_LOADER.reset_config_files(["secrets"])
+    assert set(backups) == {tmp_path / "secrets.yml.bak"}
+    assert stat.S_IMODE((tmp_path / "secrets.yml.bak").stat().st_mode) == 0o400
+    # the regenerated secrets.yml is still owner-only
+    assert stat.S_IMODE(secrets_file.stat().st_mode) & 0o077 == 0
+
+    # a second reset must not clobber the first backup
+    backups2 = MODULE_LOADER.reset_config_files(["secrets"])
+    assert set(backups2) == {tmp_path / "secrets.yml.bak.1"}
+    assert (tmp_path / "secrets.yml.bak").is_file()
+
+
+def test_config_reset_both(tmp_path, monkeypatch):
+    from bbot.core import CORE
+    from bbot.core.modules import MODULE_LOADER
+
+    files = CORE.files_config
+    monkeypatch.setattr(files, "config_dir", tmp_path)
+    monkeypatch.setattr(files, "config_filename", tmp_path / "bbot.yml")
+    monkeypatch.setattr(files, "secrets_filename", tmp_path / "secrets.yml")
+    config_file = tmp_path / "bbot.yml"
+
+    MODULE_LOADER.ensure_config_files()
+
+    # reset both at once -> both backed up
+    backups = MODULE_LOADER.reset_config_files(["config", "secrets"])
+    assert {b.name for b in backups} == {"bbot.yml.bak", "secrets.yml.bak"}
+
+    # resetting only "secrets" leaves bbot.yml untouched
+    config_before = config_file.read_text()
+    backups = MODULE_LOADER.reset_config_files(["secrets"])
+    assert set(backups) == {tmp_path / "secrets.yml.bak.1"}
+    assert config_file.read_text() == config_before
+
+
+def test_config_secret_file_permissions(tmp_path):
+    from bbot.core.modules import MODULE_LOADER
+
+    target = tmp_path / "secrets.yml"
+
+    # a brand-new secret file is owner-only, never world/group readable
+    MODULE_LOADER._write_secret_text(target, "secret a")
+    assert stat.S_IMODE(target.stat().st_mode) == 0o600
+    assert target.read_text() == "secret a"
+
+    # the user hardened it further -> rewrite preserves the tighter perms
+    target.chmod(0o400)
+    MODULE_LOADER._write_secret_text(target, "secret b")
+    assert stat.S_IMODE(target.stat().st_mode) == 0o400
+    assert target.read_text() == "secret b"
+
+    # an existing file with loose perms -> tightened back to owner-only
+    target.chmod(0o644)
+    MODULE_LOADER._write_secret_text(target, "secret c")
+    assert stat.S_IMODE(target.stat().st_mode) == 0o600
+    assert target.read_text() == "secret c"
+
+
+def test_config_secret_file_refuses_insecure(tmp_path, monkeypatch):
+    from bbot.core.modules import MODULE_LOADER
+    from bbot.errors import BBOTError
+
+    target = tmp_path / "secrets.yml"
+
+    # simulate a filesystem where we can't restrict permissions: the secret is
+    # not written, and no temp file is left behind
+    real_fchmod = os.fchmod
+    monkeypatch.setattr(os, "fchmod", lambda fd, mode: real_fchmod(fd, 0o644))
+    with pytest.raises(BBOTError, match="could not restrict permissions"):
+        MODULE_LOADER._write_secret_text(target, "secret stuff")
+    assert not target.exists()
+    assert list(tmp_path.glob(".secrets.yml.*")) == []

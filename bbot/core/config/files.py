@@ -1,5 +1,9 @@
+import os
 import sys
 import yaml
+import atexit
+import shutil
+import tempfile
 from pathlib import Path
 
 from .merge import deep_merge
@@ -9,15 +13,39 @@ from ...errors import ConfigLoadError
 
 bbot_code_dir = Path(__file__).parent.parent.parent
 
+# cached per-process so every BBOTConfigFiles in a run resolves to the same dir
+_test_config_dir = None
+
+
+def isolated_test_config_dir():
+    """A throwaway config dir for tests, so we never read or write the user's
+    real ~/.config/bbot. It's created fresh per run (so previous or concurrent
+    runs can't interfere) and shared across the run's processes via an env var
+    so spawned children resolve to the same dir."""
+    global _test_config_dir
+    if _test_config_dir is None:
+        env_dir = os.environ.get("BBOT_TEST_CONFIG_DIR")
+        if env_dir:
+            _test_config_dir = Path(env_dir)
+        else:
+            _test_config_dir = Path(tempfile.mkdtemp(prefix="bbot_test_config_"))
+            os.environ["BBOT_TEST_CONFIG_DIR"] = str(_test_config_dir)
+            atexit.register(lambda: shutil.rmtree(_test_config_dir, ignore_errors=True))
+    return _test_config_dir
+
 
 class BBOTConfigFiles:
-    config_dir = (Path.home() / ".config" / "bbot").resolve()
     defaults_filename = (bbot_code_dir / "defaults.yml").resolve()
-    config_filename = (config_dir / "bbot.yml").resolve()
-    secrets_filename = (config_dir / "secrets.yml").resolve()
 
     def __init__(self, core):
         self.core = core
+        if os.environ.get("BBOT_TESTING", "") == "True":
+            base_dir = isolated_test_config_dir()
+        else:
+            base_dir = Path.home() / ".config" / "bbot"
+        self.config_dir = base_dir.resolve()
+        self.config_filename = (self.config_dir / "bbot.yml").resolve()
+        self.secrets_filename = (self.config_dir / "secrets.yml").resolve()
 
     def _get_config(self, filename, name="config") -> dict:
         filename = Path(filename).resolve()

@@ -1,3 +1,4 @@
+import stat
 import yaml
 
 from ..bbot_fixtures import *
@@ -919,3 +920,99 @@ async def test_cli_no_color(monkeypatch):
     preset = Preset()
     preset.parse_args()
     assert os.environ.get("NO_COLOR") == "1"
+
+
+@pytest.mark.asyncio
+async def test_cli_reset_config(monkeypatch, caplog, tmp_path):
+    from bbot.core import CORE
+
+    monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
+    monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
+    caplog.set_level(logging.INFO)
+
+    files = CORE.files_config
+    monkeypatch.setattr(files, "config_dir", tmp_path)
+    monkeypatch.setattr(files, "config_filename", tmp_path / "bbot.yml")
+    monkeypatch.setattr(files, "secrets_filename", tmp_path / "secrets.yml")
+    config_file = tmp_path / "bbot.yml"
+    secrets_file = tmp_path / "secrets.yml"
+
+    # a customized bbot.yml on disk
+    config_file.write_text("scope:\n  strict: false\n")
+
+    # without --yes and no TTY, it refuses and changes nothing
+    monkeypatch.setattr("sys.argv", ["bbot", "--reset-config"])
+    caplog.clear()
+    await cli._main()
+    assert "Refusing to reset config without confirmation" in caplog.text
+    assert not (tmp_path / "bbot.yml.bak").exists()
+    assert config_file.read_text() == "scope:\n  strict: false\n"
+
+    # --reset-config -y regenerates bbot.yml and backs it up, but never touches secrets.yml
+    monkeypatch.setattr("sys.argv", ["bbot", "--reset-config", "-y"])
+    caplog.clear()
+    await cli._main()
+    assert "Regenerated config files" in caplog.text
+    assert (tmp_path / "bbot.yml.bak").is_file()
+    assert (tmp_path / "bbot.yml.bak").read_text() == "scope:\n  strict: false\n"
+    assert "# NOTICE" in config_file.read_text()
+    assert not (tmp_path / "secrets.yml.bak").exists()
+
+    # --reset-secrets -y regenerates secrets.yml (owner-only) and backs it up
+    monkeypatch.setattr("sys.argv", ["bbot", "--reset-secrets", "-y"])
+    caplog.clear()
+    await cli._main()
+    assert (tmp_path / "secrets.yml.bak").is_file()
+    assert stat.S_IMODE(secrets_file.stat().st_mode) & 0o077 == 0
+
+
+@pytest.mark.asyncio
+async def test_cli_reset_config_hint(monkeypatch, caplog, tmp_path):
+    from bbot.core import CORE
+
+    monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
+    monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
+    caplog.set_level(logging.INFO)
+
+    files = CORE.files_config
+    monkeypatch.setattr(files, "config_dir", tmp_path)
+    monkeypatch.setattr(files, "config_filename", tmp_path / "bbot.yml")
+    monkeypatch.setattr(files, "secrets_filename", tmp_path / "secrets.yml")
+
+    # a bbot.yml carrying an option that no longer exists (e.g. left over from
+    # an older version of BBOT), loaded into the config
+    (tmp_path / "bbot.yml").write_text("scope:\n  strct: false\n")
+    monkeypatch.setattr(CORE, "_custom_config", {"scope": {"strct": False}})
+
+    monkeypatch.setattr("sys.argv", ["bbot", "-t", "example.com"])
+    caplog.clear()
+    await cli._main()
+
+    # validation fails on the bad option, and (because it lives in bbot.yml) we
+    # point the user at --reset-config -- but not at --reset-secrets
+    assert "scope.strct" in caplog.text
+    assert "regenerating from current defaults with: bbot --reset-config" in caplog.text
+    assert "--reset-secrets" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_cli_reset_config_hint_skips_cli_typo(monkeypatch, caplog, tmp_path):
+    from bbot.core import CORE
+
+    monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
+    monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
+    caplog.set_level(logging.INFO)
+
+    files = CORE.files_config
+    monkeypatch.setattr(files, "config_dir", tmp_path)
+    monkeypatch.setattr(files, "config_filename", tmp_path / "bbot.yml")
+    monkeypatch.setattr(files, "secrets_filename", tmp_path / "secrets.yml")
+
+    # the bad option comes from the CLI, not from any config file on disk
+    monkeypatch.setattr("sys.argv", ["bbot", "-t", "example.com", "-c", "scope.strct=false"])
+    caplog.clear()
+    await cli._main()
+
+    # validation still fails, but there's nothing to reset -- so no hint
+    assert "scope.strct" in caplog.text
+    assert "regenerating from current defaults" not in caplog.text

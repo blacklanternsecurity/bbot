@@ -411,6 +411,16 @@ class BBOTArgs:
 
         misc = p.add_argument_group(title="Misc")
         misc.add_argument("--version", action="store_true", help="show BBOT version and exit")
+        misc.add_argument(
+            "--reset-config",
+            action="store_true",
+            help="Regenerate bbot.yml from current defaults (overwrites; backs up to .bak)",
+        )
+        misc.add_argument(
+            "--reset-secrets",
+            action="store_true",
+            help="Regenerate secrets.yml from current defaults (overwrites; backs up to .bak)",
+        )
         misc.add_argument("--proxy", help="Use this proxy for all HTTP requests", metavar="HTTP_PROXY")
         misc.add_argument(
             "--no-proxy",
