@@ -289,6 +289,7 @@ parameter_blacklist:
   - PHPSESSID
   - sessionid
   - csrftoken
+  - XSRF-TOKEN
   - __cf_bm
   - _cfuvid
   - cf_clearance
@@ -338,6 +339,7 @@ parameter_blacklist_prefixes:
   - _hjSession
   - _gat_
   - intercom-
+  - OAMRequestContext_
 
 # Don't output these types of events (they are still distributed to modules)
 omit_event_types:
