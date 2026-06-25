@@ -253,9 +253,8 @@ class Scanner:
         self.http_proxy = web_config.get("http_proxy", "")
         self.http_proxy_exclude = web_config.get("http_proxy_exclude", [])
         self.http_timeout = web_config.get("http_timeout", 10)
-        self.blasthttp_timeout = web_config.get("blasthttp_timeout", 5)
+        self.http_timeout_infrastructure = web_config.get("http_timeout_infrastructure", 10)
         self.http_retries = web_config.get("http_retries", 1)
-        self.blasthttp_retries = web_config.get("blasthttp_retries", 1)
         self.useragent = f"{web_config.get('user_agent', 'BBOT')} {web_config.get('user_agent_suffix') or ''}".strip()
         # custom HTTP headers warning
         self.custom_http_headers = web_config.get("http_headers", {})

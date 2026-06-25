@@ -180,7 +180,7 @@ class TestHTTP_custom_cookies(ModuleTestBase):
 class TestHTTP_429_retry(ModuleTestBase):
     """Test the module's own defer→cooldown→retry→succeed path.
 
-    blasthttp_retries=1 means blasthttp makes up to 2 wire attempts per request.
+    http_retries=1 means blasthttp makes up to 2 wire attempts per request.
     We return 429 for the first 2 requests (exhausting blasthttp's retry),
     so the module's 429 handler engages and defers with a cooldown. The 3rd
     request (from the module's retry after cooldown) succeeds.

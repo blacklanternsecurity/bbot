@@ -1342,6 +1342,8 @@ class BaseModule:
                 kwargs["headers"] = {}
             if "ssl_verify" not in kwargs:
                 kwargs["ssl_verify"] = self.helpers.web.ssl_verify_infrastructure
+            if "timeout" not in kwargs:
+                kwargs["timeout"] = self.http_timeout_infrastructure
             new_url, kwargs = self.prepare_api_request(url, kwargs)
             kwargs["url"] = new_url
 
@@ -1553,9 +1555,16 @@ class BaseModule:
     @property
     def http_timeout(self):
         """
-        Convenience shortcut to `http_timeout` in the config
+        Convenience shortcut to `http_timeout` in the config (target-directed traffic)
         """
         return self.scan.web_config.get("http_timeout", 10)
+
+    @property
+    def http_timeout_infrastructure(self):
+        """
+        Convenience shortcut to `http_timeout_infrastructure` in the config (APIs, wordlist downloads, etc.)
+        """
+        return self.scan.web_config.get("http_timeout_infrastructure", 10)
 
     @property
     def log(self):

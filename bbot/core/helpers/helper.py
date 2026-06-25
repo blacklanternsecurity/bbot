@@ -155,7 +155,8 @@ class ConfigAwareHelper:
         if self._cloudcheck is None:
             from cloudcheck import CloudCheck
 
-            self._cloudcheck = CloudCheck()
+            ssl_verify = self.web_config.get("ssl_verify_infrastructure", True)
+            self._cloudcheck = CloudCheck(verify_ssl=ssl_verify)
         return self._cloudcheck
 
     def bloom_filter(self, size):

@@ -289,6 +289,15 @@ class serial(BaseLightfuzz):
                     )
                     continue
 
+                # Skip inherently unstable baselines: 429 (rate limit) and 403 (often WAF challenge pages)
+                # flip between error and success unpredictably, producing false positives.
+                if baseline_status in (403, 429):
+                    self.debug(
+                        f"Baseline status {baseline_status} is transient (WAF/rate-limit), "
+                        f"skipping Error Resolution for {payload_type}"
+                    )
+                    continue
+
                 general_error_matches = await self.lightfuzz.helpers.yara.match(
                     self.general_error_yara_rules, response.text
                 )
