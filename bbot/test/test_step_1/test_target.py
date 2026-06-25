@@ -383,6 +383,7 @@ async def test_asn_targets(bbot_scanner):
     assert "ASN:15169" in target.seeds.inputs
 
     # Test ASN target expansion with real asndb (Google's AS15169)
+    scan = bbot_scanner("ASN:15169")
     target = BBOTTarget(target=["ASN:15169"])
 
     # Verify initial state
@@ -390,7 +391,7 @@ async def test_asn_targets(bbot_scanner):
     initial_seeds = len(target.seeds.event_seeds)
 
     # Generate children (expand ASN to IP ranges)
-    await target.generate_children()
+    await target.generate_children(helpers=scan.helpers)
 
     # After expansion, should have additional IP range seeds
     assert len(target.seeds.event_seeds) > initial_seeds
@@ -474,7 +475,8 @@ async def test_asn_targets_edge_cases(bbot_scanner):
 
     initial_seeds = len(target.seeds.event_seeds)
     with patch("asndb.ASNDB", return_value=mock_empty_client):
-        await target.generate_children()
+        scan = bbot_scanner("ASN:99999")
+        await target.generate_children(helpers=scan.helpers)
 
     # Should not add any new seeds for empty ASN
     assert len(target.seeds.event_seeds) == initial_seeds
@@ -580,6 +582,53 @@ async def test_asn_event_json_serialization(bbot_scanner):
         reconstructed = event_from_json(j)
         assert reconstructed.type == "ASN"
         assert reconstructed.data == {"asn": 12345}
+
+
+@pytest.mark.asyncio
+async def test_asn_resolution_failure_aborts_scan(bbot_scanner):
+    """When the asndb API is unreachable, the scan should abort gracefully with a helpful message."""
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    from bbot.errors import ScanError
+
+    mock_client = MagicMock()
+    mock_client.lookup_asn = AsyncMock(side_effect=Exception("connection refused"))
+    mock_client.cleanup = AsyncMock()
+
+    with patch("asndb.ASNDB", return_value=mock_client):
+        scan = bbot_scanner("ASN:15169")
+        with pytest.raises(ScanError, match="Failed to resolve ASN target"):
+            await scan._prep()
+
+    # Should have retried 3 times
+    assert mock_client.lookup_asn.call_count == 3
+
+
+@pytest.mark.asyncio
+async def test_asn_resolution_failure_retries(bbot_scanner):
+    """ASN resolution should succeed if a retry works after initial failures."""
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    call_count = 0
+
+    async def lookup_asn_side_effect(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count < 3:
+            raise Exception("connection refused")
+        return {"asn": 15169, "subnets": ["8.8.8.0/24"]}
+
+    mock_client = MagicMock()
+    mock_client.lookup_asn = AsyncMock(side_effect=lookup_asn_side_effect)
+    mock_client.cleanup = AsyncMock()
+
+    with patch("asndb.ASNDB", return_value=mock_client):
+        scan = bbot_scanner("ASN:15169")
+        await scan._prep()
+
+        # Should have succeeded on the 3rd attempt
+        assert call_count == 3
+        assert "8.8.8.0/24" in scan.preset.target.seeds.hosts
 
 
 @pytest.mark.asyncio

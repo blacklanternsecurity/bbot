@@ -631,6 +631,43 @@ class TestWaybackJunkUrlFilter(ModuleTestBase):
             assert any(path in u for u in emitted), f"Legit URL was filtered: {legit}"
 
 
+class TestWaybackJunkUrlFilterUnicode(ModuleTestBase):
+    """A multibyte URL preceding junk URLs must not desync the byte-offset
+    mapping used to attribute YARA matches back to individual URLs."""
+
+    module_name = "wayback"
+    modules_overrides = ["wayback"]
+    targets = ["blacklanternsecurity.com"]
+    config_overrides = {"modules": {"wayback": {"urls": True}}}
+
+    # leading URL with multibyte characters: each 'ü' is 2 UTF-8 bytes, so a
+    # char-count offset table would be misaligned for every URL after it,
+    # causing junk matches to be attributed to the wrong URL.
+    unicode_url = "https://blacklanternsecurity.com/" + ("ü" * 50)
+    junk_urls = [
+        "https://blacklanternsecurity.com/Aa1/Bb2/Cc3",
+        "https://blacklanternsecurity.com/Dd4/Ee5/Ff6",
+        "https://blacklanternsecurity.com/Gg7/Hh8/Ii9",
+    ]
+    # plain ASCII URL after the junk; must survive (proves good URLs aren't
+    # dropped by a misattributed match, and that the pipeline emitted at all)
+    legit_url = "https://blacklanternsecurity.com/about/contact"
+
+    async def setup_after_prep(self, module_test):
+        all_urls = [self.unicode_url, *self.junk_urls, self.legit_url]
+        module_test.blasthttp_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
+            json=[["original"], *([u] for u in all_urls)],
+        )
+
+    def check(self, module_test, events):
+        emitted = [e.url for e in events if e.type == "URL_UNVERIFIED"]
+        assert any("/about/contact" in u for u in emitted), "Legit URL was filtered or pipeline emitted nothing"
+        for junk in self.junk_urls:
+            path = junk.split("blacklanternsecurity.com", 1)[1]
+            assert not any(path in u for u in emitted), f"Junk URL leaked past filter: {junk}"
+
+
 class TestWaybackArchive429Retry(ModuleTestBase):
     """Archive fetches that get 429 rate-limited should back off and retry successfully."""
 

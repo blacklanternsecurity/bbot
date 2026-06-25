@@ -16,7 +16,7 @@ jobs:
       matrix:
         os: ["ubuntu:22.04", "ubuntu:24.04", "debian", "archlinux", "fedora", "kalilinux/kali-rolling"]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install Python and uv
         run: |
           if [ -f /etc/os-release ]; then

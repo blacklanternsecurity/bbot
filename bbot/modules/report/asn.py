@@ -18,8 +18,7 @@ class asn(BaseReportModule):
 
     async def setup(self):
         self.unknown_asn = ASNHelper.UNKNOWN_ASN
-        # Track ASN counts locally for reporting
-        self.asn_counts = {}  # ASN number -> count mapping
+        self.asn_metadata = {}
         return True
 
     async def filter_event(self, event):
@@ -41,10 +40,14 @@ class asn(BaseReportModule):
             asn_country = asn_data.get("country", "")
             subnets = asn_data.get("subnets", [])
 
-            # Track ASN subnet counts for reporting (only once per ASN)
             if asn_number and asn_number != 0:
-                if asn_number not in self.asn_counts:
-                    self.asn_counts[asn_number] = len(subnets)
+                if asn_number not in self.asn_metadata:
+                    self.asn_metadata[asn_number] = {
+                        "subnet_count": len(subnets),
+                        "name": asn_name,
+                        "description": asn_description,
+                        "country": asn_country,
+                    }
 
             # Don't emit ASN 0 - it's reserved and indicates unknown ASN data
             if asn_number != 0:
@@ -56,34 +59,21 @@ class asn(BaseReportModule):
                     )
 
     async def report(self):
-        """Generate an ASN summary table based on locally tracked ASN counts."""
-
-        if not self.asn_counts:
+        if not self.asn_metadata:
             return
 
-        # Build table rows sorted by ASN number (low to high)
-        sorted_asns = sorted(self.asn_counts.items(), key=lambda x: int(x[0]))
+        sorted_asns = sorted(self.asn_metadata.items(), key=lambda x: int(x[0]))
 
         header = ["ASN", "Subnet Count", "Name", "Description", "Country"]
         table = []
-        for asn_number, subnet_count in sorted_asns:
-            # Get ASN details from helper
-            asn_data = await self.helpers.asn.asn_to_subnets(asn_number)
-            if asn_data:
-                asn_name = asn_data.get("name", "")
-                asn_description = asn_data.get("description", "")
-                asn_country = asn_data.get("country", "")
-            else:
-                asn_name = asn_description = asn_country = "unknown"
-
-            number = f"AS{asn_number}" if asn_number != 0 else str(asn_number)
+        for asn_number, metadata in sorted_asns:
             table.append(
                 [
-                    number,
-                    f"{subnet_count:,}",
-                    asn_name,
-                    asn_description,
-                    asn_country,
+                    f"AS{asn_number}",
+                    f"{metadata['subnet_count']:,}",
+                    metadata["name"],
+                    metadata["description"],
+                    metadata["country"],
                 ]
             )
 
