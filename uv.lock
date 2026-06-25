@@ -298,8 +298,8 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "fastapi", specifier = ">=0.115.5,<0.139.0" },
     { name = "baddns", specifier = "~=2.4.1" },
-    { name = "fastapi", specifier = ">=0.115.5,<0.137.0" },
     { name = "maturin", specifier = ">=1.4,<2" },
     { name = "pre-commit", specifier = ">=3.4,<5.0" },
     { name = "pytest", specifier = ">=8.3.1,<10" },
