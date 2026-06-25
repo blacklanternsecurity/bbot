@@ -219,9 +219,10 @@ async def _main():
                 if isinstance(file_config, dict) and validate_preset(
                     {"config": file_config}, module_loader=preset.module_loader
                 ):
-                    log.info(
-                        f"Some options in {spec['path']} are not recognized. If they are left over from an "
-                        f"older version of BBOT, regenerate it from current defaults with: bbot {spec['reset_flag']}"
+                    log.warning(
+                        f"Some options in {spec['path']} are not recognized. They may be left over from an "
+                        f"older version of BBOT. You have the option of regenerating from current defaults "
+                        f"with: bbot {spec['reset_flag']}"
                     )
             return
         baked_preset = preset.bake()

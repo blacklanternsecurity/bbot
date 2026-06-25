@@ -991,7 +991,7 @@ async def test_cli_reset_config_hint(monkeypatch, caplog, tmp_path):
     # validation fails on the bad option, and (because it lives in bbot.yml) we
     # point the user at --reset-config -- but not at --reset-secrets
     assert "scope.strct" in caplog.text
-    assert "regenerate it from current defaults with: bbot --reset-config" in caplog.text
+    assert "regenerating from current defaults with: bbot --reset-config" in caplog.text
     assert "--reset-secrets" not in caplog.text
 
 
@@ -1015,4 +1015,4 @@ async def test_cli_reset_config_hint_skips_cli_typo(monkeypatch, caplog, tmp_pat
 
     # validation still fails, but there's nothing to reset -- so no hint
     assert "scope.strct" in caplog.text
-    assert "regenerate it from current defaults" not in caplog.text
+    assert "regenerating from current defaults" not in caplog.text
