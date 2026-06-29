@@ -396,7 +396,7 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/Stabl
         - [Nuclei](https://www.blacklanternsecurity.com/bbot/Stable/modules/nuclei)
         - [Wayback](https://www.blacklanternsecurity.com/bbot/Stable/modules/wayback)
         - [Custom YARA Rules](https://www.blacklanternsecurity.com/bbot/Stable/modules/custom_yara_rules)
-        - [Lightfuzz (DAST)](https://www.blacklanternsecurity.com/bbot/Stable/modules/lightfuzz)
+        - [Lightfuzz](https://www.blacklanternsecurity.com/bbot/Stable/modules/lightfuzz)
     - **Misc**
         - [Contribution](https://www.blacklanternsecurity.com/bbot/Stable/contribution)
         - [Release History](https://www.blacklanternsecurity.com/bbot/Stable/release_history)
