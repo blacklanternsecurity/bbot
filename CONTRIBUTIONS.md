@@ -2,4 +2,4 @@
 
 See our full contribution guide at:
 
-**https://www.blacklanternsecurity.com/bbot/Dev/contribution/**
+**https://www.blacklanternsecurity.com/bbot/Stable/contribution/**
