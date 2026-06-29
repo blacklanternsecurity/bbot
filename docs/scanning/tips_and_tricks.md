@@ -161,7 +161,7 @@ If you already have a list of discovered targets (e.g. URLs) and don't need DNS-
 bbot -m http gowitness -t urls.txt -c dns.disable=true
 ~~~
 
-Note that the above setting _completely_ disables DNS, meaning even `A` and `AAAA` records are not resolved. This can cause problems if you're using an IP whitelist or blacklist. In this case, you'll want to use `dns.minimal` instead:
+Note that the above setting _completely_ disables DNS, meaning even `A` and `AAAA` records are not resolved. This can cause problems if you're using an IP-based target or blacklist. In this case, you'll want to use `dns.minimal` instead:
 
 ~~~bash
 # only resolve A and AAAA records
