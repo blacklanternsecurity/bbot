@@ -140,7 +140,7 @@ Modules fall into three categories:
 - **Scan Modules**:
     - These make up the majority of modules. Examples are `portscan`, `sslcert`, `http`, etc. Enable with `-m`.
 - **Output Modules**:
-    - These output scan data to different formats/destinations. `human`, `json`, and `csv` are enabled by default. Enable others with `-om`. (See: [Output](output.md))
+    - These output scan data to different formats/destinations. `txt`, `json`, and `csv` are enabled by default. Add others with `-om`, or remove defaults with `-eom`. (See: [Output](output.md))
 - **Internal Modules**:
     - These modules perform essential, common-sense tasks. They are always enabled, unless explicitly disabled via the config (e.g. `-c speculate=false`).
         - `aggregate`: Summarizes results at the end of a scan

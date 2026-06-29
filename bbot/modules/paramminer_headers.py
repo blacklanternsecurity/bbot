@@ -133,7 +133,7 @@ class paramminer_headers(BaseModule):
     async def setup(self):
         self.recycle_words = self.config.get("recycle_words", True)
         self.event_dict = {}
-        self.already_checked = set()
+        self.already_checked = {}
 
         # global parameter blacklist (shared with excavate) — known framework/CDN/tracker names
         self.global_blacklist = {p.lower() for p in self.scan.config.get("parameter_blacklist", [])}
@@ -165,10 +165,10 @@ class paramminer_headers(BaseModule):
         return self.helpers.rand_string(*args, **kwargs)
 
     async def do_mining(self, wl, url, batch_size, compare_helper):
+        url_checked = self.already_checked.setdefault(url, set())
         for i in wl:
             if i not in self.wl:
-                h = hash(i + url)
-                self.already_checked.add(h)
+                url_checked.add(hash(i))
 
         results = set()
         abort_threshold = 15
@@ -316,10 +316,9 @@ class paramminer_headers(BaseModule):
             except HttpCompareError as e:
                 self.debug(f"Error initializing compare helper: {e}")
                 continue
+            url_checked = self.already_checked.get(url, set())
             words_to_process = {
-                i
-                for i in self._mutate_for_url(url, self.extracted_words_master)
-                if hash(i + url) not in self.already_checked
+                i for i in self._mutate_for_url(url, self.extracted_words_master) if hash(i) not in url_checked
             }
             try:
                 results = await self.do_mining(words_to_process, url, batch_size, compare_helper)
@@ -327,6 +326,7 @@ class paramminer_headers(BaseModule):
                 self.debug(f"Encountered HttpCompareError: [{e}] for URL [{url}]")
                 continue
             await self.process_results(event, results)
+            self.already_checked.pop(url, None)
 
     def _incoming_dedup_hash(self, event):
         # dedup by endpoint structure, not full URL string -- value mutations

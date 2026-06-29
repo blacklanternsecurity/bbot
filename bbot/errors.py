@@ -72,3 +72,7 @@ class DNSError(BBOTError):
 
 class ExcavateError(BBOTError):
     pass
+
+
+class ASNResolutionError(BBOTError):
+    pass

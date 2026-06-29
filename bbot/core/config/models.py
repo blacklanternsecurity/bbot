@@ -282,12 +282,11 @@ class WebConfig(BaseModel):
     spider_depth: Optional[int] = None
     spider_links_per_page: Optional[int] = None
     http_timeout: Optional[int] = None
-    blasthttp_timeout: Optional[int] = None
+    http_timeout_infrastructure: Optional[int] = None
     http_headers: Optional[dict[str, str]] = None
     http_cookies: Optional[dict[str, str]] = Field(default=None, sensitive=True)
     api_retries: Optional[int] = None
     http_retries: Optional[int] = None
-    blasthttp_retries: Optional[int] = None
     http_rate_limit: Optional[int] = None
     body_spill: Optional[BodySpillConfig] = None
     # The `429_*` keys start with a digit, so we expose them via aliases.
@@ -391,6 +390,7 @@ class BBOTConfig(BaseModel):
     dnsresolve: Optional[bool] = None
     cloudcheck: Optional[bool] = None
     unarchive: Optional[bool] = None
+    python: Optional[bool] = None
 
     # URL handling
     url_querystring_remove: Optional[bool] = None
@@ -443,6 +443,7 @@ class PresetSchema(BaseModel):
     modules: Optional[list[str]] = None
     output_modules: Optional[list[str]] = None
     exclude_modules: Optional[list[str]] = None
+    exclude_output_modules: Optional[list[str]] = None
     flags: Optional[list[str]] = None
     require_flags: Optional[list[str]] = None
     exclude_flags: Optional[list[str]] = None

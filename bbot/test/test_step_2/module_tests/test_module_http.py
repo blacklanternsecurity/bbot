@@ -180,7 +180,7 @@ class TestHTTP_custom_cookies(ModuleTestBase):
 class TestHTTP_429_retry(ModuleTestBase):
     """Test the module's own defer→cooldown→retry→succeed path.
 
-    blasthttp_retries=1 means blasthttp makes up to 2 wire attempts per request.
+    http_retries=1 means blasthttp makes up to 2 wire attempts per request.
     We return 429 for the first 2 requests (exhausting blasthttp's retry),
     so the module's 429 handler engages and defers with a cooldown. The 3rd
     request (from the module's retry after cooldown) succeeds.
@@ -208,6 +208,45 @@ class TestHTTP_429_retry(ModuleTestBase):
         )
         assert not any(e.type == "URL" and "status-429" in e.tags for e in events), (
             "429 response should not be emitted as a URL event"
+        )
+
+
+class TestHTTP_url_metadata(ModuleTestBase):
+    """White-box test of make_url_metadata's OPEN_TCP_PORT probe set.
+
+    Well-known ports only probe their matching scheme (443→https, 80→http);
+    every other port probes both. url_hash stays scheme-independent so incoming
+    dedup is unaffected, and IPv6 hosts get bracketed netlocs.
+    """
+
+    targets = ["http://127.0.0.1:8888"]
+    module_name = "http"
+    modules_overrides = ["http"]
+
+    def check(self, module_test, events):
+        module = module_test.module
+        make_event = module_test.scan.make_event
+
+        e443 = make_event("127.0.0.1:443", "OPEN_TCP_PORT", dummy=True)
+        urls, url_hash = module.make_url_metadata(e443)
+        assert urls == ["https://127.0.0.1:443/"], "port 443 should probe https only"
+        # url_hash is scheme-independent, so OPEN_TCP_PORT dedup is unaffected
+        assert url_hash == hash((e443.host, e443.port, False))
+
+        e80 = make_event("127.0.0.1:80", "OPEN_TCP_PORT", dummy=True)
+        urls, _ = module.make_url_metadata(e80)
+        assert urls == ["http://127.0.0.1:80/"], "port 80 should probe http only"
+
+        e8080 = make_event("127.0.0.1:8080", "OPEN_TCP_PORT", dummy=True)
+        urls, _ = module.make_url_metadata(e8080)
+        assert urls == ["http://127.0.0.1:8080/", "https://127.0.0.1:8080/"], (
+            "non-well-known ports should probe both schemes"
+        )
+
+        e6 = make_event("[dead::beef]:8080", "OPEN_TCP_PORT", dummy=True)
+        urls, _ = module.make_url_metadata(e6)
+        assert urls == ["http://[dead::beef]:8080/", "https://[dead::beef]:8080/"], (
+            "IPv6 hosts should produce bracketed netlocs"
         )
 
 
