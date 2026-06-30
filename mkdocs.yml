@@ -35,6 +35,8 @@ nav:
     - Wayback: modules/wayback.md
     - Custom YARA Rules: modules/custom_yara_rules.md
     - Lightfuzz: modules/lightfuzz.md
+  - Migration:
+    - 2.x → 3.0 Breaking Changes: migration/3.0_breaking_changes.md
   - Misc:
     - Contribution: contribution.md
     - Release History: release_history.md
