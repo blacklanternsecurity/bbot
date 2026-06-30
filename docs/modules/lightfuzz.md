@@ -36,7 +36,7 @@ Severity represents how bad the issue is *if it's real*. Levels, from worst to l
 | **HIGH** | Significant security impact (e.g., SQL injection, SSRF, path traversal, unsafe deserialization) |
 | **MEDIUM** | Moderate impact, often client-side (e.g., XSS, ESI) |
 | **LOW** | Minor or limited-scope issue |
-| **INFORMATIONAL** | Interesting observation, not directly exploitable (e.g., cryptographic parameter detected) |
+| **INFO** | Interesting observation, not directly exploitable (e.g., cryptographic parameter detected) |
 
 ### Confidence
 
@@ -159,13 +159,13 @@ This stage bypasses the entropy gate (Stage 1) because the short ASCII plaintext
 
 **Stage 1 — Cryptanalysis Gate**: Checks if the parameter value is likely encrypted by calculating Shannon entropy (threshold: 4.5) and whether its decoded length is a multiple of 8 (suggesting a block cipher). If entropy is below threshold, all per-value tests are skipped (Stage 0's cross-value check has already run).
 
-**Stage 2 — Response Divergence** (INFORMATIONAL severity, LOW confidence): Performs byte-level manipulations (truncation and single-byte mutation) and compares responses against both the baseline and an arbitrary garbage value. If the manipulated ciphertext produces a *different* response from both the original *and* garbage input, the parameter likely drives a real cryptographic operation.
+**Stage 2 — Response Divergence** (INFO severity, LOW confidence): Performs byte-level manipulations (truncation and single-byte mutation) and compares responses against both the baseline and an arbitrary garbage value. If the manipulated ciphertext produces a *different* response from both the original *and* garbage input, the parameter likely drives a real cryptographic operation.
 
-**Stage 3 — Error String Detection** (INFORMATIONAL severity, LOW confidence): Scans manipulation responses for cryptographic error messages using YARA rules (e.g., "padding is invalid", "invalid mac", "OpenSSL Error"). Errors present in the baseline are filtered out to avoid false positives.
+**Stage 3 — Error String Detection** (INFO severity, LOW confidence): Scans manipulation responses for cryptographic error messages using YARA rules (e.g., "padding is invalid", "invalid mac", "OpenSSL Error"). Errors present in the baseline are filtered out to avoid false positives.
 
 **Stage 4 — Padding Oracle** (HIGH severity, HIGH confidence): If a block cipher is suspected, performs a targeted padding oracle test. Constructs a crafted ciphertext with a null IV block and iterates through all 256 possible last-byte values. A true padding oracle produces a small number of differing responses (1 up to block_size, since multi-byte padding values like `\x02\x02` can also produce valid padding if the intermediate bytes happen to align). To avoid false positives from servers that reflect or reveal submitted/decrypted values, probe values are stripped from both responses before comparison, and small character-level differences (≤5 chars in equal-length responses) are tolerated. Handles the edge case where the baseline byte is the correct padding byte (1/255 chance) by retrying with a different baseline.
 
-**Stage 5 — Hash Length Extension** (INFORMATIONAL severity, LOW confidence): If the parameter value matches a known hash length (MD5/SHA-1/SHA-256/SHA-384/SHA-512), checks whether modifying *other* parameters on the same request causes the hash parameter's response to change — suggesting those parameters are inputs to the hash, which could enable length extension attacks.
+**Stage 5 — Hash Length Extension** (INFO severity, LOW confidence): If the parameter value matches a known hash length (MD5/SHA-1/SHA-256/SHA-384/SHA-512), checks whether modifying *other* parameters on the same request causes the hash parameter's response to change — suggesting those parameters are inputs to the hash, which could enable length extension attacks.
 
 ### `serial` — Unsafe Deserialization
 

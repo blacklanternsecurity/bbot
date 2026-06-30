@@ -76,8 +76,8 @@ ruff format --check  # verify formatting without changes
 ### Git Workflow
 
 - `stable` - production releases
-- `dev` - active development, PR target
-- Feature branches are created from `dev`
+- `dev` - active development, **almost all PRs should target this branch**
+- Feature branches should be created from `dev`
 
 ---
 
@@ -121,7 +121,7 @@ BBOT is an async, recursive OSINT tool. A scan starts with **seed events** (targ
 
 Events are the currency of BBOT. Every piece of data -- a hostname, IP, URL, open port, finding -- is an event. Events have:
 
-- **type**: `DNS_NAME`, `IP_ADDRESS`, `URL`, `OPEN_TCP_PORT`, `HTTP_RESPONSE`, `FINDING`, `VULNERABILITY`, `EMAIL_ADDRESS`, etc.
+- **type**: `DNS_NAME`, `IP_ADDRESS`, `URL`, `OPEN_TCP_PORT`, `HTTP_RESPONSE`, `FINDING`, `EMAIL_ADDRESS`, etc.
 - **data**: the actual data (a string, dict, etc.)
 - **parent**: the event that led to this one (forming a discovery chain)
 - **scope_distance**: how many hops from the original target (0 = in-scope)

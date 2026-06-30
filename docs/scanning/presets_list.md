@@ -116,6 +116,7 @@ Recursive web directory brute-force (aggressive)
           # we exploit the shortnames vulnerability to produce URL_HINTs which are consumed by webbrute_shortnames
           detect_only: False
         webbrute:
+          avoid_wafs: False
           max_depth: 3
           lines: 5000
           extensions:
@@ -282,7 +283,7 @@ Everything everywhere all at once
 ??? note "`kitchen-sink.yml`"
     ```yaml title="~/.bbot/presets/kitchen-sink.yml"
     description: Everything everywhere all at once
-
+    
     include:
       - subdomain-enum
       - cloud-enum
@@ -294,7 +295,7 @@ Everything everywhere all at once
       - dirbust-light
       - web-screenshots
       - baddns-heavy
-
+    
     config:
       modules:
         baddns:
@@ -303,6 +304,8 @@ Everything everywhere all at once
           recursive_mutations: true
         dnscommonsrv:
           recursive_mutations: true
+        webbrute:
+          avoid_wafs: False
         wayback:
           urls: True
           parameters: True
@@ -353,11 +356,11 @@ Aggressive fuzzing: everything in lightfuzz, plus paramminer brute-force paramet
     
     flags:
       - web-paramminer
-
+    
     modules:
       - robots
       - wayback
-
+    
     config:
       modules:
         lightfuzz:
@@ -788,25 +791,121 @@ Detect technologies via Nuclei, and FingerprintX
 
 Modules: [0]("")
 
-## **test**
+## **virtualhost**
 
-Detect technologies via Nuclei, and FingerprintX
+Virtual host discovery: subdomain brute-force and mutations against the target host's Host header / SNI.
 
-??? note "`test.yml`"
-    ```yaml title="~/.bbot/presets/test.yml"
-    description: Detect technologies via Nuclei, and FingerprintX
+??? note "`virtualhost.yml`"
+    ```yaml title="~/.bbot/presets/web/virtualhost.yml"
+    description: "Virtual host discovery: subdomain brute-force and mutations against the target host's Host header / SNI."
     
     modules:
-      - nuclei
-      - fingerprintx
+      - virtualhost
+    ```
+
+Category: web
+
+Modules: [0]("")
+
+## **virtualhost-heavy**
+
+Aggressive virtual host discovery: everything in virtualhost, plus special-host probing, certificate SAN extraction, and wordcloud-driven candidate testing.
+
+??? note "`virtualhost-heavy.yml`"
+    ```yaml title="~/.bbot/presets/web/virtualhost-heavy.yml"
+    description: "Aggressive virtual host discovery: everything in virtualhost, plus special-host probing, certificate SAN extraction, and wordcloud-driven candidate testing."
     
-    target:
-      - tesasdft.txt
+    include:
+      - virtualhost
     
     config:
       modules:
-        nuclei:
-          tags: tech
+        virtualhost:
+          special_hosts: True
+          certificate_sans: True
+          wordcloud_check: True
+    ```
+
+Category: web
+
+Modules: [0]("")
+
+## **waf-bypass**
+
+WAF bypass detection with subdomain enumeration
+
+??? note "`waf-bypass.yml`"
+    ```yaml title="~/.bbot/presets/waf-bypass.yml"
+    description: WAF bypass detection with subdomain enumeration
+    
+    flags:
+      # enable subdomain enumeration to find potential bypass targets
+      - subdomain-enum
+    
+    modules:
+      # explicitly enable the waf_bypass module for detection
+      - waf_bypass
+      # ensure http is enabled for web probing
+      - http
+    
+    config:
+      # waf_bypass module configuration
+      modules:
+        waf_bypass:
+          similarity_threshold: 0.90
+          search_ip_neighbors: true
+          neighbor_cidr: 24 
+    ```
+
+
+
+Modules: [0]("")
+
+## **wayback**
+
+Discover URLs and interesting archived files via the Wayback Machine
+
+??? note "`wayback.yml`"
+    ```yaml title="~/.bbot/presets/wayback.yml"
+    description: Discover URLs and interesting archived files via the Wayback Machine
+    
+    include:
+      - subdomain-enum
+    
+    modules:
+      - wayback
+    
+    config:
+      modules:
+        wayback:
+          urls: True
+    ```
+
+
+
+Modules: [0]("")
+
+## **wayback-heavy**
+
+Full Wayback Machine integration - URL discovery, parameter extraction, archived page retrieval, and interesting file detection
+
+??? note "`wayback-heavy.yml`"
+    ```yaml title="~/.bbot/presets/wayback-heavy.yml"
+    description: Full Wayback Machine integration - URL discovery, parameter extraction, archived page retrieval, and interesting file detection
+    
+    include:
+      - subdomain-enum
+    
+    modules:
+      - wayback
+      - badsecrets
+    
+    config:
+      modules:
+        wayback:
+          urls: True
+          parameters: True
+          archive: True
     ```
 
 
@@ -876,78 +975,7 @@ Take screenshots of webpages
 
 
 
-Modules: [3]("`gowitness`, `httpx`, `social`")
-
-## **web-thorough**
-
-Aggressive web scan
-
-??? note "`web-thorough.yml`"
-    ```yaml title="~/.bbot/presets/web-thorough.yml"
-    description: Aggressive web scan
-    
-    include:
-      # include the web-basic preset
-      - web-basic
-    
-    flags:
-      - web-thorough
-    ```
-
-
-
-Modules: [32]("`ajaxpro`, `aspnet_bin_exposure`, `azure_realm`, `baddns`, `badsecrets`, `bucket_amazon`, `bucket_digitalocean`, `bucket_firebase`, `bucket_google`, `bucket_microsoft`, `bypass403`, `dotnetnuke`, `ffuf_shortnames`, `filedownload`, `generic_ssrf`, `git`, `graphql_introspection`, `host_header`, `httpx`, `hunt`, `iis_shortnames`, `lightfuzz`, `ntlm`, `oauth`, `reflected_parameters`, `retirejs`, `robots`, `securitytxt`, `smuggler`, `sslcert`, `telerik`, `url_manipulation`")
-
-## **wayback**
-
-Discover URLs and interesting archived files via the Wayback Machine
-
-??? note "`wayback.yml`"
-    ```yaml title="~/.bbot/presets/wayback.yml"
-    description: Discover URLs and interesting archived files via the Wayback Machine
-
-    include:
-      - subdomain-enum
-
-    modules:
-      - wayback
-
-    config:
-      modules:
-        wayback:
-          urls: True
-    ```
-
-
-
-Modules: [52]("`anubisdb`, `asn`, `azure_realm`, `azure_tenant`, `baddns_direct`, `baddns_zone`, `bevigil`, `bufferoverrun`, `builtwith`, `c99`, `censys_dns`, `certspotter`, `chaos`, `crt`, `crt_db`, `digitorus`, `dnsbimi`, `dnsbrute`, `dnsbrute_mutations`, `dnscaa`, `dnscommonsrv`, `dnsdumpster`, `dnstlsrpt`, `fullhunt`, `github_codesearch`, `github_org`, `hackertarget`, `httpx`, `hunterio`, `ipneighbor`, `leakix`, `myssl`, `oauth`, `otx`, `passivetotal`, `postman`, `postman_download`, `rapiddns`, `securitytrails`, `securitytxt`, `shodan_dns`, `shodan_idb`, `sitedossier`, `social`, `sslcert`, `subdomaincenter`, `subdomainradar`, `trickest`, `urlscan`, `virustotal`, `wayback`, `httpx`")
-
-## **wayback-heavy**
-
-Full Wayback Machine integration - URL discovery, parameter extraction, archived page retrieval, and interesting file detection
-
-??? note "`wayback-heavy.yml`"
-    ```yaml title="~/.bbot/presets/wayback-heavy.yml"
-    description: Full Wayback Machine integration - URL discovery, parameter extraction, archived page retrieval, and interesting file detection
-
-    include:
-      - subdomain-enum
-
-    modules:
-      - wayback
-      - badsecrets
-
-    config:
-      modules:
-        wayback:
-          urls: True
-          parameters: True
-          archive: True
-    ```
-
-
-
-Modules: [53]("`anubisdb`, `asn`, `azure_realm`, `azure_tenant`, `baddns_direct`, `baddns_zone`, `badsecrets`, `bevigil`, `bufferoverrun`, `builtwith`, `c99`, `censys_dns`, `certspotter`, `chaos`, `crt`, `crt_db`, `digitorus`, `dnsbimi`, `dnsbrute`, `dnsbrute_mutations`, `dnscaa`, `dnscommonsrv`, `dnsdumpster`, `dnstlsrpt`, `fullhunt`, `github_codesearch`, `github_org`, `hackertarget`, `httpx`, `hunterio`, `ipneighbor`, `leakix`, `myssl`, `oauth`, `otx`, `passivetotal`, `postman`, `postman_download`, `rapiddns`, `securitytrails`, `securitytxt`, `shodan_dns`, `shodan_idb`, `sitedossier`, `social`, `sslcert`, `subdomaincenter`, `subdomainradar`, `trickest`, `urlscan`, `virustotal`, `wayback`, `httpx`")
+Modules: [0]("")
 <!-- END BBOT PRESET YAML -->
 
 ## Table of Default Presets
@@ -969,9 +997,9 @@ Here is a the same data, but in a table:
 | iis-shortnames    | web        | Recursively enumerate IIS shortnames                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | 0           |                                                                                                    |
 | kitchen-sink      |            | Everything everywhere all at once                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | 7           | baddns, baddns_direct, baddns_zone, http, hunt, reflected_parameters, webbrute                     |
 | lightfuzz         | web        | Default fuzzing: all 9 submodules (cmdi, crypto, path, serial, sqli, ssti, xss, esi, ssrf) plus companion modules (badsecrets, hunt, reflected_parameters). POST fuzzing disabled but try_post_as_get enabled, so POST params are retested as GET. Skips confirmed WAFs.                                                                                                                                                                                                                                | 6           | badsecrets, http, hunt, lightfuzz, portfilter, reflected_parameters                                |
-| lightfuzz-heavy   | web        | Aggressive fuzzing: everything in lightfuzz, plus paramminer brute-force parameter discovery (headers, GET params, cookies), POST request fuzzing enabled, try_get_as_post enabled (GET params retested as POST), and robots.txt parsing. Still skips confirmed WAFs.                                                                                                                                                                                                                                   | 7           | badsecrets, http, hunt, lightfuzz, portfilter, reflected_parameters, robots                        |
+| lightfuzz-heavy   | web        | Aggressive fuzzing: everything in lightfuzz, plus paramminer brute-force parameter discovery (headers, GET params, cookies), POST request fuzzing enabled, try_get_as_post enabled (GET params retested as POST), and robots.txt parsing. Still skips confirmed WAFs.                                                                                                                                                                                                                                   | 8           | badsecrets, http, hunt, lightfuzz, portfilter, reflected_parameters, robots, wayback               |
 | lightfuzz-light   | web        | Minimal fuzzing: only path traversal, SQLi, and XSS submodules. No POST requests. No companion modules. Safest option for running alongside larger scans with minimal overhead.                                                                                                                                                                                                                                                                                                                         | 3           | http, lightfuzz, portfilter                                                                        |
-| lightfuzz-max     | web        | Maximum fuzzing: everything in lightfuzz-heavy, plus the heavy paramminer variant (1-3 letter brute-force on GET params, case mutation on case-sensitive backends, recycle_words on all paramminer modules), WAF targets are no longer skipped, each unique parameter-value pair is fuzzed individually (no collapsing), common headers like X-Forwarded-For are fuzzed even if not observed, and potential parameters are speculated from JSON/XML response bodies. Significantly increases scan time. | 7           | badsecrets, http, hunt, lightfuzz, portfilter, reflected_parameters, robots                        |
+| lightfuzz-max     | web        | Maximum fuzzing: everything in lightfuzz-heavy, plus the heavy paramminer variant (1-3 letter brute-force on GET params, case mutation on case-sensitive backends, recycle_words on all paramminer modules), WAF targets are no longer skipped, each unique parameter-value pair is fuzzed individually (no collapsing), common headers like X-Forwarded-For are fuzzed even if not observed, and potential parameters are speculated from JSON/XML response bodies. Significantly increases scan time. | 8           | badsecrets, http, hunt, lightfuzz, portfilter, reflected_parameters, robots, wayback               |
 | lightfuzz-xss     | web        | XSS-only: enables only the xss submodule with paramminer_getparams and reflected_parameters. POST disabled, no query string collapsing. Example of a focused single-submodule preset.                                                                                                                                                                                                                                                                                                                   | 5           | http, lightfuzz, paramminer_getparams, portfilter, reflected_parameters                            |
 | nuclei            | nuclei     | Run nuclei scans against all discovered targets                                                                                                                                                                                                                                                                                                                                                                                                                                                         | 3           | http, nuclei, portfilter                                                                           |
 | nuclei-budget     | nuclei     | Run nuclei scans against all discovered targets, using budget mode to look for low hanging fruit with greatly reduced number of requests                                                                                                                                                                                                                                                                                                                                                                | 3           | http, nuclei, portfilter                                                                           |
@@ -983,9 +1011,11 @@ Here is a the same data, but in a table:
 | spider-heavy      |            | Recursive web spider with more aggressive settings                                                                                                                                                                                                                                                                                                                                                                                                                                                      | 1           | http                                                                                               |
 | subdomain-enum    |            | Enumerate subdomains via APIs, brute-force                                                                                                                                                                                                                                                                                                                                                                                                                                                              | 0           |                                                                                                    |
 | tech-detect       |            | Detect technologies via Nuclei, and FingerprintX                                                                                                                                                                                                                                                                                                                                                                                                                                                        | 2           | fingerprintx, nuclei                                                                               |
-| test              |            | Detect technologies via Nuclei, and FingerprintX                                                                                                                                                                                                                                                                                                                                                                                                                                                        | 2           | fingerprintx, nuclei                                                                               |
-| wayback           |            | Discover URLs and interesting archived files via the Wayback Machine                                                                                                                                                                                                                                                                                                                                                                                                                                    | 52          | anubisdb, asn, azure_realm, azure_tenant, baddns_direct, baddns_zone, bevigil, bufferoverrun, builtwith, c99, censys_dns, certspotter, chaos, crt, crt_db, digitorus, dnsbimi, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, fullhunt, github_codesearch, github_org, hackertarget, httpx, hunterio, ipneighbor, leakix, myssl, oauth, otx, passivetotal, postman, postman_download, rapiddns, securitytrails, securitytxt, shodan_dns, shodan_idb, sitedossier, social, sslcert, subdomaincenter, subdomainradar, trickest, urlscan, virustotal, wayback |
-| wayback-heavy     |            | Full Wayback Machine integration - URL discovery, parameter extraction, archived page retrieval, and interesting file detection                                                                                                                                                                                                                                                                                                                                                                          | 53          | anubisdb, asn, azure_realm, azure_tenant, baddns_direct, baddns_zone, badsecrets, bevigil, bufferoverrun, builtwith, c99, censys_dns, certspotter, chaos, crt, crt_db, digitorus, dnsbimi, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, fullhunt, github_codesearch, github_org, hackertarget, httpx, hunterio, ipneighbor, leakix, myssl, oauth, otx, passivetotal, postman, postman_download, rapiddns, securitytrails, securitytxt, shodan_dns, shodan_idb, sitedossier, social, sslcert, subdomaincenter, subdomainradar, trickest, urlscan, virustotal, wayback |
+| virtualhost       | web        | Virtual host discovery: subdomain brute-force and mutations against the target host's Host header / SNI.                                                                                                                                                                                                                                                                                                                                                                                                | 1           | virtualhost                                                                                        |
+| virtualhost-heavy | web        | Aggressive virtual host discovery: everything in virtualhost, plus special-host probing, certificate SAN extraction, and wordcloud-driven candidate testing.                                                                                                                                                                                                                                                                                                                                            | 1           | virtualhost                                                                                        |
+| waf-bypass        |            | WAF bypass detection with subdomain enumeration                                                                                                                                                                                                                                                                                                                                                                                                                                                         | 2           | http, waf_bypass                                                                                   |
+| wayback           |            | Discover URLs and interesting archived files via the Wayback Machine                                                                                                                                                                                                                                                                                                                                                                                                                                    | 1           | wayback                                                                                            |
+| wayback-heavy     |            | Full Wayback Machine integration - URL discovery, parameter extraction, archived page retrieval, and interesting file detection                                                                                                                                                                                                                                                                                                                                                                         | 2           | badsecrets, wayback                                                                                |
 | web               |            | Quick web scan                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | 0           |                                                                                                    |
 | web-heavy         |            | Aggressive web scan                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | 0           |                                                                                                    |
 | web-screenshots   |            | Take screenshots of webpages                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | 0           |                                                                                                    |
