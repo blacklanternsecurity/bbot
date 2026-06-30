@@ -275,7 +275,7 @@ def validate_preset(preset_dict: Any, module_loader=None) -> list[PresetValidati
     # nested mapping). Check them explicitly, with the same closest-match hint.
     # Skip non-list values; the schema pass above already flagged the type error,
     # and iterating a string here would yield bogus per-character lookups.
-    for key in ("modules", "output_modules", "exclude_modules"):
+    for key in ("modules", "output_modules", "exclude_modules", "exclude_output_modules"):
         value = preset_dict.get(key)
         if not isinstance(value, list):
             continue

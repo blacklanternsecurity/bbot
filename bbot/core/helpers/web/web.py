@@ -79,7 +79,7 @@ class WebHelper:
         self.ssl_verify_target = self.web_config.get("ssl_verify_target", False)
         self.ssl_verify_infrastructure = self.web_config.get("ssl_verify_infrastructure", True)
         # Pre-compute config values for request preprocessing
-        self._http_timeout = self.web_config.get("http_timeout", 20)
+        self._http_timeout = self.web_config.get("http_timeout", 10)
         self._http_retries = self.web_config.get("http_retries", 1)
         self._http_proxy = self.web_config.get("http_proxy", None)
         self._http_proxy_exclude = self.web_config.get("http_proxy_exclude", []) or []
@@ -331,7 +331,8 @@ class WebHelper:
             # Classify error for appropriate log level
             lower = error_msg.lower()
             if "timeout" in lower:
-                log.verbose(f"HTTP timeout to URL: {url}")
+                attempts = blast_kwargs.get("retries", 0) + 1
+                log.verbose(f"HTTP timeout to URL: {url} (after {attempts} attempt(s))")
             elif "connect" in lower or "connection" in lower:
                 log.debug(f"HTTP connect failed to URL: {url}")
             else:
