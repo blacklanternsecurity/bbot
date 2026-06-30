@@ -8,7 +8,7 @@
 <meta content="OSINT automation for hackers" name="description"/>
 <meta content="TheTechromancer" name="author"/>
 <link href="https://blacklanternsecurity.github.io/bbot/Dev/contribution/" rel="canonical"/>
-<link href="../modules/lightfuzz/" rel="prev"/>
+<link href="../migration/3.0_breaking_changes/" rel="prev"/>
 <link href="../release_history/" rel="next"/>
 <link href="../favicon.png" rel="icon"/>
 <meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
@@ -20,13 +20,13 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../assets/stylesheets/extra-style.fji0bj6l.min.css" rel="stylesheet"/></head>
+<link href="../assets/stylesheets/extra-style.uwfx4oq7.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
 <label class="md-overlay" for="__drawer"></label>
 <div data-md-component="skip">
-<a class="md-skip" href="#contribution">
+<a class="md-skip" href="#contributing-to-bbot">
           Skip to content
         </a>
 </div>
@@ -421,6 +421,18 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../modules/internal_modules/">
+<span class="md-ellipsis">
+    
+  
+    Internal Modules
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../modules/nuclei/">
 <span class="md-ellipsis">
     
@@ -468,12 +480,62 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../modules/webbrute/">
+<span class="md-ellipsis">
+    
+  
+    Webbrute
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_4" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_4" id="__nav_1_4_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    Migration
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Migration
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../migration/3.0_breaking_changes/">
+<span class="md-ellipsis">
+    
+  
+    2.x → 3.0 Breaking Changes
+  
+
+    
+  </span>
+</a>
+</li>
 </ul>
 </nav>
 </li>
 <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
-<input checked="" class="md-nav__toggle md-toggle" id="__nav_1_4" type="checkbox"/>
-<label class="md-nav__link" for="__nav_1_4" id="__nav_1_4_label" tabindex="">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_1_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="">
 <span class="md-ellipsis">
     
   
@@ -484,8 +546,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="true" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_1_4">
+<nav aria-expanded="true" aria-labelledby="__nav_1_5_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_5">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -496,6 +558,17 @@
 <ul class="md-nav__list" data-md-scrollfix="">
 <li class="md-nav__item md-nav__item--active">
 <input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    
+  
+    Contribution
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
 <a class="md-nav__link md-nav__link--active" href="./">
 <span class="md-ellipsis">
     
@@ -506,6 +579,99 @@
     
   </span>
 </a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#open-an-issue">
+<span class="md-ellipsis">
+      
+        Open an Issue
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#open-a-discussion">
+<span class="md-ellipsis">
+      
+        Open a Discussion
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#pull-requests">
+<span class="md-ellipsis">
+      
+        Pull Requests
+      
+    </span>
+</a>
+<nav aria-label="Pull Requests" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#should-it-be-an-issue-instead">
+<span class="md-ellipsis">
+      
+        Should It Be an Issue Instead?
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#ai-policy">
+<span class="md-ellipsis">
+      
+        AI Policy
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#other-advice">
+<span class="md-ellipsis">
+      
+        Other Advice
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#tests">
+<span class="md-ellipsis">
+      
+        Tests
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#contributor-license-agreement">
+<span class="md-ellipsis">
+      
+        Contributor License Agreement
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#development">
+<span class="md-ellipsis">
+      
+        Development
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
 </li>
 <li class="md-nav__item">
 <a class="md-nav__link" href="../release_history/">
@@ -585,6 +751,18 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../dev/core_dependencies/">
+<span class="md-ellipsis">
+    
+  
+    Core Dependencies
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../dev/architecture/">
 <span class="md-ellipsis">
     
@@ -645,8 +823,8 @@
 </a>
 </li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_8" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_8" id="__nav_2_8_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_9" id="__nav_2_9_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -657,8 +835,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_8_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_2_8">
+<nav aria-expanded="false" aria-labelledby="__nav_2_9_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_9">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -740,8 +918,8 @@
 </a>
 </li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_8_7" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_8_7" id="__nav_2_8_7_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9_7" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_9_7" id="__nav_2_9_7_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -752,8 +930,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_8_7_label" class="md-nav" data-md-level="3">
-<label class="md-nav__title" for="__nav_2_8_7">
+<nav aria-expanded="false" aria-labelledby="__nav_2_9_7_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_2_9_7">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -862,9 +1040,43 @@
 </div>
 <div class="md-content" data-md-component="content">
 <article class="md-content__inner md-typeset">
-<h1 id="contribution">Contribution</h1>
-<p>We welcome contributions! If you have an idea for a new module, or are a Python developer who wants to get involved, please fork us or come talk to us on <a href="https://discord.com/invite/PZqkgxu5SA">Discord</a>.</p>
-<p>To get started devving, see the following links:</p>
+<h1 id="contributing-to-bbot">Contributing to BBOT</h1>
+<p>We welcome contributions! There are a number of ways to contribute to BBOT.</p>
+<p>If you want to chat about BBOT or get help with a contribution, come find us on <a href="https://discord.com/invite/PZqkgxu5SA">Discord</a>.</p>
+<h2 id="open-an-issue">Open an Issue</h2>
+<p>Opening an issue is the simplest way to contribute. If you spot a bug or see a way to improve something, open an issue and we'll do our best to address it promptly.</p>
+<h2 id="open-a-discussion">Open a Discussion</h2>
+<p>If you have an idea for a new module or feature, or just have questions about existing modules, discussions are the correct place for it. Issues opened for these items will most likely be moved here anyway.</p>
+<h2 id="pull-requests">Pull Requests</h2>
+<p>We love pull requests. Before you submit them though, there are a few things to discuss.</p>
+<h3 id="should-it-be-an-issue-instead">Should It Be an Issue Instead?</h3>
+<p>As AI-assisted contributions have become more common, we've seen an increase in large PRs trying to change things that touch complex core internals. Much of the core BBOT code is extremely complicated and load-bearing. If your AI doesn't grasp the full context, untangling your PR is going to take us longer than if we made the changes ourselves.</p>
+<p>Basically, don't feel pressured to submit a fix just because you found a bug. If the fix isn't straightforward, an issue that shows clearly how to reproduce the problem is often more helpful than a sprawling PR.</p>
+<h3 id="ai-policy">AI Policy</h3>
+<p>Modern AI is an incredibly valuable tool for development. We definitely use it. However, it is still just a tool, and it REALLY matters how you use it.</p>
+<ul>
+<li><strong>Blind trust is not good.</strong> Even the most advanced models make horrific mistakes, just as they have moments of brilliance.</li>
+<li><strong>Human accountability.</strong> If your name is on the code, it's up to you to understand it. A simple rule: don't submit anything you don't understand.</li>
+<li><strong>No low quality submissions.</strong> If you just submitted the same slop PR to 20 other repos, we are going to close it. If it ignores all the normal patterns in use in BBOT and does its own thing, we are going to close it. If you make a good-faith attempt at doing it right, we're more than happy to help you along.</li>
+<li><strong>Don't let the AI edit tests.</strong> Of course, there will be some times where a test edit is legitimately needed, but this is a common antipattern for AI agents. </li>
+</ul>
+<p>We don't require AI disclosure, but it's not discouraged either (usually we can tell though).</p>
+<p>We provide an <a href="https://github.com/blacklanternsecurity/bbot/blob/dev/AGENTS.md">AGENTS.md</a> file in the repo root. Feed this to your LLM before working on BBOT. It describes our conventions and should help steer AI-assisted contributions in the right direction.</p>
+<h3 id="other-advice">Other Advice</h3>
+<ul>
+<li><strong>Work off the <code>dev</code> branch.</strong> Almost all PRs should target <code>dev</code>, not <code>stable</code>. Create your feature branch from <code>dev</code> and open your PR against it.</li>
+<li>The pull requests we are most likely to approve are ones that address a very specific thing in a focused way. Don't let that stop you from writing a whole new, even complicated module. However, expect some critical feedback and some rounds of revisions.</li>
+<li>Be mindful of security. We have had multiple CVEs, including critical CVEs. If your module is doing potentially dangerous things like running commands, reading and writing files, etc. -  expect a lot of extra scrutiny.</li>
+</ul>
+<h3 id="tests">Tests</h3>
+<p>We believe tests are the backbone of any large scale project. Think of them like a save-point for a capability. Without them, regressions constantly creep in and accumulate.</p>
+<p>Every module MUST have module tests. There are tons of examples to draw from with existing modules. We can also help you write the tests. They shouldn't be there just to be there, they should really exercise as much of the code in your module as possible. </p>
+<p>If you make a change to any core code, helpers, etc - chances are if you break anything, our massive amount of tests (as of this writing's creation over 300) will catch it. So run them. Try to run the entire test suite against your code before you submit it. </p>
+<p>For more details, see <a href="../dev/tests/">Unit Tests</a>.</p>
+<h2 id="contributor-license-agreement">Contributor License Agreement</h2>
+<p>Like many open-source projects, we ask that you sign our <a href="https://github.com/blacklanternsecurity/CLA/blob/main/ICLA.md">Contributor License Agreement</a> before we can accept your contribution.</p>
+<h2 id="development">Development</h2>
+<p>Ready to dive in? See the following links to get started:</p>
 <ul>
 <li><a href="../dev/dev_environment/">Setting up a Dev Environment</a></li>
 <li><a href="../dev/module_howto/">How to Write a BBOT Module</a></li>

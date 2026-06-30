@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../assets/stylesheets/extra-style.fji0bj6l.min.css" rel="stylesheet"/></head>
+<link href="../assets/stylesheets/extra-style.uwfx4oq7.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -299,13 +299,57 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="#targets-t">
+<a class="md-nav__link" href="#targets-t-seeds-s-and-blacklists-b">
 <span class="md-ellipsis">
       
-        Targets (-t)
+        Targets (-t), Seeds (-s), and Blacklists (-b)
       
     </span>
 </a>
+<nav aria-label="Targets (-t), Seeds (-s), and Blacklists (-b)" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#accepted-input-types">
+<span class="md-ellipsis">
+      
+        Accepted Input Types
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#why-separate-targets-and-seeds">
+<span class="md-ellipsis">
+      
+        Why Separate Targets and Seeds?
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#blacklists">
+<span class="md-ellipsis">
+      
+        Blacklists
+      
+    </span>
+</a>
+<nav aria-label="Blacklists" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#blacklist-by-regex">
+<span class="md-ellipsis">
+      
+        Blacklist by Regex
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
 </li>
 <li class="md-nav__item">
 <a class="md-nav__link" href="#modules-m">
@@ -409,37 +453,6 @@
       
     </span>
 </a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#targets-seeds-and-blacklists">
-<span class="md-ellipsis">
-      
-        Targets, Seeds, and Blacklists
-      
-    </span>
-</a>
-<nav aria-label="Targets, Seeds, and Blacklists" class="md-nav">
-<ul class="md-nav__list">
-<li class="md-nav__item">
-<a class="md-nav__link" href="#blacklists">
-<span class="md-ellipsis">
-      
-        Blacklists
-      
-    </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#blacklist-by-regex">
-<span class="md-ellipsis">
-      
-        Blacklist by Regex
-      
-    </span>
-</a>
-</li>
-</ul>
-</nav>
 </li>
 </ul>
 </nav>
@@ -605,6 +618,18 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../modules/internal_modules/">
+<span class="md-ellipsis">
+    
+  
+    Internal Modules
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../modules/nuclei/">
 <span class="md-ellipsis">
     
@@ -652,12 +677,62 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../modules/webbrute/">
+<span class="md-ellipsis">
+    
+  
+    Webbrute
+  
+
+    
+  </span>
+</a>
+</li>
 </ul>
 </nav>
 </li>
 <li class="md-nav__item md-nav__item--section md-nav__item--nested">
 <input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_4" type="checkbox"/>
 <label class="md-nav__link" for="__nav_1_4" id="__nav_1_4_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    Migration
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Migration
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../migration/3.0_breaking_changes/">
+<span class="md-ellipsis">
+    
+  
+    2.x → 3.0 Breaking Changes
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="">
 <span class="md-ellipsis">
     
   
@@ -668,8 +743,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_1_4">
+<nav aria-expanded="false" aria-labelledby="__nav_1_5_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_5">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -768,6 +843,18 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../dev/core_dependencies/">
+<span class="md-ellipsis">
+    
+  
+    Core Dependencies
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../dev/architecture/">
 <span class="md-ellipsis">
     
@@ -828,8 +915,8 @@
 </a>
 </li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_8" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_8" id="__nav_2_8_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_9" id="__nav_2_9_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -840,8 +927,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_8_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_2_8">
+<nav aria-expanded="false" aria-labelledby="__nav_2_9_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_9">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -923,8 +1010,8 @@
 </a>
 </li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_8_7" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_8_7" id="__nav_2_8_7_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9_7" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_9_7" id="__nav_2_9_7_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -935,8 +1022,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_8_7_label" class="md-nav" data-md-level="3">
-<label class="md-nav__title" for="__nav_2_8_7">
+<nav aria-expanded="false" aria-labelledby="__nav_2_9_7_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_2_9_7">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -1053,8 +1140,15 @@
 bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>gowitness<span style="color: #6E7681"> </span>-n<span style="color: #6E7681"> </span>my_scan<span style="color: #6E7681"> </span>-o<span style="color: #6E7681"> </span>.
 </code></pre></div>
 <p>If you reuse a scan name, BBOT will automatically append to your previous output files.</p>
-<h2 id="targets-t">Targets (<code>-t</code>)</h2>
-<p>Targets declare what's in-scope, and seed a scan with initial data. BBOT accepts an unlimited number of targets. They can be any of the following:</p>
+<h2 id="targets-t-seeds-s-and-blacklists-b">Targets (<code>-t</code>), Seeds (<code>-s</code>), and Blacklists (<code>-b</code>)</h2>
+<p>BBOT uses three related concepts to control scope and drive a scan:</p>
+<ul>
+<li><strong>Targets (<code>-t</code>)</strong> define what is <strong>in-scope</strong>. Active modules (e.g. <code>nuclei</code>, <code>portscan</code>) will only touch targets and their children.</li>
+<li><strong>Seeds (<code>-s</code>)</strong> are the starting data that gets fed into modules. If you don't specify <code>-s</code>, <strong>your targets are automatically used as seeds</strong>.</li>
+<li><strong>Blacklists (<code>-b</code>)</strong> define what is <strong>never touched</strong>. Anything matching the blacklist is excluded, even if it would otherwise be in-scope.</li>
+</ul>
+<h3 id="accepted-input-types">Accepted Input Types</h3>
+<p>Targets, seeds, and blacklists all accept the same input types:</p>
 <ul>
 <li><code>DNS_NAME</code> (<code>evilcorp.com</code>)</li>
 <li><code>IP_ADDRESS</code> (<code>1.2.3.4</code>)</li>
@@ -1062,13 +1156,15 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <li><code>OPEN_TCP_PORT</code> (<code>192.168.0.1:80</code>)</li>
 <li><code>URL</code> (<code>https://www.evilcorp.com</code>)</li>
 <li><code>EMAIL_ADDRESS</code> (<code>bob@evilcorp.com</code>)</li>
+<li><code>ASN</code> (<code>ASN:17178</code> or <code>AS17178</code>)</li>
+<li><code>USERNAME</code> (<code>USER:bobsmith</code>)</li>
 <li><code>ORG_STUB</code> (<code>ORG:evilcorp</code>)</li>
-<li><code>USER_STUB</code> (<code>USER:bobsmith</code>)</li>
 <li><code>FILESYSTEM</code> (<code>FILESYSTEM:/tmp/asdf</code>)</li>
 <li><code>MOBILE_APP</code> (<code>MOBILE_APP:https://play.google.com/store/apps/details?id=com.evilcorp.app</code>)</li>
 </ul>
+<p>Blacklists additionally accept <strong>regex patterns</strong> prefixed with <code>RE:</code> (see <a href="#blacklist-by-regex">Blacklist by Regex</a>).</p>
 <p>Note that BBOT only discriminates down to the host level. This means, for example, if you specify a URL <code>https://www.evilcorp.com</code> as the target, the scan will be <em>seeded</em> with that URL, but the scope of the scan will be the entire host, <code>www.evilcorp.com</code>. Other ports/URLs on that same host may also be scanned.</p>
-<p>You can specify targets directly on the command line, load them from files, or both! For example:</p>
+<p>You can specify inputs directly on the command line, load them from files, or both:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>$<span style="color: #6E7681"> </span>cat<span style="color: #6E7681"> </span>targets.txt
 <span style="color: #A5D6FF">4</span>.3.2.1
 <span style="color: #A5D6FF">10</span>.0.0.2:80
@@ -1080,7 +1176,50 @@ https://www.evilcorp.co.uk
 <span style="color: #8B949E; font-style: italic"># load targets from a file and from the command-line</span>
 $<span style="color: #6E7681"> </span>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>targets.txt<span style="color: #6E7681"> </span>fsociety.com<span style="color: #6E7681"> </span><span style="color: #A5D6FF">5</span>.6.7.0/24<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>portscan
 </code></pre></div>
-<p>On start, BBOT automatically converts Targets into <a href="events/">Events</a>.</p>
+<p>On start, BBOT automatically converts these inputs into <a href="events/">Events</a>.</p>
+<h3 id="why-separate-targets-and-seeds">Why Separate Targets and Seeds?</h3>
+<p>Separating targets from seeds lets you keep a tight scope while still allowing passive discovery outside of it. When BBOT discovers something out-of-scope via a seed, it will still report it, but active modules won't touch it.</p>
+<p>For example, say your target has subdomains that resolve both inside and outside an IP range that defines your scope. You can set the IP range as the <strong>target</strong> and the domain as a <strong>seed</strong>:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span><span style="color: #A5D6FF">192</span>.168.1.0/24<span style="color: #6E7681"> </span>-s<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>nuclei
+</code></pre></div>
+<p>Any discovered <code>evilcorp.com</code> subdomains that resolve within <code>192.168.1.0/24</code> will be actively scanned by Nuclei. Others will be discovered and reported, but not touched by active modules.</p>
+<h3 id="blacklists">Blacklists</h3>
+<p><code>-b</code> / <code>--blacklist</code> takes ultimate precedence. Anything in the blacklist is completely excluded from the scan, even if it would otherwise be in-scope based on your targets or seeds.</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Scan evilcorp.com, but exclude internal.evilcorp.com and its children</span>
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-b<span style="color: #6E7681"> </span>internal.evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>portscan<span style="color: #6E7681"> </span>nuclei
+</code></pre></div>
+<h4 id="blacklist-by-regex">Blacklist by Regex</h4>
+<p>Blacklists also accept regex patterns. These regexes are checked against the full URL, including the host and path.</p>
+<p>To specify a regex, prefix the pattern with <code>RE:</code>. For example, to exclude all events containing "signout":</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-b<span style="color: #6E7681"> </span><span style="color: #A5D6FF">"RE:signout"</span>
+</code></pre></div>
+<p>Note that this would blacklist both of the following events:</p>
+<ul>
+<li><code>[URL]       http://evilcorp.com/signout.aspx</code></li>
+<li><code>[DNS_NAME]  signout.evilcorp.com</code></li>
+</ul>
+<p>If you only want to blacklist the URL, you could narrow the regex like so:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-b<span style="color: #6E7681"> </span><span style="color: #A5D6FF">'RE:signout\.aspx$'</span>
+</code></pre></div>
+<p>Similar to targets, blacklists can be specified in your preset. The <code>spider</code> preset makes use of this to prevent the spider from following logout links:</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">spider.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Recursive web spider</span>
+
+<span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http</span>
+
+<span style="color: #7EE787">blacklist</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Prevent spider from invalidating sessions by logging out</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"RE:/.*(sign|log)[_-]?out"</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">web</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #8B949E; font-style: italic"># how many links to follow in a row</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">spider_distance</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">2</span>
+<span style="color: #6E7681">    </span><span style="color: #8B949E; font-style: italic"># don't follow links whose directory depth is higher than 4</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">spider_depth</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">4</span>
+<span style="color: #6E7681">    </span><span style="color: #8B949E; font-style: italic"># maximum number of links to follow per page</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">spider_links_per_page</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">25</span>
+</code></pre></div>
 <h2 id="modules-m">Modules (<code>-m</code>)</h2>
 <p>To see a full list of modules and their descriptions, use <code>bbot -l</code> or see <a href="../modules/list_of_modules/">List of Modules</a>.</p>
 <p>Modules are the part of BBOT that does the work -- port scanning, subdomain brute-forcing, API querying, etc. Modules consume <a href="events/">Events</a> (<code>IP_ADDRESS</code>, <code>DNS_NAME</code>, etc.) from each other, process the data in a useful way, then emit the results as new events. You can enable individual modules with <code>-m</code>.</p>
@@ -1146,9 +1285,9 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <tbody>
 <tr>
 <td>safe</td>
-<td>99</td>
+<td>100</td>
 <td>Non-intrusive and non-destructive</td>
-<td>affiliates, aggregate, ajaxpro, anubisdb, apkpure, asn, aspnet_bin_exposure, azure_tenant, baddns, baddns_direct, baddns_zone, badsecrets, bevigil, bucket_amazon, bucket_digitalocean, bucket_file_enum, bucket_firebase, bucket_google, bucket_hetzner, bucket_microsoft, bufferoverrun, builtwith, c99, censys_dns, censys_ip, certspotter, chaos, code_repository, credshed, crt, crt_db, dehashed, dnsbimi, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, docker_pull, dockerhub, emailformat, emails, excavate, filedownload, fingerprintx, fullhunt, git, git_clone, gitdumper, github_codesearch, github_org, github_usersearch, github_workflows, gitlab_com, gitlab_onprem, google_playstore, gowitness, graphql_introspection, hackertarget, http, hunt, hunterio, ip2location, ipstack, jadx, kreuzberg, leakix, myssl, newsletters, ntlm, oauth, otx, pgp, portfilter, postman, postman_download, rapiddns, reflected_parameters, retirejs, robots, securitytrails, securitytxt, shodan_dns, shodan_enterprise, shodan_idb, skymem, social, speculate, sslcert, subdomaincenter, subdomainradar, subdomains, trajan, trickest, trufflehog, unarchive, urlscan, viewdns, virustotal, wayback</td>
+<td>affiliates, aggregate, ajaxpro, anubisdb, apkpure, asn, aspnet_bin_exposure, azure_tenant, baddns, baddns_direct, baddns_zone, badsecrets, bevigil, bucket_amazon, bucket_digitalocean, bucket_file_enum, bucket_firebase, bucket_google, bucket_hetzner, bucket_microsoft, bufferoverrun, builtwith, c99, censys_dns, censys_ip, certspotter, chaos, code_repository, credshed, crt, crt_db, dehashed, dnsbimi, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, docker_pull, dockerhub, emailformat, emails, excavate, filedownload, fingerprintx, fullhunt, git, git_clone, gitdumper, github_codesearch, github_org, github_usersearch, github_workflows, gitlab_com, gitlab_onprem, google_playstore, gowitness, graphql_introspection, hackertarget, http, hunt, hunterio, ip2location, ipstack, jadx, kreuzberg, leakix, myssl, newsletters, ntlm, oauth, otx, pgp, portfilter, postman, postman_download, rapiddns, reflected_parameters, retirejs, robots, securitytrails, securitytxt, shodan_dns, shodan_enterprise, shodan_idb, skymem, social, speculate, sslcert, subdomaincenter, subdomainradar, subdomains, trajan, trickest, trufflehog, unarchive, urlscan, viewdns, virustotal, waf_bypass, wayback</td>
 </tr>
 <tr>
 <td>passive</td>
@@ -1158,9 +1297,9 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 </tr>
 <tr>
 <td>active</td>
-<td>51</td>
+<td>52</td>
 <td>Makes active connections to target systems</td>
-<td>ajaxpro, aspnet_bin_exposure, baddns, baddns_direct, baddns_zone, badsecrets, bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_hetzner, bucket_microsoft, bypass403, dnsbrute, dnsbrute_mutations, dnscommonsrv, dotnetnuke, filedownload, fingerprintx, generic_ssrf, git, gitlab_com, gitlab_onprem, gowitness, graphql_introspection, host_header, http, hunt, iis_shortnames, legba, lightfuzz, medusa, newsletters, ntlm, nuclei, oauth, paramminer_cookies, paramminer_getparams, paramminer_headers, portscan, reflected_parameters, retirejs, robots, securitytxt, sslcert, telerik, url_manipulation, wafw00f, webbrute, webbrute_shortnames, wpscan</td>
+<td>ajaxpro, aspnet_bin_exposure, baddns, baddns_direct, baddns_zone, badsecrets, bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_hetzner, bucket_microsoft, bypass403, dnsbrute, dnsbrute_mutations, dnscommonsrv, dotnetnuke, filedownload, fingerprintx, generic_ssrf, git, gitlab_com, gitlab_onprem, gowitness, graphql_introspection, host_header, http, hunt, iis_shortnames, legba, lightfuzz, medusa, newsletters, ntlm, nuclei, oauth, paramminer_cookies, paramminer_getparams, paramminer_headers, portscan, reflected_parameters, retirejs, robots, securitytxt, sslcert, telerik, url_manipulation, virtualhost, waf_bypass, wafw00f, webbrute, webbrute_shortnames</td>
 </tr>
 <tr>
 <td>subdomain-enum</td>
@@ -1172,7 +1311,7 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <td>loud</td>
 <td>21</td>
 <td>Generates a large amount of network traffic</td>
-<td>bypass403, dnsbrute, dnsbrute_mutations, dotnetnuke, host_header, iis_shortnames, ipneighbor, legba, lightfuzz, medusa, nuclei, paramminer_cookies, paramminer_getparams, paramminer_headers, portscan, telerik, url_manipulation, wafw00f, webbrute, webbrute_shortnames, wpscan</td>
+<td>bypass403, dnsbrute, dnsbrute_mutations, dotnetnuke, host_header, iis_shortnames, ipneighbor, legba, lightfuzz, medusa, nuclei, paramminer_cookies, paramminer_getparams, paramminer_headers, portscan, telerik, url_manipulation, virtualhost, wafw00f, webbrute, webbrute_shortnames</td>
 </tr>
 <tr>
 <td>code-enum</td>
@@ -1194,15 +1333,15 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 </tr>
 <tr>
 <td>web-heavy</td>
-<td>15</td>
+<td>16</td>
 <td>More advanced web scanning functionality</td>
-<td>ajaxpro, aspnet_bin_exposure, bucket_digitalocean, bucket_hetzner, bypass403, dotnetnuke, generic_ssrf, host_header, hunt, lightfuzz, reflected_parameters, retirejs, telerik, url_manipulation, webbrute_shortnames</td>
+<td>ajaxpro, aspnet_bin_exposure, bucket_digitalocean, bucket_hetzner, bypass403, dotnetnuke, generic_ssrf, host_header, hunt, lightfuzz, reflected_parameters, retirejs, telerik, url_manipulation, waf_bypass, webbrute_shortnames</td>
 </tr>
 <tr>
 <td>slow</td>
-<td>10</td>
+<td>11</td>
 <td>May take a long time to complete</td>
-<td>bucket_digitalocean, bucket_hetzner, dnsbrute_mutations, docker_pull, fingerprintx, git_clone, gitdumper, paramminer_cookies, paramminer_getparams, paramminer_headers</td>
+<td>bucket_digitalocean, bucket_hetzner, dnsbrute_mutations, docker_pull, fingerprintx, git_clone, gitdumper, paramminer_cookies, paramminer_getparams, paramminer_headers, virtualhost</td>
 </tr>
 <tr>
 <td>email-enum</td>
@@ -1280,7 +1419,7 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 </table>
 <!-- END BBOT MODULE FLAGS -->
 <h2 id="dependencies">Dependencies</h2>
-<p>BBOT modules have external dependencies ranging from OS packages (<code>openssl</code>) to binaries (<code>nuclei</code>) to Python libraries (<code>wappalyzer</code>). When a module is enabled, installation of its dependencies happens at runtime with <a href="https://github.com/ansible/ansible">Ansible</a>. BBOT provides several command-line flags to control how dependencies are installed.</p>
+<p>BBOT modules have external dependencies ranging from OS packages (<code>openssl</code>) to binaries (<code>nuclei</code>) to Python libraries (<code>pyOpenSSL</code>). When a module is enabled, installation of its dependencies happens at runtime with <a href="https://github.com/ansible/ansible">Ansible</a>. BBOT provides several command-line flags to control how dependencies are installed.</p>
 <ul>
 <li><code>--no-deps</code> - Don't install module dependencies</li>
 <li><code>--force-deps</code> - Force install all module dependencies</li>
@@ -1291,7 +1430,7 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <p>For details on how Ansible playbooks are attached to BBOT modules, see <a href="../dev/module_howto/#module-dependencies">How to Write a Module</a>.</p>
 <h2 id="scope">Scope</h2>
 <p>For pentesters and bug bounty hunters, staying in scope is extremely important. BBOT takes this seriously, meaning that active modules (e.g. <code>nuclei</code>) will only touch in-scope resources.</p>
-<p>By default, scope is whatever you specify with <code>-t</code>. This includes child subdomains. For example, if you specify <code>-t evilcorp.com</code>, all its subdomains (<code>www.evilcorp.com</code>, <code>mail.evilcorp.com</code>, etc.) also become in-scope.</p>
+<p>As described <a href="#targets-t-seeds-s-and-blacklists-b">above</a>, targets (<code>-t</code>) define what is in-scope and blacklists (<code>-b</code>) define what is excluded. Scope includes child subdomains by default -- for example, <code>-t evilcorp.com</code> puts <code>www.evilcorp.com</code>, <code>mail.evilcorp.com</code>, etc. in-scope automatically.</p>
 <h3 id="scope-distance">Scope Distance</h3>
 <p>Since BBOT is recursive, it would quickly resort to scanning the entire internet without some kind of restraining mechanism. To solve this problem, every <a href="events/">event</a> discovered by BBOT is assigned a <strong>Scope Distance</strong>. Scope distance represents how far out from the main scope that data was discovered.</p>
 <p>For example, if your target is <code>evilcorp.com</code>, <code>www.evilcorp.com</code> would have a scope distance of <code>0</code> (i.e. in-scope). If BBOT discovers that <code>www.evilcorp.com</code> resolves to <code>1.2.3.4</code>, <code>1.2.3.4</code> is one hop away, which means it would have a scope distance of <code>1</code>. If <code>1.2.3.4</code> has a PTR record that points to <code>ecorp.blob.core.windows.net</code>, <code>ecorp.blob.core.windows.net</code> is two hops away, so its scope distance is <code>2</code>.</p>
@@ -1304,55 +1443,6 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <h3 id="strict-scope">Strict Scope</h3>
 <p>If you want to scan <strong><em>only</em></strong> that specific target hostname and none of its children, you can specify <code>--strict-scope</code>.</p>
 <p>Note that <code>--strict-scope</code> only applies to targets, but not blacklists. This means that if you put <code>internal.evilcorp.com</code> in your blacklist, you can be sure none of its subdomains will be scanned, even when using <code>--strict-scope</code>.</p>
-<h3 id="targets-seeds-and-blacklists">Targets, Seeds, and Blacklists</h3>
-<p>BBOT uses three related concepts to control scope and how a scan is driven:</p>
-<ul>
-<li><strong>Targets (<code>-t</code> / <code>--targets</code>)</strong>: Define what is in-scope. These also act as scan seeds if seeds aren't explicitly defined.</li>
-<li><strong>Seeds (<code>-s</code> / <code>--seeds</code>)</strong>: Seeds define the starting point for the scan. They drive <strong>passive</strong> modules and can be outside of the explicit target list (out of scope) for those passive modules. If you don’t specify <code>--seeds</code>, BBOT will automatically use your targets as seeds.</li>
-<li><strong>Blacklists (<code>-b</code> / <code>--blacklist</code>)</strong>: Define what is <strong>never</strong> touched. Anything matching the blacklist is excluded from the scan, even if it would otherwise be in-scope.</li>
-</ul>
-<p>This separation lets you, for example, keep a tight target list for what’s considered in-scope, while still allowing passive modules to discover new subdomains that may ultimately be in-scope. The blacklist helps to mask-off anything that you know should not be scanned.</p>
-<p>For example, lets say you have a target with subdomains that resolve both within, and outside of an IP range that defines your scope. You can set the IP range as the <strong>target</strong>, and then safely let BBOT explore the domain defined in <strong>seeds</strong>. Any discovered assets that are in your scope will automatically be assessed by active modules.</p>
-<p><div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span><span style="color: #A5D6FF">192</span>.168.1.0/24<span style="color: #6E7681"> </span>-s<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>nuclei
-</code></pre></div>
-In this example, any discovered <code>evilcorp.com</code> subdomains that resolve within <code>192.168.1.0/24</code> will be scanned by <code>Nuclei</code>. Any others will be discovered, but not touched by active modules. </p>
-<h4 id="blacklists">Blacklists</h4>
-<p><code>--blacklist</code> takes ultimate precedence. Anything in the blacklist is completely excluded from the scan, even if it would otherwise be in-scope based on your targets or seeds.</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Scan evilcorp.com, but exclude internal.evilcorp.com and its children</span>
-bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>--blacklist<span style="color: #6E7681"> </span>internal.evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>portscan<span style="color: #6E7681"> </span>nuclei
-</code></pre></div>
-<h4 id="blacklist-by-regex">Blacklist by Regex</h4>
-<p>Blacklists also accept regex patterns. These regexes are are checked against the full URL, including the host and path.</p>
-<p>To specify a regex, prefix the pattern with <code>RE:</code>. For example, to exclude all events containing "signout", you could do:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>--blacklist<span style="color: #6E7681"> </span><span style="color: #A5D6FF">"RE:signout"</span>
-</code></pre></div>
-<p>Note that this would blacklist both of the following events:</p>
-<ul>
-<li><code>[URL]       http://evilcorp.com/signout.aspx</code></li>
-<li><code>[DNS_NAME]  signout.evilcorp.com</code></li>
-</ul>
-<p>If you only want to blacklist the URL, you could narrow the regex like so:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>--blacklist<span style="color: #6E7681"> </span><span style="color: #A5D6FF">'RE:signout\.aspx$'</span>
-</code></pre></div>
-<p>Similar to targets, blacklists can be specified in your preset. The <code>spider</code> preset makes use of this to prevent the spider from following logout links:</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">spider.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Recursive web spider</span>
-
-<span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http</span>
-
-<span style="color: #7EE787">blacklist</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Prevent spider from invalidating sessions by logging out</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"RE:/.*(sign|log)[_-]?out"</span>
-
-<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">web</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">    </span><span style="color: #8B949E; font-style: italic"># how many links to follow in a row</span>
-<span style="color: #6E7681">    </span><span style="color: #7EE787">spider_distance</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">2</span>
-<span style="color: #6E7681">    </span><span style="color: #8B949E; font-style: italic"># don't follow links whose directory depth is higher than 4</span>
-<span style="color: #6E7681">    </span><span style="color: #7EE787">spider_depth</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">4</span>
-<span style="color: #6E7681">    </span><span style="color: #8B949E; font-style: italic"># maximum number of links to follow per page</span>
-<span style="color: #6E7681">    </span><span style="color: #7EE787">spider_links_per_page</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">25</span>
-</code></pre></div>
 <h2 id="dns-wildcards">DNS Wildcards</h2>
 <p>BBOT has robust wildcard detection built-in. It can reliably detect wildcard domains, and will tag them accordingly:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>[DNS_NAME]      github.io   TARGET  (a-record, a-wildcard-domain, aaaa-wildcard-domain, wildcard-domain)
@@ -1373,7 +1463,8 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <span style="color: #7EE787">dns</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">wildcard_tests</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">20</span>
 </code></pre></div>
-<p>If that doesn't work you can consider <a href="#targets-seeds-and-blacklists">blacklisting</a> the offending domain.</p>
+<p>If that doesn't work you can consider <a href="#blacklists">blacklisting</a> the offending domain.</p>
+<p><a class="md-button md-button--primary" href="presets/">Next Up: Presets --&gt;</a></p>
 </article>
 </div>
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>

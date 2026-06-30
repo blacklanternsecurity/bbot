@@ -41,6 +41,10 @@
          <lastmod>2026-06-30</lastmod>
     </url>
     <url>
+         <loc>https://blacklanternsecurity.github.io/bbot/Dev/dev/core_dependencies/</loc>
+         <lastmod>2026-06-30</lastmod>
+    </url>
+    <url>
          <loc>https://blacklanternsecurity.github.io/bbot/Dev/dev/dev_environment/</loc>
          <lastmod>2026-06-30</lastmod>
     </url>
@@ -102,6 +106,10 @@
     </url>
     <url>
          <loc>https://blacklanternsecurity.github.io/bbot/Dev/dev/helpers/wordcloud/</loc>
+         <lastmod>2026-06-30</lastmod>
+    </url>
+    <url>
+         <loc>https://blacklanternsecurity.github.io/bbot/Dev/migration/3.0_breaking_changes/</loc>
          <lastmod>2026-06-30</lastmod>
     </url>
     <url>

@@ -7,12 +7,12 @@
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <meta content="OSINT automation for hackers" name="description"/>
 <meta content="TheTechromancer" name="author"/>
-<link href="https://blacklanternsecurity.github.io/bbot/Dev/modules/wayback/" rel="canonical"/>
-<link href="../nuclei/" rel="prev"/>
-<link href="../custom_yara_rules/" rel="next"/>
+<link href="https://blacklanternsecurity.github.io/bbot/Dev/dev/core_dependencies/" rel="canonical"/>
+<link href="../dev_environment/" rel="prev"/>
+<link href="../architecture/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
 <meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
-<title>Wayback - BBOT Docs</title>
+<title>Core Dependencies - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
@@ -26,7 +26,7 @@
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
 <label class="md-overlay" for="__drawer"></label>
 <div data-md-component="skip">
-<a class="md-skip" href="#wayback">
+<a class="md-skip" href="#core-dependencies">
           Skip to content
         </a>
 </div>
@@ -52,7 +52,7 @@
 <div class="md-header__topic" data-md-component="header-topic">
 <span class="md-ellipsis">
             
-              Wayback
+              Core Dependencies
             
           </span>
 </div>
@@ -108,7 +108,7 @@
 <nav aria-label="Tabs" class="md-tabs" data-md-component="tabs">
 <div class="md-grid">
 <ul class="md-tabs__list">
-<li class="md-tabs__item md-tabs__item--active">
+<li class="md-tabs__item">
 <a class="md-tabs__link" href="../..">
           
   
@@ -117,8 +117,8 @@
 
         </a>
 </li>
-<li class="md-tabs__item">
-<a class="md-tabs__link" href="../../dev/">
+<li class="md-tabs__item md-tabs__item--active">
+<a class="md-tabs__link" href="../">
           
   
   
@@ -152,9 +152,9 @@
 </a>
 </div>
 <ul class="md-nav__list" data-md-scrollfix="">
-<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
-<input checked="" class="md-nav__toggle md-toggle" id="__nav_1" type="checkbox"/>
-<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -165,7 +165,7 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="true" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<nav aria-expanded="false" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
 <label class="md-nav__title" for="__nav_1">
 <span class="md-nav__icon md-icon"></span>
             
@@ -175,9 +175,9 @@
 
           </label>
 <ul class="md-nav__list" data-md-scrollfix="">
-<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<li class="md-nav__item md-nav__item--nested">
 <input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_1" type="checkbox"/>
-<label class="md-nav__link" for="__nav_1_1" id="__nav_1_1_label" tabindex="">
+<label class="md-nav__link" for="__nav_1_1" id="__nav_1_1_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -237,9 +237,9 @@
 </ul>
 </nav>
 </li>
-<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<li class="md-nav__item md-nav__item--nested">
 <input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_2" type="checkbox"/>
-<label class="md-nav__link" for="__nav_1_2" id="__nav_1_2_label" tabindex="">
+<label class="md-nav__link" for="__nav_1_2" id="__nav_1_2_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -385,9 +385,9 @@
 </ul>
 </nav>
 </li>
-<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
-<input checked="" class="md-nav__toggle md-toggle" id="__nav_1_3" type="checkbox"/>
-<label class="md-nav__link" for="__nav_1_3" id="__nav_1_3_label" tabindex="">
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_3" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_3" id="__nav_1_3_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -398,7 +398,7 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="true" aria-labelledby="__nav_1_3_label" class="md-nav" data-md-level="2">
+<nav aria-expanded="false" aria-labelledby="__nav_1_3_label" class="md-nav" data-md-level="2">
 <label class="md-nav__title" for="__nav_1_3">
 <span class="md-nav__icon md-icon"></span>
             
@@ -409,7 +409,7 @@
           </label>
 <ul class="md-nav__list" data-md-scrollfix="">
 <li class="md-nav__item">
-<a class="md-nav__link" href="../list_of_modules/">
+<a class="md-nav__link" href="../../modules/list_of_modules/">
 <span class="md-ellipsis">
     
   
@@ -421,7 +421,7 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="../internal_modules/">
+<a class="md-nav__link" href="../../modules/internal_modules/">
 <span class="md-ellipsis">
     
   
@@ -433,7 +433,7 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="../nuclei/">
+<a class="md-nav__link" href="../../modules/nuclei/">
 <span class="md-ellipsis">
     
   
@@ -444,20 +444,8 @@
   </span>
 </a>
 </li>
-<li class="md-nav__item md-nav__item--active">
-<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
-<label class="md-nav__link md-nav__link--active" for="__toc">
-<span class="md-ellipsis">
-    
-  
-    Wayback
-  
-
-    
-  </span>
-<span class="md-nav__icon md-icon"></span>
-</label>
-<a class="md-nav__link md-nav__link--active" href="./">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/wayback/">
 <span class="md-ellipsis">
     
   
@@ -467,142 +455,9 @@
     
   </span>
 </a>
-<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
-<label class="md-nav__title" for="__toc">
-<span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
-<li class="md-nav__item">
-<a class="md-nav__link" href="#overview">
-<span class="md-ellipsis">
-      
-        Overview
-      
-    </span>
-</a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="#default-behavior">
-<span class="md-ellipsis">
-      
-        Default Behavior
-      
-    </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#configuration-options">
-<span class="md-ellipsis">
-      
-        Configuration Options
-      
-    </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#features">
-<span class="md-ellipsis">
-      
-        Features
-      
-    </span>
-</a>
-<nav aria-label="Features" class="md-nav">
-<ul class="md-nav__list">
-<li class="md-nav__item">
-<a class="md-nav__link" href="#url-discovery-urls-true">
-<span class="md-ellipsis">
-      
-        URL Discovery (urls: True)
-      
-    </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#parameter-extraction-parameters-true">
-<span class="md-ellipsis">
-      
-        Parameter Extraction (parameters: True)
-      
-    </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#archive-retrieval-archive-true">
-<span class="md-ellipsis">
-      
-        Archive Retrieval (archive: True)
-      
-    </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#interesting-file-detection">
-<span class="md-ellipsis">
-      
-        Interesting File Detection
-      
-    </span>
-</a>
-</li>
-</ul>
-</nav>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#presets">
-<span class="md-ellipsis">
-      
-        Presets
-      
-    </span>
-</a>
-<nav aria-label="Presets" class="md-nav">
-<ul class="md-nav__list">
-<li class="md-nav__item">
-<a class="md-nav__link" href="#-p-wayback">
-<span class="md-ellipsis">
-      
-        -p wayback
-      
-    </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#-p-wayback-heavy">
-<span class="md-ellipsis">
-      
-        -p wayback-heavy
-      
-    </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#integration-with-other-presets">
-<span class="md-ellipsis">
-      
-        Integration with other presets
-      
-    </span>
-</a>
-</li>
-</ul>
-</nav>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#example-commands">
-<span class="md-ellipsis">
-      
-        Example Commands
-      
-    </span>
-</a>
-</li>
-</ul>
-</nav>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="../custom_yara_rules/">
+<a class="md-nav__link" href="../../modules/custom_yara_rules/">
 <span class="md-ellipsis">
     
   
@@ -614,7 +469,7 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="../lightfuzz/">
+<a class="md-nav__link" href="../../modules/lightfuzz/">
 <span class="md-ellipsis">
     
   
@@ -626,7 +481,7 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="../webbrute/">
+<a class="md-nav__link" href="../../modules/webbrute/">
 <span class="md-ellipsis">
     
   
@@ -640,9 +495,9 @@
 </ul>
 </nav>
 </li>
-<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<li class="md-nav__item md-nav__item--nested">
 <input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_4" type="checkbox"/>
-<label class="md-nav__link" for="__nav_1_4" id="__nav_1_4_label" tabindex="">
+<label class="md-nav__link" for="__nav_1_4" id="__nav_1_4_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -678,9 +533,9 @@
 </ul>
 </nav>
 </li>
-<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<li class="md-nav__item md-nav__item--nested">
 <input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_5" type="checkbox"/>
-<label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="">
+<label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -743,9 +598,9 @@
 </ul>
 </nav>
 </li>
-<li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
 <span class="md-ellipsis">
     
   
@@ -756,7 +611,7 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<nav aria-expanded="true" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
 <label class="md-nav__title" for="__nav_2">
 <span class="md-nav__icon md-icon"></span>
             
@@ -767,7 +622,7 @@
           </label>
 <ul class="md-nav__list" data-md-scrollfix="">
 <li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/">
+<a class="md-nav__link" href="../">
 <span class="md-ellipsis">
     
   
@@ -779,7 +634,7 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/dev_environment/">
+<a class="md-nav__link" href="../dev_environment/">
 <span class="md-ellipsis">
     
   
@@ -790,8 +645,20 @@
   </span>
 </a>
 </li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/core_dependencies/">
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    
+  
+    Core Dependencies
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
 <span class="md-ellipsis">
     
   
@@ -801,9 +668,71 @@
     
   </span>
 </a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#blasthttp-bls">
+<span class="md-ellipsis">
+      
+        blasthttp (BLS)
+      
+    </span>
+</a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/architecture/">
+<a class="md-nav__link" href="#blastdns-bls">
+<span class="md-ellipsis">
+      
+        blastdns (BLS)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#cloudcheck-bls">
+<span class="md-ellipsis">
+      
+        cloudcheck (BLS)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#radixtarget-bls">
+<span class="md-ellipsis">
+      
+        radixtarget (BLS)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#asndb-bls">
+<span class="md-ellipsis">
+      
+        asndb (BLS)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#other-key-dependencies">
+<span class="md-ellipsis">
+      
+        Other Key Dependencies
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../architecture/">
 <span class="md-ellipsis">
     
   
@@ -815,7 +744,7 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/module_howto/">
+<a class="md-nav__link" href="../module_howto/">
 <span class="md-ellipsis">
     
   
@@ -827,7 +756,7 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/preset_validation/">
+<a class="md-nav__link" href="../preset_validation/">
 <span class="md-ellipsis">
     
   
@@ -839,7 +768,7 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/tests/">
+<a class="md-nav__link" href="../tests/">
 <span class="md-ellipsis">
     
   
@@ -851,7 +780,7 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/discord_bot/">
+<a class="md-nav__link" href="../discord_bot/">
 <span class="md-ellipsis">
     
   
@@ -862,9 +791,9 @@
   </span>
 </a>
 </li>
-<li class="md-nav__item md-nav__item--nested">
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
 <input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_9" id="__nav_2_9_label" tabindex="0">
+<label class="md-nav__link" for="__nav_2_9" id="__nav_2_9_label" tabindex="">
 <span class="md-ellipsis">
     
   
@@ -886,7 +815,7 @@
           </label>
 <ul class="md-nav__list" data-md-scrollfix="">
 <li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/scanner/">
+<a class="md-nav__link" href="../scanner/">
 <span class="md-ellipsis">
     
   
@@ -898,7 +827,7 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/presets/">
+<a class="md-nav__link" href="../presets/">
 <span class="md-ellipsis">
     
   
@@ -910,7 +839,7 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/event/">
+<a class="md-nav__link" href="../event/">
 <span class="md-ellipsis">
     
   
@@ -922,7 +851,7 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/target/">
+<a class="md-nav__link" href="../target/">
 <span class="md-ellipsis">
     
   
@@ -934,7 +863,7 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/basemodule/">
+<a class="md-nav__link" href="../basemodule/">
 <span class="md-ellipsis">
     
   
@@ -946,7 +875,7 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/core/">
+<a class="md-nav__link" href="../core/">
 <span class="md-ellipsis">
     
   
@@ -981,7 +910,7 @@
           </label>
 <ul class="md-nav__list" data-md-scrollfix="">
 <li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/helpers/">
+<a class="md-nav__link" href="../helpers/">
 <span class="md-ellipsis">
     
   
@@ -993,7 +922,7 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/helpers/command/">
+<a class="md-nav__link" href="../helpers/command/">
 <span class="md-ellipsis">
     
   
@@ -1005,7 +934,7 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/helpers/dns/">
+<a class="md-nav__link" href="../helpers/dns/">
 <span class="md-ellipsis">
     
   
@@ -1017,7 +946,7 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/helpers/interactsh/">
+<a class="md-nav__link" href="../helpers/interactsh/">
 <span class="md-ellipsis">
     
   
@@ -1029,7 +958,7 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/helpers/misc/">
+<a class="md-nav__link" href="../helpers/misc/">
 <span class="md-ellipsis">
     
   
@@ -1041,7 +970,7 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/helpers/web/">
+<a class="md-nav__link" href="../helpers/web/">
 <span class="md-ellipsis">
     
   
@@ -1053,7 +982,7 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/helpers/wordcloud/">
+<a class="md-nav__link" href="../helpers/wordcloud/">
 <span class="md-ellipsis">
     
   
@@ -1080,156 +1009,77 @@
 </div>
 <div class="md-content" data-md-component="content">
 <article class="md-content__inner md-typeset">
-<h1 id="wayback">Wayback</h1>
-<h2 id="overview">Overview</h2>
-<p>The Wayback module queries <a href="https://web.archive.org/">archive.org's Wayback Machine</a> CDX API to discover subdomains, URLs, web parameters, and archived content for your targets. By default it operates as a passive subdomain enumeration source, but with its extended features enabled it becomes a powerful tool for discovering dead URLs, extracting parameters for fuzzing, and retrieving archived versions of pages that no longer exist.</p>
-<ul>
-<li>Watches: <strong>DNS_NAME</strong>, <strong>URL</strong></li>
-<li>Produces: <strong>URL_UNVERIFIED</strong>, <strong>DNS_NAME</strong>, <strong>WEB_PARAMETER</strong>, <strong>HTTP_RESPONSE</strong>, <strong>FINDING</strong></li>
-<li>Flags: <code>passive</code>, <code>subdomain-enum</code>, <code>safe</code></li>
-</ul>
-<h2 id="default-behavior">Default Behavior</h2>
-<p>By default, wayback only emits <strong>DNS_NAME</strong> events (subdomains) extracted from archived URLs. This is the behavior you get when wayback is included via the <code>subdomain-enum</code> preset. No URLs, parameters, or archived content are fetched.</p>
-<p>To unlock the more advanced features, you need to enable them via configuration options or use one of the wayback presets.</p>
-<h2 id="configuration-options">Configuration Options</h2>
+<h1 id="core-dependencies">Core Dependencies</h1>
+<p>BBOT is built on top of several purpose-built libraries, most of which are maintained by <a href="https://github.com/blacklanternsecurity">Black Lantern Security</a>. Understanding these will help you navigate the codebase and avoid reinventing things that already exist.</p>
+<p>Libraries marked with <strong>BLS</strong> are maintained by us.</p>
+<h2 id="blasthttp-bls">blasthttp (BLS)</h2>
+<p><a href="https://github.com/blacklanternsecurity/blasthttp">blasthttp</a> is a Rust-backed HTTP client built for speed. It handles all of BBOT's outbound HTTP traffic, including module API calls, web spidering, and brute-forcing.</p>
+<p>Module authors don't typically interact with blasthttp directly. Instead, use <code>self.helpers.request()</code>:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">response</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">helpers</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">request(</span><span style="color: #A5D6FF">"https://example.com/api"</span><span style="color: #E6EDF3">)</span>
+<span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">response</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #E6EDF3">response</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">status_code</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #A5D6FF">200</span><span style="color: #E6EDF3">:</span>
+    <span style="color: #E6EDF3">data</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">response</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">json()</span>
+</code></pre></div>
+<p>The shared blasthttp client is accessible at <code>self.helpers.blasthttp</code> and respects the global <code>web.http_rate_limit</code> config.</p>
+<h2 id="blastdns-bls">blastdns (BLS)</h2>
+<p><a href="https://github.com/blacklanternsecurity/blastdns">blastdns</a> is a Rust-backed async DNS resolver. It powers all of BBOT's DNS resolution with built-in caching, retries, and per-resolver parallelism. BBOT spins up multiple workers per resolver in <code>/etc/resolv.conf</code>, so adding more resolvers directly speeds up scans.</p>
+<p>Accessed via <code>self.helpers.dns</code>:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># resolve a hostname</span>
+<span style="color: #E6EDF3">results</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">helpers</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">resolve(</span><span style="color: #A5D6FF">"example.com"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">rdtype</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"A"</span><span style="color: #E6EDF3">)</span>
+
+<span style="color: #8B949E; font-style: italic"># resolve with full record details</span>
+<span style="color: #E6EDF3">results</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">helpers</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">resolve_full(</span><span style="color: #A5D6FF">"example.com"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">rdtype</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"CNAME"</span><span style="color: #E6EDF3">)</span>
+</code></pre></div>
+<h2 id="cloudcheck-bls">cloudcheck (BLS)</h2>
+<p><a href="https://github.com/blacklanternsecurity/cloudcheck">cloudcheck</a> identifies which cloud provider (if any) owns a given IP or domain. It maintains a regularly-updated database of IP ranges for AWS, Azure, GCP, Cloudflare, and dozens of other providers. BBOT uses it to tag events with cloud provider info (e.g. <code>cloud-aws</code>, <code>cdn-cloudflare</code>).</p>
+<p>Accessed via <code>self.helpers.cloudcheck</code>:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">result</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">helpers</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cloudcheck</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">lookup(</span><span style="color: #A5D6FF">"1.2.3.4"</span><span style="color: #E6EDF3">)</span>
+<span style="color: #8B949E; font-style: italic"># CloudCheckResult with provider name, type (cdn, cloud, waf, etc.)</span>
+</code></pre></div>
+<h2 id="radixtarget-bls">radixtarget (BLS)</h2>
+<p><a href="https://github.com/blacklanternsecurity/radixtarget">radixtarget</a> is a high-performance radix tree for IP/DNS lookups. It is the data structure behind BBOT's target, seed, and blacklist storage, enabling fast scope checks against large target lists with CIDR and subdomain matching.</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">radixtarget</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">RadixTarget</span>
+
+<span style="color: #E6EDF3">rt</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">RadixTarget()</span>
+<span style="color: #E6EDF3">rt</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">insert(</span><span style="color: #A5D6FF">"10.0.0.0/8"</span><span style="color: #E6EDF3">)</span>
+<span style="color: #E6EDF3">rt</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">search(</span><span style="color: #A5D6FF">"10.1.2.3"</span><span style="color: #E6EDF3">)</span>  <span style="color: #8B949E; font-style: italic"># True</span>
+</code></pre></div>
+<h2 id="asndb-bls">asndb (BLS)</h2>
+<p><a href="https://github.com/blacklanternsecurity/asndb">asndb</a> provides ASN lookups for IP addresses, returning the owning organization, AS number, and subnet. BBOT uses it to enrich events with ASN metadata and to support ASN targets (e.g. <code>bbot -t AS1234</code>).</p>
+<p>Accessed via <code>self.helpers.asn</code>:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">result</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">helpers</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">asn</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">lookup(</span><span style="color: #A5D6FF">"8.8.8.8"</span><span style="color: #E6EDF3">)</span>
+<span style="color: #8B949E; font-style: italic"># {"asn": 15169, "name": "GOOGLE", "description": "Google LLC", ...}</span>
+</code></pre></div>
+<h2 id="other-key-dependencies">Other Key Dependencies</h2>
 <table>
 <thead>
 <tr>
-<th>Option</th>
-<th>Type</th>
-<th>Default</th>
-<th>Description</th>
+<th>Library</th>
+<th>What BBOT uses it for</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>urls</code></td>
-<td>bool</td>
-<td><code>False</code></td>
-<td>Emit <code>URL_UNVERIFIED</code> events in addition to <code>DNS_NAME</code>s. Required for <code>parameters</code> and <code>archive</code>.</td>
+<td><a href="https://docs.pydantic.dev/">pydantic</a></td>
+<td>Preset/config validation, module config schemas (<code>BaseModuleConfig</code>)</td>
 </tr>
 <tr>
-<td><code>parameters</code></td>
-<td>bool</td>
-<td><code>False</code></td>
-<td>Extract <code>WEB_PARAMETER</code> events from query strings in archived URLs. Requires <code>urls=True</code>.</td>
+<td><a href="https://ansible-runner.readthedocs.io/">ansible-runner</a></td>
+<td>Module dependency installation (<code>deps_apt</code>, <code>deps_ansible</code>)</td>
 </tr>
 <tr>
-<td><code>archive</code></td>
-<td>bool</td>
-<td><code>False</code></td>
-<td>Fetch archived versions of dead URLs and emit <code>HTTP_RESPONSE</code> events. Requires <code>urls=True</code>.</td>
+<td><a href="https://yara.readthedocs.io/">yara-python</a></td>
+<td>Pattern matching in <code>excavate</code> (secret/credential extraction from HTTP responses)</td>
 </tr>
 <tr>
-<td><code>garbage_threshold</code></td>
-<td>int</td>
-<td><code>10</code></td>
-<td>Deduplicate similar URLs if they appear in groups of this size or larger. Lower = less noise.</td>
+<td><a href="https://zepworks.com/deepdiff/">deepdiff</a></td>
+<td>HTTP response comparison for web modules (baseline diffing, wildcard detection)</td>
+</tr>
+<tr>
+<td><a href="https://dnspython.readthedocs.io/">dnspython</a></td>
+<td>DNS record type constants and utilities (blastdns handles actual resolution)</td>
 </tr>
 </tbody>
 </table>
-<h2 id="features">Features</h2>
-<h3 id="url-discovery-urls-true">URL Discovery (<code>urls: True</code>)</h3>
-<p>When <code>urls</code> is enabled, wayback emits <code>URL_UNVERIFIED</code> events for every unique URL found in the Wayback Machine's index. These are tagged with <code>from-wayback</code> and sent through BBOT's normal URL verification pipeline (the <code>http</code> module).</p>
-<p>Before emission, URLs go through several cleanup steps:</p>
-<ul>
-<li><strong>URL collapsing</strong> - Groups of similar URLs (e.g. pagination, search results) are deduplicated based on the <code>garbage_threshold</code> setting</li>
-<li><strong>HTTP/HTTPS deduplication</strong> - When both <code>http://</code> and <code>https://</code> variants exist, only the HTTPS version is kept</li>
-<li><strong>Blacklist filtering</strong> - URLs containing known CDN/WAF paths (e.g. <code>_Incapsula_Resource</code>, <code>/cdn-cgi/</code>) are filtered out</li>
-</ul>
-<h3 id="parameter-extraction-parameters-true">Parameter Extraction (<code>parameters: True</code>)</h3>
-<p>When <code>parameters</code> is enabled (requires <code>urls: True</code>), wayback extracts query string parameters from archived URLs and emits them as <code>WEB_PARAMETER</code> events. This is useful for discovering GET parameters that can be fed into fuzzing modules like lightfuzz.</p>
-<p>Parameters are cached and only emitted after the corresponding URL has been verified as live by the <code>http</code> module. This prevents emitting parameters for URLs that no longer exist.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Parameter extraction requires at least one module that consumes <code>WEB_PARAMETER</code> events to be active (e.g. <code>lightfuzz</code>, <code>hunt</code>, <code>paramminer_getparams</code>). If no such module is present, parameter extraction is automatically disabled with a warning.</p>
-</div>
-<h3 id="archive-retrieval-archive-true">Archive Retrieval (<code>archive: True</code>)</h3>
-<p>When <code>archive</code> is enabled (requires <code>urls: True</code>), wayback fetches the actual archived content of URLs from the Wayback Machine and emits them as <code>HTTP_RESPONSE</code> events. This is particularly useful for:</p>
-<ul>
-<li><strong>Finding secrets in dead pages</strong> - Archived versions may contain API keys, credentials, or other sensitive data that modules like <code>badsecrets</code> can detect</li>
-<li><strong>Discovering hidden functionality</strong> - Pages that have been removed may reveal application structure or endpoints</li>
-</ul>
-<p>Archive retrieval runs during the module's <code>finish()</code> phase, after all URLs have been discovered and verified. URLs that are confirmed live (2xx status) are automatically removed from the archive queue, so only dead URLs are fetched from the archive.</p>
-<p>The archived content goes through extensive cleanup to remove Wayback Machine artifacts:</p>
-<ul>
-<li>Wayback toolbar/header/footer HTML is stripped</li>
-<li>Rewritten URLs (e.g. <code>http://web.archive.org/web/20250101/http://example.com/page</code>) are restored to originals</li>
-<li>Wayback-injected headers (<code>x-archive-*</code>, <code>set-cookie</code>) are removed</li>
-<li>The event's host, port, and URL are set to the original target, not <code>web.archive.org</code></li>
-</ul>
-<p>Archived HTTP_RESPONSE events are tagged with <code>from-wayback</code> and <code>archived</code>.</p>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>Static file extensions (images, CSS, JS, etc.) are automatically skipped during archive retrieval to avoid unnecessary traffic.</p>
-</div>
-<h3 id="interesting-file-detection">Interesting File Detection</h3>
-<p>When <code>urls</code> is enabled, wayback also checks for potentially interesting archived files by looking for URLs with sensitive extensions: <code>.zip</code>, <code>.sql</code>, <code>.bak</code>, <code>.env</code>, <code>.config</code>, <code>.tar.gz</code>, <code>.tar.bz2</code>.</p>
-<p>When found, these are verified with a HEAD request to archive.org. If the archived file exists and isn't a soft-404, a <code>FINDING</code> event is emitted with details about the file (including size if available). These findings are tagged with <code>from-wayback</code>, <code>archived</code>, and <code>interesting-file</code>.</p>
-<h2 id="presets">Presets</h2>
-<p>Wayback comes with two dedicated presets, and is also integrated into several other presets:</p>
-<h3 id="-p-wayback"><code>-p wayback</code></h3>
-<p>Basic URL discovery mode. Includes <code>subdomain-enum</code> and enables <code>urls: True</code>. Good for general recon when you want to discover historical URLs alongside subdomains.</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>wayback<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com
-</code></pre></div>
-<h3 id="-p-wayback-heavy"><code>-p wayback-heavy</code></h3>
-<p>Full-featured mode with URL discovery, parameter extraction, and archive retrieval. Also includes <code>badsecrets</code> to scan archived content for exposed secrets.</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>wayback-heavy<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com
-</code></pre></div>
-<h3 id="integration-with-other-presets">Integration with other presets</h3>
-<p>Wayback's extended features are also enabled in several other presets:</p>
-<table>
-<thead>
-<tr>
-<th>Preset</th>
-<th>Wayback Config</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>kitchen-sink</code></td>
-<td><code>urls</code>, <code>parameters</code>, <code>archive</code></td>
-</tr>
-<tr>
-<td><code>dirbust-heavy</code></td>
-<td><code>urls</code></td>
-</tr>
-<tr>
-<td><code>nuclei-heavy</code></td>
-<td><code>urls</code></td>
-</tr>
-<tr>
-<td><code>lightfuzz-heavy</code></td>
-<td><code>urls</code>, <code>parameters</code></td>
-</tr>
-<tr>
-<td><code>lightfuzz-max</code></td>
-<td><code>urls</code>, <code>parameters</code>, <code>archive</code></td>
-</tr>
-</tbody>
-</table>
-<h2 id="example-commands">Example Commands</h2>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Basic subdomain enumeration (default behavior, no URL emission)</span>
-bbot<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com
-</code></pre></div>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># URL discovery via wayback preset</span>
-bbot<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>wayback<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com
-</code></pre></div>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Full wayback integration with archived content and parameter extraction</span>
-bbot<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>wayback-heavy<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com
-</code></pre></div>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Enable wayback URLs alongside a nuclei scan</span>
-bbot<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>nuclei<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>wayback<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.wayback.urls<span style="color: #FF7B72; font-weight: bold">=</span>True<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com
-</code></pre></div>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Pair with lightfuzz for parameter fuzzing using archived parameters</span>
-bbot<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>lightfuzz-heavy<span style="color: #6E7681"> </span>spider<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com
-</code></pre></div>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Enable wayback features via command-line config</span>
-bbot<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.wayback.urls<span style="color: #FF7B72; font-weight: bold">=</span>True<span style="color: #6E7681"> </span>modules.wayback.parameters<span style="color: #FF7B72; font-weight: bold">=</span>True<span style="color: #6E7681"> </span>modules.wayback.archive<span style="color: #FF7B72; font-weight: bold">=</span>True<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com
-</code></pre></div>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Adjust garbage threshold for cleaner output (more aggressive deduplication)</span>
-bbot<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>wayback<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.wayback.garbage_threshold<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">5</span><span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com
-</code></pre></div>
 </article>
 </div>
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
