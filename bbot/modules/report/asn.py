@@ -24,7 +24,8 @@ class asn(BaseReportModule):
     async def filter_event(self, event):
         if str(event.module) == "ipneighbor":
             return False
-        if getattr(event.host, "is_private", False):
+        # only look up globally-routable IPs; private/CGNAT/reserved space has no public ASN
+        if not getattr(event.host, "is_global", True):
             return False
         return True
 

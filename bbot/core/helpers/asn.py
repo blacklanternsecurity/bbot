@@ -1,6 +1,7 @@
 import logging
 
 from bbot.errors import ASNResolutionError
+from bbot.core.helpers.async_helpers import NamedLock
 
 log = logging.getLogger("bbot.core.helpers.asn")
 
@@ -30,6 +31,8 @@ class ASNHelper:
         self._client = None
         self._consecutive_failures = 0
         self._circuit_broken = False
+        # serialize asndb requests so concurrent callers don't stampede the rate-limited API
+        self._request_lock = NamedLock()
 
     @property
     def client(self):
@@ -69,7 +72,8 @@ class ASNHelper:
         if self._circuit_broken:
             return self.UNKNOWN_ASN
         try:
-            response = await self.client.lookup_ip(str(ip), include_subnets=True)
+            async with self._request_lock.lock("asndb"):
+                response = await self.client.lookup_ip(str(ip), include_subnets=True)
         except Exception as e:
             log.warning(f"ASN lookup failed for IP {ip}: {e}")
             self._record_failure()
@@ -89,7 +93,8 @@ class ASNHelper:
         last_error = None
         for attempt in range(1, self.MAX_RETRIES + 1):
             try:
-                response = await self.client.lookup_asn(asn, include_subnets=True)
+                async with self._request_lock.lock("asndb"):
+                    response = await self.client.lookup_asn(asn, include_subnets=True)
                 return self._normalize(response)
             except Exception as e:
                 last_error = e
