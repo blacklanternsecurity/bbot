@@ -916,7 +916,7 @@ config:
 
     # can't use both include= and presets= at the same time
     with pytest.raises(ValueError):
-        preset = Preset(presets=["subdomain-enum"], include=["dirbust-light"])
+        preset = Preset(presets=["subdomain-enum"], include=["webbrute"])
 
 
 @pytest.mark.asyncio

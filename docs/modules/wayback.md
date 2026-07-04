@@ -98,7 +98,7 @@ Wayback's extended features are also enabled in several other presets:
 | Preset                | Wayback Config                          |
 |-----------------------|-----------------------------------------|
 | `kitchen-sink`        | `urls`, `parameters`, `archive`         |
-| `dirbust-heavy`       | `urls`                                  |
+| `webbrute-heavy`      | `urls`                                  |
 | `nuclei-heavy`        | `urls`                                  |
 | `lightfuzz-heavy`     | `urls`, `parameters`                    |
 | `lightfuzz-max`       | `urls`, `parameters`, `archive`         |

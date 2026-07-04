@@ -22,7 +22,7 @@ conditions:
     {% endif %}
 
 
-# Example for also running a dirbust
+# Example for also running webbrute
 
 #include:
-#  - dirbust-light
+#  - webbrute
