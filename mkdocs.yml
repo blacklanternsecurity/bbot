@@ -21,6 +21,7 @@ nav:
     - Comparison to Other Tools: comparison.md
   - Scanning:
     - Scanning Overview: scanning/index.md
+    - Scan Sanity: scanning/scan_sanity.md
     - Presets:
       - Overview: scanning/presets.md
       - List of Presets: scanning/presets_list.md

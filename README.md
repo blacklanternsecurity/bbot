@@ -385,6 +385,7 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/Stabl
         - [Comparison to Other Tools](https://www.blacklanternsecurity.com/bbot/Stable/comparison)
     - **Scanning**
         - [Scanning Overview](https://www.blacklanternsecurity.com/bbot/Stable/scanning/)
+        - [Scan Sanity](https://www.blacklanternsecurity.com/bbot/Stable/scanning/scan_sanity)
         - **Presets**
             - [Overview](https://www.blacklanternsecurity.com/bbot/Stable/scanning/presets)
             - [List of Presets](https://www.blacklanternsecurity.com/bbot/Stable/scanning/presets_list)
