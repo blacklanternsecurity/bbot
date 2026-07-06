@@ -31,7 +31,7 @@ Modern AI is an incredibly valuable tool for development. We definitely use it. 
 - **No low quality submissions.** If you just submitted the same slop PR to 20 other repos, we are going to close it. If it ignores all the normal patterns in use in BBOT and does its own thing, we are going to close it. If you make a good-faith attempt at doing it right, we're more than happy to help you along.
 - **Don't let the AI edit tests.** Of course, there will be some times where a test edit is legitimately needed, but this is a common antipattern for AI agents. 
 
-We don't require AI disclosure, but it's not discouraged either (usually we can tell though).
+We don't require AI disclosure, but it's welcome (and honestly, we can usually tell). If you'd like to include one, add a short **AI Use Disclosure** at the bottom of your PR: how extensively AI was used (fully autonomous, a collaborative back-and-forth, or an AI review of your own work) and which model.
 
 We provide an [AGENTS.md](https://github.com/blacklanternsecurity/bbot/blob/dev/AGENTS.md) file in the repo root. Feed this to your LLM before working on BBOT. It describes our conventions and should help steer AI-assisted contributions in the right direction.
 

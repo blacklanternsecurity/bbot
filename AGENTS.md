@@ -81,6 +81,18 @@ ruff format --check  # verify formatting without changes
 
 ---
 
+## AI Use Disclosure
+
+Use of AI is not prohibited -- and in many cases, encouraged. However, when reviewing a PR, it is helpful for the reviewer to know the extent to which AI was used, and which model.
+Please add a small section at the bottom of the PR with the header: `### AI Use Disclosure`, followed by the following information:
+
+* Extent of the AI use. For example, was this fully autonomous by the AI, or was it a collaborative back-and-forth, or did the user just use the AI to review their work, etc.
+* Model Used
+
+This should only apply to external contributors, not members of the blacklanternsecurity organization.
+
+---
+
 ## Architecture Overview
 
 ### How a Scan Works
