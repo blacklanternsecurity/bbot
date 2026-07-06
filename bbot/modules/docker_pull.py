@@ -206,6 +206,11 @@ class docker_pull(BaseModule):
 
     async def download_and_write_to_tar(self, registry, repository, tag):
         output_tar = self.output_dir / f"{repository.replace('/', '_')}_{tag}.tar"
+        # tag comes from the registry API; resolve() collapses ".." so a malicious
+        # tag can't write the tarball outside the output directory
+        if not output_tar.resolve().is_relative_to(self.output_dir.resolve()):
+            self.warning(f"Refusing to write outside output directory: {output_tar}")
+            return None
         with tarfile.open(output_tar, mode="w") as tar:
             manifest = await self.get_manifest(registry, repository, tag)
             config_file, config_filename = await self.download_and_get_filename(
