@@ -37,6 +37,17 @@ bbot --help
 
 ## Regenerate Config
 As a troubleshooting step it is sometimes useful to clear out your older configs and let BBOT generate new ones. This will ensure that new defaults are properly restored, etc.
+
+BBOT can do this for you (it backs up the originals first):
+
+```bash
+# regenerate config and/or secrets from current defaults
+bbot --reset-config --yes
+bbot --reset-secrets --yes
+```
+
+Or do it manually:
+
 ```bash
 # make a backup of the old configs
 mv ~/.config/bbot ~/.config/bbot.bak

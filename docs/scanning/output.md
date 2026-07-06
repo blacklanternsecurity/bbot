@@ -104,6 +104,8 @@ You will then see [events](events.md) like this:
 }
 ```
 
+String-typed events use the `data` key (as above); structured events like `HTTP_RESPONSE` and `FINDING` use `data_json` (a dict) instead. See [Events](events.md) for details.
+
 You can filter on the JSON output with `jq`:
 
 ```bash

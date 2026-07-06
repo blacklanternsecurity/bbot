@@ -72,7 +72,7 @@ This is the default setting, and will use all templates. However, if you're look
 
 #### Technology
 
-This is equivalent to the Nuclei '-as' scan option. It only use templates that match detected technologies, using wappalyzer-based signatures. This can be a nice way to run a light-weight scan that still has a chance to find some good vulnerabilities.
+This is equivalent to the Nuclei '-as' scan option. It only uses templates that match detected technologies, using wappalyzer-based signatures. This can be a nice way to run a light-weight scan that still has a chance to find some good vulnerabilities.
 
 #### Budget
 
@@ -86,7 +86,7 @@ For only the cost of one (or more) "extra" request(s) per host, it can activate 
 The budget parameter is the # of extra requests per host you are willing to send to "feed" Nuclei templates (defaults to 1).
 For those times when vulnerability scanning isn't the main focus, but you want to look for easy wins.
 
-Of course, there is a rapidly diminishing return when you set he value to more than a handful. Eventually, this becomes 1 template per 1 budget value increase. However, in the 1-10 range there is a lot of value. This graphic should give you a rough visual idea of this concept.
+Of course, there is a rapidly diminishing return when you set the value to more than a handful. Eventually, this becomes 1 template per 1 budget value increase. However, in the 1-10 range there is a lot of value. This graphic should give you a rough visual idea of this concept.
 
 ![Nuclei Budget Mode](https://github.com/blacklanternsecurity/bbot/assets/24899338/08a3429c-5a73-437b-84de-27c07d85a529)
 

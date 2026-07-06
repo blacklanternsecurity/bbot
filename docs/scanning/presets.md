@@ -142,7 +142,7 @@ Here is the full list of supported top-level keys in a preset YAML file:
 | `seeds` | list | Seed events to feed into modules. If omitted, targets are used as seeds |
 | `blacklist` | list | Excluded targets. Takes ultimate precedence |
 | `modules` | list | Scan modules to enable |
-| `output_modules` | list | Output modules (default: `csv`, `human`, `json`) |
+| `output_modules` | list | Output modules (default: `csv`, `txt`, `json`) |
 | `exclude_modules` | list | Modules to exclude |
 | `flags` | list | Enable all modules with these flags |
 | `require_flags` | list | Only enable modules that have these flags |
