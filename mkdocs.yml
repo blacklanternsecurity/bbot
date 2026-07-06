@@ -21,7 +21,6 @@ nav:
     - Comparison to Other Tools: comparison.md
   - Scanning:
     - Scanning Overview: scanning/index.md
-    - Scan Sanity: scanning/scan_sanity.md
     - Presets:
       - Overview: scanning/presets.md
       - List of Presets: scanning/presets_list.md
@@ -30,6 +29,7 @@ nav:
     - Tips and Tricks: scanning/tips_and_tricks.md
     - Advanced Usage: scanning/advanced.md
     - Configuration: scanning/configuration.md
+    - Scan Sanity: scanning/scan_sanity.md
   - Modules:
     - List of Modules: modules/list_of_modules.md
     - Internal Modules: modules/internal_modules.md

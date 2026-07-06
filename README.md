@@ -385,7 +385,6 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/Stabl
         - [Comparison to Other Tools](https://www.blacklanternsecurity.com/bbot/Stable/comparison)
     - **Scanning**
         - [Scanning Overview](https://www.blacklanternsecurity.com/bbot/Stable/scanning/)
-        - [Scan Sanity](https://www.blacklanternsecurity.com/bbot/Stable/scanning/scan_sanity)
         - **Presets**
             - [Overview](https://www.blacklanternsecurity.com/bbot/Stable/scanning/presets)
             - [List of Presets](https://www.blacklanternsecurity.com/bbot/Stable/scanning/presets_list)
@@ -394,6 +393,7 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/Stabl
         - [Tips and Tricks](https://www.blacklanternsecurity.com/bbot/Stable/scanning/tips_and_tricks)
         - [Advanced Usage](https://www.blacklanternsecurity.com/bbot/Stable/scanning/advanced)
         - [Configuration](https://www.blacklanternsecurity.com/bbot/Stable/scanning/configuration)
+        - [Scan Sanity](https://www.blacklanternsecurity.com/bbot/Stable/scanning/scan_sanity)
     - **Modules**
         - [List of Modules](https://www.blacklanternsecurity.com/bbot/Stable/modules/list_of_modules)
         - [Internal Modules](https://www.blacklanternsecurity.com/bbot/Stable/modules/internal_modules)
