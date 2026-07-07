@@ -17,7 +17,7 @@ conditions:
       {{ warn("Running nuclei with spider enabled is generally not recommended. Consider removing 'spider' preset.") }}
     {% endif %}
 
-# Example for also running a dirbust
+# Example for also running webbrute
 
 #include:
-#  - dirbust-light
+#  - webbrute

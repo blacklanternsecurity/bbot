@@ -92,83 +92,6 @@ Enumerate Git repositories, Docker images, etc.
 
 Modules: [0]("")
 
-## **dirbust-heavy**
-
-Recursive web directory brute-force (aggressive)
-
-??? note "`dirbust-heavy.yml`"
-    ```yaml title="~/.bbot/presets/web/dirbust-heavy.yml"
-    description: Recursive web directory brute-force (aggressive)
-    
-    include:
-      - spider
-    
-    flags:
-      - iis-shortnames
-    
-    modules:
-      - webbrute
-      - wayback
-    
-    config:
-      modules:
-        iis_shortnames:
-          # we exploit the shortnames vulnerability to produce URL_HINTs which are consumed by webbrute_shortnames
-          detect_only: False
-        webbrute:
-          avoid_wafs: False
-          max_depth: 3
-          lines: 5000
-          extensions:
-            - php
-            - asp
-            - aspx
-            - ashx
-            - asmx
-            - jsp
-            - jspx
-            - cfm
-            - zip
-            - conf
-            - config
-            - xml
-            - json
-            - yml
-            - yaml
-        # emit URLs from wayback
-        wayback:
-          urls: True
-    ```
-
-Category: web
-
-Modules: [0]("")
-
-## **dirbust-light**
-
-Basic web directory brute-force (surface-level directories only)
-
-??? note "`dirbust-light.yml`"
-    ```yaml title="~/.bbot/presets/web/dirbust-light.yml"
-    description: Basic web directory brute-force (surface-level directories only)
-    
-    include:
-      - iis-shortnames
-    
-    modules:
-      - webbrute
-    
-    config:
-      modules:
-        webbrute:
-          # wordlist size = 1000
-          lines: 1000
-    ```
-
-Category: web
-
-Modules: [0]("")
-
 ## **dotnet-audit**
 
 Comprehensive scan for all IIS/.NET specific modules and module settings
@@ -292,7 +215,7 @@ Everything everywhere all at once
       - spider
       - web
       - paramminer
-      - dirbust-light
+      - webbrute
       - web-screenshots
       - baddns-heavy
     
@@ -582,10 +505,10 @@ Run nuclei scans against all discovered targets, allowing for spidering, against
         {% endif %}
     
     
-    # Example for also running a dirbust
+    # Example for also running webbrute
     
     #include:
-    #  - dirbust-light
+    #  - webbrute
     ```
 
 Category: nuclei
@@ -617,10 +540,10 @@ Run nuclei scans against all discovered targets, running templates which match d
           {{ warn("Running nuclei with spider enabled is generally not recommended. Consider removing 'spider' preset.") }}
         {% endif %}
     
-    # Example for also running a dirbust
+    # Example for also running webbrute
     
     #include:
-    #  - dirbust-light
+    #  - webbrute
     ```
 
 Category: nuclei
@@ -976,6 +899,83 @@ Take screenshots of webpages
 
 
 Modules: [0]("")
+
+## **webbrute**
+
+Basic web directory brute-force (surface-level directories only)
+
+??? note "`webbrute.yml`"
+    ```yaml title="~/.bbot/presets/web/webbrute.yml"
+    description: Basic web directory brute-force (surface-level directories only)
+    
+    include:
+      - iis-shortnames
+    
+    modules:
+      - webbrute
+    
+    config:
+      modules:
+        webbrute:
+          # wordlist size = 1000
+          lines: 1000
+    ```
+
+Category: web
+
+Modules: [0]("")
+
+## **webbrute-heavy**
+
+Recursive web directory brute-force (aggressive)
+
+??? note "`webbrute-heavy.yml`"
+    ```yaml title="~/.bbot/presets/web/webbrute-heavy.yml"
+    description: Recursive web directory brute-force (aggressive)
+    
+    include:
+      - spider
+    
+    flags:
+      - iis-shortnames
+    
+    modules:
+      - webbrute
+      - wayback
+    
+    config:
+      modules:
+        iis_shortnames:
+          # we exploit the shortnames vulnerability to produce URL_HINTs which are consumed by webbrute_shortnames
+          detect_only: False
+        webbrute:
+          avoid_wafs: False
+          max_depth: 3
+          lines: 5000
+          extensions:
+            - php
+            - asp
+            - aspx
+            - ashx
+            - asmx
+            - jsp
+            - jspx
+            - cfm
+            - zip
+            - conf
+            - config
+            - xml
+            - json
+            - yml
+            - yaml
+        # emit URLs from wayback
+        wayback:
+          urls: True
+    ```
+
+Category: web
+
+Modules: [0]("")
 <!-- END BBOT PRESET YAML -->
 
 ## Table of Default Presets
@@ -989,8 +989,6 @@ Here is a the same data, but in a table:
 | baddns-heavy      |            | Run all baddns modules and submodules.                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | 3           | baddns, baddns_direct, baddns_zone                                                                 |
 | cloud-enum        |            | Enumerate cloud resources such as storage buckets, etc.                                                                                                                                                                                                                                                                                                                                                                                                                                                 | 0           |                                                                                                    |
 | code-enum         |            | Enumerate Git repositories, Docker images, etc.                                                                                                                                                                                                                                                                                                                                                                                                                                                         | 0           |                                                                                                    |
-| dirbust-heavy     | web        | Recursive web directory brute-force (aggressive)                                                                                                                                                                                                                                                                                                                                                                                                                                                        | 3           | http, wayback, webbrute                                                                            |
-| dirbust-light     | web        | Basic web directory brute-force (surface-level directories only)                                                                                                                                                                                                                                                                                                                                                                                                                                        | 1           | webbrute                                                                                           |
 | dotnet-audit      | web        | Comprehensive scan for all IIS/.NET specific modules and module settings                                                                                                                                                                                                                                                                                                                                                                                                                                | 8           | ajaxpro, aspnet_bin_exposure, badsecrets, dotnetnuke, http, telerik, webbrute, webbrute_shortnames |
 | email-enum        |            | Enumerate email addresses from APIs, web crawling, etc.                                                                                                                                                                                                                                                                                                                                                                                                                                                 | 0           |                                                                                                    |
 | fast              |            | Scan only the provided targets as fast as possible - no extra discovery                                                                                                                                                                                                                                                                                                                                                                                                                                 | 0           |                                                                                                    |
@@ -1019,4 +1017,6 @@ Here is a the same data, but in a table:
 | web               |            | Quick web scan                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | 0           |                                                                                                    |
 | web-heavy         |            | Aggressive web scan                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | 0           |                                                                                                    |
 | web-screenshots   |            | Take screenshots of webpages                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | 0           |                                                                                                    |
+| webbrute          | web        | Basic web directory brute-force (surface-level directories only)                                                                                                                                                                                                                                                                                                                                                                                                                                        | 1           | webbrute                                                                                           |
+| webbrute-heavy    | web        | Recursive web directory brute-force (aggressive)                                                                                                                                                                                                                                                                                                                                                                                                                                                        | 3           | http, wayback, webbrute                                                                            |
 <!-- END BBOT PRESETS -->

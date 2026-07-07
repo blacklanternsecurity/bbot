@@ -104,6 +104,8 @@ You will then see [events](events.md) like this:
 }
 ```
 
+String-typed events use the `data` key (as above); structured events like `HTTP_RESPONSE` and `FINDING` use `data_json` (a dict) instead. See [Events](events.md) for details.
+
 You can filter on the JSON output with `jq`:
 
 ```bash
@@ -413,22 +415,79 @@ The `web_report` output module generates a markdown report of web assets, includ
 
 The `nmap_xml` output module exports open ports, DNS names, IP addresses, and protocols in Nmap XML format for compatibility with tools that consume Nmap output.
 
-### Message Queues
+### Kafka
 
-BBOT supports streaming events as JSON to several message queue systems:
+The `kafka` output module publishes events as JSON to a Kafka topic.
 
-| Module | Description | Key Config |
-|--------|-------------|------------|
-| `kafka` | Publish to a Kafka topic | `bootstrap_servers`, `topic` |
-| `rabbitmq` | Publish to a RabbitMQ queue | `url`, `queue` |
-| `nats` | Publish to a NATS subject | `servers`, `subject` |
-| `zeromq` | Publish to a ZeroMQ PUB socket | `zmq_address` |
-| `websocket` | Stream to a WebSocket endpoint | `url`, `token` |
+```yaml title="kafka_preset.yml"
+output_modules:
+  - kafka
 
-These can be enabled like any other output module:
+config:
+  modules:
+    kafka:
+      bootstrap_servers: localhost:9092
+      topic: bbot_events
+```
 
-```bash
-bbot -t evilcorp.com -om kafka -c modules.kafka.bootstrap_servers=localhost:9092 modules.kafka.topic=bbot_events
+### RabbitMQ
+
+The `rabbitmq` output module publishes events as JSON to a RabbitMQ queue.
+
+```yaml title="rabbitmq_preset.yml"
+output_modules:
+  - rabbitmq
+
+config:
+  modules:
+    rabbitmq:
+      url: amqp://guest:guest@localhost/
+      queue: bbot_events
+```
+
+### NATS
+
+The `nats` output module publishes events as JSON to a NATS subject.
+
+```yaml title="nats_preset.yml"
+output_modules:
+  - nats
+
+config:
+  modules:
+    nats:
+      servers:
+        - nats://localhost:4222
+      subject: bbot_events
+```
+
+### ZeroMQ
+
+The `zeromq` output module publishes events as JSON to a ZeroMQ PUB socket.
+
+```yaml title="zeromq_preset.yml"
+output_modules:
+  - zeromq
+
+config:
+  modules:
+    zeromq:
+      zmq_address: tcp://localhost:5555
+```
+
+### WebSocket
+
+The `websocket` output module streams events as JSON to a WebSocket endpoint. Set `token` to send an `Authorization: Bearer` header.
+
+```yaml title="websocket_preset.yml"
+output_modules:
+  - websocket
+
+config:
+  modules:
+    websocket:
+      url: ws://localhost:8080
+      token: my-auth-token
 ```
 
 ### MongoDB

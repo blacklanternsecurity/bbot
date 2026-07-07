@@ -147,13 +147,13 @@ If the response contains `1787569` (or `1,787,569`), the expression was evaluate
 
 Identifies cryptographic parameters and probes for cryptographic vulnerabilities. This submodule has several stages with varying confidence levels.
 
-**Stage 0 — Keystream Reuse / Many-Time-Pad** (HIGH/CONFIRMED to MEDIUM/PROBABLE; zero HTTP requests): A cross-value passive check that runs *before* the entropy gate. When a stream cipher reuses a single keystream across multiple encryptions (no IV, fixed key — a common homebrew mistake), XOR-ing any two ciphertexts yields the XOR of their plaintexts. For natural-language or identifier plaintexts that share a prefix, the result begins with a run of zero bytes — mathematically impossible under correct encryption.
+**Stage 0 — Keystream Reuse / Many-Time-Pad** (HIGH/CONFIRMED to MEDIUM/MEDIUM; zero HTTP requests): A cross-value passive check that runs *before* the entropy gate. When a stream cipher reuses a single keystream across multiple encryptions (no IV, fixed key — a common homebrew mistake), XOR-ing any two ciphertexts yields the XOR of their plaintexts. For natural-language or identifier plaintexts that share a prefix, the result begins with a run of zero bytes — mathematically impossible under correct encryption.
 
 The detector gathers candidate ciphertexts from the parameter's own value plus every value in `additional_params` (sibling form fields) and `same_param_values` (other observed values for the same parameter across a single page, e.g. sort links with distinct hex-encoded keys). It decodes each via the existing `format_agnostic_decode()` helper, pairwise-XORs them, and scores the result:
 
 - **HIGH / CONFIRMED** — a leading run of ≥ 5 zero bytes (two plaintexts share their first 5+ bytes; impossible under correct encryption with fresh IVs)
-- **HIGH / PROBABLE** — a 3-4 byte zero run, or ≥ 95% of XOR bytes fall in the `[0x00, 0x60]` "printable-ASCII XOR printable-ASCII" range
-- **MEDIUM / PROBABLE** — ≥ 90% ASCII-XOR-ASCII bytes but no zero-run
+- **HIGH / HIGH** — a 3-4 byte zero run, or ≥ 95% of XOR bytes fall in the `[0x00, 0x60]` "printable-ASCII XOR printable-ASCII" range
+- **MEDIUM / MEDIUM** — ≥ 90% ASCII-XOR-ASCII bytes but no zero-run
 
 This stage bypasses the entropy gate (Stage 1) because the short ASCII plaintexts most vulnerable to this misuse often produce ciphertext below the 4.5-bit threshold the gate would otherwise filter out.
 

@@ -23,7 +23,7 @@ class whois(BaseModule):
     watched_events = ["DNS_NAME"] # watch for DNS_NAME events
     produced_events = ["DNS_NAME"] # we produce DNS_NAME events
     flags = ["passive", "safe"]
-    meta = {"description": "Query WhoisXMLAPI for related domains"}
+    meta = {"description": "Query WhoisXMLAPI for related domains", "created_date": "2024-01-01", "author": "@you"}
 
     class Config(BaseModuleConfig):
         api_key: str = Field("", description="WhoisXMLAPI Key", sensitive=True, mandatory=True)

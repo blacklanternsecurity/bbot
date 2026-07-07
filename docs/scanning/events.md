@@ -27,7 +27,7 @@ Each BBOT event has the following attributes. Not all of these attributes are vi
 - `.id`: an identifier representing the event type + a SHA1 hash of its data (note: multiple events can have the same `.id`)
 - `.uuid`: a universally unique identifier for the event (e.g. `DNS_NAME:6c96d512-090a-47f0-82e4-6860e46aac13`)
 - `.scope_description`: describes the scope of the event (e.g. `in-scope`, `affiliate`, `distance-2`)
-- `.data`: the actual discovered data (for some events like `DNS_NAME` or `IP_ADDRESS`, this is a string. For other more complex events like `HTTP_RESPONSE`, it's a dictionary)
+- `.data`: the actual discovered data (for some events like `DNS_NAME` or `IP_ADDRESS`, this is a string. For other more complex events like `HTTP_RESPONSE`, it's a dictionary). In JSON output it's serialized as `data` or `data_json` depending on its type (see below).
 - `.host`: the hostname or IP address (e.g. `evilcorp.com` or `1.2.3.4`)
 - `.port`: the port number (e.g. `80`, `443`)
 - `.netloc`: the network location, including both the hostname and port (e.g. `www.evilcorp.com:443`)
@@ -109,6 +109,15 @@ These attributes allow us to construct a visual graph of events (e.g. in [Neo4j]
   ]
 }
 ```
+
+### `data` vs `data_json`
+
+When events are serialized to JSON (`output.json`, the `json` output module, or `--json`), the data field is named after its type, so a given key always holds a consistent type. This makes parsing far easier for scripts and aggregation tools like Elasticsearch:
+
+- **`data`** -- a string, for events whose data is a string (`DNS_NAME`, `IP_ADDRESS`, `URL`, ...). The example above is a `DNS_NAME`, so its value lives under `data`.
+- **`data_json`** -- a dictionary, for events whose data is structured (`HTTP_RESPONSE`, `FINDING`, `STORAGE_BUCKET`, ...).
+
+Exactly one of the two is present per event. When reading events back, check `data_json` first and fall back to `data`.
 
 For a more detailed description of BBOT events, see [Developer Documentation - Event](../dev/event.md).
 
