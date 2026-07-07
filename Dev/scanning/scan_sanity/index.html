@@ -7,12 +7,12 @@
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <meta content="OSINT automation for hackers" name="description"/>
 <meta content="TheTechromancer" name="author"/>
-<link href="https://blacklanternsecurity.github.io/bbot/Dev/scanning/events/" rel="canonical"/>
-<link href="../presets_list/" rel="prev"/>
-<link href="../output/" rel="next"/>
+<link href="https://blacklanternsecurity.github.io/bbot/Dev/scanning/scan_sanity/" rel="canonical"/>
+<link href="../configuration/" rel="prev"/>
+<link href="../../modules/list_of_modules/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
 <meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
-<title>Events - BBOT Docs</title>
+<title>Scan Sanity - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
@@ -26,7 +26,7 @@
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
 <label class="md-overlay" for="__drawer"></label>
 <div data-md-component="skip">
-<a class="md-skip" href="#events">
+<a class="md-skip" href="#scan-sanity-guide">
           Skip to content
         </a>
 </div>
@@ -52,7 +52,7 @@
 <div class="md-header__topic" data-md-component="header-topic">
 <span class="md-ellipsis">
             
-              Events
+              Scan Sanity
             
           </span>
 </div>
@@ -322,20 +322,8 @@
 </ul>
 </nav>
 </li>
-<li class="md-nav__item md-nav__item--active">
-<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
-<label class="md-nav__link md-nav__link--active" for="__toc">
-<span class="md-ellipsis">
-    
-  
-    Events
-  
-
-    
-  </span>
-<span class="md-nav__icon md-icon"></span>
-</label>
-<a class="md-nav__link md-nav__link--active" href="./">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../events/">
 <span class="md-ellipsis">
     
   
@@ -345,54 +333,6 @@
     
   </span>
 </a>
-<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
-<label class="md-nav__title" for="__toc">
-<span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
-<li class="md-nav__item">
-<a class="md-nav__link" href="#findings">
-<span class="md-ellipsis">
-      
-        Findings
-      
-    </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#event-attributes">
-<span class="md-ellipsis">
-      
-        Event Attributes
-      
-    </span>
-</a>
-<nav aria-label="Event Attributes" class="md-nav">
-<ul class="md-nav__list">
-<li class="md-nav__item">
-<a class="md-nav__link" href="#data-vs-data_json">
-<span class="md-ellipsis">
-      
-        data vs data_json
-      
-    </span>
-</a>
-</li>
-</ul>
-</nav>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#list-of-event-types">
-<span class="md-ellipsis">
-      
-        List of Event Types
-      
-    </span>
-</a>
-</li>
-</ul>
-</nav>
 </li>
 <li class="md-nav__item">
 <a class="md-nav__link" href="../output/">
@@ -442,8 +382,20 @@
   </span>
 </a>
 </li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="../scan_sanity/">
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    
+  
+    Scan Sanity
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
 <span class="md-ellipsis">
     
   
@@ -453,6 +405,85 @@
     
   </span>
 </a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#scan-settings">
+<span class="md-ellipsis">
+      
+        Scan Settings
+      
+    </span>
+</a>
+<nav aria-label="Scan Settings" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#the-active-flag">
+<span class="md-ellipsis">
+      
+        The active flag
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#settings-best-left-alone">
+<span class="md-ellipsis">
+      
+        Settings best left alone
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#scan-target">
+<span class="md-ellipsis">
+      
+        Scan Target
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#module-choices">
+<span class="md-ellipsis">
+      
+        Module Choices
+      
+    </span>
+</a>
+<nav aria-label="Module Choices" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#invasive-and-loud">
+<span class="md-ellipsis">
+      
+        Invasive and Loud
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#explosive-combinations">
+<span class="md-ellipsis">
+      
+        Explosive combinations
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
 </li>
 </ul>
 </nav>
@@ -1007,371 +1038,56 @@
 </div>
 <div class="md-content" data-md-component="content">
 <article class="md-content__inner md-typeset">
-<h1 id="events">Events</h1>
-<p>An Event is a piece of data discovered by BBOT. Examples include <code>IP_ADDRESS</code>, <code>DNS_NAME</code>, <code>EMAIL_ADDRESS</code>, <code>URL</code>, etc. When you run a BBOT scan, events are constantly being exchanged between modules. They are also output to the console:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>[DNS_NAME]      www.evilcorp.com    sslcert         (distance-0, in-scope, resolved, subdomain, a-record)
- ^^^^^^^^       ^^^^^^^^^^^^^^^^    ^^^^^^^          ^^^^^^^^^^
-event type      event data          source module    tags
+<h1 id="scan-sanity-guide">Scan Sanity Guide</h1>
+<p>BBOT's recursive nature is a double-edged sword. Let's talk about the <em>bad</em> edge. Any scan is a few settings away from scanning the entire internet, or sending millions of packets to your targets and never finishing.</p>
+<p>There are two things to consider when trying to keep your scan "sane": your scan settings (modules and config choices) and your target.</p>
+<h2 id="scan-settings">Scan Settings</h2>
+<p>Back in the earliest days of BBOT you could run <code>bbot -m all</code> to turn on every module. That was fine when there were only a handful of modules, but as BBOT grew it quickly became a terrible idea, so we removed it.</p>
+<p>Imagine you turn on -f <code>subdomain-enum</code>, -m <code>http</code> and <code>webbrute</code>, and -p <code>lightfuzz</code>. This <em>might</em> be a reasonable scan if you only had a few targets. But let's say your subdomain-enum ends up finding 1000 websites.</p>
+<p>For each of those 1000 websites, webbrute is going to brute-force every directory it knows about. By default that's 5000 requests. With recursion, every directory it finds kicks off a fresh 5000. Then, for every URL that turns up, lightfuzz sends its full suite of probes (in the hundreds).</p>
+<p>But that's not all, because while that's happening the content of each page is being parsed for additional links. If you also turned on <code>-p spider</code>, every one of those gets re-emitted, feeding into itself.</p>
+<p>Let's imagine you also enabled <code>-p wayback-heavy</code>, so each host also gets a queue of every wayback URL result. This can very quickly devolve into gigantic queues that never drain. And although we've put a lot of effort into optimizing memory, BBOT is memory-unbounded: theoretically you could have a scan big enough that it eventually takes all of your RAM... or more likely, just never finishes. </p>
+<p>On the other hand, with maybe five hard-coded URLs? This might be a pretty nice scan for doing an initial recon before a web assessment. </p>
+<p>We realize that when most people crack open a security tool, they just want to run it with all the settings. That's one of the reasons we added presets in the first place: to help people pick pre-configured settings to suit different tasks, and also to empower people to create their own. But you can stack multiple presets, and things can very quickly get out of hand.</p>
+<p>We allow you a ton of flexibility with your scans: you can add any combination of modules, flags, and presets, add presets while excluding modules, exclude flags, and so on. However, there are a few things you <strong>can</strong> do that are just plain a terrible idea, and might not be obvious.</p>
+<h3 id="the-active-flag">The <code>active</code> flag</h3>
+<div class="admonition danger">
+<p class="admonition-title">Don't select by activity flag</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>active
 </code></pre></div>
-<h2 id="findings">Findings</h2>
-<p>All vulnerability discoveries, security-relevant observations, and other notable results in BBOT are emitted as <strong><code>FINDING</code></strong> events.</p>
-<p>Each finding has a <strong>severity</strong> and a <strong>confidence</strong>:</p>
+</div>
+<p>This is bad for multiple reasons! Every module is required to have EITHER <code>active</code> or <code>passive</code>. So by just selecting <code>active</code>, you are guaranteeing that ALL of the most aggressive modules are also included, since they would obviously be active. Furthermore, this WON'T run the passive modules, which are actually pretty important for most any scan!</p>
+<p>This is probably a design flaw we need to work on in the future (perhaps active or passive should be a module attribute, rather than a flag), but for now we're hoping this guide can steer people in the right direction. Where the <code>active</code> flag is genuinely useful is with <code>-ef active</code>: excluding it when you want to be really careful about how aggressive the scan is.</p>
+<p>If you truly just want the "throw everything at it" experience, we do have a preset for you: <code>kitchen-sink</code>. It's basically the most insane scan setting we can officially endorse.</p>
+<h3 id="settings-best-left-alone">Settings best left alone</h3>
+<div class="admonition warning">
+<p class="admonition-title">Leave these at their defaults unless you know why</p>
+<p>Most of BBOT's config is safe to tune, but a small handful are not. Get one of these wrong and you could easily end up scanning the entire internet or knocking over your DNS resolver.</p>
+</div>
 <ul>
-<li><strong>Severity</strong> indicates impact: <code>INFO</code>, <code>LOW</code>, <code>MEDIUM</code>, <code>HIGH</code>, or <code>CRITICAL</code></li>
-<li><strong>Confidence</strong> indicates how certain the finding is: <code>CONFIRMED</code>, <code>HIGH</code>, <code>MEDIUM</code>, <code>LOW</code>, or <code>UNKNOWN</code></li>
+<li><strong><code>scope.search_distance</code></strong> (default <code>0</code>) is the big one. It controls how many hops out from your target BBOT is allowed to explore. At <code>0</code>, modules only act on in-scope events. Raise it and a single certificate full of affiliate names pulls in those hosts, then <em>their</em> subdomains, then <em>their</em> infrastructure, and scope balloons outward hop by hop until there's no natural stopping point. The config comment says it outright: don't change this unless you know what you're doing. (This is <em>not</em> the same as <code>dns.search_distance</code>, which only governs DNS resolution and is safer to adjust.)</li>
+<li><strong><code>web.spider_distance</code></strong> / <strong><code>web.spider_depth</code></strong> (default <code>0</code> / <code>1</code>). A <code>spider_distance</code> of <code>0</code> means no spidering at all. Raise it and the crawler follows links from links from links, and every URL it turns up feeds webbrute and lightfuzz. On a large site that loop is effectively unbounded.</li>
+<li><strong><code>dns.threads</code></strong> / <strong><code>dns.brute_threads</code></strong> (default <code>10</code> / <code>1000</code>) control DNS concurrency. Cranking them won't make your scan meaningfully faster (the real lever is adding more resolvers to <code>/etc/resolv.conf</code>); it'll just flood your nameservers and get you rate-limited.</li>
+<li><strong><code>dns.runaway_limit</code></strong> (default <code>5</code>) and <strong><code>dns.wildcard_disable</code></strong> (default <code>false</code>) are guardrails. <code>runaway_limit</code> stops BBOT from chasing a malicious chain of DNS records forever, and wildcard detection is the only thing keeping a <code>*.example.com</code> wildcard from spawning infinite bogus subdomains. Turning either off removes a safety net that's there for a reason.</li>
 </ul>
-<p>Together, these let you quickly prioritize results -- e.g. a <code>CRITICAL</code> severity with <code>CONFIRMED</code> confidence is immediately actionable, while a <code>MEDIUM</code> severity with <code>LOW</code> confidence may need manual verification.</p>
-<h2 id="event-attributes">Event Attributes</h2>
-<p>Each BBOT event has the following attributes. Not all of these attributes are visible in the terminal output. However, they are always saved in <code>output.json</code> in the scan output folder. If you want to see them on the terminal, you can use <code>--json</code>.</p>
-<ul>
-<li><code>.type</code>: the event type (e.g. <code>DNS_NAME</code>, <code>IP_ADDRESS</code>, <code>OPEN_TCP_PORT</code>, etc.)</li>
-<li><code>.id</code>: an identifier representing the event type + a SHA1 hash of its data (note: multiple events can have the same <code>.id</code>)</li>
-<li><code>.uuid</code>: a universally unique identifier for the event (e.g. <code>DNS_NAME:6c96d512-090a-47f0-82e4-6860e46aac13</code>)</li>
-<li><code>.scope_description</code>: describes the scope of the event (e.g. <code>in-scope</code>, <code>affiliate</code>, <code>distance-2</code>)</li>
-<li><code>.data</code>: the actual discovered data (for some events like <code>DNS_NAME</code> or <code>IP_ADDRESS</code>, this is a string. For other more complex events like <code>HTTP_RESPONSE</code>, it's a dictionary). In JSON output it's serialized as <code>data</code> or <code>data_json</code> depending on its type (see below).</li>
-<li><code>.host</code>: the hostname or IP address (e.g. <code>evilcorp.com</code> or <code>1.2.3.4</code>)</li>
-<li><code>.port</code>: the port number (e.g. <code>80</code>, <code>443</code>)</li>
-<li><code>.netloc</code>: the network location, including both the hostname and port (e.g. <code>www.evilcorp.com:443</code>)</li>
-<li><code>.resolved_hosts</code>: a list of all resolved hosts for the event (<code>A</code>, <code>AAAA</code>, and <code>CNAME</code> records)</li>
-<li><code>.dns_children</code>: a dictionary of all DNS records for the event (typically only present on <code>DNS_NAME</code>)</li>
-<li><code>.web_spider_distance</code>: a count of how many URL links have been followed in a row to get to this event</li>
-<li><code>.scope_distance</code>: a count of how many hops it is from the main scope (0 == in-scope)</li>
-<li><code>.scan</code>: the ID of the scan that produced the event</li>
-<li><code>.timestamp</code>: the date/time when the event was discovered</li>
-<li><code>.parent</code>: the ID of the parent event that led to the discovery of this event</li>
-<li><code>.parent_uuid</code>: the universally unique identifier for the parent event</li>
-<li><code>.tags</code>: a list of tags describing the event (e.g. <code>mx-record</code>, <code>http-title</code>, etc.)</li>
-<li><code>.module</code>: the module that discovered the event</li>
-<li><code>.module_sequence</code>: the recent sequence of modules that were executed to discover the event (including omitted events)</li>
-<li><code>.host_metadata</code>: cloud provider, ASN, and other metadata about the host (when available)</li>
-<li><code>.discovery_context</code>: a description of the context in which the event was discovered</li>
-<li><code>.discovery_path</code>: a list of every discovery context leading to this event</li>
-<li><code>.parent_chain</code>: a list of every event UUID leading to the discovery of this event (corresponds exactly to <code>.discovery_path</code>)</li>
-</ul>
-<p>These attributes allow us to construct a visual graph of events (e.g. in <a href="../output/#neo4j">Neo4j</a>) and query/filter/grep them more easily. Here is what a typical event looks like in JSON format:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">{</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">"type"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"DNS_NAME"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">"id"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"DNS_NAME:33bc005c2bdfea4d73e07db733bd11861cf6520e"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">"uuid"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"DNS_NAME:6c96d512-090a-47f0-82e4-6860e46aac13"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">"scope_description"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"in-scope"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">"netloc"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"link.evilcorp.com"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">"data"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"link.evilcorp.com"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">"host"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"link.evilcorp.com"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">"resolved_hosts"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"184.31.52.65"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"2600:1402:b800:d82::700"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"2600:1402:b800:d87::700"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"link.evilcorp.com.edgekey.net"</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">],</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">"dns_children"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">{</span>
-<span style="color: #6E7681">    </span><span style="color: #7EE787">"A"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span>
-<span style="color: #6E7681">      </span><span style="color: #A5D6FF">"184.31.52.65"</span>
-<span style="color: #6E7681">    </span><span style="color: #E6EDF3">],</span>
-<span style="color: #6E7681">    </span><span style="color: #7EE787">"AAAA"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span>
-<span style="color: #6E7681">      </span><span style="color: #A5D6FF">"2600:1402:b800:d82::700"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">      </span><span style="color: #A5D6FF">"2600:1402:b800:d87::700"</span>
-<span style="color: #6E7681">    </span><span style="color: #E6EDF3">],</span>
-<span style="color: #6E7681">    </span><span style="color: #7EE787">"CNAME"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span>
-<span style="color: #6E7681">      </span><span style="color: #A5D6FF">"link.evilcorp.com.edgekey.net"</span>
-<span style="color: #6E7681">    </span><span style="color: #E6EDF3">]</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">},</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">"web_spider_distance"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">0</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">"scope_distance"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">0</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">"scan"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"SCAN:b6ef48bc036bc8d001595ae5061846a7e6beadb6"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">"timestamp"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">1729266013.71688</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">"parent"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"DNS_NAME:94c92b7eaed431b37ae2a757fec4e678cc3bd213"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">"parent_uuid"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"DNS_NAME:c737dffa-d4f0-4b6e-a72d-cc8c05bd892e"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">"tags"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"a-record"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"aaaa-record"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"cdn-akamai"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"cname-record"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"in-scope"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"subdomain"</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">],</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">"module"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"speculate"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">"module_sequence"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"speculate-&gt;speculate"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">"discovery_context"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"speculated parent DNS_NAME: link.evilcorp.com"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">"discovery_path"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"Scan insidious_frederick seeded with DNS_NAME: evilcorp.com"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"TXT record for evilcorp.com contains IP_ADDRESS: 149.72.247.52"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"PTR record for 149.72.247.52 contains DNS_NAME: o1.ptr2410.link.evilcorp.com"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"speculated parent DNS_NAME: ptr2410.link.evilcorp.com"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"speculated parent DNS_NAME: link.evilcorp.com"</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">],</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">"parent_chain"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"DNS_NAME:34c657a3-0bfa-457e-9e6e-0f22f04b8da5"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"IP_ADDRESS:efc0fb3b-1b42-44da-916e-83db2360e10e"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"DNS_NAME:c737dffa-d4f0-4b6e-a72d-cc8c05bd892e"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"DNS_NAME_UNRESOLVED:722a3473-30c6-40f1-90aa-908d47105d5a"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"DNS_NAME:6c96d512-090a-47f0-82e4-6860e46aac13"</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">]</span>
-<span style="color: #E6EDF3">}</span>
+<h2 id="scan-target">Scan Target</h2>
+<p>When it comes to the scan target, the main thing to keep in mind is that by default, every domain added to a target also brings all of its possible subdomains into scope. Some domains are truly massive, with thousands and thousands of subdomains, and you're saying they are ALL in scope. <code>--strict-scope</code> can be useful here: it changes that behavior so subdomains of targets aren't automatically included in scope. Great if you actually just want to target <code>evilcorp.com</code> directly, and NOT <code>a.evilcorp.com</code>, <code>b.evilcorp.com</code>, <code>c.evilcorp.com</code>, etc., which would likely be found during the scan.</p>
+<p>Using an IP-based scope is often a great choice, because it allows you to be very specific about what you want scanned when you don't know the full extent of what <code>*.whatever.com</code> actually has in it. For example, a lot of big organizations own their own ASN, where they host a lot of content. But they'll also have a lot of services running with third parties, often pointed to by subdomains in <code>*.whatever.com</code>. So if you just want targets within <code>whatever.com</code>'s ASN but still want to do subdomain discovery, you can use a seed.</p>
+<div class="admonition tip">
+<p class="admonition-title">Scope by IP, but still enumerate subdomains</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-s<span style="color: #6E7681"> </span>whatever.com<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span><span style="color: #A5D6FF">192</span>.168.0.0/24
 </code></pre></div>
-<h3 id="data-vs-data_json"><code>data</code> vs <code>data_json</code></h3>
-<p>When events are serialized to JSON (<code>output.json</code>, the <code>json</code> output module, or <code>--json</code>), the data field is named after its type, so a given key always holds a consistent type. This makes parsing far easier for scripts and aggregation tools like Elasticsearch:</p>
-<ul>
-<li><strong><code>data</code></strong> -- a string, for events whose data is a string (<code>DNS_NAME</code>, <code>IP_ADDRESS</code>, <code>URL</code>, ...). The example above is a <code>DNS_NAME</code>, so its value lives under <code>data</code>.</li>
-<li><strong><code>data_json</code></strong> -- a dictionary, for events whose data is structured (<code>HTTP_RESPONSE</code>, <code>FINDING</code>, <code>STORAGE_BUCKET</code>, ...).</li>
-</ul>
-<p>Exactly one of the two is present per event. When reading events back, check <code>data_json</code> first and fall back to <code>data</code>.</p>
-<p>For a more detailed description of BBOT events, see <a href="../../dev/event/">Developer Documentation - Event</a>.</p>
-<p>Below is a full list of event types along with which modules produce/consume them.</p>
-<h2 id="list-of-event-types">List of Event Types</h2>
-<!-- BBOT EVENTS -->
-<table>
-<thead>
-<tr>
-<th>Event Type</th>
-<th># Consuming Modules</th>
-<th># Producing Modules</th>
-<th>Consuming Modules</th>
-<th>Producing Modules</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>*</td>
-<td>24</td>
-<td>0</td>
-<td>affiliates, cloudcheck, csv, discord, dnsresolve, elastic, json, kafka, mongo, mysql, nats, neo4j, postgres, python, rabbitmq, slack, splunk, sqlite, stdout, teams, txt, webhook, websocket, zeromq</td>
-<td></td>
-</tr>
-<tr>
-<td>ASN</td>
-<td>0</td>
-<td>1</td>
-<td></td>
-<td>asn</td>
-</tr>
-<tr>
-<td>AZURE_TENANT</td>
-<td>1</td>
-<td>1</td>
-<td>speculate</td>
-<td>azure_tenant</td>
-</tr>
-<tr>
-<td>CODE_REPOSITORY</td>
-<td>8</td>
-<td>8</td>
-<td>docker_pull, git_clone, gitdumper, github_workflows, google_playstore, postman_download, trajan, trufflehog</td>
-<td>code_repository, dockerhub, git, github_codesearch, github_org, gitlab_com, gitlab_onprem, postman</td>
-</tr>
-<tr>
-<td>DNS_NAME</td>
-<td>57</td>
-<td>39</td>
-<td>anubisdb, asset_inventory, azure_tenant, baddns, baddns_zone, bevigil, bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_hetzner, bucket_microsoft, bufferoverrun, builtwith, c99, censys_dns, certspotter, chaos, credshed, crt, crt_db, dehashed, dnsbimi, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, emailformat, fullhunt, github_codesearch, github_usersearch, hackertarget, hunterio, leakix, myssl, nmap_xml, oauth, otx, pgp, portscan, rapiddns, securitytrails, securitytxt, shodan_dns, shodan_idb, skymem, speculate, subdomaincenter, subdomainradar, subdomains, trickest, urlscan, viewdns, virustotal, wayback</td>
-<td>anubisdb, azure_tenant, bevigil, bufferoverrun, builtwith, c99, censys_dns, censys_ip, certspotter, chaos, crt, crt_db, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnsresolve, fullhunt, hackertarget, hunterio, leakix, myssl, ntlm, oauth, otx, rapiddns, securitytrails, shodan_dns, shodan_idb, speculate, sslcert, subdomaincenter, subdomainradar, trickest, urlscan, viewdns, virustotal, wayback</td>
-</tr>
-<tr>
-<td>DNS_NAME_UNRESOLVED</td>
-<td>3</td>
-<td>0</td>
-<td>baddns, speculate, subdomains</td>
-<td></td>
-</tr>
-<tr>
-<td>DNS_NAME_UNVERIFIED</td>
-<td>0</td>
-<td>1</td>
-<td></td>
-<td>virtualhost</td>
-</tr>
-<tr>
-<td>EMAIL_ADDRESS</td>
-<td>1</td>
-<td>11</td>
-<td>emails</td>
-<td>credshed, dehashed, dnscaa, dnstlsrpt, emailformat, github_usersearch, hunterio, pgp, securitytxt, skymem, sslcert</td>
-</tr>
-<tr>
-<td>FILESYSTEM</td>
-<td>4</td>
-<td>9</td>
-<td>jadx, kreuzberg, trufflehog, unarchive</td>
-<td>apkpure, docker_pull, filedownload, git_clone, gitdumper, github_workflows, jadx, postman_download, unarchive</td>
-</tr>
-<tr>
-<td>FINDING</td>
-<td>2</td>
-<td>38</td>
-<td>asset_inventory, web_report</td>
-<td>ajaxpro, aspnet_bin_exposure, azure_tenant, baddns, baddns_direct, baddns_zone, badsecrets, bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_hetzner, bucket_microsoft, bypass403, dotnetnuke, generic_ssrf, git, gitlab_onprem, graphql_introspection, host_header, hunt, legba, lightfuzz, medusa, newsletters, ntlm, nuclei, reflected_parameters, retirejs, shodan_enterprise, shodan_idb, speculate, telerik, trajan, trufflehog, url_manipulation, waf_bypass, wayback</td>
-</tr>
-<tr>
-<td>GEOLOCATION</td>
-<td>0</td>
-<td>2</td>
-<td></td>
-<td>ip2location, ipstack</td>
-</tr>
-<tr>
-<td>HASHED_PASSWORD</td>
-<td>0</td>
-<td>2</td>
-<td></td>
-<td>credshed, dehashed</td>
-</tr>
-<tr>
-<td>HTTP_RESPONSE</td>
-<td>18</td>
-<td>4</td>
-<td>ajaxpro, asset_inventory, badsecrets, dotnetnuke, excavate, filedownload, gitlab_onprem, host_header, newsletters, nmap_xml, ntlm, paramminer_cookies, paramminer_getparams, paramminer_headers, speculate, sslcert, telerik, trufflehog</td>
-<td>http, lightfuzz, virtualhost, wayback</td>
-</tr>
-<tr>
-<td>IP_ADDRESS</td>
-<td>11</td>
-<td>5</td>
-<td>asn, asset_inventory, censys_ip, ip2location, ipneighbor, ipstack, nmap_xml, portscan, shodan_enterprise, shodan_idb, speculate</td>
-<td>asset_inventory, censys_ip, dnsresolve, ipneighbor, speculate</td>
-</tr>
-<tr>
-<td>IP_RANGE</td>
-<td>2</td>
-<td>1</td>
-<td>portscan, speculate</td>
-<td>dnsresolve</td>
-</tr>
-<tr>
-<td>MOBILE_APP</td>
-<td>1</td>
-<td>1</td>
-<td>apkpure</td>
-<td>google_playstore</td>
-</tr>
-<tr>
-<td>OPEN_TCP_PORT</td>
-<td>5</td>
-<td>6</td>
-<td>asset_inventory, fingerprintx, http, nmap_xml, portfilter</td>
-<td>asset_inventory, censys_ip, portscan, shodan_enterprise, shodan_idb, speculate</td>
-</tr>
-<tr>
-<td>OPEN_UDP_PORT</td>
-<td>0</td>
-<td>2</td>
-<td></td>
-<td>censys_ip, shodan_enterprise</td>
-</tr>
-<tr>
-<td>ORG_STUB</td>
-<td>4</td>
-<td>1</td>
-<td>dockerhub, github_org, google_playstore, postman</td>
-<td>speculate</td>
-</tr>
-<tr>
-<td>PASSWORD</td>
-<td>0</td>
-<td>2</td>
-<td></td>
-<td>credshed, dehashed</td>
-</tr>
-<tr>
-<td>PROTOCOL</td>
-<td>3</td>
-<td>2</td>
-<td>legba, medusa, nmap_xml</td>
-<td>censys_ip, fingerprintx</td>
-</tr>
-<tr>
-<td>RAW_DNS_RECORD</td>
-<td>0</td>
-<td>3</td>
-<td></td>
-<td>dnsbimi, dnsresolve, dnstlsrpt</td>
-</tr>
-<tr>
-<td>RAW_TEXT</td>
-<td>2</td>
-<td>1</td>
-<td>excavate, trufflehog</td>
-<td>kreuzberg</td>
-</tr>
-<tr>
-<td>SOCIAL</td>
-<td>7</td>
-<td>4</td>
-<td>dockerhub, github_org, gitlab_com, gitlab_onprem, gowitness, postman, speculate</td>
-<td>dockerhub, github_usersearch, gitlab_onprem, social</td>
-</tr>
-<tr>
-<td>STORAGE_BUCKET</td>
-<td>9</td>
-<td>6</td>
-<td>baddns_direct, bucket_amazon, bucket_digitalocean, bucket_file_enum, bucket_firebase, bucket_google, bucket_hetzner, bucket_microsoft, speculate</td>
-<td>bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_hetzner, bucket_microsoft</td>
-</tr>
-<tr>
-<td>TECHNOLOGY</td>
-<td>4</td>
-<td>9</td>
-<td>asset_inventory, gitlab_onprem, trajan, web_report</td>
-<td>ajaxpro, badsecrets, censys_ip, dotnetnuke, gitlab_onprem, gowitness, nuclei, shodan_enterprise, shodan_idb</td>
-</tr>
-<tr>
-<td>URL</td>
-<td>25</td>
-<td>2</td>
-<td>ajaxpro, aspnet_bin_exposure, asset_inventory, baddns_direct, bypass403, generic_ssrf, git, gowitness, graphql_introspection, http, iis_shortnames, lightfuzz, ntlm, nuclei, portfilter, robots, speculate, telerik, url_manipulation, virtualhost, waf_bypass, wafw00f, wayback, web_report, webbrute</td>
-<td>gowitness, http</td>
-</tr>
-<tr>
-<td>URL_HINT</td>
-<td>1</td>
-<td>1</td>
-<td>webbrute_shortnames</td>
-<td>iis_shortnames</td>
-</tr>
-<tr>
-<td>URL_UNVERIFIED</td>
-<td>9</td>
-<td>19</td>
-<td>code_repository, filedownload, http, oauth, portfilter, retirejs, social, speculate, trajan</td>
-<td>azure_tenant, bevigil, bucket_file_enum, censys_ip, dnsbimi, dnscaa, dnstlsrpt, dockerhub, excavate, fingerprintx, github_codesearch, gowitness, hunterio, robots, securitytxt, urlscan, wayback, webbrute, webbrute_shortnames</td>
-</tr>
-<tr>
-<td>USERNAME</td>
-<td>1</td>
-<td>2</td>
-<td>speculate</td>
-<td>credshed, dehashed</td>
-</tr>
-<tr>
-<td>VIRTUAL_HOST</td>
-<td>0</td>
-<td>1</td>
-<td></td>
-<td>virtualhost</td>
-</tr>
-<tr>
-<td>WAF</td>
-<td>1</td>
-<td>1</td>
-<td>asset_inventory</td>
-<td>wafw00f</td>
-</tr>
-<tr>
-<td>WEBSCREENSHOT</td>
-<td>0</td>
-<td>1</td>
-<td></td>
-<td>gowitness</td>
-</tr>
-<tr>
-<td>WEB_PARAMETER</td>
-<td>7</td>
-<td>5</td>
-<td>hunt, lightfuzz, paramminer_cookies, paramminer_getparams, paramminer_headers, reflected_parameters, web_parameters</td>
-<td>excavate, paramminer_cookies, paramminer_getparams, paramminer_headers, wayback</td>
-</tr>
-</tbody>
-</table>
-<!-- END BBOT EVENTS -->
-<p><a class="md-button md-button--primary" href="../output/">Next Up: Output --&gt;</a></p>
+</div>
+<p>Here, BBOT will do subdomain enumeration against whatever.com, but only things that resolve within 192.168.0.0/24 will be in-scope, so none of your active modules will actually go after anything outside that range (a generalization: active modules CAN be configured to step out of scope, but generally aren't).</p>
+<h2 id="module-choices">Module Choices</h2>
+<h3 id="invasive-and-loud">Invasive and Loud</h3>
+<p>Modules that produce a lot of traffic are flagged with the <code>loud</code> flag. Be cautious when using a bunch of these at once.</p>
+<p>Modules that potentially perform invasive actions are flagged with the <code>invasive</code> flag. These actions range from mildly rude (submitting registration forms) all the way to executing code on the server.</p>
+<h3 id="explosive-combinations">Explosive combinations</h3>
+<p>Although there's no flag for this, it's good to be aware of how modules will feed into each other, and consider the recursive effect this will have. Pay attention to a module's <code>watched_events</code> and <code>produced_events</code>. A few examples:</p>
+<p><code>lightfuzz</code> watches <code>WEB_PARAMETER</code> events. <code>paramminer_*</code> modules produce them. That's desirable in some circumstances, but the feedback loop can get pretty large on sizable scans.</p>
+<p><code>wayback</code> watches <code>URL</code> events (when its more advanced features are enabled) AND produces <code>URL_UNVERIFIED</code> events (which become URL events). <code>webbrute</code> also watches <code>URL</code> events and produces new <code>URL_UNVERIFIED</code> events. They both feed each other! This CAN find really obscure endpoints, but when wayback gives you junk (which happens frequently), you're just exponentially amplifying it.</p>
+<p>On the DNS side, <code>dnsbrute</code> and <code>dnsbrute_mutations</code> are both extremely valuable, and will often find very obscure domain names that won't be discovered any other way. This is why they are included in <code>subdomain-enum</code>. However, they are extremely heavy and will add significant time to your scan, running thousands of resolutions for every domain discovered. If you need a faster scan and don't necessarily need that extra 5-10% of discovery, disabling them will make a huge difference.</p>
 </article>
 </div>
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>

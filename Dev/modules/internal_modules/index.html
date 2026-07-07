@@ -20,13 +20,13 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style._8h_zsql.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.t3g40pct.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
 <label class="md-overlay" for="__drawer"></label>
 <div data-md-component="skip">
-<a class="md-skip" href="#list-of-modules">
+<a class="md-skip" href="#internal-modules">
           Skip to content
         </a>
 </div>
@@ -382,6 +382,18 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/scan_sanity/">
+<span class="md-ellipsis">
+    
+  
+    Scan Sanity
+  
+
+    
+  </span>
+</a>
+</li>
 </ul>
 </nav>
 </li>
@@ -469,19 +481,19 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="#cloud">
+<a class="md-nav__link" href="#cloudcheck">
 <span class="md-ellipsis">
       
-        cloud
+        cloudcheck
       
     </span>
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="#dns">
+<a class="md-nav__link" href="#dnsresolve">
 <span class="md-ellipsis">
       
-        dns
+        dnsresolve
       
     </span>
 </a>
@@ -1098,7 +1110,7 @@
 </div>
 <div class="md-content" data-md-component="content">
 <article class="md-content__inner md-typeset">
-<h1 id="list-of-modules">List of Modules</h1>
+<h1 id="internal-modules">Internal Modules</h1>
 <h2 id="what-are-internal-modules">What are internal modules?</h2>
 <p>Internal modules are just like regular modules, except that they run all the time. They do not have to be explicitly enabled. They can, however, be explicitly disabled if needed.</p>
 <p>Turning them off is simple, a root-level config option is present which can be set to False to disable them:</p>
@@ -1116,18 +1128,17 @@ cloudcheck: True
 <p>These modules are executing core functionality that is normally essential for a typical BBOT scan. Let's take a quick look at each one's functionality:</p>
 <h3 id="aggregate">aggregate</h3>
 <p>Summarize statistics at the end of a scan. Disable if you don't want to see this table.</p>
-<h3 id="cloud">cloud</h3>
+<h3 id="cloudcheck">cloudcheck</h3>
 <p>The cloud module looks at events and tries to determine if they are associated with a cloud provider and tags them as such, and can also identify certain cloud resources</p>
-<h3 id="dns">dns</h3>
+<h3 id="dnsresolve">dnsresolve</h3>
 <p>The DNS internal module controls the basic DNS resolution the BBOT performs, and all of the supporting machinery like wildcard detection, etc.</p>
 <h3 id="excavate">excavate</h3>
 <p>The excavate internal module designed to passively extract valuable information from HTTP response data. It primarily uses YARA regexes to extract information, with various events being produced from the post-processing of the YARA results.</p>
 <p>Here is a summary of the data it produces:</p>
 <h4 id="urls">URLs</h4>
-<p>By extracting URLs from all visited pages, this is actually already half of a web-spider. The other half is recursion, which is baked in to BBOT from the ground up. Therefore, protections are in place by default in the form of <code>web_spider_distance</code> and <code>web_spider_depth</code> settings. These settings govern restrictions to URLs recursively harvested from HTTP responses, preventing endless runaway scans. However, in the right situation the controlled use of a web-spider is extremely powerful.</p>
+<p>By extracting URLs from all visited pages, this is actually already half of a web-spider. The other half is recursion, which is baked in to BBOT from the ground up. Therefore, protections are in place by default in the form of the <code>web.spider_distance</code> and <code>web.spider_depth</code> settings. These settings govern restrictions to URLs recursively harvested from HTTP responses, preventing endless runaway scans. However, in the right situation the controlled use of a web-spider is extremely powerful.</p>
 <h4 id="parameter-extraction">Parameter Extraction</h4>
-<p>Parameter Extraction
-The parameter extraction functionality identifies and extracts key web parameters from HTTP responses, and produced <code>WEB_PARAMETER</code> events. This includes parameters found in GET and POST requests, HTML forms, and jQuery requests. Currently, these are only used by the <code>hunt</code> module, and by the <code>paramminer</code> modules, to a limited degree. However, future functionality will make extensive use of these events.</p>
+<p>The parameter extraction functionality identifies and extracts key web parameters from HTTP responses, and produces <code>WEB_PARAMETER</code> events. This includes parameters found in GET and POST requests, HTML forms, and jQuery requests. Currently, these are only used by the <code>hunt</code> module, and by the <code>paramminer</code> modules, to a limited degree. However, future functionality will make extensive use of these events.</p>
 <h4 id="email-extraction">Email Extraction</h4>
 <p>Detect email addresses within HTTP_RESPONSE data.</p>
 <h4 id="error-detection">Error Detection</h4>
@@ -1141,7 +1152,7 @@ The parameter extraction functionality identifies and extracts key web parameter
 <h4 id="non-http-scheme-detection">Non-HTTP Scheme Detection</h4>
 <p>The non-HTTP scheme detection capability extracts URLs with non-HTTP schemes, such as ftp, mailto, and javascript. By identifying these URLs, BBOT can uncover additional vectors for attack or information leakage.</p>
 <h4 id="custom-yara-rules">Custom Yara Rules</h4>
-<p>Excavate supports the use of custom YARA rules, which will be added to the other rules before the scan start. For more info, view this.</p>
+<p>Excavate supports the use of custom YARA rules, which will be added to the other rules before the scan starts. For more info, see <a href="../custom_yara_rules/">Custom YARA Rules</a>.</p>
 <h3 id="speculate">speculate</h3>
 <p>Speculate is all about inferring one data type from another, particularly when certain tools like port scanners are not enabled. This is essential functionality for most BBOT scans, allowing for the discovery of web resources when starting with a DNS-only target list without a port scanner. It bridges gaps in the data, providing a more comprehensive view of the target by leveraging existing information.</p>
 <ul>

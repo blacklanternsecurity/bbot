@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style._8h_zsql.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.t3g40pct.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -376,6 +376,18 @@
     
   
     Configuration
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/scan_sanity/">
+<span class="md-ellipsis">
+    
+  
+    Scan Sanity
   
 
     
@@ -1486,12 +1498,12 @@
 <p>If the response contains <code>1787569</code> (or <code>1,787,569</code>), the expression was evaluated server-side. This is a HIGH confidence detection because it's very unlikely for the exact product of two arbitrary numbers to appear in a response by coincidence.</p>
 <h3 id="crypto-cryptography-probe"><code>crypto</code> — Cryptography Probe</h3>
 <p>Identifies cryptographic parameters and probes for cryptographic vulnerabilities. This submodule has several stages with varying confidence levels.</p>
-<p><strong>Stage 0 — Keystream Reuse / Many-Time-Pad</strong> (HIGH/CONFIRMED to MEDIUM/PROBABLE; zero HTTP requests): A cross-value passive check that runs <em>before</em> the entropy gate. When a stream cipher reuses a single keystream across multiple encryptions (no IV, fixed key — a common homebrew mistake), XOR-ing any two ciphertexts yields the XOR of their plaintexts. For natural-language or identifier plaintexts that share a prefix, the result begins with a run of zero bytes — mathematically impossible under correct encryption.</p>
+<p><strong>Stage 0 — Keystream Reuse / Many-Time-Pad</strong> (HIGH/CONFIRMED to MEDIUM/MEDIUM; zero HTTP requests): A cross-value passive check that runs <em>before</em> the entropy gate. When a stream cipher reuses a single keystream across multiple encryptions (no IV, fixed key — a common homebrew mistake), XOR-ing any two ciphertexts yields the XOR of their plaintexts. For natural-language or identifier plaintexts that share a prefix, the result begins with a run of zero bytes — mathematically impossible under correct encryption.</p>
 <p>The detector gathers candidate ciphertexts from the parameter's own value plus every value in <code>additional_params</code> (sibling form fields) and <code>same_param_values</code> (other observed values for the same parameter across a single page, e.g. sort links with distinct hex-encoded keys). It decodes each via the existing <code>format_agnostic_decode()</code> helper, pairwise-XORs them, and scores the result:</p>
 <ul>
 <li><strong>HIGH / CONFIRMED</strong> — a leading run of ≥ 5 zero bytes (two plaintexts share their first 5+ bytes; impossible under correct encryption with fresh IVs)</li>
-<li><strong>HIGH / PROBABLE</strong> — a 3-4 byte zero run, or ≥ 95% of XOR bytes fall in the <code>[0x00, 0x60]</code> "printable-ASCII XOR printable-ASCII" range</li>
-<li><strong>MEDIUM / PROBABLE</strong> — ≥ 90% ASCII-XOR-ASCII bytes but no zero-run</li>
+<li><strong>HIGH / HIGH</strong> — a 3-4 byte zero run, or ≥ 95% of XOR bytes fall in the <code>[0x00, 0x60]</code> "printable-ASCII XOR printable-ASCII" range</li>
+<li><strong>MEDIUM / MEDIUM</strong> — ≥ 90% ASCII-XOR-ASCII bytes but no zero-run</li>
 </ul>
 <p>This stage bypasses the entropy gate (Stage 1) because the short ASCII plaintexts most vulnerable to this misuse often produce ciphertext below the 4.5-bit threshold the gate would otherwise filter out.</p>
 <p><strong>Stage 1 — Cryptanalysis Gate</strong>: Checks if the parameter value is likely encrypted by calculating Shannon entropy (threshold: 4.5) and whether its decoded length is a multiple of 8 (suggesting a block cipher). If entropy is below threshold, all per-value tests are skipped (Stage 0's cross-value check has already run).</p>

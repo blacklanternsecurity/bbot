@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style._8h_zsql.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.t3g40pct.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -539,6 +539,18 @@
     
   
     Configuration
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../scan_sanity/">
+<span class="md-ellipsis">
+    
+  
+    Scan Sanity
   
 
     
@@ -1125,7 +1137,7 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>dns.brute_threads<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">5000</span>
 </code></pre></div>
 <h3 id="speed-up-scans-with-more-dns-resolvers">Speed Up Scans with More DNS Resolvers</h3>
-<p>By far the most effective way to speed up a BBOT scan is to <strong>add more resolvers to <code>/etc/resolv.conf</code></strong>. BBOT's DNS resolver (blastdns) spins up multiple threads per resolver (default: <code>5</code>, configurable via <code>dns.threads</code>), so more resolvers = more parallelism = faster scans.</p>
+<p>By far the most effective way to speed up a BBOT scan is to <strong>add more resolvers to <code>/etc/resolv.conf</code></strong>. BBOT's DNS resolver (blastdns) spins up multiple threads per resolver (default: <code>10</code>, configurable via <code>dns.threads</code>), so more resolvers = more parallelism = faster scans.</p>
 <p>For OSINT, it's critical that every resolver is <strong>unfiltered</strong>. Specialized resolvers that try to block ads, malicious domains, etc. will intentionally omit results. Below is a sample <code>/etc/resolv.conf</code> with 11 unfiltered public resolvers:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code># ============================================================================
 # Sample /etc/resolv.conf for BBOT
@@ -1188,7 +1200,7 @@ nameserver 74.82.42.42
 # nameserver 2620:fe::fe:10         # Quad9 (unfiltered)
 # nameserver 2001:470:20::2         # Hurricane Electric
 </code></pre></div>
-<p>Copy this to <code>/etc/resolv.conf</code> (or append the <code>nameserver</code> lines to your existing config). With all 11 resolvers at the default 5 threads each, blastdns will run 55 workers in parallel instead of the typical 5-15 you get from a default OS config.</p>
+<p>Copy this to <code>/etc/resolv.conf</code> (or append the <code>nameserver</code> lines to your existing config). With all 11 resolvers at the default 10 threads each, blastdns will run 110 workers in parallel instead of the typical 10-30 you get from a default OS config.</p>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
 <p>If your system uses <code>systemd-resolved</code> or <code>resolvconf</code>, you may need to configure the upstream forwarders there instead of editing <code>/etc/resolv.conf</code> directly.</p>

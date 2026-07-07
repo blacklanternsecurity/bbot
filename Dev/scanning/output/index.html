@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style._8h_zsql.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.t3g40pct.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -536,10 +536,46 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="#message-queues">
+<a class="md-nav__link" href="#kafka">
 <span class="md-ellipsis">
       
-        Message Queues
+        Kafka
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#rabbitmq">
+<span class="md-ellipsis">
+      
+        RabbitMQ
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#nats">
+<span class="md-ellipsis">
+      
+        NATS
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#zeromq">
+<span class="md-ellipsis">
+      
+        ZeroMQ
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#websocket">
+<span class="md-ellipsis">
+      
+        WebSocket
       
     </span>
 </a>
@@ -607,6 +643,18 @@
     
   
     Configuration
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../scan_sanity/">
+<span class="md-ellipsis">
+    
+  
+    Scan Sanity
   
 
     
@@ -1315,6 +1363,7 @@ mail.evilcorp.com
 <span style="color: #6E7681">  </span><span style="color: #7EE787">"module_sequence"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"A"</span>
 <span style="color: #E6EDF3">}</span>
 </code></pre></div>
+<p>String-typed events use the <code>data</code> key (as above); structured events like <code>HTTP_RESPONSE</code> and <code>FINDING</code> use <code>data_json</code> (a dict) instead. See <a href="../events/">Events</a> for details.</p>
 <p>You can filter on the JSON output with <code>jq</code>:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># pull out only the .data attribute of every DNS_NAME</span>
 $<span style="color: #6E7681"> </span>jq<span style="color: #6E7681"> </span>-r<span style="color: #6E7681"> </span><span style="color: #A5D6FF">'select(.type=="DNS_NAME") | .data'</span><span style="color: #6E7681"> </span>~/.bbot/scans/extreme_johnny/output.json
@@ -1564,46 +1613,60 @@ docker<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </sp
 <p>The <code>web_report</code> output module generates a markdown report of web assets, including URLs, technologies, and findings.</p>
 <h3 id="nmap-xml">Nmap XML</h3>
 <p>The <code>nmap_xml</code> output module exports open ports, DNS names, IP addresses, and protocols in Nmap XML format for compatibility with tools that consume Nmap output.</p>
-<h3 id="message-queues">Message Queues</h3>
-<p>BBOT supports streaming events as JSON to several message queue systems:</p>
-<table>
-<thead>
-<tr>
-<th>Module</th>
-<th>Description</th>
-<th>Key Config</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>kafka</code></td>
-<td>Publish to a Kafka topic</td>
-<td><code>bootstrap_servers</code>, <code>topic</code></td>
-</tr>
-<tr>
-<td><code>rabbitmq</code></td>
-<td>Publish to a RabbitMQ queue</td>
-<td><code>url</code>, <code>queue</code></td>
-</tr>
-<tr>
-<td><code>nats</code></td>
-<td>Publish to a NATS subject</td>
-<td><code>servers</code>, <code>subject</code></td>
-</tr>
-<tr>
-<td><code>zeromq</code></td>
-<td>Publish to a ZeroMQ PUB socket</td>
-<td><code>zmq_address</code></td>
-</tr>
-<tr>
-<td><code>websocket</code></td>
-<td>Stream to a WebSocket endpoint</td>
-<td><code>url</code>, <code>token</code></td>
-</tr>
-</tbody>
-</table>
-<p>These can be enabled like any other output module:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>kafka<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.kafka.bootstrap_servers<span style="color: #FF7B72; font-weight: bold">=</span>localhost:9092<span style="color: #6E7681"> </span>modules.kafka.topic<span style="color: #FF7B72; font-weight: bold">=</span>bbot_events
+<h3 id="kafka">Kafka</h3>
+<p>The <code>kafka</code> output module publishes events as JSON to a Kafka topic.</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">kafka_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">kafka</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">kafka</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">bootstrap_servers</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">localhost:9092</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">topic</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">bbot_events</span>
+</code></pre></div>
+<h3 id="rabbitmq">RabbitMQ</h3>
+<p>The <code>rabbitmq</code> output module publishes events as JSON to a RabbitMQ queue.</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">rabbitmq_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">rabbitmq</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">rabbitmq</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">url</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">amqp://guest:guest@localhost/</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">queue</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">bbot_events</span>
+</code></pre></div>
+<h3 id="nats">NATS</h3>
+<p>The <code>nats</code> output module publishes events as JSON to a NATS subject.</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">nats_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">nats</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">nats</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">servers</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">        </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">nats://localhost:4222</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">subject</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">bbot_events</span>
+</code></pre></div>
+<h3 id="zeromq">ZeroMQ</h3>
+<p>The <code>zeromq</code> output module publishes events as JSON to a ZeroMQ PUB socket.</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">zeromq_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">zeromq</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">zeromq</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">zmq_address</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">tcp://localhost:5555</span>
+</code></pre></div>
+<h3 id="websocket">WebSocket</h3>
+<p>The <code>websocket</code> output module streams events as JSON to a WebSocket endpoint. Set <code>token</code> to send an <code>Authorization: Bearer</code> header.</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">websocket_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">websocket</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">websocket</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">url</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">ws://localhost:8080</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">token</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">my-auth-token</span>
 </code></pre></div>
 <h3 id="mongodb">MongoDB</h3>
 <p>The <code>mongo</code> output module sends events to a MongoDB database.</p>
