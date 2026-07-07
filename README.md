@@ -395,10 +395,12 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/Stabl
         - [Configuration](https://www.blacklanternsecurity.com/bbot/Stable/scanning/configuration)
     - **Modules**
         - [List of Modules](https://www.blacklanternsecurity.com/bbot/Stable/modules/list_of_modules)
+        - [Internal Modules](https://www.blacklanternsecurity.com/bbot/Stable/modules/internal_modules)
         - [Nuclei](https://www.blacklanternsecurity.com/bbot/Stable/modules/nuclei)
         - [Wayback](https://www.blacklanternsecurity.com/bbot/Stable/modules/wayback)
         - [Custom YARA Rules](https://www.blacklanternsecurity.com/bbot/Stable/modules/custom_yara_rules)
         - [Lightfuzz](https://www.blacklanternsecurity.com/bbot/Stable/modules/lightfuzz)
+        - [Webbrute](https://www.blacklanternsecurity.com/bbot/Stable/modules/webbrute)
     - **Migration**
         - [2.x → 3.0 Breaking Changes](https://www.blacklanternsecurity.com/bbot/Stable/migration/3.0_breaking_changes)
     - **Misc**
