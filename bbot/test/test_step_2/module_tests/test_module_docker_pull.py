@@ -556,3 +556,29 @@ class TestDockerPullRealmValidation(ModuleTestBase):
         docker_pull_module = module_test.scan.modules["docker_pull"]
         auth_header = docker_pull_module.headers.get("Authorization", "")
         assert "test_token_value" not in auth_header, "Module followed a non-HTTPS realm"
+
+
+class TestDockerPullPathTraversal(ModuleTestBase):
+    modules_overrides = ["docker_pull"]
+    config_overrides = {"modules": {"docker_pull": {"output_folder": str(bbot_test_dir / "test_docker_traversal")}}}
+
+    async def setup_after_prep(self, module_test):
+        m = module_test.scan.modules["docker_pull"]
+        self.output_dir = m.output_dir
+        repository = "blacklanternsecurity/testimage"
+        # a tag returned by the registry that tries to escape the output directory
+        evil_tag = "../../../docker_pull_pwn"
+        self.evil_target = (m.output_dir / f"{repository.replace('/', '_')}_{evil_tag}.tar").resolve()
+        if self.evil_target.exists():
+            self.evil_target.unlink()
+        try:
+            self.result = await m.download_and_write_to_tar("https://registry-1.docker.io", repository, evil_tag)
+        except Exception as e:
+            self.result = f"error: {e}"
+
+    def check(self, module_test, events):
+        # sanity: the crafted target really is outside the output directory
+        assert not self.evil_target.is_relative_to(self.output_dir.resolve()), "test target not outside output_dir"
+        # the traversing tag must be refused: nothing written outside output_dir, and None returned
+        assert not self.evil_target.exists(), f"path traversal: tar written outside output_dir at {self.evil_target}"
+        assert self.result is None, f"expected None for a traversing tag, got {self.result!r}"
