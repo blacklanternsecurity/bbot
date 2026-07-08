@@ -1,21 +1,24 @@
 from bbot.modules.templates.subdomain_enum import subdomain_enum
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class anubisdb(subdomain_enum):
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["safe", "subdomain-enum", "passive"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     meta = {
-        "description": "Query jldc.me's database for subdomains",
+        "description": "Query anubisdb.com for subdomains",
         "created_date": "2022-10-04",
         "author": "@TheTechromancer",
     }
-    options = {"limit": 1000}
-    options_desc = {
-        "limit": "Limit the number of subdomains returned per query (increasing this may slow the scan due to garbage results from this API)"
-    }
 
-    base_url = "https://jldc.me/anubis/subdomains"
+    class Config(BaseModuleConfig):
+        limit: int = Field(
+            1000,
+            description="Limit the number of subdomains returned per query (increasing this may slow the scan due to garbage results from this API)",
+        )
+
+    base_url = "https://anubisdb.com/anubis/subdomains"
     dns_abort_depth = 5
 
     async def request_url(self, query):

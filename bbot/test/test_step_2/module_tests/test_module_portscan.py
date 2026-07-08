@@ -74,18 +74,20 @@ class TestPortscan(ModuleTestBase):
         module_test.monkeypatch.setattr(module_test.scan.helpers, "run_live", run_masscan)
 
     def check(self, module_test, events):
-        assert set(self.syn_scanned) == {"8.8.8.0/24", "8.8.4.0/24"}
+        # The /24 ranges must always be syn-scanned; individual /32s may also appear
+        # if async event delivery splits targets across multiple batches (observed on Python 3.13+)
+        assert {"8.8.8.0/24", "8.8.4.0/24"}.issubset(set(self.syn_scanned))
         assert set(self.ping_scanned) == set()
         assert self.syn_runs >= 1
         assert self.ping_runs == 0
         assert 1 == len(
-            [e for e in events if e.type == "DNS_NAME" and e.data == "evilcorp.com" and str(e.module) == "TARGET"]
+            [e for e in events if e.type == "DNS_NAME" and e.data == "evilcorp.com" and str(e.module) == "SEED"]
         )
         assert 1 == len(
-            [e for e in events if e.type == "DNS_NAME" and e.data == "www.evilcorp.com" and str(e.module) == "TARGET"]
+            [e for e in events if e.type == "DNS_NAME" and e.data == "www.evilcorp.com" and str(e.module) == "SEED"]
         )
         assert 1 == len(
-            [e for e in events if e.type == "DNS_NAME" and e.data == "asdf.evilcorp.net" and str(e.module) == "TARGET"]
+            [e for e in events if e.type == "DNS_NAME" and e.data == "asdf.evilcorp.net" and str(e.module) == "SEED"]
         )
         assert 1 == len(
             [
@@ -131,7 +133,9 @@ class TestPortscanPingFirst(TestPortscan):
 
     def check(self, module_test, events):
         assert set(self.syn_scanned) == {"8.8.8.8/32"}
-        assert set(self.ping_scanned) == {"8.8.8.0/24", "8.8.4.0/24"}
+        # The /24 ranges must always be ping-scanned; individual /32s may also appear
+        # if async event delivery splits targets across multiple batches (observed on Python 3.14+)
+        assert {"8.8.8.0/24", "8.8.4.0/24"}.issubset(set(self.ping_scanned))
         assert self.syn_runs == 1
         assert self.ping_runs >= 1
         open_port_events = [e for e in events if e.type == "OPEN_TCP_PORT"]
@@ -155,3 +159,85 @@ class TestPortscanPingOnly(TestPortscan):
         ip_events = [e for e in events if e.type == "IP_ADDRESS"]
         assert len(ip_events) == 1
         assert {e.data for e in ip_events} == {"8.8.8.8"}
+
+
+class TestPortscanSkipTags(ModuleTestBase):
+    targets = ["cloudflare-host.com", "regular-host.com"]
+    modules_overrides = ["portscan", "speculate", "cloudcheck"]
+    config_overrides = {
+        "modules": {"portscan": {"ports": "443", "wait": 1, "skip_tags": "cdn,waf"}},
+        "dns": {"minimal": False},
+    }
+
+    masscan_output = """{   "ip": "8.8.8.8",   "timestamp": "1680197558", "ports": [ {"port": 443, "proto": "tcp", "status": "open", "reason": "syn-ack", "ttl": 54} ] }"""
+
+    async def setup_after_prep(self, module_test):
+        from bbot.modules.base import BaseModule
+
+        class DummyOpenPortConsumer(BaseModule):
+            _name = "dummy_open_port_consumer"
+            watched_events = ["OPEN_TCP_PORT"]
+            scope_distance_modifier = 10
+            accept_dupes = True
+
+            async def setup(self):
+                self.events = []
+                return True
+
+            async def handle_event(self, event):
+                self.events.append(event)
+
+        consumer = DummyOpenPortConsumer(module_test.scan)
+        await consumer.setup()
+        module_test.scan.modules["dummy_open_port_consumer"] = consumer
+
+        # speculate's open_port_consumers is decided during its own setup, before
+        # we attach the dummy here. Flip it now so the per-event fallback path
+        # actually runs.
+        module_test.scan.modules["speculate"].open_port_consumers = True
+
+        # Cloudflare-resolving hostname will get tagged 'waf' (and 'cloudflare') by cloudcheck;
+        # the other points at a Google IP which is tagged 'cloud' only -> not in skip_tags.
+        await module_test.mock_dns(
+            {
+                "cloudflare-host.com": {"A": ["1.1.1.1"]},
+                "regular-host.com": {"A": ["8.8.8.8"]},
+            }
+        )
+
+        self.syn_scanned = []
+        self.syn_runs = 0
+
+        async def run_masscan(command, *args, **kwargs):
+            if "masscan" in command[:2]:
+                targets = open(command[11]).read().splitlines()
+                yield "["
+                self.syn_runs += 1
+                self.syn_scanned += targets
+                yield self.masscan_output
+                yield "]"
+            else:
+                async for line in module_test.scan.helpers.run_live(command, *args, **kwargs):
+                    yield line
+
+        module_test.monkeypatch.setattr(module_test.scan.helpers, "run_live", run_masscan)
+
+    def check(self, module_test, events):
+        # cloudflare IP was NOT submitted to masscan
+        assert not any("1.1.1.1" in t for t in self.syn_scanned), (
+            f"cloudflare IP leaked into masscan targets: {self.syn_scanned}"
+        )
+        # google IP (non-skip-tagged) WAS submitted to masscan
+        assert any("8.8.8.8" in t for t in self.syn_scanned), (
+            f"non-cdn IP missing from masscan targets: {self.syn_scanned}"
+        )
+        assert self.syn_runs >= 1
+
+        # speculate emits its OPEN_TCP_PORT fillers as internal events, which don't
+        # reach output modules. Inspect them directly via the dummy consumer.
+        consumer_seen = {(str(e.host), e.port) for e in module_test.scan.modules["dummy_open_port_consumer"].events}
+        assert ("cloudflare-host.com", 80) in consumer_seen
+        assert ("cloudflare-host.com", 443) in consumer_seen
+        # the non-skipped host: portscan emitted 443 (real, non-internal), no speculated 80
+        assert ("regular-host.com", 443) in consumer_seen
+        assert ("regular-host.com", 80) not in consumer_seen

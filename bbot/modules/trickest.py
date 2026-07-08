@@ -1,22 +1,15 @@
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class Trickest(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["affiliates", "subdomain-enum", "passive", "safe"]
-    meta = {
-        "description": "Query Trickest's API for subdomains",
-        "author": "@amiremami",
-        "created_date": "2024-07-27",
-        "auth_required": True,
-    }
-    options = {
-        "api_key": "",
-    }
-    options_desc = {
-        "api_key": "Trickest API key",
-    }
+    flags = ["safe", "affiliates", "subdomain-enum", "passive"]
+    meta = {"description": "Query Trickest's API for subdomains", "author": "@amiremami", "created_date": "2024-07-27"}
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="Trickest API key", sensitive=True, mandatory=True)
 
     base_url = "https://api.trickest.io/solutions/v1/public/solution/a7cba1f1-df07-4a5c-876a-953f178996be"
     ping_url = f"{base_url}/dataset"

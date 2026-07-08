@@ -1,18 +1,19 @@
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class otx(subdomain_enum_apikey):
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["safe", "subdomain-enum", "passive"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     meta = {
         "description": "Query otx.alienvault.com for subdomains",
         "created_date": "2022-08-24",
         "author": "@TheTechromancer",
-        "auth_required": True,
     }
-    options = {"api_key": ""}
-    options_desc = {"api_key": "OTX API key"}
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="OTX API key", sensitive=True, mandatory=True)
 
     base_url = "https://otx.alienvault.com"
 

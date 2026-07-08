@@ -1,3 +1,4 @@
+import stat
 import yaml
 
 from ..bbot_fixtures import *
@@ -12,10 +13,10 @@ async def test_cli_scope(monkeypatch, capsys):
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
 
-    # basic target without whitelist
+    # basic target (seeds and target are the same)
     monkeypatch.setattr(
         "sys.argv",
-        ["bbot", "-t", "one.one.one.one", "-c", "scope.report_distance=10", "dns.minimal=false", "--json"],
+        ["bbot", "-t", "one.one.one.one", "-c", "scope.report_distance=10", "dns.minimal=false", "--json", "-y"],
     )
     result = await cli._main()
     out, err = capsys.readouterr()
@@ -28,10 +29,7 @@ async def test_cli_scope(monkeypatch, capsys):
         [
             l
             for l in dns_events
-            if l["module"] == "TARGET"
-            and l["scope_distance"] == 0
-            and "in-scope" in l["tags"]
-            and "target" in l["tags"]
+            if l["module"] == "SEED" and l["scope_distance"] == 0 and "in-scope" in l["tags"] and "seed" in l["tags"]
         ]
     )
     ip_events = [l for l in lines if l["type"] == "IP_ADDRESS" and l["data"] == "1.1.1.1"]
@@ -41,20 +39,21 @@ async def test_cli_scope(monkeypatch, capsys):
     assert ip_events
     assert all(l["scope_distance"] == 1 and "distance-1" in l["tags"] for l in ip_events)
 
-    # with whitelist
+    # with target_list different from seeds (seeds are one.one.one.one, target is 192.168.0.1)
     monkeypatch.setattr(
         "sys.argv",
         [
             "bbot",
             "-t",
-            "one.one.one.one",
-            "-w",
             "192.168.0.1",
+            "-s",
+            "one.one.one.one",
             "-c",
             "scope.report_distance=10",
             "dns.minimal=false",
             "dns.search_distance=2",
             "--json",
+            "-y",
         ],
     )
     result = await cli._main()
@@ -66,17 +65,17 @@ async def test_cli_scope(monkeypatch, capsys):
     assert not any(l["scope_distance"] == 0 for l in lines)
     dns_events = [l for l in lines if l["type"] == "DNS_NAME" and l["data"] == "one.one.one.one"]
     assert dns_events
+    # When seeds are different from target, the seed DNS_NAME should be out-of-scope
+    # (distance-1) and tagged as a seed, but NOT tagged as a target (since it is not
+    # part of the target set that in_target() checks).
     assert all(l["scope_distance"] == 1 and "distance-1" in l["tags"] for l in dns_events)
-    assert 1 == len(
-        [
-            l
-            for l in dns_events
-            if l["module"] == "TARGET"
-            and l["scope_distance"] == 1
-            and "distance-1" in l["tags"]
-            and "target" in l["tags"]
-        ]
-    )
+    target_seed_events = [
+        l
+        for l in dns_events
+        if l["module"] == "SEED" and l["scope_distance"] == 1 and "distance-1" in l["tags"] and "seed" in l["tags"]
+    ]
+    assert len(target_seed_events) == 1
+    assert all("target" not in l["tags"] for l in target_seed_events)
     ip_events = [l for l in lines if l["type"] == "IP_ADDRESS" and l["data"] == "1.1.1.1"]
     assert ip_events
     assert all(l["scope_distance"] == 2 and "distance-2" in l["tags"] for l in ip_events)
@@ -123,9 +122,9 @@ async def test_cli_scan(monkeypatch):
     with open(output_filename) as f:
         lines = f.read().splitlines()
         for line in lines:
-            if "[IP_ADDRESS]        \t127.0.0.1\tTARGET" in line:
+            if "[IP_ADDRESS]        \t127.0.0.1\tSEED" in line:
                 ip_success = True
-            if "[DNS_NAME]          \twww.example.com\tTARGET" in line:
+            if "[DNS_NAME]          \twww.example.com\tSEED" in line:
                 dns_success = True
     assert ip_success and dns_success, "IP_ADDRESS and/or DNS_NAME are not present in output.txt"
 
@@ -158,11 +157,11 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     print(out)
     # parse YAML output
     preset = yaml.safe_load(out)
-    assert preset == {
-        "description": "depstest",
-        "scan_name": "depstest",
-        "config": {"deps": {"behavior": "retry_failed"}},
-    }
+    # description and scan_name should reflect the CLI name
+    assert preset["description"] == "depstest"
+    assert preset["scan_name"] == "depstest"
+    # deps behavior should be set to retry_failed, but allow other config keys to exist
+    assert preset.get("config", {}).get("deps") == {"behavior": "retry_failed"}
 
     # list modules
     monkeypatch.setattr("sys.argv", ["bbot", "--list-modules"])
@@ -253,8 +252,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     result = await cli._main()
     out, err = capsys.readouterr()
     assert result is None
-    assert "| safe " in out
-    assert "| Non-intrusive, safe to run " in out
+    assert "| loud " in out
     assert "| active " in out
     assert "| passive " in out
 
@@ -268,11 +266,11 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     assert "| passive " not in out
 
     # list multiple flags
-    monkeypatch.setattr("sys.argv", ["bbot", "-f", "active", "safe", "--list-flags"])
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "active", "loud", "--list-flags"])
     result = await cli._main()
     out, err = capsys.readouterr()
     assert result is None
-    assert "| safe " in out
+    assert "| loud " in out
     assert "| active " in out
     assert "| passive " not in out
 
@@ -289,7 +287,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     out, err = capsys.readouterr()
     assert result is None
     assert "| dnsbrute " in out
-    assert "| httpx " in out
+    assert "| http " in out
     assert "| robots " in out
 
     # list modules by flag
@@ -298,7 +296,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     out, err = capsys.readouterr()
     assert result is None
     assert "| dnsbrute " in out
-    assert "| httpx " in out
+    assert "| http " in out
     assert "| robots " not in out
 
     # list modules by flag + required flag
@@ -307,7 +305,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     out, err = capsys.readouterr()
     assert result is None
     assert "| chaos " in out
-    assert "| httpx " not in out
+    assert "| http " not in out
 
     # list modules by flag + excluded flag
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-ef", "active", "-l"])
@@ -315,7 +313,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     out, err = capsys.readouterr()
     assert result is None
     assert "| chaos " in out
-    assert "| httpx " not in out
+    assert "| http " not in out
 
     # list modules by flag + excluded module
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-em", "dnsbrute", "-l"])
@@ -323,46 +321,57 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     out, err = capsys.readouterr()
     assert result is None
     assert "| dnsbrute " not in out
-    assert "| httpx " in out
+    assert "| http " in out
 
-    # output modules override
+    # -om is additive (defaults stay)
     caplog.clear()
     assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "-om", "csv,json", "-y"])
     result = await cli._main()
     assert result is True
-    assert "Loaded 2/2 output modules, (csv,json)" in caplog.text
+    assert "Loaded 4/4 output modules, (csv,json,stdout,txt)" in caplog.text
     caplog.clear()
     monkeypatch.setattr("sys.argv", ["bbot", "-em", "csv,json", "-y"])
     result = await cli._main()
     assert result is True
-    assert "Loaded 3/3 output modules, (python,stdout,txt)" in caplog.text
+    assert "Loaded 2/2 output modules, (stdout,txt)" in caplog.text
 
-    # output modules override
+    # -om adds non-default module on top of defaults
     caplog.clear()
     assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "-om", "subdomains", "-y"])
     result = await cli._main()
     assert result is True
-    assert "Loaded 6/6 output modules, (csv,json,python,stdout,subdomains,txt)" in caplog.text
+    assert "Loaded 5/5 output modules, (csv,json,stdout,subdomains,txt)" in caplog.text
 
-    # internal modules override
+    # -eom removes output modules
+    caplog.clear()
+    assert not caplog.text
+    monkeypatch.setattr("sys.argv", ["bbot", "-eom", "csv,txt", "-y"])
+    result = await cli._main()
+    assert result is True
+    assert "Loaded 2/2 output modules, (json,stdout)" in caplog.text
+
+    # internal modules (python is now internal)
     caplog.clear()
     assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "-y"])
     result = await cli._main()
     assert result is True
-    assert "Loaded 6/6 internal modules (aggregate,cloudcheck,dnsresolve,excavate,speculate,unarchive)" in caplog.text
+    assert (
+        "Loaded 7/7 internal modules (aggregate,cloudcheck,dnsresolve,excavate,python,speculate,unarchive)"
+        in caplog.text
+    )
     caplog.clear()
     monkeypatch.setattr("sys.argv", ["bbot", "-em", "excavate", "speculate", "-y"])
     result = await cli._main()
     assert result is True
-    assert "Loaded 4/4 internal modules (aggregate,cloudcheck,dnsresolve,unarchive)" in caplog.text
+    assert "Loaded 5/5 internal modules (aggregate,cloudcheck,dnsresolve,python,unarchive)" in caplog.text
     caplog.clear()
     monkeypatch.setattr("sys.argv", ["bbot", "-c", "speculate=false", "-y"])
     result = await cli._main()
     assert result is True
-    assert "Loaded 5/5 internal modules (aggregate,cloudcheck,dnsresolve,excavate,unarchive)" in caplog.text
+    assert "Loaded 6/6 internal modules (aggregate,cloudcheck,dnsresolve,excavate,python,unarchive)" in caplog.text
 
     # custom target type
     out, err = capsys.readouterr()
@@ -370,7 +379,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     result = await cli._main()
     out, err = capsys.readouterr()
     assert result is True
-    assert "[ORG_STUB]          	evilcorp	TARGET" in out
+    assert "[ORG_STUB]          	evilcorp\tSEED" in out
 
     # activate modules by flag
     caplog.clear()
@@ -404,18 +413,10 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     result = await cli._main()
     assert result is True
 
-    # deadly modules
-    caplog.clear()
-    assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "-m", "nuclei"])
+    # invasive modules should run without a gate (just warnings)
+    monkeypatch.setattr("sys.argv", ["bbot", "-m", "dotnetnuke"])
     result = await cli._main()
-    assert result is False, "-m nuclei ran without --allow-deadly"
-    assert "Please specify --allow-deadly to continue" in caplog.text
-
-    # --allow-deadly
-    monkeypatch.setattr("sys.argv", ["bbot", "-m", "nuclei", "--allow-deadly"])
-    result = await cli._main()
-    assert result is True, "-m nuclei failed to run with --allow-deadly"
+    assert result is True, "-m dotnetnuke should run without any special flags"
 
     # install all deps
     monkeypatch.setattr("sys.argv", ["bbot", "--install-all-deps"])
@@ -472,18 +473,37 @@ async def test_cli_module_help(monkeypatch, capsys):
     assert "Extracts domains from CSP headers" in captured.out
     assert "Module Help:" in captured.out
 
+    # a module with options must list them (regression: help_text reads the pydantic
+    # Config, not the removed self.options dict — otherwise every module shows nothing)
+    monkeypatch.setattr("sys.argv", ["bbot", "--module-help", "robots"])
+    assert await cli._main() is None
+    captured = capsys.readouterr()
+    assert "include_sitemap" in captured.out
+    assert "No options available" not in captured.out
+
+    # lightfuzz overrides help_text as a classmethod (regression: it must not read
+    # instance-only config, which previously crashed with AttributeError)
+    monkeypatch.setattr("sys.argv", ["bbot", "--module-help", "lightfuzz"])
+    assert await cli._main() is None
+    captured = capsys.readouterr()
+    assert "Lightfuzz Submodules:" in captured.out
+    assert "sqli" in captured.out
+    assert "enabled_submodules" in captured.out
+
 
 def test_cli_config_validation(monkeypatch, caplog):
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
 
-    # incorrect module option
+    # incorrect module name nested under modules.* — surfaces as an unknown
+    # module with a closest-match suggestion (more useful than the legacy
+    # "Could not find config option ..." phrasing)
     caplog.clear()
     assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "-c", "modules.ipnegibhor.num_bits=4"])
     cli.main()
-    assert 'Could not find config option "modules.ipnegibhor.num_bits"' in caplog.text
-    assert 'Did you mean "modules.ipneighbor.num_bits"?' in caplog.text
+    assert 'Could not find module "ipnegibhor"' in caplog.text
+    assert 'Did you mean "ipneighbor"?' in caplog.text
 
     # incorrect global option
     caplog.clear()
@@ -492,6 +512,101 @@ def test_cli_config_validation(monkeypatch, caplog):
     cli.main()
     assert 'Could not find config option "web_spier_distance"' in caplog.text
     assert 'Did you mean "web.spider_distance"?' in caplog.text
+
+
+def test_parse_cli_value_keeps_date_shaped_strings():
+    """`-c key=2024-01-01` must stay a string -- YAML would coerce it to a date object,
+    which every typed field rejects (e.g. an all-numeric or date-shaped credential).
+    Normal type coercion for typed options is preserved."""
+    from bbot.scanner.preset.args import _parse_cli_value
+
+    assert _parse_cli_value("2024-01-01") == "2024-01-01"
+    assert _parse_cli_value("2") == 2
+    assert _parse_cli_value("true") is True
+    assert _parse_cli_value("3.5") == 3.5
+    assert _parse_cli_value("[a, b]") == ["a", "b"]
+    assert _parse_cli_value("") == ""
+    assert _parse_cli_value("hello") == "hello"
+
+
+def test_parse_dotted_cli_type_aware_string_fields():
+    """String fields keep the literal CLI text (lossless) so an all-numeric or
+    boolean-looking value isn't coerced to int/bool and rejected by the str type."""
+    from bbot.scanner.preset.args import parse_dotted_cli
+    from bbot.scanner import validate_preset
+    from bbot.core.modules import MODULE_LOADER
+
+    MODULE_LOADER.preload()
+    index = MODULE_LOADER.config_type_index
+    for raw, expect in [("12345678", "12345678"), ("true", "true"), ("0755", "0755")]:
+        d = parse_dotted_cli([f"modules.postgres.password={raw}"], index=index)
+        assert d["modules"]["postgres"]["password"] == expect
+        assert validate_preset({"config": d}) == []
+
+
+def test_parse_dotted_cli_type_aware_preserves_scalars():
+    """Typed options still coerce (int/bool), and Union[str, list[str]] still parses a
+    list while keeping a bare value as a string."""
+    from bbot.scanner.preset.args import parse_dotted_cli
+    from bbot.core.modules import MODULE_LOADER
+
+    MODULE_LOADER.preload()
+    index = MODULE_LOADER.config_type_index
+    assert parse_dotted_cli(["web.http_timeout=20"], index=index)["web"]["http_timeout"] == 20
+    assert parse_dotted_cli(["scope.strict=true"], index=index)["scope"]["strict"] is True
+    wl = parse_dotted_cli(["modules.dnsbrute.wordlist=[a,b]"], index=index)["modules"]["dnsbrute"]["wordlist"]
+    assert wl == ["a", "b"]
+    bare = parse_dotted_cli(["modules.dnsbrute.wordlist=foo"], index=index)["modules"]["dnsbrute"]["wordlist"]
+    assert bare == "foo"
+
+
+def test_parse_dotted_cli_type_aware_bool_fields():
+    """Bool fields produce real bool values, not ints or strings."""
+    from bbot.scanner.preset.args import parse_dotted_cli
+    from bbot.core.modules import MODULE_LOADER
+
+    MODULE_LOADER.preload()
+    index = MODULE_LOADER.config_type_index
+    d = parse_dotted_cli(["modules.lightfuzz.force_common_headers=1"], index=index)
+    assert d["modules"]["lightfuzz"]["force_common_headers"] is True
+    d = parse_dotted_cli(["scope.strict=yes"], index=index)
+    assert d["scope"]["strict"] is True
+    d = parse_dotted_cli(["scope.strict=false"], index=index)
+    assert d["scope"]["strict"] is False
+
+
+def test_type_aware_parsing_still_flags_unknown_key():
+    """Type-awareness must not hide a typo: an unknown key falls back to YAML parse
+    and is still rejected by validation."""
+    from bbot.scanner.preset.args import parse_dotted_cli
+    from bbot.scanner import validate_preset
+    from bbot.core.modules import MODULE_LOADER
+
+    MODULE_LOADER.preload()
+    d = parse_dotted_cli(["web.bogus=5"], index=MODULE_LOADER.config_type_index)
+    assert validate_preset({"config": d})  # non-empty: unknown key flagged
+
+
+def test_coerce_config_file_values():
+    """coerce_config fixes YAML-parsed values from config files: numeric passwords
+    become strings, integer 1 on a bool field becomes True, etc."""
+    from bbot.core.config.models import coerce_config
+    from bbot.core.modules import MODULE_LOADER
+
+    MODULE_LOADER.preload()
+    index = MODULE_LOADER.config_type_index
+    cfg = {
+        "web": {"http_timeout": 30},
+        "modules": {
+            "postgres": {"password": 12345678, "port": 5432},
+            "lightfuzz": {"force_common_headers": 1},
+        },
+    }
+    result = coerce_config(cfg, index)
+    assert result["modules"]["postgres"]["password"] == "12345678"
+    assert result["modules"]["postgres"]["port"] == 5432
+    assert result["modules"]["lightfuzz"]["force_common_headers"] is True
+    assert result["web"]["http_timeout"] == 30
 
 
 def test_cli_module_validation(monkeypatch, caplog):
@@ -528,12 +643,12 @@ def test_cli_module_validation(monkeypatch, caplog):
     monkeypatch.setattr("sys.argv", ["bbot", "-om", "websocket", "-c", "modules.websocket.url=", "-y"])
     cli.main()
     lines = caplog.text.splitlines()
-    assert "Loaded 6/6 output modules, (csv,json,python,stdout,txt,websocket)" in caplog.text
+    assert "Loaded 5/5 output modules, (csv,json,stdout,txt,websocket)" in caplog.text
     assert 1 == len(
         [
             l
             for l in lines
-            if l.startswith("WARNING  bbot.scanner:scanner.py")
+            if l.startswith("ERROR    bbot.scanner:scanner.py")
             and l.endswith("Setup hard-failed for websocket: Must set URL")
         ]
     )
@@ -541,7 +656,7 @@ def test_cli_module_validation(monkeypatch, caplog):
         [
             l
             for l in lines
-            if l.startswith("WARNING  bbot.modules.output.websocket:base.py") and l.endswith("Setting error state")
+            if l.startswith("ERROR    bbot.modules.output.websocket:base.py") and l.endswith("Setting error state")
         ]
     )
     assert 1 == len(
@@ -567,7 +682,7 @@ def test_cli_module_validation(monkeypatch, caplog):
         [
             l
             for l in lines
-            if l.startswith("WARNING  bbot.scanner:scanner.py")
+            if l.startswith("ERROR    bbot.scanner:scanner.py")
             and l.endswith("Setup hard-failed for websocket: Must set URL")
         ]
     )
@@ -575,7 +690,7 @@ def test_cli_module_validation(monkeypatch, caplog):
         [
             l
             for l in lines
-            if l.startswith("WARNING  bbot.modules.output.websocket:base.py") and l.endswith("Setting error state")
+            if l.startswith("ERROR    bbot.modules.output.websocket:base.py") and l.endswith("Setting error state")
         ]
     )
     assert 1 == len(
@@ -618,7 +733,7 @@ def test_cli_module_validation(monkeypatch, caplog):
     assert 'Did you mean "subdomain-enum"?' in caplog.text
 
 
-def test_cli_presets(monkeypatch, capsys, caplog):
+def test_cli_presets(monkeypatch, capsys, caplog, clean_default_config):
     import yaml
 
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
@@ -786,3 +901,118 @@ scan_name: {scan_name}
     shutil.rmtree(scan_dir, ignore_errors=True)
     shutil.rmtree(output_file, ignore_errors=True)
     output_dir_preset_file.unlink()
+
+
+@pytest.mark.asyncio
+async def test_cli_no_color(monkeypatch):
+    from bbot.logger import colorize
+    from bbot.scanner import Preset
+
+    # colorize honors the NO_COLOR convention
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    assert colorize("test", "INFO") != "test"
+    monkeypatch.setenv("NO_COLOR", "1")
+    assert colorize("test", "INFO") == "test"
+
+    # the --no-color CLI switch sets NO_COLOR (restored by monkeypatch at teardown)
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.setattr("sys.argv", ["bbot", "-t", "evilcorp.com", "--no-color"])
+    preset = Preset()
+    preset.parse_args()
+    assert os.environ.get("NO_COLOR") == "1"
+
+
+@pytest.mark.asyncio
+async def test_cli_reset_config(monkeypatch, caplog, tmp_path):
+    from bbot.core import CORE
+
+    monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
+    monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
+    caplog.set_level(logging.INFO)
+
+    files = CORE.files_config
+    monkeypatch.setattr(files, "config_dir", tmp_path)
+    monkeypatch.setattr(files, "config_filename", tmp_path / "bbot.yml")
+    monkeypatch.setattr(files, "secrets_filename", tmp_path / "secrets.yml")
+    config_file = tmp_path / "bbot.yml"
+    secrets_file = tmp_path / "secrets.yml"
+
+    # a customized bbot.yml on disk
+    config_file.write_text("scope:\n  strict: false\n")
+
+    # without --yes and no TTY, it refuses and changes nothing
+    monkeypatch.setattr("sys.argv", ["bbot", "--reset-config"])
+    caplog.clear()
+    await cli._main()
+    assert "Refusing to reset config without confirmation" in caplog.text
+    assert not (tmp_path / "bbot.yml.bak").exists()
+    assert config_file.read_text() == "scope:\n  strict: false\n"
+
+    # --reset-config -y regenerates bbot.yml and backs it up, but never touches secrets.yml
+    monkeypatch.setattr("sys.argv", ["bbot", "--reset-config", "-y"])
+    caplog.clear()
+    await cli._main()
+    assert "Regenerated config files" in caplog.text
+    assert (tmp_path / "bbot.yml.bak").is_file()
+    assert (tmp_path / "bbot.yml.bak").read_text() == "scope:\n  strict: false\n"
+    assert "# NOTICE" in config_file.read_text()
+    assert not (tmp_path / "secrets.yml.bak").exists()
+
+    # --reset-secrets -y regenerates secrets.yml (owner-only) and backs it up
+    monkeypatch.setattr("sys.argv", ["bbot", "--reset-secrets", "-y"])
+    caplog.clear()
+    await cli._main()
+    assert (tmp_path / "secrets.yml.bak").is_file()
+    assert stat.S_IMODE(secrets_file.stat().st_mode) & 0o077 == 0
+
+
+@pytest.mark.asyncio
+async def test_cli_reset_config_hint(monkeypatch, caplog, tmp_path):
+    from bbot.core import CORE
+
+    monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
+    monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
+    caplog.set_level(logging.INFO)
+
+    files = CORE.files_config
+    monkeypatch.setattr(files, "config_dir", tmp_path)
+    monkeypatch.setattr(files, "config_filename", tmp_path / "bbot.yml")
+    monkeypatch.setattr(files, "secrets_filename", tmp_path / "secrets.yml")
+
+    # a bbot.yml carrying an option that no longer exists (e.g. left over from
+    # an older version of BBOT), loaded into the config
+    (tmp_path / "bbot.yml").write_text("scope:\n  strct: false\n")
+    monkeypatch.setattr(CORE, "_custom_config", {"scope": {"strct": False}})
+
+    monkeypatch.setattr("sys.argv", ["bbot", "-t", "example.com"])
+    caplog.clear()
+    await cli._main()
+
+    # validation fails on the bad option, and (because it lives in bbot.yml) we
+    # point the user at --reset-config -- but not at --reset-secrets
+    assert "scope.strct" in caplog.text
+    assert "regenerating from current defaults with: bbot --reset-config" in caplog.text
+    assert "--reset-secrets" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_cli_reset_config_hint_skips_cli_typo(monkeypatch, caplog, tmp_path):
+    from bbot.core import CORE
+
+    monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
+    monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
+    caplog.set_level(logging.INFO)
+
+    files = CORE.files_config
+    monkeypatch.setattr(files, "config_dir", tmp_path)
+    monkeypatch.setattr(files, "config_filename", tmp_path / "bbot.yml")
+    monkeypatch.setattr(files, "secrets_filename", tmp_path / "secrets.yml")
+
+    # the bad option comes from the CLI, not from any config file on disk
+    monkeypatch.setattr("sys.argv", ["bbot", "-t", "example.com", "-c", "scope.strct=false"])
+    caplog.clear()
+    await cli._main()
+
+    # validation still fails, but there's nothing to reset -- so no hint
+    assert "scope.strct" in caplog.text
+    assert "regenerating from current defaults" not in caplog.text

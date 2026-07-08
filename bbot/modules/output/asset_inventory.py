@@ -4,6 +4,7 @@ from contextlib import suppress
 
 from .csv import CSV
 from bbot.core.helpers.misc import make_ip_type, is_ip, is_port, best_http_status
+from bbot.core.config.models import BaseModuleConfig, Field
 
 severity_map = {
     "INFO": 0,
@@ -26,7 +27,6 @@ class asset_inventory(CSV):
         "DNS_NAME",
         "URL",
         "FINDING",
-        "VULNERABILITY",
         "TECHNOLOGY",
         "IP_ADDRESS",
         "WAF",
@@ -38,13 +38,18 @@ class asset_inventory(CSV):
         "created_date": "2022-09-30",
         "author": "@liquidsec",
     }
-    options = {"output_file": "", "use_previous": False, "recheck": False, "summary_netmask": 16}
-    options_desc = {
-        "output_file": "Set a custom output file",
-        "use_previous": "Emit previous asset inventory as new events (use in conjunction with -n <old_scan_name>)",
-        "recheck": "When use_previous=True, don't retain past details like open ports or findings. Instead, allow them to be rediscovered by the new scan",
-        "summary_netmask": "Subnet mask to use when summarizing IP addresses at end of scan",
-    }
+
+    class Config(BaseModuleConfig):
+        output_file: str = Field("", description="Set a custom output file")
+        use_previous: bool = Field(
+            False,
+            description="Emit previous asset inventory as new events (use in conjunction with -n <old_scan_name>)",
+        )
+        recheck: bool = Field(
+            False,
+            description="When use_previous=True, don't retain past details like open ports or findings. Instead, allow them to be rediscovered by the new scan",
+        )
+        summary_netmask: int = Field(16, description="Subnet mask to use when summarizing IP addresses at end of scan")
 
     header_row = [
         "Host",
@@ -186,7 +191,8 @@ class asset_inventory(CSV):
                                 asset.host, "DNS_NAME", parent=self.scan.root_event, raise_error=True
                             )
                             await self.emit_event(
-                                host_event, context="{module} emitted previous result: {event.type}: {event.data}"
+                                host_event,
+                                context="{module} emitted previous result: {event.type}: {event.pretty_string}",
                             )
                             for port in asset.ports:
                                 netloc = self.helpers.make_netloc(asset.host, port)
@@ -194,7 +200,7 @@ class asset_inventory(CSV):
                                 if open_port_event:
                                     await self.emit_event(
                                         open_port_event,
-                                        context="{module} emitted previous result: {event.type}: {event.data}",
+                                        context="{module} emitted previous result: {event.type}: {event.pretty_string}",
                                     )
                         else:
                             for ip in asset.ip_addresses:
@@ -202,7 +208,8 @@ class asset_inventory(CSV):
                                     ip, "IP_ADDRESS", parent=self.scan.root_event, raise_error=True
                                 )
                                 await self.emit_event(
-                                    ip_event, context="{module} emitted previous result: {event.type}: {event.data}"
+                                    ip_event,
+                                    context="{module} emitted previous result: {event.type}: {event.pretty_string}",
                                 )
                                 for port in asset.ports:
                                     netloc = self.helpers.make_netloc(ip, port)
@@ -210,7 +217,7 @@ class asset_inventory(CSV):
                                     if open_port_event:
                                         await self.emit_event(
                                             open_port_event,
-                                            context="{module} emitted previous result: {event.type}: {event.data}",
+                                            context="{module} emitted previous result: {event.type}: {event.pretty_string}",
                                         )
             else:
                 self.warning(
@@ -290,8 +297,7 @@ class Asset:
         if not is_ip(event.host):
             self.host = event.host
 
-        dns_children = getattr(event, "_dns_children", {})
-        for rdtype, records in sorted(dns_children.items(), key=lambda x: x[0]):
+        for rdtype, records in sorted(event.dns_children.items(), key=lambda x: x[0]):
             for record in sorted([str(r) for r in records]):
                 self.dns_records.add(f"{rdtype}:{record}")
 
@@ -314,14 +320,11 @@ class Asset:
             self.ports.add(str(event.port))
 
         if event.type == "FINDING":
-            location = event.data.get("url", event.data.get("host", ""))
+            location = event.url or event.data.get("host", "")
             if location:
-                self.findings.add(f"{location}:{event.data['description']}")
-
-        if event.type == "VULNERABILITY":
-            location = event.data.get("url", event.data.get("host", ""))
-            if location:
-                self.findings.add(f"{location}:{event.data['description']}:{event.data['severity']}")
+                self.findings.add(
+                    f"{location}:{event.data['description']}:Severity: {event.data['severity']} Confidence: {event.data['confidence']}"
+                )
                 severity_int = severity_map.get(event.data.get("severity", "N/A"), 0)
                 if severity_int > self.risk_rating:
                     self.risk_rating = severity_int
@@ -339,9 +342,10 @@ class Asset:
                 if update_http_status or not self.http_title:
                     self.http_title = title
 
-        for tag in event.tags:
-            if tag.startswith("cdn-") or tag.startswith("cloud-"):
-                self.provider = tag
+        for host_meta in event.host_metadata.values():
+            providers = host_meta.get("cloud_providers", {})
+            if providers:
+                self.provider = ", ".join(providers.keys())
                 break
 
     @property

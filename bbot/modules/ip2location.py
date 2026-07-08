@@ -1,4 +1,5 @@
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class IP2Location(BaseModule):
@@ -8,18 +9,20 @@ class IP2Location(BaseModule):
 
     watched_events = ["IP_ADDRESS"]
     produced_events = ["GEOLOCATION"]
-    flags = ["passive", "safe"]
+    flags = ["safe", "passive"]
     meta = {
         "description": "Query IP2location.io's API for geolocation information. ",
         "created_date": "2023-09-12",
         "author": "@TheTechromancer",
-        "auth_required": True,
     }
-    options = {"api_key": "", "lang": ""}
-    options_desc = {
-        "api_key": "IP2location.io API Key",
-        "lang": "Translation information(ISO639-1). The translation is only applicable for continent, country, region and city name.",
-    }
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="IP2location.io API Key", sensitive=True, mandatory=True)
+        lang: str = Field(
+            "",
+            description="Translation information(ISO639-1). The translation is only applicable for continent, country, region and city name.",
+        )
+
     scope_distance_modifier = 1
     _priority = 2
     suppress_dupes = False
@@ -51,7 +54,7 @@ class IP2Location(BaseModule):
             else:
                 self.verbose(f"No response from {url}")
         except Exception:
-            self.verbose(f"Error retrieving results for {event.data}", trace=True)
+            self.verbose(f"Error retrieving results for {event.pretty_string}", trace=True)
             return
 
         geo_data = {k: v for k, v in geo_data.items() if v is not None}
@@ -70,5 +73,5 @@ class IP2Location(BaseModule):
                 geo_data,
                 "GEOLOCATION",
                 event,
-                context=f'{{module}} queried IP2Location API for "{event.data}" and found {{event.type}}: {description}',
+                context=f'{{module}} queried IP2Location API for "{event.pretty_string}" and found {{event.type}}: {description}',
             )

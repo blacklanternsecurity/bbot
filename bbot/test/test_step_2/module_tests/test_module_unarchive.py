@@ -11,7 +11,7 @@ from ...bbot_fixtures import *
 
 class TestUnarchive(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["filedownload", "httpx", "excavate", "speculate", "unarchive"]
+    modules_overrides = ["filedownload", "http", "excavate", "speculate", "unarchive"]
     config_overrides = {
         "modules": {
             "filedownload": {
@@ -291,6 +291,44 @@ class TestUnarchiveTraversalCheck(ModuleTestBase):
             info.linkname = "/etc/passwd"
             tar.addfile(info)
 
+        # zip with symlink entry (unix symlink stored via external_attr)
+        symlink_zip = temp_path / "symlink.zip"
+        symlink_info = zipfile.ZipInfo("evil_link")
+        symlink_info.create_system = 3  # unix
+        symlink_info.external_attr = 0o120777 << 16  # S_IFLNK | 0o777
+        with zipfile.ZipFile(symlink_zip, "w") as zf:
+            zf.writestr(symlink_info, "/etc/passwd")
+
+        # 7z-native symlink stored as a link (-snl). A plain unix-symlink zip lists
+        # as " lrwxrwxrwx" on mainline 7-Zip, which the pre-fix guard already caught,
+        # so the zip case only exercises the fix on p7zip. A 7z-native symlink lists
+        # with a leading DOS-attribute token ("A lrwxrwxrwx") that the pre-fix guard
+        # missed, so this exercises the fixed mode-field check on mainline 7-Zip too.
+        symlink_7z = temp_path / "symlink.7z"
+        link_src = temp_path / "link_src"
+        link_src.unlink(missing_ok=True)
+        link_src.symlink_to("/etc/passwd")
+        add_proc = await asyncio.create_subprocess_exec(
+            "7z",
+            "a",
+            "-snl",
+            "symlink.7z",
+            "link_src",
+            cwd=str(temp_path),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        await add_proc.communicate()
+        list_proc = await asyncio.create_subprocess_exec(
+            "7z",
+            "l",
+            "-slt",
+            str(symlink_7z),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        list_out, _ = await list_proc.communicate()
+
         self.results = {}
         self.results["safe_tar"] = await m._check_archive_safe(safe_tar, "tar")
         self.results["traversal_tar"] = await m._check_archive_safe(traversal_tar, "tar")
@@ -298,6 +336,10 @@ class TestUnarchiveTraversalCheck(ModuleTestBase):
         self.results["safe_zip"] = await m._check_archive_safe(safe_zip, "zip")
         self.results["traversal_zip"] = await m._check_archive_safe(traversal_zip, "zip")
         self.results["symlink_tar"] = await m._check_archive_safe(symlink_tar, "tar")
+        self.results["symlink_zip"] = await m._check_archive_safe(symlink_zip, "zip")
+        # only meaningful if 7z actually stored a link (needs -snl support)
+        self.results["symlink_7z_is_link"] = b"lrwx" in list_out
+        self.results["symlink_7z"] = await m._check_archive_safe(symlink_7z, "7z")
 
     def check(self, module_test, events):
         assert self.results["safe_tar"], "Safe tar rejected"
@@ -306,3 +348,9 @@ class TestUnarchiveTraversalCheck(ModuleTestBase):
         assert self.results["safe_zip"], "Safe zip rejected"
         assert not self.results["traversal_zip"], "Traversal zip was not rejected"
         assert not self.results["symlink_tar"], "Symlink tar was not rejected"
+        assert not self.results["symlink_zip"], "Symlink zip was not rejected"
+        # 7z-native symlinks list with a DOS-attribute prefix ("A lrwxrwxrwx") that
+        # the pre-fix guard missed; assert only when the link was actually stored
+        # (mainline 7-Zip always does, which is exactly where the zip case is a no-op)
+        if self.results["symlink_7z_is_link"]:
+            assert not self.results["symlink_7z"], "Symlink 7z was not rejected"

@@ -1,6 +1,6 @@
 import asyncio
 from contextlib import suppress
-from radixtarget.helpers import host_size_key
+from radixtarget import host_size_key
 
 from bbot.modules.base import BaseInterceptModule
 
@@ -48,18 +48,21 @@ class ScanIngress(BaseInterceptModule):
             event_seeds = sorted(event_seeds, key=lambda e: (host_size_key(str(e.host)), e.data))
             # queue root scan event
             await self.queue_event(root_event, {})
-            target_module = self.scan._make_dummy_module(name="TARGET", _type="TARGET")
-            # queue each target in turn
+            target_module = self.scan._make_dummy_module(name="SEED", _type="SEED")
+            # queue each seed in turn
             for event_seed in event_seeds:
                 event = self.scan.make_event(
                     event_seed.data,
                     event_seed.type,
                     parent=root_event,
                     module=target_module,
-                    context=f"Scan {self.scan.name} seeded with " + "{event.type}: {event.data}",
-                    tags=["target"],
+                    context=f"Scan {self.scan.name} seeded with " + "{event.type}: {event.pretty_string}",
+                    tags=["seed"],
                 )
-                self.verbose(f"Target: {event}")
+                # If the seed is also in the target scope, add the target tag
+                if self.scan.in_target(event):
+                    event.add_tag("target")
+                self.verbose(f"Seed: {event}")
                 # don't fill up the queue with too many events
                 while self.incoming_event_queue.qsize() > 100:
                     await asyncio.sleep(0.2)
@@ -113,9 +116,9 @@ class ScanIngress(BaseInterceptModule):
 
         # Scope shepherding
         # here is where we make sure in-scope events are set to their proper scope distance
+
         if event.host:
-            event_whitelisted = self.scan.whitelisted(event)
-            if event_whitelisted:
+            if self.scan.in_target(event):
                 self.debug(f"Making {event} in-scope because its main host matches the scan target")
                 event.scope_distance = 0
 
@@ -142,12 +145,19 @@ class ScanIngress(BaseInterceptModule):
         return self._module_priority_weights
 
     async def get_incoming_event(self):
+        # memory-pressure backpressure: scan-level delay scales 0s→5s as memory crosses 90→95%.
+        # delay is 0 in the common case so this is a near-free check.
+        if self.scan._ingress_delay > 0:
+            await asyncio.sleep(self.scan._ingress_delay)
         for q in self.helpers.weighted_shuffle(self.incoming_queues, self.module_priority_weights):
             try:
                 return q.get_nowait()
             except (asyncio.queues.QueueEmpty, AttributeError):
                 continue
         raise asyncio.queues.QueueEmpty()
+
+    async def _event_postcheck(self, event):
+        return await self._event_postcheck_inner(event)
 
     def is_incoming_duplicate(self, event, add=False):
         """
@@ -264,7 +274,21 @@ class ScanEgress(BaseInterceptModule):
         if -1 < event.scope_distance < 1:
             self.scan.word_cloud.absorb_event(event)
 
-        for mod in self.scan.modules.values():
+        # Hold a sentinel on _module_consumers during distribution so it
+        # never transiently hits 0 between sequential queue_event() awaits
+        # (which would let a fast module's _minimize() strip fields that
+        # slower modules still need).
+        event._module_consumers += 1
+        for module in self.scan.modules.values():
             # don't distribute events to intercept modules
-            if not mod._intercept:
-                await mod.queue_event(event)
+            if module._intercept:
+                continue
+            # graph-important events are duplicates re-emitted only to preserve graph structure.
+            # a module that isn't graph-preserving and doesn't accept dupes would just drop them
+            # at its postcheck, so skip queueing entirely and avoid the churn (outcome unchanged)
+            if event._graph_important and not (module.preserve_graph or module.accept_dupes):
+                continue
+            await module.queue_event(event)
+
+        # release the sentinel; _minimize() decrements and strips if count hits 0
+        event._minimize()

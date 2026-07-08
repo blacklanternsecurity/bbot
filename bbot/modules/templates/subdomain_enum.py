@@ -9,7 +9,7 @@ class subdomain_enum(BaseModule):
 
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["subdomain-enum", "passive"]
     meta = {"description": "Query an API for subdomains"}
 
     base_url = "https://api.example.com"
@@ -63,7 +63,7 @@ class subdomain_enum(BaseModule):
                             "DNS_NAME",
                             event,
                             abort_if=self.abort_if,
-                            context=f'{{module}} searched {self.source_pretty_name} for "{query}" and found {{event.type}}: {{event.data}}',
+                            context=f'{{module}} searched {self.source_pretty_name} for "{query}" and found {{event.type}}: {{event.pretty_string}}',
                         )
 
     async def handle_event_paginated(self, event):
@@ -81,7 +81,7 @@ class subdomain_enum(BaseModule):
                         "DNS_NAME",
                         event,
                         abort_if=self.abort_if,
-                        context=f'{{module}} searched {self.source_pretty_name} for "{query}" and found {{event.type}}: {{event.data}}',
+                        context=f'{{module}} searched {self.source_pretty_name} for "{query}" and found {{event.type}}: {{event.pretty_string}}',
                     )
 
     async def request_url(self, query):
@@ -161,15 +161,17 @@ class subdomain_enum(BaseModule):
         return False
 
     async def filter_event(self, event):
+        if not self.config.get("recursive_mutations", True) and any(t.startswith("mutation-") for t in event.tags):
+            return False, "event was discovered by dnsbrute_mutations and recursive_mutations is False"
         query = self.make_query(event)
         # check if wildcard
         is_wildcard = await self._is_wildcard(query)
         # check if cloud
         is_cloud = False
-        if any(t.startswith("cloud-") for t in event.tags):
+        if "cloud" in event.tags:
             is_cloud = True
-        # reject if it's a cloud resource and not in our target
-        if is_cloud and event not in self.scan.target.whitelist:
+        # reject if it's a cloud resource and not in our target (unless it's a seed event)
+        if is_cloud and not self.scan.in_target(event) and "seed" not in event.tags:
             return False, "Event is a cloud resource and not a direct target"
         # optionally reject events with wildcards / errors
         if self.reject_wildcards:
@@ -198,8 +200,8 @@ class subdomain_enum_apikey(subdomain_enum):
 
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive", "safe"]
-    meta = {"description": "Query API for subdomains", "auth_required": True}
+    flags = ["subdomain-enum", "passive"]
+    meta = {"description": "Query API for subdomains"}
     options = {"api_key": ""}
     options_desc = {"api_key": "API key"}
 

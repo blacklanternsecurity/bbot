@@ -7,7 +7,7 @@ from bbot.modules.base import BaseModule
 class bucket_template(BaseModule):
     watched_events = ["DNS_NAME", "STORAGE_BUCKET"]
     produced_events = ["STORAGE_BUCKET", "FINDING"]
-    flags = ["active", "safe", "cloud-enum", "web-basic"]
+    flags = ["active", "cloud-enum", "web"]
     options = {"permutations": False}
     options_desc = {
         "permutations": "Whether to try permutations",
@@ -42,7 +42,7 @@ class bucket_template(BaseModule):
         return True
 
     def filter_bucket(self, event):
-        if not any(t.endswith(f"-{self.cloudcheck_provider_name.lower()}") for t in event.tags):
+        if self.cloudcheck_provider_name.lower() not in event.tags:
             return False, "bucket belongs to a different cloud provider"
         return True, ""
 
@@ -67,16 +67,23 @@ class bucket_template(BaseModule):
                 "STORAGE_BUCKET",
                 parent=event,
                 tags=tags,
-                context=f"{{module}} tried {num_buckets:,} bucket variations of {event.data} and found {{event.type}} at {url}",
+                context=f"{{module}} tried {num_buckets:,} bucket variations of {event.pretty_string} and found {{event.type}} at {url}",
             )
 
     async def handle_storage_bucket(self, event):
-        url = event.data["url"]
+        url = event.url
         bucket_name = event.data["name"]
         if self.supports_open_check:
             description, tags = await self._check_bucket_open(bucket_name, url)
             if description:
-                event_data = {"host": event.host, "url": url, "description": description}
+                event_data = {
+                    "host": event.host,
+                    "url": url,
+                    "description": description,
+                    "name": "Open Storage Bucket",
+                    "severity": "LOW",
+                    "confidence": "HIGH",
+                }
                 await self.emit_event(
                     event_data,
                     "FINDING",
@@ -124,7 +131,7 @@ class bucket_template(BaseModule):
                 for bucket_name in new_buckets:
                     url, kwargs = self.build_bucket_request(bucket_name, base_domain, region)
                     bucket_urls_kwargs.append((url, kwargs, (bucket_name, base_domain, region)))
-        async for url, kwargs, (bucket_name, base_domain, region), response in self.helpers.request_custom_batch(
+        async for url, response, (bucket_name, base_domain, region) in self.helpers.request_batch_stream(
             bucket_urls_kwargs
         ):
             existent_bucket, tags = self._check_bucket_exists(bucket_name, response)

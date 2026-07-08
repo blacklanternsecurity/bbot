@@ -10,7 +10,7 @@ class TestGitDumper_Dirlisting(ModuleTestBase):
         "http://127.0.0.1:8888/test",
     ]
 
-    modules_overrides = ["git", "gitdumper", "httpx"]
+    modules_overrides = ["git", "gitdumper", "http"]
     config_overrides = {"modules": {"gitdumper": {"output_folder": str(bbot_test_dir / "test_output")}}}
 
     index_html = """<html>

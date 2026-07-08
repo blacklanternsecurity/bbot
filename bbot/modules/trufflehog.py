@@ -1,32 +1,29 @@
 import json
 from functools import partial
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class trufflehog(BaseModule):
     watched_events = ["CODE_REPOSITORY", "FILESYSTEM", "HTTP_RESPONSE", "RAW_TEXT"]
-    produced_events = ["FINDING", "VULNERABILITY"]
-    flags = ["passive", "safe", "code-enum"]
+    produced_events = ["FINDING"]
+    flags = ["safe", "passive", "code-enum"]
     meta = {
         "description": "TruffleHog is a tool for finding credentials",
         "created_date": "2024-03-12",
         "author": "@domwhewell-sage",
     }
 
-    options = {
-        "version": "3.95.5",
-        "config": "",
-        "only_verified": True,
-        "concurrency": 8,
-        "deleted_forks": False,
-    }
-    options_desc = {
-        "version": "trufflehog version",
-        "config": "File path or URL to YAML trufflehog config",
-        "only_verified": "Only report credentials that have been verified",
-        "concurrency": "Number of concurrent workers",
-        "deleted_forks": "Scan for deleted github forks. WARNING: This is SLOW. For a smaller repository, this process can take 20 minutes. For a larger repository, it could take hours.",
-    }
+    class Config(BaseModuleConfig):
+        version: str = Field("3.95.5", description="trufflehog version")
+        config: str = Field("", description="File path or URL to YAML trufflehog config")
+        only_verified: bool = Field(True, description="Only report credentials that have been verified")
+        concurrency: int = Field(8, description="Number of concurrent workers")
+        deleted_forks: bool = Field(
+            False,
+            description="Scan for deleted github forks. WARNING: This is SLOW. For a smaller repository, this process can take 20 minutes. For a larger repository, it could take hours.",
+        )
+
     deps_ansible = [
         {
             "name": "Download trufflehog",
@@ -49,7 +46,7 @@ class trufflehog(BaseModule):
 
     async def setup(self):
         self.verified = self.config.get("only_verified", True)
-        self.concurrency = int(self.config.get("concurrency", 8))
+        self.concurrency = self.config.get("concurrency", 8)
 
         self.deleted_forks = self.config.get("deleted_forks", False)
         self.github_token = ""
@@ -75,7 +72,7 @@ class trufflehog(BaseModule):
             if self.deleted_forks:
                 if "git" not in event.tags:
                     return False, "Module only accepts git CODE_REPOSITORY events"
-                if "github" not in event.data["url"]:
+                if "github" not in event.url:
                     return False, "Module only accepts github CODE_REPOSITORY events"
             else:
                 return False, "Deleted forks is not enabled"
@@ -90,7 +87,7 @@ class trufflehog(BaseModule):
             description = event.data.get("description", "")
 
         if event.type == "CODE_REPOSITORY":
-            path = event.data["url"]
+            path = event.url
             module = "github-experimental"
         elif event.type == "FILESYSTEM":
             path = event.data["path"]
@@ -123,14 +120,16 @@ class trufflehog(BaseModule):
             source_metadata,
         ) in self.execute_trufflehog(module, path):
             verified_str = "Verified" if verified else "Possible"
-            finding_type = "VULNERABILITY" if verified else "FINDING"
+            confidence = "CONFIRMED" if verified else "MEDIUM"
             data = {
+                "name": f"TruffleHog - {detector_name}",
                 "description": f"{verified_str} Secret Found. Detector Type: [{detector_name}] Decoder Type: [{decoder_name}] Details: [{source_metadata}]",
             }
             if host:
                 data["host"] = host
-            if finding_type == "VULNERABILITY":
-                data["severity"] = "High"
+
+            data["severity"] = "HIGH"
+            data["confidence"] = confidence
             if description:
                 data["description"] += f" Description: [{description}]"
             data["description"] += f" Raw result: [{raw_result}]"
@@ -138,7 +137,7 @@ class trufflehog(BaseModule):
                 data["description"] += f" RawV2 result: [{rawv2_result}]"
             await self.emit_event(
                 data,
-                finding_type,
+                "FINDING",
                 event,
                 context=f'{{module}} searched {event.type} using "{module}" method and found {verified_str.lower()} secret ({{event.type}}): {raw_result}',
             )

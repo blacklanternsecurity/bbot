@@ -18,7 +18,7 @@ import re
 class newsletters(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
-    flags = ["active", "safe"]
+    flags = ["safe", "active"]
     meta = {
         "description": "Searches for Newsletter Submission Entry Fields on Websites",
         "created_date": "2024-02-02",
@@ -38,12 +38,12 @@ class newsletters(BaseModule):
     async def handle_event(self, event):
         _event = event
 
-        # Call find_type Function if Webpage return Status Code 200 && "body" is found in event.data
-        # Ex: 'bbot -m httpx newsletters -t https://apf-api.eng.vn.cloud.tesla.com' returns
-        #     Status Code 200 but does NOT have event.data["body"]
+        # Call find_type Function if Webpage return Status Code 200 && body is non-empty
+        # Ex: 'bbot -m blasthttp newsletters -t https://apf-api.eng.vn.cloud.tesla.com' returns
+        #     Status Code 200 but does NOT have a response body
         if _event.data["status_code"] == 200:
-            if "body" in _event.data:
-                body = _event.data["body"]
+            body = _event.body
+            if body:
                 soup = self.helpers.beautifulsoup(body, "html.parser")
                 if soup is False:
                     self.debug("BeautifulSoup returned False")
@@ -51,7 +51,14 @@ class newsletters(BaseModule):
                 result = self.find_type(soup)
                 if result:
                     description = "Found a Newsletter Submission Form that could be used for email bombing attacks"
-                    data = {"host": str(_event.host), "description": description, "url": _event.data["url"]}
+                    data = {
+                        "host": str(_event.host),
+                        "description": description,
+                        "url": _event.url,
+                        "name": "Newsletter Submission Form",
+                        "severity": "INFO",
+                        "confidence": "LOW",
+                    }
                     await self.emit_event(
                         data,
                         "FINDING",

@@ -3,6 +3,7 @@ import ipaddress
 
 from bbot.core.helpers import validators
 from bbot.modules.internal.base import BaseInternalModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class speculate(BaseInternalModule):
@@ -25,32 +26,36 @@ class speculate(BaseInternalModule):
         "USERNAME",
     ]
     produced_events = ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS", "FINDING", "ORG_STUB"]
-    flags = ["passive"]
+    flags = ["safe", "passive"]
     meta = {
         "description": "Derive certain event types from others by common sense",
         "created_date": "2022-05-03",
         "author": "@liquidsec",
     }
 
-    options = {"max_hosts": 65536, "ports": "80,443", "essential_only": False}
-    options_desc = {
-        "max_hosts": "Max number of IP_RANGE hosts to convert into IP_ADDRESS events",
-        "ports": "The set of ports to speculate on",
-        "essential_only": "Only enable essential speculate features (no extra discovery)",
-    }
+    class Config(BaseModuleConfig):
+        ip_range_max_hosts: int = Field(
+            65536, description="Max number of hosts an IP_RANGE can contain to allow conversion into IP_ADDRESS events"
+        )
+        ports: str = Field("80,443", description="The set of ports to speculate on")
+        essential_only: bool = Field(
+            False, description="Only enable essential speculate features (no extra discovery)"
+        )
+
     scope_distance_modifier = 1
     _priority = 4
 
-    default_discovery_context = "speculated {event.type}: {event.data}"
+    default_discovery_context = "speculated {event.type}: {event.pretty_string}"
 
     async def setup(self):
         scan_modules = [m for m in self.scan.modules.values() if m._type == "scan"]
         self.open_port_consumers = any("OPEN_TCP_PORT" in m.watched_events for m in scan_modules)
         # only consider active portscanners (still speculate if only passive ones are enabled)
-        self.portscanner_enabled = any(
-            "portscan" in m.flags and "active" in m.flags for m in self.scan.modules.values()
+        self.portscanner = next(
+            (m for m in self.scan.modules.values() if "portscan" in m.flags and "active" in m.flags),
+            None,
         )
-        self.emit_open_ports = self.open_port_consumers and not self.portscanner_enabled
+        self._always_emit_open_ports = self.open_port_consumers and self.portscanner is None
         self.range_to_ip = True
         self.dns_disable = self.scan.config.get("dns", {}).get("disable", False)
         self.essential_only = self.config.get("essential_only", False)
@@ -62,19 +67,17 @@ class speculate(BaseInternalModule):
         except ValueError as e:
             return False, f"Error parsing ports: {e}"
 
-        if not self.portscanner_enabled:
+        if self.portscanner is None:
             self.info(f"No portscanner enabled. Assuming open ports: {', '.join(str(x) for x in self.ports)}")
-
-        target_len = len(self.scan.target.seeds)
-        if target_len > self.config.get("max_hosts", 65536):
-            if not self.portscanner_enabled:
-                self.hugewarning(
-                    f"Selected target ({target_len:,} hosts) is too large, skipping IP_RANGE --> IP_ADDRESS speculation"
-                )
-                self.hugewarning('Enabling the "portscan" module is highly recommended')
-            self.range_to_ip = False
-
         return True
+
+    def _should_emit_open_ports(self, event):
+        if not self.open_port_consumers:
+            return False
+        if self._always_emit_open_ports:
+            return True
+        # fill the gap when an active portscanner is enabled but won't scan this event
+        return self.portscanner is not None and self.portscanner.would_skip(event)
 
     async def handle_event(self, event):
         ### BEGIN ESSENTIAL SPECULATION ###
@@ -83,11 +86,21 @@ class speculate(BaseInternalModule):
 
         # we speculate on distance-1 stuff too, because distance-1 open ports are needed by certain modules like sslcert
         event_in_scope_distance = event.scope_distance <= (self.scan.scope_search_distance + 1)
-        speculate_open_ports = self.emit_open_ports and event_in_scope_distance
+        speculate_open_ports = self._should_emit_open_ports(event) and event_in_scope_distance
 
-        # generate individual IP addresses from IP range
-        if event.type == "IP_RANGE" and self.range_to_ip:
+        # generate individual IP addresses from IP range (only within search distance;
+        # children land at distance+1, so out-of-range CIDRs produce unreachable churn)
+        if event.type == "IP_RANGE" and event.scope_distance <= self.scan.scope_search_distance:
             net = ipaddress.ip_network(event.data)
+            num_ips = net.num_addresses
+            ip_range_max_hosts = self.config.get("ip_range_max_hosts", 65536)
+
+            if num_ips > ip_range_max_hosts:
+                self.warning(
+                    f"IP range {event.pretty_string} contains {num_ips:,} addresses, which exceeds ip_range_max_hosts limit of {ip_range_max_hosts:,}. Skipping IP_ADDRESS speculation."
+                )
+                return
+
             ips = list(net)
             random.shuffle(ips)
             for ip in ips:
@@ -114,7 +127,7 @@ class speculate(BaseInternalModule):
                         "OPEN_TCP_PORT",
                         parent=event,
                         internal=True,
-                        context="speculated {event.type}: {event.data}",
+                        context="speculated {event.type}: {event.pretty_string}",
                     )
 
         ### END ESSENTIAL SPECULATION ###
@@ -126,7 +139,7 @@ class speculate(BaseInternalModule):
             parent = self.helpers.parent_domain(event.host_original)
             if parent != event.data:
                 await self.emit_event(
-                    parent, "DNS_NAME", parent=event, context="speculated parent {event.type}: {event.data}"
+                    parent, "DNS_NAME", parent=event, context="speculated parent {event.type}: {event.pretty_string}"
                 )
 
         # URL --> OPEN_TCP_PORT
@@ -139,37 +152,36 @@ class speculate(BaseInternalModule):
                     "OPEN_TCP_PORT",
                     parent=event,
                     internal=not event_is_url,  # if the URL is verified, the port is definitely open
-                    context=f"speculated {{event.type}} from {event.type}: {{event.data}}",
+                    context=f"speculated {{event.type}} from {event.type}: {{event.pretty_string}}",
                 )
 
         # speculate sub-directory URLS from URLS
         if event.type == "URL":
-            url_parents = self.helpers.url_parents(event.data)
+            url_parents = self.helpers.url_parents(event.url)
             for up in url_parents:
                 url_event = self.make_event(f"{up}/", "URL_UNVERIFIED", parent=event)
                 if url_event is not None:
                     # inherit web spider distance from parent (don't increment)
                     parent_web_spider_distance = getattr(event, "web_spider_distance", 0)
                     url_event.web_spider_distance = parent_web_spider_distance
-                    await self.emit_event(url_event, context="speculated web sub-directory {event.type}: {event.data}")
+                    await self.emit_event(
+                        url_event, context="speculated web sub-directory {event.type}: {event.pretty_string}"
+                    )
 
         # speculate URL_UNVERIFIED from URL or any event with "url" attribute
         event_is_url = event.type == "URL"
-        event_has_url = isinstance(event.data, dict) and "url" in event.data
-        event_tags = ["httpx-safe"] if event.type in ("CODE_REPOSITORY", "SOCIAL") else []
+        event_has_url = not event.type.startswith("URL") and isinstance(event.data, dict) and "url" in event.data
+        event_tags = ["blasthttp-safe"] if event.type in ("CODE_REPOSITORY", "SOCIAL") else []
         if event_is_url or event_has_url:
-            if event_is_url:
-                url = event.data
-            else:
-                url = event.data["url"]
+            url = event.url
             # only emit the url if it's not already in the event's history
-            if not any(e.type == "URL_UNVERIFIED" and e.data == url for e in event.get_parents()):
+            if not any(e.type == "URL_UNVERIFIED" and e.url == url for e in event.get_parents()):
                 await self.emit_event(
                     url,
                     "URL_UNVERIFIED",
                     tags=event_tags,
                     parent=event,
-                    context="speculated {event.type}: {event.data}",
+                    context="speculated {event.type}: {event.pretty_string}",
                 )
 
         # ORG_STUB from TLD, SOCIAL, AZURE_TENANT
@@ -196,7 +208,7 @@ class speculate(BaseInternalModule):
                 self.org_stubs_seen.add(stub_hash)
                 stub_event = self.make_event(stub, "ORG_STUB", parent=event)
                 if stub_event:
-                    await self.emit_event(stub_event, context="speculated {event.type}: {event.data}")
+                    await self.emit_event(stub_event, context="speculated {event.type}: {event.pretty_string}")
 
         # USERNAME --> EMAIL
         if event.type == "USERNAME":
@@ -204,4 +216,4 @@ class speculate(BaseInternalModule):
             if validators.soft_validate(email, "email"):
                 email_event = self.make_event(email, "EMAIL_ADDRESS", parent=event, tags=["affiliate"])
                 if email_event:
-                    await self.emit_event(email_event, context="detected {event.type}: {event.data}")
+                    await self.emit_event(email_event, context="detected {event.type}: {event.pretty_string}")

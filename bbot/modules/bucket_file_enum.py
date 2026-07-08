@@ -1,5 +1,6 @@
 from bbot.modules.base import BaseModule
 import xml.etree.ElementTree as ET
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class bucket_file_enum(BaseModule):
@@ -16,11 +17,11 @@ class bucket_file_enum(BaseModule):
         "created_date": "2023-11-14",
         "author": "@TheTechromancer",
     }
-    flags = ["passive", "safe", "cloud-enum"]
-    options = {
-        "file_limit": 50,
-    }
-    options_desc = {"file_limit": "Limit the number of files downloaded per bucket"}
+    flags = ["safe", "passive", "cloud-enum"]
+
+    class Config(BaseModuleConfig):
+        file_limit: int = Field(50, description="Limit the number of files downloaded per bucket")
+
     scope_distance_modifier = 2
 
     async def setup(self):
@@ -28,12 +29,11 @@ class bucket_file_enum(BaseModule):
         return True
 
     async def handle_event(self, event):
-        cloud_tags = (t for t in event.tags if t.startswith("cloud-"))
-        if any(t.endswith("-amazon") or t.endswith("-digitalocean") for t in cloud_tags):
+        if "amazon" in event.tags or "digitalocean" in event.tags:
             await self.handle_aws(event)
 
     async def handle_aws(self, event):
-        url = event.data["url"]
+        url = event.url
         urls_emitted = 0
         response = await self.helpers.request(url)
         status_code = getattr(response, "status_code", 0)
@@ -52,7 +52,7 @@ class bucket_file_enum(BaseModule):
                         "URL_UNVERIFIED",
                         parent=event,
                         tags="filedownload",
-                        context=f"{{module}} enumerate files in bucket and discovered {extension_upper} file at {{event.type}}: {{event.data}}",
+                        context=f"{{module}} enumerate files in bucket and discovered {extension_upper} file at {{event.type}}: {{event.pretty_string}}",
                     )
                     urls_emitted += 1
                     if urls_emitted >= self.file_limit:

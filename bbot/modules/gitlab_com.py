@@ -1,4 +1,5 @@
 from bbot.modules.templates.gitlab import GitLabBaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class gitlab_com(GitLabBaseModule):
@@ -6,15 +7,17 @@ class gitlab_com(GitLabBaseModule):
     produced_events = [
         "CODE_REPOSITORY",
     ]
-    flags = ["active", "safe", "code-enum"]
+    flags = ["safe", "active", "code-enum"]
     meta = {
         "description": "Enumerate GitLab SaaS (gitlab.com/org) for projects and groups",
         "created_date": "2024-03-11",
         "author": "@TheTechromancer",
     }
 
-    options = {"api_key": ""}
-    options_desc = {"api_key": "GitLab access token (for gitlab.com/org only)"}
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field(
+            "", description="GitLab access token (for gitlab.com/org only)", sensitive=True
+        )
 
     # This is needed because we are consuming SOCIAL events, which aren't in scope
     scope_distance_modifier = 2

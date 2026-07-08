@@ -4,7 +4,7 @@ from bbot.test.bbot_fixtures import bbot_test_dir
 
 class TestBucket_File_Enum(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["bucket_file_enum", "filedownload", "httpx", "excavate", "cloudcheck"]
+    modules_overrides = ["bucket_file_enum", "filedownload", "http", "excavate", "cloudcheck"]
 
     download_dir = bbot_test_dir / "test_bucket_file_enum"
     config_overrides = {
@@ -23,23 +23,23 @@ trailer <</Root 1 0 R>>"""
 
     async def setup_before_prep(self, module_test):
         module_test.httpserver.expect_request("/").respond_with_data(f'<a href="{self.open_bucket_url}"/>')
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url=self.open_bucket_url,
             text=self.open_bucket_body,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url=f"{self.open_bucket_url}test.pdf",
             text=self.pdf_data,
             headers={"Content-Type": "application/pdf"},
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url=f"{self.open_bucket_url}test.css",
             text="",
         )
 
     def check(self, module_test, events):
         files = list((self.download_dir / "filedownload").glob("*.pdf"))
-        assert any(e.type == "URL_UNVERIFIED" and e.data.endswith("test.pdf") for e in events)
-        assert not any(e.type == "URL_UNVERIFIED" and e.data.endswith("test.css") for e in events)
+        assert any(e.type == "URL_UNVERIFIED" and e.url.endswith("test.pdf") for e in events)
+        assert not any(e.type == "URL_UNVERIFIED" and e.url.endswith("test.css") for e in events)
         assert any(f.name.endswith("test.pdf") for f in files), "Failed to download PDF file from open bucket"
         assert not any(f.name.endswith("test.css") for f in files), "Unwanted CSS file was downloaded"

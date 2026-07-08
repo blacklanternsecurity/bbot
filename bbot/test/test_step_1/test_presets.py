@@ -1,3 +1,6 @@
+import stat
+import tempfile
+
 from ..bbot_fixtures import *  # noqa F401
 
 from bbot.scanner import Scanner, Preset
@@ -25,31 +28,21 @@ def test_preset_descriptions():
 def test_core():
     from bbot.core import CORE
 
-    import omegaconf
-
     assert "testasdf" not in CORE.default_config
     assert "testasdf" not in CORE.custom_config
     assert "testasdf" not in CORE.config
 
     core_copy = CORE.copy()
-    # make sure our default config is read-only
-    with pytest.raises(omegaconf.errors.ReadonlyConfigError):
-        core_copy.default_config["testasdf"] = "test"
-    # same for merged config
-    with pytest.raises(omegaconf.errors.ReadonlyConfigError):
-        core_copy.config["testasdf"] = "test"
-
-    assert "testasdf" not in core_copy.default_config
-    assert "testasdf" not in core_copy.custom_config
-    assert "testasdf" not in core_copy.config
-
+    # custom_config is mutable per-instance; default/merged config should not leak back
     core_copy.custom_config["testasdf"] = "test"
-    assert "testasdf" not in core_copy.default_config
+    assert "testasdf" not in CORE.custom_config
+    assert "testasdf" not in CORE.config
     assert "testasdf" in core_copy.custom_config
+    # force a re-merge by reading .config
     assert "testasdf" in core_copy.config
 
     # test config merging
-    config_to_merge = omegaconf.OmegaConf.create({"test123": {"test321": [3, 2, 1], "test456": [4, 5, 6]}})
+    config_to_merge = {"test123": {"test321": [3, 2, 1], "test456": [4, 5, 6]}}
     core_copy.merge_custom(config_to_merge)
     assert "test123" not in core_copy.default_config
     assert "test123" in core_copy.custom_config
@@ -58,7 +51,9 @@ def test_core():
     assert "test321" in core_copy.config["test123"]
 
     # test deletion
-    del core_copy.custom_config.test123.test321
+    del core_copy.custom_config["test123"]["test321"]
+    # force re-merge
+    core_copy._config = None
     assert "test123" in core_copy.custom_config
     assert "test123" in core_copy.config
     assert "test321" not in core_copy.custom_config["test123"]
@@ -67,13 +62,12 @@ def test_core():
     assert "test456" in core_copy.config["test123"]
 
 
-def test_preset_yaml(clean_default_config):
+async def test_preset_yaml(clean_default_config):
     import yaml
 
     preset1 = Preset(
-        "evilcorp.com",
-        "www.evilcorp.ce",
-        whitelist=["evilcorp.ce"],
+        "evilcorp.ce",
+        seeds=["evilcorp.com", "www.evilcorp.ce"],
         blacklist=["test.www.evilcorp.ce"],
         modules=["sslcert"],
         output_modules=["json"],
@@ -84,20 +78,20 @@ def test_preset_yaml(clean_default_config):
         verbose=False,
         debug=False,
         silent=True,
-        config={"preset_test_asdf": 1},
+        config={"keep_scans": 42},
     )
-    preset1 = preset1.bake()
+    preset1 = preset1.validate().bake()
     assert "evilcorp.com" in preset1.target.seeds
     assert "evilcorp.ce" not in preset1.target.seeds
     assert "asdf.www.evilcorp.ce" in preset1.target.seeds
-    assert "evilcorp.ce" in preset1.whitelist
-    assert "asdf.evilcorp.ce" in preset1.whitelist
+    assert "evilcorp.ce" in preset1.target.target
+    assert "asdf.evilcorp.ce" in preset1.target.target
     assert "test.www.evilcorp.ce" in preset1.blacklist
     assert "asdf.test.www.evilcorp.ce" in preset1.blacklist
     assert "sslcert" in preset1.scan_modules
-    assert preset1.whitelisted("evilcorp.ce")
-    assert preset1.whitelisted("www.evilcorp.ce")
-    assert not preset1.whitelisted("evilcorp.com")
+    assert preset1.in_target("evilcorp.ce")
+    assert preset1.in_target("www.evilcorp.ce")
+    assert not preset1.in_target("evilcorp.com")
     assert preset1.blacklisted("test.www.evilcorp.ce")
     assert preset1.blacklisted("asdf.test.www.evilcorp.ce")
     assert not preset1.blacklisted("www.evilcorp.ce")
@@ -113,7 +107,7 @@ flags:
   - subdomain-enum
 
 exclude_flags:
-  - aggressive
+  - loud
   - slow
 
 require_flags:
@@ -152,7 +146,7 @@ flags:
   - subdomain-enum
 
 exclude_flags:
-  - aggressive
+  - loud
   - slow
 """
     with open(preset_file, "w") as f:
@@ -160,7 +154,7 @@ exclude_flags:
 
     preset = Preset.from_yaml_file(preset_file)
     assert "subdomain-enum" in preset.flags
-    assert "aggressive" in preset.exclude_flags
+    assert "loud" in preset.exclude_flags
     assert "slow" in preset.exclude_flags
     from bbot.scanner.preset.preset import _preset_cache
 
@@ -169,34 +163,36 @@ exclude_flags:
     preset_file.unlink()
 
 
-def test_preset_scope():
+@pytest.mark.asyncio
+async def test_preset_scope(clean_default_config):
     # test target merging
     scan = Scanner("1.2.3.4", preset=Preset.from_dict({"target": ["evilcorp.com"]}))
+    await scan._prep()
     assert {str(h) for h in scan.preset.target.seeds.hosts} == {"1.2.3.4/32", "evilcorp.com"}
     assert {e.data for e in scan.target.seeds} == {"1.2.3.4", "evilcorp.com"}
-    assert {e.data for e in scan.target.whitelist} == {"1.2.3.4/32", "evilcorp.com"}
+    assert {str(h) for h in scan.target.target.hosts} == {"1.2.3.4/32", "evilcorp.com"}
 
     blank_preset = Preset()
-    blank_preset = blank_preset.bake()
+    blank_preset = blank_preset.validate().bake()
     assert not blank_preset.target.seeds
-    assert not blank_preset.target.whitelist
+    assert not blank_preset.target.target
     assert blank_preset.strict_scope is False
 
+    # Positional args define target; seeds must be explicit
     preset1 = Preset(
-        "evilcorp.com",
-        "www.evilcorp.ce",
-        whitelist=["evilcorp.ce"],
+        "evilcorp.ce",
+        seeds=["evilcorp.com", "www.evilcorp.ce"],
         blacklist=["test.www.evilcorp.ce"],
     )
-    preset1_baked = preset1.bake()
+    preset1_baked = preset1.validate().bake()
 
     # make sure target logic works as expected
     assert "evilcorp.com" in preset1_baked.target.seeds
-    assert "evilcorp.com" not in preset1_baked.target.whitelist
+    assert "evilcorp.com" not in preset1_baked.target.target
     assert "asdf.evilcorp.com" in preset1_baked.target.seeds
-    assert "asdf.evilcorp.com" not in preset1_baked.target.whitelist
-    assert "asdf.evilcorp.ce" in preset1_baked.whitelist
-    assert "evilcorp.ce" in preset1_baked.whitelist
+    assert "asdf.evilcorp.com" not in preset1_baked.target.target
+    assert "asdf.evilcorp.ce" in preset1_baked.target.target
+    assert "evilcorp.ce" in preset1_baked.target.target
     assert "test.www.evilcorp.ce" in preset1_baked.blacklist
     assert "evilcorp.ce" not in preset1_baked.blacklist
     assert preset1_baked.in_scope("www.evilcorp.ce")
@@ -211,15 +207,15 @@ def test_preset_scope():
 
     # test preset merging
     preset3 = Preset(
-        "evilcorp.org",
-        whitelist=["evilcorp.de"],
+        "evilcorp.de",
+        seeds=["evilcorp.org"],
         blacklist=["test.www.evilcorp.de"],
         config={"scope": {"strict": True}},
     )
 
     preset1.merge(preset3)
 
-    preset1_baked = preset1.bake()
+    preset1_baked = preset1.validate().bake()
 
     # targets should be merged
     assert "evilcorp.com" in preset1_baked.target.seeds
@@ -230,10 +226,10 @@ def test_preset_scope():
     assert "asdf.evilcorp.org" not in preset1_baked.target.seeds
     assert "asdf.evilcorp.com" not in preset1_baked.target.seeds
     assert "asdf.www.evilcorp.ce" not in preset1_baked.target.seeds
-    assert "evilcorp.ce" in preset1_baked.whitelist
-    assert "evilcorp.de" in preset1_baked.whitelist
-    assert "asdf.evilcorp.de" not in preset1_baked.whitelist
-    assert "asdf.evilcorp.ce" not in preset1_baked.whitelist
+    assert "evilcorp.ce" in preset1_baked.target.target
+    assert "evilcorp.de" in preset1_baked.target.target
+    assert "asdf.evilcorp.de" not in preset1_baked.target.target
+    assert "asdf.evilcorp.ce" not in preset1_baked.target.target
     # blacklist should be merged, strict scope does not apply
     assert "test.www.evilcorp.ce" in preset1_baked.blacklist
     assert "test.www.evilcorp.de" in preset1_baked.blacklist
@@ -248,135 +244,163 @@ def test_preset_scope():
     assert not preset1_baked.in_scope("evilcorp.com")
     assert not preset1_baked.in_scope("asdf.test.www.evilcorp.ce")
 
-    preset4 = Preset(output_modules="neo4j")
-    set(preset1.output_modules) == {"python", "csv", "txt", "json", "stdout"}
+    preset4 = Preset(output_modules=["neo4j"])
     preset1.merge(preset4)
-    set(preset1.output_modules) == {"python", "csv", "txt", "json", "stdout", "neo4j"}
+    merged_baked = preset1.validate().bake()
+    assert "neo4j" in merged_baked.output_modules
+    for default in ("csv", "txt", "json"):
+        assert default in merged_baked.output_modules
 
-    # test preset merging + whitelist
+    # test preset merging + seeds/target interaction
 
-    preset_nowhitelist = Preset("evilcorp.com", name="nowhitelist")
-    preset_whitelist = Preset(
-        "evilcorp.org",
-        name="whitelist",
-        whitelist=["1.2.3.4/24", "http://evilcorp.net"],
+    # Domain present as both explicit seed and targets
+    preset_domain_with_seed = Preset("evilcorp.com", seeds=["evilcorp.com"], name="domain_with_seed")
+    preset_with_target_scope = Preset(
+        "1.2.3.4/24",
+        "http://evilcorp.net",
+        name="with_target_scope",
+        seeds=["evilcorp.org"],
         blacklist=["evilcorp.co.uk:443", "bob@evilcorp.co.uk"],
-        config={"modules": {"secretsdb": {"api_key": "deadbeef", "otherthing": "asdf"}}},
+        config={"modules": {"github_workflows": {"api_key": "deadbeef", "output_folder": "asdf"}}},
     )
 
-    preset_nowhitelist_baked = preset_nowhitelist.bake()
-    preset_whitelist_baked = preset_whitelist.bake()
+    preset_domain_with_seed_baked = preset_domain_with_seed.validate().bake()
+    preset_with_target_scope_baked = preset_with_target_scope.validate().bake()
 
-    assert preset_nowhitelist_baked.to_dict(include_target=True) == {
-        "target": ["evilcorp.com"],
+    # When seeds and targets are identical, only targets are serialized.
+    domain_with_seed_dict = preset_domain_with_seed_baked.to_dict(include_target=True)
+    assert domain_with_seed_dict.get("target") == ["evilcorp.com"]
+    assert "seeds" not in domain_with_seed_dict
+
+    # preset with explicit target scope
+    scope_dict = preset_with_target_scope_baked.to_dict(include_target=True)
+    assert set(scope_dict["target"]) == {"1.2.3.0/24", "http://evilcorp.net/"}
+    assert set(scope_dict["blacklist"]) == {"bob@evilcorp.co.uk", "evilcorp.co.uk:443"}
+    # github_workflows config should be preserved (other module config may also be present)
+    assert scope_dict["config"]["modules"]["github_workflows"] == {
+        "api_key": "deadbeef",
+        "output_folder": "asdf",
     }
-    assert preset_whitelist_baked.to_dict(include_target=True) == {
-        "target": ["evilcorp.org"],
-        "whitelist": ["1.2.3.0/24", "http://evilcorp.net/"],
-        "blacklist": ["bob@evilcorp.co.uk", "evilcorp.co.uk:443"],
-        "config": {"modules": {"secretsdb": {"api_key": "deadbeef", "otherthing": "asdf"}}},
+
+    redacted_dict = preset_with_target_scope_baked.to_dict(include_target=True, redact_secrets=True)
+    assert set(redacted_dict["target"]) == {"1.2.3.0/24", "http://evilcorp.net/"}
+    assert set(redacted_dict["blacklist"]) == {"bob@evilcorp.co.uk", "evilcorp.co.uk:443"}
+    assert redacted_dict["config"]["modules"]["github_workflows"] == {"output_folder": "asdf"}
+
+    assert preset_domain_with_seed_baked.in_scope("www.evilcorp.com")
+    assert not preset_domain_with_seed_baked.in_scope("www.evilcorp.de")
+    assert not preset_domain_with_seed_baked.in_scope("1.2.3.4/24")
+
+    assert "www.evilcorp.org" in preset_with_target_scope_baked.target.seeds
+    assert "www.evilcorp.org" not in preset_with_target_scope_baked.target.target
+    assert "1.2.3.4" in preset_with_target_scope_baked.target.target
+    assert not preset_with_target_scope_baked.in_scope("www.evilcorp.org")
+    assert not preset_with_target_scope_baked.in_scope("www.evilcorp.de")
+    assert not preset_with_target_scope_baked.in_target("www.evilcorp.org")
+    assert not preset_with_target_scope_baked.in_target("www.evilcorp.de")
+    assert preset_with_target_scope_baked.in_scope("1.2.3.4")
+    assert preset_with_target_scope_baked.in_scope("1.2.3.4/28")
+    assert preset_with_target_scope_baked.in_scope("1.2.3.4/24")
+    assert preset_with_target_scope_baked.in_target("1.2.3.4")
+    assert preset_with_target_scope_baked.in_target("1.2.3.4/28")
+    assert preset_with_target_scope_baked.in_target("1.2.3.4/24")
+
+    assert {e.data for e in preset_domain_with_seed_baked.seeds} == {"evilcorp.com"}
+    assert {e.data for e in preset_domain_with_seed_baked.target.target} == {"evilcorp.com"}
+    assert {e.data for e in preset_with_target_scope_baked.seeds} == {"evilcorp.org"}
+    assert {e.data for e in preset_with_target_scope_baked.target.target} == {"1.2.3.0/24", "http://evilcorp.net/"}
+
+    # When merging a preset that has both seeds and target with one that only has
+    # target (no explicit seeds), explicit seeds are unioned and targets are unioned.
+    preset_domain_with_seed.merge(preset_with_target_scope)
+    preset_domain_with_seed_baked = preset_domain_with_seed.validate().bake()
+    assert {e.data for e in preset_domain_with_seed_baked.seeds} == {"evilcorp.com", "evilcorp.org"}
+    # After merging, target scope should include both the original domain target and the scoped network/URL
+    assert {e.data for e in preset_domain_with_seed_baked.target.target} == {
+        "evilcorp.com",
+        "1.2.3.0/24",
+        "http://evilcorp.net/",
     }
-    assert preset_whitelist_baked.to_dict(include_target=True, redact_secrets=True) == {
-        "target": ["evilcorp.org"],
-        "whitelist": ["1.2.3.0/24", "http://evilcorp.net/"],
-        "blacklist": ["bob@evilcorp.co.uk", "evilcorp.co.uk:443"],
-        "config": {"modules": {"secretsdb": {"otherthing": "asdf"}}},
+    assert "www.evilcorp.org" in preset_domain_with_seed_baked.seeds
+    assert "www.evilcorp.com" in preset_domain_with_seed_baked.seeds
+    assert "1.2.3.4" in preset_domain_with_seed_baked.target.target
+    assert not preset_domain_with_seed_baked.in_scope("www.evilcorp.org")
+    # After merging, evilcorp.com remains in target, so its www subdomain is in-scope and in-target
+    assert preset_domain_with_seed_baked.in_scope("www.evilcorp.com")
+    assert not preset_domain_with_seed_baked.in_target("www.evilcorp.org")
+    assert preset_domain_with_seed_baked.in_target("www.evilcorp.com")
+    assert preset_domain_with_seed_baked.in_scope("1.2.3.4")
+
+    # When merging a preset that only defines targets (no explicit seeds),
+    # its targets are not promoted to seeds in the merged preset, but targets are unioned.
+    preset_targets_only = Preset("evilcorp.com")
+    preset_with_target_scope = Preset("1.2.3.4/24", seeds=["evilcorp.org"])
+    preset_with_target_scope.merge(preset_targets_only)
+    preset_with_target_scope_baked = preset_with_target_scope.validate().bake()
+    # Seeds stay as the explicit seeds from the base preset
+    assert {e.data for e in preset_with_target_scope_baked.seeds} == {"evilcorp.org"}
+    # Target scope is the union of both presets' targets.
+    assert {e.data for e in preset_with_target_scope_baked.target.target} == {
+        "evilcorp.com",
+        "1.2.3.0/24",
     }
+    # Seed expansion only applies to explicit seeds (evilcorp.org), not merged targets.
+    assert "www.evilcorp.org" in preset_with_target_scope_baked.seeds
+    assert "www.evilcorp.com" not in preset_with_target_scope_baked.seeds
+    # Target expansion only applies to targets (evilcorp.com), not seeds-only domains.
+    assert "www.evilcorp.org" not in preset_with_target_scope_baked.target.target
+    assert "www.evilcorp.com" in preset_with_target_scope_baked.target.target
+    # Scope/target checks reflect that only evilcorp.com is in the merged target.
+    assert not preset_with_target_scope_baked.in_scope("www.evilcorp.org")
+    assert preset_with_target_scope_baked.in_scope("www.evilcorp.com")
+    assert not preset_with_target_scope_baked.in_target("www.evilcorp.org")
+    assert preset_with_target_scope_baked.in_target("www.evilcorp.com")
+    assert preset_with_target_scope_baked.in_scope("1.2.3.4")
 
-    assert preset_nowhitelist_baked.in_scope("www.evilcorp.com")
-    assert not preset_nowhitelist_baked.in_scope("www.evilcorp.de")
-    assert not preset_nowhitelist_baked.in_scope("1.2.3.4/24")
+    # Merging two presets created only with positional targets:
+    # after bake, each has seeds backfilled from its own target, and merge unions both.
+    preset_targets_only1 = Preset("evilcorp.com")
+    preset_targets_only2 = Preset("evilcorp.de")
+    preset_targets_only1_baked = preset_targets_only1.validate().bake()
+    preset_targets_only2_baked = preset_targets_only2.validate().bake()
+    assert {e.data for e in preset_targets_only1_baked.seeds} == {"evilcorp.com"}
+    assert {e.data for e in preset_targets_only2_baked.seeds} == {"evilcorp.de"}
+    assert {e.data for e in preset_targets_only1_baked.target.target} == {"evilcorp.com"}
+    assert {e.data for e in preset_targets_only2_baked.target.target} == {"evilcorp.de"}
+    preset_targets_only1.merge(preset_targets_only2)
+    preset_targets_only1_baked = preset_targets_only1.validate().bake()
+    assert {e.data for e in preset_targets_only1_baked.seeds} == {"evilcorp.com", "evilcorp.de"}
+    assert {e.data for e in preset_targets_only2_baked.seeds} == {"evilcorp.de"}
+    assert {e.data for e in preset_targets_only1_baked.target.target} == {"evilcorp.com", "evilcorp.de"}
+    assert {e.data for e in preset_targets_only2_baked.target.target} == {"evilcorp.de"}
+    assert "www.evilcorp.com" in preset_targets_only1_baked.seeds
+    assert "www.evilcorp.de" in preset_targets_only1_baked.seeds
+    assert "www.evilcorp.com" in preset_targets_only1_baked.target.seeds
+    assert "www.evilcorp.de" in preset_targets_only1_baked.target.seeds
+    assert "www.evilcorp.com" in preset_targets_only1_baked.target.target
+    assert "www.evilcorp.de" in preset_targets_only1_baked.target.target
+    assert preset_targets_only1_baked.in_target("www.evilcorp.com")
+    assert preset_targets_only1_baked.in_target("www.evilcorp.de")
+    assert not preset_targets_only1_baked.in_target("1.2.3.4")
+    assert preset_targets_only1_baked.in_scope("www.evilcorp.com")
+    assert preset_targets_only1_baked.in_scope("www.evilcorp.de")
+    assert not preset_targets_only1_baked.in_scope("1.2.3.4")
 
-    assert "www.evilcorp.org" in preset_whitelist_baked.target.seeds
-    assert "www.evilcorp.org" not in preset_whitelist_baked.target.whitelist
-    assert "1.2.3.4" in preset_whitelist_baked.whitelist
-    assert not preset_whitelist_baked.in_scope("www.evilcorp.org")
-    assert not preset_whitelist_baked.in_scope("www.evilcorp.de")
-    assert not preset_whitelist_baked.whitelisted("www.evilcorp.org")
-    assert not preset_whitelist_baked.whitelisted("www.evilcorp.de")
-    assert preset_whitelist_baked.in_scope("1.2.3.4")
-    assert preset_whitelist_baked.in_scope("1.2.3.4/28")
-    assert preset_whitelist_baked.in_scope("1.2.3.4/24")
-    assert preset_whitelist_baked.whitelisted("1.2.3.4")
-    assert preset_whitelist_baked.whitelisted("1.2.3.4/28")
-    assert preset_whitelist_baked.whitelisted("1.2.3.4/24")
-
-    assert {e.data for e in preset_nowhitelist_baked.seeds} == {"evilcorp.com"}
-    assert {e.data for e in preset_nowhitelist_baked.whitelist} == {"evilcorp.com"}
-    assert {e.data for e in preset_whitelist_baked.seeds} == {"evilcorp.org"}
-    assert {e.data for e in preset_whitelist_baked.whitelist} == {"1.2.3.0/24", "http://evilcorp.net/"}
-
-    preset_nowhitelist.merge(preset_whitelist)
-    preset_nowhitelist_baked = preset_nowhitelist.bake()
-    assert {e.data for e in preset_nowhitelist_baked.seeds} == {"evilcorp.com", "evilcorp.org"}
-    assert {e.data for e in preset_nowhitelist_baked.whitelist} == {"1.2.3.0/24", "http://evilcorp.net/"}
-    assert "www.evilcorp.org" in preset_nowhitelist_baked.seeds
-    assert "www.evilcorp.com" in preset_nowhitelist_baked.seeds
-    assert "1.2.3.4" in preset_nowhitelist_baked.whitelist
-    assert not preset_nowhitelist_baked.in_scope("www.evilcorp.org")
-    assert not preset_nowhitelist_baked.in_scope("www.evilcorp.com")
-    assert not preset_nowhitelist_baked.whitelisted("www.evilcorp.org")
-    assert not preset_nowhitelist_baked.whitelisted("www.evilcorp.com")
-    assert preset_nowhitelist_baked.in_scope("1.2.3.4")
-
-    preset_nowhitelist = Preset("evilcorp.com")
-    preset_whitelist = Preset("evilcorp.org", whitelist=["1.2.3.4/24"])
-    preset_whitelist.merge(preset_nowhitelist)
-    preset_whitelist_baked = preset_whitelist.bake()
-    assert {e.data for e in preset_whitelist_baked.seeds} == {"evilcorp.com", "evilcorp.org"}
-    assert {e.data for e in preset_whitelist_baked.whitelist} == {"1.2.3.0/24"}
-    assert "www.evilcorp.org" in preset_whitelist_baked.seeds
-    assert "www.evilcorp.com" in preset_whitelist_baked.seeds
-    assert "www.evilcorp.org" not in preset_whitelist_baked.target.whitelist
-    assert "www.evilcorp.com" not in preset_whitelist_baked.target.whitelist
-    assert "1.2.3.4" in preset_whitelist_baked.whitelist
-    assert not preset_whitelist_baked.in_scope("www.evilcorp.org")
-    assert not preset_whitelist_baked.in_scope("www.evilcorp.com")
-    assert not preset_whitelist_baked.whitelisted("www.evilcorp.org")
-    assert not preset_whitelist_baked.whitelisted("www.evilcorp.com")
-    assert preset_whitelist_baked.in_scope("1.2.3.4")
-
-    preset_nowhitelist1 = Preset("evilcorp.com")
-    preset_nowhitelist2 = Preset("evilcorp.de")
-    preset_nowhitelist1_baked = preset_nowhitelist1.bake()
-    preset_nowhitelist2_baked = preset_nowhitelist2.bake()
-    assert {e.data for e in preset_nowhitelist1_baked.seeds} == {"evilcorp.com"}
-    assert {e.data for e in preset_nowhitelist2_baked.seeds} == {"evilcorp.de"}
-    assert {e.data for e in preset_nowhitelist1_baked.whitelist} == {"evilcorp.com"}
-    assert {e.data for e in preset_nowhitelist2_baked.whitelist} == {"evilcorp.de"}
-    preset_nowhitelist1.merge(preset_nowhitelist2)
-    preset_nowhitelist1_baked = preset_nowhitelist1.bake()
-    assert {e.data for e in preset_nowhitelist1_baked.seeds} == {"evilcorp.com", "evilcorp.de"}
-    assert {e.data for e in preset_nowhitelist2_baked.seeds} == {"evilcorp.de"}
-    assert {e.data for e in preset_nowhitelist1_baked.whitelist} == {"evilcorp.com", "evilcorp.de"}
-    assert {e.data for e in preset_nowhitelist2_baked.whitelist} == {"evilcorp.de"}
-    assert "www.evilcorp.com" in preset_nowhitelist1_baked.seeds
-    assert "www.evilcorp.de" in preset_nowhitelist1_baked.seeds
-    assert "www.evilcorp.com" in preset_nowhitelist1_baked.target.seeds
-    assert "www.evilcorp.de" in preset_nowhitelist1_baked.target.seeds
-    assert "www.evilcorp.com" in preset_nowhitelist1_baked.whitelist
-    assert "www.evilcorp.de" in preset_nowhitelist1_baked.whitelist
-    assert preset_nowhitelist1_baked.whitelisted("www.evilcorp.com")
-    assert preset_nowhitelist1_baked.whitelisted("www.evilcorp.de")
-    assert not preset_nowhitelist1_baked.whitelisted("1.2.3.4")
-    assert preset_nowhitelist1_baked.in_scope("www.evilcorp.com")
-    assert preset_nowhitelist1_baked.in_scope("www.evilcorp.de")
-    assert not preset_nowhitelist1_baked.in_scope("1.2.3.4")
-
-    preset_nowhitelist1 = Preset("evilcorp.com")
-    preset_nowhitelist2 = Preset("evilcorp.de")
-    preset_nowhitelist2.merge(preset_nowhitelist1)
-    preset_nowhitelist1_baked = preset_nowhitelist1.bake()
-    preset_nowhitelist2_baked = preset_nowhitelist2.bake()
-    assert {e.data for e in preset_nowhitelist1_baked.seeds} == {"evilcorp.com"}
-    assert {e.data for e in preset_nowhitelist2_baked.seeds} == {"evilcorp.com", "evilcorp.de"}
-    assert {e.data for e in preset_nowhitelist1_baked.whitelist} == {"evilcorp.com"}
-    assert {e.data for e in preset_nowhitelist2_baked.whitelist} == {"evilcorp.com", "evilcorp.de"}
+    preset_targets_only1 = Preset("evilcorp.com")
+    preset_targets_only2 = Preset("evilcorp.de")
+    preset_targets_only2.merge(preset_targets_only1)
+    preset_targets_only1_baked = preset_targets_only1.validate().bake()
+    preset_targets_only2_baked = preset_targets_only2.validate().bake()
+    assert {e.data for e in preset_targets_only1_baked.seeds} == {"evilcorp.com"}
+    assert {e.data for e in preset_targets_only2_baked.seeds} == {"evilcorp.com", "evilcorp.de"}
+    assert {e.data for e in preset_targets_only1_baked.target.target} == {"evilcorp.com"}
+    assert {e.data for e in preset_targets_only2_baked.target.target} == {"evilcorp.com", "evilcorp.de"}
 
 
 @pytest.mark.asyncio
 async def test_preset_logging():
     scan = Scanner()
+    await scan._prep()
 
     # test individual verbosity levels
     original_log_level = CORE.logger.log_level
@@ -404,12 +428,12 @@ async def test_preset_logging():
         assert silent_and_verbose.silent is True
         assert silent_and_verbose.debug is False
         assert silent_and_verbose.verbose is True
-        baked = silent_and_verbose.bake()
+        baked = silent_and_verbose.validate().bake()
         assert baked.silent is True
         assert baked.debug is False
         assert baked.verbose is False
         assert baked.core.logger.log_level == original_log_level
-        baked = silent_and_verbose.bake(scan=scan)
+        baked = silent_and_verbose.validate().bake(scan=scan)
         assert baked.core.logger.log_level == logging.CRITICAL
         assert CORE.logger.log_level == logging.CRITICAL
 
@@ -420,12 +444,12 @@ async def test_preset_logging():
         assert silent_and_debug.silent is True
         assert silent_and_debug.debug is True
         assert silent_and_debug.verbose is False
-        baked = silent_and_debug.bake()
+        baked = silent_and_debug.validate().bake()
         assert baked.silent is True
         assert baked.debug is False
         assert baked.verbose is False
         assert baked.core.logger.log_level == original_log_level
-        baked = silent_and_debug.bake(scan=scan)
+        baked = silent_and_debug.validate().bake(scan=scan)
         assert baked.core.logger.log_level == logging.CRITICAL
         assert CORE.logger.log_level == logging.CRITICAL
 
@@ -436,12 +460,12 @@ async def test_preset_logging():
         assert debug_and_verbose.silent is False
         assert debug_and_verbose.debug is True
         assert debug_and_verbose.verbose is True
-        baked = debug_and_verbose.bake()
+        baked = debug_and_verbose.validate().bake()
         assert baked.silent is False
         assert baked.debug is True
         assert baked.verbose is False
         assert baked.core.logger.log_level == original_log_level
-        baked = debug_and_verbose.bake(scan=scan)
+        baked = debug_and_verbose.validate().bake(scan=scan)
         assert baked.core.logger.log_level == logging.DEBUG
         assert CORE.logger.log_level == logging.DEBUG
 
@@ -452,12 +476,12 @@ async def test_preset_logging():
         assert all_preset.silent is True
         assert all_preset.debug is True
         assert all_preset.verbose is True
-        baked = all_preset.bake()
+        baked = all_preset.validate().bake()
         assert baked.silent is True
         assert baked.debug is False
         assert baked.verbose is False
         assert baked.core.logger.log_level == original_log_level
-        baked = all_preset.bake(scan=scan)
+        baked = all_preset.validate().bake(scan=scan)
         assert baked.core.logger.log_level == logging.CRITICAL
         assert CORE.logger.log_level == logging.CRITICAL
 
@@ -465,7 +489,7 @@ async def test_preset_logging():
         assert CORE.logger.log_level == original_log_level
 
         # defaults
-        preset = Preset().bake()
+        preset = Preset().validate().bake()
         assert preset.core.logger.log_level == original_log_level
         assert CORE.logger.log_level == original_log_level
 
@@ -475,8 +499,8 @@ async def test_preset_logging():
         await scan._cleanup()
 
 
-def test_preset_module_resolution(clean_default_config):
-    preset = Preset().bake()
+async def test_preset_module_resolution(clean_default_config):
+    preset = Preset().validate().bake()
     sslcert_preloaded = preset.preloaded_module("sslcert")
     wayback_preloaded = preset.preloaded_module("wayback")
     dotnetnuke_preloaded = preset.preloaded_module("dotnetnuke")
@@ -488,14 +512,15 @@ def test_preset_module_resolution(clean_default_config):
     assert "active" in dotnetnuke_flags
     assert "subdomain-enum" in sslcert_flags
     assert "subdomain-enum" in wayback_flags
-    assert "httpx" in dotnetnuke_preloaded["deps"]["modules"]
+    assert "http" in dotnetnuke_preloaded["deps"]["modules"]
 
     # make sure we have the expected defaults
     assert not preset.scan_modules
-    assert set(preset.output_modules) == {"python", "csv", "txt", "json"}
+    assert set(preset.output_modules) == {"csv", "txt", "json"}
     assert set(preset.internal_modules) == {
         "aggregate",
         "excavate",
+        "python",
         "unarchive",
         "speculate",
         "cloudcheck",
@@ -504,11 +529,11 @@ def test_preset_module_resolution(clean_default_config):
     assert preset.modules == set(preset.output_modules).union(set(preset.internal_modules))
 
     # make sure dependency resolution works as expected
-    preset = Preset(modules=["dotnetnuke"]).bake()
-    assert set(preset.scan_modules) == {"dotnetnuke", "httpx"}
+    preset = Preset(modules=["dotnetnuke"]).validate().bake()
+    assert set(preset.scan_modules) == {"dotnetnuke", "http"}
 
     # make sure flags work as expected
-    preset = Preset(flags=["subdomain-enum"]).bake()
+    preset = Preset(flags=["subdomain-enum"]).validate().bake()
     assert preset.flags == {"subdomain-enum"}
     assert "sslcert" in preset.modules
     assert "wayback" in preset.modules
@@ -516,41 +541,40 @@ def test_preset_module_resolution(clean_default_config):
     assert "wayback" in preset.scan_modules
 
     # flag + module exclusions
-    preset = Preset(flags=["subdomain-enum"], exclude_modules=["sslcert"]).bake()
+    preset = Preset(flags=["subdomain-enum"], exclude_modules=["sslcert"]).validate().bake()
     assert "sslcert" not in preset.modules
     assert "wayback" in preset.modules
     assert "sslcert" not in preset.scan_modules
     assert "wayback" in preset.scan_modules
 
     # flag + flag exclusions
-    preset = Preset(flags=["subdomain-enum"], exclude_flags=["active"]).bake()
+    preset = Preset(flags=["subdomain-enum"], exclude_flags=["active"]).validate().bake()
     assert "sslcert" not in preset.modules
     assert "wayback" in preset.modules
     assert "sslcert" not in preset.scan_modules
     assert "wayback" in preset.scan_modules
 
     # flag + flag requirements
-    preset = Preset(flags=["subdomain-enum"], require_flags=["passive"]).bake()
+    preset = Preset(flags=["subdomain-enum"], require_flags=["passive"]).validate().bake()
     assert "sslcert" not in preset.modules
     assert "wayback" in preset.modules
     assert "sslcert" not in preset.scan_modules
     assert "wayback" in preset.scan_modules
 
     # normal module enableement
-    preset = Preset(modules=["sslcert", "dotnetnuke", "wayback"]).bake()
-    assert set(preset.scan_modules) == {"sslcert", "dotnetnuke", "wayback", "httpx"}
+    preset = Preset(modules=["sslcert", "dotnetnuke", "wayback"]).validate().bake()
+    assert set(preset.scan_modules) == {"sslcert", "dotnetnuke", "wayback", "http"}
 
     # modules + flag exclusions
-    preset = Preset(exclude_flags=["active"], modules=["sslcert", "dotnetnuke", "wayback"]).bake()
+    preset = Preset(exclude_flags=["active"], modules=["sslcert", "dotnetnuke", "wayback"]).validate().bake()
     assert set(preset.scan_modules) == {"wayback"}
 
     # modules + flag requirements
-    preset = Preset(require_flags=["passive"], modules=["sslcert", "dotnetnuke", "wayback"]).bake()
+    preset = Preset(require_flags=["passive"], modules=["sslcert", "dotnetnuke", "wayback"]).validate().bake()
     assert set(preset.scan_modules) == {"wayback"}
 
     # modules + module exclusions
-    preset = Preset(exclude_modules=["sslcert"], modules=["sslcert", "dotnetnuke", "wayback"]).bake()
-    baked_preset = preset.bake()
+    baked_preset = Preset(exclude_modules=["sslcert"], modules=["sslcert", "dotnetnuke", "wayback"]).validate().bake()
     assert baked_preset.modules == {
         "wayback",
         "cloudcheck",
@@ -562,10 +586,85 @@ def test_preset_module_resolution(clean_default_config):
         "excavate",
         "unarchive",
         "txt",
-        "httpx",
+        "http",
         "csv",
         "dotnetnuke",
     }
+
+
+@pytest.mark.asyncio
+async def test_custom_module_dir():
+    custom_module_dir = bbot_test_dir / "custom_modules"
+    custom_module_dir.mkdir(parents=True, exist_ok=True)
+
+    custom_module = custom_module_dir / "testmodule.py"
+    with open(custom_module, "w") as f:
+        f.write(
+            """
+from bbot.modules.base import BaseModule
+
+class TestModule(BaseModule):
+    watched_events = ["SCAN"]
+  
+    async def handle_event(self, event):
+        await self.emit_event("127.0.0.2", parent=event)
+"""
+        )
+
+    preset = {
+        "module_dirs": [str(custom_module_dir)],
+        "modules": ["testmodule"],
+    }
+    preset = Preset.from_dict(preset)
+
+    scan = Scanner("127.0.0.0/24", preset=preset)
+    events = [e async for e in scan.async_start()]
+    event_data = [(str(e.data), str(e.module)) for e in events]
+    assert ("127.0.0.2", "testmodule") in event_data
+
+    shutil.rmtree(custom_module_dir)
+
+
+def test_preset_scope_round_trip(clean_default_config):
+    preset_dict = {
+        # seeds: initial inputs that drive passive modules
+        "seeds": ["127.0.0.1"],
+        # target: what in_target() / in_scope() check
+        "target": ["127.0.0.2"],
+        "blacklist": ["127.0.0.3"],
+        "config": {"scope": {"strict": True}},
+    }
+    preset = Preset.from_dict(preset_dict)
+    baked = preset.validate().bake()
+    # Seeds should round-trip unchanged
+    assert list(baked.seeds) == ["127.0.0.1"]
+    # Target list should round-trip unchanged
+    assert list(baked.target.target.inputs) == ["127.0.0.2"]
+    # Blacklist should round-trip unchanged
+    assert list(baked.blacklist) == ["127.0.0.3"]
+    # Scope config should be preserved
+    result = baked.to_dict(include_target=True)
+    assert result["config"]["scope"] == preset_dict["config"]["scope"]
+
+
+def test_preset_target_tolerance():
+    # tolerate both "target" and "targets", since this is a common oopsie
+    preset_dict = {
+        "target": ["127.0.0.1"],
+        "targets": ["127.0.0.2"],
+    }
+    preset = Preset.from_dict(preset_dict)
+    baked = preset.validate().bake()
+    assert set(baked.seeds) == {"127.0.0.1", "127.0.0.2"}
+
+    preset = Preset.from_yaml_string("""
+target:
+  - 127.0.0.1
+targets:
+  - 127.0.0.2
+""")
+    baked = preset.validate().bake()
+    assert set(baked.seeds) == {"127.0.0.1", "127.0.0.2"}
 
 
 @pytest.mark.asyncio
@@ -585,7 +684,7 @@ from bbot.modules.base import BaseModule
 
 class TestModule1(BaseModule):
     watched_events = ["URL", "HTTP_RESPONSE"]
-    produced_events = ["VULNERABILITY"]
+    produced_events = ["FINDING"]
 """
         )
 
@@ -692,15 +791,14 @@ class TestModule5(BaseModule):
 """
         )
 
-    preset = Preset.from_yaml_string(
-        """
+    # unknown module name is caught at validate()
+    with pytest.raises(ValidationError):
+        Preset.from_yaml_string(
+            """
 modules:
   - testmodule5
 """
-    )
-    # should fail
-    with pytest.raises(ValidationError):
-        scan = Scanner(preset=preset)
+        ).validate()
 
     preset = Preset.from_yaml_string(
         f"""
@@ -729,6 +827,8 @@ def test_preset_include():
     mkdir(custom_preset_dir_4)
     mkdir(custom_preset_dir_5)
 
+    # Real modules so the (now-strict) validator accepts them. We use the
+    # universal `module_timeout` field as an opaque marker per preset.
     preset_file = custom_preset_dir_1 / "preset1.yml"
     with open(preset_file, "w") as f:
         f.write(
@@ -738,8 +838,8 @@ include:
 
 config:
   modules:
-    testpreset1:
-      test: asdf
+    nuclei:
+      module_timeout: 1
 """
         )
 
@@ -752,8 +852,8 @@ include:
 
 config:
   modules:
-    testpreset2:
-      test: fdsa
+    sslcert:
+      module_timeout: 2
 """
         )
 
@@ -768,8 +868,8 @@ include:
 
 config:
   modules:
-    testpreset3:
-      test: qwerty
+    gowitness:
+      module_timeout: 3
 """
         )
 
@@ -782,8 +882,8 @@ include:
 
 config:
   modules:
-    testpreset4:
-      test: zxcv
+    robots:
+      module_timeout: 4
 """
         )
 
@@ -793,30 +893,30 @@ config:
             """
 config:
   modules:
-    testpreset5:
-      test: hjkl
+    wayback:
+      module_timeout: 5
 """
         )
 
     # with include=
     preset = Preset(include=[str(custom_preset_dir_1 / "preset1")])
-    assert preset.config.modules.testpreset1.test == "asdf"
-    assert preset.config.modules.testpreset2.test == "fdsa"
-    assert preset.config.modules.testpreset3.test == "qwerty"
-    assert preset.config.modules.testpreset4.test == "zxcv"
-    assert preset.config.modules.testpreset5.test == "hjkl"
+    assert preset.config["modules"]["nuclei"]["module_timeout"] == 1
+    assert preset.config["modules"]["sslcert"]["module_timeout"] == 2
+    assert preset.config["modules"]["gowitness"]["module_timeout"] == 3
+    assert preset.config["modules"]["robots"]["module_timeout"] == 4
+    assert preset.config["modules"]["wayback"]["module_timeout"] == 5
 
     # same thing but with presets= (an alias to include)
     preset = Preset(presets=[str(custom_preset_dir_1 / "preset1")])
-    assert preset.config.modules.testpreset1.test == "asdf"
-    assert preset.config.modules.testpreset2.test == "fdsa"
-    assert preset.config.modules.testpreset3.test == "qwerty"
-    assert preset.config.modules.testpreset4.test == "zxcv"
-    assert preset.config.modules.testpreset5.test == "hjkl"
+    assert preset.config["modules"]["nuclei"]["module_timeout"] == 1
+    assert preset.config["modules"]["sslcert"]["module_timeout"] == 2
+    assert preset.config["modules"]["gowitness"]["module_timeout"] == 3
+    assert preset.config["modules"]["robots"]["module_timeout"] == 4
+    assert preset.config["modules"]["wayback"]["module_timeout"] == 5
 
     # can't use both include= and presets= at the same time
     with pytest.raises(ValueError):
-        preset = Preset(presets=["subdomain-enum"], include=["dirbust-light"])
+        preset = Preset(presets=["subdomain-enum"], include=["webbrute"])
 
 
 @pytest.mark.asyncio
@@ -851,6 +951,7 @@ conditions:
     assert preset.conditions
 
     scan = Scanner(preset=preset)
+    await scan._prep()
     assert scan.preset.conditions
 
     await scan._cleanup()
@@ -859,34 +960,36 @@ conditions:
     preset.merge(preset2)
 
     with pytest.raises(PresetAbortError):
-        Scanner(preset=preset)
+        scan = Scanner(preset=preset)
+        await scan._prep()
 
 
-def test_preset_module_disablement(clean_default_config):
+async def test_preset_module_disablement(clean_default_config):
     # internal module disablement
-    preset = Preset().bake()
+    preset = Preset().validate().bake()
     assert "speculate" in preset.internal_modules
     assert "excavate" in preset.internal_modules
     assert "aggregate" in preset.internal_modules
-    preset = Preset(config={"speculate": False}).bake()
+    preset = Preset(config={"speculate": False}).validate().bake()
     assert "speculate" not in preset.internal_modules
     assert "excavate" in preset.internal_modules
     assert "aggregate" in preset.internal_modules
-    preset = Preset(exclude_modules=["speculate", "excavate"]).bake()
+    preset = Preset(exclude_modules=["speculate", "excavate"]).validate().bake()
     assert "speculate" not in preset.internal_modules
     assert "excavate" not in preset.internal_modules
     assert "aggregate" in preset.internal_modules
 
-    # internal module disablement
-    preset = Preset().bake()
-    assert set(preset.output_modules) == {"python", "txt", "csv", "json"}
-    preset = Preset(exclude_modules=["txt", "csv"]).bake()
-    assert set(preset.output_modules) == {"python", "json"}
-    preset = Preset(output_modules=["json"]).bake()
+    # output module disablement
+    preset = Preset().validate().bake()
+    assert set(preset.output_modules) == {"txt", "csv", "json"}
+    preset = Preset(exclude_modules=["txt", "csv"]).validate().bake()
     assert set(preset.output_modules) == {"json"}
+    # output_modules is additive, so specifying json still includes defaults
+    preset = Preset(output_modules=["subdomains"]).validate().bake()
+    assert set(preset.output_modules) == {"csv", "txt", "json", "subdomains"}
 
 
-def test_preset_override():
+async def test_preset_override(clean_default_config):
     # tests to make sure a preset's config settings override others it includes
     preset_1_yaml = """
 name: override1
@@ -897,8 +1000,8 @@ modules:
   - robots
 config:
   modules:
-    asdf:
-      option1: asdf
+    robots:
+      module_timeout: 10
 """
     preset_2_yaml = """
 name: override2
@@ -909,8 +1012,8 @@ modules:
   - c99
 config:
   modules:
-    asdf:
-      option1: fdsa
+    robots:
+      module_timeout: 20
 """
     preset_3_yaml = """
 name: override3
@@ -955,7 +1058,7 @@ config:
     assert preset.debug is True
     assert preset.silent is True
     assert preset.name == "override4"
-    preset = preset.bake()
+    preset = preset.validate().bake()
     assert preset.debug is False
     assert preset.silent is True
     assert preset.name == "override4"
@@ -964,25 +1067,25 @@ config:
     assert targets == {"evilcorp1.com", "evilcorp2.com", "evilcorp3.com", "evilcorp4.com"}
     assert preset.config["web"]["spider_distance"] == 1
     assert preset.config["web"]["spider_depth"] == 2
-    assert preset.config["modules"]["asdf"]["option1"] == "fdsa"
-    assert set(preset.scan_modules) == {"httpx", "c99", "robots", "virustotal", "securitytrails"}
+    assert preset.config["modules"]["robots"]["module_timeout"] == 20
+    assert set(preset.scan_modules) == {"http", "c99", "robots", "virustotal", "securitytrails"}
 
 
-def test_preset_require_exclude():
+async def test_preset_require_exclude(clean_default_config):
     def get_module_flags(p):
         for m in p.scan_modules:
             preloaded = p.preloaded_module(m)
             yield m, preloaded.get("flags", [])
 
     # enable by flag, no exclusions/requirements
-    preset = Preset(flags=["subdomain-enum"]).bake()
+    preset = Preset(flags=["subdomain-enum"]).validate().bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     dnsbrute_flags = preset.preloaded_module("dnsbrute").get("flags", [])
     assert "subdomain-enum" in dnsbrute_flags
     assert "active" in dnsbrute_flags
     assert "passive" not in dnsbrute_flags
-    assert "aggressive" in dnsbrute_flags
+    assert "loud" in dnsbrute_flags
     assert "safe" not in dnsbrute_flags
     assert "dnsbrute" in [x[0] for x in module_flags]
     assert "certspotter" in [x[0] for x in module_flags]
@@ -990,63 +1093,63 @@ def test_preset_require_exclude():
     assert any("passive" in flags for module, flags in module_flags)
     assert any("active" in flags for module, flags in module_flags)
     assert any("safe" in flags for module, flags in module_flags)
-    assert any("aggressive" in flags for module, flags in module_flags)
+    assert any("loud" in flags for module, flags in module_flags)
 
     # enable by flag, one required flag
-    preset = Preset(flags=["subdomain-enum"], require_flags=["passive"]).bake()
+    preset = Preset(flags=["subdomain-enum"], require_flags=["passive"]).validate().bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     assert "chaos" in [x[0] for x in module_flags]
-    assert "httpx" not in [x[0] for x in module_flags]
+    assert "http" not in [x[0] for x in module_flags]
     assert all("passive" in flags for module, flags in module_flags)
     assert not any("active" in flags for module, flags in module_flags)
     assert any("safe" in flags for module, flags in module_flags)
-    assert any("aggressive" in flags for module, flags in module_flags)
+    assert any("loud" in flags for module, flags in module_flags)
 
     # enable by flag, one excluded flag
-    preset = Preset(flags=["subdomain-enum"], exclude_flags=["active"]).bake()
+    preset = Preset(flags=["subdomain-enum"], exclude_flags=["active"]).validate().bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     assert "chaos" in [x[0] for x in module_flags]
-    assert "httpx" not in [x[0] for x in module_flags]
+    assert "http" not in [x[0] for x in module_flags]
     assert all("passive" in flags for module, flags in module_flags)
     assert not any("active" in flags for module, flags in module_flags)
     assert any("safe" in flags for module, flags in module_flags)
-    assert any("aggressive" in flags for module, flags in module_flags)
+    assert any("loud" in flags for module, flags in module_flags)
 
     # enable by flag, one excluded module
-    preset = Preset(flags=["subdomain-enum"], exclude_modules=["dnsbrute"]).bake()
+    preset = Preset(flags=["subdomain-enum"], exclude_modules=["dnsbrute"]).validate().bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     assert "dnsbrute" not in [x[0] for x in module_flags]
-    assert "httpx" in [x[0] for x in module_flags]
+    assert "http" in [x[0] for x in module_flags]
     assert any("passive" in flags for module, flags in module_flags)
     assert any("active" in flags for module, flags in module_flags)
     assert any("safe" in flags for module, flags in module_flags)
-    assert any("aggressive" in flags for module, flags in module_flags)
+    assert any("loud" in flags for module, flags in module_flags)
 
     # enable by flag, multiple required flags
-    preset = Preset(flags=["subdomain-enum"], require_flags=["safe", "passive"]).bake()
-    assert len(preset.modules) > 25
+    preset = Preset(flags=["subdomain-enum"], require_flags=["safe", "passive"]).validate().bake()
+    assert len(preset.modules) > 20
     module_flags = list(get_module_flags(preset))
     assert "dnsbrute" not in [x[0] for x in module_flags]
     assert all("passive" in flags and "safe" in flags for module, flags in module_flags)
-    assert all("active" not in flags and "aggressive" not in flags for module, flags in module_flags)
+    assert all("active" not in flags and "loud" not in flags for module, flags in module_flags)
     assert not any("active" in flags for module, flags in module_flags)
-    assert not any("aggressive" in flags for module, flags in module_flags)
+    assert not any("loud" in flags for module, flags in module_flags)
 
     # enable by flag, multiple excluded flags
-    preset = Preset(flags=["subdomain-enum"], exclude_flags=["aggressive", "active"]).bake()
-    assert len(preset.modules) > 25
+    preset = Preset(flags=["subdomain-enum"], exclude_flags=["loud", "active"]).validate().bake()
+    assert len(preset.modules) > 20
     module_flags = list(get_module_flags(preset))
     assert "dnsbrute" not in [x[0] for x in module_flags]
     assert all("passive" in flags and "safe" in flags for module, flags in module_flags)
-    assert all("active" not in flags and "aggressive" not in flags for module, flags in module_flags)
+    assert all("active" not in flags and "loud" not in flags for module, flags in module_flags)
     assert not any("active" in flags for module, flags in module_flags)
-    assert not any("aggressive" in flags for module, flags in module_flags)
+    assert not any("loud" in flags for module, flags in module_flags)
 
     # enable by flag, multiple excluded modules
-    preset = Preset(flags=["subdomain-enum"], exclude_modules=["dnsbrute", "c99"]).bake()
+    preset = Preset(flags=["subdomain-enum"], exclude_modules=["dnsbrute", "c99"]).validate().bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     assert "dnsbrute" not in [x[0] for x in module_flags]
@@ -1055,7 +1158,7 @@ def test_preset_require_exclude():
     assert any("passive" in flags for module, flags in module_flags)
     assert any("active" in flags for module, flags in module_flags)
     assert any("safe" in flags for module, flags in module_flags)
-    assert any("aggressive" in flags for module, flags in module_flags)
+    assert any("loud" in flags for module, flags in module_flags)
 
 
 @pytest.mark.asyncio
@@ -1078,14 +1181,385 @@ scan_name: bbot_test
 
 
 # regression test for https://github.com/blacklanternsecurity/bbot/issues/2337
-def test_preset_serialization():
+async def test_preset_serialization(clean_default_config):
     preset = Preset("192.168.1.1")
-    preset = preset.bake()
+    preset = preset.validate().bake()
 
     import orjson as json
 
     preset_dict = preset.to_dict(include_target=True)
     print(preset_dict)
     preset_str = json.dumps(preset_dict)
-    preset_dict = json.loads(preset_str)
-    assert preset_dict == {"target": ["192.168.1.1"], "whitelist": ["192.168.1.1/32"]}
+    preset_dict_round_tripped = json.loads(preset_str)
+    assert preset_dict_round_tripped == preset_dict
+    assert preset_dict["target"] == ["192.168.1.1"]
+    assert "seeds" not in preset_dict
+
+
+def test_preset_yaml_redacts_secrets():
+    preset = Preset(
+        "evilcorp.com",
+        config={"modules": {"github_org": {"api_key": "ghp_secrettoken123"}}},
+    )
+    preset.validate()
+    preset = preset.bake()
+
+    yaml_plain = preset.to_yaml()
+    assert "ghp_secrettoken123" in yaml_plain
+
+    yaml_redacted = preset.to_yaml(redact_secrets=True)
+    assert "ghp_secrettoken123" not in yaml_redacted
+    assert "api_key" not in yaml_redacted
+
+
+def test_preset_file_targets(tmp_path):
+    """Test that file paths in preset target/seeds/blacklist are resolved via PresetPath.
+
+    The preset and its target files live in tmp_path (NOT CWD), so relative paths
+    like "targets.txt" can only be found if PresetPath adds the preset's directory
+    to its search paths. This is the core behavior being tested.
+    """
+    import os
+
+    # sanity check: tmp_path is not CWD (otherwise relative resolution is ambiguous)
+    assert os.getcwd() != str(tmp_path)
+
+    # create target files next to where the preset will live
+    targets_file = tmp_path / "targets.txt"
+    targets_file.write_text("evilcorp.com\n1.2.3.4\n")
+    seeds_file = tmp_path / "seeds.txt"
+    seeds_file.write_text("seed1.evilcorp.com\nseed2.evilcorp.com\n")
+    blacklist_file = tmp_path / "blacklist.txt"
+    blacklist_file.write_text("internal.evilcorp.com\n10.0.0.0/8\n")
+
+    # relative paths: resolved from the preset's directory via PresetPath
+    preset_file = tmp_path / "my_preset.yml"
+    preset_file.write_text("target:\n  - targets.txt\nseeds:\n  - seeds.txt\nblacklist:\n  - blacklist.txt\n")
+    preset = Preset.from_yaml_file(str(preset_file))
+    target_inputs = set(preset._target_list)
+    assert "evilcorp.com" in target_inputs
+    assert "1.2.3.4" in target_inputs
+    assert "targets.txt" not in target_inputs
+    seed_inputs = set(preset._seeds)
+    assert "seed1.evilcorp.com" in seed_inputs
+    assert "seed2.evilcorp.com" in seed_inputs
+    blacklist_inputs = set(preset._blacklist)
+    assert "internal.evilcorp.com" in blacklist_inputs
+    assert "10.0.0.0/8" in blacklist_inputs
+
+    # absolute paths for targets, seeds, and blacklist
+    preset_file2 = tmp_path / "my_preset2.yml"
+    preset_file2.write_text(
+        f"target:\n  - {targets_file}\nseeds:\n  - {seeds_file}\nblacklist:\n  - {blacklist_file}\n"
+    )
+    preset2 = Preset.from_yaml_file(str(preset_file2))
+    target_inputs2 = set(preset2._target_list)
+    assert "evilcorp.com" in target_inputs2
+    assert "1.2.3.4" in target_inputs2
+    seed_inputs2 = set(preset2._seeds)
+    assert "seed1.evilcorp.com" in seed_inputs2
+    assert "seed2.evilcorp.com" in seed_inputs2
+    blacklist_inputs2 = set(preset2._blacklist)
+    assert "internal.evilcorp.com" in blacklist_inputs2
+    assert "10.0.0.0/8" in blacklist_inputs2
+
+    # mixed: file paths + literal targets
+    preset_file3 = tmp_path / "my_preset3.yml"
+    preset_file3.write_text("target:\n  - targets.txt\n  - extra.evilcorp.com\n")
+    preset3 = Preset.from_yaml_file(str(preset_file3))
+    target_inputs3 = set(preset3._target_list)
+    assert "evilcorp.com" in target_inputs3
+    assert "1.2.3.4" in target_inputs3
+    assert "extra.evilcorp.com" in target_inputs3
+
+    # non-existent file strings are kept as literal targets
+    preset4 = Preset.from_dict({"target": ["not_a_file.txt", "192.168.1.1"]})
+    target_inputs4 = set(preset4._target_list)
+    assert "not_a_file.txt" in target_inputs4
+    assert "192.168.1.1" in target_inputs4
+
+    # subdirectory: preset in a nested dir references a file in the same nested dir
+    subdir = tmp_path / "nested" / "presets"
+    subdir.mkdir(parents=True)
+    nested_targets = subdir / "my_targets.txt"
+    nested_targets.write_text("nested.evilcorp.com\n")
+    nested_preset = subdir / "nested_preset.yml"
+    nested_preset.write_text("target:\n  - my_targets.txt\n")
+    preset5 = Preset.from_yaml_file(str(nested_preset))
+    target_inputs5 = set(preset5._target_list)
+    assert "nested.evilcorp.com" in target_inputs5
+    assert "my_targets.txt" not in target_inputs5
+
+
+def test_preset_dnsresolve_required_by_dns_name_consumers():
+    # gate must fire for all three opt-out paths when any DNS_NAME-watching module is enabled
+    for opt_out in (
+        {"exclude_modules": ["dnsresolve"], "flags": ["subdomain-enum"]},
+        {"config": {"dnsresolve": False}, "flags": ["subdomain-enum"]},
+        {"config": {"dns": {"disable": True}}, "flags": ["subdomain-enum"]},
+    ):
+        with pytest.raises(ValidationError, match="dnsresolve is required"):
+            Preset(**opt_out).validate().bake()
+
+    # dns.minimal keeps dnsresolve in the pipeline -- must NOT fire
+    Preset(flags=["subdomain-enum"], config={"dns": {"minimal": True}}).validate().bake()
+
+    # disabling dnsresolve with no DNS_NAME consumers enabled is allowed
+    Preset(exclude_modules=["dnsresolve"]).validate().bake()
+
+
+def test_preset_path_no_clobber_default(tmp_path):
+    """Regression: loading a preset via path (e.g. ./scan.yml) must not clobber
+    the default preset search path, even when the preset lives in a parent
+    directory of bbot/presets/. Previously, add_path() would remove
+    DEFAULT_PRESET_PATH from the search list, causing rglob to search the
+    entire tree and match non-YAML files (like .venv/bin/baddns).
+    """
+    from bbot.scanner.preset.path import PresetPath, DEFAULT_PRESET_PATH
+
+    # preset that includes a built-in preset by name (no extension, no path)
+    preset_file = tmp_path / "scan.yml"
+    preset_file.write_text("description: regression test\ninclude:\n  - baddns\n")
+
+    # non-YAML decoy that would match an extensionless rglob for "baddns"
+    decoy_dir = tmp_path / "fake_venv" / "bin"
+    decoy_dir.mkdir(parents=True)
+    decoy = decoy_dir / "baddns"
+    decoy.write_text("#!/usr/bin/env python\nif __name__ == '__main__':\n    pass\n")
+
+    pp = PresetPath()
+    # resolve the top-level file
+    found = pp.find(str(preset_file))
+    assert found == preset_file.resolve()
+    # DEFAULT_PRESET_PATH must survive
+    assert DEFAULT_PRESET_PATH in pp.paths
+
+    # the built-in include must resolve to the real preset, not the decoy
+    found_include = pp.find("baddns")
+    assert found_include.suffix in (".yml", ".yaml")
+    assert "fake_venv" not in str(found_include)
+
+    # full round-trip through Preset
+    preset = Preset.from_yaml_file(str(preset_file))
+    assert "baddns" in preset.explicit_scan_modules
+
+
+def test_malformed_yaml_preset_file(tmp_path):
+    """Regression test for https://github.com/blacklanternsecurity/bbot/issues/3158
+
+    Malformed YAML (e.g. bad indentation) must raise a clear ValidationError,
+    not an unhandled exception with a raw traceback.
+    """
+    malformed = tmp_path / "bad_preset.yml"
+    malformed.write_text(
+        "target:\n  - evilcorp.com\nmodules:\n  sslcert:\n    option: value\n   robots:\n    option: value\n"
+    )
+    with pytest.raises(ValidationError, match="YAML syntax error"):
+        Preset.from_yaml_file(str(malformed))
+
+
+def test_malformed_yaml_preset_string():
+    """Regression test for https://github.com/blacklanternsecurity/bbot/issues/3158
+
+    Malformed YAML string must raise ValidationError, not an unhandled yaml.YAMLError.
+    """
+    malformed_yaml = "target:\n  - evilcorp.com\nconfig:\n  key: value\n   bad_indent: oops\n"
+    with pytest.raises(ValidationError, match="YAML syntax error"):
+        Preset.from_yaml_string(malformed_yaml)
+
+
+def test_malformed_yaml_config_file(tmp_path):
+    """Regression test for https://github.com/blacklanternsecurity/bbot/issues/3158
+
+    Malformed YAML in a config file (bbot.yml / secrets.yml) must raise
+    ConfigLoadError with a helpful message, not crash with a raw traceback.
+    """
+    from bbot.core.config.files import BBOTConfigFiles
+    from bbot.errors import ConfigLoadError
+
+    malformed = tmp_path / "bad_config.yml"
+    malformed.write_text("web:\n  http_rate_limit: 100\n   bad_key: value\n")
+    with pytest.raises(ConfigLoadError, match="YAML syntax error"):
+        BBOTConfigFiles._get_config(None, str(malformed))
+
+
+def test_all_presets_ignores_non_preset_yaml(tmp_path):
+    """Regression test for https://github.com/blacklanternsecurity/bbot/issues/3189
+
+    When -p loads a preset from an arbitrary directory (e.g. $HOME), that
+    directory must NOT be searched by all_presets / -lp. Otherwise every
+    .yml file under it (Ansible collections, CI configs, etc.) is parsed
+    and produces warning spam.
+    """
+    import bbot.scanner.preset.preset as preset_mod
+    from bbot.scanner.preset.path import PresetPath
+
+    # create a valid preset in tmp_path (simulates ~/my_preset.yml)
+    preset_file = tmp_path / "my_preset.yml"
+    preset_file.write_text("description: test preset\nmodules:\n  - sslcert\n")
+
+    # create non-preset yaml files nearby (simulates Ansible, CI, etc.)
+    junk_dir = tmp_path / "ansible"
+    junk_dir.mkdir()
+    (junk_dir / "playbook.yml").write_text("hosts: all\ntasks: []\n")
+    (tmp_path / "ci.yml").write_text("on: push\njobs: {}\n")
+
+    # save and replace global state so we get a clean PRESET_PATH
+    orig_preset_path = preset_mod.PRESET_PATH
+    orig_default_presets = preset_mod.DEFAULT_PRESETS
+    try:
+        fresh_path = PresetPath()
+        preset_mod.PRESET_PATH = fresh_path
+        # also patch the path module's reference
+        import bbot.scanner.preset.path as path_mod
+
+        orig_path_singleton = path_mod.PRESET_PATH
+        path_mod.PRESET_PATH = fresh_path
+
+        # simulate -p /tmp/xxx/my_preset.yml: find() adds tmp_path to search paths
+        found = fresh_path.find(str(preset_file))
+        assert found == preset_file.resolve()
+        # tmp_path is now in search paths (needed for include resolution)
+        assert tmp_path.resolve() in fresh_path.paths
+
+        # reset the cached presets so all_presets re-enumerates
+        preset_mod.DEFAULT_PRESETS = None
+
+        preset = Preset()
+
+        # collect warnings emitted during all_presets enumeration
+        import logging
+
+        warnings = []
+        handler = logging.Handler()
+        handler.emit = lambda record: (
+            warnings.append(record.getMessage()) if record.levelno >= logging.WARNING else None
+        )
+        preset_logger = logging.getLogger("bbot.presets")
+        preset_logger.addHandler(handler)
+        try:
+            preset.all_presets
+        finally:
+            preset_logger.removeHandler(handler)
+
+        # no warnings should reference the junk files from tmp_path
+        junk_warnings = [w for w in warnings if "playbook.yml" in w or "ci.yml" in w]
+        assert not junk_warnings, f"all_presets tried to parse non-preset YAML files: {junk_warnings}"
+    finally:
+        preset_mod.DEFAULT_PRESETS = orig_default_presets
+        preset_mod.PRESET_PATH = orig_preset_path
+        path_mod.PRESET_PATH = orig_path_singleton
+
+
+def test_config_isolated_during_tests():
+    # the suite must never resolve to the user's real ~/.config/bbot
+    from bbot.core import CORE
+
+    config_dir = CORE.files_config.config_dir
+    real_config_dir = (Path.home() / ".config" / "bbot").resolve()
+    assert config_dir != real_config_dir
+    assert str(config_dir).startswith(str(Path(tempfile.gettempdir()).resolve()))
+
+
+def test_config_reset(tmp_path, monkeypatch):
+    from bbot.core import CORE
+    from bbot.core.modules import MODULE_LOADER
+
+    files = CORE.files_config
+    monkeypatch.setattr(files, "config_dir", tmp_path)
+    monkeypatch.setattr(files, "config_filename", tmp_path / "bbot.yml")
+    monkeypatch.setattr(files, "secrets_filename", tmp_path / "secrets.yml")
+    config_file = tmp_path / "bbot.yml"
+    secrets_file = tmp_path / "secrets.yml"
+
+    # first run: files don't exist -> generated as commented templates
+    MODULE_LOADER.ensure_config_files()
+    assert config_file.is_file() and secrets_file.is_file()
+    # secrets.yml is owner-only from the start
+    assert stat.S_IMODE(secrets_file.stat().st_mode) == 0o600
+
+    # resetting "config" backs up the existing file and must not touch
+    # secrets.yml (where API keys live)
+    config_file.write_text("scope:\n  strict: false\n")
+    secrets_before = secrets_file.read_text()
+    backups = MODULE_LOADER.reset_config_files(["config"])
+    assert set(backups) == {tmp_path / "bbot.yml.bak"}
+    assert (tmp_path / "bbot.yml.bak").read_text() == "scope:\n  strict: false\n"
+    assert secrets_file.read_text() == secrets_before
+    # the regenerated file is a fresh commented template
+    assert "# NOTICE" in config_file.read_text()
+
+    # a backup of a hardened secrets.yml keeps its tightened permissions
+    secrets_file.chmod(0o400)
+    backups = MODULE_LOADER.reset_config_files(["secrets"])
+    assert set(backups) == {tmp_path / "secrets.yml.bak"}
+    assert stat.S_IMODE((tmp_path / "secrets.yml.bak").stat().st_mode) == 0o400
+    # the regenerated secrets.yml is still owner-only
+    assert stat.S_IMODE(secrets_file.stat().st_mode) & 0o077 == 0
+
+    # a second reset must not clobber the first backup
+    backups2 = MODULE_LOADER.reset_config_files(["secrets"])
+    assert set(backups2) == {tmp_path / "secrets.yml.bak.1"}
+    assert (tmp_path / "secrets.yml.bak").is_file()
+
+
+def test_config_reset_both(tmp_path, monkeypatch):
+    from bbot.core import CORE
+    from bbot.core.modules import MODULE_LOADER
+
+    files = CORE.files_config
+    monkeypatch.setattr(files, "config_dir", tmp_path)
+    monkeypatch.setattr(files, "config_filename", tmp_path / "bbot.yml")
+    monkeypatch.setattr(files, "secrets_filename", tmp_path / "secrets.yml")
+    config_file = tmp_path / "bbot.yml"
+
+    MODULE_LOADER.ensure_config_files()
+
+    # reset both at once -> both backed up
+    backups = MODULE_LOADER.reset_config_files(["config", "secrets"])
+    assert {b.name for b in backups} == {"bbot.yml.bak", "secrets.yml.bak"}
+
+    # resetting only "secrets" leaves bbot.yml untouched
+    config_before = config_file.read_text()
+    backups = MODULE_LOADER.reset_config_files(["secrets"])
+    assert set(backups) == {tmp_path / "secrets.yml.bak.1"}
+    assert config_file.read_text() == config_before
+
+
+def test_config_secret_file_permissions(tmp_path):
+    from bbot.core.modules import MODULE_LOADER
+
+    target = tmp_path / "secrets.yml"
+
+    # a brand-new secret file is owner-only, never world/group readable
+    MODULE_LOADER._write_secret_text(target, "secret a")
+    assert stat.S_IMODE(target.stat().st_mode) == 0o600
+    assert target.read_text() == "secret a"
+
+    # the user hardened it further -> rewrite preserves the tighter perms
+    target.chmod(0o400)
+    MODULE_LOADER._write_secret_text(target, "secret b")
+    assert stat.S_IMODE(target.stat().st_mode) == 0o400
+    assert target.read_text() == "secret b"
+
+    # an existing file with loose perms -> tightened back to owner-only
+    target.chmod(0o644)
+    MODULE_LOADER._write_secret_text(target, "secret c")
+    assert stat.S_IMODE(target.stat().st_mode) == 0o600
+    assert target.read_text() == "secret c"
+
+
+def test_config_secret_file_refuses_insecure(tmp_path, monkeypatch):
+    from bbot.core.modules import MODULE_LOADER
+    from bbot.errors import BBOTError
+
+    target = tmp_path / "secrets.yml"
+
+    # simulate a filesystem where we can't restrict permissions: the secret is
+    # not written, and no temp file is left behind
+    real_fchmod = os.fchmod
+    monkeypatch.setattr(os, "fchmod", lambda fd, mode: real_fchmod(fd, 0o644))
+    with pytest.raises(BBOTError, match="could not restrict permissions"):
+        MODULE_LOADER._write_secret_text(target, "secret stuff")
+    assert not target.exists()
+    assert list(tmp_path.glob(".secrets.yml.*")) == []

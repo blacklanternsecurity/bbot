@@ -7,7 +7,7 @@ from contextlib import suppress
 from bbot.core.helpers import regexes
 from bbot.errors import ValidationError
 from bbot.core.helpers.url import parse_url, hash_url
-from bbot.core.helpers.misc import smart_encode_punycode, split_host_port, make_netloc, is_ip
+from bbot.core.helpers.misc import smart_encode_punycode, split_host_port, make_netloc, is_dns_name, is_ip
 
 log = logging.getLogger("bbot.core.helpers.validators")
 
@@ -129,12 +129,58 @@ def validate_host(host: Union[str, ipaddress.IPv4Address, ipaddress.IPv6Address]
     raise ValidationError(f'Invalid hostname: "{host}"')
 
 
+def validate_fqdn_or_ip(host):
+    """Strict FQDN-or-IP check. Accepts an IPv4/IPv6 address or a hostname
+    containing at least one dot. Rejects single-label values (e.g.
+    `localhost`, or a domain typed without its TLD), so domain-shaped
+    config fields fail at preset-load time instead of surfacing as runtime
+    errors deep in a scan.
+
+    `None` and the empty string pass through to support optional config
+    fields with `null` defaults.
+
+    Unlike `validate_host`, this function does not normalize the input
+    (no port-stripping, lowercasing, or punycode conversion); it returns
+    the value as supplied. Use it as a pydantic `field_validator` on
+    schema fields that must be an FQDN or IP and nothing else.
+
+    Examples:
+        >>> validate_fqdn_or_ip("example.com")
+        'example.com'
+        >>> validate_fqdn_or_ip("192.168.1.1")
+        '192.168.1.1'
+        >>> validate_fqdn_or_ip("localhost")
+        ValueError: not a valid FQDN or IP address: 'localhost'
+    """
+    if host is None or host == "":
+        return host
+    if is_ip(host):
+        return host
+    if isinstance(host, str) and "." in host and is_dns_name(host):
+        return host
+    raise ValueError(f"not a valid FQDN or IP address: {host!r}")
+
+
+FINDING_SEVERITY_LEVELS = ("INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL")
+
+
 @validator
 def validate_severity(severity: str):
     severity = str(severity).strip().upper()
-    if severity not in ("UNKNOWN", "INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"):
+    if severity not in FINDING_SEVERITY_LEVELS:
         raise ValueError(f"Invalid severity: {severity}")
     return severity
+
+
+FINDING_CONFIDENCE_LEVELS = ("UNKNOWN", "LOW", "MEDIUM", "HIGH", "CONFIRMED")
+
+
+@validator
+def validate_confidence(confidence: str):
+    confidence = str(confidence).strip().upper()
+    if confidence not in FINDING_CONFIDENCE_LEVELS:
+        raise ValueError(f"Invalid confidence: {confidence}")
+    return confidence
 
 
 @validator

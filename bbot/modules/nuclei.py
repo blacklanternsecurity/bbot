@@ -1,51 +1,50 @@
+import asyncio
 import json
+import os
+import shutil
 import yaml
+from typing import Literal
 from itertools import islice
+
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class nuclei(BaseModule):
     watched_events = ["URL"]
-    produced_events = ["FINDING", "VULNERABILITY", "TECHNOLOGY"]
-    flags = ["active", "aggressive", "deadly"]
+    produced_events = ["FINDING", "TECHNOLOGY"]
+    flags = ["active", "loud", "invasive"]
     meta = {
         "description": "Fast and customisable vulnerability scanner",
         "created_date": "2022-03-12",
         "author": "@TheTechromancer",
     }
 
-    options = {
-        "version": "3.7.1",
-        "tags": "",
-        "templates": "",
-        "severity": "",
-        "ratelimit": 150,
-        "concurrency": 25,
-        "mode": "manual",
-        "etags": "",
-        "budget": 1,
-        "silent": False,
-        "directory_only": True,
-        "retries": 0,
-        "batch_size": 200,
-        "module_timeout": 21600,  # 6 hours
-    }
-    options_desc = {
-        "version": "nuclei version",
-        "tags": "execute a subset of templates that contain the provided tags",
-        "templates": "template or template directory paths to include in the scan",
-        "severity": "Filter based on severity field available in the template.",
-        "ratelimit": "maximum number of requests to send per second (default 150)",
-        "concurrency": "maximum number of templates to be executed in parallel (default 25)",
-        "mode": "manual | technology | severe | budget. Technology: Only activate based on technology events that match nuclei tags (nuclei -as mode). Manual (DEFAULT): Fully manual settings. Severe: Only critical and high severity templates without intrusive. Budget: Limit Nuclei to a specified number of HTTP requests",
-        "etags": "tags to exclude from the scan",
-        "budget": "Used in budget mode to set the number of allowed requests per host",
-        "silent": "Don't display nuclei's banner or status messages",
-        "directory_only": "Filter out 'file' URL event (default True)",
-        "retries": "number of times to retry a failed request (default 0)",
-        "batch_size": "Number of targets to send to Nuclei per batch (default 200)",
-        "module_timeout": "Max time in seconds to spend handling each batch of events",
-    }
+    class Config(BaseModuleConfig):
+        version: str = Field("3.9.0", description="nuclei version")
+        tags: str = Field("", description="execute a subset of templates that contain the provided tags")
+        templates: str = Field("", description="template or template directory paths to include in the scan")
+        severity: str = Field("", description="Filter based on severity field available in the template.")
+        ratelimit: int = Field(150, description="maximum number of requests to send per second (default 150)")
+        concurrency: int = Field(25, description="maximum number of templates to be executed in parallel (default 25)")
+        mode: Literal["manual", "technology", "severe", "budget"] = Field(
+            "manual",
+            description=(
+                "manual | technology | severe | budget. "
+                "Technology: Only activate based on technology events that match nuclei tags (nuclei -as mode). "
+                "Manual (DEFAULT): Fully manual settings. "
+                "Severe: Only critical and high severity templates without intrusive. "
+                "Budget: Limit Nuclei to a specified number of HTTP requests"
+            ),
+        )
+        etags: str = Field("", description="tags to exclude from the scan")
+        budget: int = Field(1, description="Used in budget mode to set the number of allowed requests per host")
+        silent: bool = Field(False, description="Don't display nuclei's banner or status messages")
+        directory_only: bool = Field(True, description="Filter out 'file' URL event (default True)")
+        retries: int = Field(0, description="number of times to retry a failed request (default 0)")
+        batch_size: int = Field(200, description="Number of targets to send to Nuclei per batch (default 200)")
+        module_timeout: int = Field(21600, description="Max time in seconds to spend handling each batch of events")
+
     deps_ansible = [
         {
             "name": "Download nuclei",
@@ -62,27 +61,33 @@ class nuclei(BaseModule):
     _batch_size = 200
 
     async def setup(self):
-        # attempt to update nuclei templates
-        self.nuclei_templates_dir = self.helpers.tools_dir / "nuclei-templates"
-        self.info("Updating Nuclei templates")
-        update_results = await self.run_process(
-            ["nuclei", "-update-template-dir", self.nuclei_templates_dir, "-update-templates"]
-        )
-        if update_results.stderr:
-            if "Successfully downloaded nuclei-templates" in update_results.stderr:
-                self.success("Successfully updated nuclei templates")
-            elif "No new updates found for nuclei templates" in update_results.stderr:
-                self.info("Nuclei templates already up-to-date")
-            else:
-                self.warning(f"Failure while updating nuclei templates: {update_results.stderr}")
-        else:
-            self.warning("Error running nuclei template update command")
+        # All nuclei state lives under one bbot-owned dir so we can wipe it on
+        # corruption without touching the user's own ~/.config/nuclei. See
+        # _nuclei_env() for how the subprocess env pins config/cache here.
+        self.nuclei_state_dir = self.helpers.tools_dir / "nuclei-state"
+        self.nuclei_config_dir = self.nuclei_state_dir / "config"
+        self.nuclei_cache_dir = self.nuclei_state_dir / "cache"
+        self.nuclei_templates_dir = self.nuclei_state_dir / "templates"
+        self.nuclei_config_dir.mkdir(parents=True, exist_ok=True)
+        self.nuclei_cache_dir.mkdir(parents=True, exist_ok=True)
+        await self._update_templates()
+        # nuclei writes its version marker before the tarball finishes extracting,
+        # so a killed update can leave the marker pointing at an empty dir and
+        # every subsequent run reports "up-to-date." Verify and repair once.
+        if not self._templates_installed():
+            self.warning("Nuclei templates appear incomplete; wiping isolated state and re-downloading")
+            shutil.rmtree(self.nuclei_state_dir, ignore_errors=True)
+            self.nuclei_config_dir.mkdir(parents=True, exist_ok=True)
+            self.nuclei_cache_dir.mkdir(parents=True, exist_ok=True)
+            await self._update_templates()
+            if not self._templates_installed():
+                return False, "Failed to install nuclei templates after retry"
         self.proxy = self.scan.web_config.get("http_proxy", "")
-        self.mode = self.config.get("mode", "severe").lower()
-        self.ratelimit = int(self.config.get("ratelimit", 150))
-        self.concurrency = int(self.config.get("concurrency", 25))
-        self.budget = int(self.config.get("budget", 1))
-        self.silent = self.config.get("silent", False)
+        self.mode = self.config.get("mode")
+        self.ratelimit = self.config.get("ratelimit")
+        self.concurrency = self.config.get("concurrency")
+        self.budget = self.config.get("budget")
+        self.silent = self.config.get("silent")
         self.templates = self.config.get("templates")
         if self.templates:
             self.info(f"Using custom template(s) at: [{self.templates}]")
@@ -97,17 +102,17 @@ class nuclei(BaseModule):
             self.info(f"Limiting nuclei templates to the following severities: [{self.severity}]")
         self.iserver = self.scan.config.get("interactsh_server", None)
         self.itoken = self.scan.config.get("interactsh_token", None)
-        self.retries = int(self.config.get("retries", 0))
-
-        if self.mode not in ("technology", "severe", "manual", "budget"):
-            self.warning(f"Unable to initialize nuclei: invalid mode selected: [{self.mode}]")
-            return False
+        self.retries = self.config.get("retries")
 
         if self.mode == "technology":
             self.info(
                 "Running nuclei in TECHNOLOGY mode. Scans will only be performed with the --automatic-scan flag set. This limits the templates used to those that match wappalyzer signatures"
             )
-            self.tags = ""
+            # Don't clear user-specified tags — they act as additional filters
+            # alongside -as, narrowing the auto-selected template set.
+            # Only clear tags if the user didn't explicitly set them.
+            if not self.tags:
+                self.tags = ""
 
         if self.mode == "severe":
             self.info(
@@ -143,8 +148,8 @@ class nuclei(BaseModule):
     async def handle_batch(self, *events):
         temp_target = self.helpers.make_target()
         for e in events:
-            temp_target.add(e.data, e)
-        nuclei_input = [str(e.data) for e in events]
+            temp_target.add(e.url, e)
+        nuclei_input = [e.url for e in events]
         async for severity, template, tags, host, url, name, extracted_results in self.execute_nuclei(nuclei_input):
             # this is necessary because sometimes nuclei is inconsistent about the data returned in the host field
             cleaned_host = temp_target.get(host)
@@ -154,7 +159,7 @@ class nuclei(BaseModule):
                 continue
 
             if url == "":
-                url = str(parent_event.data)
+                url = parent_event.url
 
             if severity == "INFO" and "tech" in tags:
                 await self.emit_event(
@@ -175,6 +180,9 @@ class nuclei(BaseModule):
                         "host": str(parent_event.host),
                         "url": url,
                         "description": description_string,
+                        "name": f"Nuclei Vuln - {name}",
+                        "severity": "INFO",
+                        "confidence": "HIGH",
                     },
                     "FINDING",
                     parent_event,
@@ -187,8 +195,10 @@ class nuclei(BaseModule):
                         "host": str(parent_event.host),
                         "url": url,
                         "description": description_string,
+                        "name": f"Nuclei Vuln - {name}",
+                        "confidence": "HIGH",
                     },
-                    "VULNERABILITY",
+                    "FINDING",
                     parent_event,
                     context=f"{{module}} scanned {url} and identified {severity.lower()} {{event.type}}: {description_string}",
                 )
@@ -199,7 +209,7 @@ class nuclei(BaseModule):
                 return event
         self.verbose(f"Failed to correlate nuclei result for {host}. Possible parent events:")
         for event in events:
-            self.verbose(f" - {event.data}")
+            self.verbose(f" - {event.url}")
 
     async def execute_nuclei(self, nuclei_input):
         command = [
@@ -248,7 +258,9 @@ class nuclei(BaseModule):
         stats_file = self.helpers.tempfile_tail(callback=self.log_nuclei_status)
         try:
             with open(stats_file, "w") as stats_fh:
-                async for line in self.run_process_live(command, input=nuclei_input, stderr=stats_fh):
+                async for line in self.run_process_live(
+                    command, input=nuclei_input, stderr=stats_fh, env=self._nuclei_env()
+                ):
                     try:
                         j = json.loads(line)
                     except json.decoder.JSONDecodeError:
@@ -308,12 +320,76 @@ class nuclei(BaseModule):
         resume_file = self.helpers.current_dir / "resume.cfg"
         resume_file.unlink(missing_ok=True)
 
+    def _nuclei_env(self):
+        # Allowlist env vars: nuclei reads PDCP_API_KEY, GITHUB_TOKEN, AWS_*,
+        # AZURE_*, etc. directly, so os.environ.copy() would silently change
+        # its behavior (e.g. upload findings to ProjectDiscovery Cloud under
+        # the user's account). XDG_{CONFIG,CACHE}_HOME pin nuclei's config and
+        # cache under nuclei-state/ without inheriting the user's HOME.
+        keep = {
+            "PATH",
+            "LD_LIBRARY_PATH",
+            "LANG",
+            "LC_ALL",
+            "TZ",
+            "HTTP_PROXY",
+            "HTTPS_PROXY",
+            "NO_PROXY",
+            "http_proxy",
+            "https_proxy",
+            "no_proxy",
+        }
+        env = {k: v for k, v in os.environ.items() if k in keep}
+        env["XDG_CONFIG_HOME"] = str(self.nuclei_config_dir)
+        env["XDG_CACHE_HOME"] = str(self.nuclei_cache_dir)
+        return env
+
+    async def _update_templates(self):
+        self.info("Updating Nuclei templates")
+        # shield so an outer cancel can't kill the subprocess mid-extract and
+        # corrupt the templates dir
+        update_results = await asyncio.shield(
+            self.run_process(
+                ["nuclei", "-update-template-dir", self.nuclei_templates_dir, "-update-templates"],
+                env=self._nuclei_env(),
+            )
+        )
+        outcome = self._classify_update_stderr(update_results.stderr)
+        if outcome == "updated":
+            self.success("Successfully updated nuclei templates")
+        elif outcome == "up-to-date":
+            self.info("Nuclei templates already up-to-date")
+        else:
+            self.warning(f"Failure while updating nuclei templates: {update_results.stderr or '<no stderr>'}")
+
+    # nuclei's success messaging has drifted across releases (installed / updated /
+    # downloaded). Match any of them so a future rename doesn't silently downgrade
+    # a clean install to a "Failure while updating" warning.
+    _UPDATE_SUCCESS_MARKERS = (
+        "Successfully installed nuclei-templates",
+        "Successfully updated nuclei-templates",
+        "Successfully downloaded nuclei-templates",
+    )
+    _UPDATE_NOOP_MARKER = "No new updates found for nuclei templates"
+
+    @classmethod
+    def _classify_update_stderr(cls, stderr):
+        if not stderr:
+            return "failure"
+        if any(m in stderr for m in cls._UPDATE_SUCCESS_MARKERS):
+            return "updated"
+        if cls._UPDATE_NOOP_MARKER in stderr:
+            return "up-to-date"
+        return "failure"
+
+    def _templates_installed(self):
+        http_dir = self.nuclei_templates_dir / "http"
+        return http_dir.is_dir() and any(http_dir.iterdir())
+
     async def filter_event(self, event):
         if self.config.get("directory_only", True):
             if "endpoint" in event.tags:
-                self.debug(
-                    f"rejecting URL [{str(event.data)}] because directory_only is true and event has endpoint tag"
-                )
+                self.debug(f"rejecting URL [{event.url}] because directory_only is true and event has endpoint tag")
                 return False
         return True
 

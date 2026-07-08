@@ -1,7 +1,7 @@
-description: Discover web parameters and lightly fuzz them for vulnerabilities, with only the most common vulnerabilities and minimal extra modules. Safest to run alongside larger scans.
+description: "Minimal fuzzing: only path traversal, SQLi, and XSS submodules. No POST requests. No companion modules. Safest option for running alongside larger scans with minimal overhead."
 
 modules:
-  - httpx
+  - http
   - lightfuzz
   - portfilter
   
@@ -17,5 +17,5 @@ config:
 conditions:
 - |
   {% if config.web.spider_distance == 0 %}
-    {{ warn("Lightfuzz works much better with spider enabled! Consider adding 'spider' or 'spider-intense' preset.") }}
+    {{ warn("Lightfuzz works much better with spider enabled! Consider adding 'spider' or 'spider-heavy' preset.") }}
   {% endif %}

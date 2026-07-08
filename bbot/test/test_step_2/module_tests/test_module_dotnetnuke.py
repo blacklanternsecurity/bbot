@@ -18,7 +18,7 @@ dotnetnuke_http_response = """
 
 class TestDotnetnuke(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "dotnetnuke"]
+    modules_overrides = ["http", "dotnetnuke"]
     config_overrides = {"interactsh_disable": "True"}
 
     exploit_probe = {
@@ -46,7 +46,7 @@ MAPI=1
 </configuration>
     """
 
-    async def setup_before_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         # Simulate DotNetNuke Instance
         expect_args = {"method": "GET", "uri": "/"}
         respond_args = {"response_data": dotnetnuke_http_response}
@@ -92,29 +92,26 @@ MAPI=1
         dnn_installwizard_privesc_detection = False
 
         for e in events:
-            if e.type == "TECHNOLOGY" and "DotNetNuke" in e.data["technology"]:
+            if e.type == "TECHNOLOGY" and "dotnetnuke" in e.data["technology"]:
                 dnn_technology_detection = True
 
-            if (
-                e.type == "VULNERABILITY"
-                and "DotNetNuke Personalization Cookie Deserialization" in e.data["description"]
-            ):
+            if e.type == "FINDING" and "DotNetNuke Personalization Cookie Deserialization" in e.data["description"]:
                 dnn_personalization_deserialization_detection = True
 
             if (
-                e.type == "VULNERABILITY"
+                e.type == "FINDING"
                 and "DotNetNuke DNNArticle Module GetCSS.ashx Arbitrary File Read" in e.data["description"]
             ):
                 dnn_getcss_fileread_detection = True
 
             if (
-                e.type == "VULNERABILITY"
+                e.type == "FINDING"
                 and "DotNetNuke dnnUI_NewsArticlesSlider Module Arbitrary File Read" in e.data["description"]
             ):
                 dnn_imagehandler_fileread_detection = True
 
             if (
-                e.type == "VULNERABILITY"
+                e.type == "FINDING"
                 and "DotNetNuke InstallWizard SuperUser Privilege Escalation" in e.data["description"]
             ):
                 dnn_installwizard_privesc_detection = True
@@ -136,7 +133,10 @@ def extract_subdomain_tag(data):
 class TestDotnetnuke_blindssrf(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     module_name = "dotnetnuke"
-    modules_overrides = ["httpx", "dotnetnuke"]
+    modules_overrides = ["http", "dotnetnuke"]
+    config_overrides = {
+        "interactsh_disable": False,
+    }
 
     def request_handler(self, request):
         subdomain_tag = None
@@ -147,16 +147,22 @@ class TestDotnetnuke_blindssrf(ModuleTestBase):
 
     async def setup_before_prep(self, module_test):
         self.interactsh_mock_instance = module_test.mock_interactsh("dotnetnuke_blindssrf")
-        module_test.monkeypatch.setattr(
-            module_test.scan.helpers, "interactsh", lambda *args, **kwargs: self.interactsh_mock_instance
-        )
 
-    async def setup_after_prep(self, module_test):
+        # Mock at the helper creation level BEFORE modules are set up
+        def mock_interactsh_factory(*args, **kwargs):
+            return self.interactsh_mock_instance
+
+        # Apply the mock to the core helpers so modules get the mock during setup
+        from bbot.core.helpers.helper import ConfigAwareHelper
+
+        module_test.monkeypatch.setattr(ConfigAwareHelper, "interactsh", mock_interactsh_factory)
+
         # Simulate DotNetNuke Instance
         expect_args = {"method": "GET", "uri": "/"}
         respond_args = {"response_data": dotnetnuke_http_response}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
+    async def setup_after_prep(self, module_test):
         expect_args = re.compile("/")
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
@@ -165,10 +171,10 @@ class TestDotnetnuke_blindssrf(ModuleTestBase):
         dnn_dnnimagehandler_blindssrf = False
 
         for e in events:
-            if e.type == "TECHNOLOGY" and "DotNetNuke" in e.data["technology"]:
+            if e.type == "TECHNOLOGY" and "dotnetnuke" in e.data["technology"]:
                 dnn_technology_detection = True
 
-            if e.type == "VULNERABILITY" and "DotNetNuke Blind-SSRF (CVE 2017-0929)" in e.data["description"]:
+            if e.type == "FINDING" and "DotNetNuke Blind-SSRF (CVE 2017-0929)" in e.data["description"]:
                 dnn_dnnimagehandler_blindssrf = True
 
         assert dnn_technology_detection, "DNN Technology Detection Failed"

@@ -25,9 +25,10 @@
 #
 
 from bbot.modules.base import BaseModule
-from bbot.core.helpers.dns.helpers import service_record
+from bbot.core.helpers.dns.helpers import record_to_text, service_record
 
 import re
+from bbot.core.config.models import BaseModuleConfig, Field
 
 # Handle "v=BIMI1; l=; a=;" == RFC conformant explicit declination to publish, e.g. useful on a sub-domain if you don't want the sub-domain to have a BIMI logo, yet your registered domain does?
 # Handle "v=BIMI1; l=; a=" == RFC non-conformant explicit declination to publish
@@ -46,22 +47,17 @@ bimi_regex = re.compile(_bimi_regex, re.I)
 class dnsbimi(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["URL_UNVERIFIED", "RAW_DNS_RECORD"]
-    flags = ["subdomain-enum", "cloud-enum", "passive", "safe"]
+    flags = ["safe", "subdomain-enum", "cloud-enum", "passive"]
     meta = {
         "description": "Check DNS_NAME's for BIMI records to find image and certificate hosting URL's",
         "author": "@colin-stubbs",
         "created_date": "2024-11-15",
     }
-    options = {
-        "emit_raw_dns_records": False,
-        "emit_urls": True,
-        "selectors": "default,email,mail,bimi",
-    }
-    options_desc = {
-        "emit_raw_dns_records": "Emit RAW_DNS_RECORD events",
-        "emit_urls": "Emit URL_UNVERIFIED events",
-        "selectors": "CSV list of BIMI selectors to check",
-    }
+
+    class Config(BaseModuleConfig):
+        emit_raw_dns_records: bool = Field(False, description="Emit RAW_DNS_RECORD events")
+        emit_urls: bool = Field(True, description="Emit URL_UNVERIFIED events")
+        selectors: str = Field("default,email,mail,bimi", description="CSV list of BIMI selectors to check")
 
     async def setup(self):
         self.emit_raw_dns_records = self.config.get("emit_raw_dns_records", False)
@@ -93,50 +89,46 @@ class dnsbimi(BaseModule):
             tags = ["bimi-record", f"bimi-{selector}"]
             hostname = f"{selector}._bimi.{parent_domain}"
 
-            r = await self.helpers.resolve_raw(hostname, type=rdtype)
+            response = await self.helpers.dns.resolve_full(hostname, rdtype)
 
-            if r:
-                raw_results, errors = r
+            for answer in response.response.answers:
+                text_answer = record_to_text(answer)
+                if self.emit_raw_dns_records:
+                    await self.emit_event(
+                        {
+                            "host": hostname,
+                            "type": rdtype,
+                            "answer": text_answer,
+                        },
+                        "RAW_DNS_RECORD",
+                        parent=event,
+                        tags=tags.append(f"{rdtype.lower()}-record"),
+                        context=f"{rdtype} lookup on {hostname} produced {{event.type}}",
+                    )
 
-                for answer in raw_results:
-                    if self.emit_raw_dns_records:
-                        await self.emit_event(
-                            {
-                                "host": hostname,
-                                "type": rdtype,
-                                "answer": answer.to_text(),
-                            },
-                            "RAW_DNS_RECORD",
-                            parent=event,
-                            tags=tags.append(f"{rdtype.lower()}-record"),
-                            context=f"{rdtype} lookup on {hostname} produced {{event.type}}",
-                        )
+                # record_to_text already joins multi-string TXT records and omits dnspython-style quoting
+                s = text_answer.strip()
 
-                    # we need to strip surrounding quotes and whitespace, as well as fix TXT data that may have been split across two different rdata's
-                    # e.g. we will get a single string, but within that string we may have two parts such as:
-                    # answer = '"part 1 that was really long" "part 2 that did not fit in part 1"'
-                    s = answer.to_text().strip('"').strip().replace('" "', "")
+                bimi_match = bimi_regex.search(s)
 
-                    bimi_match = bimi_regex.search(s)
+                if bimi_match and bimi_match.group("v") and "bimi" in bimi_match.group("v").lower():
+                    if bimi_match.group("l") and bimi_match.group("l") != "":
+                        if self.emit_urls:
+                            await self.emit_event(
+                                bimi_match.group("l"),
+                                "URL_UNVERIFIED",
+                                parent=event,
+                                tags=tags.append("bimi-location"),
+                            )
 
-                    if bimi_match and bimi_match.group("v") and "bimi" in bimi_match.group("v").lower():
-                        if bimi_match.group("l") and bimi_match.group("l") != "":
-                            if self.emit_urls:
-                                await self.emit_event(
-                                    bimi_match.group("l"),
-                                    "URL_UNVERIFIED",
-                                    parent=event,
-                                    tags=tags.append("bimi-location"),
-                                )
-
-                        if bimi_match.group("a") and bimi_match.group("a") != "":
-                            if self.emit_urls:
-                                await self.emit_event(
-                                    bimi_match.group("a"),
-                                    "URL_UNVERIFIED",
-                                    parent=event,
-                                    tags=tags.append("bimi-authority"),
-                                )
+                    if bimi_match.group("a") and bimi_match.group("a") != "":
+                        if self.emit_urls:
+                            await self.emit_event(
+                                bimi_match.group("a"),
+                                "URL_UNVERIFIED",
+                                parent=event,
+                                tags=tags.append("bimi-authority"),
+                            )
 
     async def handle_event(self, event):
         await self.inspectBIMI(event, event.host)

@@ -38,25 +38,50 @@ zzzz 600 IN AAAA dead::beef
     def check(self, module_test, events):
         assert any(e.data == "zzzz.bad.dns" for e in events), "Zone transfer failed (1)"
         assert any(e.data == "asdf.bad.dns" for e in events), "Zone transfer failed (2)"
-        assert any(e.type == "VULNERABILITY" for e in events), "Failed to emit VULNERABILITY"
+        assert any(e.type == "FINDING" for e in events), "Failed to emit FINDING"
         assert any("baddns-zonetransfer" in e.tags for e in events), "Failed to add baddns tag"
 
 
 class TestBaddns_zone_nsec(BaseTestBaddns_zone):
+    targets = ["bad.com"]
+
     async def setup_after_prep(self, module_test):
         from baddns.lib.whoismanager import WhoisManager
+        from baddns.lib.dnsmanager import DNSManager
+
+        # NSEC records can't go through MockClient (hickory refuses zone-file NSEC parsing),
+        # so we pass only non-NSEC data to mock_dns and handle NSEC via DNSManager monkeypatch.
+        nsec_data = {
+            "bad.com": ["asdf.bad.com"],
+            "asdf.bad.com": ["zzzz.bad.com"],
+            "zzzz.bad.com": ["xyz.bad.com"],
+        }
 
         await module_test.mock_dns(
             {
-                "bad.dns": {"A": ["127.0.0.5"], "NSEC": ["asdf.bad.dns"]},
-                "asdf.bad.dns": {"NSEC": ["zzzz.bad.dns"]},
-                "zzzz.bad.dns": {"NSEC": ["xyz.bad.dns"]},
+                "bad.com": {"A": ["127.0.0.5"]},
             }
         )
+
+        original_do_resolve = DNSManager.do_resolve
+        original_dispatch = DNSManager.dispatchDNS
+
+        async def patched_do_resolve(self, target, rdatatype):
+            if rdatatype == "NSEC" and target in nsec_data:
+                return nsec_data[target]
+            return await original_do_resolve(self, target, rdatatype)
+
+        async def patched_dispatch(self, omit_types=[]):
+            await original_dispatch(self, omit_types=omit_types)
+            if "NSEC" not in omit_types and self.target in nsec_data:
+                self.answers["NSEC"] = nsec_data[self.target]
+
+        module_test.monkeypatch.setattr(DNSManager, "do_resolve", patched_do_resolve)
+        module_test.monkeypatch.setattr(DNSManager, "dispatchDNS", patched_dispatch)
         module_test.monkeypatch.setattr(WhoisManager, "dispatchWHOIS", self.dispatchWHOIS)
 
     def check(self, module_test, events):
-        assert any(e.data == "zzzz.bad.dns" for e in events), "NSEC Walk Failed (1)"
-        assert any(e.data == "xyz.bad.dns" for e in events), "NSEC Walk Failed (2)"
-        assert any(e.type == "VULNERABILITY" for e in events), "Failed to emit VULNERABILITY"
+        assert any(e.data == "zzzz.bad.com" for e in events), "NSEC Walk Failed (1)"
+        assert any(e.data == "xyz.bad.com" for e in events), "NSEC Walk Failed (2)"
+        assert any(e.type == "FINDING" for e in events), "Failed to emit FINDING"
         assert any("baddns-nsec" in e.tags for e in events), "Failed to add baddns tag"

@@ -9,7 +9,7 @@ class TestStdout(ModuleTestBase):
     def check(self, module_test, events):
         out, err = module_test.capsys.readouterr()
         assert out.startswith("[SCAN]              \tteststdout")
-        assert "[DNS_NAME]          \tblacklanternsecurity.com\tTARGET" in out
+        assert "[DNS_NAME]          \tblacklanternsecurity.com\tSEED" in out
 
 
 class TestStdoutEventTypes(TestStdout):
@@ -18,7 +18,7 @@ class TestStdoutEventTypes(TestStdout):
     def check(self, module_test, events):
         out, err = module_test.capsys.readouterr()
         assert len(out.splitlines()) == 1
-        assert out.startswith("[DNS_NAME]          \tblacklanternsecurity.com\tTARGET")
+        assert out.startswith("[DNS_NAME]          \tblacklanternsecurity.com\tSEED")
 
 
 class TestStdoutEventFields(TestStdout):
@@ -83,6 +83,45 @@ class TestStdoutDupes(TestStdout):
         lines = out.splitlines()
         assert len(lines) == 3
         assert out.count("[IP_ADDRESS]        \t127.0.0.2") == 2
+
+
+class TestStdoutFindingColor(TestStdout):
+    module_name = "stdout"
+
+    def check(self, module_test, events):
+        module = module_test.module
+        # coloring is disabled when stdout isn't a terminal (as in captured test output)
+        assert module.use_color is False
+
+        # CRITICAL is purple (207,0,255); CONFIRMED is full brightness + bold
+        critical = module_test.scan.make_event(
+            {
+                "host": "evilcorp.com",
+                "severity": "CRITICAL",
+                "confidence": "CONFIRMED",
+                "description": "asdf",
+                "name": "Test",
+            },
+            "FINDING",
+            dummy=True,
+        )
+        colored = module._colorize_finding("test", critical)
+        assert colored == "\033[1;38;2;207;0;255mtest\033[0m"
+
+        # INFO is blue (113,161,255) dimmed to 0.55 brightness, no bold
+        info = module_test.scan.make_event(
+            {
+                "host": "evilcorp.com",
+                "severity": "INFO",
+                "confidence": "UNKNOWN",
+                "description": "asdf",
+                "name": "Test",
+            },
+            "FINDING",
+            dummy=True,
+        )
+        colored_info = module._colorize_finding("test", info)
+        assert colored_info == "\033[38;2;62;88;140mtest\033[0m"
 
 
 class TestStdoutNoDupes(TestStdoutDupes):

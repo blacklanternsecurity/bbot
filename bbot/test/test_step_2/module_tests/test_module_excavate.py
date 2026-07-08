@@ -5,13 +5,14 @@ from .base import ModuleTestBase, tempwordlist
 from bbot.modules.internal.excavate import ExcavateRule
 
 from pathlib import Path
+import time
 import yara
 
 
 class TestExcavate(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/", "test.notreal", "http://127.0.0.1:8888/subdir/links.html"]
-    modules_overrides = ["excavate", "httpx"]
-    config_overrides = {"web": {"spider_distance": 1, "spider_depth": 1}}
+    modules_overrides = ["excavate", "http"]
+    config_overrides = {"web": {"spider_distance": 1, "spider_depth": 1}, "omit_event_types": []}
 
     async def setup_before_prep(self, module_test):
         response_data = """
@@ -28,7 +29,7 @@ class TestExcavate(ModuleTestBase):
         <link href="/link_relative.txt">
         <a href="mailto:bob@evilcorp.org?subject=help">Help</a>
         <li class="toctree-l3"><a class="reference internal" href="miscellaneous.html#x50-uart-driver">16x50 UART Driver</a></li>
-        # these ones should get emitted as URL_UNVERIFIED events (processed by httpx which has accept_js_url=True)
+        # these ones should get emitted as URL_UNVERIFIED events (processed by http module which has accept_js_url=True)
         <a href="/a_relative.js">
         <link href="/link_relative.js">
         """
@@ -64,7 +65,7 @@ class TestExcavate(ModuleTestBase):
         module_test.scan.modules["dummy_module"] = DummyModule(module_test.scan)
 
     def check(self, module_test, events):
-        event_data = [e.data for e in events]
+        event_data = [e.pretty_string for e in events]
         assert "https://www1.test.notreal/" in event_data
         assert "https://www2.test.notreal/" in event_data
         assert "https://www3.test.notreal/" in event_data
@@ -77,13 +78,13 @@ class TestExcavate(ModuleTestBase):
         assert "www6.test.notreal" in event_data
         assert "www7.test.notreal" in event_data
         assert "www8.test.notreal" in event_data
-        # .js files should be emitted as URL_UNVERIFIED events (they are processed by httpx which has accept_js_url=True)
+        # .js files should be emitted as URL_UNVERIFIED events (they are processed by http module which has accept_js_url=True)
         # they are seen by internal modules but not by output modules
         assert "http://127.0.0.1:8888/a_relative.js" not in event_data
         assert "http://127.0.0.1:8888/link_relative.js" not in event_data
         assert "http://127.0.0.1:8888/a_relative.txt" in event_data
         assert "http://127.0.0.1:8888/link_relative.txt" in event_data
-        dummy_module_event_data = [e.data for e in module_test.scan.modules["dummy_module"].events_seen]
+        dummy_module_event_data = [e.pretty_string for e in module_test.scan.modules["dummy_module"].events_seen]
         assert "http://127.0.0.1:8888/a_relative.js" in dummy_module_event_data
         assert "http://127.0.0.1:8888/link_relative.js" in dummy_module_event_data
         assert "http://127.0.0.1:8888/a_relative.txt" in dummy_module_event_data
@@ -107,7 +108,7 @@ class TestExcavate(ModuleTestBase):
 
         assert any(
             e.type == "URL_UNVERIFIED"
-            and e.data == "http://127.0.0.1:8888/relative.html"
+            and e.url == "http://127.0.0.1:8888/relative.html"
             and "spider-max" not in e.tags
             and "endpoint" in e.tags
             and "extension-html" in e.tags
@@ -117,17 +118,17 @@ class TestExcavate(ModuleTestBase):
         )
 
         assert any(
-            e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/2/depth2.html" and "spider-max" in e.tags
+            e.type == "URL_UNVERIFIED" and e.url == "http://127.0.0.1:8888/2/depth2.html" and "spider-max" in e.tags
             for e in events
         )
 
         assert any(
-            e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/distance2.html" and "spider-max" in e.tags
+            e.type == "URL_UNVERIFIED" and e.url == "http://127.0.0.1:8888/distance2.html" and "spider-max" in e.tags
             for e in events
         )
 
         assert any(
-            e.type == "URL_UNVERIFIED" and "miscellaneous.html" in e.data and "x50-uart-driver" not in e.data
+            e.type == "URL_UNVERIFIED" and "miscellaneous.html" in e.url and "x50-uart-driver" not in e.url
             for e in events
         )
 
@@ -168,17 +169,17 @@ class TestExcavate2(TestExcavate):
         for e in events:
             if e.type == "URL_UNVERIFIED":
                 # these cases represent the desired behavior for parsing relative links
-                if e.data == "http://127.0.0.1:8888/rootrelative.html":
+                if e.url == "http://127.0.0.1:8888/rootrelative.html":
                     root_relative_detection = True
-                if e.data == "http://127.0.0.1:8888/subdir/pagerelative1.html":
+                if e.url == "http://127.0.0.1:8888/subdir/pagerelative1.html":
                     page_relative_detection_1 = True
-                if e.data == "http://127.0.0.1:8888/subdir/pagerelative2.html":
+                if e.url == "http://127.0.0.1:8888/subdir/pagerelative2.html":
                     page_relative_detection_2 = True
 
                 # these cases indicates that excavate parsed the relative links incorrectly
-                if e.data == "http://127.0.0.1:8888/pagerelative.html":
+                if e.url == "http://127.0.0.1:8888/pagerelative.html":
                     root_page_confusion_1 = True
-                if e.data == "http://127.0.0.1:8888/subdir/rootrelative.html":
+                if e.url == "http://127.0.0.1:8888/subdir/rootrelative.html":
                     root_page_confusion_2 = True
 
         assert root_relative_detection, "Failed to properly excavate root-relative URL"
@@ -190,7 +191,7 @@ class TestExcavate2(TestExcavate):
 
 class TestExcavateInScopeJavascript(TestExcavate):
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["excavate", "httpx", "badsecrets"]
+    modules_overrides = ["excavate", "http", "badsecrets"]
 
     async def setup_before_prep(self, module_test):
         module_test.httpserver.expect_request("/").respond_with_data(
@@ -202,7 +203,7 @@ class TestExcavateInScopeJavascript(TestExcavate):
 
     def check(self, module_test, events):
         found_js_url_event = bool(
-            [e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/script.js"]
+            [e for e in events if e.type == "URL" and e.url == "http://127.0.0.1:8888/script.js"]
         )
         found_excavate_jwt_finding = bool(
             [
@@ -211,18 +212,16 @@ class TestExcavateInScopeJavascript(TestExcavate):
                 if e.type == "FINDING" and "JWT" in e.data["description"] and str(e.module) == "excavate"
             ]
         )
-        found_badsecrets_vulnerability = bool(
-            [e for e in events if e.type == "VULNERABILITY" and str(e.module) == "badsecrets"]
-        )
+        found_badsecrets_finding = bool([e for e in events if e.type == "FINDING" and str(e.module) == "badsecrets"])
 
         assert found_js_url_event, "Failed to find URL event for script.js"
-        assert found_badsecrets_vulnerability, "Failed to find BADSECRETs event from script.js"
+        assert found_badsecrets_finding, "Failed to find BADSECRETs finding from script.js"
         assert found_excavate_jwt_finding, "Excavate should still emit JWT findings even when badsecrets is enabled"
 
 
 class TestExcavateRedirect(TestExcavate):
     targets = ["http://127.0.0.1:8888/", "http://127.0.0.1:8888/relative/", "http://127.0.0.1:8888/nonhttpredirect/"]
-    config_overrides = {"scope": {"report_distance": 1}}
+    config_overrides = {"scope": {"report_distance": 1}, "omit_event_types": []}
 
     async def setup_before_prep(self, module_test):
         # absolute redirect
@@ -245,10 +244,10 @@ class TestExcavateRedirect(TestExcavate):
             [
                 e
                 for e in events
-                if e.type == "URL_UNVERIFIED" and e.data == "https://www.test.notreal/yep" and e.scope_distance == 1
+                if e.type == "URL_UNVERIFIED" and e.url == "https://www.test.notreal/yep" and e.scope_distance == 1
             ]
         )
-        assert 1 == len([e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/relative/owa/"])
+        assert 1 == len([e for e in events if e.type == "URL" and e.url == "http://127.0.0.1:8888/relative/owa/"])
         assert 1 == len(
             [
                 e
@@ -289,7 +288,7 @@ class TestExcavateRedirect(TestExcavate):
 
 class TestExcavateQuerystringRemoveTrue(TestExcavate):
     targets = ["http://127.0.0.1:8888/"]
-    config_overrides = {"url_querystring_remove": True, "url_querystring_collapse": True}
+    config_overrides = {"url_querystring_remove": True, "url_querystring_collapse": True, "omit_event_types": []}
     lots_of_params = """
     <a href="http://127.0.0.1:8888/endpoint?foo=1"/>
     <a href="http://127.0.0.1:8888/endpoint?foo=2"/>
@@ -309,12 +308,12 @@ class TestExcavateQuerystringRemoveTrue(TestExcavate):
     def check(self, module_test, events):
         assert len([e for e in events if e.type == "URL_UNVERIFIED"]) == 2
         assert (
-            len([e for e in events if e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/endpoint"]) == 1
+            len([e for e in events if e.type == "URL_UNVERIFIED" and e.url == "http://127.0.0.1:8888/endpoint"]) == 1
         )
 
 
 class TestExcavateQuerystringRemoveFalse(TestExcavateQuerystringRemoveTrue):
-    config_overrides = {"url_querystring_remove": False, "url_querystring_collapse": True}
+    config_overrides = {"url_querystring_remove": False, "url_querystring_collapse": True, "omit_event_types": []}
 
     def check(self, module_test, events):
         assert (
@@ -322,7 +321,7 @@ class TestExcavateQuerystringRemoveFalse(TestExcavateQuerystringRemoveTrue):
                 [
                     e
                     for e in events
-                    if e.type == "URL_UNVERIFIED" and e.data.startswith("http://127.0.0.1:8888/endpoint?")
+                    if e.type == "URL_UNVERIFIED" and e.url.startswith("http://127.0.0.1:8888/endpoint?")
                 ]
             )
             == 1
@@ -330,7 +329,7 @@ class TestExcavateQuerystringRemoveFalse(TestExcavateQuerystringRemoveTrue):
 
 
 class TestExcavateQuerystringCollapseFalse(TestExcavateQuerystringRemoveTrue):
-    config_overrides = {"url_querystring_remove": False, "url_querystring_collapse": False}
+    config_overrides = {"url_querystring_remove": False, "url_querystring_collapse": False, "omit_event_types": []}
 
     def check(self, module_test, events):
         assert (
@@ -338,7 +337,7 @@ class TestExcavateQuerystringCollapseFalse(TestExcavateQuerystringRemoveTrue):
                 [
                     e
                     for e in events
-                    if e.type == "URL_UNVERIFIED" and e.data.startswith("http://127.0.0.1:8888/endpoint?")
+                    if e.type == "URL_UNVERIFIED" and e.url.startswith("http://127.0.0.1:8888/endpoint?")
                 ]
             )
             == 10
@@ -347,7 +346,7 @@ class TestExcavateQuerystringCollapseFalse(TestExcavateQuerystringRemoveTrue):
 
 class TestExcavateMaxLinksPerPage(TestExcavate):
     targets = ["http://127.0.0.1:8888/"]
-    config_overrides = {"web": {"spider_links_per_page": 10, "spider_distance": 1}}
+    config_overrides = {"web": {"spider_links_per_page": 10, "spider_distance": 1}, "omit_event_types": []}
 
     lots_of_links = """
     <a href="http://127.0.0.1:8888/1"/>
@@ -384,7 +383,9 @@ class TestExcavateMaxLinksPerPage(TestExcavate):
         url_unverified_events = [e for e in events if e.type == "URL_UNVERIFIED"]
         # base URL + 25 links = 26
         assert len(url_unverified_events) == 26
-        url_data = [e.data for e in url_unverified_events if "spider-max" not in e.tags and "spider-danger" in e.tags]
+        url_data = [
+            e.pretty_string for e in url_unverified_events if "spider-max" not in e.tags and "spider-danger" in e.tags
+        ]
         assert len(url_data) >= 10 and len(url_data) <= 12
         url_events = [e for e in events if e.type == "URL"]
         assert len(url_events) == 11
@@ -410,7 +411,7 @@ class TestExcavateURL(TestExcavate):
 
     def check(self, module_test, events):
         assert any(e.data == "asdffoo.test.notreal" for e in events)
-        assert any(e.data == "https://asdffoo.test.notreal/some/path" for e in events)
+        assert any(e.url == "https://asdffoo.test.notreal/some/path" for e in events)
 
 
 class TestExcavateURL_IP(TestExcavate):
@@ -421,7 +422,7 @@ class TestExcavateURL_IP(TestExcavate):
 
     def check(self, module_test, events):
         assert any(e.data == "127.0.0.2" for e in events)
-        assert any(e.data == "https://127.0.0.2/some/path" for e in events)
+        assert any(e.url == "https://127.0.0.2/some/path" for e in events)
 
 
 class TestExcavateSerializationNegative(TestExcavate):
@@ -473,6 +474,8 @@ class TestExcavateNonHttpScheme(TestExcavate):
     <p>hxxp://test.notreal</p>
     <p>ftp://test.notreal</p>
     <p>nonsense://test.notreal</p>
+    <p>ws://test.notreal</p>
+    <p>wss://test.notreal</p>
     </body>
     </html>
     """
@@ -484,6 +487,9 @@ class TestExcavateNonHttpScheme(TestExcavate):
         found_hxxp_url = False
         found_ftp_url = False
         found_nonsense_url = False
+        found_ws_finding = False
+        found_ws_url = False
+        found_wss_url = False
 
         for e in events:
             if e.type == "FINDING":
@@ -493,14 +499,24 @@ class TestExcavateNonHttpScheme(TestExcavate):
                     found_ftp_url = True
                 if "nonsense" in e.data["description"]:
                     found_nonsense_url = True
+                if "ws://" in e.data.get("description", "") or "wss://" in e.data.get("description", ""):
+                    found_ws_finding = True
+            if e.type == "URL_UNVERIFIED":
+                if e.data.get("url", "") == "http://test.notreal/":
+                    found_ws_url = True
+                if e.data.get("url", "") == "https://test.notreal/":
+                    found_wss_url = True
         assert found_hxxp_url
         assert found_ftp_url
         assert not found_nonsense_url
+        assert not found_ws_finding, "ws:// should not produce a FINDING"
+        assert found_ws_url, "ws:// should be converted to http:// URL_UNVERIFIED"
+        assert found_wss_url, "wss:// should be converted to https:// URL_UNVERIFIED"
 
 
 class TestExcavateParameterExtraction(TestExcavate):
     # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
-    modules_overrides = ["excavate", "httpx", "hunt"]
+    modules_overrides = ["excavate", "http", "hunt"]
     targets = ["http://127.0.0.1:8888/"]
     parameter_extraction_html = """
     <html>
@@ -643,11 +659,103 @@ class TestExcavateParameterExtraction(TestExcavate):
         assert found_form_post_additional_params, "Did not extract additional parameters from POST form"
 
 
+class TestExcavateSelectTagSelection(ModuleTestBase):
+    """Verify <select> option-value selection logic.
+
+    1. selected_nonfirst -- a non-first option carries `selected` -> we pick it (not the first option)
+    2. first_empty -- first option is empty, no selected -> we keep the empty first value
+       (filter-style forms often use a blank default that matches all results; substituting
+       a specific choice could narrow output to nothing)
+    3. selected_with_empty_first -- first option empty, non-first option carries `selected` -> we pick selected
+    4. selected_empty -- the option with `selected` has an empty value -> we keep the empty
+       selected value (the form's author chose blank as the default; preserve that intent)
+    """
+
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["http", "excavate", "hunt"]
+    select_extract_html = """
+    <html>
+    <body>
+        <form action="/sel1" method="post">
+            <select name="selected_nonfirst">
+                <option value="user">User</option>
+                <option value="admin" selected>Admin</option>
+                <option value="guest">Guest</option>
+            </select>
+            <input type="submit" value="go">
+        </form>
+        <form action="/sel2" method="post">
+            <select name="first_empty">
+                <option value="">-- choose --</option>
+                <option value="staging">Staging</option>
+                <option value="production">Production</option>
+            </select>
+            <input type="submit" value="go">
+        </form>
+        <form action="/sel3" method="post">
+            <select name="selected_with_empty_first">
+                <option value="">-- choose --</option>
+                <option value="us-east" selected>US East</option>
+                <option value="eu-west">EU West</option>
+            </select>
+            <input type="submit" value="go">
+        </form>
+        <form action="/sel4" method="post">
+            <select name="selected_empty">
+                <option value="" selected>None</option>
+                <option value="">blank too</option>
+                <option value="fallback">Fallback</option>
+            </select>
+            <input type="submit" value="go">
+        </form>
+    </body>
+    </html>
+    """
+
+    async def setup_after_prep(self, module_test):
+        respond_args = {"response_data": self.select_extract_html, "headers": {"Content-Type": "text/html"}}
+        module_test.set_expect_requests(respond_args=respond_args)
+
+    def check(self, module_test, events):
+        picked = {}
+        for e in events:
+            if e.type != "WEB_PARAMETER":
+                continue
+            name = e.data.get("name")
+            if name in (
+                "selected_nonfirst",
+                "first_empty",
+                "selected_with_empty_first",
+                "selected_empty",
+            ):
+                picked[name] = e.data.get("original_value")
+
+        assert "selected_nonfirst" in picked, "Did not extract WEB_PARAMETER for selected_nonfirst"
+        assert picked["selected_nonfirst"] == "admin", (
+            f"selected_nonfirst: expected the option with `selected` to win, got {picked['selected_nonfirst']!r}"
+        )
+
+        assert "first_empty" in picked, "Did not extract WEB_PARAMETER for first_empty"
+        assert picked["first_empty"] == "", (
+            f"first_empty: expected the first option's empty value to be preserved when no option is selected, got {picked['first_empty']!r}"
+        )
+
+        assert "selected_with_empty_first" in picked, "Did not extract WEB_PARAMETER for selected_with_empty_first"
+        assert picked["selected_with_empty_first"] == "us-east", (
+            f"selected_with_empty_first: expected `selected` to win over the empty first option, got {picked['selected_with_empty_first']!r}"
+        )
+
+        assert "selected_empty" in picked, "Did not extract WEB_PARAMETER for selected_empty"
+        assert picked["selected_empty"] == "", (
+            f"selected_empty: expected the selected option's empty value to be preserved, got {picked['selected_empty']!r}"
+        )
+
+
 class TestExcavateParameterExtraction_postform_noaction(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
 
     # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
-    modules_overrides = ["httpx", "excavate", "hunt"]
+    modules_overrides = ["http", "excavate", "hunt"]
     postform_extract_html = """
 <body>
     <h1>Post for without action</h1>
@@ -713,7 +821,7 @@ class TestExcavateParameterExtraction_additionalparams(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
 
     # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
-    modules_overrides = ["httpx", "excavate", "hunt"]
+    modules_overrides = ["http", "excavate", "hunt"]
     postformnoaction_extract_multiparams_html = """
 <body>
     <h1>Post for without action</h1>
@@ -774,7 +882,7 @@ class TestExcavateParameterExtraction_getparam(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
 
     # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
-    modules_overrides = ["httpx", "excavate", "hunt"]
+    modules_overrides = ["http", "excavate", "hunt"]
     getparam_extract_html = """
 <html><a href="/?hack=1">ping</a></html>
     """
@@ -796,7 +904,7 @@ class TestExcavateParameterExtraction_relativeurl(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
 
     # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
-    modules_overrides = ["httpx", "excavate", "hunt"]
+    modules_overrides = ["http", "excavate", "hunt"]
     config_overrides = {"web": {"spider_distance": 2, "spider_depth": 3}}
 
     # Secondary page that has a relative link to a traversal URL
@@ -870,7 +978,7 @@ class TestExcavateParameterExtraction_getparam_novalue(TestExcavateParameterExtr
 
 class TestExcavateParameterExtraction_json(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["httpx", "excavate", "paramminer_getparams"]
+    modules_overrides = ["http", "excavate", "paramminer_getparams"]
     config_overrides = {
         "modules": {
             "excavate": {"speculate_params": True},
@@ -902,7 +1010,7 @@ class TestExcavateParameterExtraction_json(ModuleTestBase):
 
 class TestExcavateParameterExtraction_xml(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["httpx", "excavate", "paramminer_getparams"]
+    modules_overrides = ["http", "excavate", "paramminer_getparams"]
     config_overrides = {
         "modules": {
             "excavate": {"speculate_params": True},
@@ -960,7 +1068,7 @@ class TestExcavateParameterExtraction_inputtagnovalue(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
 
     # hunt is added as parameter extraction is only activated by one or more modules that consume WEB_PARAMETER
-    modules_overrides = ["httpx", "excavate", "hunt"]
+    modules_overrides = ["http", "excavate", "hunt"]
     getparam_extract_html = """
 <form action=/ method=GET><input type=text name="novalue"><button type=submit class=button>Submit</button></form>
     """
@@ -980,7 +1088,7 @@ class TestExcavateParameterExtraction_inputtagnovalue(ModuleTestBase):
 
 class TestExcavateParameterExtraction_jqueryjsonajax(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["httpx", "excavate", "hunt"]
+    modules_overrides = ["http", "excavate", "hunt"]
     jsonajax_extract_html = """
     <html>
     <script>
@@ -1047,7 +1155,7 @@ class TestExcavateYara(TestExcavate):
 """
 
     async def setup_before_prep(self, module_test):
-        self.modules_overrides = ["excavate", "httpx"]
+        self.modules_overrides = ["excavate", "http"]
         module_test.httpserver.expect_request("/").respond_with_data(self.yara_test_html)
 
     async def setup_after_prep(self, module_test):
@@ -1088,6 +1196,56 @@ class TestExcavateYaraCustom(TestExcavateYara):
     config_overrides = {"modules": {"excavate": {"custom_yara_rules": f}}}
 
 
+class TestExcavateYaraConfidence(ModuleTestBase):
+    """Test YARA rules with confidence options."""
+
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["excavate", "http"]
+
+    async def setup_before_prep(self, module_test):
+        yara_test_html = """
+        <html><body>
+            <p>CONFIRMED_SECRET_DATA</p>
+            <p>HIGH_CONFIDENCE_INDICATOR</p>
+            <p>MODERATE_RISK_PATTERN</p>
+            <p>LOW_CONFIDENCE_MATCH</p>
+            <p>UNKNOWN_PATTERN_TYPE</p>
+        </body></html>
+        """
+        module_test.httpserver.expect_request("/").respond_with_data(yara_test_html)
+
+    async def setup_after_prep(self, module_test):
+        excavate_module = module_test.scan.modules["excavate"]
+        excavateruleinstance = excavateTestRule(excavate_module)
+
+        # Add YARA rules with different confidence levels
+        yara_rules = {
+            "ConfirmedRule": 'rule ConfirmedRule { meta: description = "Confirmed rule" severity = "HIGH" confidence = "CONFIRMED" strings: $text = "CONFIRMED_SECRET_DATA" condition: $text }',
+            "HighConfidenceRule": 'rule HighConfidenceRule { meta: description = "High confidence rule" severity = "MEDIUM" confidence = "HIGH" strings: $text = "HIGH_CONFIDENCE_INDICATOR" condition: $text }',
+            "ModerateConfidenceRule": 'rule ModerateConfidenceRule { meta: description = "Moderate confidence rule" severity = "LOW" confidence = "MEDIUM" strings: $text = "MODERATE_RISK_PATTERN" condition: $text }',
+            "LowConfidenceRule": 'rule LowConfidenceRule { meta: description = "Low confidence rule" severity = "INFO" confidence = "LOW" strings: $text = "LOW_CONFIDENCE_MATCH" condition: $text }',
+            "UnknownConfidenceRule": 'rule UnknownConfidenceRule { meta: description = "Unknown confidence rule" severity = "INFO" confidence = "UNKNOWN" strings: $text = "UNKNOWN_PATTERN_TYPE" condition: $text }',
+        }
+
+        for rule_name, rule_content in yara_rules.items():
+            excavate_module.add_yara_rule(rule_name, rule_content, excavateruleinstance)
+
+        excavate_module.yara_rules = yara.compile(source="\n".join(excavate_module.yara_rules_dict.values()))
+
+    def check(self, module_test, events):
+        """Verify findings are created with correct confidence levels."""
+        findings = [e for e in events if e.type == "FINDING"]
+        confidence_findings = {f.data.get("confidence", "UNKNOWN"): f for f in findings}
+
+        # Verify all confidence levels are present
+        expected_confidences = ["CONFIRMED", "HIGH", "MEDIUM", "LOW", "UNKNOWN"]
+        for confidence in expected_confidences:
+            assert confidence in confidence_findings, f"Missing finding with confidence: {confidence}"
+            finding = confidence_findings[confidence]
+            assert finding.data["confidence"] == confidence
+            assert f"confidence-{confidence.lower()}" in finding.tags
+
+
 class TestExcavateSpiderDedupe(ModuleTestBase):
     class DummyModule(BaseModule):
         watched_events = ["URL_UNVERIFIED"]
@@ -1097,14 +1255,15 @@ class TestExcavateSpiderDedupe(ModuleTestBase):
 
         async def handle_event(self, event):
             await self.helpers.sleep(0.5)
-            self.events_seen.append(event.data)
+            self.events_seen.append(event.url)
             new_event = self.scan.make_event(event.data, "URL_UNVERIFIED", self.scan.root_event)
             if new_event is not None:
                 await self.emit_event(new_event)
 
     dummy_text = "<a href='/spider'>spider</a>"
-    modules_overrides = ["excavate", "httpx"]
+    modules_overrides = ["excavate", "http"]
     targets = ["http://127.0.0.1:8888/"]
+    config_overrides = {"omit_event_types": []}
 
     async def setup_after_prep(self, module_test):
         self.dummy_module = self.DummyModule(module_test.scan)
@@ -1121,7 +1280,7 @@ class TestExcavateSpiderDedupe(ModuleTestBase):
 
         for e in events:
             if e.type == "URL_UNVERIFIED":
-                if e.data == "http://127.0.0.1:8888/spider":
+                if e.url == "http://127.0.0.1:8888/spider":
                     if str(e.module) == "excavate" and "spider-danger" in e.tags and "spider-max" in e.tags:
                         found_url_unverified_spider_max = True
                     if (
@@ -1130,7 +1289,7 @@ class TestExcavateSpiderDedupe(ModuleTestBase):
                         and "spider-max" not in e.tags
                     ):
                         found_url_unverified_dummy = True
-            if e.type == "URL" and e.data == "http://127.0.0.1:8888/spider":
+            if e.type == "URL" and e.url == "http://127.0.0.1:8888/spider":
                 found_url_event = True
 
         assert found_url_unverified_spider_max, "Excavate failed to find /spider link"
@@ -1140,7 +1299,7 @@ class TestExcavateSpiderDedupe(ModuleTestBase):
 
 class TestExcavateParameterExtraction_targeturl(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/?foo=1"]
-    modules_overrides = ["httpx", "excavate", "hunt"]
+    modules_overrides = ["http", "excavate", "hunt"]
     config_overrides = {
         "url_querystring_remove": False,
         "url_querystring_collapse": False,
@@ -1166,7 +1325,7 @@ class TestExcavateParameterExtraction_targeturl(ModuleTestBase):
 
 class TestExcavate_retain_querystring(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/?foo=1"]
-    modules_overrides = ["httpx", "excavate", "hunt"]
+    modules_overrides = ["http", "excavate", "hunt"]
     config_overrides = {
         "url_querystring_remove": False,
         "url_querystring_collapse": False,
@@ -1213,7 +1372,7 @@ class TestExcavate_webparameter_outofscope(ModuleTestBase):
     html_body = "<html><a class=button href='https://socialmediasite.com/send?text=foo'><a class=button href='https://outofscope.com/send?text=foo'></html>"
 
     targets = ["http://127.0.0.1:8888", "socialmediasite.com"]
-    modules_overrides = ["httpx", "excavate", "hunt"]
+    modules_overrides = ["http", "excavate", "hunt"]
     config_overrides = {"interactsh_disable": True}
 
     async def setup_after_prep(self, module_test):
@@ -1239,9 +1398,42 @@ class TestExcavate_webparameter_outofscope(ModuleTestBase):
         assert not web_parameter_outofscope, "Out of scope domain was emitted"
 
 
+class TestExcavate_webparameter_ip_host(ModuleTestBase):
+    """Verify that when the httpx binary resolves a hostname to an IP (data["host"]),
+    excavate still uses the URL hostname for WEB_PARAMETER host — not the resolved IP.
+
+    This test uses 'localhost' as the target. The httpx binary resolves it to 127.0.0.1
+    and sets data["host"] = "127.0.0.1" in its JSON output. Without the archive_url guard
+    in _event_host(), this IP would be used as the WEB_PARAMETER host, putting it out of
+    scope and preventing downstream modules (like lightfuzz) from processing it.
+    """
+
+    targets = ["http://localhost:8888"]
+    modules_overrides = ["http", "excavate", "hunt"]
+    config_overrides = {"interactsh_disable": True}
+
+    async def setup_after_prep(self, module_test):
+        await module_test.mock_dns({"localhost": {"A": ["127.0.0.1"]}})
+        module_test.httpserver.expect_request("/").respond_with_data(
+            "<html><p>hello</p></html>",
+            status=200,
+            headers={"Set-Cookie": "session=abc123; Path=/"},
+        )
+
+    def check(self, module_test, events):
+        web_params = [e for e in events if e.type == "WEB_PARAMETER" and e.data["name"] == "session"]
+        assert len(web_params) > 0, "WEB_PARAMETER for 'session' cookie was not emitted"
+        for wp in web_params:
+            assert wp.data["host"] != "127.0.0.1", (
+                "WEB_PARAMETER host should be 'localhost', not the resolved IP '127.0.0.1'. "
+                "excavate._event_host() is using data['host'] (resolved IP) instead of event.host"
+            )
+            assert wp.data["host"] == "localhost", f"WEB_PARAMETER host should be 'localhost', got '{wp.data['host']}'"
+
+
 class TestExcavateHeaders(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["excavate", "httpx", "hunt"]
+    modules_overrides = ["excavate", "http", "hunt"]
     config_overrides = {"web": {"spider_distance": 1, "spider_depth": 1}}
 
     async def setup_before_prep(self, module_test):
@@ -1273,13 +1465,14 @@ class TestExcavateHeaders(ModuleTestBase):
 
 class TestExcavateRAWTEXT(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/", "test.notreal"]
-    modules_overrides = ["excavate", "httpx", "filedownload", "extractous"]
+    modules_overrides = ["excavate", "http", "filedownload", "kreuzberg"]
     config_overrides = {
         "scope": {"report_distance": 1},
         "web": {"spider_distance": 2, "spider_depth": 2},
         "modules": {
             "filedownload": {"output_folder": str(bbot_test_dir / "filedownload")},
         },
+        "omit_event_types": [],
     }
 
     pdf_data = r"""%PDF-1.3
@@ -1350,15 +1543,7 @@ trailer
 startxref
 1669
 %%EOF"""
-    extractous_response = """This is an email example@blacklanternsecurity.notreal
-
-An example JWT eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
-
-A serialized DOTNET object AAEAAAD/////AQAAAAAAAAAMAgAAAFJTeXN0ZW0uQ29sbGVjdGlvbnMuR2VuZXJpYy5MaXN0YDFbW1N5c3RlbS5TdHJpbmddXSwgU3lzdGVtLCBWZXJzaW9uPTQuMC4wLjAsIEN1bHR1cmU9bmV1dHJhbCwgUHVibGljS2V5VG9rZW49YjAzZjVmN2YxMWQ1MGFlMwEAAAAIQ29tcGFyZXIQSXRlbUNvdW50AQMAAAAJAwAAAAlTeXN0ZW0uU3RyaW5nW10FAAAACQIAAAAJBAAAAAkFAAAACRcAAAAJCgAAAAkLAAAACQwAAAAJDQAAAAkOAAAACQ8AAAAJEAAAAAkRAAAACRIAAAAJEwAAAA==
-
-A full url https://www.test.notreal/about
-
-A href <a href='/donot_detect.js'>Click me</a>"""
+    kreuzberg_response = "This is an email example@blacklanternsecurity.notreal An example JWT eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c A serialized DOTNET object AAEAAAD/////AQAAAAAAAAAMAgAAAFJTeXN0ZW0uQ29sbGVjdGlvbnMuR2VuZXJpYy5MaXN0YDFbW1N5c3RlbS5TdHJpbmddXSwgU3lzdGVtLCBWZXJzaW9uPTQuMC4wLjAsIEN1bHR1cmU9bmV1dHJhbCwgUHVibGljS2V5VG9rZW49YjAzZjVmN2YxMWQ1MGFlMwEAAAAIQ29tcGFyZXIQSXRlbUNvdW50AQMAAAAJAwAAAAlTeXN0ZW0uU3RyaW5nW10FAAAACQIAAAAJBAAAAAkFAAAACRcAAAAJCgAAAAkLAAAACQwAAAAJDQAAAAkOAAAACQ8AAAAJEAAAAAkRAAAACRIAAAAJEwAAAA== A full url https://www.test.notreal/about A href <a href='/donot_detect.js'>Click me</a>"
 
     async def setup_after_prep(self, module_test):
         module_test.set_expect_requests(
@@ -1379,13 +1564,13 @@ A href <a href='/donot_detect.js'>Click me</a>"""
         assert open(file).read() == self.pdf_data, f"File at {file} does not contain the correct content"
         raw_text_events = [e for e in events if e.type == "RAW_TEXT"]
         assert 1 == len(raw_text_events), "Failed to emit RAW_TEXT event"
-        assert raw_text_events[0].data == self.extractous_response, (
+        assert raw_text_events[0].data == self.kreuzberg_response, (
             f"Text extracted from PDF is incorrect, got {raw_text_events[0].data}"
         )
         email_events = [e for e in events if e.type == "EMAIL_ADDRESS"]
         assert 1 == len(email_events), "Failed to emit EMAIL_ADDRESS event"
         assert email_events[0].data == "example@blacklanternsecurity.notreal", (
-            f"Email extracted from extractous text is incorrect, got {email_events[0].data}"
+            f"Email extracted from kreuzberg text is incorrect, got {email_events[0].data}"
         )
         finding_events = [e for e in events if e.type == "FINDING"]
         assert 2 == len(finding_events), "Failed to emit FINDING events"
@@ -1408,18 +1593,18 @@ A href <a href='/donot_detect.js'>Click me</a>"""
             for e in finding_events
         ), f"Failed to emit serialized event got {finding_events}"
         assert finding_events[0].data["path"] == str(file), "File path not included in finding event"
-        url_events = [e.data for e in events if e.type == "URL_UNVERIFIED"]
+        url_events = [e.pretty_string for e in events if e.type == "URL_UNVERIFIED"]
         assert "https://www.test.notreal/about" in url_events, (
-            f"URL extracted from extractous text is incorrect, got {url_events}"
+            f"URL extracted from kreuzberg text is incorrect, got {url_events}"
         )
         assert "/donot_detect.js" not in url_events, (
-            f"URL extracted from extractous text is incorrect, got {url_events}"
+            f"URL extracted from kreuzberg text is incorrect, got {url_events}"
         )
 
 
 class TestExcavateHeaders_blacklist(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["excavate", "httpx", "hunt"]
+    modules_overrides = ["excavate", "http", "hunt"]
     config_overrides = {"web": {"spider_distance": 1, "spider_depth": 1}}
 
     async def setup_before_prep(self, module_test):
@@ -1456,8 +1641,8 @@ class TestExcavateHeaders_blacklist(ModuleTestBase):
 
 class TestExcavateBadURLs(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["excavate", "httpx", "hunt"]
-    config_overrides = {"interactsh_disable": True, "scope": {"report_distance": 10}}
+    modules_overrides = ["excavate", "http", "hunt"]
+    config_overrides = {"interactsh_disable": True, "scope": {"report_distance": 10}, "omit_event_types": []}
 
     bad_url_data = """
 <a href='mailto:bob@evilcorp.org?subject=help'>Help</a>
@@ -1468,19 +1653,26 @@ class TestExcavateBadURLs(ModuleTestBase):
         module_test.set_expect_requests({"uri": "/"}, {"response_data": self.bad_url_data})
 
     def check(self, module_test, events):
+        import gzip
+
         debug_log_content = open(module_test.scan.home / "debug.log").read()
+        for archived_debug_log in module_test.scan.home.glob("debug.log.*.gz"):
+            gzipped_content = open(archived_debug_log).read()
+            ungzipped_content = gzip.decompress(gzipped_content).decode("utf-8")
+            debug_log_content += ungzipped_content
+
         # make sure our logging is working
-        assert "Setting scan status to STARTING" in debug_log_content
+        assert "Setting scan status to RUNNING" in debug_log_content
         # make sure we don't have any URL validation errors
         assert "Error Parsing reconstructed URL" not in debug_log_content
         assert "Error sanitizing event data" not in debug_log_content
 
         url_events = [e for e in events if e.type == "URL_UNVERIFIED"]
-        assert sorted([e.data for e in url_events]) == sorted(["https://ssl/", "http://127.0.0.1:8888/"])
+        assert sorted([e.pretty_string for e in url_events]) == sorted(["https://ssl/", "http://127.0.0.1:8888/"])
 
 
 class TestExcavateURL_InvalidPort(TestExcavate):
-    modules_overrides = ["excavate", "httpx", "hunt"]
+    modules_overrides = ["excavate", "http", "hunt"]
 
     async def setup_before_prep(self, module_test):
         # Test URL with invalid port (greater than 65535)
@@ -1495,7 +1687,7 @@ class TestExcavateURL_InvalidPort(TestExcavate):
 
 class TestExcavateIgnorePDF(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["excavate", "httpx"]
+    modules_overrides = ["excavate", "http"]
 
     # body content that would normally produce findings if processed
     pdf_body_with_urls = "https://pdf-extracted.test.notreal/some/path ftp://ftp.test.notreal"
@@ -1509,7 +1701,7 @@ class TestExcavateIgnorePDF(ModuleTestBase):
     def check(self, module_test, events):
         # excavate should skip PDF responses entirely, so no URLs or findings should be extracted from the body
         url_unverified_events = [
-            e for e in events if e.type == "URL_UNVERIFIED" and "pdf-extracted.test.notreal" in e.data
+            e for e in events if e.type == "URL_UNVERIFIED" and "pdf-extracted.test.notreal" in e.url
         ]
         assert len(url_unverified_events) == 0, (
             f"PDF body should not be processed by excavate, but got: {url_unverified_events}"
@@ -1519,3 +1711,356 @@ class TestExcavateIgnorePDF(ModuleTestBase):
             e for e in events if e.type == "FINDING" and "ftp://ftp.test.notreal" in e.data.get("description", "")
         ]
         assert len(ftp_findings) == 0, f"PDF body should not produce findings, but got: {ftp_findings}"
+
+
+class TestExcavateRedirectParameterScope(ModuleTestBase):
+    """Verify that parameter extraction is skipped for out-of-scope redirect targets.
+
+    When an in-scope HTTP response has a Location header pointing to an external
+    out-of-scope domain, the redirect URL's query parameters should NOT be emitted
+    as WEB_PARAMETER events, because they would inherit the in-scope parent's scope
+    distance and cause lightfuzz to fuzz external endpoints.
+    """
+
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["http", "excavate", "hunt"]
+
+    async def setup_before_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            "",
+            status=302,
+            headers={"Location": "https://login.microsoftonline.com/oauth2/authorize?state=abc123&client_id=test456"},
+        )
+
+    def check(self, module_test, events):
+        # The redirect URL itself should be emitted as URL_UNVERIFIED (that's correct behavior)
+        assert any(e.type == "URL_UNVERIFIED" and "login.microsoftonline.com" in e.url for e in events), (
+            "Redirect URL_UNVERIFIED should still be emitted"
+        )
+
+        # But NO WEB_PARAMETER events should be emitted for the out-of-scope redirect's parameters
+        redirect_params = [
+            e for e in events if e.type == "WEB_PARAMETER" and "login.microsoftonline.com" in e.data.get("url", "")
+        ]
+        assert len(redirect_params) == 0, (
+            f"Out-of-scope redirect parameters should not be extracted, but got: {redirect_params}"
+        )
+
+
+# Verifies excavate extracts parameters from a form whose body is far larger than
+# YARA's `.*` regex ceiling (~4 KB). The fix routes form discovery through an
+# opening-tag-only YARA regex and reads the form body from a bounded slice of the
+# response. Before the fix, this fixture produced zero WEB_PARAMETER events; after
+# it, every field must be extracted, and the work must stay fast.
+class TestExcavateGiantForm(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["http", "excavate", "hunt"]
+
+    GIANT_OPTION_COUNT = 5000
+
+    @classmethod
+    def _build_giant_form_html(cls, option_count):
+        # ~40 bytes per option × N options dominates the form body, easily blowing
+        # past YARA's regex ceiling on `<form>.*</form>` patterns.
+        options = "".join(f'<option value="OPT_{i:05d}">label {i:05d}</option>' for i in range(option_count))
+        return (
+            "<html><body>"
+            '<form action="/giant-submit" method="post">'
+            '<input type="hidden" name="csrf" value="abc123">'
+            '<input type="text" name="search_term" value="">'
+            f'<select name="provider_id">{options}</select>'
+            '<input type="submit" value="go">'
+            "</form>"
+            "</body></html>"
+        )
+
+    async def setup_after_prep(self, module_test):
+        body = self._build_giant_form_html(self.GIANT_OPTION_COUNT)
+        # Sanity check the fixture really is past the YARA cliff.
+        assert len(body) > 100_000, f"giant-form fixture not large enough: {len(body)} bytes"
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"},
+            respond_args={"response_data": body, "status": 200, "headers": {"Content-Type": "text/html"}},
+        )
+        # Stash a start time so check() can do a coarse wall-clock assertion.
+        module_test._giantform_start = time.monotonic()
+
+    def check(self, module_test, events):
+        elapsed = time.monotonic() - module_test._giantform_start
+        # Coarse upper bound: full scan including HTTP fetch should stay snappy on
+        # a normal dev box even with a 200 KB form. The spec calls for sub-200ms
+        # processing of the giant-form HTTP_RESPONSE itself; we allow more slack
+        # here because the wall-clock includes the rest of the scan harness.
+        assert elapsed < 30, f"giant-form scan took {elapsed:.1f}s — likely a pathological regex regression"
+
+        web_params = {e.data.get("name") for e in events if e.type == "WEB_PARAMETER" and isinstance(e.data, dict)}
+        expected = {"provider_id", "csrf", "search_term"}
+        missing = expected - web_params
+        assert not missing, f"WEB_PARAMETERs missing for giant-form fields: {missing}. Got: {sorted(web_params)}"
+
+
+# Same shape as the giant-form test but with a form body that exceeds
+# max_form_bytes. The bound is a defensive cap: forms that don't fit are
+# skipped entirely (no partial extraction). The test asserts excavate doesn't
+# hang or OOM on a multi-hundred-KB form fixture.
+class TestExcavateGiantFormExceedsMaxBytes(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["http", "excavate", "hunt"]
+
+    # Constrain max_form_bytes so we don't have to generate a literal 2 MB
+    # fixture to prove the bound holds — 32 KB is well below the body size
+    # the next fixture generates (~240 KB).
+    config_overrides = {"modules": {"excavate": {"max_form_bytes": 32768}}}
+
+    OPTION_COUNT = 6000  # ~240 KB form body — 7.5× past max_form_bytes
+
+    @classmethod
+    def _build_giant_form_html(cls, option_count):
+        options = "".join(f'<option value="OPT_{i:05d}">label {i:05d}</option>' for i in range(option_count))
+        return (
+            "<html><body>"
+            '<form action="/giant-submit" method="post">'
+            '<input type="hidden" name="csrf" value="abc123">'
+            '<input type="text" name="search_term" value="">'
+            f'<select name="provider_id">{options}</select>'
+            '<input type="submit" value="go">'
+            "</form>"
+            "</body></html>"
+        )
+
+    async def setup_after_prep(self, module_test):
+        body = self._build_giant_form_html(self.OPTION_COUNT)
+        # Sanity check we built something that actually exceeds the configured bound.
+        assert len(body) > 32768 * 5, f"oversized fixture too small: {len(body)} bytes"
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"},
+            respond_args={"response_data": body, "status": 200, "headers": {"Content-Type": "text/html"}},
+        )
+        module_test._oversized_start = time.monotonic()
+
+    def check(self, module_test, events):
+        # Hang/OOM guard: a runaway extractor would push wall-clock well past
+        # this. A correctly-bounded extractor handles even a 240 KB form in seconds.
+        elapsed = time.monotonic() - module_test._oversized_start
+        assert elapsed < 60, f"oversized-form scan took {elapsed:.1f}s — bound likely not enforced"
+
+        # No form-field WEB_PARAMETERs should be emitted for the oversized form
+        # — extraction regex anchors on `</form>` which falls outside the bound.
+        # Other WEB_PARAMETERs (e.g. global `test` header from scan config) are fine.
+        form_fields = {"csrf", "search_term", "provider_id"}
+        emitted = {e.data.get("name") for e in events if e.type == "WEB_PARAMETER" and isinstance(e.data, dict)}
+        leaked = form_fields & emitted
+        assert not leaked, (
+            f"oversized form's fields should be skipped entirely under the bound, but excavate emitted: {leaked}"
+        )
+
+
+# Verifies the opening-tag YARA regex fires regardless of attribute order.
+# Both `<form action=X method=post>` and `<form method=post action=X>` should
+# extract the form's fields.
+class TestExcavateFormAttributeOrder(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888/"]
+    modules_overrides = ["http", "excavate", "hunt"]
+
+    html = """
+    <html><body>
+    <form action="/submit1" method="post">
+        <input type="text" name="action_first" value="v1">
+    </form>
+    <form method="post" action="/submit2">
+        <input type="text" name="method_first" value="v2">
+    </form>
+    </body></html>
+    """
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"},
+            respond_args={"response_data": self.html, "status": 200, "headers": {"Content-Type": "text/html"}},
+        )
+
+    def check(self, module_test, events):
+        names = {e.data.get("name") for e in events if e.type == "WEB_PARAMETER" and isinstance(e.data, dict)}
+        assert "action_first" in names, f"missing action-first form field; got {sorted(names)}"
+        assert "method_first" in names, f"missing method-first form field; got {sorted(names)}"
+
+
+class TestExcavateHttpWildcardSkipsUrls(ModuleTestBase):
+    """On an HTTP wildcard host, excavate should suppress URL_UNVERIFIED but still extract DNS_NAMEs."""
+
+    targets = ["http://127.0.0.1:8888/", "test.notreal"]
+    modules_overrides = ["excavate", "http"]
+    config_overrides = {"web": {"spider_distance": 1, "spider_depth": 1}}
+
+    html_body = """
+    <a href="http://127.0.0.1:8888/should-be-suppressed">link</a>
+    bare hostname: extracted.test.notreal
+    """
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"},
+            respond_args={"response_data": self.html_body, "status": 200},
+        )
+
+    async def setup_after_prep(self, module_test):
+        async def mock_wildcard(scheme, host, port):
+            if host == "127.0.0.1":
+                return True
+            return False
+
+        module_test.scan.helpers.web.is_http_wildcard_host = mock_wildcard
+        await module_test.mock_dns({"extracted.test.notreal": {"A": ["127.0.0.88"]}})
+
+    def check(self, module_test, events):
+        excavate_urls = [
+            e
+            for e in events
+            if e.type == "URL_UNVERIFIED" and str(e.module) == "excavate" and "should-be-suppressed" in e.url
+        ]
+        assert len(excavate_urls) == 0, (
+            f"Excavate should suppress URL_UNVERIFIED on HTTP wildcard host, got: {[e.url for e in excavate_urls]}"
+        )
+        assert any(e.type == "DNS_NAME" and e.data == "extracted.test.notreal" for e in events), (
+            "Excavate should still extract DNS_NAMEs from HTTP wildcard host responses"
+        )
+
+
+class TestExcavateContentDedup(ModuleTestBase):
+    """Verify _avoid_duplicate_content=True on excavate skips HTTP_RESPONSE events with duplicate body hashes."""
+
+    targets = [
+        "http://127.0.0.1:8888/dir1/page.html",
+        "http://127.0.0.1:8888/dir2/page.html",
+        "http://127.0.0.1:8888/other/page.html",
+    ]
+    modules_overrides = ["excavate", "http"]
+    config_overrides = {"web": {"spider_distance": 0, "spider_depth": 0}, "omit_event_types": []}
+
+    duplicate_body = "<html><body><a href='./found.html'>click</a></body></html>"
+    unique_body = "<html><body><a href='./unique.html'>click</a></body></html>"
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/dir1/page.html"},
+            respond_args={"response_data": self.duplicate_body},
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/dir2/page.html"},
+            respond_args={"response_data": self.duplicate_body},
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/other/page.html"},
+            respond_args={"response_data": self.unique_body},
+        )
+        module_test.httpserver.no_handler_status_code = 404
+
+    def check(self, module_test, events):
+        excavate = module_test.scan.modules["excavate"]
+        assert len(excavate._content_dup_tracker) > 0, "Content dedup tracker was empty"
+
+        url_events = [e for e in events if e.type == "URL_UNVERIFIED"]
+        urls = {e.url for e in url_events}
+
+        assert "http://127.0.0.1:8888/other/unique.html" in urls, "Unique page link not extracted"
+
+        dir1_found = "http://127.0.0.1:8888/dir1/found.html" in urls
+        dir2_found = "http://127.0.0.1:8888/dir2/found.html" in urls
+        assert dir1_found or dir2_found, "Neither duplicate page was processed"
+        assert not (dir1_found and dir2_found), (
+            "Both duplicate pages were processed — content dedup failed to skip the second one"
+        )
+
+
+class TestExcavateContentDedupDisabled(ModuleTestBase):
+    """Verify that with _avoid_duplicate_content=False, duplicate content on different URLs is NOT deduped."""
+
+    targets = [
+        "http://127.0.0.1:8888/dir1/page.html",
+        "http://127.0.0.1:8888/dir2/page.html",
+    ]
+    modules_overrides = ["excavate", "http"]
+    config_overrides = {"web": {"spider_distance": 0, "spider_depth": 0}, "omit_event_types": []}
+
+    duplicate_body = "<html><body><a href='./found.html'>click</a></body></html>"
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/dir1/page.html"},
+            respond_args={"response_data": self.duplicate_body},
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/dir2/page.html"},
+            respond_args={"response_data": self.duplicate_body},
+        )
+        module_test.httpserver.no_handler_status_code = 404
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["excavate"]._avoid_duplicate_content = False
+
+    def check(self, module_test, events):
+        url_events = [e for e in events if e.type == "URL_UNVERIFIED"]
+        urls = {e.url for e in url_events}
+
+        dir1_found = "http://127.0.0.1:8888/dir1/found.html" in urls
+        dir2_found = "http://127.0.0.1:8888/dir2/found.html" in urls
+        assert dir1_found and dir2_found, (
+            f"Both duplicate pages should be processed when _avoid_duplicate_content=False, "
+            f"got dir1={dir1_found}, dir2={dir2_found}"
+        )
+
+
+class TestContentDedupWithURLEvents(ModuleTestBase):
+    """Verify _avoid_duplicate_content works for modules watching URL events (via body_sha256 hash)."""
+
+    targets = [
+        "http://127.0.0.1:8888/page1.html",
+        "http://127.0.0.1:8888/page2.html",
+        "http://127.0.0.1:8888/different.html",
+    ]
+    modules_overrides = ["excavate", "http"]
+    config_overrides = {"web": {"spider_distance": 0, "spider_depth": 0}, "omit_event_types": []}
+
+    duplicate_body = "<html><body>identical content</body></html>"
+    unique_body = "<html><body>different content</body></html>"
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/page1.html"},
+            respond_args={"response_data": self.duplicate_body},
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/page2.html"},
+            respond_args={"response_data": self.duplicate_body},
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/different.html"},
+            respond_args={"response_data": self.unique_body},
+        )
+        module_test.httpserver.no_handler_status_code = 404
+
+    async def setup_after_prep(self, module_test):
+        class URLConsumer(BaseModule):
+            watched_events = ["URL"]
+            _name = "url_consumer"
+            _avoid_duplicate_content = True
+            events_seen = []
+
+            async def handle_event(self, event):
+                self.events_seen.append(event)
+
+        module_test.scan.modules["url_consumer"] = URLConsumer(module_test.scan)
+
+    def check(self, module_test, events):
+        consumer = module_test.scan.modules["url_consumer"]
+        seen_urls = {e.url for e in consumer.events_seen if e.type == "URL"}
+
+        assert "http://127.0.0.1:8888/different.html" in seen_urls, "Unique URL should be processed"
+
+        page1_seen = "http://127.0.0.1:8888/page1.html" in seen_urls
+        page2_seen = "http://127.0.0.1:8888/page2.html" in seen_urls
+        assert page1_seen or page2_seen, "At least one duplicate-content URL should be processed"
+        assert not (page1_seen and page2_seen), (
+            "Both duplicate-content URLs were processed — content dedup failed for URL events"
+        )
+        assert len(consumer._content_dup_tracker) > 0, "Content dedup tracker should have entries"

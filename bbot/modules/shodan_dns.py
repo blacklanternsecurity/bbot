@@ -1,18 +1,15 @@
 from bbot.modules.templates.shodan import shodan
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class shodan_dns(shodan):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive", "safe"]
-    meta = {
-        "description": "Query Shodan for subdomains",
-        "created_date": "2022-07-03",
-        "author": "@TheTechromancer",
-        "auth_required": True,
-    }
-    options = {"api_key": ""}
-    options_desc = {"api_key": "Shodan API key"}
+    flags = ["safe", "subdomain-enum", "passive"]
+    meta = {"description": "Query Shodan for subdomains", "created_date": "2022-07-03", "author": "@TheTechromancer"}
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="Shodan API key", sensitive=True, mandatory=True)
 
     base_url = "https://api.shodan.io"
 

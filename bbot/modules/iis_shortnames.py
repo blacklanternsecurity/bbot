@@ -1,6 +1,7 @@
 import re
 
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 valid_chars = "ETAONRISHDLFCMUGYPWBVKJXQZ0123456789_-$~()&!#%'@^`{}]]"
 
@@ -16,21 +17,28 @@ class IISShortnamesError(Exception):
 class iis_shortnames(BaseModule):
     watched_events = ["URL"]
     produced_events = ["URL_HINT"]
-    flags = ["active", "safe", "web-basic", "iis-shortnames"]
+    flags = ["loud", "active", "web", "iis-shortnames"]
     meta = {
         "description": "Check for IIS shortname vulnerability",
         "created_date": "2022-04-15",
         "author": "@liquidsec",
     }
-    options = {"detect_only": True, "max_node_count": 50, "speculate_magic_urls": True}
-    options_desc = {
-        "detect_only": "Only detect the vulnerability and do not run the shortname scanner",
-        "max_node_count": "Limit how many nodes to attempt to resolve on any given recursion branch",
-        "speculate_magic_urls": "Attempt to discover iis 'magic' special folders",
-    }
+
+    class Config(BaseModuleConfig):
+        detect_only: bool = Field(
+            True, description="Only detect the vulnerability and do not run the shortname scanner"
+        )
+        max_node_count: int = Field(
+            50, description="Limit how many nodes to attempt to resolve on any given recursion branch"
+        )
+        speculate_magic_urls: bool = Field(True, description="Attempt to discover iis 'magic' special folders")
+
     in_scope_only = True
 
-    _module_threads = 8
+    _module_threads = 4
+
+    # Gateway error codes from reverse proxies / CDNs — not IIS shortname signals
+    gateway_error_codes = {502, 503, 504}
 
     async def detect(self, target):
         technique = None
@@ -47,6 +55,13 @@ class iis_shortnames(BaseModule):
                 control_result = await self.helpers.request(control_url, **kwargs)
                 test_result = await self.helpers.request(test_url, **kwargs)
                 if control_result and test_result:
+                    # Skip gateway errors (502/503/504) — these come from CDNs/reverse proxies, not IIS
+                    if {control_result.status_code, test_result.status_code} & self.gateway_error_codes:
+                        self.debug(
+                            f"Skipping {method} detection on {target}: gateway error code "
+                            f"({control_result.status_code}/{test_result.status_code})"
+                        )
+                        break
                     if control_result.status_code != test_result.status_code:
                         confirmations += 1
                         self.debug(f"New detection on {target}, number of confirmations: [{str(confirmations)}]")
@@ -132,7 +147,7 @@ class iis_shortnames(BaseModule):
                 url = f"{target}{payload}{suffix}"
                 urls_and_kwargs.append((url, kwargs, (c, file_part)))
 
-        async for url, kwargs, (c, file_part), response in self.helpers.request_custom_batch(urls_and_kwargs):
+        async for url, response, (c, file_part) in self.helpers.request_batch_stream(urls_and_kwargs):
             if response is not None:
                 if response.status_code == affirmative_status_code:
                     if file_part == "stem":
@@ -173,7 +188,7 @@ class iis_shortnames(BaseModule):
             kwargs = {"method": method}
             urls_and_kwargs.append((url, kwargs, c))
 
-        async for url, kwargs, c, response in self.helpers.request_custom_batch(urls_and_kwargs):
+        async for url, response, c in self.helpers.request_batch_stream(urls_and_kwargs):
             if response is not None:
                 if response.status_code == affirmative_status_code:
                     found_results = True
@@ -219,7 +234,7 @@ class iis_shortnames(BaseModule):
         class safety_counter_obj:
             counter = 0
 
-        normalized_url = self.normalize_url(event.data)
+        normalized_url = self.normalize_url(event.url)
         self.scanned_tracker.add(normalized_url)
 
         detections = await self.detect(normalized_url)
@@ -232,8 +247,15 @@ class iis_shortnames(BaseModule):
 
             description = f"IIS Shortname Vulnerability Detected. Potentially Vulnerable Method/Techniques: [{','.join(technique_strings)}]"
             await self.emit_event(
-                {"severity": "LOW", "host": str(event.host), "url": normalized_url, "description": description},
-                "VULNERABILITY",
+                {
+                    "name": "IIS Shortnames",
+                    "severity": "LOW",
+                    "confidence": "HIGH",
+                    "host": str(event.host),
+                    "url": normalized_url,
+                    "description": description,
+                },
+                "FINDING",
                 event,
                 context="{module} detected low {event.type}: IIS shortname enumeration",
             )
@@ -335,9 +357,12 @@ class iis_shortnames(BaseModule):
                             if url_hint.lower().endswith(".zip"):
                                 await self.emit_event(
                                     {
+                                        "name": "Possible backup file (zip) in web root",
                                         "host": str(event.host),
-                                        "url": event.data,
+                                        "url": event.url,
                                         "description": f"Possible backup file (zip) in web root: {normalized_url}{url_hint}",
+                                        "confidence": "MEDIUM",
+                                        "severity": "MEDIUM",
                                     },
                                     "FINDING",
                                     event,
@@ -359,7 +384,7 @@ class iis_shortnames(BaseModule):
 
     async def filter_event(self, event):
         if "dir" in event.tags:
-            if self.normalize_url(event.data) not in self.scanned_tracker:
+            if self.normalize_url(event.url) not in self.scanned_tracker:
                 return True
             return False
         return False

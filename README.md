@@ -1,6 +1,6 @@
 [![bbot_banner](https://github.com/user-attachments/assets/f02804ce-9478-4f1e-ac4d-9cf5620a3214)](https://github.com/blacklanternsecurity/bbot)
 
-[![Python Version](https://img.shields.io/badge/python-3.10+-FF8400)](https://www.python.org) [![License](https://img.shields.io/badge/license-AGPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![DEF CON Recon Village 2024](https://img.shields.io/badge/DEF%20CON%20Demo%20Labs-2023-FF8400.svg)](https://www.reconvillage.org/talks) [![PyPi Downloads](https://static.pepy.tech/personalized-badge/bbot?right_color=orange&left_color=grey)](https://pepy.tech/project/bbot) [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot) [![Discord](https://img.shields.io/discord/859164869970362439)](https://discord.com/invite/PZqkgxu5SA)
+[![Python Version](https://img.shields.io/badge/python-3.10+-FF8400)](https://www.python.org) [![License](https://img.shields.io/badge/license-AGPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![PyPi Downloads](https://static.pepy.tech/personalized-badge/bbot?right_color=orange&left_color=grey)](https://pepy.tech/project/bbot) [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot) [![Discord](https://img.shields.io/discord/859164869970362439)](https://discord.com/invite/PZqkgxu5SA)
 
 ### **BEE·bot** is a multipurpose scanner inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot), built to automate your **Recon**, **Bug Bounties**, and **ASM**!
 
@@ -19,6 +19,10 @@ pipx install --pip-args '\--pre' bbot
 ```
 
 _For more installation methods, including [Docker](https://hub.docker.com/r/blacklanternsecurity/bbot), see [Getting Started](https://www.blacklanternsecurity.com/bbot/Stable/)_
+
+> **Upgrading from 2.x?** BBOT 3.0 contains breaking changes to the CLI, presets, modules, events, and Python API. See the [2.x → 3.0 Migration Guide](https://www.blacklanternsecurity.com/bbot/Stable/migration/3.0_breaking_changes/) ([source](docs/migration/3.0_breaking_changes.md)) before upgrading.
+
+> **Speed tip:** BBOT's DNS resolver ([blastdns](https://github.com/blacklanternsecurity/blastdns)) spins up multiple threads per resolver in `/etc/resolv.conf`. Adding more unfiltered resolvers dramatically speeds up scans. See the [sample resolv.conf](docs/data/resolv-sample.conf) and [Tips and Tricks](https://www.blacklanternsecurity.com/bbot/Stable/scanning/tips_and_tricks/#speed-up-scans-with-more-dns-resolvers) for details.
 
 ## Example Commands
 
@@ -69,7 +73,7 @@ config:
 
 <!-- END BBOT SUBDOMAIN-ENUM PRESET EXPANDABLE -->
 
-BBOT consistently finds 20-50% more subdomains than other tools. The bigger the domain, the bigger the difference. To learn how this is possible, see [How It Works](https://www.blacklanternsecurity.com/bbot/Dev/how_it_works/).
+BBOT consistently finds 20-50% more subdomains than other tools. The bigger the domain, the bigger the difference. To learn how this is possible, see [How It Works](https://www.blacklanternsecurity.com/bbot/Stable/how_it_works/).
 
 ![subdomain-stats-ebay](https://github.com/blacklanternsecurity/bbot/assets/20261699/de3e7f21-6f52-4ac4-8eab-367296cd385f)
 
@@ -89,7 +93,7 @@ bbot -t evilcorp.com -p spider
 description: Recursive web spider
 
 modules:
-  - httpx
+  - http
 
 blacklist:
   # Prevent spider from invalidating sessions by logging out
@@ -144,16 +148,16 @@ output_modules:
 
 ```bash
 # run a light web scan against www.evilcorp.com
-bbot -t www.evilcorp.com -p web-basic
+bbot -t www.evilcorp.com -p web
 
 # run a heavy web scan against www.evilcorp.com
-bbot -t www.evilcorp.com -p web-thorough
+bbot -t www.evilcorp.com -p web-heavy
 ```
 
-<!-- BBOT WEB-BASIC PRESET EXPANDABLE -->
+<!-- BBOT WEB PRESET EXPANDABLE -->
 
 <details>
-<summary><b><code>web-basic.yml</code></b></summary>
+<summary><b><code>web.yml</code></b></summary>
 
 ```yaml
 description: Quick web scan
@@ -162,43 +166,43 @@ include:
   - iis-shortnames
 
 flags:
-  - web-basic
+  - web
 
 ```
 
 </details>
 
-<!-- END BBOT WEB-BASIC PRESET EXPANDABLE -->
+<!-- END BBOT WEB PRESET EXPANDABLE -->
 
-<!-- BBOT WEB-THOROUGH PRESET EXPANDABLE -->
+<!-- BBOT WEB-HEAVY PRESET EXPANDABLE -->
 
 <details>
-<summary><b><code>web-thorough.yml</code></b></summary>
+<summary><b><code>web-heavy.yml</code></b></summary>
 
 ```yaml
 description: Aggressive web scan
 
 include:
-  # include the web-basic preset
-  - web-basic
+  # include the web preset
+  - web
 
 flags:
-  - web-thorough
+  - web-heavy
 
 ```
 
 </details>
 
-<!-- END BBOT WEB-THOROUGH PRESET EXPANDABLE -->
+<!-- END BBOT WEB-HEAVY PRESET EXPANDABLE -->
 
 ### 5) Everything Everywhere All at Once
 
 ```bash
 # everything everywhere all at once
-bbot -t evilcorp.com -p kitchen-sink --allow-deadly
+bbot -t evilcorp.com -p kitchen-sink
 
 # roughly equivalent to:
-bbot -t evilcorp.com -p subdomain-enum cloud-enum code-enum email-enum spider web-basic paramminer dirbust-light web-screenshots --allow-deadly
+bbot -t evilcorp.com -p subdomain-enum cloud-enum code-enum email-enum spider web paramminer webbrute web-screenshots
 ```
 
 <!-- BBOT KITCHEN-SINK PRESET EXPANDABLE -->
@@ -215,16 +219,26 @@ include:
   - code-enum
   - email-enum
   - spider
-  - web-basic
+  - web
   - paramminer
-  - dirbust-light
+  - webbrute
   - web-screenshots
-  - baddns-intense
+  - baddns-heavy
 
 config:
   modules:
     baddns:
       enable_references: True
+    dnsbrute:
+      recursive_mutations: true
+    dnscommonsrv:
+      recursive_mutations: true
+    webbrute:
+      avoid_wafs: False
+    wayback:
+      urls: True
+      parameters: True
+      archive: True
 
 ```
 
@@ -379,11 +393,17 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/Stabl
         - [Tips and Tricks](https://www.blacklanternsecurity.com/bbot/Stable/scanning/tips_and_tricks)
         - [Advanced Usage](https://www.blacklanternsecurity.com/bbot/Stable/scanning/advanced)
         - [Configuration](https://www.blacklanternsecurity.com/bbot/Stable/scanning/configuration)
+        - [Scan Sanity](https://www.blacklanternsecurity.com/bbot/Stable/scanning/scan_sanity)
     - **Modules**
         - [List of Modules](https://www.blacklanternsecurity.com/bbot/Stable/modules/list_of_modules)
+        - [Internal Modules](https://www.blacklanternsecurity.com/bbot/Stable/modules/internal_modules)
         - [Nuclei](https://www.blacklanternsecurity.com/bbot/Stable/modules/nuclei)
+        - [Wayback](https://www.blacklanternsecurity.com/bbot/Stable/modules/wayback)
         - [Custom YARA Rules](https://www.blacklanternsecurity.com/bbot/Stable/modules/custom_yara_rules)
         - [Lightfuzz](https://www.blacklanternsecurity.com/bbot/Stable/modules/lightfuzz)
+        - [Webbrute](https://www.blacklanternsecurity.com/bbot/Stable/modules/webbrute)
+    - **Migration**
+        - [2.x → 3.0 Breaking Changes](https://www.blacklanternsecurity.com/bbot/Stable/migration/3.0_breaking_changes)
     - **Misc**
         - [Contribution](https://www.blacklanternsecurity.com/bbot/Stable/contribution)
         - [Release History](https://www.blacklanternsecurity.com/bbot/Stable/release_history)
@@ -391,8 +411,10 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/Stabl
 - **Developer Manual**
     - [Development Overview](https://www.blacklanternsecurity.com/bbot/Stable/dev/)
     - [Setting Up a Dev Environment](https://www.blacklanternsecurity.com/bbot/Stable/dev/dev_environment)
+    - [Core Dependencies](https://www.blacklanternsecurity.com/bbot/Stable/dev/core_dependencies)
     - [BBOT Internal Architecture](https://www.blacklanternsecurity.com/bbot/Stable/dev/architecture)
     - [How to Write a BBOT Module](https://www.blacklanternsecurity.com/bbot/Stable/dev/module_howto)
+    - [Validating & Inspecting Presets](https://www.blacklanternsecurity.com/bbot/Stable/dev/preset_validation)
     - [Unit Tests](https://www.blacklanternsecurity.com/bbot/Stable/dev/tests)
     - [Discord Bot Example](https://www.blacklanternsecurity.com/bbot/Stable/dev/discord_bot)
     - **Code Reference**
@@ -402,7 +424,6 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/Stabl
         - [Target](https://www.blacklanternsecurity.com/bbot/Stable/dev/target)
         - [BaseModule](https://www.blacklanternsecurity.com/bbot/Stable/dev/basemodule)
         - [BBOTCore](https://www.blacklanternsecurity.com/bbot/Stable/dev/core)
-        - [Engine](https://www.blacklanternsecurity.com/bbot/Stable/dev/engine)
         - **Helpers**
             - [Overview](https://www.blacklanternsecurity.com/bbot/Stable/dev/helpers/)
             - [Command](https://www.blacklanternsecurity.com/bbot/Stable/dev/helpers/command)

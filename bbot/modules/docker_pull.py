@@ -3,22 +3,25 @@ import json
 import tarfile
 from pathlib import Path
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class docker_pull(BaseModule):
     watched_events = ["CODE_REPOSITORY"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "safe", "slow", "code-enum", "download"]
+    flags = ["safe", "passive", "slow", "code-enum", "download"]
     meta = {
         "description": "Download images from a docker repository",
         "created_date": "2024-03-24",
         "author": "@domwhewell-sage",
     }
-    options = {"all_tags": False, "output_folder": ""}
-    options_desc = {
-        "all_tags": "Download all tags from each registry (Default False)",
-        "output_folder": "Folder to download docker repositories to. If not specified, downloaded docker images will be deleted when the scan completes, to minimize disk usage.",
-    }
+
+    class Config(BaseModuleConfig):
+        all_tags: bool = Field(False, description="Download all tags from each registry (Default False)")
+        output_folder: str = Field(
+            "",
+            description="Folder to download docker repositories to. If not specified, downloaded docker images will be deleted when the scan completes, to minimize disk usage.",
+        )
 
     scope_distance_modifier = 2
 
@@ -49,7 +52,7 @@ class docker_pull(BaseModule):
         return True
 
     async def handle_event(self, event):
-        repo_url = event.data.get("url")
+        repo_url = event.url
         repo_path = await self.download_docker_repo(repo_url)
         if repo_path:
             self.verbose(f"Downloaded docker repository {repo_url} to {repo_path}")
@@ -203,6 +206,11 @@ class docker_pull(BaseModule):
 
     async def download_and_write_to_tar(self, registry, repository, tag):
         output_tar = self.output_dir / f"{repository.replace('/', '_')}_{tag}.tar"
+        # tag comes from the registry API; resolve() collapses ".." so a malicious
+        # tag can't write the tarball outside the output directory
+        if not output_tar.resolve().is_relative_to(self.output_dir.resolve()):
+            self.warning(f"Refusing to write outside output directory: {output_tar}")
+            return None
         with tarfile.open(output_tar, mode="w") as tar:
             manifest = await self.get_manifest(registry, repository, tag)
             config_file, config_filename = await self.download_and_get_filename(

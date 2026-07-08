@@ -202,7 +202,7 @@ class DepsInstaller:
                             log.debug(f'Setup succeeded for module "{m}"')
                             succeeded.append(m)
                         else:
-                            log.warning(f'Setup failed for module "{m}"')
+                            log.error(f'Setup failed for module "{m}"')
                             failed.append(m)
                     else:
                         if success or self.deps_behavior == "ignore_failed":
@@ -211,7 +211,7 @@ class DepsInstaller:
                             )
                             succeeded.append(m)
                         else:
-                            log.warning(
+                            log.error(
                                 f'Skipping dependency install for module "{m}" because it failed previously (--retry-deps to retry or --ignore-failed-deps to ignore)'
                             )
                             failed.append(m)
@@ -288,7 +288,7 @@ class DepsInstaller:
             log.info(message)
             return True
         except CalledProcessError as err:
-            log.warning(f"Failed to install pip packages {packages_str} (return code {err.returncode}): {err.stderr}")
+            log.error(f"Failed to install pip packages {packages_str} (return code {err.returncode}): {err.stderr}")
         return False
 
     def apt_install(self, packages):
@@ -300,11 +300,9 @@ class DepsInstaller:
         if success:
             log.info(f'Successfully installed OS packages "{",".join(sorted(packages))}"')
         else:
-            log.warning(
-                f"Failed to install OS packages ({err}). Recommend installing the following packages manually:"
-            )
+            log.error(f"Failed to install OS packages ({err}). Recommend installing the following packages manually:")
             for p in packages:
-                log.warning(f" - {p}")
+                log.error(f" - {p}")
         return success
 
     def _make_apt_ansible_args(self, packages):
@@ -341,7 +339,7 @@ class DepsInstaller:
         if success:
             log.info(f"Successfully ran {len(commands):,} shell commands")
         else:
-            log.warning("Failed to run shell dependencies")
+            log.error("Failed to run shell dependencies")
         return success
 
     def tasks(self, module, tasks):
@@ -350,7 +348,7 @@ class DepsInstaller:
         if success:
             log.info(f"Successfully ran {len(tasks):,} Ansible tasks for {module}")
         else:
-            log.warning(f"Failed to run Ansible tasks for {module}")
+            log.error(f"Failed to run Ansible tasks for {module}")
         return success
 
     def ansible_run(self, tasks=None, module=None, args=None, ansible_args=None):
@@ -426,8 +424,10 @@ class DepsInstaller:
         with self.ensure_root_lock:
             # first check if the environment variable is set
             _sudo_password = os.environ.get("BBOT_SUDO_PASS", None)
-            if _sudo_password is not None or os.geteuid() == 0 or can_sudo_without_password():
-                # if we're already root or we can sudo without a password, there's no need to prompt
+            if _sudo_password is not None:
+                self._sudo_password = _sudo_password
+                return
+            if os.geteuid() == 0 or can_sudo_without_password():
                 return
 
             if message:
@@ -435,12 +435,33 @@ class DepsInstaller:
             while not self._sudo_password:
                 # sleep for a split second to flush previous log messages
                 sleep(0.1)
-                _sudo_password = getpass.getpass(prompt="[USER] Please enter sudo password: ")
+                try:
+                    _sudo_password = getpass.getpass(prompt="[USER] Please enter sudo password: ")
+                except OSError:
+                    log.error("Unable to read sudo password (no TTY). Set BBOT_SUDO_PASS env var.")
+                    return
                 if self.parent_helper.verify_sudo_password(_sudo_password):
                     log.success("Authentication successful")
                     self._sudo_password = _sudo_password
                 else:
                     log.warning("Incorrect password")
+
+    def _core_dep_satisfied(self, command):
+        """Check if a core dependency is satisfied.
+
+        For normal binary deps, check if the command exists on PATH.
+        For special entries like openssl_dev_headers, use a custom check.
+        """
+        if command == "openssl_dev_headers":
+            # check for openssl headers by looking for the pkg-config file or header
+            return any(
+                Path(p).exists()
+                for p in [
+                    "/usr/include/openssl/ssl.h",
+                    "/usr/local/include/openssl/ssl.h",
+                ]
+            ) or bool(self.parent_helper.which("openssl"))
+        return bool(self.parent_helper.which(command))
 
     async def install_core_deps(self):
         # skip if we've already successfully installed core deps for this definition
@@ -453,18 +474,25 @@ class DepsInstaller:
         to_install = set()
         to_install_friendly = set()
         playbook = []
-        self._install_sudo_askpass()
-        # ensure tldextract data is cached
-        self.parent_helper.tldextract("evilcorp.co.uk")
-        # install any missing commands
+        # check which commands are missing
         for command, package_name_or_playbook in self.CORE_DEPS.items():
-            if not self.parent_helper.which(command):
-                to_install_friendly.add(command)
-                if isinstance(package_name_or_playbook, str):
-                    to_install.add(package_name_or_playbook)
-                else:
-                    playbook.extend(package_name_or_playbook)
-        # install ansible community.general collection
+            if self._core_dep_satisfied(command):
+                continue
+            to_install_friendly.add(command)
+            if isinstance(package_name_or_playbook, str):
+                to_install.add(package_name_or_playbook)
+            else:
+                playbook.extend(package_name_or_playbook)
+        # construct ansible playbook
+        if to_install:
+            playbook.append(
+                {
+                    "name": "Install Core BBOT Dependencies",
+                    "package": {"name": list(to_install), "state": "present"},
+                    "become": True,
+                }
+            )
+        # install ansible community.general collection if needed
         overall_success = True
         if not self.setup_status.get("ansible:community.general", False):
             log.info("Installing Ansible Community General Collection")
@@ -478,17 +506,12 @@ class DepsInstaller:
                     f"Failed to install Ansible Community.General Collection (return code {err.returncode}): {err.stderr}"
                 )
                 overall_success = False
-        # construct ansible playbook
-        if to_install:
-            playbook.append(
-                {
-                    "name": "Install Core BBOT Dependencies",
-                    "package": {"name": list(to_install), "state": "present"},
-                    "become": True,
-                }
-            )
-        # run playbook
+        # only run ansible if there's actually something to install
         if playbook:
+            self._install_sudo_askpass()
+            # ensure tldextract data is cached
+            self.parent_helper.tldextract("evilcorp.co.uk")
+            # run playbook
             log.info(f"Installing core BBOT dependencies: {','.join(sorted(to_install_friendly))}")
             self.ensure_root()
             success, _ = self.ansible_run(tasks=playbook)

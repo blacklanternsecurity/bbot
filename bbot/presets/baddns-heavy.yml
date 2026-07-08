@@ -1,0 +1,21 @@
+description: Run all baddns modules and submodules.
+
+include:
+  - baddns
+
+modules:
+  - baddns_zone
+  - baddns_direct
+
+config:
+  modules:
+    baddns:
+      enabled_submodules: [CNAME, NS, MX, TXT, references, DMARC, SPF, MTA-STS, WILDCARD]
+      min_severity: INFO
+      min_confidence: UNKNOWN
+    baddns_zone:
+      min_severity: INFO
+      min_confidence: UNKNOWN
+    baddns_direct:
+      min_severity: INFO
+      min_confidence: UNKNOWN

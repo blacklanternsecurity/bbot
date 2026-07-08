@@ -1,4 +1,5 @@
 from bbot.modules.templates.censys import censys
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class censys_ip(censys):
@@ -16,26 +17,32 @@ class censys_ip(censys):
         "TECHNOLOGY",
         "PROTOCOL",
     ]
-    flags = ["passive", "safe"]
+    flags = ["safe", "passive"]
     meta = {
         "description": "Query the Censys API for hosts by IP address",
         "created_date": "2026-01-26",
         "author": "@TheTechromancer",
-        "auth_required": True,
     }
-    options = {"api_key": "", "dns_names_limit": 100, "in_scope_only": True}
-    options_desc = {
-        "api_key": "Censys.io API Key in the format of 'key:secret'",
-        "dns_names_limit": "Maximum number of DNS names to extract from dns.names (default 100)",
-        "in_scope_only": "Only query in-scope IPs. If False, will query up to distance 1.",
-    }
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field(
+            "", description="Censys.io API Key in the format of 'key:secret'", sensitive=True, mandatory=True
+        )
+        dns_names_limit: int = Field(
+            100, description="Maximum number of DNS names to extract from dns.names (default 100)"
+        )
+        in_scope_only: bool = Field(
+            True, description="Only query in-scope IPs. If False, will query up to distance 1."
+        )
+
     scope_distance_modifier = 1
 
     async def setup(self):
         self.dns_names_limit = self.config.get("dns_names_limit", 100)
-        self.warning(
-            "This module may consume a lot of API queries. Unless you specifically want to query on each individual IP, we recommend using the censys_dns module instead."
-        )
+        if not self.config.get("in_scope_only", True):
+            self.warning(
+                "in_scope_only is disabled. This module queries each IP individually and may consume a lot of API credits!"
+            )
         return await super().setup()
 
     async def filter_event(self, event):
@@ -126,7 +133,7 @@ class censys_ip(censys):
                     uri,
                     "URL_UNVERIFIED",
                     parent=event,
-                    context="{module} found {event.data} in HTTP service of {event.parent.data}",
+                    context="{module} found {event.pretty_string} in HTTP service of {event.parent.data}",
                 )
 
             # Extract TLS certificate data
@@ -165,13 +172,13 @@ class censys_ip(censys):
         # Validate and emit as DNS_NAME
         try:
             validated = self.helpers.validators.validate_host(host)
+            if validated and validated not in seen:
+                seen.add(validated)
+                await self.emit_event(
+                    validated,
+                    "DNS_NAME",
+                    parent=event,
+                    context=f"{{module}} found {{event.pretty_string}} in {source} of {{event.parent.data}}",
+                )
         except ValueError as e:
             self.debug(f"Error validating host {host} in {source}: {e}")
-        if validated and validated not in seen:
-            seen.add(validated)
-            await self.emit_event(
-                validated,
-                "DNS_NAME",
-                parent=event,
-                context=f"{{module}} found {{event.data}} in {source} of {{event.parent.data}}",
-            )

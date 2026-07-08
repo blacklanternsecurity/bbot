@@ -2,7 +2,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum
 
 
 class rapiddns(subdomain_enum):
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["safe", "subdomain-enum", "passive"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     meta = {
@@ -15,7 +15,7 @@ class rapiddns(subdomain_enum):
 
     async def request_url(self, query):
         url = f"{self.base_url}/subdomain/{self.helpers.quote(query)}?full=1#result"
-        response = await self.api_request(url, timeout=self.http_timeout + 10)
+        response = await self.api_request(url, timeout=self.http_timeout_infrastructure + 10)
         return response
 
     async def parse_results(self, r, query):

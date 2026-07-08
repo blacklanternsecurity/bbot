@@ -1,8 +1,11 @@
+from typing import Union
+
 from bbot.modules.templates.subdomain_enum import subdomain_enum
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class dnsbrute(subdomain_enum):
-    flags = ["subdomain-enum", "active", "aggressive"]
+    flags = ["subdomain-enum", "active", "loud"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     meta = {
@@ -10,14 +13,18 @@ class dnsbrute(subdomain_enum):
         "author": "@TheTechromancer",
         "created_date": "2024-04-24",
     }
-    options = {
-        "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
-        "max_depth": 5,
-    }
-    options_desc = {
-        "wordlist": "Subdomain wordlist URL",
-        "max_depth": "How many subdomains deep to brute force, i.e. 5.4.3.2.1.evilcorp.com",
-    }
+
+    class Config(BaseModuleConfig):
+        wordlist: Union[str, list[str]] = Field(
+            "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
+            description="Subdomain wordlist URL or file path. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
+        )
+        max_depth: int = Field(5, description="How many subdomains deep to brute force, i.e. 5.4.3.2.1.evilcorp.com")
+        recursive_mutations: bool = Field(
+            False,
+            description="If True, brute-force hosts discovered by dnsbrute_mutations. The default (False) skips them because the static wordlist heavily overlaps with the mutation algorithm's own output.",
+        )
+
     deps_common = ["massdns"]
     reject_wildcards = "strict"
     dedup_strategy = "lowest_parent"
@@ -54,11 +61,11 @@ class dnsbrute(subdomain_enum):
 
     async def handle_event(self, event):
         query = self.make_query(event)
-        self.info(f"Brute-forcing {self.wordlist_size:,} subdomains for {query} (source: {event.data})")
+        self.info(f"Brute-forcing {self.wordlist_size:,} subdomains for {query} (source: {event.pretty_string})")
         for hostname in await self.helpers.dns.brute(self, query, self.subdomain_list):
             await self.emit_event(
                 hostname,
                 "DNS_NAME",
                 parent=event,
-                context=f'{{module}} tried {self.wordlist_size:,} subdomains against "{query}" and found {{event.type}}: {{event.data}}',
+                context=f'{{module}} tried {self.wordlist_size:,} subdomains against "{query}" and found {{event.type}}: {{event.pretty_string}}',
             )

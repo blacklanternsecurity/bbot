@@ -1,21 +1,24 @@
 import re
 from pathlib import Path
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class apkpure(BaseModule):
     watched_events = ["MOBILE_APP"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "safe", "code-enum", "download"]
+    flags = ["safe", "passive", "code-enum", "download"]
     meta = {
         "description": "Download android applications from apkpure.com",
         "created_date": "2024-10-11",
         "author": "@domwhewell-sage",
     }
-    options = {"output_folder": ""}
-    options_desc = {
-        "output_folder": "Folder to download APKs to. If not specified, downloaded APKs will be deleted when the scan completes, to minimize disk usage."
-    }
+
+    class Config(BaseModuleConfig):
+        output_folder: str = Field(
+            "",
+            description="Folder to download APKs to. If not specified, downloaded APKs will be deleted when the scan completes, to minimize disk usage.",
+        )
 
     async def setup(self):
         output_folder = self.config.get("output_folder", "")

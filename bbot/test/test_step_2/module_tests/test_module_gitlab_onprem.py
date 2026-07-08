@@ -3,7 +3,7 @@ from .base import ModuleTestBase
 
 class TestGitlab_OnPrem(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["gitlab_onprem", "httpx"]
+    modules_overrides = ["gitlab_onprem", "http"]
     config_overrides = {"modules": {"gitlab_onprem": {"api_key": "asdf"}}}
 
     async def setup_before_prep(self, module_test):
@@ -167,7 +167,7 @@ class TestGitlab_OnPrem(ModuleTestBase):
                 e
                 for e in events
                 if e.type == "TECHNOLOGY"
-                and e.data["technology"] == "GitLab"
+                and e.data["technology"] == "gitlab"
                 and e.data["url"] == "http://127.0.0.1:8888/"
             ]
         )

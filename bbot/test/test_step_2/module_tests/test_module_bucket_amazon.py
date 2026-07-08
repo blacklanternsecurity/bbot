@@ -36,7 +36,7 @@ class Bucket_Amazon_Base(ModuleTestBase):
 
     @property
     def modules_overrides(self):
-        return ["excavate", "speculate", "httpx", self.module_name, "cloudcheck"]
+        return ["excavate", "speculate", "http", self.module_name, "cloudcheck"]
 
     def url_setup(self):
         self.url_1 = f"https://{self.random_bucket_1}/"
@@ -60,48 +60,31 @@ class Bucket_Amazon_Base(ModuleTestBase):
             expect_args={"method": "GET", "uri": "/"}, respond_args={"response_data": self.website_body}
         )
         if module_test.module.supports_open_check:
-            module_test.httpx_mock.add_response(
+            module_test.blasthttp_mock.add_response(
                 url=self.url_2,
                 text=self.open_bucket_body,
             )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url=self.url_3,
             text="",
         )
         if self.nonexistent_is_404:
-            module_test.httpx_mock.add_response(url=re.compile(".*"), text="", status_code=404)
+            module_test.blasthttp_mock.add_response(url=re.compile(".*"), text="", status_code=404)
 
     def check(self, module_test, events):
         storage_buckets = [e for e in events if e.type == "STORAGE_BUCKET"]
         assert len(storage_buckets) == 3
         assert 1 == len(
-            [
-                e
-                for e in storage_buckets
-                if e.data["name"] == random_bucket_name_1
-                and str(e.module) == "cloudcheck"
-                and f"cloud-{self.provider}" in e.tags
-                and f"{self.provider}-domain" in e.tags
-            ]
+            [e for e in storage_buckets if e.data["name"] == random_bucket_name_1 and str(e.module) == "cloudcheck"]
+        )
+        assert 1 == len(
+            [e for e in storage_buckets if e.data["name"] == random_bucket_name_2 and str(e.module) == "cloudcheck"]
         )
         assert 1 == len(
             [
                 e
                 for e in storage_buckets
-                if e.data["name"] == random_bucket_name_2
-                and str(e.module) == "cloudcheck"
-                and f"cloud-{self.provider}" in e.tags
-                and f"{self.provider}-domain" in e.tags
-            ]
-        )
-        assert 1 == len(
-            [
-                e
-                for e in storage_buckets
-                if e.data["name"] == random_bucket_name_3
-                and str(e.module) == str(self.module_name)
-                and f"cloud-{module_test.module.cloudcheck_provider_name.lower()}" in e.tags
-                and f"{module_test.module.cloudcheck_provider_name.lower()}-domain" in e.tags
+                if e.data["name"] == random_bucket_name_3 and str(e.module) == str(self.module_name)
             ]
         )
         # make sure open buckets were found

@@ -5,7 +5,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum
 
 
 class crt_db(subdomain_enum):
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["safe", "subdomain-enum", "passive"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     meta = {
@@ -26,15 +26,20 @@ class crt_db(subdomain_enum):
         self.db_conn = None
         return await super().setup()
 
+    async def _connect(self):
+        return await asyncpg.connect(
+            host=self.db_host,
+            port=self.db_port,
+            user=self.db_user,
+            database=self.db_name,
+            statement_cache_size=0,  # Disable automatic statement preparation
+        )
+
     async def request_url(self, query):
-        if not self.db_conn:
-            self.db_conn = await asyncpg.connect(
-                host=self.db_host,
-                port=self.db_port,
-                user=self.db_user,
-                database=self.db_name,
-                statement_cache_size=0,  # Disable automatic statement preparation
-            )
+        # asyncpg connections can drop mid-scan when the upstream Postgres restarts,
+        # exhausts shared memory, or idles us out. Reconnect on the next call.
+        if self.db_conn is None or self.db_conn.is_closed():
+            self.db_conn = await self._connect()
 
         sql = """
         WITH ci AS (
@@ -51,7 +56,16 @@ class crt_db(subdomain_enum):
         SELECT DISTINCT unnest(NAME_VALUES) as name_value FROM ci;
         """
         start = time.time()
-        results = await self.db_conn.fetch(sql, query)
+        try:
+            results = await self.db_conn.fetch(sql, query)
+        except (asyncpg.InterfaceError, asyncpg.PostgresConnectionError, ConnectionError):
+            # connection died between requests; drop it so the next call reconnects
+            self.db_conn = None
+            raise
+        except asyncpg.OutOfMemoryError as e:
+            # upstream is overloaded; bail out for the rest of the scan rather than hammer it
+            self.set_error_state(f"crt.sh Postgres reported out-of-memory: {e}")
+            return []
         end = time.time()
         self.verbose(f"SQL query executed in: {end - start} seconds with {len(results):,} results")
         return results

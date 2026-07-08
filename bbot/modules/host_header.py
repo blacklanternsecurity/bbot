@@ -5,7 +5,7 @@ from bbot.modules.base import BaseModule
 class host_header(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
-    flags = ["active", "aggressive", "web-thorough"]
+    flags = ["active", "loud", "web-heavy"]
     meta = {
         "description": "Try common HTTP Host header spoofing techniques",
         "created_date": "2022-07-27",
@@ -14,8 +14,6 @@ class host_header(BaseModule):
 
     in_scope_only = True
     per_hostport_only = True
-
-    deps_apt = ["curl"]
 
     async def setup(self):
         self.subdomain_tags = {}
@@ -43,13 +41,16 @@ class host_header(BaseModule):
                     return
                 matched_event = match[0]
                 matched_technique = match[1]
-
                 protocol = r.get("protocol").upper()
+                confidence = "HIGH" if protocol == "HTTP" else "MEDIUM"
                 await self.emit_event(
                     {
                         "host": str(matched_event.host),
-                        "url": matched_event.data["url"],
+                        "url": matched_event.url,
+                        "name": "Host Header Spoofing",
                         "description": f"Spoofed Host header ({matched_technique}) [{protocol}] interaction",
+                        "severity": "MEDIUM",
+                        "confidence": confidence,
                     },
                     "FINDING",
                     matched_event,
@@ -80,7 +81,7 @@ class host_header(BaseModule):
 
     async def handle_event(self, event):
         # get any set-cookie responses from the response and add them to the request
-        url = event.data["url"]
+        url = event.url
 
         added_cookies = {}
 
@@ -100,13 +101,13 @@ class host_header(BaseModule):
         self.debug(f"Performing {technique_description} case")
         subdomain_tag = self.rand_string(4, digits=False)
         self.subdomain_tags[subdomain_tag] = (event, technique_description)
-        output = await self.helpers.curl(
+        response = await self.helpers.request(
             url=url,
             headers={"Host": f"{subdomain_tag}.{self.domain}"},
             ignore_bbot_global_settings=True,
             cookies=added_cookies,
         )
-        if self.domain in output:
+        if response and self.domain in response.text:
             domain_reflections.append(technique_description)
 
         # absolute URL / Host header transposition
@@ -114,38 +115,39 @@ class host_header(BaseModule):
         self.debug(f"Performing {technique_description} case")
         subdomain_tag = self.rand_string(4, digits=False)
         self.subdomain_tags[subdomain_tag] = (event, technique_description)
-        output = await self.helpers.curl(
+        response = await self.helpers.request(
             url=url,
-            path_override=url,
+            request_target=url,
             cookies=added_cookies,
         )
-
-        if self.domain in output:
+        if response and self.domain in response.text:
             domain_reflections.append(technique_description)
 
         # duplicate host header tolerance
         technique_description = "duplicate host header tolerance"
-        output = await self.helpers.curl(
+        response = await self.helpers.request(
             url=url,
-            # Sending a blank HOST first as a hack to trick curl. This makes it no longer an "internal header", thereby allowing for duplicates
-            # The fact that it's accepting two host headers is rare enough to note on its own, and not too noisy. Having the 3rd header be an interactsh would result in false negatives for the slightly less interesting cases.
+            method="HEAD",
+            # Sending duplicate Host headers to test server tolerance.
+            # The fact that it's accepting two host headers is rare enough to note on its own.
             headers={"Host": ["", str(event.host), str(event.host)]},
             cookies=added_cookies,
-            head_mode=True,
         )
 
-        split_output = output.split("\n")
-        if " 4" in split_output:
+        if response and response.status_code >= 400 and response.status_code < 500:
             description = "Duplicate Host Header Tolerated"
             await self.emit_event(
                 {
                     "host": str(event.host),
                     "url": url,
                     "description": description,
+                    "name": "Duplicate Host Header Tolerated",
+                    "severity": "INFO",
+                    "confidence": "LOW",
                 },
                 "FINDING",
                 event,
-                context=f"{{module}} scanned {event.data['url']} and identified {{event.type}}: {description}",
+                context=f"{{module}} scanned {event.url} and identified {{event.type}}: {description}",
             )
 
         # host header overrides
@@ -168,12 +170,12 @@ class host_header(BaseModule):
         for oh in override_headers_list:
             override_headers[oh] = f"{subdomain_tag}.{self.domain}"
 
-        output = await self.helpers.curl(
+        response = await self.helpers.request(
             url=url,
             headers=override_headers,
             cookies=added_cookies,
         )
-        if self.domain in output:
+        if response and self.domain in response.text:
             domain_reflections.append(technique_description)
 
         # emit all the domain reflections we found
@@ -184,6 +186,9 @@ class host_header(BaseModule):
                     "host": str(event.host),
                     "url": url,
                     "description": description,
+                    "name": "Possible Host Header Injection",
+                    "severity": "INFO",
+                    "confidence": "LOW",
                 },
                 "FINDING",
                 event,

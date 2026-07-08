@@ -1,5 +1,6 @@
 from bbot.errors import InteractshError
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 ssrf_params = [
@@ -59,9 +60,9 @@ class BaseSubmodule:
                 subdomain_tag = test_path_result[1]
                 test_url = f"{base_url}{test_path}"
                 self.generic_ssrf.debug(f"Sending request to URL: {test_url}")
-                r = await self.generic_ssrf.helpers.curl(url=test_url)
+                r = await self.generic_ssrf.helpers.request(url=test_url)
                 if r:
-                    self.process(event, r, subdomain_tag)
+                    self.process(event, r.text, subdomain_tag)
 
     def process(self, event, r, subdomain_tag):
         response_token = self.generic_ssrf.interactsh_domain.split(".")[0][::-1]
@@ -83,7 +84,7 @@ class Generic_SSRF(BaseSubmodule):
     severity = "HIGH"
 
     def set_base_url(self, event):
-        return event.data
+        return event.url
 
     def create_paths(self):
         test_paths = []
@@ -102,10 +103,10 @@ class Generic_SSRF_POST(BaseSubmodule):
     severity = "HIGH"
 
     def set_base_url(self, event):
-        return event.data
+        return event.url
 
     async def test(self, event):
-        test_url = f"{event.data}"
+        test_url = event.url
 
         post_data = {}
         for param in ssrf_params:
@@ -122,8 +123,11 @@ class Generic_SSRF_POST(BaseSubmodule):
         post_data_list = [(subdomain_tag, post_data), (subdomain_tag_lower, post_data_lower)]
 
         for tag, pd in post_data_list:
-            r = await self.generic_ssrf.helpers.curl(url=test_url, method="POST", post_data=pd)
-            self.process(event, r, tag)
+            # Send raw body (not URL-encoded) so payload URLs like http://... reach the server literally.
+            raw_body = "&".join(f"{k}={v}" for k, v in pd.items())
+            r = await self.generic_ssrf.helpers.request(url=test_url, method="POST", body=raw_body)
+            if r:
+                self.process(event, r.text, tag)
 
 
 class Generic_XXE(BaseSubmodule):
@@ -142,27 +146,23 @@ class Generic_XXE(BaseSubmodule):
 ]>
 <foo>&{rand_entity};</foo>"""
         test_url = event.parsed_url.geturl()
-        r = await self.generic_ssrf.helpers.curl(
-            url=test_url, method="POST", raw_body=post_body, headers={"Content-type": "application/xml"}
+        r = await self.generic_ssrf.helpers.request(
+            url=test_url, method="POST", body=post_body, headers={"Content-type": "application/xml"}
         )
         if r:
-            self.process(event, r, subdomain_tag)
+            self.process(event, r.text, subdomain_tag)
 
 
 class generic_ssrf(BaseModule):
     watched_events = ["URL"]
-    produced_events = ["VULNERABILITY"]
-    flags = ["active", "aggressive", "web-thorough"]
+    produced_events = ["FINDING"]
+    flags = ["active", "invasive", "web-heavy"]
     meta = {"description": "Check for generic SSRFs", "created_date": "2022-07-30", "author": "@liquidsec"}
-    options = {
-        "skip_dns_interaction": False,
-    }
-    options_desc = {
-        "skip_dns_interaction": "Do not report DNS interactions (only HTTP interaction)",
-    }
-    in_scope_only = True
 
-    deps_apt = ["curl"]
+    class Config(BaseModuleConfig):
+        skip_dns_interaction: bool = Field(False, description="Do not report DNS interactions (only HTTP interaction)")
+
+    in_scope_only = True
 
     async def setup(self):
         self.submodules = {}
@@ -223,20 +223,20 @@ class generic_ssrf(BaseModule):
 
                 self.debug(f"Emitting event with description: {description}")  # Debug the final description
 
-                event_type = "VULNERABILITY" if protocol == "HTTP" else "FINDING"
                 event_data = {
                     "host": str(matched_event.host),
-                    "url": matched_event.data,
+                    "url": matched_event.url,
+                    "name": matched_technique,
                     "description": description,
+                    "severity": matched_severity if protocol == "HTTP" else "LOW",
+                    "confidence": "CONFIRMED" if protocol == "HTTP" else "MEDIUM",
                 }
-                if protocol == "HTTP":
-                    event_data["severity"] = matched_severity
 
                 await self.emit_event(
                     event_data,
-                    event_type,
+                    "FINDING",
                     matched_event,
-                    context=f"{{module}} scanned {matched_event.data} and detected {{event.type}}: {matched_technique}",
+                    context=f"{{module}} scanned {matched_event.url} and detected {{event.type}}: {matched_technique}",
                 )
             else:
                 # this is likely caused by something trying to resolve the base domain first and can be ignored

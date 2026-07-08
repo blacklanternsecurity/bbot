@@ -16,8 +16,7 @@ class GitLabBaseModule(BaseModule):
     saas_domains = ["gitlab.com", "gitlab.org"]
 
     async def setup(self):
-        if self.options.get("api_key") is not None:
-            await self.require_api_key()
+        await self.require_api_key()
         return True
 
     async def handle_social(self, event):
@@ -92,7 +91,7 @@ class GitLabBaseModule(BaseModule):
     # Utility helpers
     # ------------------------------------------------------------------
     def get_base_url(self, event):
-        base_url = event.data.get("url", "")
+        base_url = event.url
         if not base_url:
             base_url = f"https://{event.host}"
         return self.helpers.urlparse(base_url)._replace(path="/").geturl()

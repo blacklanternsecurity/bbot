@@ -1,10 +1,11 @@
 import time
 
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class dnsbrute_mutations(BaseModule):
-    flags = ["subdomain-enum", "active", "aggressive", "slow"]
+    flags = ["subdomain-enum", "active", "loud", "slow"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     meta = {
@@ -12,12 +13,10 @@ class dnsbrute_mutations(BaseModule):
         "author": "@TheTechromancer",
         "created_date": "2024-04-25",
     }
-    options = {
-        "max_mutations": 100,
-    }
-    options_desc = {
-        "max_mutations": "Maximum number of target-specific mutations to try per subdomain",
-    }
+
+    class Config(BaseModuleConfig):
+        max_mutations: int = Field(100, description="Maximum number of target-specific mutations to try per subdomain")
+
     deps_common = ["massdns"]
     _qsize = 10000
 
@@ -44,7 +43,7 @@ class dnsbrute_mutations(BaseModule):
 
     async def get_parent_event(self, subdomain):
         start = time.time()
-        parent_host = await self.helpers.run_in_executor(self.helpers.closest_match, subdomain, self.parent_events)
+        parent_host = await self.helpers.run_in_executor_cpu(self.helpers.closest_match, subdomain, self.parent_events)
         elapsed = time.time() - start
         self.trace(f"{subdomain}: got closest match among {len(self.parent_events):,} parent events in {elapsed:.2f}s")
         return self.parent_events[parent_host]
@@ -139,7 +138,7 @@ class dnsbrute_mutations(BaseModule):
                                 parent=parent_event,
                                 tags=[f"mutation-{mutation_run}"],
                                 abort_if=self.abort_if,
-                                context=f'{{module}} found a mutated subdomain of "{parent_event.host}" on its {mutation_run_ordinal} run: {{event.type}}: {{event.data}}',
+                                context=f'{{module}} found a mutated subdomain of "{parent_event.host}" on its {mutation_run_ordinal} run: {{event.type}}: {{event.pretty_string}}',
                             )
                         if results:
                             continue

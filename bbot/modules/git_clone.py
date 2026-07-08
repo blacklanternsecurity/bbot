@@ -1,22 +1,25 @@
 from pathlib import Path
 from subprocess import CalledProcessError
 from bbot.modules.templates.github import github
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class git_clone(github):
     watched_events = ["CODE_REPOSITORY"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "safe", "slow", "code-enum", "download"]
+    flags = ["safe", "passive", "slow", "code-enum", "download"]
     meta = {
         "description": "Clone code github repositories",
         "created_date": "2024-03-08",
         "author": "@domwhewell-sage",
     }
-    options = {"api_key": "", "output_folder": ""}
-    options_desc = {
-        "api_key": "Github token",
-        "output_folder": "Folder to clone repositories to. If not specified, cloned repositories will be deleted when the scan completes, to minimize disk usage.",
-    }
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="Github token", sensitive=True)
+        output_folder: str = Field(
+            "",
+            description="Folder to clone repositories to. If not specified, cloned repositories will be deleted when the scan completes, to minimize disk usage.",
+        )
 
     deps_apt = ["git"]
 
@@ -34,7 +37,7 @@ class git_clone(github):
         return True
 
     async def handle_event(self, event):
-        repository_url = event.data.get("url")
+        repository_url = event.url
         repository_path = await self.clone_git_repository(repository_url)
         if repository_path:
             self.verbose(f"Cloned {repository_url} to {repository_path}")

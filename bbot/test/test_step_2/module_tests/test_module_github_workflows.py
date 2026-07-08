@@ -20,10 +20,10 @@ class TestGithub_Workflows(ModuleTestBase):
     zip_content = data.getvalue()
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/zen", match_headers={"Authorization": "token asdf"}
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/orgs/blacklanternsecurity",
             match_headers={"Authorization": "token asdf"},
             json={
@@ -59,7 +59,7 @@ class TestGithub_Workflows(ModuleTestBase):
                 "type": "Organization",
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/orgs/blacklanternsecurity/repos?per_page=100&page=1",
             match_headers={"Authorization": "token asdf"},
             json=[
@@ -166,7 +166,7 @@ class TestGithub_Workflows(ModuleTestBase):
                 }
             ],
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/workflows?per_page=100&page=1",
             match_headers={"Authorization": "token asdf"},
             json={
@@ -187,7 +187,7 @@ class TestGithub_Workflows(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/workflows/22452226/runs?status=success&per_page=1",
             match_headers={"Authorization": "token asdf"},
             json={
@@ -434,7 +434,7 @@ class TestGithub_Workflows(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/runs/8839360698/logs",
             match_headers={"Authorization": "token asdf"},
             headers={
@@ -442,11 +442,11 @@ class TestGithub_Workflows(ModuleTestBase):
             },
             status_code=302,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://productionresultssa10.blob.core.windows.net/actions-results/7beb304e-f42c-4830-a027-4f5dec53107d/workflow-job-run-3a559e2a-952e-58d2-b8db-2e604a9266d7/logs/steps/step-logs-0e34a19a-18b0-4208-b27a-f8c031db2d17.txt?rsct=text%2Fplain&se=2024-04-26T16%3A25%3A39Z&sig=a%2FiN8dOw0e3tiBQZAfr80veI8OYChb9edJ1eFY136B4%3D&sp=r&spr=https&sr=b&st=2024-04-26T16%3A15%3A34Z&sv=2021-12-02",
             content=self.zip_content,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/runs/8839360698/artifacts",
             match_headers={"Authorization": "token asdf"},
             json={
@@ -474,7 +474,7 @@ class TestGithub_Workflows(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/artifacts/1829832535/zip",
             match_headers={"Authorization": "token asdf"},
             headers={
@@ -482,7 +482,7 @@ class TestGithub_Workflows(ModuleTestBase):
             },
             status_code=302,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://pipelinesghubeus22.actions.githubusercontent.com/uYHz4cw2WwYcB2EU57uoCs3MaEDiz8veiVlAtReP3xevBriD1h/_apis/pipelines/1/runs/214601/signedartifactscontent?artifactName=build.tar.gz&urlExpires=2024-08-20T14%3A41%3A41.8000556Z&urlSigningMethod=HMACV2&urlSignature=OOBxLx4eE5A8uHjxOIvQtn3cLFQOBW927mg0hcTHO6U%3D",
             content=self.zip_content,
         )
@@ -533,7 +533,7 @@ class TestGithubWorkflowsSymlinkCheck(ModuleTestBase):
     config_overrides = {"modules": {"github_workflows": {"api_key": "asdf"}}}
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(url="https://api.github.com/zen")
+        module_test.blasthttp_mock.add_response(url="https://api.github.com/zen")
 
     async def setup_after_prep(self, module_test):
         m = module_test.scan.modules["github_workflows"]
@@ -576,3 +576,79 @@ class TestGithubWorkflowsSymlinkCheck(ModuleTestBase):
         assert not self.results["repo_symlink"], "Symlink at repo level was not rejected"
         assert not self.results["owner_symlink"], "Symlink at owner level was not rejected"
         assert not self.results["output_dir_symlink"], "Symlink at output_dir level was not rejected"
+
+
+class TestGithubWorkflowsPathTraversal(ModuleTestBase):
+    modules_overrides = ["github_workflows"]
+    config_overrides = {"modules": {"github_workflows": {"api_key": "asdf"}}}
+
+    data = io.BytesIO()
+    with zipfile.ZipFile(data, mode="w", compression=zipfile.ZIP_DEFLATED) as _zip:
+        _zip.writestr("artifact.txt", "artifact data")
+    data.seek(0)
+    zip_content = data.getvalue()
+
+    async def setup_before_prep(self, module_test):
+        module_test.blasthttp_mock.add_response(url="https://api.github.com/zen")
+        module_test.blasthttp_mock.add_response(
+            url="https://api.github.com/repos/testowner/testrepo/actions/artifacts/991/zip",
+            content=self.zip_content,
+        )
+        module_test.blasthttp_mock.add_response(
+            url="https://api.github.com/repos/testowner/testrepo/actions/artifacts/992/zip",
+            content=self.zip_content,
+        )
+
+    async def setup_after_prep(self, module_test):
+        m = module_test.scan.modules["github_workflows"]
+        self.results = {}
+
+        # Bug 1: a "../.." folder that escapes output_dir must be rejected
+        self.results["traversal"] = m._check_output_path(m.output_dir / ".." / "..")
+        self.results["normal_path"] = m._check_output_path(m.output_dir / "owner" / "repo")
+
+        # Bug 2: filter_event must reject URLs where "github.com" is only a path segment
+        malicious_repo = module_test.scan.make_event(
+            {"url": "http://127.0.0.1:19080/github.com/../.."},
+            "CODE_REPOSITORY",
+            tags="git",
+            parent=module_test.scan.root_event,
+        )
+        legit_repo = module_test.scan.make_event(
+            {"url": "https://github.com/blacklanternsecurity/bbot"},
+            "CODE_REPOSITORY",
+            tags="git",
+            parent=module_test.scan.root_event,
+        )
+        self.results["malicious_filter"] = await m.filter_event(malicious_repo)
+        self.results["legit_filter"] = await m.filter_event(legit_repo)
+
+        # Bug 3: a dangerous artifact name must be sanitized to a safe basename inside output_dir
+        self.results["dangerous_artifact"] = await m.download_run_artifacts("testowner", "testrepo", 991, "..")
+        self.results["normal_artifact"] = await m.download_run_artifacts("testowner", "testrepo", 992, "build.tar.gz")
+
+    def check(self, module_test, events):
+        m = module_test.scan.modules["github_workflows"]
+
+        # Bug 1
+        assert not self.results["traversal"], "'..' path traversal was not rejected by _check_output_path"
+        assert self.results["normal_path"], "normal path was incorrectly rejected by _check_output_path"
+
+        # Bug 2 — filter_event returns True to accept, or (False, reason) to reject
+        def accepted(result):
+            return bool(result[0]) if isinstance(result, tuple) else bool(result)
+
+        assert not accepted(self.results["malicious_filter"]), (
+            "filter_event accepted a URL with github.com only as a path segment"
+        )
+        assert accepted(self.results["legit_filter"]), "filter_event rejected a legitimate github.com repository"
+
+        # Bug 3
+        dangerous = self.results["dangerous_artifact"]
+        assert dangerous is not None, "dangerous artifact name was not sanitized (download failed)"
+        assert dangerous.name == "artifact_991", f"artifact name not sanitized to a safe basename: {dangerous}"
+        assert dangerous.resolve().is_relative_to(m.output_dir.resolve()), (
+            f"artifact was written outside the output directory: {dangerous}"
+        )
+        normal = self.results["normal_artifact"]
+        assert normal is not None and normal.name == "build.tar.gz", f"legitimate artifact name was altered: {normal}"

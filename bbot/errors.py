@@ -38,10 +38,6 @@ class WordlistError(BBOTError):
     pass
 
 
-class CurlError(BBOTError):
-    pass
-
-
 class PresetNotFoundError(BBOTError):
     pass
 
@@ -66,17 +62,17 @@ class PresetAbortError(PresetConditionError):
     pass
 
 
-class BBOTEngineError(BBOTError):
+class WebError(BBOTError):
     pass
 
 
-class WebError(BBOTEngineError):
-    pass
-
-
-class DNSError(BBOTEngineError):
+class DNSError(BBOTError):
     pass
 
 
 class ExcavateError(BBOTError):
+    pass
+
+
+class ASNResolutionError(BBOTError):
     pass

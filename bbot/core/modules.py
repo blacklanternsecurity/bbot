@@ -1,15 +1,18 @@
+import os
 import re
 import ast
 import sys
+import stat
+import yaml
 import atexit
+import shutil
 import pickle
 import logging
+import tempfile
 import importlib
-import omegaconf
 import traceback
 from copy import copy
 from pathlib import Path
-from omegaconf import OmegaConf
 from contextlib import suppress
 
 from bbot.core import CORE
@@ -40,6 +43,229 @@ class _SafeUnpickler(pickle.Unpickler):
 bbot_code_dir = Path(__file__).parent.parent
 
 
+# Bump when the preloader's output schema or validation rules change. Folded
+# into the per-module cache_key so stale entries from older bbot versions get
+# rebuilt instead of silently bypassing new checks.
+PRELOAD_CACHE_VERSION = 3
+
+
+_UNEVALUATED = object()
+
+
+def _eval_ast_default(node):
+    """
+    Extract a literal default value from an AST node. Returns _UNEVALUATED if
+    the node can't be resolved statically (e.g. `default_factory=lambda: ...`
+    or a non-constant expression). Preload uses this for display-time defaults
+    only; actual validation happens at bake time against the real pydantic
+    Config class.
+    """
+    if node is None:
+        return _UNEVALUATED
+    try:
+        return ast.literal_eval(node)
+    except (ValueError, TypeError, SyntaxError):
+        # Recognize a few common default_factory values.
+        if isinstance(node, ast.Name):
+            return {"list": [], "dict": {}, "set": set(), "tuple": (), "str": "", "int": 0, "float": 0.0}.get(
+                node.id, _UNEVALUATED
+            )
+        return _UNEVALUATED
+
+
+def _exec_config_class(source: str, module_name: str):
+    """
+    Execute a `class Config(BaseModuleConfig):` snippet in a controlled
+    namespace and return the resulting class. The namespace provides exactly
+    what a Config block is allowed to reference: the typing primitives,
+    pydantic's `Field` factory and validator decorators, and `BaseModuleConfig`.
+
+    This replaces parsing annotations as strings: pydantic handles every
+    valid type expression (`Optional[str]`, `Literal["a", "b"]`,
+    `list[Union[int, str]]`, …) without any hand-rolled resolver.
+    """
+    from typing import Annotated, Any, Dict, List, Literal, Optional, Set, Tuple, Union
+    from pydantic import AfterValidator, BeforeValidator, field_validator, model_validator
+    from bbot.core.config.models import BaseModuleConfig, ConfidenceLiteral, Field, SeverityLiteral
+
+    namespace: dict = {
+        "Annotated": Annotated,
+        "Any": Any,
+        "Dict": Dict,
+        "List": List,
+        "Literal": Literal,
+        "Optional": Optional,
+        "Set": Set,
+        "Tuple": Tuple,
+        "Union": Union,
+        "Field": Field,
+        "field_validator": field_validator,
+        "model_validator": model_validator,
+        "BeforeValidator": BeforeValidator,
+        "AfterValidator": AfterValidator,
+        "BaseModuleConfig": BaseModuleConfig,
+        "SeverityLiteral": SeverityLiteral,
+        "ConfidenceLiteral": ConfidenceLiteral,
+    }
+    try:
+        exec(source, namespace)
+    except Exception as e:
+        raise BBOTError(
+            f'module "{module_name}" has an invalid Config class ({type(e).__name__}: {e}). '
+            "Config blocks may only reference: Optional, Union, Literal, Any, List, Dict, Tuple, Set, "
+            "Field, field_validator, model_validator, BeforeValidator, AfterValidator, BaseModuleConfig, "
+            "and Python builtins."
+        ) from e
+    cfg = namespace.get("Config")
+    if cfg is None:
+        raise BBOTError(f'module "{module_name}": Config snippet did not define a class named "Config"')
+    return cfg
+
+
+def _build_validation_schema(preloaded: dict):
+    """
+    Build the composite preset validation schema.
+
+    Structure:
+        FullPresetSchema
+          ├── (all PresetSchema fields — target, modules, flags, …)
+          └── config: FullBBOTConfig
+                      ├── (all BBOTConfig fields — scope, dns, web, …)
+                      └── modules: ModulesSchema
+                                   ├── nuclei:  NucleiModuleConfig
+                                   ├── httpx:   HttpxModuleConfig
+                                   ├── sslcert: SslcertModuleConfig
+                                   └── … one field per known module
+
+    A single `FullPresetSchema.model_validate(preset_dict)` call then catches
+    every class of error in one pass:
+      - top-level preset typos (extra='forbid' on PresetSchema)
+      - global config typos / wrong types (extra='forbid' on BBOTConfig)
+      - unknown module names (extra='forbid' on ModulesSchema)
+      - wrong module option names / wrong types (extra='forbid' per module)
+    """
+    import warnings
+    from typing import Optional
+    from pydantic import ConfigDict, Field, create_model
+    from bbot.core.config.models import BaseModuleConfig, BBOTConfig, PresetSchema
+
+    module_fields = {}
+    for name, data in preloaded.items():
+        source = data.get("config_source")
+        if not source:
+            # Module declares no Config — only the universal options apply.
+            field_type = BaseModuleConfig
+        else:
+            try:
+                field_type = _exec_config_class(source, name)
+            except BBOTError as e:
+                # The Config references a name not available in the isolated exec
+                # namespace (a module-level constant, imported type, Enum, …); it's
+                # valid at real import time. Don't reject the module — accept any
+                # config for it (its own options just aren't strictly validated here).
+                log.debug(f"{e} -- accepting any config for module '{name}'")
+                field_type = dict
+        module_fields[name] = (Optional[field_type], Field(default=None))
+
+    # Some module names (e.g. `json`) shadow BaseModel's deprecated method
+    # names and trigger a UserWarning. The field still validates correctly;
+    # silence the noise.
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message=r'Field name ".+" in ".+" shadows an attribute in parent "BaseModel"',
+            category=UserWarning,
+        )
+        ModulesSchema = create_model(
+            "ModulesSchema",
+            __config__=ConfigDict(extra="forbid"),
+            **module_fields,
+        )
+        FullBBOTConfig = create_model(
+            "FullBBOTConfig",
+            __base__=BBOTConfig,
+            modules=(Optional[ModulesSchema], Field(default=None)),
+        )
+        FullPresetSchema = create_model(
+            "FullPresetSchema",
+            __base__=PresetSchema,
+            config=(Optional[FullBBOTConfig], Field(default=None)),
+        )
+    return FullPresetSchema
+
+
+def _extract_pydantic_config(config_class: ast.ClassDef) -> tuple[dict, dict, set, set, dict]:
+    """
+    Walk a `class Config(BaseModuleConfig):` block and extract
+    `(defaults, descriptions, sensitive, mandatory, types)` -- cheap metadata
+    used for `bbot -l`, type-directed config coercion, and similar listing
+    paths, without importing or exec-ing anything.
+
+    `types` maps each field name to its raw annotation string (e.g.
+    `"bool"`, `"Union[str, list[str]]"`, `"Literal['manual', 'severe']"`).
+    The actual typed pydantic class is built later via `_exec_config_class`
+    on the captured source text.
+    """
+    defaults: dict = {}
+    descriptions: dict = {}
+    sensitive: set = set()
+    mandatory: set = set()
+    types: dict = {}
+    for node in config_class.body:
+        # `model_config = ConfigDict(...)` etc. are plain assigns, not typed -- skip.
+        if not isinstance(node, ast.AnnAssign) or not isinstance(node.target, ast.Name):
+            continue
+        name = node.target.id
+        if name.startswith("_"):
+            continue
+
+        types[name] = ast.unparse(node.annotation)
+        default = _UNEVALUATED
+        description = ""
+        is_sensitive = False
+        is_mandatory = False
+
+        value = node.value
+        if isinstance(value, ast.Call) and isinstance(value.func, ast.Name) and value.func.id == "Field":
+            # Field(default, description="...", default_factory=..., sensitive=..., mandatory=..., ...)
+            # - first positional arg is the default, if given
+            if value.args:
+                default = _eval_ast_default(value.args[0])
+            for kw in value.keywords:
+                if kw.arg == "default":
+                    default = _eval_ast_default(kw.value)
+                elif kw.arg == "default_factory":
+                    default = _eval_ast_default(kw.value)
+                elif kw.arg == "description":
+                    with suppress(ValueError, TypeError, SyntaxError):
+                        description = ast.literal_eval(kw.value)
+                elif kw.arg == "sensitive":
+                    with suppress(ValueError, TypeError, SyntaxError):
+                        is_sensitive = bool(ast.literal_eval(kw.value))
+                elif kw.arg == "mandatory":
+                    with suppress(ValueError, TypeError, SyntaxError):
+                        is_mandatory = bool(ast.literal_eval(kw.value))
+                elif kw.arg == "json_schema_extra":
+                    with suppress(ValueError, TypeError, SyntaxError):
+                        extra = ast.literal_eval(kw.value)
+                        if isinstance(extra, dict):
+                            is_sensitive = is_sensitive or bool(extra.get("sensitive"))
+                            is_mandatory = is_mandatory or bool(extra.get("mandatory"))
+        elif value is not None:
+            default = _eval_ast_default(value)
+
+        if default is _UNEVALUATED:
+            # couldn't statically determine; fall back to None so listing still works
+            default = None
+        defaults[name] = default
+        descriptions[name] = description
+        if is_sensitive:
+            sensitive.add(name)
+        if is_mandatory:
+            mandatory.add(name)
+    return defaults, descriptions, sensitive, mandatory, types
+
+
 class ModuleLoader:
     """
     Main class responsible for preloading BBOT modules.
@@ -54,7 +280,7 @@ class ModuleLoader:
     module_dir_regex = re.compile(r"^[a-z][a-z0-9_]*$")
 
     # if a module consumes these event types, automatically assume these dependencies
-    default_module_deps = {"HTTP_RESPONSE": "httpx", "URL": "httpx", "SOCIAL": "social"}
+    default_module_deps = {"HTTP_RESPONSE": "http", "URL": "http", "SOCIAL": "social"}
 
     def __init__(self):
         self.core = CORE
@@ -70,6 +296,10 @@ class ModuleLoader:
         self.internal_module_choices = set()
 
         self._preload_cache = None
+        # Composite preset-validation schema, built from preloaded modules.
+        # Invalidated whenever a new module is preloaded.
+        self._validation_schema = None
+        self._config_type_index = None
 
         self._module_dirs = set()
         self._module_dirs_preloaded = set()
@@ -151,7 +381,7 @@ class ModuleLoader:
                 module_file = module_file.resolve()
 
                 # try to load from cache
-                module_cache_key = (str(module_file), tuple(module_file.stat()))
+                module_cache_key = (PRELOAD_CACHE_VERSION, str(module_file), tuple(module_file.stat()))
                 preloaded = self.preload_cache.get(module_name, {})
                 cache_key = preloaded.get("cache_key", ())
                 if preloaded and module_cache_key == cache_key:
@@ -184,6 +414,12 @@ class ModuleLoader:
                         preloaded["namespace"] = namespace
                         preloaded["cache_key"] = module_cache_key
 
+                    except BBOTError as e:
+                        # Intentional, user-facing errors raised from preload_module
+                        # (e.g. the pre-3.0 options-dict migration message). Skip the
+                        # traceback so the message reads cleanly.
+                        log_to_stderr(str(e), level="CRITICAL")
+                        sys.exit(1)
                     except Exception:
                         log_to_stderr(f"Error preloading {module_file}\n\n{traceback.format_exc()}", level="CRITICAL")
                         log_to_stderr(f"Error in {module_file.name}", level="CRITICAL")
@@ -202,18 +438,18 @@ class ModuleLoader:
                 self.flag_choices.update(set(flags))
 
                 self.__preloaded[module_name] = preloaded
-                config = OmegaConf.create(preloaded.get("config", {}))
-                self._configs[module_name] = config
+                self._configs[module_name] = dict(preloaded.get("config", {}))
 
             self._module_dirs_preloaded.add(module_dir)
 
         # update default config with module defaults
-        module_config = omegaconf.OmegaConf.create(
-            {
-                "modules": self.configs(),
-            }
-        )
-        self.core.merge_default(module_config)
+        self.core.merge_default({"modules": self.configs()})
+
+        # invalidate the composite validation schema; it'll rebuild lazily
+        # on next access now that the set of modules has changed
+        if new_modules:
+            self._validation_schema = None
+            self._config_type_index = None
 
         return new_modules
 
@@ -260,12 +496,94 @@ class ModuleLoader:
         return preloaded
 
     def configs(self, type=None):
-        configs = {}
         if type is not None:
-            configs = {k: v for k, v in self._configs.items() if self.check_type(k, type)}
-        else:
-            configs = dict(self._configs)
-        return OmegaConf.create(configs)
+            return {k: dict(v) for k, v in self._configs.items() if self.check_type(k, type)}
+        return {k: dict(v) for k, v in self._configs.items()}
+
+    @property
+    def validation_schema(self):
+        """
+        The composite pydantic schema for validating a full preset dict.
+
+        Built lazily from preloaded module metadata and cached. Rebuilt when
+        `preload()` discovers new modules (e.g. after `add_module_dir`).
+        """
+        if self._validation_schema is None:
+            self._validation_schema = _build_validation_schema(self._preloaded)
+        return self._validation_schema
+
+    @property
+    def config_schema(self):
+        """
+        The runtime `BBOTConfig` schema with per-module configs grafted in.
+
+        This is `validation_schema.config` (i.e. `FullBBOTConfig`) and is the
+        right model to walk a config dict against — used by
+        `BBOTCore.no_secrets_config()` and `BBOTCore.secrets_only_config()` to
+        partition sensitive fields.
+        """
+        from bbot.core.config.models import _unwrap_optional
+
+        field = self.validation_schema.model_fields.get("config")
+        if field is None:
+            from bbot.core.config.models import BBOTConfig
+
+            return BBOTConfig
+        return _unwrap_optional(field.annotation)
+
+    @property
+    def config_type_index(self):
+        """{dotted_config_path: TypeAdapter} for every known config option.
+
+        Built by walking the materialized config schema (`config_schema`, i.e.
+        global config + every module's exec'd Config), so a single pydantic
+        TypeAdapter per leaf field drives coercion -- no hand-rolled type-name
+        parsing. Adapters are memoized by annotation (many fields share e.g.
+        `Optional[str]`). Nested models are recursed into via `_field_submodel`,
+        so `modules.<name>.<option>` keys fall out of the same walk.
+        """
+        if self._config_type_index is None:
+            from pydantic import ConfigDict, TypeAdapter
+            from bbot.core.config.models import _field_submodel
+
+            # coerce_numbers_to_str lets a numeric YAML value (e.g. password: 12345678)
+            # validate against a str field; pydantic is otherwise lax-but-not-that-lax.
+            adapter_config = ConfigDict(coerce_numbers_to_str=True)
+            adapter_cache = {}
+
+            def make_adapter(annotation):
+                try:
+                    if annotation in adapter_cache:
+                        return adapter_cache[annotation]
+                    hashable = True
+                except TypeError:
+                    hashable = False
+                try:
+                    adapter = TypeAdapter(annotation, config=adapter_config)
+                except Exception as e:
+                    log.debug(f"config_type_index: no TypeAdapter for {annotation!r}: {e}")
+                    adapter = None
+                if hashable:
+                    adapter_cache[annotation] = adapter
+                return adapter
+
+            index = {}
+
+            def walk(model, prefix=""):
+                for fname, field in model.model_fields.items():
+                    sub = _field_submodel(field)
+                    for key in {fname, getattr(field, "alias", None)} - {None}:
+                        dotted = f"{prefix}.{key}" if prefix else key
+                        if sub is not None:
+                            walk(sub, dotted)
+                        else:
+                            adapter = make_adapter(field.annotation)
+                            if adapter is not None:
+                                index[dotted] = adapter
+
+            walk(self.config_schema)
+            self._config_type_index = index
+        return self._config_type_index
 
     def find_and_replace(self, **kwargs):
         self.__preloaded = search_format_dict(self.__preloaded, **kwargs)
@@ -298,9 +616,8 @@ class ModuleLoader:
                 ],
                 "flags": [
                     "active",
-                    "safe",
-                    "web-basic",
-                    "web-thorough"
+                    "web",
+                    "web-heavy"
                 ],
                 "meta": {
                     "description": "Extract technologies from web responses"
@@ -310,7 +627,7 @@ class ModuleLoader:
                 "hash": "d5a88dd3866c876b81939c920bf4959716e2a374",
                 "deps": {
                     "modules": [
-                        "httpx"
+                        "http"
                     ]
                     "pip": [
                         "python-Wappalyzer~=0.3.1"
@@ -336,8 +653,15 @@ class ModuleLoader:
         ansible_tasks = []
         config = {}
         options_desc = {}
+        options_sensitive: set = set()
+        options_mandatory: set = set()
+        options_types: dict = {}
+        config_source: str | None = None
+        legacy_options_keyword: str | None = None
+        legacy_options_line: int | None = None
         disable_auto_module_deps = False
-        python_code = open(module_file).read()
+        with open(module_file) as f:
+            python_code = f.read()
         # take a hash of the code so we can keep track of when it changes
         module_hash = sha1(python_code).hexdigest()
         parsed_code = ast.parse(python_code)
@@ -361,19 +685,46 @@ class ModuleLoader:
             # look for classes
             if type(root_element) == ast.ClassDef:
                 for class_attr in root_element.body:
+                    # nested `class Config(BaseModuleConfig): ...` — the module's config schema
+                    if type(class_attr) == ast.ClassDef and class_attr.name == "Config":
+                        config_fields, config_descs, config_sens, config_mand, config_types = _extract_pydantic_config(
+                            class_attr
+                        )
+                        config.update(config_fields)
+                        options_desc.update(config_descs)
+                        options_sensitive.update(config_sens)
+                        options_mandatory.update(config_mand)
+                        options_types.update(config_types)
+                        # capture the class source verbatim; schema build re-execs it
+                        config_source = ast.get_source_segment(python_code, class_attr)
+                        continue
+
+                    # annotated legacy form (`options: dict = {...}` -> ast.AnnAssign) must
+                    # also be caught, otherwise it slips the 3.0 legacy-options rejection below
+                    if (
+                        legacy_options_keyword is None
+                        and isinstance(class_attr, ast.AnnAssign)
+                        and isinstance(class_attr.target, ast.Name)
+                        and class_attr.target.id in ("options", "options_desc")
+                    ):
+                        legacy_options_keyword = class_attr.target.id
+                        legacy_options_line = class_attr.lineno
+
                     if not type(class_attr) == ast.Assign:
                         continue
 
-                    # class attributes that are dictionaries
+                    # legacy options/options_desc dict: record so we can fail
+                    # with a migration hint after the walk completes
+                    if legacy_options_keyword is None:
+                        for target in class_attr.targets:
+                            if isinstance(target, ast.Name) and target.id in ("options", "options_desc"):
+                                legacy_options_keyword = target.id
+                                legacy_options_line = class_attr.lineno
+                                break
+
+                    # module metadata
                     if type(class_attr.value) == ast.Dict:
-                        # module options
-                        if any(target.id == "options" for target in class_attr.targets):
-                            config.update(ast.literal_eval(class_attr.value))
-                        # module options
-                        elif any(target.id == "options_desc" for target in class_attr.targets):
-                            options_desc.update(ast.literal_eval(class_attr.value))
-                        # module metadata
-                        elif any(target.id == "meta" for target in class_attr.targets):
+                        if any(target.id == "meta" for target in class_attr.targets):
                             meta = ast.literal_eval(class_attr.value)
 
                     # class attributes that are lists
@@ -432,6 +783,25 @@ class ModuleLoader:
                             if type(class_attr.value.value) == bool:
                                 disable_auto_module_deps = class_attr.value.value
 
+        # Reject the pre-3.0 options/options_desc dict format. Those dicts are
+        # silently ignored by the new loader: defaults disappear and setting
+        # them via -c or YAML emits misleading "did you mean ...?" suggestions
+        # pointing at unrelated modules.
+        module_name = module_file.stem
+        if legacy_options_keyword is not None and config_source is None:
+            raise BBOTError(
+                f'Module "{module_name}" ({module_file}:{legacy_options_line}) declares a legacy '
+                f"`{legacy_options_keyword}` dict, which is no longer supported in BBOT 3.0+.\n\n"
+                f"Replace the `options` / `options_desc` dicts with a nested\n"
+                f"`class Config(BaseModuleConfig)` schema. For example:\n\n"
+                f"    from bbot.core.config.models import BaseModuleConfig, Field\n\n"
+                f"    class {module_name}(BaseModule):\n"
+                f"        ...\n"
+                f"        class Config(BaseModuleConfig):\n"
+                f'            api_key: str = Field("", description="API key", sensitive=True)\n'
+                f'            max_results: int = Field(100, description="Max results to return")\n'
+            )
+
         for task in ansible_tasks:
             if "become" not in task:
                 task["become"] = False
@@ -447,6 +817,10 @@ class ModuleLoader:
             "meta": meta,
             "config": config,
             "options_desc": options_desc,
+            "options_sensitive": sorted(options_sensitive),
+            "options_mandatory": sorted(options_mandatory),
+            "options_types": options_types,
+            "config_source": config_source,
             "hash": module_hash,
             "deps": {
                 "modules": sorted(deps_modules),
@@ -562,12 +936,11 @@ class ModuleLoader:
 
         Examples:
             >>> print(modules_table(["portscan"]))
-            +----------+--------+-----------------+------------------------------+-------------------------------+----------------------+-------------------+
-            | Module   | Type   | Needs API Key   | Description                  | Flags                         | Consumed Events      | Produced Events   |
-            +==========+========+=================+==============================+===============================+======================+===================+
-            | portscan | scan   | No              | Execute port scans           | active, aggressive, portscan, | DNS_NAME, IP_ADDRESS | OPEN_TCP_PORT     |
-            |          |        |                 |                              | web-thorough                  |                      |                   |
-            +----------+--------+-----------------+------------------------------+-------------------------------+----------------------+-------------------+
+            +----------+--------+-----------------+------------------------------+------------------+----------------------+-------------------+
+            | Module   | Type   | Needs API Key   | Description                  | Flags            | Consumed Events      | Produced Events   |
+            +==========+========+=================+==============================+==================+======================+===================+
+            | portscan | scan   | No              | Execute port scans           | active, portscan | DNS_NAME, IP_ADDRESS | OPEN_TCP_PORT     |
+            +----------+--------+-----------------+------------------------------+------------------+----------------------+-------------------+
         """
 
         table = []
@@ -582,9 +955,8 @@ class ModuleLoader:
             consumed_events = sorted(preloaded.get("watched_events", []))
             produced_events = sorted(preloaded.get("produced_events", []))
             flags = sorted(preloaded.get("flags", []))
-            api_key_required = ""
             meta = preloaded.get("meta", {})
-            api_key_required = "Yes" if meta.get("auth_required", False) else "No"
+            api_key_required = "Yes" if preloaded.get("options_mandatory") else "No"
             description = meta.get("description", "")
             row = [
                 module_name,
@@ -613,9 +985,10 @@ class ModuleLoader:
             modules_options[module_name] = []
             module_options = preloaded["config"]
             module_options_desc = preloaded["options_desc"]
+            module_options_types = preloaded.get("options_types", {})
             for k, v in sorted(module_options.items(), key=lambda x: x[0]):
                 option_name = f"modules.{module_name}.{k}"
-                option_type = type(v).__name__
+                option_type = module_options_types.get(k, type(v).__name__)
                 option_description = module_options_desc[k]
                 modules_options[module_name].append((option_name, option_type, option_description, str(v)))
         return modules_options
@@ -690,35 +1063,120 @@ class ModuleLoader:
         module_list.sort(key=lambda x: x[-1]["type"], reverse=True)
         return module_list
 
-    def ensure_config_files(self):
+    def _generated_config_files(self):
+        """The config files BBOT generates, each paired with the content it
+        should currently hold and the CLI flag that regenerates it.
+
+        Creation and reset both iterate this list, so the two files stay fully
+        independent: a `secrets.yml` full of API keys is never touched just
+        because `bbot.yml`'s options changed, and vice versa.
+        """
         files = self.core.files_config
-        mkdir(files.config_dir)
+        config_obj = dict(self.core.default_config)
+        return [
+            {
+                "label": "config",
+                "path": files.config_filename,
+                "content": self.core.no_secrets_config(config_obj),
+                "secret": False,
+                "reset_flag": "--reset-config",
+            },
+            {
+                "label": "secrets",
+                "path": files.secrets_filename,
+                "content": self.core.secrets_only_config(config_obj),
+                "secret": True,
+                "reset_flag": "--reset-secrets",
+            },
+        ]
 
-        comment_notice = (
+    def ensure_config_files(self):
+        """Create any of the user's generated config files that are missing.
+
+        Each file is a fully-commented snapshot of the current defaults,
+        written once and never overwritten.
+        """
+        mkdir(self.core.files_config.config_dir)
+        for spec in self._generated_config_files():
+            if not spec["path"].exists():
+                log_to_stderr(f"Creating BBOT {spec['label']} at {spec['path']}")
+                self._write_config_template(spec["path"], spec["content"], secret=spec["secret"])
+
+    def reset_config_files(self, labels):
+        """Regenerate the named generated config files (`"config"` and/or
+        `"secrets"`) from current defaults, backing up existing files to
+        `*.bak`. Returns the backup paths.
+
+        Destructive: a regenerated file is a fresh commented template, so any
+        options the user uncommented in it are not carried over.
+        """
+        mkdir(self.core.files_config.config_dir)
+        backups = []
+        for spec in self._generated_config_files():
+            if spec["label"] not in labels:
+                continue
+            path = spec["path"]
+            if path.exists():
+                backup = self._next_backup_path(path)
+                # copy2 preserves the file's permissions, so a backup of a
+                # hardened secrets.yml stays just as locked-down
+                shutil.copy2(path, backup)
+                backups.append(backup)
+            self._write_config_template(path, spec["content"], secret=spec["secret"])
+        return backups
+
+    @staticmethod
+    def _next_backup_path(path):
+        """First free `<name>.bak`, `<name>.bak.1`, `<name>.bak.2`, ... so an
+        existing backup from a previous reset isn't clobbered."""
+        backup = path.with_name(path.name + ".bak")
+        i = 1
+        while backup.exists():
+            backup = path.with_name(f"{path.name}.bak.{i}")
+            i += 1
+        return backup
+
+    @classmethod
+    def _write_config_template(cls, path, config_dict, secret=False):
+        header = (
             "# NOTICE: THESE ENTRIES ARE COMMENTED BY DEFAULT\n"
-            + "# Please be sure to uncomment when inserting API keys, etc.\n"
+            "# Please be sure to uncomment when inserting API keys, etc.\n"
         )
+        yaml_str = yaml.dump(config_dict, sort_keys=False)
+        yaml_str = header + "\n".join(f"# {line}" for line in yaml_str.splitlines())
+        if secret:
+            cls._write_secret_text(path, yaml_str)
+        else:
+            with open(str(path), "w") as f:
+                f.write(yaml_str)
 
-        config_obj = OmegaConf.to_object(self.core.default_config)
-
-        # ensure bbot.yml
-        if not files.config_filename.exists():
-            log_to_stderr(f"Creating BBOT config at {files.config_filename}")
-            no_secrets_config = self.core.no_secrets_config(config_obj)
-            yaml = OmegaConf.to_yaml(no_secrets_config)
-            yaml = comment_notice + "\n".join(f"# {line}" for line in yaml.splitlines())
-            with open(str(files.config_filename), "w") as f:
-                f.write(yaml)
-
-        # ensure secrets.yml
-        if not files.secrets_filename.exists():
-            log_to_stderr(f"Creating BBOT secrets at {files.secrets_filename}")
-            secrets_only_config = self.core.secrets_only_config(config_obj)
-            yaml = OmegaConf.to_yaml(secrets_only_config)
-            yaml = comment_notice + "\n".join(f"# {line}" for line in yaml.splitlines())
-            with open(str(files.secrets_filename), "w") as f:
-                f.write(yaml)
-            files.secrets_filename.chmod(0o600)
+    @staticmethod
+    def _write_secret_text(path, text):
+        """Write a secrets file so it is never readable by anyone but the owner,
+        even for an instant. The content is written to a private temp file
+        (mkstemp creates it 0600) and atomically renamed into place; an existing
+        file's own permissions are preserved in case the user hardened them
+        further (e.g. 0400). If owner-only permissions can't be guaranteed, the
+        secret is not written."""
+        path = Path(path)
+        mode = 0o600
+        with suppress(FileNotFoundError):
+            existing_mode = stat.S_IMODE(path.stat().st_mode)
+            # keep the user's perms only if they're already owner-only
+            if not existing_mode & 0o077:
+                mode = existing_mode
+        fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp")
+        try:
+            os.fchmod(fd, mode)
+            with os.fdopen(fd, "w") as f:
+                f.write(text)
+            if stat.S_IMODE(os.stat(tmp).st_mode) & 0o077:
+                raise BBOTError(f"Refusing to write secrets to {path}: could not restrict permissions to owner-only")
+            os.replace(tmp, str(path))
+        except BaseException:
+            with suppress(FileNotFoundError):
+                os.unlink(tmp)
+            raise
 
 
 MODULE_LOADER = ModuleLoader()

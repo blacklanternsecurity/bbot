@@ -7,7 +7,7 @@ from bbot.core.helpers.libmagic import get_magic_info, get_compression
 class unarchive(BaseInternalModule):
     watched_events = ["FILESYSTEM"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "safe"]
+    flags = ["safe", "passive"]
     meta = {
         "description": "Extract different types of files into folders on the filesystem",
         "created_date": "2024-12-08",
@@ -109,11 +109,19 @@ class unarchive(BaseInternalModule):
             entries = entries[1:]
             # reject symlink/hardlink entries
             for line in output_lines:
-                if line.startswith("Link = ") or (
-                    line.startswith("Attributes = ") and line.split("= ", 1)[1].strip().startswith("l")
-                ):
+                if line.startswith("Link = "):
                     self.warning(f"Archive {path} contains symlink or link entry")
                     return False
+                if line.startswith("Attributes = "):
+                    attr = line.split("= ", 1)[1].strip()
+                    # p7zip may prefix a DOS attribute block before the unix mode string,
+                    # e.g. "_ lrwxrwxrwx" for a symlink or "D drwxr-xr-x" for a directory.
+                    # The unix type flag is the first character of the mode field, so check
+                    # both the raw value and the trailing mode field for "l"/"h".
+                    mode = attr.split()[-1] if attr.split() else ""
+                    if attr[:1] in ("l", "h") or mode[:1] in ("l", "h"):
+                        self.warning(f"Archive {path} contains symlink or link entry")
+                        return False
             # check declared uncompressed size before extracting
             declared_size = 0
             for line in output_lines:

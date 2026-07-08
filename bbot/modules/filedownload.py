@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class filedownload(BaseModule):
@@ -14,83 +15,84 @@ class filedownload(BaseModule):
 
     watched_events = ["URL_UNVERIFIED", "HTTP_RESPONSE"]
     produced_events = ["FILESYSTEM"]
-    flags = ["active", "safe", "web-basic", "download"]
+    flags = ["safe", "active", "web", "download"]
     meta = {
         "description": "Download common filetypes such as PDF, DOCX, PPTX, etc.",
         "created_date": "2023-10-11",
         "author": "@TheTechromancer",
     }
-    options = {
-        "extensions": [
-            "bak",  #  Backup File
-            "bash",  #  Bash Script or Configuration
-            "bashrc",  #  Bash Script or Configuration
-            "cfg",  #  Configuration File
-            "conf",  #  Configuration File
-            "crt",  #  Certificate File
-            "csv",  #  Comma Separated Values File
-            "db",  #  SQLite Database File
-            "dll",  #  Windows Dynamic Link Library
-            "doc",  #  Microsoft Word Document (Old Format)
-            "docx",  #  Microsoft Word Document
-            "exe",  #  Windows PE executable
-            "ica",  #  Citrix Independent Computing Architecture File
-            "indd",  #  Adobe InDesign Document
-            "ini",  #  Initialization File
-            "jar",  #  Java Archive
-            "json",  #  JSON File
-            "key",  #  Private Key File
-            "log",  #  Log File
-            "markdown",  #  Markdown File
-            "md",  #  Markdown File
-            "msi",  # Windows setup file
-            "odg",  #  OpenDocument Graphics (LibreOffice, OpenOffice)
-            "odp",  #  OpenDocument Presentation (LibreOffice, OpenOffice)
-            "ods",  #  OpenDocument Spreadsheet (LibreOffice, OpenOffice)
-            "odt",  #  OpenDocument Text (LibreOffice, OpenOffice)
-            "pdf",  #  Adobe Portable Document Format
-            "pem",  #  Privacy Enhanced Mail (SSL certificate)
-            "pps",  #  Microsoft PowerPoint Slideshow (Old Format)
-            "ppsx",  #  Microsoft PowerPoint Slideshow
-            "ppt",  #  Microsoft PowerPoint Presentation (Old Format)
-            "pptx",  #  Microsoft PowerPoint Presentation
-            "ps1",  #  PowerShell Script
-            "pub",  #  Public Key File
-            "raw",  #  Raw Image File Format
-            "rdp",  #  Remote Desktop Protocol File
-            "rsa",  #  RSA Private Key File
-            "sh",  #  Shell Script
-            "sql",  #  SQL Database Dump
-            "sqlite",  #  SQLite Database File
-            "swp",  #  Swap File (temporary file, often Vim)
-            "sxw",  #  OpenOffice.org Writer document
-            "tar.gz",  # Gzip-Compressed Tar Archive
-            "tgz",  #  Gzip-Compressed Tar Archive
-            "tar",  #  Tar Archive
-            "txt",  #  Plain Text Document
-            "vbs",  #  Visual Basic Script
-            "war",  #  Java Web Archive
-            "wpd",  #  WordPerfect Document
-            "xls",  #  Microsoft Excel Spreadsheet (Old Format)
-            "xlsx",  #  Microsoft Excel Spreadsheet
-            "xml",  #  eXtensible Markup Language File
-            "yaml",  #  YAML Ain't Markup Language
-            "yml",  #  YAML Ain't Markup Language
-            "zip",  #  Zip Archive
-            "lzma",  #  LZMA Compressed File
-            "rar",  #  RAR Compressed File
-            "7z",  #  7-Zip Compressed File
-            "xz",  #  XZ Compressed File
-            "bz2",  #  Bzip2 Compressed File
-        ],
-        "max_filesize": "10MB",
-        "output_folder": "",
-    }
-    options_desc = {
-        "extensions": "File extensions to download",
-        "max_filesize": "Cancel download if filesize is greater than this size",
-        "output_folder": "Folder to download files to. If not specified, downloaded files will be deleted when the scan completes, to minimize disk usage.",
-    }
+
+    class Config(BaseModuleConfig):
+        extensions: list[str] = Field(
+            [
+                "bak",
+                "bash",
+                "bashrc",
+                "cfg",
+                "conf",
+                "crt",
+                "csv",
+                "db",
+                "dll",
+                "doc",
+                "docx",
+                "exe",
+                "ica",
+                "indd",
+                "ini",
+                "jar",
+                "json",
+                "key",
+                "log",
+                "markdown",
+                "md",
+                "msi",
+                "odg",
+                "odp",
+                "ods",
+                "odt",
+                "pdf",
+                "pem",
+                "pps",
+                "ppsx",
+                "ppt",
+                "pptx",
+                "ps1",
+                "pub",
+                "raw",
+                "rdp",
+                "rsa",
+                "sh",
+                "sql",
+                "sqlite",
+                "swp",
+                "sxw",
+                "tar.gz",
+                "tgz",
+                "tar",
+                "txt",
+                "vbs",
+                "war",
+                "wpd",
+                "xls",
+                "xlsx",
+                "xml",
+                "yaml",
+                "yml",
+                "zip",
+                "lzma",
+                "rar",
+                "7z",
+                "xz",
+                "bz2",
+            ],
+            description="File extensions to download",
+        )
+        max_filesize: str = Field("10MB", description="Cancel download if filesize is greater than this size")
+        output_folder: str = Field(
+            "",
+            description="Folder to download files to. If not specified, downloaded files will be deleted when the scan completes, to minimize disk usage.",
+        )
 
     scope_distance_modifier = 3
 
@@ -131,22 +133,20 @@ class filedownload(BaseModule):
         return True
 
     def hash_event(self, event):
-        if event.type == "HTTP_RESPONSE":
-            return hash(event.data["url"])
-        return hash(event.data)
+        return hash(event.url or event.data)
 
     async def handle_event(self, event):
         if event.type == "URL_UNVERIFIED":
-            url_lower = event.data.lower()
+            url_lower = event.url.lower()
             extension_matches = any(url_lower.endswith(f".{e}") for e in self.extensions)
             filedownload_requested = "filedownload" in event.tags
             if extension_matches or filedownload_requested:
-                await self.download_file(event.data, source_event=event)
+                await self.download_file(event.url, source_event=event)
         elif event.type == "HTTP_RESPONSE":
             headers = event.data.get("header", {})
             content_type = headers.get("content_type", "")
             if content_type:
-                url = event.data["url"]
+                url = event.url
                 await self.download_file(url, content_type=content_type, source_event=event)
 
     async def download_file(self, url, content_type=None, source_event=None):

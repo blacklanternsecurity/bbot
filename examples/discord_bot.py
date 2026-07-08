@@ -2,7 +2,6 @@ import discord
 from discord.ext import commands
 
 from bbot.scanner import Scanner
-from bbot.modules.output.discord import Discord
 
 
 class BBOTDiscordBot(commands.Cog):
@@ -14,13 +13,13 @@ class BBOTDiscordBot(commands.Cog):
         2. Create a new application
         3. Create an invite link for the bot, visit the link to invite it to your server
             - Your Application --> OAuth2 --> URL Generator
-                - For Scopes, select "bot""
+                - For Scopes, select "bot"
                 - For Bot Permissions, select:
                     - Read Messages/View Channels
                     - Send Messages
         4. Turn on "Message Content Intent"
             - Your Application --> Bot --> Privileged Gateway Intents --> Message Content Intent
-        5. Copy your Discord Bot Token and put it at the top this file
+        5. Copy your Discord Bot Token and put it at the top of this file
             - Your Application --> Bot --> Reset Token
         6. Run this script
 
@@ -36,26 +35,37 @@ class BBOTDiscordBot(commands.Cog):
 
     @commands.command(name="scan", description="Scan a target with BBOT.")
     async def scan(self, ctx, target: str):
+        # stop any existing scan
         if self.current_scan is not None:
             self.current_scan.stop()
-        await ctx.send(f"Starting scan against {target}.")
+        await ctx.send(f"Starting scan against **{target}**")
 
-        # creates scan instance
-        self.current_scan = Scanner(target, flags="subdomain-enum")
-        discord_module = Discord(self.current_scan)
+        # create scan instance
+        self.current_scan = Scanner(target, presets=["subdomain-enum"])
 
-        seen = set()
+        # iterate through results and send them to the channel
         num_events = 0
-        # start scan and iterate through results
         async for event in self.current_scan.async_start():
-            if hash(event) in seen:
-                continue
-            seen.add(hash(event))
-            await ctx.send(discord_module.format_message(event))
+            # format findings differently to show severity
+            if event.type == "FINDING":
+                severity = event.data.get("severity", "INFO")
+                description = event.data.get("description", "")
+                event_text = f"`[FINDING]` [{severity}] **{description}**"
+            else:
+                event_text = f"`[{event.type}]` **`{event.data}`**"
+            await ctx.send(event_text)
             num_events += 1
 
-        await ctx.send(f"Finished scan against {target}. {num_events:,} results.")
+        await ctx.send(f"Finished scan against **{target}**. {num_events:,} results.")
         self.current_scan = None
+
+    @commands.command(name="stop", description="Stop the current scan.")
+    async def stop(self, ctx):
+        if self.current_scan is None:
+            await ctx.send("No scan is currently running.")
+            return
+        self.current_scan.stop()
+        await ctx.send("Scan stopped.")
 
 
 if __name__ == "__main__":

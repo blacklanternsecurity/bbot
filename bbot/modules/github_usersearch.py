@@ -1,19 +1,20 @@
 from bbot.modules.templates.github import github
 from bbot.modules.templates.subdomain_enum import subdomain_enum
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class github_usersearch(github, subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["SOCIAL", "EMAIL_ADDRESS"]
-    flags = ["passive", "safe", "code-enum"]
+    flags = ["safe", "passive", "code-enum"]
     meta = {
         "description": "Query Github's API for users with emails matching in scope domains that may not be discoverable by listing members of the organization.",
         "created_date": "2025-05-10",
         "author": "@domwhewell-sage",
-        "auth_required": True,
     }
-    options = {"api_key": ""}
-    options_desc = {"api_key": "Github token"}
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="Github token", sensitive=True, mandatory=True)
 
     async def handle_event(self, event):
         self.verbose("Searching for users with emails matching in scope domains")
@@ -33,7 +34,7 @@ class github_usersearch(github, subdomain_enum):
                     email,
                     "EMAIL_ADDRESS",
                     parent=event,
-                    context=f"{{module}} found an {{event.type}} on the github profile {user_url}: {{event.data}}",
+                    context=f"{{module}} found an {{event.type}} on the github profile {user_url}: {{event.pretty_string}}",
                 )
 
     async def query_users(self, query):

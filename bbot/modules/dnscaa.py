@@ -21,40 +21,22 @@
 
 from bbot.modules.base import BaseModule
 
-import re
-
 from bbot.core.helpers.regexes import dns_name_extraction_regex, email_regex, url_regexes
-
-# Handle '0 iodef "mailto:support@hcaptcha.com"'
-# Handle '1 iodef "https://some.host.tld/caa;"'
-# Handle '0 issue "pki.goog; cansignhttpexchanges=yes; somethingelse=1"'
-# Handle '1 issue ";"' == explicit denial for any wildcard issuance.
-# Handle '128 issuewild "comodoca.com"'
-# Handle '128 issuewild ";"' == explicit denial for any wildcard issuance.
-_caa_regex = r"^(?P<flags>[0-9]+) +(?P<property>\w+) +\"(?P<text>[^;\"]*);* *(?P<extensions>[^\"]*)\"$"
-caa_regex = re.compile(_caa_regex)
-
-_caa_extensions_kvp_regex = r"(?P<k>\w+)=(?P<v>[^;]+)"
-caa_extensions_kvp_regex = re.compile(_caa_extensions_kvp_regex)
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class dnscaa(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME", "EMAIL_ADDRESS", "URL_UNVERIFIED"]
-    flags = ["subdomain-enum", "email-enum", "passive", "safe"]
+    flags = ["safe", "subdomain-enum", "email-enum", "passive"]
     meta = {"description": "Check for CAA records", "author": "@colin-stubbs", "created_date": "2024-05-26"}
-    options = {
-        "in_scope_only": True,
-        "dns_names": True,
-        "emails": True,
-        "urls": True,
-    }
-    options_desc = {
-        "in_scope_only": "Only check in-scope domains",
-        "dns_names": "emit DNS_NAME events",
-        "emails": "emit EMAIL_ADDRESS events",
-        "urls": "emit URL_UNVERIFIED events",
-    }
+
+    class Config(BaseModuleConfig):
+        in_scope_only: bool = Field(True, description="Only check in-scope domains")
+        dns_names: bool = Field(True, description="emit DNS_NAME events")
+        emails: bool = Field(True, description="emit EMAIL_ADDRESS events")
+        urls: bool = Field(True, description="emit URL_UNVERIFIED events")
+
     # accept DNS_NAMEs out to 2 hops if in_scope_only is False
     scope_distance_modifier = 2
 
@@ -78,42 +60,71 @@ class dnscaa(BaseModule):
     async def handle_event(self, event):
         tags = ["caa-record"]
 
-        r = await self.helpers.resolve_raw(event.host, type="caa")
+        response = await self.helpers.dns.resolve_full(event.host, "CAA")
 
-        if r:
-            raw_results, errors = r
+        for answer in response.response.answers:
+            caa = answer.rdata.get("CAA")
+            if not isinstance(caa, dict):
+                continue
 
-            for answer in raw_results:
-                s = answer.to_text().strip().replace('" "', "")
+            raw_tag = caa.get("tag")
+            # hickory wraps unrecognized CAA properties as {"Unknown": "name"}
+            if isinstance(raw_tag, dict):
+                raw_tag = raw_tag.get("Unknown", "")
+            if not isinstance(raw_tag, str):
+                continue
+            tag = raw_tag.lower()
 
-                # validate CAA record vi regex so that we can determine what to do with it.
-                caa_match = caa_regex.search(s)
+            value = caa.get("value") or {}
+            # hickory wraps unrecognized values as {"Unknown": [byte_array]}
+            if isinstance(value, dict) and isinstance(value.get("Unknown"), list):
+                try:
+                    value = {"raw_text": bytes(value["Unknown"]).decode()}
+                except (ValueError, UnicodeDecodeError):
+                    continue
 
-                if caa_match and caa_match.group("flags") and caa_match.group("property") and caa_match.group("text"):
-                    # it's legit.
-                    if caa_match.group("property").lower() == "iodef":
-                        if self._emails:
-                            for match in email_regex.finditer(caa_match.group("text")):
-                                start, end = match.span()
-                                email = caa_match.group("text")[start:end]
+            # iodef -> "Url" containing mailto: or https:// for incident reporting
+            if tag == "iodef":
+                target = value.get("Url") if isinstance(value, dict) else None
+                if not target:
+                    continue
+                if self._emails:
+                    for match in email_regex.finditer(target):
+                        await self.emit_event(
+                            target[match.start() : match.end()], "EMAIL_ADDRESS", tags=tags, parent=event
+                        )
+                if self._urls:
+                    for url_regex in url_regexes:
+                        for match in url_regex.finditer(target):
+                            await self.emit_event(
+                                target[match.start() : match.end()].strip('"').strip(),
+                                "URL_UNVERIFIED",
+                                tags=tags,
+                                parent=event,
+                            )
 
-                                await self.emit_event(email, "EMAIL_ADDRESS", tags=tags, parent=event)
+            # contactemail (RFC 8657) -> email for CA to contact domain owner
+            elif tag == "contactemail":
+                raw_text = value.get("raw_text") if isinstance(value, dict) else None
+                if raw_text and self._emails:
+                    for match in email_regex.finditer(raw_text):
+                        await self.emit_event(
+                            raw_text[match.start() : match.end()], "EMAIL_ADDRESS", tags=tags, parent=event
+                        )
 
-                        if self._urls:
-                            for url_regex in url_regexes:
-                                for match in url_regex.finditer(caa_match.group("text")):
-                                    start, end = match.span()
-                                    url = caa_match.group("text")[start:end].strip('"').strip()
-
-                                    await self.emit_event(url, "URL_UNVERIFIED", tags=tags, parent=event)
-
-                    elif caa_match.group("property").lower().startswith("issue"):
-                        if self._dns_names:
-                            for match in dns_name_extraction_regex.finditer(caa_match.group("text")):
-                                start, end = match.span()
-                                name = caa_match.group("text")[start:end]
-
-                                await self.emit_event(name, "DNS_NAME", tags=tags, parent=event)
+            # issue / issuewild -> "Issuer" containing the CA's domain
+            elif tag.startswith("issue"):
+                if not self._dns_names:
+                    continue
+                issuer = value.get("Issuer") if isinstance(value, dict) else None
+                # blastdns models this as ["domain", [extensions]]; an empty issuer
+                # ("explicit denial") resolves to None or [None, []]
+                if isinstance(issuer, (list, tuple)) and issuer and issuer[0]:
+                    name_text = str(issuer[0])
+                    for match in dns_name_extraction_regex.finditer(name_text):
+                        await self.emit_event(
+                            name_text[match.start() : match.end()], "DNS_NAME", tags=tags, parent=event
+                        )
 
 
 # EOF

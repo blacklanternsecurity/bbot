@@ -1,11 +1,12 @@
 import re
-import httpx
+
+from blasthttp import HTTPStatusError
 
 from ..bbot_fixtures import *
 
 
 @pytest.mark.asyncio
-async def test_web_engine(bbot_scanner, bbot_httpserver, httpx_mock):
+async def test_web(bbot_scanner, bbot_httpserver, blasthttp_mock):
     from werkzeug.wrappers import Response
 
     def server_handler(request):
@@ -16,6 +17,7 @@ async def test_web_engine(bbot_scanner, bbot_httpserver, httpx_mock):
     bbot_httpserver.expect_request(uri=re.compile(r"/nope")).respond_with_data("nope", status=500)
 
     scan = bbot_scanner()
+    await scan._prep()
 
     # request
     response = await scan.helpers.request(f"{base_url}1")
@@ -24,31 +26,22 @@ async def test_web_engine(bbot_scanner, bbot_httpserver, httpx_mock):
 
     num_urls = 100
 
-    # request_batch
+    # request_batch_stream
     urls = [f"{base_url}{i}" for i in range(num_urls)]
-    responses = [r async for r in scan.helpers.request_batch(urls)]
+    responses = []
+    async for url, response in scan.helpers.request_batch_stream(urls):
+        responses.append((url, response))
     assert len(responses) == 100
     assert all(r[1].status_code == 200 and r[1].text.startswith(f"{r[0]}: ") for r in responses)
 
-    # request_batch w/ cancellation
-    agen = scan.helpers.request_batch(urls)
-    async for url, response in agen:
-        assert response.text.startswith(base_url)
-        await agen.aclose()
-        break
-
-    # request_custom_batch
+    # request_batch_stream with tracker
     urls_and_kwargs = [(urls[i], {"headers": {f"h{i}": f"v{i}"}}, i) for i in range(num_urls)]
-    results = [r async for r in scan.helpers.request_custom_batch(urls_and_kwargs)]
-    assert len(responses) == 100
-    for result in results:
-        url, kwargs, custom_tracker, response = result
-        assert "headers" in kwargs
-        assert f"h{custom_tracker}" in kwargs["headers"]
-        assert kwargs["headers"][f"h{custom_tracker}"] == f"v{custom_tracker}"
+    seen_trackers = set()
+    async for url, response, custom_tracker in scan.helpers.request_batch_stream(urls_and_kwargs):
         assert response.status_code == 200
         assert response.text.startswith(f"{url}: ")
-        assert f"H{custom_tracker}: v{custom_tracker}" in response.text
+        seen_trackers.add(custom_tracker)
+    assert seen_trackers == set(range(num_urls))
 
     # request with raise_error=True
     with pytest.raises(WebError):
@@ -58,13 +51,13 @@ async def test_web_engine(bbot_scanner, bbot_httpserver, httpx_mock):
     except WebError as e:
         assert hasattr(e, "response")
         assert e.response is None
-    with pytest.raises(httpx.HTTPStatusError):
+    with pytest.raises(HTTPStatusError):
         response = await scan.helpers.request(bbot_httpserver.url_for("/nope"), raise_error=True)
         response.raise_for_status()
     try:
         response = await scan.helpers.request(bbot_httpserver.url_for("/nope"), raise_error=True)
         response.raise_for_status()
-    except httpx.HTTPStatusError as e:
+    except HTTPStatusError as e:
         assert hasattr(e, "response")
         assert e.response.status_code == 500
 
@@ -94,49 +87,72 @@ async def test_web_engine(bbot_scanner, bbot_httpserver, httpx_mock):
 
 
 @pytest.mark.asyncio
-async def test_request_batch_cancellation(bbot_scanner, bbot_httpserver, httpx_mock):
-    import time
-    from werkzeug.wrappers import Response
-
-    urls_requested = []
+async def test_web_request_files_multipart(bbot_scanner, bbot_httpserver):
+    """httpx-style files= kwarg builds a multipart/form-data body."""
+    captured = {}
 
     def server_handler(request):
-        time.sleep(0.75)
-        urls_requested.append(request.url.split("/")[-1])
-        return Response(f"{request.url}: {request.headers}")
+        from werkzeug.wrappers import Response
 
-    base_url = bbot_httpserver.url_for("/test/")
-    bbot_httpserver.expect_request(uri=re.compile(r"/test/\d+")).respond_with_handler(server_handler)
+        captured["body"] = request.get_data()
+        captured["content_type"] = request.headers.get("Content-Type", "")
+        return Response("ok")
+
+    bbot_httpserver.expect_request(uri="/upload", method="POST").respond_with_handler(server_handler)
+    url = bbot_httpserver.url_for("/upload")
 
     scan = bbot_scanner()
+    await scan._prep()
 
-    urls = [f"{base_url}{i}" for i in range(100)]
+    response = await scan.helpers.request(
+        url,
+        method="POST",
+        files={
+            "field": (None, "value"),
+            "f": ("blob", b"\x00\x01\x02hello", "application/octet-stream"),
+        },
+    )
+    assert response.status_code == 200
 
-    # request_batch w/ cancellation
-    agen = scan.helpers.request_batch(urls)
-    got_urls = []
-    start = time.time()
-    async for url, response in agen:
-        assert response.text.startswith(base_url)
-        got_urls.append(url)
-        if time.time() > start + 1:
-            await agen.aclose()
-            break
-
-    assert 5 < len(got_urls) < 15
+    ct = captured["content_type"]
+    assert ct.startswith("multipart/form-data; boundary=")
+    body = captured["body"]
+    assert b'name="field"' in body
+    assert b"value" in body
+    assert b'filename="blob"' in body
+    assert b"\x00\x01\x02hello" in body
 
     await scan._cleanup()
 
-    # TODO: enforce qsize limits on zmq to help prevent runaway generators
-    # assert 10 <= len(urls_requested) <= 20
+
+@pytest.mark.asyncio
+async def test_web_request_rejects_conflicting_body_kwargs(bbot_scanner):
+    scan = bbot_scanner()
+    await scan._prep()
+    url = "http://example.com/"
+
+    pairs = [
+        {"json": {"a": 1}, "files": {"f": ("x", b"x")}},
+        {"json": {"a": 1}, "data": {"a": "b"}},
+        {"body": "raw", "json": {"a": 1}},
+        {"body": "raw", "data": {"a": "b"}},
+        {"body": "raw", "files": {"f": ("x", b"x")}},
+        {"data": {"a": "b"}, "files": {"f": ("x", b"x")}},
+    ]
+    for kwargs in pairs:
+        with pytest.raises(ValueError, match="conflicting body kwargs"):
+            await scan.helpers.request(url, method="POST", **kwargs)
+
+    await scan._cleanup()
 
 
 @pytest.mark.asyncio
-async def test_web_helpers(bbot_scanner, bbot_httpserver, httpx_mock):
+async def test_web_helpers(bbot_scanner, bbot_httpserver, blasthttp_mock):
     # json conversion
     scan = bbot_scanner("evilcorp.com")
+    await scan._prep()
     url = "http://www.evilcorp.com/json_test?a=b"
-    httpx_mock.add_response(url=url, text="hello\nworld")
+    blasthttp_mock.add_response(url=url, text="hello\nworld")
     response = await scan.helpers.web.request(url)
     j = scan.helpers.response_to_json(response)
     assert j["status_code"] == 200
@@ -155,6 +171,7 @@ async def test_web_helpers(bbot_scanner, bbot_httpserver, httpx_mock):
     scan2 = bbot_scanner("127.0.0.1")
 
     await scan1._prep()
+    await scan2._prep()
     module = scan1.modules["ipneighbor"]
 
     web_config = CORE.config.get("web", {})
@@ -289,7 +306,8 @@ async def test_web_interactsh(bbot_scanner, bbot_httpserver):
     async_correct_url = False
 
     scan1 = bbot_scanner("8.8.8.8")
-    scan1.status = "RUNNING"
+    await scan1._prep()
+    await scan1._set_status("RUNNING")
 
     interactsh_client = scan1.helpers.interactsh(poll_interval=3)
     interactsh_client2 = scan1.helpers.interactsh(poll_interval=3)
@@ -342,45 +360,59 @@ async def test_web_interactsh(bbot_scanner, bbot_httpserver):
 
 
 @pytest.mark.asyncio
-async def test_web_curl(bbot_scanner, bbot_httpserver):
+async def test_web_request_target(bbot_scanner, bbot_httpserver):
+    """Test request() with request_target, ignore_bbot_global_settings, and other advanced kwargs."""
     scan = bbot_scanner("127.0.0.1")
+    await scan._prep()
     helpers = scan.helpers
-    url = bbot_httpserver.url_for("/curl")
-    bbot_httpserver.expect_request(uri="/curl").respond_with_data("curl_yep")
-    bbot_httpserver.expect_request(uri="/index.html").respond_with_data("curl_yep_index")
-    assert await helpers.curl(url=url) == "curl_yep"
-    assert await helpers.curl(url=url, ignore_bbot_global_settings=True) == "curl_yep"
-    assert (await helpers.curl(url=url, head_mode=True)).startswith("HTTP/")
-    assert await helpers.curl(url=url, raw_body="body") == "curl_yep"
-    assert (
-        await helpers.curl(
-            url=url,
-            raw_path=True,
-            headers={"test": "test", "test2": ["test2"]},
-            ignore_bbot_global_settings=False,
-            post_data={"test": "test"},
-            method="POST",
-            cookies={"test": "test"},
-            path_override="/index.html",
-        )
-        == "curl_yep_index"
+    url = bbot_httpserver.url_for("/test-advanced")
+    bbot_httpserver.expect_request(uri="/test-advanced").respond_with_data("advanced_yep")
+    bbot_httpserver.expect_request(uri="/index.html").respond_with_data("index_yep")
+
+    # basic request
+    r = await helpers.request(url=url)
+    assert r.text == "advanced_yep"
+
+    # ignore_bbot_global_settings
+    r = await helpers.request(url=url, ignore_bbot_global_settings=True)
+    assert r.text == "advanced_yep"
+
+    # HEAD method
+    r = await helpers.request(url=url, method="HEAD")
+    assert r.status_code == 200
+
+    # body kwarg
+    r = await helpers.request(url=url, body="body")
+    assert r.text == "advanced_yep"
+
+    # request_target overrides the HTTP request-line path
+    r = await helpers.request(
+        url=url,
+        headers={"test": "test", "test2": ["test2"]},
+        data={"test": "test"},
+        method="POST",
+        cookies={"test": "test"},
+        request_target="/index.html",
     )
-    # test custom headers
-    bbot_httpserver.expect_request("/test-custom-http-headers-curl", headers={"test": "header"}).respond_with_data(
-        "curl_yep_headers"
+    assert r.text == "index_yep"
+
+    # test custom headers from scan config
+    bbot_httpserver.expect_request("/test-custom-http-headers-advanced", headers={"test": "header"}).respond_with_data(
+        "headers_yep"
     )
-    headers_url = bbot_httpserver.url_for("/test-custom-http-headers-curl")
-    curl_result = await helpers.curl(url=headers_url)
-    assert curl_result == "curl_yep_headers"
+    headers_url = bbot_httpserver.url_for("/test-custom-http-headers-advanced")
+    r = await helpers.request(url=headers_url)
+    assert r.text == "headers_yep"
 
     await scan._cleanup()
 
 
 @pytest.mark.asyncio
-async def test_web_http_compare(httpx_mock, bbot_scanner):
+async def test_web_http_compare(blasthttp_mock, bbot_scanner):
     scan = bbot_scanner()
+    await scan._prep()
     helpers = scan.helpers
-    httpx_mock.add_response(url=re.compile(r"http://www\.example\.com.*"), text="wat")
+    blasthttp_mock.add_response(url=re.compile(r"http://www\.example\.com.*"), text="wat")
     compare_helper = helpers.http_compare("http://www.example.com")
     await compare_helper.compare("http://www.example.com", headers={"asdf": "asdf"})
     await compare_helper.compare("http://www.example.com", cookies={"asdf": "asdf"})
@@ -402,6 +434,7 @@ async def test_http_proxy(bbot_scanner, bbot_httpserver, proxy_server):
     proxy_address = f"http://127.0.0.1:{proxy_server.server_address[1]}"
 
     scan = bbot_scanner("127.0.0.1", config={"web": {"http_proxy": proxy_address}})
+    await scan._prep()
 
     assert len(proxy_server.RequestHandlerClass.urls) == 0
 
@@ -418,64 +451,140 @@ async def test_http_proxy(bbot_scanner, bbot_httpserver, proxy_server):
 
 
 @pytest.mark.asyncio
+async def test_http_proxy_exclude(bbot_scanner, bbot_httpserver, proxy_server):
+    """Verify that requests to excluded hosts bypass the proxy."""
+    endpoint = "/test_http_proxy_exclude"
+    url = bbot_httpserver.url_for(endpoint)
+    bbot_httpserver.expect_request(uri=endpoint).respond_with_data("proxy_exclude_works")
+
+    proxy_address = f"http://127.0.0.1:{proxy_server.server_address[1]}"
+    # Exclude 127.0.0.1 from proxy
+    scan = bbot_scanner(
+        "127.0.0.1",
+        config={
+            "web": {
+                "http_proxy": proxy_address,
+                "http_proxy_exclude": ["127.0.0.1"],
+            }
+        },
+    )
+
+    await scan._prep()
+
+    proxy_server.RequestHandlerClass.urls.clear()
+    r = await scan.helpers.request(url)
+
+    # Request should NOT go through proxy
+    assert len(proxy_server.RequestHandlerClass.urls) == 0, "Request should have bypassed proxy but went through it"
+    assert r.status_code == 200 and r.text == "proxy_exclude_works"
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_http_proxy_exclude_passthrough(bbot_scanner, bbot_httpserver, proxy_server):
+    """Verify that non-excluded hosts still go through the proxy."""
+    endpoint = "/test_proxy_passthrough"
+    url = bbot_httpserver.url_for(endpoint)
+    bbot_httpserver.expect_request(uri=endpoint).respond_with_data("passthrough_works")
+
+    proxy_address = f"http://127.0.0.1:{proxy_server.server_address[1]}"
+    # Exclude a different host, not the one we're requesting
+    scan = bbot_scanner(
+        "127.0.0.1",
+        config={
+            "web": {
+                "http_proxy": proxy_address,
+                "http_proxy_exclude": ["10.0.0.0/8"],
+            }
+        },
+    )
+
+    await scan._prep()
+
+    proxy_server.RequestHandlerClass.urls.clear()
+    r = await scan.helpers.request(url)
+
+    # Request SHOULD go through proxy (127.0.0.1 not in exclusion list)
+    assert len(proxy_server.RequestHandlerClass.urls) == 1, (
+        f"Request to {url} should have gone through proxy but didn't"
+    )
+    assert r.status_code == 200 and r.text == "passthrough_works"
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
 async def test_http_ssl(bbot_scanner, bbot_httpserver_ssl):
     endpoint = "/test_http_ssl"
     url = bbot_httpserver_ssl.url_for(endpoint)
     # test user agent + custom headers
     bbot_httpserver_ssl.expect_request(uri=endpoint).respond_with_data("test_http_ssl_yep")
 
-    scan1 = bbot_scanner("127.0.0.1", config={"web": {"ssl_verify": True, "debug": True}})
-    scan2 = bbot_scanner("127.0.0.1", config={"web": {"ssl_verify": False, "debug": True}})
+    # ssl_verify_target controls target-directed traffic
+    scan1 = bbot_scanner("127.0.0.1", config={"web": {"ssl_verify_target": True, "debug": True}})
+    scan2 = bbot_scanner("127.0.0.1", config={"web": {"ssl_verify_target": False, "debug": True}})
+    await scan1._prep()
+    await scan2._prep()
 
     r1 = await scan1.helpers.request(url)
-    assert r1 is None, "Request to self-signed SSL server went through even with ssl_verify=True"
+    assert r1 is None, "Request to self-signed SSL server went through even with ssl_verify_target=True"
     r2 = await scan2.helpers.request(url)
-    assert r2 is not None, "Request to self-signed SSL server failed even with ssl_verify=False"
+    assert r2 is not None, "Request to self-signed SSL server failed even with ssl_verify_target=False"
     assert r2.status_code == 200 and r2.text == "test_http_ssl_yep"
 
     await scan1._cleanup()
     await scan2._cleanup()
 
+    # ssl_verify per-request override (used by infrastructure callers like api_request/download)
+    scan3 = bbot_scanner("127.0.0.1", config={"web": {"ssl_verify_target": True, "debug": True}})
+    await scan3._prep()
+    r3 = await scan3.helpers.request(url, ssl_verify=False)
+    assert r3 is not None, "Per-request ssl_verify=False override did not bypass verification"
+    assert r3.status_code == 200 and r3.text == "test_http_ssl_yep"
+    await scan3._cleanup()
+
 
 @pytest.mark.asyncio
-async def test_web_cookies(bbot_scanner, httpx_mock):
-    import httpx
-    from bbot.core.helpers.web.client import BBOTAsyncClient
+async def test_web_cookies(bbot_scanner, bbot_httpserver):
+    from werkzeug.wrappers import Response
 
-    # make sure cookies work when enabled
-    httpx_mock.add_response(url="http://www.evilcorp.com/cookies", headers=[("set-cookie", "wat=asdf; path=/")])
-    scan = bbot_scanner()
+    def set_cookie_handler(request):
+        resp = Response("ok")
+        resp.set_cookie("wat", "asdf", path="/")
+        return resp
 
-    client = BBOTAsyncClient(persist_cookies=True, _config=scan.config, _target=scan.target)
-    r = await client.get(url="http://www.evilcorp.com/cookies")
-    assert r.cookies["wat"] == "asdf"
-    httpx_mock.add_response(url="http://www.evilcorp.com/cookies/test", match_headers={"Cookie": "wat=asdf"})
-    r = await client.get(url="http://www.evilcorp.com/cookies/test")
-    # make sure we can manually send cookies
-    httpx_mock.add_response(url="http://www.evilcorp.com/cookies/test2", match_headers={"Cookie": "asdf=wat"})
-    r = await scan.helpers.request(url="http://www.evilcorp.com/cookies/test2", cookies={"asdf": "wat"})
-    assert client.cookies["wat"] == "asdf"
+    def echo_cookies_handler(request):
+        cookies = request.cookies
+        cookie_str = "; ".join([f"{key}={value}" for key, value in cookies.items()])
+        return Response(f"Cookies: {cookie_str}")
 
-    await scan._cleanup()
+    bbot_httpserver.expect_request(uri="/setcookie").respond_with_handler(set_cookie_handler)
+    bbot_httpserver.expect_request(uri="/echocookie").respond_with_handler(echo_cookies_handler)
 
-    # make sure they don't when they're not
-    httpx_mock.add_response(url="http://www2.evilcorp.com/cookies", headers=[("set-cookie", "wats=fdsa; path=/")])
-    scan = bbot_scanner()
-    client2 = BBOTAsyncClient(persist_cookies=False, _config=scan.config, _target=scan.target)
-    r = await client2.get(url="http://www2.evilcorp.com/cookies")
-    # make sure we can access the cookies
-    assert "wats" in r.cookies
-    httpx_mock.add_response(url="http://www2.evilcorp.com/cookies/test", match_headers={"Cookie": "wats=fdsa"})
-    # but that they're not sent in the response
-    with pytest.raises(httpx.TimeoutException):
-        r = await client2.get(url="http://www2.evilcorp.com/cookies/test")
-    # make sure cookies are sent
-    r = await client2.get(url="http://www2.evilcorp.com/cookies/test", cookies={"wats": "fdsa"})
-    assert r.status_code == 200
-    # make sure we can manually send cookies
-    httpx_mock.add_response(url="http://www2.evilcorp.com/cookies/test2", match_headers={"Cookie": "fdsa=wats"})
-    r = await client2.get(url="http://www2.evilcorp.com/cookies/test2", cookies={"fdsa": "wats"})
-    assert not client2.cookies
+    scan = bbot_scanner("127.0.0.1")
+    await scan._prep()
+
+    # make sure Set-Cookie headers are parsed in the response
+    r = await scan.helpers.request(bbot_httpserver.url_for("/setcookie"))
+    assert r is not None
+    assert r.cookies.get("wat") == "asdf"
+
+    # blasthttp does NOT persist cookies across requests (stateless by design)
+    r2 = await scan.helpers.request(bbot_httpserver.url_for("/echocookie"))
+    assert r2 is not None
+    assert "wat=asdf" not in r2.text
+
+    # but manually sending cookies should work
+    r3 = await scan.helpers.request(bbot_httpserver.url_for("/echocookie"), cookies={"wat": "asdf"})
+    assert r3 is not None
+    assert "wat=asdf" in r3.text
+
+    # make sure multiple cookies are sent
+    r4 = await scan.helpers.request(bbot_httpserver.url_for("/echocookie"), cookies={"foo": "bar", "baz": "qux"})
+    assert r4 is not None
+    assert "foo=bar" in r4.text
+    assert "baz=qux" in r4.text
 
     await scan._cleanup()
 
@@ -493,6 +602,7 @@ async def test_http_sendcookies(bbot_scanner, bbot_httpserver):
 
     bbot_httpserver.expect_request(uri=endpoint).respond_with_handler(echo_cookies_handler)
     scan1 = bbot_scanner("127.0.0.1", config={"web": {"debug": True}})
+    await scan1._prep()
     r1 = await scan1.helpers.request(url, cookies={"foo": "bar"})
 
     assert r1 is not None, "Request to self-signed SSL server went through even with ssl_verify=True"
@@ -528,6 +638,7 @@ async def test_api_download_api_key_cycle(bbot_scanner, bbot_httpserver):
     bbot_httpserver.expect_request(uri=endpoint).respond_with_handler(handler)
 
     scan = bbot_scanner("127.0.0.1")
+    await scan._prep()
     module = BaseModule(scan)
     module.api_key = ["k1", "k2"]
 
@@ -542,5 +653,48 @@ async def test_api_download_api_key_cycle(bbot_scanner, bbot_httpserver):
 
     # verify the requests occurred in expected order with expected API keys
     assert seen_auth == ["Bearer k1", "Bearer k1", "Bearer k2"]
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_is_http_wildcard_host(bbot_scanner):
+    """Test is_http_wildcard_host caching, retry, and return value semantics."""
+    scan = bbot_scanner()
+    await scan._prep()
+
+    web = scan.helpers.web
+    probe_results = []
+
+    async def mock_probe(scheme, host, port):
+        return probe_results.pop(0)
+
+    web._probe_wildcard_host = mock_probe
+
+    # wildcard host: probe returns a truthy sentinel
+    probe_results.append("WILDCARD_CMP")
+    result = await web.is_http_wildcard_host("https", "spa.example.com", 443)
+    assert result == "WILDCARD_CMP"
+    # cached: no more probe calls needed
+    result2 = await web.is_http_wildcard_host("https", "spa.example.com", 443)
+    assert result2 == "WILDCARD_CMP"
+
+    # non-wildcard host: probe returns False
+    probe_results.append(False)
+    result = await web.is_http_wildcard_host("https", "normal.example.com", 443)
+    assert result is False
+
+    # retry once on first failure, succeed on second
+    probe_results.extend(["retry", "WILDCARD_RETRY"])
+    result = await web.is_http_wildcard_host("https", "flaky.example.com", 443)
+    assert result == "WILDCARD_RETRY"
+
+    # both attempts fail: caches None
+    probe_results.extend(["retry", "retry"])
+    result = await web.is_http_wildcard_host("https", "down.example.com", 443)
+    assert result is None
+    # cached as None
+    result2 = await web.is_http_wildcard_host("https", "down.example.com", 443)
+    assert result2 is None
 
     await scan._cleanup()

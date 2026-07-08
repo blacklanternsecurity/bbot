@@ -17,34 +17,36 @@ jobs:
       # if one python version fails, let the others finish
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Set Python Version Environment Variable
         run: echo "PYTHON_VERSION=${{ matrix.python-version }}" | sed 's|[:/]|_|g' >> $GITHUB_ENV
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
       - name: Install dependencies
-        run: |
-          pip install poetry
-          poetry install
+        run: uv sync --group dev
       - name: Lint
         run: |
-          poetry run ruff check
-          poetry run ruff format --check
+          uv run ruff check
+          uv run ruff format --check
       - name: Run tests
+        env:
+          BBOT_IO_API_KEY: ${{ secrets.BBOT_IO_API_KEY }}
         run: |
-          poetry run pytest -vv --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO --cov-config=bbot/test/coverage.cfg --cov-report xml:cov.xml --cov=bbot .
+          uv run pytest -vv --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO --cov-config=bbot/test/coverage.cfg --cov-report xml:cov.xml --cov=bbot .
       - name: Upload Debug Logs
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: pytest-debug-logs-${{ env.PYTHON_VERSION }}
           path: pytest_debug.log
       - name: Upload Code Coverage
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./cov.xml
@@ -55,13 +57,13 @@ jobs:
     if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stable')
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
       - name: Login to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -69,23 +71,47 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: "3.x"
-      - name: Install dependencies
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+      - name: Calculate version
+        id: calc_version
         run: |
-          python -m pip install --upgrade pip
-          pip install poetry build
-          poetry self add "poetry-dynamic-versioning[plugin]"
+          # Source of truth for base version is pyproject.toml
+          BASE_VERSION=$(python3 -c "
+          import re
+          text = open('pyproject.toml').read()
+          print(re.search(r'^version\s*=\s*\"([^\"]+)\"', text, re.MULTILINE).group(1))
+          ")
+
+          if [[ "${{ github.ref }}" == "refs/heads/stable" ]]; then
+            VERSION="$BASE_VERSION"
+          elif [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
+            # Dev: base version + commit distance from stable as rc (e.g., 3.0.0.123rc)
+            STABLE_HEAD=$(git rev-parse origin/stable 2>/dev/null || git rev-list --max-parents=0 HEAD)
+            DISTANCE=$(git rev-list ${STABLE_HEAD}..HEAD --count)
+            VERSION="${BASE_VERSION}.${DISTANCE}rc"
+          fi
+
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Calculated version: $VERSION"
+
+          # For dev builds, write the rc version to pyproject.toml for hatchling
+          # Stable builds use pyproject.toml as-is
+          if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
+            sed -i "s/^version = .*/version = \"$VERSION\"/" pyproject.toml
+          fi
       - name: Build Pypi package
         if: github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev'
-        run: python -m build
+        run: uv build
       - name: Publish Pypi package
         if: github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev'
-        uses: pypa/gh-action-pypi-publish@release/v1.13
+        uses: pypa/gh-action-pypi-publish@release/v1.14
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
       - name: Get BBOT version
         id: version
         run: |
-          FULL_VERSION=$(poetry version | cut -d' ' -f2)
+          FULL_VERSION="${{ steps.calc_version.outputs.VERSION }}"
           echo "BBOT_VERSION=$FULL_VERSION" >> $GITHUB_OUTPUT
           # Extract major.minor (e.g., 2.7 from 2.7.1)
           MAJOR_MINOR=$(echo "$FULL_VERSION" | cut -d'.' -f1-2)
@@ -95,48 +121,44 @@ jobs:
           echo "BBOT_VERSION_MAJOR=$MAJOR" >> $GITHUB_OUTPUT
       - name: Publish to Docker Hub (dev)
         if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
+        with:
+          push: true
+          context: .
+          tags: |
+            blacklanternsecurity/bbot:dev
+            blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION }}
+      - name: Publish to Docker Hub (stable)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+        uses: docker/build-push-action@v7
         with:
           push: true
           context: .
           tags: |
             blacklanternsecurity/bbot:latest
-            blacklanternsecurity/bbot:dev
-            blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION }}
-            blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION_MAJOR_MINOR }}
-            blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION_MAJOR }}
-      - name: Publish to Docker Hub (stable)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
-        uses: docker/build-push-action@v6
-        with:
-          push: true
-          context: .
-          tags: |
             blacklanternsecurity/bbot:stable
             blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION }}
             blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION_MAJOR_MINOR }}
             blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION_MAJOR }}
       - name: Publish Full Docker Image to Docker Hub (dev)
         if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
+        with:
+          push: true
+          file: Dockerfile.full
+          context: .
+          tags: |
+            blacklanternsecurity/bbot:dev-full
+            blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION }}-full
+      - name: Publish Full Docker Image to Docker Hub (stable)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+        uses: docker/build-push-action@v7
         with:
           push: true
           file: Dockerfile.full
           context: .
           tags: |
             blacklanternsecurity/bbot:latest-full
-            blacklanternsecurity/bbot:dev-full
-            blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION }}-full
-            blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION_MAJOR_MINOR }}-full
-            blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION_MAJOR }}-full
-      - name: Publish Full Docker Image to Docker Hub (stable)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
-        uses: docker/build-push-action@v6
-        with:
-          push: true
-          file: Dockerfile.full
-          context: .
-          tags: |
             blacklanternsecurity/bbot:stable-full
             blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION }}-full
             blacklanternsecurity/bbot:${{ steps.version.outputs.BBOT_VERSION_MAJOR_MINOR }}-full
@@ -177,27 +199,49 @@ jobs:
           done
     outputs:
       BBOT_VERSION: ${{ steps.version.outputs.BBOT_VERSION }}
+  tag_commit:
+    needs: publish_code
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev')
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Configure git
+        run: |
+          git config --local user.email "info@blacklanternsecurity.com"
+          git config --local user.name "GitHub Actions"
+      - name: Tag commit
+        run: |
+          VERSION="v${{ needs.publish_code.outputs.BBOT_VERSION }}"
+          if [[ "${{ github.ref }}" == "refs/heads/stable" ]]; then
+            git tag -a "$VERSION" -m "Stable Release $VERSION"
+          else
+            git tag -a "$VERSION" -m "Dev Release $VERSION"
+          fi
+          git push origin "$VERSION"
+
   publish_docs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev')
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           key: mkdocs-material-${{ env.cache_id }}
           path: .cache
           restore-keys: |
             mkdocs-material-
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
       - name: Install dependencies
-        run: |
-          pip install poetry
-          poetry install --only=docs
+        run: uv sync --frozen --group docs
       - name: Configure Git
         run: |
           git config user.name github-actions
@@ -211,35 +255,12 @@ jobs:
       - name: Generate docs (stable branch)
         if: github.ref == 'refs/heads/stable'
         run: |
-          poetry run mike deploy Stable
+          uv run --no-sync mike deploy Stable
       - name: Generate docs (dev branch)
         if: github.ref == 'refs/heads/dev'
         run: |
-          poetry run mike deploy Dev
+          uv run --no-sync mike deploy Dev
       - name: Publish docs
         run: |
           git switch gh-pages
           git push
-  # tag_commit:
-  #   needs: publish_code
-  #   runs-on: ubuntu-latest
-  #   if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
-  #   steps:
-  #     - uses: actions/checkout@v6
-  #       with:
-  #         ref: ${{ github.head_ref }}
-  #         fetch-depth: 0 # Fetch all history for all tags and branches
-  #     - name: Configure git
-  #       run: |
-  #         git config --local user.email "info@blacklanternsecurity.com"
-  #         git config --local user.name "GitHub Actions"
-  #     - name: Tag commit
-  #       run: |
-  #         VERSION="${{ needs.publish_code.outputs.BBOT_VERSION }}"
-  #         if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
-  #           TAG_MESSAGE="Dev Release $VERSION"
-  #         elif [[ "${{ github.ref }}" == "refs/heads/stable" ]]; then
-  #           TAG_MESSAGE="Stable Release $VERSION"
-  #         fi
-  #         git tag -a $VERSION -m "$TAG_MESSAGE"
-  #         git push origin --tags

@@ -1,3 +1,6 @@
+import os
+import sys
+import time
 import asyncio
 import datetime
 import ipaddress
@@ -590,7 +593,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     await scan._cleanup()
 
     scan1 = bbot_scanner(modules="ipneighbor")
-    await scan1.load_modules()
+    await scan1._prep()
     assert int(helpers.get_size(scan1.modules["ipneighbor"])) > 0
 
     await scan1._cleanup()
@@ -661,6 +664,7 @@ async def test_word_cloud(helpers, bbot_scanner):
 
     # saving and loading
     scan1 = bbot_scanner("127.0.0.1")
+    await scan1._prep()
     word_cloud = scan1.helpers.word_cloud
     word_cloud.add_word("lantern")
     word_cloud.add_word("black")
@@ -962,7 +966,7 @@ async def test_parameter_validation(helpers):
 async def test_rm_temp_dir_at_exit(helpers):
     from bbot.scanner import Scanner
 
-    scan = Scanner("127.0.0.1", modules=["httpx"])
+    scan = Scanner("127.0.0.1", modules=["http"])
     await scan._prep()
 
     temp_dir = scan.home / "temp"
@@ -975,3 +979,363 @@ async def test_rm_temp_dir_at_exit(helpers):
 
     # temp dir should be removed
     assert not temp_dir.exists()
+
+
+# these must be top-level functions so they can be pickled for the subprocess
+def _hang_forever():
+    import time
+
+    time.sleep(9999)
+
+
+def _cpu_work(n):
+    return sum(range(n))
+
+
+@pytest.mark.asyncio
+async def test_run_in_executor_mp(helpers):
+    # normal tasks should complete fine
+    result = await helpers.run_in_executor_mp(_cpu_work, 100_000)
+    assert result == sum(range(100_000))
+
+    # a hanging task should raise TimeoutError and auto-replace the pool
+    with pytest.raises(asyncio.TimeoutError):
+        await helpers.run_in_executor_mp(_hang_forever, _timeout=2)
+
+    # pool should still work after a timeout (was replaced by _reset_process_pool)
+    result = await helpers.run_in_executor_mp(_cpu_work, 50_000, _timeout=30)
+    assert result == sum(range(50_000))
+
+
+@pytest.mark.skipif(not sys.platform.startswith("linux"), reason="PR_SET_PDEATHSIG is Linux-only")
+def test_pool_workers_die_with_parent():
+    """Pool workers must not survive when the parent is SIGKILL'd (OOM, crash, etc.)."""
+    import json
+    import signal
+    import subprocess
+    import tempfile
+
+    script = """
+import os, sys, json, time, signal, ctypes, ctypes.util, multiprocessing as mp
+from concurrent.futures import ProcessPoolExecutor
+
+_PR_SET_PDEATHSIG = 1
+
+def _init():
+    libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
+    libc.prctl(_PR_SET_PDEATHSIG, signal.SIGKILL, 0, 0, 0)
+
+def _get_pid():
+    time.sleep(1)
+    return os.getpid()
+
+# use fork context explicitly -- forkserver on 3.14 adds an intermediary process
+# that complicates the parent-death chain; PR_SET_PDEATHSIG itself is start-method-agnostic
+ctx = mp.get_context("fork")
+pool = ProcessPoolExecutor(max_workers=2, initializer=_init, mp_context=ctx)
+# submit concurrently so both workers are occupied (each takes 1s)
+futs = [pool.submit(_get_pid) for _ in range(2)]
+pids = list(set(f.result(timeout=30) for f in futs))
+# keep workers busy so they stay alive
+[pool.submit(time.sleep, 3600) for _ in range(2)]
+print(json.dumps(pids), flush=True)
+time.sleep(3600)
+"""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+        f.write(script)
+        script_path = f.name
+
+    def _is_running(pid):
+        """Check /proc to distinguish running processes from zombies."""
+        try:
+            with open(f"/proc/{pid}/stat") as f:
+                # format: "pid (comm) state ..." -- state after the last ')'
+                state = f.read().split(")")[-1].strip().split()[0]
+                return state not in ("Z", "X", "x")
+        except (OSError, IndexError):
+            return False
+
+    try:
+        proc = subprocess.Popen([sys.executable, script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        line = proc.stdout.readline()
+        assert line, f"Worker script exited early, stderr: {proc.stderr.read().decode()}"
+        worker_pids = json.loads(line)
+        assert len(worker_pids) >= 2
+
+        # simulate OOM kill
+        os.kill(proc.pid, signal.SIGKILL)
+        proc.wait()
+
+        time.sleep(2)
+
+        alive = [pid for pid in worker_pids if _is_running(pid)]
+
+        # clean up survivors so they don't leak into other tests
+        for pid in alive:
+            os.kill(pid, signal.SIGKILL)
+
+        assert not alive, f"Pool workers {alive} survived parent SIGKILL (zombie leak)"
+    finally:
+        os.unlink(script_path)
+
+
+def test_simhash_similarity(helpers):
+    """Test SimHash helper with increasingly different HTML pages."""
+
+    # Base HTML page
+    base_html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Example Page</title>
+        <meta charset="utf-8">
+    </head>
+    <body>
+        <h1>Welcome to Example Corp</h1>
+        <div class="content">
+            <p>This is the main content of our website.</p>
+            <p>We provide excellent services to our customers.</p>
+            <ul>
+                <li>Service A</li>
+                <li>Service B</li>
+                <li>Service C</li>
+            </ul>
+        </div>
+        <footer>Copyright 2024 Example Corp</footer>
+    </body>
+    </html>
+    """
+
+    # Slightly different - changed one word
+    slightly_different = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Example Page</title>
+        <meta charset="utf-8">
+    </head>
+    <body>
+        <h1>Welcome to Example Corp</h1>
+        <div class="content">
+            <p>This is the main content of our website.</p>
+            <p>We provide amazing services to our customers.</p>
+            <ul>
+                <li>Service A</li>
+                <li>Service B</li>
+                <li>Service C</li>
+            </ul>
+        </div>
+        <footer>Copyright 2024 Example Corp</footer>
+    </body>
+    </html>
+    """
+
+    # Moderately different - changed content section
+    moderately_different = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Example Page</title>
+        <meta charset="utf-8">
+    </head>
+    <body>
+        <h1>Welcome to Example Corp</h1>
+        <div class="content">
+            <p>This page contains different information.</p>
+            <p>Our products are innovative and cutting-edge.</p>
+            <ul>
+                <li>Product X</li>
+                <li>Product Y</li>
+                <li>Product Z</li>
+            </ul>
+        </div>
+        <footer>Copyright 2024 Example Corp</footer>
+    </body>
+    </html>
+    """
+
+    # Very different - completely different content
+    very_different = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>News Portal</title>
+        <meta charset="utf-8">
+    </head>
+    <body>
+        <h1>Latest News</h1>
+        <div class="articles">
+            <article>
+                <h2>Breaking News Today</h2>
+                <p>Important events are happening around the world.</p>
+            </article>
+            <article>
+                <h2>Sports Update</h2>
+                <p>Local team wins championship game.</p>
+            </article>
+        </div>
+        <footer>News Corp 2024</footer>
+    </body>
+    </html>
+    """
+
+    # Completely different - different structure and content
+    completely_different = """
+    <xml version="1.0">
+    <data>
+        <configuration>
+            <setting name="timeout">300</setting>
+            <setting name="retries">5</setting>
+        </configuration>
+        <results>
+            <item id="1">Result A</item>
+            <item id="2">Result B</item>
+        </results>
+    </data>
+    """
+
+    # Test SimHash similarity
+    simhash = helpers.simhash
+
+    # Calculate hashes
+    base_hash = simhash.hash(base_html)
+    slightly_hash = simhash.hash(slightly_different)
+    moderately_hash = simhash.hash(moderately_different)
+    very_hash = simhash.hash(very_different)
+    completely_hash = simhash.hash(completely_different)
+
+    # Calculate similarities
+    identical_similarity = simhash.similarity(base_hash, base_hash)
+    slight_similarity = simhash.similarity(base_hash, slightly_hash)
+    moderate_similarity = simhash.similarity(base_hash, moderately_hash)
+    very_similarity = simhash.similarity(base_hash, very_hash)
+    complete_similarity = simhash.similarity(base_hash, completely_hash)
+
+    print(f"Identical: {identical_similarity:.3f}")
+    print(f"Slightly different: {slight_similarity:.3f}")
+    print(f"Moderately different: {moderate_similarity:.3f}")
+    print(f"Very different: {very_similarity:.3f}")
+    print(f"Completely different: {complete_similarity:.3f}")
+
+    # Verify expected similarity ordering
+    assert identical_similarity == 1.0, "Identical content should have similarity of 1.0"
+    assert slight_similarity > moderate_similarity, (
+        "Slightly different should be more similar than moderately different"
+    )
+    assert moderate_similarity > very_similarity, "Moderately different should be more similar than very different"
+    assert very_similarity > complete_similarity, "Very different should be more similar than completely different"
+
+    # Verify reasonable similarity ranges based on actual SimHash behavior
+    # With 64-bit hashes and 3-character shingles, we get good differentiation
+    assert slight_similarity > 0.90, "Slightly different content should be highly similar (>0.90)"
+    assert moderate_similarity > 0.70, "Moderately different content should be quite similar (>0.70)"
+    assert very_similarity > 0.50, "Very different content should have medium similarity (>0.50)"
+    assert complete_similarity > 0.30, "Completely different content should have low similarity (>0.30)"
+    assert complete_similarity < 0.50, "Completely different content should be clearly different (<0.50)"
+
+    # Most importantly, verify the ordering is correct
+    assert identical_similarity > slight_similarity > moderate_similarity > very_similarity > complete_similarity
+
+
+def test_clean_dns_record():
+    from bbot.core.helpers.misc import clean_dns_record
+
+    assert clean_dns_record("www.example.com.") == "www.example.com"
+    assert clean_dns_record("www.example.com") == "www.example.com"
+    # dnspython to_text() can produce quoted strings for certain record types
+    assert clean_dns_record('"d1jwhzvlef5tfb.example.com"') == "d1jwhzvlef5tfb.example.com"
+    assert clean_dns_record("'d1jwhzvlef5tfb.example.com'") == "d1jwhzvlef5tfb.example.com"
+    # quotes + trailing dot
+    assert clean_dns_record('"d1jwhzvlef5tfb.example.com."') == "d1jwhzvlef5tfb.example.com"
+
+
+@pytest.mark.asyncio
+async def test_asn_helper_passes_api_key(bbot_scanner, monkeypatch):
+    """ASNHelper should forward the configured bbot_io_api_key to ASNDB."""
+    captured = {}
+
+    class FakeASNDB:
+        def __init__(self, bbot_io_api_key=None, verify=True):
+            captured["bbot_io_api_key"] = bbot_io_api_key
+            captured["verify"] = verify
+
+    import asndb
+
+    monkeypatch.setattr(asndb, "ASNDB", FakeASNDB)
+
+    scan = bbot_scanner("8.8.8.8", config={"bbot_io_api_key": "test-key-xyz"})
+    _ = scan.helpers.asn.client
+    assert captured["bbot_io_api_key"] == "test-key-xyz"
+
+    captured.clear()
+    scan2 = bbot_scanner("8.8.8.8")
+    _ = scan2.helpers.asn.client
+    assert captured["bbot_io_api_key"] is None
+
+
+@pytest.mark.asyncio
+async def test_asn_helper_circuit_breaker(bbot_scanner, monkeypatch):
+    """ASNHelper should stop making requests after consecutive failures."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    import asndb
+
+    mock_client = MagicMock()
+    mock_client.lookup_ip = AsyncMock(side_effect=Exception("connection refused"))
+    monkeypatch.setattr(asndb, "ASNDB", lambda **kw: mock_client)
+
+    scan = bbot_scanner("8.8.8.8")
+    asn_helper = scan.helpers.asn
+    assert asn_helper.FAILURE_THRESHOLD == 5
+
+    # First FAILURE_THRESHOLD calls should each hit the network and return UNKNOWN_ASN
+    for i in range(asn_helper.FAILURE_THRESHOLD):
+        result = await asn_helper.ip_to_subnets(f"1.2.3.{i}")
+        assert result == asn_helper.UNKNOWN_ASN
+        assert not asn_helper._circuit_broken or i == asn_helper.FAILURE_THRESHOLD - 1
+
+    # Circuit should now be broken
+    assert asn_helper._circuit_broken
+    assert mock_client.lookup_ip.call_count == asn_helper.FAILURE_THRESHOLD
+
+    # Subsequent calls should return immediately without hitting the network
+    for i in range(10):
+        result = await asn_helper.ip_to_subnets(f"5.6.7.{i}")
+        assert result == asn_helper.UNKNOWN_ASN
+    assert mock_client.lookup_ip.call_count == asn_helper.FAILURE_THRESHOLD
+
+
+@pytest.mark.asyncio
+async def test_asn_helper_circuit_breaker_resets_on_success(bbot_scanner, monkeypatch):
+    """A successful lookup should reset the consecutive failure counter."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    import asndb
+
+    call_count = 0
+
+    async def lookup_ip_side_effect(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count <= 3:
+            raise Exception("connection refused")
+        return {"asn": 15169, "subnets": ["8.8.8.0/24"], "asn_name": "GOOGLE", "org": "Google", "country": "US"}
+
+    mock_client = MagicMock()
+    mock_client.lookup_ip = AsyncMock(side_effect=lookup_ip_side_effect)
+    monkeypatch.setattr(asndb, "ASNDB", lambda **kw: mock_client)
+
+    scan = bbot_scanner("8.8.8.8")
+    asn_helper = scan.helpers.asn
+
+    # 3 failures
+    for i in range(3):
+        await asn_helper.ip_to_subnets(f"1.2.3.{i}")
+    assert asn_helper._consecutive_failures == 3
+    assert not asn_helper._circuit_broken
+
+    # 1 success should reset the counter
+    result = await asn_helper.ip_to_subnets("8.8.8.8")
+    assert result["asn"] == 15169
+    assert asn_helper._consecutive_failures == 0
+    assert not asn_helper._circuit_broken
