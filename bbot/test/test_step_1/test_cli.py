@@ -923,6 +923,43 @@ async def test_cli_no_color(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_cli_console_control_chars(monkeypatch, capsys):
+    import logging
+    from bbot.logger import log_to_stderr
+    from bbot.core.config.logger import ColoredFormatter
+
+    monkeypatch.delenv("NO_COLOR", raising=False)
+
+    # scan-derived text carrying the bytes that flip a terminal into its line-drawing charset:
+    # 0x0e (Shift Out) and an "ESC ( 0" designate-line-drawing sequence
+    dirty = "matched banner: \x1b(0\x0edeadbeef"
+
+    # the stderr log formatter escapes control chars before adding its own colors
+    formatter = ColoredFormatter("%(levelname)s %(name)s: %(message)s")
+    record = logging.LogRecord(
+        name="bbot.modules.nuclei",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg="%s",
+        args=(dirty,),
+        exc_info=None,
+    )
+    formatted = formatter.format(record)
+    assert "\x0e" not in formatted
+    assert "\x1b(0" not in formatted
+    assert "\\x0e" in formatted and "\\x1b(0" in formatted
+    # BBOT's own ANSI color codes survive (escaping happens on the message, before colorizing)
+    assert "\x1b[" in formatted
+
+    # same protection on the early bootstrap path
+    log_to_stderr(dirty, level="INFO")
+    out, err = capsys.readouterr()
+    assert "\x0e" not in err and "\x1b(0" not in err
+    assert "\\x0e" in err
+
+
+@pytest.mark.asyncio
 async def test_cli_reset_config(monkeypatch, caplog, tmp_path):
     from bbot.core import CORE
 
