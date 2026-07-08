@@ -9,9 +9,9 @@
 <meta content="TheTechromancer" name="author"/>
 <link href="https://blacklanternsecurity.github.io/bbot/Stable/modules/lightfuzz/" rel="canonical"/>
 <link href="../custom_yara_rules/" rel="prev"/>
-<link href="../../contribution/" rel="next"/>
+<link href="../webbrute/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.7.3" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
 <title>Lightfuzz - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.04kfkfm3.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.xi6rhz5i.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -382,6 +382,18 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/scan_sanity/">
+<span class="md-ellipsis">
+    
+  
+    Scan Sanity
+  
+
+    
+  </span>
+</a>
+</li>
 </ul>
 </nav>
 </li>
@@ -421,11 +433,35 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../internal_modules/">
+<span class="md-ellipsis">
+    
+  
+    Internal Modules
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../nuclei/">
 <span class="md-ellipsis">
     
   
     Nuclei
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../wayback/">
+<span class="md-ellipsis">
+    
+  
+    Wayback
   
 
     
@@ -510,11 +546,33 @@
     </span>
 </a>
 </li>
+</ul>
+</nav>
+</li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="#deadly-module">
+<a class="md-nav__link" href="#findings-severity-and-confidence">
 <span class="md-ellipsis">
       
-        Deadly module
+        Findings, Severity, and Confidence
+      
+    </span>
+</a>
+<nav aria-label="Findings, Severity, and Confidence" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#severity">
+<span class="md-ellipsis">
+      
+        Severity
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#confidence">
+<span class="md-ellipsis">
+      
+        Confidence
       
     </span>
 </a>
@@ -523,14 +581,14 @@
 </nav>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="#modules">
+<a class="md-nav__link" href="#submodules">
 <span class="md-ellipsis">
       
-        Modules
+        Submodules
       
     </span>
 </a>
-<nav aria-label="Modules" class="md-nav">
+<nav aria-label="Submodules" class="md-nav">
 <ul class="md-nav__list">
 <li class="md-nav__item">
 <a class="md-nav__link" href="#cmdi-command-injection">
@@ -595,6 +653,118 @@
     </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#esi-edge-side-includes">
+<span class="md-ellipsis">
+      
+        esi (Edge Side Includes)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#ssrf-server-side-request-forgery">
+<span class="md-ellipsis">
+      
+        ssrf (Server-Side Request Forgery)
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#submodule-details">
+<span class="md-ellipsis">
+      
+        Submodule Details
+      
+    </span>
+</a>
+<nav aria-label="Submodule Details" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#cmdi-command-injection_1">
+<span class="md-ellipsis">
+      
+        cmdi — Command Injection
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#sqli-sql-injection_1">
+<span class="md-ellipsis">
+      
+        sqli — SQL Injection
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#xss-cross-site-scripting_1">
+<span class="md-ellipsis">
+      
+        xss — Cross-Site Scripting
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#path-path-traversal_1">
+<span class="md-ellipsis">
+      
+        path — Path Traversal
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#ssti-server-side-template-injection_1">
+<span class="md-ellipsis">
+      
+        ssti — Server-Side Template Injection
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#crypto-cryptography-probe">
+<span class="md-ellipsis">
+      
+        crypto — Cryptography Probe
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#serial-unsafe-deserialization">
+<span class="md-ellipsis">
+      
+        serial — Unsafe Deserialization
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#esi-edge-side-includes_1">
+<span class="md-ellipsis">
+      
+        esi — Edge Side Includes
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#ssrf-server-side-request-forgery_1">
+<span class="md-ellipsis">
+      
+        ssrf — Server-Side Request Forgery
+      
+    </span>
+</a>
+</li>
 </ul>
 </nav>
 </li>
@@ -606,9 +776,110 @@
       
     </span>
 </a>
+<nav aria-label="Presets" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#-p-lightfuzz-light">
+<span class="md-ellipsis">
+      
+        -p lightfuzz-light
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#-p-lightfuzz">
+<span class="md-ellipsis">
+      
+        -p lightfuzz
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#-p-lightfuzz-heavy">
+<span class="md-ellipsis">
+      
+        -p lightfuzz-heavy
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#-p-lightfuzz-max">
+<span class="md-ellipsis">
+      
+        -p lightfuzz-max
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#-p-lightfuzz-xss">
+<span class="md-ellipsis">
+      
+        -p lightfuzz-xss
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#spider-preset">
+<span class="md-ellipsis">
+      
+        Spider Preset
+      
+    </span>
+</a>
 </li>
 </ul>
 </nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#usage">
+<span class="md-ellipsis">
+      
+        Usage
+      
+    </span>
+</a>
+<nav aria-label="Usage" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#selecting-specific-submodules">
+<span class="md-ellipsis">
+      
+        Selecting Specific Submodules
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#http-method-switching">
+<span class="md-ellipsis">
+      
+        HTTP Method Switching
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../webbrute/">
+<span class="md-ellipsis">
+    
+  
+    Webbrute
+  
+
+    
+  </span>
+</a>
 </li>
 </ul>
 </nav>
@@ -619,7 +890,7 @@
 <span class="md-ellipsis">
     
   
-    Misc
+    Migration
   
 
     
@@ -628,6 +899,44 @@
 </label>
 <nav aria-expanded="false" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
 <label class="md-nav__title" for="__nav_1_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Migration
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../migration/3.0_breaking_changes/">
+<span class="md-ellipsis">
+    
+  
+    2.x → 3.0 Breaking Changes
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    Misc
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_5_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_5">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -726,6 +1035,18 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/core_dependencies/">
+<span class="md-ellipsis">
+    
+  
+    Core Dependencies
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../../dev/architecture/">
 <span class="md-ellipsis">
     
@@ -743,6 +1064,18 @@
     
   
     How to Write a BBOT Module
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/preset_validation/">
+<span class="md-ellipsis">
+    
+  
+    Validating &amp; Inspecting Presets
   
 
     
@@ -774,8 +1107,8 @@
 </a>
 </li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_9" id="__nav_2_9_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -786,8 +1119,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_2_7">
+<nav aria-expanded="false" aria-labelledby="__nav_2_9_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_9">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -868,21 +1201,9 @@
   </span>
 </a>
 </li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/engine/">
-<span class="md-ellipsis">
-    
-  
-    Engine
-  
-
-    
-  </span>
-</a>
-</li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7_8" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7_8" id="__nav_2_7_8_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9_7" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_9_7" id="__nav_2_9_7_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -893,8 +1214,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_8_label" class="md-nav" data-md-level="3">
-<label class="md-nav__title" for="__nav_2_7_8">
+<nav aria-expanded="false" aria-labelledby="__nav_2_9_7_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_2_9_7">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -1007,85 +1328,391 @@
 <p><em>Lightfuzz is currently an experimental feature. There WILL be false positives (and, although we'll never know - false negatives), although the submodules are being actively worked on to reduce them. If you find false positives, please help us out by opening a GitHub issue with the details!</em></p>
 <h2 id="philosophy">Philosophy</h2>
 <h3 id="what-is-lightfuzz">What is Lightfuzz?</h3>
-<p>Lightfuzz is a lightweight web vulnerability scanner built into BBOT. It is designed to find "low-hanging fruit" type vulnerabilities without much overhead and at massive scale. </p>
+<p>Lightfuzz is BBOT's <strong>DAST (Dynamic Application Security Testing) module</strong> — a lightweight web fuzzer built directly into BBOT's recursive scan pipeline. It is designed to find "low-hanging fruit" type vulnerabilities without much overhead and at massive scale. Whenever BBOT's recon stage discovers a fuzzable parameter (<code>WEB_PARAMETER</code> event), lightfuzz takes over and runs its DAST checks against that parameter.</p>
 <h3 id="what-is-lightfuzz-not">What is Lightfuzz NOT?</h3>
 <p>Lightfuzz is not, does not attempt to be, and will never be, a replacement for a full-blown web application scanner. You should not, for example, be running Lightfuzz as a replacement for Burp Suite scanning. Burp Suite scanner will always find more (even though we can find a few things it can't).</p>
-<p>It will also not help you <em>exploit</em> vulnerabilities. It's job is to point out vulnerabilities, or likely vulnerabilities, or potential vulnerabilities, and then pass them off to you. A great deal of the overhead with traditional scanners comes in the confirmation phase, or in testing exploitation payloads. </p>
-<p>So for example, Lightfuzz may detect an XSS vulnerability for you. But its NOT going to help you figure out which tag you need to use to get around a security filter, or give you any kind of a final payload. It's simply going to tell you that the contents of a given GET parameter are being reflected and that it was able to render an unmodified HTML tag. The rest is up to you.</p>
+<p>It will also not help you <em>exploit</em> what it finds. Its job is to point out likely issues and then pass them off to you. A great deal of the overhead with traditional scanners comes in the confirmation phase, or in testing exploitation payloads.</p>
+<p>So for example, Lightfuzz may detect an XSS vulnerability for you. But it's NOT going to help you figure out which tag you need to use to get around a security filter, or give you any kind of a final payload. It's simply going to tell you that the contents of a given GET parameter are being reflected and that it was able to render an unmodified HTML tag. The rest is up to you.</p>
 <h3 id="false-positives">False Positives</h3>
-<p>Significant work has gone into minimizing false positives. However, due to the nature of how Lightfuzz works, they are a reality. Random hiccups in network connectivity can cause them in some cases, odd WAF behavior can account for others. </p>
-<p>If you see a false positive that you feel is occuring too often or could easily be prevented, please open a GitHub issue and we will take a look!</p>
-<h3 id="deadly-module">Deadly module</h3>
-<p>Lightfuzz currently has the <code>deadly</code> flag. This is applied to the most aggressive modules to enforce an additional check, requiring explicit acknowledgement of the risk using the <code>--allow-deadly</code> command line flag.</p>
-<h2 id="modules">Modules</h2>
-<p>Lightfuzz is divided into numerous "submodules". These would typically be ran all together, but they can be configured to be run individually or in any desired configuration. This would be done with the aide of a <code>preset</code>, more on those in a moment.</p>
+<p>Significant work has gone into minimizing false positives. However, due to the nature of how Lightfuzz works, they are a reality. Random hiccups in network connectivity can cause them in some cases, odd WAF behavior can account for others.</p>
+<p>If you see a false positive that you feel is occurring too often or could easily be prevented, please open a GitHub issue and we will take a look!</p>
+<h2 id="findings-severity-and-confidence">Findings, Severity, and Confidence</h2>
+<p>All lightfuzz output is emitted as <code>FINDING</code> events. Each finding has two key attributes: <strong>severity</strong> and <strong>confidence</strong>.</p>
+<h3 id="severity">Severity</h3>
+<p>Severity represents how bad the issue is <em>if it's real</em>. Levels, from worst to least:</p>
+<table>
+<thead>
+<tr>
+<th>Severity</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CRITICAL</strong></td>
+<td>Full system compromise likely (e.g., command injection, SSTI)</td>
+</tr>
+<tr>
+<td><strong>HIGH</strong></td>
+<td>Significant security impact (e.g., SQL injection, SSRF, path traversal, unsafe deserialization)</td>
+</tr>
+<tr>
+<td><strong>MEDIUM</strong></td>
+<td>Moderate impact, often client-side (e.g., XSS, ESI)</td>
+</tr>
+<tr>
+<td><strong>LOW</strong></td>
+<td>Minor or limited-scope issue</td>
+</tr>
+<tr>
+<td><strong>INFO</strong></td>
+<td>Interesting observation, not directly exploitable (e.g., cryptographic parameter detected)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="confidence">Confidence</h3>
+<p>Confidence represents how sure lightfuzz is that the finding is real, independent of severity. This is critical for triaging results — a HIGH-severity finding with LOW confidence needs manual verification, while a CRITICAL-severity finding with CONFIRMED confidence is almost certainly real.</p>
+<table>
+<thead>
+<tr>
+<th>Confidence</th>
+<th>Indicator</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CONFIRMED</strong></td>
+<td>🟣</td>
+<td>Out-of-band proof of exploitation</td>
+<td>Blind command injection or SSRF via HTTP interaction (Interactsh)</td>
+</tr>
+<tr>
+<td><strong>HIGH</strong></td>
+<td>🔴</td>
+<td>Deterministic detection that's hard to fake</td>
+<td>SSTI math evaluation (<code>1337*1337=1787569</code>), padding oracle</td>
+</tr>
+<tr>
+<td><strong>MEDIUM</strong></td>
+<td>🟠</td>
+<td>Context-aware detection, but not definitive</td>
+<td>SQL error strings after quote injection, XSS tag survival in reflection</td>
+</tr>
+<tr>
+<td><strong>LOW</strong></td>
+<td>🟡</td>
+<td>Heuristic detection, requires manual verification</td>
+<td>Blind SQLi timing (even with 3x confirmation), path traversal divergence, deserialization error changes</td>
+</tr>
+</tbody>
+</table>
+<p>When reviewing lightfuzz output, consider both dimensions together. A <code>CRITICAL</code> severity / <code>CONFIRMED</code> confidence finding (like OOB command injection) is something to act on immediately. A <code>HIGH</code> severity / <code>LOW</code> confidence finding (like blind SQLi timing) is worth investigating but may be a false positive.</p>
+<h2 id="submodules">Submodules</h2>
+<p>Lightfuzz is divided into numerous "submodules". These would typically be run all together, but they can be configured to be run individually or in any desired configuration. This would be done with the aid of a <code>preset</code>, more on those in a moment.</p>
 <h3 id="cmdi-command-injection"><code>cmdi</code> (Command Injection)</h3>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>- Finds output-based on blind out-of-band (via `Interactsh`) command injections
-</code></pre></div>
+<ul>
+<li>Finds output-based and blind out-of-band (via <code>Interactsh</code>) command injections</li>
+</ul>
 <h3 id="crypto-cryptography"><code>crypto</code> (Cryptography)</h3>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>- Identifies cryptographic parameters that have a tangable effect on the application
-- Can identify padding oracle vulnerabilities
-- Can identify hash length extention vulnerabilities
-</code></pre></div>
+<ul>
+<li>Identifies cryptographic parameters that have a tangible effect on the application</li>
+<li>Can identify padding oracle vulnerabilities</li>
+<li>Can identify hash length extension vulnerabilities</li>
+</ul>
 <h3 id="path-path-traversal"><code>path</code> (Path Traversal)</h3>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>- Can find arbitrary file read / local-file include vulnerabilities, based on relative path traversal or with absolute paths
-</code></pre></div>
+<ul>
+<li>Can find arbitrary file read / local-file include vulnerabilities, based on relative path traversal or with absolute paths</li>
+</ul>
 <h3 id="serial-deserialization"><code>serial</code> (Deserialization)</h3>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>- Can identify the active deserialization of a variety of deserialization types across several platforms
-</code></pre></div>
+<ul>
+<li>Can identify the active deserialization of a variety of deserialization types across several platforms</li>
+</ul>
 <h3 id="sqli-sql-injection"><code>sqli</code> (SQL Injection)</h3>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>- Error Based SQLi Detection
-- Blind time-delay SQLi Detection
-</code></pre></div>
+<ul>
+<li>Error Based SQLi Detection</li>
+<li>Blind time-delay SQLi Detection</li>
+</ul>
 <h3 id="ssti-server-side-template-injection"><code>ssti</code> (Server-side Template Injection)</h3>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>- Can find basic server-side template injection
-</code></pre></div>
+<ul>
+<li>Can find basic server-side template injection</li>
+</ul>
 <h3 id="xss-cross-site-scripting"><code>xss</code> (Cross-site Scripting)</h3>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>- Can find a variety of XSS types, across several different contexts (between-tags, attribute, Javascript-based)
-</code></pre></div>
+<ul>
+<li>Can find a variety of XSS types, across several different contexts (between-tags, attribute, Javascript-based)</li>
+</ul>
+<h3 id="esi-edge-side-includes"><code>esi</code> (Edge Side Includes)</h3>
+<ul>
+<li>Detects Edge Side Include processing</li>
+</ul>
+<h3 id="ssrf-server-side-request-forgery"><code>ssrf</code> (Server-Side Request Forgery)</h3>
+<ul>
+<li>Detects SSRF vulnerabilities via out-of-band DNS/HTTP interactions using Interactsh</li>
+</ul>
+<h2 id="submodule-details">Submodule Details</h2>
+<h3 id="cmdi-command-injection_1"><code>cmdi</code> — Command Injection</h3>
+<p>Detects OS command injection via two techniques:</p>
+<p><strong>Echo Canary Detection</strong> (CRITICAL severity, MEDIUM confidence): Injects command delimiters (<code>;</code>, <code>&amp;&amp;</code>, <code>||</code>, <code>&amp;</code>, <code>|</code>) combined with an <code>echo</code> command containing a random numeric canary. If the canary appears in the response <em>without</em> the word "echo" (ruling out simple reflection), injection is indicated. A false-positive probe (<code>AAAA</code>) is sent first — if the canary appears with that delimiter, the test aborts since the application is just reflecting input.</p>
+<p><strong>Blind OOB via Interactsh</strong> (CRITICAL severity, CONFIRMED confidence): Injects <code>nslookup</code> commands pointed at unique Interactsh subdomains. If a DNS interaction is received, command execution is confirmed out-of-band. This is the highest-confidence detection lightfuzz can produce. Requires Interactsh to be enabled (it is by default).</p>
+<h3 id="sqli-sql-injection_1"><code>sqli</code> — SQL Injection</h3>
+<p>Detects SQL injection via two techniques:</p>
+<p><strong>Error-based Detection</strong> (HIGH severity, MEDIUM confidence): Injects a single quote (<code>'</code>) and compares the response against a list of known SQL error strings (e.g., "error in your SQL syntax", "Unterminated string literal"). Also performs a differential test: if a single quote changes the status code but two single quotes (<code>''</code>) produce a <em>different</em> status code, it suggests the quotes are being parsed as SQL syntax rather than just rejected.</p>
+<p><strong>Blind Time-delay Detection</strong> (HIGH severity, LOW confidence): Sends database-specific sleep payloads (PostgreSQL <code>pg_sleep</code>, MySQL <code>SLEEP</code>, Oracle <code>DBMS_LOCK.SLEEP</code>, MSSQL <code>WAITFOR DELAY</code>) with a 5-second delay. Measures response time against a baseline average of two normal requests. Requires 3 consecutive confirmations within an acceptable margin (1.5s) to report — even a single miss aborts the test for that payload. Despite the triple confirmation, timing-based detection is inherently loud, hence the LOW confidence.</p>
+<h3 id="xss-cross-site-scripting_1"><code>xss</code> — Cross-Site Scripting</h3>
+<p>Detects reflected XSS across multiple injection contexts. All XSS findings are MEDIUM severity, MEDIUM confidence.</p>
+<p><strong>Step 1 — Reflection Check</strong>: Sends a random 8-character alphanumeric string. If it doesn't appear in the response, the parameter doesn't reflect and XSS testing is skipped entirely. Parameters from <code>paramminer_getparams</code> without an <code>http-reflection</code> tag are also skipped.</p>
+<p><strong>Step 2 — Context Detection</strong>: Determines where in the HTML the reflection occurs:</p>
+<ul>
+<li><strong>Between tags</strong>: <code>&lt;tag&gt;REFLECTION&lt;/tag&gt;</code></li>
+<li><strong>In tag attribute</strong>: <code>&lt;tag attr="REFLECTION"&gt;</code></li>
+<li><strong>In JavaScript</strong>: <code>&lt;script&gt;var x = 'REFLECTION'&lt;/script&gt;</code></li>
+</ul>
+<p><strong>Step 3 — Context-Specific Payloads</strong>:</p>
+<ul>
+<li><em>Between tags</em>: Tests whether HTML tags survive unmodified by injecting <code>&lt;z&gt;</code>, <code>&lt;svg&gt;</code>, and <code>&lt;img&gt;</code> tags. The <code>z</code> tag is arbitrary and less likely to be blocked by filters.</li>
+<li><em>Tag attribute</em>: Tests quote escaping (<code>"z</code>), auto-quoting behavior, and <code>javascript:</code> scheme injection in form actions.</li>
+<li><em>JavaScript</em>: First tries <code>&lt;/script&gt;&lt;script&gt;...&lt;/script&gt;</code> tag breaking. If that fails, determines the quote context (single or double) and tests escape-the-escape-character techniques (<code>\'</code> → <code>\\'</code>).</li>
+</ul>
+<p>Lightfuzz can often detect through WAFs since it does not attempt to construct full exploitation payloads.</p>
+<h3 id="path-path-traversal_1"><code>path</code> — Path Traversal</h3>
+<p>Detects arbitrary file read / local file inclusion via two techniques:</p>
+<p><strong>Relative Path Traversal</strong> (HIGH severity, LOW confidence): The core technique is a single-dot vs. double-dot differential. If <code>./a/../VALUE</code> returns the same response as the original value (single dot is a no-op) but <code>../a/../VALUE</code> returns a <em>different</em> response (double dot changes the resolved path), it indicates real path manipulation. This is tested across 8 encoding variants:</p>
+<ul>
+<li>No encoding (with and without leading slash)</li>
+<li>URL encoding (with and without leading slash)</li>
+<li>Non-recursive stripping bypass (<code>....//</code>)</li>
+<li>Double URL encoding</li>
+<li>Start-of-path validation bypass (preserves original directory prefix)</li>
+</ul>
+<p>Each variant requires <strong>4 confirmations</strong> across 5 iterations (one failure tolerated after the first success). WAF responses containing "The requested URL was rejected" are filtered out. Despite the multiple confirmations, this remains LOW confidence because response divergence can have non-traversal explanations.</p>
+<p><strong>Absolute Path Detection</strong> (HIGH severity, MEDIUM confidence): Directly requests known file paths (<code>/etc/passwd</code>, <code>c:\windows\win.ini</code>) and checks for expected content strings (<code>daemon:x:</code>, <code>; for 16-bit app support</code>). Also tests null byte extension bypass (<code>%00.png</code>). Higher confidence because matching specific file content is much harder to explain away.</p>
+<h3 id="ssti-server-side-template-injection_1"><code>ssti</code> — Server-Side Template Injection</h3>
+<p>Detects template injection via arithmetic evaluation. All SSTI findings are HIGH severity, HIGH confidence.</p>
+<p>Sends the expression <code>1337*1337</code> across multiple template syntaxes:</p>
+<ul>
+<li><code>&lt;%= 1337*1337 %&gt;</code> (ERB/ASP, plus URL-encoded variant)</li>
+<li><code>${1337*1337}</code> (EL/Freemarker, plus URL-encoded variant)</li>
+<li><code>1,787{{z}},569</code> (Jinja2/Twig — if <code>{{z}}</code> is stripped, it becomes <code>1,787,569</code>)</li>
+</ul>
+<p>If the response contains <code>1787569</code> (or <code>1,787,569</code>), the expression was evaluated server-side. This is a HIGH confidence detection because it's very unlikely for the exact product of two arbitrary numbers to appear in a response by coincidence.</p>
+<h3 id="crypto-cryptography-probe"><code>crypto</code> — Cryptography Probe</h3>
+<p>Identifies cryptographic parameters and probes for cryptographic vulnerabilities. This submodule has several stages with varying confidence levels.</p>
+<p><strong>Stage 0 — Keystream Reuse / Many-Time-Pad</strong> (HIGH/CONFIRMED to MEDIUM/MEDIUM; zero HTTP requests): A cross-value passive check that runs <em>before</em> the entropy gate. When a stream cipher reuses a single keystream across multiple encryptions (no IV, fixed key — a common homebrew mistake), XOR-ing any two ciphertexts yields the XOR of their plaintexts. For natural-language or identifier plaintexts that share a prefix, the result begins with a run of zero bytes — mathematically impossible under correct encryption.</p>
+<p>The detector gathers candidate ciphertexts from the parameter's own value plus every value in <code>additional_params</code> (sibling form fields) and <code>same_param_values</code> (other observed values for the same parameter across a single page, e.g. sort links with distinct hex-encoded keys). It decodes each via the existing <code>format_agnostic_decode()</code> helper, pairwise-XORs them, and scores the result:</p>
+<ul>
+<li><strong>HIGH / CONFIRMED</strong> — a leading run of ≥ 5 zero bytes (two plaintexts share their first 5+ bytes; impossible under correct encryption with fresh IVs)</li>
+<li><strong>HIGH / HIGH</strong> — a 3-4 byte zero run, or ≥ 95% of XOR bytes fall in the <code>[0x00, 0x60]</code> "printable-ASCII XOR printable-ASCII" range</li>
+<li><strong>MEDIUM / MEDIUM</strong> — ≥ 90% ASCII-XOR-ASCII bytes but no zero-run</li>
+</ul>
+<p>This stage bypasses the entropy gate (Stage 1) because the short ASCII plaintexts most vulnerable to this misuse often produce ciphertext below the 4.5-bit threshold the gate would otherwise filter out.</p>
+<p><strong>Stage 1 — Cryptanalysis Gate</strong>: Checks if the parameter value is likely encrypted by calculating Shannon entropy (threshold: 4.5) and whether its decoded length is a multiple of 8 (suggesting a block cipher). If entropy is below threshold, all per-value tests are skipped (Stage 0's cross-value check has already run).</p>
+<p><strong>Stage 2 — Response Divergence</strong> (INFO severity, LOW confidence): Performs byte-level manipulations (truncation and single-byte mutation) and compares responses against both the baseline and an arbitrary garbage value. If the manipulated ciphertext produces a <em>different</em> response from both the original <em>and</em> garbage input, the parameter likely drives a real cryptographic operation.</p>
+<p><strong>Stage 3 — Error String Detection</strong> (INFO severity, LOW confidence): Scans manipulation responses for cryptographic error messages using YARA rules (e.g., "padding is invalid", "invalid mac", "OpenSSL Error"). Errors present in the baseline are filtered out to avoid false positives.</p>
+<p><strong>Stage 4 — Padding Oracle</strong> (HIGH severity, HIGH confidence): If a block cipher is suspected, performs a targeted padding oracle test. Constructs a crafted ciphertext with a null IV block and iterates through all 256 possible last-byte values. A true padding oracle produces a small number of differing responses (1 up to block_size, since multi-byte padding values like <code>\x02\x02</code> can also produce valid padding if the intermediate bytes happen to align). To avoid false positives from servers that reflect or reveal submitted/decrypted values, probe values are stripped from both responses before comparison, and small character-level differences (≤5 chars in equal-length responses) are tolerated. Handles the edge case where the baseline byte is the correct padding byte (1/255 chance) by retrying with a different baseline.</p>
+<p><strong>Stage 5 — Hash Length Extension</strong> (INFO severity, LOW confidence): If the parameter value matches a known hash length (MD5/SHA-1/SHA-256/SHA-384/SHA-512), checks whether modifying <em>other</em> parameters on the same request causes the hash parameter's response to change — suggesting those parameters are inputs to the hash, which could enable length extension attacks.</p>
+<h3 id="serial-unsafe-deserialization"><code>serial</code> — Unsafe Deserialization</h3>
+<p>Detects active deserialization of serialized objects. All deserialization findings are HIGH severity, LOW confidence.</p>
+<p>Tests three encoding families (base64, hex, PHP raw) against control baselines crafted to <em>not</em> be valid serialized objects. For each family, sends known serialized payloads across multiple platforms:</p>
+<ul>
+<li><strong>Base64</strong>: PHP, Java (Boolean, String, OptionalDataException), .NET, Ruby</li>
+<li><strong>Hex</strong>: Java, Java OptionalDataException, .NET</li>
+<li><strong>PHP Raw</strong>: PHP array</li>
+</ul>
+<p>Two detection methods:</p>
+<ul>
+<li><strong>Error Resolution</strong>: If the control baseline returns a non-200 status but the serialized payload returns 200 (excluding common error pages like "Internal Server Error"), the application likely recognized and processed the serialized data.</li>
+<li><strong>Differential Error Analysis</strong>: If the response is a 500 (or a 200 with body changes), checks for deserialization-specific error strings like <code>java.io.optionaldataexception</code> or <code>cannot cast java.lang.string</code> that weren't present in the baseline.</li>
+</ul>
+<p>Only runs on parameters whose existing values look potentially serialized (base64, hex, or PHP serialization prefixes), or on empty parameters.</p>
+<h3 id="esi-edge-side-includes_1"><code>esi</code> — Edge Side Includes</h3>
+<p>Detects ESI processing. ESI findings are MEDIUM severity, HIGH confidence.</p>
+<p>Sends the payload <code>AA&lt;!--esi--&gt;BB&lt;!--esx--&gt;CC</code>. If the server processes ESI tags, the <code>&lt;!--esi--&gt;</code> comment is removed (it's a valid ESI directive) while <code>&lt;!--esx--&gt;</code> is left alone (not a valid directive). The expected detection string is <code>AABB&lt;!--esx--&gt;CC</code>. This is a clean differential test — the only explanation for selective comment removal is active ESI processing.</p>
+<h3 id="ssrf-server-side-request-forgery_1"><code>ssrf</code> — Server-Side Request Forgery</h3>
+<p>Detects SSRF vulnerabilities via out-of-band interaction. SSRF findings are HIGH severity, with confidence depending on the interaction type (CONFIRMED for HTTP, MEDIUM for DNS-only).</p>
+<p>Injects URLs pointing to unique Interactsh subdomains as parameter values. Three URL variants are tested for each parameter:</p>
+<ul>
+<li><code>http://TAG.interactsh-domain</code> — explicit HTTP scheme</li>
+<li><code>https://TAG.interactsh-domain</code> — explicit HTTPS scheme</li>
+<li><code>TAG.interactsh-domain</code> — bare domain (for cases where the server prepends a scheme)</li>
+</ul>
+<p>If the server fetches the injected URL, the resulting DNS or HTTP interaction is detected out-of-band via Interactsh. HTTP interactions are CONFIRMED confidence (the server made a full HTTP request), while DNS-only interactions are MEDIUM confidence (DNS resolution occurred, but the server may not have completed the request). Requires Interactsh to be enabled (it is by default).</p>
 <h2 id="presets">Presets</h2>
-<p>Lightfuzz comes with a few pre-defined presets. The first thing to know is that, unless you really know BBOT inside and out, we recommend using one of them. This is because to be successful, Lightfuzz needs to change a lot of very important BBOT settings. These include:</p>
+<p>Lightfuzz comes with pre-defined presets. Unless you really know BBOT inside and out, we recommend using one of them. This is because Lightfuzz needs to change several important BBOT settings to work correctly, including:</p>
 <ul>
-<li>Setting <code>url_querystring_remove</code> to False. By default, BBOT strips away querystings, so in order to FUZZ GET parameters, that default has to be disabled.
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>url_querystring_remove: False
-</code></pre></div></li>
-<li>Enabling several other complimentary modules. Specifically, <code>hunt</code> and <code>reflected_parameters</code> can be useful companion modules that also be useful when <code>WEB_PARAMETER</code> events are being emitted.</li>
+<li>Setting <code>url_querystring_remove</code> to False. By default, BBOT strips away querystrings, so in order to fuzz GET parameters, that default has to be disabled.</li>
+<li>Enabling complementary modules. Specifically, <code>hunt</code> and <code>reflected_parameters</code> can be useful companion modules when <code>WEB_PARAMETER</code> events are being emitted.</li>
 </ul>
-<p>If you don't want to dive into those details, and we don't blame you, here are the built-in preset options and what you need to know about the differences.</p>
-<h1 id="-p-lightfuzz-light">-p lightfuzz-light</h1>
-<p>This is a minimal preset that checks for only the most common vulnerabilities. It enables a select few of lightfuzz's submodules, and is safest for larger scans.</p>
-<h1 id="-p-lightfuzz-medium">-p lightfuzz-medium</h1>
-<p>This is the default setting. It enables all lightfuzz submodules, and includes all the necessary config options to make Lightfuzz work, without too many extras. However it is important to note that it <strong>DISABLES FUZZING POST REQUESTS</strong>. This is because this type of request is the most intrusive, and the most likely to cause problems, especially in an internal network. </p>
-<h1 id="-p-lightfuzz-heavy">-p lightfuzz-heavy</h1>
-<ul>
-<li>Increases the web spider settings a bit from the default.</li>
-<li>Adds in the <strong>Param Miner</strong> suite of modules to try and find new parameters to fuzz via brute-force</li>
-<li>Enables fuzzing of POST parameters</li>
-</ul>
-<h1 id="-p-lightfuzz-superheavy">-p lightfuzz-superheavy</h1>
-<p>Everything included in <code>lightfuzz-heavy</code>, plus:</p>
-<ul>
-<li>Query string collapsing turned OFF. Normally, multiple instances of the same parameter (e.g., foo=bar and foo=bar2) are collapsed into one for fuzzing. With <code>lightfuzz-superheavy</code>, each instance is fuzzed individually.</li>
-<li>Force common headers enabled - Fuzz certain common header parameters, even if we didn't discover them</li>
-<li>'Speculate' GET parameters from JSON or XML response bodies</li>
-</ul>
-<p>These settings aren't typically desired as they add significant time to the scan.</p>
-<h1 id="-p-lightfuzz-xss">-p lightfuzz-xss</h1>
-<p>This is a special Lightfuzz preset that focuses entirely on XSS, to make XSS hunting as fast as possible. It is an example of how to make a preset that focuses on specific submodules. It also includes the <code>paramminer-getparams</code> module to help find undocumented parameters to fuzz. </p>
-<h1 id="spider-preset">Spider preset</h1>
-<p>We also <em>strongly</em> recommend running Lightfuzz with the spider enabled, as this will dramatically increase the number of parameters that are discovered. If you don't, you will see a warning reminding you that things will work a lot better if you do.</p>
-<p>That can be done by simply also enabling either the <code>spider</code> or <code>spider-intense</code> preset.</p>
-<h1 id="usage">Usage</h1>
-<p>With the presets in mind, usage is incredibly simple. In most cases you will just do the following:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot -p lightfuzz-medium spider -t targets.txt --allow-deadly
+<p>If you don't want to dive into those details, here are the built-in preset options.</p>
+<h3 id="-p-lightfuzz-light"><code>-p lightfuzz-light</code></h3>
+<p>The most minimal option. Best for running alongside larger scans with minimal overhead.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Submodules</strong></td>
+<td><code>path</code>, <code>sqli</code>, <code>xss</code> only</td>
+</tr>
+<tr>
+<td><strong>Companion modules</strong></td>
+<td>None</td>
+</tr>
+<tr>
+<td><strong>POST fuzzing</strong></td>
+<td>Disabled</td>
+</tr>
+<tr>
+<td><strong>WAF avoidance</strong></td>
+<td>On</td>
+</tr>
+</tbody>
+</table>
+<h3 id="-p-lightfuzz"><code>-p lightfuzz</code></h3>
+<p>The default starting point. If you're not sure which to use, start here.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Submodules</strong></td>
+<td>All 9 (<code>cmdi</code>, <code>crypto</code>, <code>path</code>, <code>serial</code>, <code>sqli</code>, <code>ssti</code>, <code>xss</code>, <code>esi</code>, <code>ssrf</code>)</td>
+</tr>
+<tr>
+<td><strong>Companion modules</strong></td>
+<td><code>badsecrets</code>, <code>hunt</code>, <code>reflected_parameters</code></td>
+</tr>
+<tr>
+<td><strong>POST fuzzing</strong></td>
+<td>Disabled, but <code>try_post_as_get</code> is on (POST params retested as GET)</td>
+</tr>
+<tr>
+<td><strong>WAF avoidance</strong></td>
+<td>On</td>
+</tr>
+</tbody>
+</table>
+<h3 id="-p-lightfuzz-heavy"><code>-p lightfuzz-heavy</code></h3>
+<p>Everything in <code>lightfuzz</code>, plus:</p>
+<table>
+<thead>
+<tr>
+<th>Added setting</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Param Miner</strong></td>
+<td><code>paramminer_headers</code>, <code>paramminer_getparams</code>, <code>paramminer_cookies</code> — brute-force discovery of hidden parameters</td>
+</tr>
+<tr>
+<td><strong>POST fuzzing</strong></td>
+<td>Enabled</td>
+</tr>
+<tr>
+<td><strong><code>try_get_as_post</code></strong></td>
+<td>On — GET params are also retested as POST</td>
+</tr>
+<tr>
+<td><strong><code>robots.txt</code></strong></td>
+<td>Parsed for additional URL discovery</td>
+</tr>
+</tbody>
+</table>
+<h3 id="-p-lightfuzz-max"><code>-p lightfuzz-max</code></h3>
+<p>Everything in <code>lightfuzz-heavy</code>, plus:</p>
+<table>
+<thead>
+<tr>
+<th>Added setting</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>WAF avoidance</strong></td>
+<td>Off — WAF-protected targets are fuzzed</td>
+</tr>
+<tr>
+<td><strong>Query string collapsing</strong></td>
+<td>Off — each unique parameter-value pair is fuzzed individually instead of deduplicating by parameter name</td>
+</tr>
+<tr>
+<td><strong>Force common headers</strong></td>
+<td>On — headers like <code>X-Forwarded-For</code> are fuzzed even if not observed on the target</td>
+</tr>
+<tr>
+<td><strong>Speculate params</strong></td>
+<td>On — potential parameters are extracted from JSON/XML response bodies</td>
+</tr>
+</tbody>
+</table>
+<p>These settings significantly increase scan time and traffic. Not recommended for routine scanning.</p>
+<h3 id="-p-lightfuzz-xss"><code>-p lightfuzz-xss</code></h3>
+<p>A focused preset for XSS hunting only. Demonstrates how to build a single-submodule preset.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Submodules</strong></td>
+<td><code>xss</code> only</td>
+</tr>
+<tr>
+<td><strong>Companion modules</strong></td>
+<td><code>paramminer_getparams</code>, <code>reflected_parameters</code></td>
+</tr>
+<tr>
+<td><strong>POST fuzzing</strong></td>
+<td>Disabled</td>
+</tr>
+<tr>
+<td><strong>Query string collapsing</strong></td>
+<td>Off</td>
+</tr>
+</tbody>
+</table>
+<h3 id="spider-preset">Spider Preset</h3>
+<p>We <em>strongly</em> recommend running Lightfuzz with the spider enabled, as this will dramatically increase the number of parameters discovered. If you don't, you will see a warning reminding you.</p>
+<p>Enable the spider by adding either the <code>spider</code> or <code>spider-heavy</code> preset:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot -p lightfuzz spider -t targets.txt
 </code></pre></div>
-<p>It's really that simple. Almost all output from Lightfuzz will be in the form of a <code>FINDING</code>, as opposed to a <code>VULNERABILITY</code>, with a couple of exceptions. This is because, as was explained, the nature of the findings are that they are typically unconfirmed and will require work on your part to do so.</p>
-<p>If you wanted a specific submodule, you could make your own preset adjusting the <code>modules.lightfuzz.enabled_submodules</code> setting, or do so via the command line:</p>
+<h2 id="usage">Usage</h2>
+<p>With presets in mind, usage is simple:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot -p lightfuzz spider -t targets.txt
+</code></pre></div>
+<p>All output from Lightfuzz will be <code>FINDING</code> events, each with a severity and confidence level. Focus your triage on confidence first — CONFIRMED and HIGH confidence findings are the most actionable, while LOW confidence findings should be treated as leads requiring manual verification.</p>
+<h3 id="selecting-specific-submodules">Selecting Specific Submodules</h3>
+<p>If you want a specific submodule, you can make your own preset adjusting the <code>modules.lightfuzz.enabled_submodules</code> setting, or do so via the command line:</p>
 <p>Just XSS:
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot -p lightfuzz-medium -t targets.txt -c modules.lightfuzz.enabled_submodules=[xss]  --allow-deadly
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot -p lightfuzz -t targets.txt -c modules.lightfuzz.enabled_submodules=[xss]
 </code></pre></div></p>
 <p>XSS and SQLi:
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot -p lightfuzz-medium -t targets.txt -c modules.lightfuzz.enabled_submodules=[xss,sqli]  --allow-deadly
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot -p lightfuzz -t targets.txt -c modules.lightfuzz.enabled_submodules=[xss,sqli]
+</code></pre></div></p>
+<h2 id="http-method-switching">HTTP Method Switching</h2>
+<p>Two options are available to test parameters across HTTP methods:</p>
+<ul>
+<li><strong><code>try_post_as_get</code></strong>: For each <code>POSTPARAM</code> discovered, also fuzz it as a <code>GETPARAM</code>. This catches cases where a parameter accepted via POST is also accepted via GET, which may bypass server-side protections that only apply to one method.</li>
+<li><strong><code>try_get_as_post</code></strong>: For each <code>GETPARAM</code> discovered, also fuzz it as a <code>POSTPARAM</code>. This catches cases where GET parameters are also accepted in POST bodies, potentially with different security controls.</li>
+</ul>
+<p>These options are disabled by default. When enabled, findings from converted parameters will be annotated with their original method (e.g., "converted from POSTPARAM") in the finding description.</p>
+<p>This is useful because web frameworks often accept parameters from multiple sources, but security filters (WAFs, input validation) may only apply to the originally intended method.</p>
+<p>Enable via config:
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot -p lightfuzz -t targets.txt -c modules.lightfuzz.try_post_as_get=true modules.lightfuzz.try_get_as_post=true
 </code></pre></div></p>
 </article>
 </div>

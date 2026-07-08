@@ -8,10 +8,10 @@
 <meta content="OSINT automation for hackers" name="description"/>
 <meta content="TheTechromancer" name="author"/>
 <link href="https://blacklanternsecurity.github.io/bbot/Stable/modules/list_of_modules/" rel="canonical"/>
-<link href="../../scanning/configuration/" rel="prev"/>
-<link href="../nuclei/" rel="next"/>
+<link href="../../scanning/scan_sanity/" rel="prev"/>
+<link href="../internal_modules/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.7.3" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
 <title>List of Modules - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.04kfkfm3.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.xi6rhz5i.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -382,6 +382,18 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/scan_sanity/">
+<span class="md-ellipsis">
+    
+  
+    Scan Sanity
+  
+
+    
+  </span>
+</a>
+</li>
 </ul>
 </nav>
 </li>
@@ -422,11 +434,35 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../internal_modules/">
+<span class="md-ellipsis">
+    
+  
+    Internal Modules
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../nuclei/">
 <span class="md-ellipsis">
     
   
     Nuclei
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../wayback/">
+<span class="md-ellipsis">
+    
+  
+    Wayback
   
 
     
@@ -457,12 +493,62 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../webbrute/">
+<span class="md-ellipsis">
+    
+  
+    Webbrute
+  
+
+    
+  </span>
+</a>
+</li>
 </ul>
 </nav>
 </li>
 <li class="md-nav__item md-nav__item--section md-nav__item--nested">
 <input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_4" type="checkbox"/>
 <label class="md-nav__link" for="__nav_1_4" id="__nav_1_4_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    Migration
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Migration
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../migration/3.0_breaking_changes/">
+<span class="md-ellipsis">
+    
+  
+    2.x → 3.0 Breaking Changes
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="">
 <span class="md-ellipsis">
     
   
@@ -473,8 +559,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_1_4">
+<nav aria-expanded="false" aria-labelledby="__nav_1_5_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_5">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -573,6 +659,18 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/core_dependencies/">
+<span class="md-ellipsis">
+    
+  
+    Core Dependencies
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../../dev/architecture/">
 <span class="md-ellipsis">
     
@@ -590,6 +688,18 @@
     
   
     How to Write a BBOT Module
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/preset_validation/">
+<span class="md-ellipsis">
+    
+  
+    Validating &amp; Inspecting Presets
   
 
     
@@ -621,8 +731,8 @@
 </a>
 </li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_9" id="__nav_2_9_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -633,8 +743,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_2_7">
+<nav aria-expanded="false" aria-labelledby="__nav_2_9_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_9">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -715,21 +825,9 @@
   </span>
 </a>
 </li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/engine/">
-<span class="md-ellipsis">
-    
-  
-    Engine
-  
-
-    
-  </span>
-</a>
-</li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7_8" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7_8" id="__nav_2_7_8_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9_7" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_9_7" id="__nav_2_9_7_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -740,8 +838,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_8_label" class="md-nav" data-md-level="3">
-<label class="md-nav__title" for="__nav_2_7_8">
+<nav aria-expanded="false" aria-labelledby="__nav_2_9_7_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_2_9_7">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -872,9 +970,9 @@
 <td>scan</td>
 <td>No</td>
 <td>Check for potentially vulnerable Ajaxpro instances</td>
-<td>active, safe, web-thorough</td>
+<td>active, safe, web-heavy</td>
 <td>HTTP_RESPONSE, URL</td>
-<td>FINDING, VULNERABILITY</td>
+<td>FINDING, TECHNOLOGY</td>
 <td>@liquidsec</td>
 <td>2024-01-18</td>
 </tr>
@@ -883,9 +981,9 @@
 <td>scan</td>
 <td>No</td>
 <td>Check for ASP.NET Security Feature Bypasses (CVE-2023-36899 and CVE-2023-36560)</td>
-<td>active, safe, web-thorough</td>
+<td>active, safe, web-heavy</td>
 <td>URL</td>
-<td>VULNERABILITY</td>
+<td>FINDING</td>
 <td>@liquidsec</td>
 <td>2025-01-28</td>
 </tr>
@@ -894,9 +992,9 @@
 <td>scan</td>
 <td>No</td>
 <td>Check hosts for domain/subdomain takeovers</td>
-<td>active, baddns, cloud-enum, safe, subdomain-hijack, web-basic</td>
+<td>active, baddns, cloud-enum, safe, subdomain-hijack, web</td>
 <td>DNS_NAME, DNS_NAME_UNRESOLVED</td>
-<td>FINDING, VULNERABILITY</td>
+<td>FINDING</td>
 <td>@liquidsec</td>
 <td>2024-01-18</td>
 </tr>
@@ -907,7 +1005,7 @@
 <td>Check for unusual subdomain / service takeover edge cases that require direct detection</td>
 <td>active, baddns, cloud-enum, safe, subdomain-enum</td>
 <td>STORAGE_BUCKET, URL</td>
-<td>FINDING, VULNERABILITY</td>
+<td>FINDING</td>
 <td>@liquidsec</td>
 <td>2024-01-29</td>
 </tr>
@@ -918,7 +1016,7 @@
 <td>Check hosts for DNS zone transfers and NSEC walks</td>
 <td>active, baddns, cloud-enum, safe, subdomain-enum</td>
 <td>DNS_NAME</td>
-<td>FINDING, VULNERABILITY</td>
+<td>FINDING</td>
 <td>@liquidsec</td>
 <td>2024-01-29</td>
 </tr>
@@ -927,9 +1025,9 @@
 <td>scan</td>
 <td>No</td>
 <td>Library for detecting known or weak secrets across many web frameworks</td>
-<td>active, safe, web-basic</td>
+<td>active, safe, web</td>
 <td>HTTP_RESPONSE</td>
-<td>FINDING, TECHNOLOGY, VULNERABILITY</td>
+<td>FINDING, TECHNOLOGY</td>
 <td>@liquidsec</td>
 <td>2022-11-19</td>
 </tr>
@@ -938,7 +1036,7 @@
 <td>scan</td>
 <td>No</td>
 <td>Check for S3 buckets related to target</td>
-<td>active, cloud-enum, safe, web-basic</td>
+<td>active, cloud-enum, safe, web</td>
 <td>DNS_NAME, STORAGE_BUCKET</td>
 <td>FINDING, STORAGE_BUCKET</td>
 <td>@TheTechromancer</td>
@@ -949,7 +1047,7 @@
 <td>scan</td>
 <td>No</td>
 <td>Check for DigitalOcean spaces related to target</td>
-<td>active, cloud-enum, safe, slow, web-thorough</td>
+<td>active, cloud-enum, safe, slow, web-heavy</td>
 <td>DNS_NAME, STORAGE_BUCKET</td>
 <td>FINDING, STORAGE_BUCKET</td>
 <td>@TheTechromancer</td>
@@ -960,7 +1058,7 @@
 <td>scan</td>
 <td>No</td>
 <td>Check for open Firebase databases related to target</td>
-<td>active, cloud-enum, safe, web-basic</td>
+<td>active, cloud-enum, safe, web</td>
 <td>DNS_NAME, STORAGE_BUCKET</td>
 <td>FINDING, STORAGE_BUCKET</td>
 <td>@TheTechromancer</td>
@@ -971,18 +1069,29 @@
 <td>scan</td>
 <td>No</td>
 <td>Check for Google object storage related to target</td>
-<td>active, cloud-enum, safe, web-basic</td>
+<td>active, cloud-enum, safe, web</td>
 <td>DNS_NAME, STORAGE_BUCKET</td>
 <td>FINDING, STORAGE_BUCKET</td>
 <td>@TheTechromancer</td>
 <td>2022-11-04</td>
 </tr>
 <tr>
+<td>bucket_hetzner</td>
+<td>scan</td>
+<td>No</td>
+<td>Check for Hetzner Object Storage buckets related to target</td>
+<td>active, cloud-enum, safe, slow, web-heavy</td>
+<td>DNS_NAME, STORAGE_BUCKET</td>
+<td>FINDING, STORAGE_BUCKET</td>
+<td>@ChrisJr404</td>
+<td>2026-05-04</td>
+</tr>
+<tr>
 <td>bucket_microsoft</td>
 <td>scan</td>
 <td>No</td>
 <td>Check for Azure storage blobs related to target</td>
-<td>active, cloud-enum, safe, web-basic</td>
+<td>active, cloud-enum, safe, web</td>
 <td>DNS_NAME, STORAGE_BUCKET</td>
 <td>FINDING, STORAGE_BUCKET</td>
 <td>@TheTechromancer</td>
@@ -993,7 +1102,7 @@
 <td>scan</td>
 <td>No</td>
 <td>Check 403 pages for common bypasses</td>
-<td>active, aggressive, web-thorough</td>
+<td>active, loud, web-heavy</td>
 <td>URL</td>
 <td>FINDING</td>
 <td>@liquidsec</td>
@@ -1004,7 +1113,7 @@
 <td>scan</td>
 <td>No</td>
 <td>Brute-force subdomains with massdns + static wordlist</td>
-<td>active, aggressive, subdomain-enum</td>
+<td>active, loud, subdomain-enum</td>
 <td>DNS_NAME</td>
 <td>DNS_NAME</td>
 <td>@TheTechromancer</td>
@@ -1015,7 +1124,7 @@
 <td>scan</td>
 <td>No</td>
 <td>Brute-force subdomains with massdns + target-specific mutations</td>
-<td>active, aggressive, slow, subdomain-enum</td>
+<td>active, loud, slow, subdomain-enum</td>
 <td>DNS_NAME</td>
 <td>DNS_NAME</td>
 <td>@TheTechromancer</td>
@@ -1037,40 +1146,18 @@
 <td>scan</td>
 <td>No</td>
 <td>Scan for critical DotNetNuke (DNN) vulnerabilities</td>
-<td>active, aggressive, web-thorough</td>
+<td>active, invasive, loud, web-heavy</td>
 <td>HTTP_RESPONSE</td>
-<td>TECHNOLOGY, VULNERABILITY</td>
+<td>FINDING, TECHNOLOGY</td>
 <td>@liquidsec</td>
 <td>2023-11-21</td>
-</tr>
-<tr>
-<td>ffuf</td>
-<td>scan</td>
-<td>No</td>
-<td>A fast web fuzzer written in Go</td>
-<td>active, aggressive, deadly</td>
-<td>URL</td>
-<td>URL_UNVERIFIED</td>
-<td>@liquidsec</td>
-<td>2022-04-10</td>
-</tr>
-<tr>
-<td>ffuf_shortnames</td>
-<td>scan</td>
-<td>No</td>
-<td>Use ffuf in combination IIS shortnames</td>
-<td>active, aggressive, iis-shortnames, web-thorough</td>
-<td>URL_HINT</td>
-<td>URL_UNVERIFIED</td>
-<td>@liquidsec</td>
-<td>2022-07-05</td>
 </tr>
 <tr>
 <td>filedownload</td>
 <td>scan</td>
 <td>No</td>
 <td>Download common filetypes such as PDF, DOCX, PPTX, etc.</td>
-<td>active, download, safe, web-basic</td>
+<td>active, download, safe, web</td>
 <td>HTTP_RESPONSE, URL_UNVERIFIED</td>
 <td>FILESYSTEM</td>
 <td>@TheTechromancer</td>
@@ -1083,7 +1170,7 @@
 <td>Fingerprint exposed services like RDP, SSH, MySQL, etc.</td>
 <td>active, safe, service-enum, slow</td>
 <td>OPEN_TCP_PORT</td>
-<td>PROTOCOL</td>
+<td>PROTOCOL, URL_UNVERIFIED</td>
 <td>@TheTechromancer</td>
 <td>2023-01-30</td>
 </tr>
@@ -1092,9 +1179,9 @@
 <td>scan</td>
 <td>No</td>
 <td>Check for generic SSRFs</td>
-<td>active, aggressive, web-thorough</td>
+<td>active, invasive, web-heavy</td>
 <td>URL</td>
-<td>VULNERABILITY</td>
+<td>FINDING</td>
 <td>@liquidsec</td>
 <td>2022-07-30</td>
 </tr>
@@ -1103,7 +1190,7 @@
 <td>scan</td>
 <td>No</td>
 <td>Check for exposed .git repositories</td>
-<td>active, code-enum, safe, web-basic</td>
+<td>active, code-enum, safe, web</td>
 <td>URL</td>
 <td>CODE_REPOSITORY, FINDING</td>
 <td>@TheTechromancer</td>
@@ -1147,7 +1234,7 @@
 <td>scan</td>
 <td>No</td>
 <td>Perform GraphQL introspection on a target</td>
-<td>active, safe, web-basic</td>
+<td>active, safe, web</td>
 <td>URL</td>
 <td>FINDING</td>
 <td>@mukesh-dream11</td>
@@ -1158,29 +1245,29 @@
 <td>scan</td>
 <td>No</td>
 <td>Try common HTTP Host header spoofing techniques</td>
-<td>active, aggressive, web-thorough</td>
+<td>active, loud, web-heavy</td>
 <td>HTTP_RESPONSE</td>
 <td>FINDING</td>
 <td>@liquidsec</td>
 <td>2022-07-27</td>
 </tr>
 <tr>
-<td>httpx</td>
+<td>http</td>
 <td>scan</td>
 <td>No</td>
-<td>Visit webpages. Many other modules rely on httpx</td>
-<td>active, cloud-enum, safe, social-enum, subdomain-enum, web-basic</td>
+<td>Visit webpages using blasthttp (native Rust HTTP engine)</td>
+<td>active, cloud-enum, safe, social-enum, subdomain-enum, web</td>
 <td>OPEN_TCP_PORT, URL, URL_UNVERIFIED</td>
 <td>HTTP_RESPONSE, URL</td>
-<td>@TheTechromancer</td>
-<td>2022-07-08</td>
+<td>@liquidsec</td>
+<td>2026-03-08</td>
 </tr>
 <tr>
 <td>hunt</td>
 <td>scan</td>
 <td>No</td>
 <td>Watch for commonly-exploitable HTTP parameters</td>
-<td>active, safe, web-thorough</td>
+<td>active, safe, web-heavy</td>
 <td>WEB_PARAMETER</td>
 <td>FINDING</td>
 <td>@liquidsec</td>
@@ -1191,7 +1278,7 @@
 <td>scan</td>
 <td>No</td>
 <td>Check for IIS shortname vulnerability</td>
-<td>active, iis-shortnames, safe, web-basic</td>
+<td>active, iis-shortnames, loud, web</td>
 <td>URL</td>
 <td>URL_HINT</td>
 <td>@liquidsec</td>
@@ -1202,7 +1289,7 @@
 <td>scan</td>
 <td>No</td>
 <td>Credential bruteforcing supporting various services.</td>
-<td>active, aggressive, deadly</td>
+<td>active, invasive, loud</td>
 <td>PROTOCOL</td>
 <td>FINDING</td>
 <td>@christianfl, @fuzikowski</td>
@@ -1212,10 +1299,10 @@
 <td>lightfuzz</td>
 <td>scan</td>
 <td>No</td>
-<td>Find Web Parameters and Lightly Fuzz them using a heuristic based scanner</td>
-<td>active, aggressive, deadly, web-thorough</td>
+<td>BBOT's DAST module — lightly fuzz web parameters discovered during recon for common vulnerability classes</td>
+<td>active, invasive, loud, web-heavy</td>
 <td>URL, WEB_PARAMETER</td>
-<td>FINDING, VULNERABILITY</td>
+<td>FINDING, HTTP_RESPONSE</td>
 <td>@liquidsec</td>
 <td>2024-06-28</td>
 </tr>
@@ -1224,9 +1311,9 @@
 <td>scan</td>
 <td>No</td>
 <td>Medusa SNMP bruteforcing with v1, v2c and R/W check.</td>
-<td>active, aggressive, deadly</td>
+<td>active, invasive, loud</td>
 <td>PROTOCOL</td>
-<td>VULNERABILITY</td>
+<td>FINDING</td>
 <td>@christianfl</td>
 <td>2025-05-16</td>
 </tr>
@@ -1246,7 +1333,7 @@
 <td>scan</td>
 <td>No</td>
 <td>Watch for HTTP endpoints that support NTLM authentication</td>
-<td>active, safe, web-basic</td>
+<td>active, safe, web</td>
 <td>HTTP_RESPONSE, URL</td>
 <td>DNS_NAME, FINDING</td>
 <td>@liquidsec</td>
@@ -1257,9 +1344,9 @@
 <td>scan</td>
 <td>No</td>
 <td>Fast and customisable vulnerability scanner</td>
-<td>active, aggressive, deadly</td>
+<td>active, invasive, loud</td>
 <td>URL</td>
-<td>FINDING, TECHNOLOGY, VULNERABILITY</td>
+<td>FINDING, TECHNOLOGY</td>
 <td>@TheTechromancer</td>
 <td>2022-03-12</td>
 </tr>
@@ -1268,7 +1355,7 @@
 <td>scan</td>
 <td>No</td>
 <td>Enumerate OAUTH and OpenID Connect services</td>
-<td>active, affiliates, cloud-enum, safe, subdomain-enum, web-basic</td>
+<td>active, affiliates, cloud-enum, safe, subdomain-enum, web</td>
 <td>DNS_NAME, URL_UNVERIFIED</td>
 <td>DNS_NAME</td>
 <td>@TheTechromancer</td>
@@ -1279,9 +1366,9 @@
 <td>scan</td>
 <td>No</td>
 <td>Smart brute-force to check for common HTTP cookie parameters</td>
-<td>active, aggressive, slow, web-paramminer</td>
+<td>active, loud, slow, web-paramminer</td>
 <td>HTTP_RESPONSE, WEB_PARAMETER</td>
-<td>FINDING, WEB_PARAMETER</td>
+<td>WEB_PARAMETER</td>
 <td>@liquidsec</td>
 <td>2022-06-27</td>
 </tr>
@@ -1290,9 +1377,9 @@
 <td>scan</td>
 <td>No</td>
 <td>Use smart brute-force to check for common HTTP GET parameters</td>
-<td>active, aggressive, slow, web-paramminer</td>
+<td>active, loud, slow, web-paramminer</td>
 <td>HTTP_RESPONSE, WEB_PARAMETER</td>
-<td>FINDING, WEB_PARAMETER</td>
+<td>WEB_PARAMETER</td>
 <td>@liquidsec</td>
 <td>2022-06-28</td>
 </tr>
@@ -1301,7 +1388,7 @@
 <td>scan</td>
 <td>No</td>
 <td>Use smart brute-force to check for common HTTP header parameters</td>
-<td>active, aggressive, slow, web-paramminer</td>
+<td>active, loud, slow, web-paramminer</td>
 <td>HTTP_RESPONSE, WEB_PARAMETER</td>
 <td>WEB_PARAMETER</td>
 <td>@liquidsec</td>
@@ -1312,7 +1399,7 @@
 <td>scan</td>
 <td>No</td>
 <td>Port scan with masscan. By default, scans top 100 ports.</td>
-<td>active, portscan, safe</td>
+<td>active, loud, portscan</td>
 <td>DNS_NAME, IP_ADDRESS, IP_RANGE</td>
 <td>OPEN_TCP_PORT</td>
 <td>@TheTechromancer</td>
@@ -1323,7 +1410,7 @@
 <td>scan</td>
 <td>No</td>
 <td>Highlight parameters that reflect their contents in response body</td>
-<td>active, safe, web-thorough</td>
+<td>active, safe, web-heavy</td>
 <td>WEB_PARAMETER</td>
 <td>FINDING</td>
 <td>@liquidsec</td>
@@ -1334,7 +1421,7 @@
 <td>scan</td>
 <td>No</td>
 <td>Detect vulnerable/out-of-date JavaScript libraries</td>
-<td>active, safe, web-thorough</td>
+<td>active, safe, web-heavy</td>
 <td>URL_UNVERIFIED</td>
 <td>FINDING</td>
 <td>@liquidsec</td>
@@ -1345,7 +1432,7 @@
 <td>scan</td>
 <td>No</td>
 <td>Look for and parse robots.txt</td>
-<td>active, safe, web-basic</td>
+<td>active, safe, web</td>
 <td>URL</td>
 <td>URL_UNVERIFIED</td>
 <td>@liquidsec</td>
@@ -1356,30 +1443,19 @@
 <td>scan</td>
 <td>No</td>
 <td>Check for security.txt content</td>
-<td>active, cloud-enum, safe, subdomain-enum, web-basic</td>
+<td>active, cloud-enum, safe, subdomain-enum, web</td>
 <td>DNS_NAME</td>
 <td>EMAIL_ADDRESS, URL_UNVERIFIED</td>
 <td>@colin-stubbs</td>
 <td>2024-05-26</td>
 </tr>
 <tr>
-<td>smuggler</td>
-<td>scan</td>
-<td>No</td>
-<td>Check for HTTP smuggling</td>
-<td>active, aggressive, slow, web-thorough</td>
-<td>URL</td>
-<td>FINDING</td>
-<td>@liquidsec</td>
-<td>2022-07-06</td>
-</tr>
-<tr>
 <td>sslcert</td>
 <td>scan</td>
 <td>No</td>
-<td>Visit open ports and retrieve SSL certificates</td>
-<td>active, affiliates, email-enum, safe, subdomain-enum, web-basic</td>
-<td>OPEN_TCP_PORT</td>
+<td>Extract hostnames and emails from TLS certificates in HTTP responses</td>
+<td>active, affiliates, email-enum, safe, subdomain-enum, web</td>
+<td>HTTP_RESPONSE</td>
 <td>DNS_NAME, EMAIL_ADDRESS</td>
 <td>@TheTechromancer</td>
 <td>2022-03-30</td>
@@ -1389,9 +1465,9 @@
 <td>scan</td>
 <td>No</td>
 <td>Scan for critical Telerik vulnerabilities</td>
-<td>active, aggressive, web-thorough</td>
+<td>active, invasive, loud, web-heavy</td>
 <td>HTTP_RESPONSE, URL</td>
-<td>FINDING, VULNERABILITY</td>
+<td>FINDING</td>
 <td>@liquidsec</td>
 <td>2022-04-10</td>
 </tr>
@@ -1400,44 +1476,66 @@
 <td>scan</td>
 <td>No</td>
 <td>Attempt to identify URL parsing/routing based vulnerabilities</td>
-<td>active, aggressive, web-thorough</td>
+<td>active, loud, web-heavy</td>
 <td>URL</td>
 <td>FINDING</td>
 <td>@liquidsec</td>
 <td>2022-09-27</td>
 </tr>
 <tr>
-<td>vhost</td>
+<td>virtualhost</td>
 <td>scan</td>
 <td>No</td>
 <td>Fuzz for virtual hosts</td>
-<td>active, aggressive, deadly, slow</td>
+<td>active, loud, slow</td>
 <td>URL</td>
-<td>DNS_NAME, VHOST</td>
+<td>DNS_NAME_UNVERIFIED, HTTP_RESPONSE, VIRTUAL_HOST</td>
 <td>@liquidsec</td>
 <td>2022-05-02</td>
+</tr>
+<tr>
+<td>waf_bypass</td>
+<td>scan</td>
+<td>No</td>
+<td>Detects potential WAF bypasses</td>
+<td>active, safe, web-heavy</td>
+<td>URL</td>
+<td>FINDING</td>
+<td>@liquidsec</td>
+<td>2025-09-26</td>
 </tr>
 <tr>
 <td>wafw00f</td>
 <td>scan</td>
 <td>No</td>
 <td>Web Application Firewall Fingerprinting Tool</td>
-<td>active, aggressive</td>
+<td>active, loud</td>
 <td>URL</td>
 <td>WAF</td>
 <td>@liquidsec</td>
 <td>2023-02-15</td>
 </tr>
 <tr>
-<td>wpscan</td>
+<td>webbrute</td>
 <td>scan</td>
 <td>No</td>
-<td>Wordpress security scanner. Highly recommended to use an API key for better results.</td>
-<td>active, aggressive</td>
-<td>HTTP_RESPONSE, TECHNOLOGY</td>
-<td>FINDING, TECHNOLOGY, URL_UNVERIFIED, VULNERABILITY</td>
-<td>@domwhewell-sage</td>
-<td>2024-05-29</td>
+<td>A fast web fuzzer powered by blasthttp</td>
+<td>active, loud</td>
+<td>URL</td>
+<td>URL_UNVERIFIED</td>
+<td>@liquidsec</td>
+<td>2022-04-10</td>
+</tr>
+<tr>
+<td>webbrute_shortnames</td>
+<td>scan</td>
+<td>No</td>
+<td>Brute-force IIS shortnames using ML-predicted wordlists</td>
+<td>active, iis-shortnames, loud, web-heavy</td>
+<td>URL_HINT</td>
+<td>URL_UNVERIFIED</td>
+<td>@liquidsec</td>
+<td>2022-07-05</td>
 </tr>
 <tr>
 <td>affiliates</td>
@@ -1454,7 +1552,7 @@
 <td>anubisdb</td>
 <td>scan</td>
 <td>No</td>
-<td>Query jldc.me's database for subdomains</td>
+<td>Query anubisdb.com for subdomains</td>
 <td>passive, safe, subdomain-enum</td>
 <td>DNS_NAME</td>
 <td>DNS_NAME</td>
@@ -1476,7 +1574,7 @@
 <td>asn</td>
 <td>scan</td>
 <td>No</td>
-<td>Query ripe and bgpview.io for ASNs</td>
+<td>Query asndb for ASN information</td>
 <td>passive, safe, subdomain-enum</td>
 <td>IP_ADDRESS</td>
 <td>ASN</td>
@@ -1487,10 +1585,10 @@
 <td>azure_tenant</td>
 <td>scan</td>
 <td>No</td>
-<td>Query Azure via azmap.dev for tenant sister domains</td>
+<td>Query Azure for tenant information using multiple enumeration methods</td>
 <td>affiliates, cloud-enum, passive, safe, subdomain-enum</td>
 <td>DNS_NAME</td>
-<td>DNS_NAME</td>
+<td>AZURE_TENANT, DNS_NAME, FINDING, URL_UNVERIFIED</td>
 <td>@TheTechromancer</td>
 <td>2024-07-04</td>
 </tr>
@@ -1726,17 +1824,6 @@
 <td>2022-07-11</td>
 </tr>
 <tr>
-<td>extractous</td>
-<td>scan</td>
-<td>No</td>
-<td>Module to extract data from files</td>
-<td>passive, safe</td>
-<td>FILESYSTEM</td>
-<td>RAW_TEXT</td>
-<td>@domwhewell-sage</td>
-<td>2024-06-03</td>
-</tr>
-<tr>
 <td>fullhunt</td>
 <td>scan</td>
 <td>Yes</td>
@@ -1862,7 +1949,7 @@
 <td>scan</td>
 <td>No</td>
 <td>Look beside IPs in their surrounding subnet</td>
-<td>aggressive, passive, subdomain-enum</td>
+<td>loud, passive, subdomain-enum</td>
 <td>IP_ADDRESS</td>
 <td>IP_ADDRESS</td>
 <td>@TheTechromancer</td>
@@ -1891,9 +1978,20 @@
 <td>2024-11-04</td>
 </tr>
 <tr>
-<td>leakix</td>
+<td>kreuzberg</td>
 <td>scan</td>
 <td>No</td>
+<td>Module to extract data from files</td>
+<td>passive, safe</td>
+<td>FILESYSTEM</td>
+<td>RAW_TEXT</td>
+<td>@domwhewell-sage</td>
+<td>2024-06-03</td>
+</tr>
+<tr>
+<td>leakix</td>
+<td>scan</td>
+<td>Yes</td>
 <td>Query leakix.net for subdomains</td>
 <td>passive, safe, subdomain-enum</td>
 <td>DNS_NAME</td>
@@ -1948,7 +2046,7 @@
 <tr>
 <td>postman</td>
 <td>scan</td>
-<td>No</td>
+<td>Yes</td>
 <td>Query Postman's API for related workspaces, collections, requests and download them</td>
 <td>code-enum, passive, safe, subdomain-enum</td>
 <td>ORG_STUB, SOCIAL</td>
@@ -1959,7 +2057,7 @@
 <tr>
 <td>postman_download</td>
 <td>scan</td>
-<td>No</td>
+<td>Yes</td>
 <td>Download workspaces, collections, requests from Postman</td>
 <td>code-enum, download, passive, safe, subdomain-enum</td>
 <td>CODE_REPOSITORY</td>
@@ -2001,13 +2099,24 @@
 <td>2022-07-03</td>
 </tr>
 <tr>
+<td>shodan_enterprise</td>
+<td>scan</td>
+<td>Yes</td>
+<td>Shodan Enterprise API integration module.</td>
+<td>passive, safe</td>
+<td>IP_ADDRESS</td>
+<td>FINDING, OPEN_TCP_PORT, OPEN_UDP_PORT, TECHNOLOGY</td>
+<td>@Control-Punk-Delete</td>
+<td>2026-01-27</td>
+</tr>
+<tr>
 <td>shodan_idb</td>
 <td>scan</td>
 <td>No</td>
 <td>Query Shodan's InternetDB for open ports, hostnames, technologies, and vulnerabilities</td>
 <td>passive, portscan, safe, subdomain-enum</td>
 <td>DNS_NAME, IP_ADDRESS</td>
-<td>DNS_NAME, FINDING, OPEN_TCP_PORT, TECHNOLOGY, VULNERABILITY</td>
+<td>DNS_NAME, FINDING, OPEN_TCP_PORT, TECHNOLOGY</td>
 <td>@TheTechromancer</td>
 <td>2023-12-22</td>
 </tr>
@@ -2056,6 +2165,17 @@
 <td>2022-07-08</td>
 </tr>
 <tr>
+<td>trajan</td>
+<td>scan</td>
+<td>No</td>
+<td>Scans GitHub, GitLab, Azure DevOps, Jenkins, and JFrog for misconfigurations using Praetorian's Trajan tool</td>
+<td>code-enum, passive, safe</td>
+<td>CODE_REPOSITORY, TECHNOLOGY, URL_UNVERIFIED</td>
+<td>FINDING</td>
+<td>@N7WERA</td>
+<td>2026-04-11</td>
+</tr>
+<tr>
 <td>trickest</td>
 <td>scan</td>
 <td>Yes</td>
@@ -2073,7 +2193,7 @@
 <td>TruffleHog is a tool for finding credentials</td>
 <td>code-enum, passive, safe</td>
 <td>CODE_REPOSITORY, FILESYSTEM, HTTP_RESPONSE, RAW_TEXT</td>
-<td>FINDING, VULNERABILITY</td>
+<td>FINDING</td>
 <td>@domwhewell-sage</td>
 <td>2024-03-12</td>
 </tr>
@@ -2114,10 +2234,10 @@
 <td>wayback</td>
 <td>scan</td>
 <td>No</td>
-<td>Query archive.org's API for subdomains</td>
+<td>Query archive.org's Wayback Machine for subdomains, URLs, parameters, and archived content</td>
 <td>passive, safe, subdomain-enum</td>
-<td>DNS_NAME</td>
-<td>DNS_NAME, URL_UNVERIFIED</td>
+<td>DNS_NAME, URL</td>
+<td>DNS_NAME, FINDING, HTTP_RESPONSE, URL_UNVERIFIED, WEB_PARAMETER</td>
 <td>@liquidsec</td>
 <td>2022-04-01</td>
 </tr>
@@ -2127,7 +2247,7 @@
 <td>No</td>
 <td>Merge hosts, open ports, technologies, findings, etc. into a single asset inventory CSV</td>
 <td></td>
-<td>DNS_NAME, FINDING, HTTP_RESPONSE, IP_ADDRESS, OPEN_TCP_PORT, TECHNOLOGY, URL, VULNERABILITY, WAF</td>
+<td>DNS_NAME, FINDING, HTTP_RESPONSE, IP_ADDRESS, OPEN_TCP_PORT, TECHNOLOGY, URL, WAF</td>
 <td>IP_ADDRESS, OPEN_TCP_PORT</td>
 <td>@liquidsec</td>
 <td>2022-09-30</td>
@@ -2155,26 +2275,26 @@
 <td>2023-08-14</td>
 </tr>
 <tr>
-<td>emails</td>
+<td>elastic</td>
 <td>output</td>
 <td>No</td>
-<td>Output any email addresses found belonging to the target domain</td>
-<td>email-enum</td>
-<td>EMAIL_ADDRESS</td>
-<td></td>
-<td>@domwhewell-sage</td>
-<td>2023-12-23</td>
-</tr>
-<tr>
-<td>http</td>
-<td>output</td>
-<td>No</td>
-<td>Send every event to a custom URL via a web request</td>
+<td>Send scan results to Elasticsearch</td>
 <td></td>
 <td>*</td>
 <td></td>
 <td>@TheTechromancer</td>
-<td>2022-04-13</td>
+<td>2022-11-21</td>
+</tr>
+<tr>
+<td>emails</td>
+<td>output</td>
+<td>No</td>
+<td>Output any email addresses found belonging to the target domain</td>
+<td>email-enum, safe</td>
+<td>EMAIL_ADDRESS</td>
+<td></td>
+<td>@domwhewell-sage</td>
+<td>2023-12-23</td>
 </tr>
 <tr>
 <td>json</td>
@@ -2188,6 +2308,28 @@
 <td>2022-04-07</td>
 </tr>
 <tr>
+<td>kafka</td>
+<td>output</td>
+<td>No</td>
+<td>Output scan data to a Kafka topic</td>
+<td></td>
+<td>*</td>
+<td></td>
+<td>@TheTechromancer</td>
+<td>2024-11-22</td>
+</tr>
+<tr>
+<td>mongo</td>
+<td>output</td>
+<td>No</td>
+<td>Output scan data to a MongoDB database</td>
+<td></td>
+<td>*</td>
+<td></td>
+<td>@TheTechromancer</td>
+<td>2024-11-17</td>
+</tr>
+<tr>
 <td>mysql</td>
 <td>output</td>
 <td>No</td>
@@ -2197,6 +2339,17 @@
 <td></td>
 <td>@TheTechromancer</td>
 <td>2024-11-13</td>
+</tr>
+<tr>
+<td>nats</td>
+<td>output</td>
+<td>No</td>
+<td>Output scan data to a NATS subject</td>
+<td></td>
+<td>*</td>
+<td></td>
+<td>@TheTechromancer</td>
+<td>2024-11-22</td>
 </tr>
 <tr>
 <td>neo4j</td>
@@ -2232,15 +2385,15 @@
 <td>2024-11-08</td>
 </tr>
 <tr>
-<td>python</td>
+<td>rabbitmq</td>
 <td>output</td>
 <td>No</td>
-<td>Output via Python API</td>
+<td>Output scan data to a RabbitMQ queue</td>
 <td></td>
 <td>*</td>
 <td></td>
 <td>@TheTechromancer</td>
-<td>2022-09-13</td>
+<td>2024-11-22</td>
 </tr>
 <tr>
 <td>slack</td>
@@ -2291,7 +2444,7 @@
 <td>output</td>
 <td>No</td>
 <td>Output only resolved, in-scope subdomains</td>
-<td>subdomain-enum</td>
+<td>safe, subdomain-enum</td>
 <td>DNS_NAME, DNS_NAME_UNRESOLVED</td>
 <td></td>
 <td>@TheTechromancer</td>
@@ -2336,10 +2489,21 @@
 <td>No</td>
 <td>Create a markdown report with web assets</td>
 <td></td>
-<td>FINDING, TECHNOLOGY, URL, VHOST, VULNERABILITY</td>
+<td>FINDING, TECHNOLOGY, URL</td>
 <td></td>
 <td>@liquidsec</td>
 <td>2023-02-08</td>
+</tr>
+<tr>
+<td>webhook</td>
+<td>output</td>
+<td>No</td>
+<td>Send every event to a custom URL via a webhook</td>
+<td></td>
+<td>*</td>
+<td></td>
+<td>@TheTechromancer</td>
+<td>2022-04-13</td>
 </tr>
 <tr>
 <td>websocket</td>
@@ -2351,6 +2515,17 @@
 <td></td>
 <td>@TheTechromancer</td>
 <td>2022-04-15</td>
+</tr>
+<tr>
+<td>zeromq</td>
+<td>output</td>
+<td>No</td>
+<td>Output scan data to a ZeroMQ socket (PUB)</td>
+<td></td>
+<td>*</td>
+<td></td>
+<td>@TheTechromancer</td>
+<td>2024-11-22</td>
 </tr>
 <tr>
 <td>cloudcheck</td>
@@ -2370,9 +2545,20 @@
 <td>Perform DNS resolution</td>
 <td></td>
 <td>*</td>
-<td>DNS_NAME, IP_ADDRESS, RAW_DNS_RECORD</td>
+<td>DNS_NAME, IP_ADDRESS, IP_RANGE, RAW_DNS_RECORD</td>
 <td>@TheTechromancer</td>
 <td>2022-04-08</td>
+</tr>
+<tr>
+<td>python</td>
+<td>internal</td>
+<td>No</td>
+<td>Output via Python API</td>
+<td></td>
+<td>*</td>
+<td></td>
+<td>@TheTechromancer</td>
+<td>2022-09-13</td>
 </tr>
 <tr>
 <td>aggregate</td>
@@ -2390,7 +2576,7 @@
 <td>internal</td>
 <td>No</td>
 <td>Passively extract juicy tidbits from scan data</td>
-<td>passive</td>
+<td>passive, safe</td>
 <td>HTTP_RESPONSE, RAW_TEXT</td>
 <td>URL_UNVERIFIED, WEB_PARAMETER</td>
 <td>@liquidsec</td>
@@ -2401,7 +2587,7 @@
 <td>internal</td>
 <td>No</td>
 <td>Derive certain event types from others by common sense</td>
-<td>passive</td>
+<td>passive, safe</td>
 <td>AZURE_TENANT, DNS_NAME, DNS_NAME_UNRESOLVED, HTTP_RESPONSE, IP_ADDRESS, IP_RANGE, SOCIAL, STORAGE_BUCKET, URL, URL_UNVERIFIED, USERNAME</td>
 <td>DNS_NAME, FINDING, IP_ADDRESS, OPEN_TCP_PORT, ORG_STUB</td>
 <td>@liquidsec</td>

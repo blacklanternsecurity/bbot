@@ -8,10 +8,10 @@
 <meta content="OSINT automation for hackers" name="description"/>
 <meta content="TheTechromancer" name="author"/>
 <link href="https://blacklanternsecurity.github.io/bbot/Stable/dev/tests/" rel="canonical"/>
-<link href="../module_howto/" rel="prev"/>
+<link href="../preset_validation/" rel="prev"/>
 <link href="../discord_bot/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.7.3" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
 <title>Unit Tests - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.04kfkfm3.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.xi6rhz5i.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -382,6 +382,18 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/scan_sanity/">
+<span class="md-ellipsis">
+    
+  
+    Scan Sanity
+  
+
+    
+  </span>
+</a>
+</li>
 </ul>
 </nav>
 </li>
@@ -421,11 +433,35 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/internal_modules/">
+<span class="md-ellipsis">
+    
+  
+    Internal Modules
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../../modules/nuclei/">
 <span class="md-ellipsis">
     
   
     Nuclei
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/wayback/">
+<span class="md-ellipsis">
+    
+  
+    Wayback
   
 
     
@@ -456,12 +492,62 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/webbrute/">
+<span class="md-ellipsis">
+    
+  
+    Webbrute
+  
+
+    
+  </span>
+</a>
+</li>
 </ul>
 </nav>
 </li>
 <li class="md-nav__item md-nav__item--nested">
 <input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_4" type="checkbox"/>
 <label class="md-nav__link" for="__nav_1_4" id="__nav_1_4_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Migration
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Migration
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../migration/3.0_breaking_changes/">
+<span class="md-ellipsis">
+    
+  
+    2.x → 3.0 Breaking Changes
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -472,8 +558,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_1_4">
+<nav aria-expanded="false" aria-labelledby="__nav_1_5_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_5">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -572,6 +658,18 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../core_dependencies/">
+<span class="md-ellipsis">
+    
+  
+    Core Dependencies
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../architecture/">
 <span class="md-ellipsis">
     
@@ -589,6 +687,18 @@
     
   
     How to Write a BBOT Module
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../preset_validation/">
+<span class="md-ellipsis">
+    
+  
+    Validating &amp; Inspecting Presets
   
 
     
@@ -657,6 +767,24 @@
 <nav aria-label="Example: Writing a Module Test" class="md-nav">
 <ul class="md-nav__list">
 <li class="md-nav__item">
+<a class="md-nav__link" href="#mocking-http-responses">
+<span class="md-ellipsis">
+      
+        Mocking HTTP responses
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#mocking-dns">
+<span class="md-ellipsis">
+      
+        Mocking DNS
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="#debugging-a-test">
 <span class="md-ellipsis">
       
@@ -666,10 +794,50 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="#more-advanced-tests">
+<a class="md-nav__link" href="#advanced-test-features">
 <span class="md-ellipsis">
       
-        More advanced tests
+        Advanced test features
+      
+    </span>
+</a>
+<nav aria-label="Advanced test features" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#http-request-handlers">
+<span class="md-ellipsis">
+      
+        HTTP request handlers
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#oob-interaction-mocking">
+<span class="md-ellipsis">
+      
+        OOB interaction mocking
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#other-class-attributes">
+<span class="md-ellipsis">
+      
+        Other class attributes
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#more-examples">
+<span class="md-ellipsis">
+      
+        More examples
       
     </span>
 </a>
@@ -693,8 +861,8 @@
 </a>
 </li>
 <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_9" id="__nav_2_9_label" tabindex="">
 <span class="md-ellipsis">
     
   
@@ -705,8 +873,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_2_7">
+<nav aria-expanded="false" aria-labelledby="__nav_2_9_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_9">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -787,21 +955,9 @@
   </span>
 </a>
 </li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="../engine/">
-<span class="md-ellipsis">
-    
-  
-    Engine
-  
-
-    
-  </span>
-</a>
-</li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7_8" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7_8" id="__nav_2_7_8_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9_7" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_9_7" id="__nav_2_9_7_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -812,8 +968,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_8_label" class="md-nav" data-md-level="3">
-<label class="md-nav__title" for="__nav_2_7_8">
+<nav aria-expanded="false" aria-labelledby="__nav_2_9_7_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_2_9_7">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -928,25 +1084,25 @@
 <h2 id="running-tests-locally">Running tests locally</h2>
 <p>We have GitHub Actions that automatically run tests whenever you open a Pull Request. However, you can also run the tests locally with <code>pytest</code>:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># lint with ruff</span>
-poetry<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>ruff<span style="color: #6E7681"> </span>check
+uv<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>ruff<span style="color: #6E7681"> </span>check
 
 <span style="color: #8B949E; font-style: italic"># format code with ruff</span>
-poetry<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>ruff<span style="color: #6E7681"> </span>format
+uv<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>ruff<span style="color: #6E7681"> </span>format
 
 <span style="color: #8B949E; font-style: italic"># run all tests with pytest (takes roughly 30 minutes)</span>
-poetry<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>pytest
+uv<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>pytest
 </code></pre></div>
 <h3 id="running-specific-tests">Running specific tests</h3>
 <p>If you only want to run a single test, you can select it with <code>-k</code>:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># run only the sslcert test</span>
-poetry<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>pytest<span style="color: #6E7681"> </span>-k<span style="color: #6E7681"> </span>test_module_sslcert
+uv<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>pytest<span style="color: #6E7681"> </span>-k<span style="color: #6E7681"> </span>test_module_sslcert
 </code></pre></div>
 <p>You can also filter like this:
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># run all the module tests except for sslcert</span>
-poetry<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>pytest<span style="color: #6E7681"> </span>-k<span style="color: #6E7681"> </span><span style="color: #A5D6FF">"test_module_ and not test_module_sslcert"</span>
+uv<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>pytest<span style="color: #6E7681"> </span>-k<span style="color: #6E7681"> </span><span style="color: #A5D6FF">"test_module_ and not test_module_sslcert"</span>
 </code></pre></div></p>
 <p>If you want to see the output of your module, you can enable <code>--log-cli-level</code>:
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>poetry<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>pytest<span style="color: #6E7681"> </span>--log-cli-level<span style="color: #FF7B72; font-weight: bold">=</span>DEBUG
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>uv<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>pytest<span style="color: #6E7681"> </span>--log-cli-level<span style="color: #FF7B72; font-weight: bold">=</span>DEBUG
 </code></pre></div></p>
 <h2 id="example-writing-a-module-test">Example: Writing a Module Test</h2>
 <p>To write a test for your module, create a new python file in <code>bbot/test/test_step_2/module_tests</code>. Your filename must be <code>test_module_&lt;module_name&gt;</code>:</p>
@@ -959,8 +1115,8 @@ poetry<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </sp
 
     <span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">setup_after_prep</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">module_test):</span>
         <span style="color: #8B949E; font-style: italic"># mock HTTP response</span>
-        <span style="color: #E6EDF3">module_test</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">httpx_mock</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">add_response(</span>
-            <span style="color: #E6EDF3">url</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"https://api.com/sudomains?apikey=deadbeef&amp;domain=blacklanternsecurity.com"</span><span style="color: #E6EDF3">,</span>
+        <span style="color: #E6EDF3">module_test</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">blasthttp_mock</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">add_response(</span>
+            <span style="color: #E6EDF3">url</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"https://api.com/subdomains?apikey=deadbeef&amp;domain=blacklanternsecurity.com"</span><span style="color: #E6EDF3">,</span>
             <span style="color: #E6EDF3">json</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">{</span>
                 <span style="color: #A5D6FF">"subdomains"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">[</span>
                     <span style="color: #A5D6FF">"www.blacklanternsecurity.com"</span><span style="color: #E6EDF3">,</span>
@@ -986,22 +1142,99 @@ poetry<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </sp
         <span style="color: #FF7B72">assert</span> <span style="color: #A5D6FF">"www.blacklanternsecurity.com"</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">dns_names,</span> <span style="color: #A5D6FF">"failed to find subdomain #1"</span>
         <span style="color: #FF7B72">assert</span> <span style="color: #A5D6FF">"dev.blacklanternsecurity.com"</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">dns_names,</span> <span style="color: #A5D6FF">"failed to find subdomain #2"</span>
 </code></pre></div>
+<h3 id="mocking-http-responses">Mocking HTTP responses</h3>
+<p><code>module_test.blasthttp_mock</code> intercepts all outbound HTTP requests during tests. Requests to <code>127.0.0.1</code>/<code>localhost</code> pass through to the real test HTTP server, but everything else is mocked.</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>    <span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">setup_after_prep</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">module_test):</span>
+        <span style="color: #8B949E; font-style: italic"># JSON response</span>
+        <span style="color: #E6EDF3">module_test</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">blasthttp_mock</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">add_response(</span>
+            <span style="color: #E6EDF3">url</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"https://api.example.com/lookup?domain=blacklanternsecurity.com"</span><span style="color: #E6EDF3">,</span>
+            <span style="color: #E6EDF3">json</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"subdomains"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"www.blacklanternsecurity.com"</span><span style="color: #E6EDF3">]},</span>
+        <span style="color: #E6EDF3">)</span>
+
+        <span style="color: #8B949E; font-style: italic"># plain text response</span>
+        <span style="color: #E6EDF3">module_test</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">blasthttp_mock</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">add_response(</span>
+            <span style="color: #E6EDF3">url</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"https://example.com/data.txt"</span><span style="color: #E6EDF3">,</span>
+            <span style="color: #E6EDF3">text</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"some plain text response"</span><span style="color: #E6EDF3">,</span>
+        <span style="color: #E6EDF3">)</span>
+
+        <span style="color: #8B949E; font-style: italic"># error response</span>
+        <span style="color: #E6EDF3">module_test</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">blasthttp_mock</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">add_response(</span>
+            <span style="color: #E6EDF3">url</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"https://example.com/broken"</span><span style="color: #E6EDF3">,</span>
+            <span style="color: #E6EDF3">status_code</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">500</span><span style="color: #E6EDF3">,</span>
+            <span style="color: #E6EDF3">text</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"Internal Server Error"</span><span style="color: #E6EDF3">,</span>
+        <span style="color: #E6EDF3">)</span>
+
+        <span style="color: #8B949E; font-style: italic"># match on specific method and headers</span>
+        <span style="color: #E6EDF3">module_test</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">blasthttp_mock</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">add_response(</span>
+            <span style="color: #E6EDF3">url</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"https://api.example.com/submit"</span><span style="color: #E6EDF3">,</span>
+            <span style="color: #E6EDF3">method</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"POST"</span><span style="color: #E6EDF3">,</span>
+            <span style="color: #E6EDF3">match_headers</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"Authorization"</span><span style="color: #E6EDF3">:</span> <span style="color: #A5D6FF">"Bearer mytoken"</span><span style="color: #E6EDF3">},</span>
+            <span style="color: #E6EDF3">json</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"status"</span><span style="color: #E6EDF3">:</span> <span style="color: #A5D6FF">"ok"</span><span style="color: #E6EDF3">},</span>
+        <span style="color: #E6EDF3">)</span>
+</code></pre></div>
+<h3 id="mocking-dns">Mocking DNS</h3>
+<p>Use <code>module_test.mock_dns()</code> to control DNS resolution. Supports A, AAAA, CNAME, MX, TXT, and other record types:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>    <span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">setup_after_prep</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">module_test):</span>
+        <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">module_test</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">mock_dns({</span>
+            <span style="color: #A5D6FF">"blacklanternsecurity.com"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"A"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"127.0.0.88"</span><span style="color: #E6EDF3">]},</span>
+            <span style="color: #A5D6FF">"www.blacklanternsecurity.com"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"CNAME"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"blacklanternsecurity.com"</span><span style="color: #E6EDF3">]},</span>
+            <span style="color: #A5D6FF">"mail.blacklanternsecurity.com"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"MX"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"mx.example.com"</span><span style="color: #E6EDF3">]},</span>
+        <span style="color: #E6EDF3">})</span>
+</code></pre></div>
 <h3 id="debugging-a-test">Debugging a test</h3>
-<p>Similar to debugging from within a module, you can debug from within a test using <code>self.log.critical()</code>, etc:</p>
+<p>You can debug from within a test using standard Python logging via <code>self.log</code>:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>    <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">check</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">module_test,</span> <span style="color: #E6EDF3">events):</span>
         <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">e</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">events:</span>
-            <span style="color: #8B949E; font-style: italic"># bright red</span>
-            <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">log</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">critical(e</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">type)</span>
-            <span style="color: #8B949E; font-style: italic"># bright green</span>
-            <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">log</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">hugesuccess(e</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">data)</span>
-            <span style="color: #8B949E; font-style: italic"># bright orange</span>
-            <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">log</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">hugewarning(e</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">tags)</span>
-            <span style="color: #8B949E; font-style: italic"># bright blue</span>
-            <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">log</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">hugeinfo(e</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent)</span>
+            <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">log</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">critical(e</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">type)</span>     <span style="color: #8B949E; font-style: italic"># bright red</span>
+            <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">log</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">warning(e</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">tags)</span>      <span style="color: #8B949E; font-style: italic"># orange</span>
+            <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">log</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">info(e</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">data)</span>         <span style="color: #8B949E; font-style: italic"># blue</span>
+            <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">log</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">debug(e</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent)</span>      <span style="color: #8B949E; font-style: italic"># grey (requires -d)</span>
 </code></pre></div>
-<h3 id="more-advanced-tests">More advanced tests</h3>
+<h3 id="advanced-test-features">Advanced test features</h3>
+<h4 id="http-request-handlers">HTTP request handlers</h4>
+<p>For dynamic HTTP responses, use <code>set_expect_requests_handler</code> with a custom handler function:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">import</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">re</span>
+<span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">werkzeug.wrappers</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">Response</span>
+
+<span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">TestMyModule</span><span style="color: #E6EDF3">(ModuleTestBase):</span>
+    <span style="color: #E6EDF3">targets</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"http://127.0.0.1:8888"</span><span style="color: #E6EDF3">]</span>
+    <span style="color: #E6EDF3">modules_overrides</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"http"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"mymodule"</span><span style="color: #E6EDF3">]</span>
+
+    <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">request_handler</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">request):</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">request</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">path</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #A5D6FF">"/api/data"</span><span style="color: #E6EDF3">:</span>
+            <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">Response(</span><span style="color: #A5D6FF">'{"results": ["found"]}'</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">status</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">200</span><span style="color: #E6EDF3">)</span>
+        <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">Response(</span><span style="color: #A5D6FF">"Not Found"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">status</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">404</span><span style="color: #E6EDF3">)</span>
+
+    <span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">setup_before_prep</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">module_test):</span>
+        <span style="color: #E6EDF3">module_test</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">set_expect_requests_handler(</span>
+            <span style="color: #E6EDF3">expect_args</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">re</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">compile(</span><span style="color: #A5D6FF">"/.*"</span><span style="color: #E6EDF3">),</span>
+            <span style="color: #E6EDF3">request_handler</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">request_handler,</span>
+        <span style="color: #E6EDF3">)</span>
+</code></pre></div>
+<h4 id="oob-interaction-mocking">OOB interaction mocking</h4>
+<p>For modules that use out-of-band interactions (interactsh):</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>    <span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">setup_before_prep</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">module_test):</span>
+        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">interactsh_mock_instance</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">module_test</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">mock_interactsh(</span><span style="color: #A5D6FF">"mymodule"</span><span style="color: #E6EDF3">)</span>
+
+        <span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">bbot.core.helpers.helper</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">ConfigAwareHelper</span>
+        <span style="color: #E6EDF3">module_test</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">monkeypatch</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">setattr(</span>
+            <span style="color: #E6EDF3">ConfigAwareHelper,</span> <span style="color: #A5D6FF">"interactsh"</span><span style="color: #E6EDF3">,</span>
+            <span style="color: #FF7B72">lambda</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">a,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kw:</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">interactsh_mock_instance,</span>
+        <span style="color: #E6EDF3">)</span>
+</code></pre></div>
+<h4 id="other-class-attributes">Other class attributes</h4>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">TestMyModule</span><span style="color: #E6EDF3">(ModuleTestBase):</span>
+    <span style="color: #E6EDF3">targets</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"http://127.0.0.1:8888"</span><span style="color: #E6EDF3">]</span>   <span style="color: #8B949E; font-style: italic"># override default target</span>
+    <span style="color: #E6EDF3">modules_overrides</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"http"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"mymodule"</span><span style="color: #E6EDF3">]</span>  <span style="color: #8B949E; font-style: italic"># control which modules are enabled</span>
+    <span style="color: #E6EDF3">module_name</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">"mymodule"</span>               <span style="color: #8B949E; font-style: italic"># if your class name doesn't match the module</span>
+    <span style="color: #E6EDF3">config_overrides</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"modules"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"mymodule"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"option"</span><span style="color: #E6EDF3">:</span> <span style="color: #A5D6FF">"value"</span><span style="color: #E6EDF3">}}}</span>
+    <span style="color: #E6EDF3">blacklist</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"bad.example.com"</span><span style="color: #E6EDF3">]</span>        <span style="color: #8B949E; font-style: italic"># set a blacklist</span>
+    <span style="color: #E6EDF3">seeds</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"seed.example.com"</span><span style="color: #E6EDF3">]</span>           <span style="color: #8B949E; font-style: italic"># set seeds separate from targets</span>
+    <span style="color: #E6EDF3">skip_distro_tests</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">True</span>               <span style="color: #8B949E; font-style: italic"># skip when running in CI distro tests (e.g. docker-dependent tests)</span>
+</code></pre></div>
+<h3 id="more-examples">More examples</h3>
 <p>If you have questions about tests or need to write a more advanced test, come talk to us on <a href="https://github.com/blacklanternsecurity/bbot/discussions">GitHub</a> or <a href="https://discord.com/invite/PZqkgxu5SA">Discord</a>.</p>
-<p>It's also a good idea to look through our <a href="https://github.com/blacklanternsecurity/bbot/tree/stable/bbot/test/test_step_2/module_tests">existing tests</a>. BBOT has over a hundred of them, so you might find one that's similar to what you're trying to do.</p>
+<p>It's also a good idea to look through our <a href="https://github.com/blacklanternsecurity/bbot/tree/dev/bbot/test/test_step_2/module_tests">existing tests</a>. BBOT has over 300 of them, so you might find one that's similar to what you're trying to do.</p>
 </article>
 </div>
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>

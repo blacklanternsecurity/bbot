@@ -11,7 +11,7 @@
 <link href="../events/" rel="prev"/>
 <link href="../tips_and_tricks/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.7.3" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
 <title>Output - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.04kfkfm3.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.xi6rhz5i.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -419,10 +419,10 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="#http">
+<a class="md-nav__link" href="#webhook">
 <span class="md-ellipsis">
       
-        HTTP
+        Webhook
       
     </span>
 </a>
@@ -490,9 +490,6 @@
     </span>
 </a>
 </li>
-</ul>
-</nav>
-</li>
 <li class="md-nav__item">
 <a class="md-nav__link" href="#neo4j">
 <span class="md-ellipsis">
@@ -501,13 +498,102 @@
       
     </span>
 </a>
-<nav aria-label="Neo4j" class="md-nav">
-<ul class="md-nav__list">
+</li>
 <li class="md-nav__item">
 <a class="md-nav__link" href="#cypher-queries-and-tips">
 <span class="md-ellipsis">
       
         Cypher Queries and Tips
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#emails">
+<span class="md-ellipsis">
+      
+        Emails
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#web-report">
+<span class="md-ellipsis">
+      
+        Web Report
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#nmap-xml">
+<span class="md-ellipsis">
+      
+        Nmap XML
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#kafka">
+<span class="md-ellipsis">
+      
+        Kafka
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#rabbitmq">
+<span class="md-ellipsis">
+      
+        RabbitMQ
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#nats">
+<span class="md-ellipsis">
+      
+        NATS
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#zeromq">
+<span class="md-ellipsis">
+      
+        ZeroMQ
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#websocket">
+<span class="md-ellipsis">
+      
+        WebSocket
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#mongodb">
+<span class="md-ellipsis">
+      
+        MongoDB
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#python-api">
+<span class="md-ellipsis">
+      
+        Python API
       
     </span>
 </a>
@@ -563,6 +649,18 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../scan_sanity/">
+<span class="md-ellipsis">
+    
+  
+    Scan Sanity
+  
+
+    
+  </span>
+</a>
+</li>
 </ul>
 </nav>
 </li>
@@ -602,11 +700,35 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/internal_modules/">
+<span class="md-ellipsis">
+    
+  
+    Internal Modules
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../../modules/nuclei/">
 <span class="md-ellipsis">
     
   
     Nuclei
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/wayback/">
+<span class="md-ellipsis">
+    
+  
+    Wayback
   
 
     
@@ -637,12 +759,62 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/webbrute/">
+<span class="md-ellipsis">
+    
+  
+    Webbrute
+  
+
+    
+  </span>
+</a>
+</li>
 </ul>
 </nav>
 </li>
 <li class="md-nav__item md-nav__item--section md-nav__item--nested">
 <input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_4" type="checkbox"/>
 <label class="md-nav__link" for="__nav_1_4" id="__nav_1_4_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    Migration
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Migration
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../migration/3.0_breaking_changes/">
+<span class="md-ellipsis">
+    
+  
+    2.x → 3.0 Breaking Changes
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="">
 <span class="md-ellipsis">
     
   
@@ -653,8 +825,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_1_4">
+<nav aria-expanded="false" aria-labelledby="__nav_1_5_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_5">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -753,6 +925,18 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/core_dependencies/">
+<span class="md-ellipsis">
+    
+  
+    Core Dependencies
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../../dev/architecture/">
 <span class="md-ellipsis">
     
@@ -770,6 +954,18 @@
     
   
     How to Write a BBOT Module
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/preset_validation/">
+<span class="md-ellipsis">
+    
+  
+    Validating &amp; Inspecting Presets
   
 
     
@@ -801,8 +997,8 @@
 </a>
 </li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_9" id="__nav_2_9_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -813,8 +1009,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_2_7">
+<nav aria-expanded="false" aria-labelledby="__nav_2_9_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_9">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -895,21 +1091,9 @@
   </span>
 </a>
 </li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/engine/">
-<span class="md-ellipsis">
-    
-  
-    Engine
-  
-
-    
-  </span>
-</a>
-</li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7_8" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7_8" id="__nav_2_7_8_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9_7" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_9_7" id="__nav_2_9_7_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -920,8 +1104,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_8_label" class="md-nav" data-md-level="3">
-<label class="md-nav__title" for="__nav_2_7_8">
+<nav aria-expanded="false" aria-labelledby="__nav_2_9_7_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_2_9_7">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -1037,6 +1221,27 @@
 <p>If you reuse a scan name, it will append to its original output files and leverage the previous.</p>
 <h2 id="output-modules">Output Modules</h2>
 <p>Multiple simultaneous output formats are possible because of <strong>output modules</strong>. Output modules are similar to normal modules except they are enabled with <code>-om</code>.</p>
+<p>By default, <code>csv</code>, <code>txt</code>, and <code>json</code> output modules are always enabled. The <code>-om</code> flag is <strong>additive</strong> -- it adds modules on top of the defaults:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># default output: csv, txt, json</span>
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum
+
+<span style="color: #8B949E; font-style: italic"># add discord on top of defaults (csv + txt + json + discord)</span>
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>discord
+
+<span style="color: #8B949E; font-style: italic"># add multiple output modules</span>
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>discord<span style="color: #6E7681"> </span>slack
+</code></pre></div>
+<p>To remove default output modules, use <code>-eom</code> (<code>--exclude-output-modules</code>):</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># only json output (exclude csv and txt)</span>
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-eom<span style="color: #6E7681"> </span>csv<span style="color: #6E7681"> </span>txt
+</code></pre></div>
+<p>In a preset YAML, the same behavior applies:</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">my_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">discord</span><span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># added on top of defaults</span>
+
+<span style="color: #7EE787">exclude_output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">csv</span><span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># remove csv from defaults</span>
+</code></pre></div>
 <h3 id="stdout">STDOUT</h3>
 <p>The <code>stdout</code> output module is what you see when you execute BBOT in the terminal. By default it looks the same as the <a href="#txt"><code>txt</code></a> module, but it has options you can customize. You can filter by event type, choose the data format (<code>text</code>, <code>json</code>), and which fields you want to see:</p>
 <!-- BBOT MODULE OPTIONS STDOUT -->
@@ -1070,7 +1275,7 @@
 </tr>
 <tr>
 <td>modules.stdout.format</td>
-<td>str</td>
+<td>Literal['text', 'json']</td>
 <td>Which text format to display, choices: text,json</td>
 <td>text</td>
 </tr>
@@ -1125,7 +1330,7 @@ mail.evilcorp.com
 <td>URL</td>
 <td>http://www.evilcorp.com</td>
 <td>2.3.4.5</td>
-<td>httpx</td>
+<td>http</td>
 <td>0</td>
 <td>a-record,aaaa-record,cdn-github,cname-record,distance-0,in-scope,resolved,subdomain</td>
 </tr>
@@ -1158,6 +1363,7 @@ mail.evilcorp.com
 <span style="color: #6E7681">  </span><span style="color: #7EE787">"module_sequence"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"A"</span>
 <span style="color: #E6EDF3">}</span>
 </code></pre></div>
+<p>String-typed events use the <code>data</code> key (as above); structured events like <code>HTTP_RESPONSE</code> and <code>FINDING</code> use <code>data_json</code> (a dict) instead. See <a href="../events/">Events</a> for details.</p>
 <p>You can filter on the JSON output with <code>jq</code>:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># pull out only the .data attribute of every DNS_NAME</span>
 $<span style="color: #6E7681"> </span>jq<span style="color: #6E7681"> </span>-r<span style="color: #6E7681"> </span><span style="color: #A5D6FF">'select(.type=="DNS_NAME") | .data'</span><span style="color: #6E7681"> </span>~/.bbot/scans/extreme_johnny/output.json
@@ -1167,42 +1373,56 @@ mail.evilcorp.com
 </code></pre></div>
 <h3 id="discord-slack-teams">Discord / Slack / Teams</h3>
 <p><img alt="bbot-discord" src="https://github.com/blacklanternsecurity/bbot/assets/20261699/6d88045c-8eac-43b6-8de9-c621ecf60c2d"/></p>
-<p>BBOT supports output via webhooks to <code>discord</code>, <code>slack</code>, and <code>teams</code>. To use them, you must specify a webhook URL either in the config:</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">discord_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<p>BBOT supports output via webhooks to <code>discord</code>, <code>slack</code>, and <code>teams</code>. To use them, you need to enable the output module and configure a webhook URL.</p>
+<p>Via preset:</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">discord_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">discord</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">discord</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">webhook_url</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">https://discord.com/api/webhooks/1234/deadbeef</span>
 </code></pre></div>
-<p>...or on the command line:
+<p>Via command line:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>discord<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.discord.webhook_url<span style="color: #FF7B72; font-weight: bold">=</span>https://discord.com/api/webhooks/1234/deadbeef
-</code></pre></div></p>
-<p>By default, only <code>VULNERABILITY</code> and <code>FINDING</code> events are sent, but this can be customized by setting <code>event_types</code> in the config like so:</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">discord_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+</code></pre></div>
+<p>By default, only <code>FINDING</code> events are sent, but this can be customized by setting <code>event_types</code> in the config like so:</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">discord_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">discord</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">discord</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">webhook_url</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">https://discord.com/api/webhooks/1234/deadbeef</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">event_types</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">        </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">VULNERABILITY</span>
 <span style="color: #6E7681">        </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">FINDING</span>
 <span style="color: #6E7681">        </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">STORAGE_BUCKET</span>
 </code></pre></div>
 <p>...or on the command line:
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>discord<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.discord.event_types<span style="color: #FF7B72; font-weight: bold">=[</span><span style="color: #A5D6FF">"STORAGE_BUCKET"</span>,<span style="color: #A5D6FF">"FINDING"</span>,<span style="color: #A5D6FF">"VULNERABILITY"</span><span style="color: #FF7B72; font-weight: bold">]</span>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>discord<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.discord.webhook_url<span style="color: #FF7B72; font-weight: bold">=</span>https://discord.com/api/webhooks/1234/deadbeef<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.discord.event_types<span style="color: #FF7B72; font-weight: bold">=[</span><span style="color: #A5D6FF">"STORAGE_BUCKET"</span>,<span style="color: #A5D6FF">"FINDING"</span><span style="color: #FF7B72; font-weight: bold">]</span>
 </code></pre></div></p>
-<p>You can also filter on the severity of <code>VULNERABILITY</code> events by setting <code>min_severity</code>:</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">discord_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<p>You can also filter on the severity of <code>FINDING</code> events by setting <code>min_severity</code>:</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">discord_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">discord</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">discord</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">webhook_url</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">https://discord.com/api/webhooks/1234/deadbeef</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">min_severity</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">HIGH</span>
 </code></pre></div>
-<h3 id="http">HTTP</h3>
-<p>The <code>http</code> output module sends <a href="../events/">events</a> in JSON format to a desired HTTP endpoint.</p>
+<h3 id="webhook">Webhook</h3>
+<p>The <code>webhook</code> output module sends <a href="../events/">events</a> in JSON format to a desired HTTP endpoint.</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># POST scan results to localhost</span>
-bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>http<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.http.url<span style="color: #FF7B72; font-weight: bold">=</span>http://localhost:8000
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>webhook<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.webhook.url<span style="color: #FF7B72; font-weight: bold">=</span>http://localhost:8000
 </code></pre></div>
 <p>You can customize the HTTP method if needed. Authentication is also supported:</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">http_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">webhook_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">webhook</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">    </span><span style="color: #7EE787">http</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">webhook</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">url</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">https://localhost:8000</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">method</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">PUT</span>
 <span style="color: #6E7681">      </span><span style="color: #8B949E; font-style: italic"># Authorization: Bearer</span>
@@ -1212,27 +1432,37 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">password</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">P@ssw0rd</span>
 </code></pre></div>
 <h3 id="elasticsearch">Elasticsearch</h3>
-<p>When outputting to Elastic, use the <code>http</code> output module with the following settings (replace <code>&lt;your_index&gt;</code> with your desired index, e.g. <code>bbot</code>):</p>
+<ul>
+<li>Step 1: Spin up a quick Elasticsearch docker image</li>
+</ul>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>docker<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>-d<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span><span style="color: #A5D6FF">9200</span>:9200<span style="color: #6E7681"> </span>--name<span style="color: #FF7B72; font-weight: bold">=</span>bbot-elastic<span style="color: #6E7681"> </span>--v<span style="color: #6E7681"> </span><span style="color: #A5D6FF">"</span><span style="color: #FF7B72">$(</span><span style="color: #E6EDF3">pwd</span><span style="color: #FF7B72">)</span><span style="color: #A5D6FF">/elastic_data:/usr/share/elasticsearch/data"</span><span style="color: #6E7681"> </span>-e<span style="color: #6E7681"> </span><span style="color: #79C0FF">ELASTIC_PASSWORD</span><span style="color: #FF7B72; font-weight: bold">=</span>bbotislife<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>1GB<span style="color: #6E7681"> </span>docker.elastic.co/elasticsearch/elasticsearch:8.16.0
+</code></pre></div>
+<ul>
+<li>Step 2: Execute a scan with <code>elastic</code> output module</li>
+</ul>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># send scan results directly to elasticsearch</span>
-bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>http<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span><span style="color: #79C0FF">\</span>
-<span style="color: #6E7681">  </span>modules.http.url<span style="color: #FF7B72; font-weight: bold">=</span>http://localhost:8000/&lt;your_index&gt;/_doc<span style="color: #6E7681"> </span><span style="color: #79C0FF">\</span>
-<span style="color: #6E7681">  </span>modules.http.siem_friendly<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">true</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">\</span>
-<span style="color: #6E7681">  </span>modules.http.username<span style="color: #FF7B72; font-weight: bold">=</span>elastic<span style="color: #6E7681"> </span><span style="color: #79C0FF">\</span>
-<span style="color: #6E7681">  </span>modules.http.password<span style="color: #FF7B72; font-weight: bold">=</span>changeme
+<span style="color: #8B949E; font-style: italic"># note: you can replace "bbot" with your own index name</span>
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>elastic<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span><span style="color: #79C0FF">\</span>
+<span style="color: #6E7681">  </span>modules.elastic.url<span style="color: #FF7B72; font-weight: bold">=</span>https://localhost:9200/bbot/_doc<span style="color: #6E7681"> </span><span style="color: #79C0FF">\</span>
+<span style="color: #6E7681">  </span>modules.elastic.password<span style="color: #FF7B72; font-weight: bold">=</span>bbotislife
 </code></pre></div>
 <p>Alternatively, via a preset:</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">elastic_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">elastic_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">elastic</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">    </span><span style="color: #7EE787">http</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">      </span><span style="color: #7EE787">url</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http://localhost:8000/&lt;your_index&gt;/_doc</span>
-<span style="color: #6E7681">      </span><span style="color: #7EE787">siem_friendly</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span>
-<span style="color: #6E7681">      </span><span style="color: #7EE787">username</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">elastic</span>
-<span style="color: #6E7681">      </span><span style="color: #7EE787">password</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">changeme</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">elastic</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">url</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http://localhost:9200/bbot/_doc</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">password</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">bbotislife</span>
 </code></pre></div>
 <h3 id="splunk">Splunk</h3>
 <p>The <code>splunk</code> output module sends <a href="../events/">events</a> in JSON format to a desired splunk instance via <a href="https://docs.splunk.com/Documentation/Splunk/9.2.0/Data/UsetheHTTPEventCollector">HEC</a>.</p>
 <p>You can customize this output with the following config options:</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">splunk_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">splunk_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">splunk</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">splunk</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #8B949E; font-style: italic"># The full URL with the URI `/services/collector/event`</span>
@@ -1290,7 +1520,10 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># specifying an alternate database</span>
 bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>postgres<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.postgres.database<span style="color: #FF7B72; font-weight: bold">=</span>custom_bbot_db
 </code></pre></div>
-<div class="highlight" style="background: #0d1117"><span class="filename">postgres_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">postgres_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">postgres</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">postgres</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">host</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">psq.fsociety.local</span>
@@ -1304,7 +1537,10 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># specifying an alternate database</span>
 bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>mysql<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.mysql.database<span style="color: #FF7B72; font-weight: bold">=</span>custom_bbot_db
 </code></pre></div>
-<div class="highlight" style="background: #0d1117"><span class="filename">mysql_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">mysql_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">mysql</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">mysql</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">host</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">mysql.fsociety.local</span>
@@ -1320,7 +1556,7 @@ www.evilcorp.com
 mail.evilcorp.com
 portal.evilcorp.com
 </code></pre></div>
-<h2 id="neo4j">Neo4j</h2>
+<h3 id="neo4j">Neo4j</h3>
 <p>Neo4j is the funnest (and prettiest) way to view and interact with BBOT data.</p>
 <p><img alt="neo4j" src="https://github.com/blacklanternsecurity/bbot/assets/20261699/0192d548-5c60-42b6-9a1e-32ba7b921cdf"/></p>
 <ul>
@@ -1371,11 +1607,86 @@ docker<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </sp
 </code></pre></div>
 <p>This is not an exhaustive list of clauses, filters, or other means to use cypher and should be considered a starting point. To build more advanced queries consider reading Neo4j's Cypher <a href="https://neo4j.com/docs/cypher-manual/current/introduction/">documentation</a>.</p>
 <p>Additional note: these sample queries are dependent on the existence of the data in the target neo4j database.</p>
+<h3 id="emails">Emails</h3>
+<p>The <code>emails</code> output module writes any email addresses found belonging to the target domain to a file (<code>emails.txt</code> by default).</p>
+<h3 id="web-report">Web Report</h3>
+<p>The <code>web_report</code> output module generates a markdown report of web assets, including URLs, technologies, and findings.</p>
+<h3 id="nmap-xml">Nmap XML</h3>
+<p>The <code>nmap_xml</code> output module exports open ports, DNS names, IP addresses, and protocols in Nmap XML format for compatibility with tools that consume Nmap output.</p>
+<h3 id="kafka">Kafka</h3>
+<p>The <code>kafka</code> output module publishes events as JSON to a Kafka topic.</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">kafka_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">kafka</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">kafka</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">bootstrap_servers</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">localhost:9092</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">topic</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">bbot_events</span>
+</code></pre></div>
+<h3 id="rabbitmq">RabbitMQ</h3>
+<p>The <code>rabbitmq</code> output module publishes events as JSON to a RabbitMQ queue.</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">rabbitmq_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">rabbitmq</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">rabbitmq</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">url</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">amqp://guest:guest@localhost/</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">queue</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">bbot_events</span>
+</code></pre></div>
+<h3 id="nats">NATS</h3>
+<p>The <code>nats</code> output module publishes events as JSON to a NATS subject.</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">nats_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">nats</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">nats</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">servers</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">        </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">nats://localhost:4222</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">subject</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">bbot_events</span>
+</code></pre></div>
+<h3 id="zeromq">ZeroMQ</h3>
+<p>The <code>zeromq</code> output module publishes events as JSON to a ZeroMQ PUB socket.</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">zeromq_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">zeromq</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">zeromq</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">zmq_address</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">tcp://localhost:5555</span>
+</code></pre></div>
+<h3 id="websocket">WebSocket</h3>
+<p>The <code>websocket</code> output module streams events as JSON to a WebSocket endpoint. Set <code>token</code> to send an <code>Authorization: Bearer</code> header.</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">websocket_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">websocket</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">websocket</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">url</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">ws://localhost:8080</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">token</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">my-auth-token</span>
+</code></pre></div>
+<h3 id="mongodb">MongoDB</h3>
+<p>The <code>mongo</code> output module sends events to a MongoDB database.</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">mongo_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">output_modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">mongo</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">mongo</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">uri</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">mongodb://localhost:27017</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">database</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">bbot</span>
+</code></pre></div>
+<h3 id="python-api">Python API</h3>
+<p>The <code>python</code> output module is used when running BBOT via the Python API. It enables programmatic access to events as they are produced. See the <a href="../../dev/">Developer Documentation</a> for details.</p>
 <h3 id="web_parameters">Web_parameters</h3>
 <p>The <code>web_parameters</code> output module will utilize BBOT web parameter extraction capabilities, and output the resulting parameters to a file (web_parameters.txt, by default). Web parameter extraction is disabled by default, but will automatically be enabled when a module is included that consumes WEB_PARAMETER events (including the <code>web_parameters</code> output module itself).</p>
 <p>This can be useful for those who want to discover new common web parameters or those which may be associated with a specific target or organization. This could be very useful for further parameter bruteforcing, or even fed back into bbot via the paramminer modules. For example:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>paramminer_getparams<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.paramminer_getparams.wordlist<span style="color: #FF7B72; font-weight: bold">=</span>/path/to/your/new/wordlist.txt
 </code></pre></div>
+<p><a class="md-button md-button--primary" href="../tips_and_tricks/">Next Up: Tips and Tricks --&gt;</a> </p>
 </article>
 </div>
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>

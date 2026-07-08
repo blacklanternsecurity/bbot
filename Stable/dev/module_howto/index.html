@@ -9,9 +9,9 @@
 <meta content="TheTechromancer" name="author"/>
 <link href="https://blacklanternsecurity.github.io/bbot/Stable/dev/module_howto/" rel="canonical"/>
 <link href="../architecture/" rel="prev"/>
-<link href="../tests/" rel="next"/>
+<link href="../preset_validation/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.7.3" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
 <title>How to Write a BBOT Module - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.04kfkfm3.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.xi6rhz5i.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -382,6 +382,18 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/scan_sanity/">
+<span class="md-ellipsis">
+    
+  
+    Scan Sanity
+  
+
+    
+  </span>
+</a>
+</li>
 </ul>
 </nav>
 </li>
@@ -421,11 +433,35 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/internal_modules/">
+<span class="md-ellipsis">
+    
+  
+    Internal Modules
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../../modules/nuclei/">
 <span class="md-ellipsis">
     
   
     Nuclei
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/wayback/">
+<span class="md-ellipsis">
+    
+  
+    Wayback
   
 
     
@@ -456,12 +492,62 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/webbrute/">
+<span class="md-ellipsis">
+    
+  
+    Webbrute
+  
+
+    
+  </span>
+</a>
+</li>
 </ul>
 </nav>
 </li>
 <li class="md-nav__item md-nav__item--nested">
 <input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_4" type="checkbox"/>
 <label class="md-nav__link" for="__nav_1_4" id="__nav_1_4_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Migration
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Migration
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../migration/3.0_breaking_changes/">
+<span class="md-ellipsis">
+    
+  
+    2.x → 3.0 Breaking Changes
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -472,8 +558,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_1_4">
+<nav aria-expanded="false" aria-labelledby="__nav_1_5_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_5">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -565,6 +651,18 @@
     
   
     Setting Up a Dev Environment
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../core_dependencies/">
+<span class="md-ellipsis">
+    
+  
+    Core Dependencies
   
 
     
@@ -692,6 +790,18 @@
 </nav>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../preset_validation/">
+<span class="md-ellipsis">
+    
+  
+    Validating &amp; Inspecting Presets
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../tests/">
 <span class="md-ellipsis">
     
@@ -716,8 +826,8 @@
 </a>
 </li>
 <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_9" id="__nav_2_9_label" tabindex="">
 <span class="md-ellipsis">
     
   
@@ -728,8 +838,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_2_7">
+<nav aria-expanded="false" aria-labelledby="__nav_2_9_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_9">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -810,21 +920,9 @@
   </span>
 </a>
 </li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="../engine/">
-<span class="md-ellipsis">
-    
-  
-    Engine
-  
-
-    
-  </span>
-</a>
-</li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7_8" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7_8" id="__nav_2_7_8_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9_7" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_9_7" id="__nav_2_9_7_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -835,8 +933,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_8_label" class="md-nav" data-md-level="3">
-<label class="md-nav__title" for="__nav_2_7_8">
+<nav aria-expanded="false" aria-labelledby="__nav_2_9_7_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_2_9_7">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -955,19 +1053,22 @@
 <li>the class must have the same name as your file (case-insensitive)</li>
 <li>Define in <code>watched_events</code> what type of data your module will consume</li>
 <li>Define in <code>produced_events</code> what type of data your module will produce</li>
-<li>Define (via <code>flags</code>) whether your module is <code>active</code> or <code>passive</code>, and whether it's <code>safe</code> or <code>aggressive</code></li>
+<li>Define (via <code>flags</code>) whether your module is <code>active</code> or <code>passive</code>, and whether it's <code>safe</code>, <code>loud</code>, or <code>invasive</code></li>
 <li><strong>Put your main logic in <code>.handle_event()</code></strong></li>
 </ol>
 <p>Here is an example of a simple module that performs whois lookups:</p>
 <div class="highlight" style="background: #0d1117"><span class="filename">bbot/modules/whois.py</span><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">bbot.modules.base</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">BaseModule</span>
+<span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">bbot.core.config.models</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">BaseModuleConfig,</span> <span style="color: #E6EDF3">Field</span>
 
 <span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">whois</span><span style="color: #E6EDF3">(BaseModule):</span>
     <span style="color: #E6EDF3">watched_events</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"DNS_NAME"</span><span style="color: #E6EDF3">]</span> <span style="color: #8B949E; font-style: italic"># watch for DNS_NAME events</span>
-    <span style="color: #E6EDF3">produced_events</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"WHOIS"</span><span style="color: #E6EDF3">]</span> <span style="color: #8B949E; font-style: italic"># we produce WHOIS events</span>
+    <span style="color: #E6EDF3">produced_events</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"DNS_NAME"</span><span style="color: #E6EDF3">]</span> <span style="color: #8B949E; font-style: italic"># we produce DNS_NAME events</span>
     <span style="color: #E6EDF3">flags</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"passive"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"safe"</span><span style="color: #E6EDF3">]</span>
-    <span style="color: #E6EDF3">meta</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"description"</span><span style="color: #E6EDF3">:</span> <span style="color: #A5D6FF">"Query WhoisXMLAPI for WHOIS data"</span><span style="color: #E6EDF3">}</span>
-    <span style="color: #E6EDF3">options</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"api_key"</span><span style="color: #E6EDF3">:</span> <span style="color: #A5D6FF">""</span><span style="color: #E6EDF3">}</span> <span style="color: #8B949E; font-style: italic"># module config options</span>
-    <span style="color: #E6EDF3">options_desc</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"api_key"</span><span style="color: #E6EDF3">:</span> <span style="color: #A5D6FF">"WhoisXMLAPI Key"</span><span style="color: #E6EDF3">}</span>
+    <span style="color: #E6EDF3">meta</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"description"</span><span style="color: #E6EDF3">:</span> <span style="color: #A5D6FF">"Query WhoisXMLAPI for related domains"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"created_date"</span><span style="color: #E6EDF3">:</span> <span style="color: #A5D6FF">"2024-01-01"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"author"</span><span style="color: #E6EDF3">:</span> <span style="color: #A5D6FF">"@you"</span><span style="color: #E6EDF3">}</span>
+
+    <span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">Config</span><span style="color: #E6EDF3">(BaseModuleConfig):</span>
+        <span style="color: #E6EDF3">api_key:</span> <span style="color: #E6EDF3">str</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">Field(</span><span style="color: #A5D6FF">""</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">description</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"WhoisXMLAPI Key"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">sensitive</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">mandatory</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">)</span>
+
     <span style="color: #E6EDF3">per_domain_only</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">True</span> <span style="color: #8B949E; font-style: italic"># only run once per domain</span>
 
     <span style="color: #E6EDF3">base_url</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">"https://www.whoisxmlapi.com/whoisserver/WhoisService"</span>
@@ -986,7 +1087,8 @@
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">hugeinfo(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Visiting {</span><span style="color: #E6EDF3">url</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
         <span style="color: #E6EDF3">response</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">helpers</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">request(url)</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">response</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">emit_event(response</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">json(),</span> <span style="color: #A5D6FF">"WHOIS"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">parent</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">event)</span>
+            <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">related_domain</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">response</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">json()</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"domains"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">[]):</span>
+                <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">emit_event(related_domain,</span> <span style="color: #A5D6FF">"DNS_NAME"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">parent</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">event)</span>
 </code></pre></div>
 <h2 id="test-your-new-module">Test your new module</h2>
 <p>After saving the module, you can run it with <code>-m</code>:</p>
@@ -1009,8 +1111,8 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 </ul>
 <p>For details on how tests are written, see <a href="../tests/">Unit Tests</a>.</p>
 <h2 id="handle_event-and-emit_event"><code>handle_event()</code> and <code>emit_event()</code></h2>
-<p>The <code>handle_event()</code> method is the most important part of the module. By overriding this method, you control what the module does. During a scan, when an <a href="./scanning/events.md">event</a> from your <code>watched_events</code> is encountered (a <code>DNS_NAME</code> in this example), <code>handle_event()</code> is automatically called with that event as its argument.</p>
-<p>The <code>emit_event()</code> method is how modules return data. When you call <code>emit_event()</code>, it creates an <a href="./scanning/events.md">event</a> and outputs it, sending it any modules that are interested in that data type.</p>
+<p>The <code>handle_event()</code> method is the most important part of the module. By overriding this method, you control what the module does. During a scan, when an <a href="../../scanning/events/">event</a> from your <code>watched_events</code> is encountered (a <code>DNS_NAME</code> in this example), <code>handle_event()</code> is automatically called with that event as its argument.</p>
+<p>The <code>emit_event()</code> method is how modules return data. When you call <code>emit_event()</code>, it creates an <a href="../../scanning/events/">event</a> and outputs it, sending it any modules that are interested in that data type.</p>
 <h2 id="setup_deps-and-setup"><code>setup_deps()</code> and <code>setup()</code></h2>
 <p><code>setup_deps()</code> and <code>setup()</code> are used for performing one-time setup at the start of the scan.</p>
 <p><code>setup_deps()</code> is reserved for downloading or installing any dependencies not covered by Ansible, i.e. AI models or wordlists. Any other one-time setup tasks can be put into <code>setup()</code>.</p>
@@ -1039,35 +1141,33 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
     <span style="color: #FF7B72">return</span> <span style="color: #79C0FF">True</span>
 </code></pre></div>
 <h2 id="module-config-options">Module Config Options</h2>
-<p>Each module can have its own set of config options. These live in the <code>options</code> and <code>options_desc</code> attributes on your class. Both are dictionaries; <code>options</code> is for defaults and <code>options_desc</code> is for descriptions. Here is a typical example:</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">bbot/modules/nmap.py</span><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">nmap</span><span style="color: #E6EDF3">(BaseModule):</span>
+<p>Each module can have its own set of config options. These are defined as a <code>Config</code> inner class that inherits from <code>BaseModuleConfig</code>, using pydantic <code>Field</code> for defaults and descriptions. Here is a typical example:</p>
+<div class="highlight" style="background: #0d1117"><span class="filename">bbot/modules/portscan.py</span><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">bbot.core.config.models</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">BaseModuleConfig,</span> <span style="color: #E6EDF3">Field</span>
+
+<span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">portscan</span><span style="color: #E6EDF3">(BaseModule):</span>
     <span style="color: #8B949E; font-style: italic"># ...</span>
-    <span style="color: #E6EDF3">options</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">{</span>
-        <span style="color: #A5D6FF">"top_ports"</span><span style="color: #E6EDF3">:</span> <span style="color: #A5D6FF">100</span><span style="color: #E6EDF3">,</span>
-        <span style="color: #A5D6FF">"ports"</span><span style="color: #E6EDF3">:</span> <span style="color: #A5D6FF">""</span><span style="color: #E6EDF3">,</span>
-        <span style="color: #A5D6FF">"timing"</span><span style="color: #E6EDF3">:</span> <span style="color: #A5D6FF">"T4"</span><span style="color: #E6EDF3">,</span>
-        <span style="color: #A5D6FF">"skip_host_discovery"</span><span style="color: #E6EDF3">:</span> <span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span>
-    <span style="color: #E6EDF3">}</span>
-    <span style="color: #E6EDF3">options_desc</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">{</span>
-        <span style="color: #A5D6FF">"top_ports"</span><span style="color: #E6EDF3">:</span> <span style="color: #A5D6FF">"Top ports to scan (default 100) (to override, specify 'ports')"</span><span style="color: #E6EDF3">,</span>
-        <span style="color: #A5D6FF">"ports"</span><span style="color: #E6EDF3">:</span> <span style="color: #A5D6FF">"Ports to scan"</span><span style="color: #E6EDF3">,</span>
-        <span style="color: #A5D6FF">"timing"</span><span style="color: #E6EDF3">:</span> <span style="color: #A5D6FF">"-T&lt;0-5&gt;: Set timing template (higher is faster)"</span><span style="color: #E6EDF3">,</span>
-        <span style="color: #A5D6FF">"skip_host_discovery"</span><span style="color: #E6EDF3">:</span> <span style="color: #A5D6FF">"skip host discovery (-Pn)"</span><span style="color: #E6EDF3">,</span>
-    <span style="color: #E6EDF3">}</span>
+    <span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">Config</span><span style="color: #E6EDF3">(BaseModuleConfig):</span>
+        <span style="color: #E6EDF3">top_ports:</span> <span style="color: #E6EDF3">int</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">Field(</span><span style="color: #A5D6FF">100</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">description</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"Top ports to scan (default 100) (to override, specify 'ports')"</span><span style="color: #E6EDF3">)</span>
+        <span style="color: #E6EDF3">ports:</span> <span style="color: #E6EDF3">str</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">Field(</span><span style="color: #A5D6FF">""</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">description</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"Ports to scan"</span><span style="color: #E6EDF3">)</span>
+        <span style="color: #E6EDF3">rate:</span> <span style="color: #E6EDF3">int</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">Field(</span><span style="color: #A5D6FF">300</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">description</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"Rate in packets per second"</span><span style="color: #E6EDF3">)</span>
+        <span style="color: #E6EDF3">wait:</span> <span style="color: #E6EDF3">int</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">Field(</span><span style="color: #A5D6FF">5</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">description</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"Seconds to wait for replies after scan is complete"</span><span style="color: #E6EDF3">)</span>
 
     <span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">setup</span><span style="color: #E6EDF3">(self):</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">ports</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"ports"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">""</span><span style="color: #E6EDF3">)</span>
-        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">timing</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"timing"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"T4"</span><span style="color: #E6EDF3">)</span>
+        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">rate</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"rate"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">300</span><span style="color: #E6EDF3">)</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">top_ports</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"top_ports"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">100</span><span style="color: #E6EDF3">)</span>
-        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">skip_host_discovery</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"skip_host_discovery"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">True</span><span style="color: #E6EDF3">)</span>
         <span style="color: #FF7B72">return</span> <span style="color: #79C0FF">True</span>
 </code></pre></div>
-<p>Once you've defined these variables, you can pass the options via <code>-c</code>:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>nmap<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.nmap.top_ports<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">250</span>
+<p>For API keys and other secrets, use <code>sensitive=True</code> (redacted in logs) and <code>mandatory=True</code> (module soft-fails if not set):</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">Config</span><span style="color: #E6EDF3">(BaseModuleConfig):</span>
+    <span style="color: #E6EDF3">api_key:</span> <span style="color: #E6EDF3">str</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">Field(</span><span style="color: #A5D6FF">""</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">description</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"API Key"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">sensitive</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">mandatory</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">)</span>
+</code></pre></div>
+<p>Once you've defined these fields, you can pass the options via <code>-c</code>:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>portscan<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.portscan.top_ports<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">250</span>
 </code></pre></div>
 <p>... or via the config:</p>
 <div class="highlight" style="background: #0d1117"><span class="filename">~/.config/bbot/bbot.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">nmap</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">portscan</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">top_ports</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">250</span>
 </code></pre></div>
 <p>Inside the module, you access them via <code>self.config</code>, e.g.:</p>

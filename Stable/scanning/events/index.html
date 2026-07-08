@@ -11,7 +11,7 @@
 <link href="../presets_list/" rel="prev"/>
 <link href="../output/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.7.3" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
 <title>Events - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.04kfkfm3.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.xi6rhz5i.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -352,6 +352,15 @@
     </label>
 <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
 <li class="md-nav__item">
+<a class="md-nav__link" href="#findings">
+<span class="md-ellipsis">
+      
+        Findings
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="#event-attributes">
 <span class="md-ellipsis">
       
@@ -359,21 +368,25 @@
       
     </span>
 </a>
+<nav aria-label="Event Attributes" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#data-vs-data_json">
+<span class="md-ellipsis">
+      
+        data vs data_json
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
 </li>
 <li class="md-nav__item">
 <a class="md-nav__link" href="#list-of-event-types">
 <span class="md-ellipsis">
       
         List of Event Types
-      
-    </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#findings-vs-vulnerabilities">
-<span class="md-ellipsis">
-      
-        Findings Vs. Vulnerabilities
       
     </span>
 </a>
@@ -429,6 +442,18 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../scan_sanity/">
+<span class="md-ellipsis">
+    
+  
+    Scan Sanity
+  
+
+    
+  </span>
+</a>
+</li>
 </ul>
 </nav>
 </li>
@@ -468,11 +493,35 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/internal_modules/">
+<span class="md-ellipsis">
+    
+  
+    Internal Modules
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../../modules/nuclei/">
 <span class="md-ellipsis">
     
   
     Nuclei
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/wayback/">
+<span class="md-ellipsis">
+    
+  
+    Wayback
   
 
     
@@ -503,12 +552,62 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/webbrute/">
+<span class="md-ellipsis">
+    
+  
+    Webbrute
+  
+
+    
+  </span>
+</a>
+</li>
 </ul>
 </nav>
 </li>
 <li class="md-nav__item md-nav__item--section md-nav__item--nested">
 <input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_4" type="checkbox"/>
 <label class="md-nav__link" for="__nav_1_4" id="__nav_1_4_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    Migration
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Migration
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../migration/3.0_breaking_changes/">
+<span class="md-ellipsis">
+    
+  
+    2.x → 3.0 Breaking Changes
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="">
 <span class="md-ellipsis">
     
   
@@ -519,8 +618,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_1_4">
+<nav aria-expanded="false" aria-labelledby="__nav_1_5_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_5">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -619,6 +718,18 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/core_dependencies/">
+<span class="md-ellipsis">
+    
+  
+    Core Dependencies
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../../dev/architecture/">
 <span class="md-ellipsis">
     
@@ -636,6 +747,18 @@
     
   
     How to Write a BBOT Module
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/preset_validation/">
+<span class="md-ellipsis">
+    
+  
+    Validating &amp; Inspecting Presets
   
 
     
@@ -667,8 +790,8 @@
 </a>
 </li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_9" id="__nav_2_9_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -679,8 +802,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_2_7">
+<nav aria-expanded="false" aria-labelledby="__nav_2_9_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_9">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -761,21 +884,9 @@
   </span>
 </a>
 </li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/engine/">
-<span class="md-ellipsis">
-    
-  
-    Engine
-  
-
-    
-  </span>
-</a>
-</li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7_8" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7_8" id="__nav_2_7_8_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9_7" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_9_7" id="__nav_2_9_7_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -786,8 +897,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_8_label" class="md-nav" data-md-level="3">
-<label class="md-nav__title" for="__nav_2_7_8">
+<nav aria-expanded="false" aria-labelledby="__nav_2_9_7_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_2_9_7">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -902,6 +1013,14 @@
  ^^^^^^^^       ^^^^^^^^^^^^^^^^    ^^^^^^^          ^^^^^^^^^^
 event type      event data          source module    tags
 </code></pre></div>
+<h2 id="findings">Findings</h2>
+<p>All vulnerability discoveries, security-relevant observations, and other notable results in BBOT are emitted as <strong><code>FINDING</code></strong> events.</p>
+<p>Each finding has a <strong>severity</strong> and a <strong>confidence</strong>:</p>
+<ul>
+<li><strong>Severity</strong> indicates impact: <code>INFO</code>, <code>LOW</code>, <code>MEDIUM</code>, <code>HIGH</code>, or <code>CRITICAL</code></li>
+<li><strong>Confidence</strong> indicates how certain the finding is: <code>CONFIRMED</code>, <code>HIGH</code>, <code>MEDIUM</code>, <code>LOW</code>, or <code>UNKNOWN</code></li>
+</ul>
+<p>Together, these let you quickly prioritize results -- e.g. a <code>CRITICAL</code> severity with <code>CONFIRMED</code> confidence is immediately actionable, while a <code>MEDIUM</code> severity with <code>LOW</code> confidence may need manual verification.</p>
 <h2 id="event-attributes">Event Attributes</h2>
 <p>Each BBOT event has the following attributes. Not all of these attributes are visible in the terminal output. However, they are always saved in <code>output.json</code> in the scan output folder. If you want to see them on the terminal, you can use <code>--json</code>.</p>
 <ul>
@@ -909,7 +1028,7 @@ event type      event data          source module    tags
 <li><code>.id</code>: an identifier representing the event type + a SHA1 hash of its data (note: multiple events can have the same <code>.id</code>)</li>
 <li><code>.uuid</code>: a universally unique identifier for the event (e.g. <code>DNS_NAME:6c96d512-090a-47f0-82e4-6860e46aac13</code>)</li>
 <li><code>.scope_description</code>: describes the scope of the event (e.g. <code>in-scope</code>, <code>affiliate</code>, <code>distance-2</code>)</li>
-<li><code>.data</code>: the actual discovered data (for some events like <code>DNS_NAME</code> or <code>IP_ADDRESS</code>, this is a string. For other more complex events like <code>HTTP_RESPONSE</code>, it's a dictionary)</li>
+<li><code>.data</code>: the actual discovered data (for some events like <code>DNS_NAME</code> or <code>IP_ADDRESS</code>, this is a string. For other more complex events like <code>HTTP_RESPONSE</code>, it's a dictionary). In JSON output it's serialized as <code>data</code> or <code>data_json</code> depending on its type (see below).</li>
 <li><code>.host</code>: the hostname or IP address (e.g. <code>evilcorp.com</code> or <code>1.2.3.4</code>)</li>
 <li><code>.port</code>: the port number (e.g. <code>80</code>, <code>443</code>)</li>
 <li><code>.netloc</code>: the network location, including both the hostname and port (e.g. <code>www.evilcorp.com:443</code>)</li>
@@ -924,6 +1043,7 @@ event type      event data          source module    tags
 <li><code>.tags</code>: a list of tags describing the event (e.g. <code>mx-record</code>, <code>http-title</code>, etc.)</li>
 <li><code>.module</code>: the module that discovered the event</li>
 <li><code>.module_sequence</code>: the recent sequence of modules that were executed to discover the event (including omitted events)</li>
+<li><code>.host_metadata</code>: cloud provider, ASN, and other metadata about the host (when available)</li>
 <li><code>.discovery_context</code>: a description of the context in which the event was discovered</li>
 <li><code>.discovery_path</code>: a list of every discovery context leading to this event</li>
 <li><code>.parent_chain</code>: a list of every event UUID leading to the discovery of this event (corresponds exactly to <code>.discovery_path</code>)</li>
@@ -934,6 +1054,7 @@ event type      event data          source module    tags
 <span style="color: #6E7681">  </span><span style="color: #7EE787">"id"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"DNS_NAME:33bc005c2bdfea4d73e07db733bd11861cf6520e"</span><span style="color: #E6EDF3">,</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">"uuid"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"DNS_NAME:6c96d512-090a-47f0-82e4-6860e46aac13"</span><span style="color: #E6EDF3">,</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">"scope_description"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"in-scope"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"netloc"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"link.evilcorp.com"</span><span style="color: #E6EDF3">,</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">"data"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"link.evilcorp.com"</span><span style="color: #E6EDF3">,</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">"host"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"link.evilcorp.com"</span><span style="color: #E6EDF3">,</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">"resolved_hosts"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span>
@@ -957,16 +1078,16 @@ event type      event data          source module    tags
 <span style="color: #6E7681">  </span><span style="color: #7EE787">"web_spider_distance"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">0</span><span style="color: #E6EDF3">,</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">"scope_distance"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">0</span><span style="color: #E6EDF3">,</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">"scan"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"SCAN:b6ef48bc036bc8d001595ae5061846a7e6beadb6"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">"timestamp"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"2024-10-18T15:40:13.716880+00:00"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"timestamp"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">1729266013.71688</span><span style="color: #E6EDF3">,</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">"parent"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"DNS_NAME:94c92b7eaed431b37ae2a757fec4e678cc3bd213"</span><span style="color: #E6EDF3">,</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">"parent_uuid"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"DNS_NAME:c737dffa-d4f0-4b6e-a72d-cc8c05bd892e"</span><span style="color: #E6EDF3">,</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">"tags"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"subdomain"</span><span style="color: #E6EDF3">,</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"a-record"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"aaaa-record"</span><span style="color: #E6EDF3">,</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"cdn-akamai"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"in-scope"</span><span style="color: #E6EDF3">,</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"cname-record"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"aaaa-record"</span>
+<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"in-scope"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"subdomain"</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">],</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">"module"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"speculate"</span><span style="color: #E6EDF3">,</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">"module_sequence"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"speculate-&gt;speculate"</span><span style="color: #E6EDF3">,</span>
@@ -987,6 +1108,13 @@ event type      event data          source module    tags
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">]</span>
 <span style="color: #E6EDF3">}</span>
 </code></pre></div>
+<h3 id="data-vs-data_json"><code>data</code> vs <code>data_json</code></h3>
+<p>When events are serialized to JSON (<code>output.json</code>, the <code>json</code> output module, or <code>--json</code>), the data field is named after its type, so a given key always holds a consistent type. This makes parsing far easier for scripts and aggregation tools like Elasticsearch:</p>
+<ul>
+<li><strong><code>data</code></strong> -- a string, for events whose data is a string (<code>DNS_NAME</code>, <code>IP_ADDRESS</code>, <code>URL</code>, ...). The example above is a <code>DNS_NAME</code>, so its value lives under <code>data</code>.</li>
+<li><strong><code>data_json</code></strong> -- a dictionary, for events whose data is structured (<code>HTTP_RESPONSE</code>, <code>FINDING</code>, <code>STORAGE_BUCKET</code>, ...).</li>
+</ul>
+<p>Exactly one of the two is present per event. When reading events back, check <code>data_json</code> first and fall back to <code>data</code>.</p>
 <p>For a more detailed description of BBOT events, see <a href="../../dev/event/">Developer Documentation - Event</a>.</p>
 <p>Below is a full list of event types along with which modules produce/consume them.</p>
 <h2 id="list-of-event-types">List of Event Types</h2>
@@ -1004,9 +1132,9 @@ event type      event data          source module    tags
 <tbody>
 <tr>
 <td>*</td>
-<td>18</td>
+<td>24</td>
 <td>0</td>
-<td>affiliates, cloudcheck, csv, discord, dnsresolve, http, json, mysql, neo4j, postgres, python, slack, splunk, sqlite, stdout, teams, txt, websocket</td>
+<td>affiliates, cloudcheck, csv, discord, dnsresolve, elastic, json, kafka, mongo, mysql, nats, neo4j, postgres, python, rabbitmq, slack, splunk, sqlite, stdout, teams, txt, webhook, websocket, zeromq</td>
 <td></td>
 </tr>
 <tr>
@@ -1019,23 +1147,23 @@ event type      event data          source module    tags
 <tr>
 <td>AZURE_TENANT</td>
 <td>1</td>
-<td>0</td>
+<td>1</td>
 <td>speculate</td>
-<td></td>
+<td>azure_tenant</td>
 </tr>
 <tr>
 <td>CODE_REPOSITORY</td>
-<td>7</td>
 <td>8</td>
-<td>docker_pull, git_clone, gitdumper, github_workflows, google_playstore, postman_download, trufflehog</td>
+<td>8</td>
+<td>docker_pull, git_clone, gitdumper, github_workflows, google_playstore, postman_download, trajan, trufflehog</td>
 <td>code_repository, dockerhub, git, github_codesearch, github_org, gitlab_com, gitlab_onprem, postman</td>
 </tr>
 <tr>
 <td>DNS_NAME</td>
-<td>56</td>
-<td>40</td>
-<td>anubisdb, asset_inventory, azure_tenant, baddns, baddns_zone, bevigil, bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_microsoft, bufferoverrun, builtwith, c99, censys_dns, certspotter, chaos, credshed, crt, crt_db, dehashed, dnsbimi, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, emailformat, fullhunt, github_codesearch, github_usersearch, hackertarget, hunterio, leakix, myssl, nmap_xml, oauth, otx, pgp, portscan, rapiddns, securitytrails, securitytxt, shodan_dns, shodan_idb, skymem, speculate, subdomaincenter, subdomainradar, subdomains, trickest, urlscan, viewdns, virustotal, wayback</td>
-<td>anubisdb, azure_tenant, bevigil, bufferoverrun, builtwith, c99, censys_dns, censys_ip, certspotter, chaos, crt, crt_db, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnsresolve, fullhunt, hackertarget, hunterio, leakix, myssl, ntlm, oauth, otx, rapiddns, securitytrails, shodan_dns, shodan_idb, speculate, sslcert, subdomaincenter, subdomainradar, trickest, urlscan, vhost, viewdns, virustotal, wayback</td>
+<td>57</td>
+<td>39</td>
+<td>anubisdb, asset_inventory, azure_tenant, baddns, baddns_zone, bevigil, bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_hetzner, bucket_microsoft, bufferoverrun, builtwith, c99, censys_dns, certspotter, chaos, credshed, crt, crt_db, dehashed, dnsbimi, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, emailformat, fullhunt, github_codesearch, github_usersearch, hackertarget, hunterio, leakix, myssl, nmap_xml, oauth, otx, pgp, portscan, rapiddns, securitytrails, securitytxt, shodan_dns, shodan_idb, skymem, speculate, subdomaincenter, subdomainradar, subdomains, trickest, urlscan, viewdns, virustotal, wayback</td>
+<td>anubisdb, azure_tenant, bevigil, bufferoverrun, builtwith, c99, censys_dns, censys_ip, certspotter, chaos, crt, crt_db, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnsresolve, fullhunt, hackertarget, hunterio, leakix, myssl, ntlm, oauth, otx, rapiddns, securitytrails, shodan_dns, shodan_idb, speculate, sslcert, subdomaincenter, subdomainradar, trickest, urlscan, viewdns, virustotal, wayback</td>
 </tr>
 <tr>
 <td>DNS_NAME_UNRESOLVED</td>
@@ -1043,6 +1171,13 @@ event type      event data          source module    tags
 <td>0</td>
 <td>baddns, speculate, subdomains</td>
 <td></td>
+</tr>
+<tr>
+<td>DNS_NAME_UNVERIFIED</td>
+<td>0</td>
+<td>1</td>
+<td></td>
+<td>virtualhost</td>
 </tr>
 <tr>
 <td>EMAIL_ADDRESS</td>
@@ -1055,15 +1190,15 @@ event type      event data          source module    tags
 <td>FILESYSTEM</td>
 <td>4</td>
 <td>9</td>
-<td>extractous, jadx, trufflehog, unarchive</td>
+<td>jadx, kreuzberg, trufflehog, unarchive</td>
 <td>apkpure, docker_pull, filedownload, git_clone, gitdumper, github_workflows, jadx, postman_download, unarchive</td>
 </tr>
 <tr>
 <td>FINDING</td>
 <td>2</td>
-<td>32</td>
+<td>38</td>
 <td>asset_inventory, web_report</td>
-<td>ajaxpro, baddns, baddns_direct, baddns_zone, badsecrets, bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_microsoft, bypass403, git, gitlab_onprem, graphql_introspection, host_header, hunt, legba, lightfuzz, newsletters, ntlm, nuclei, paramminer_cookies, paramminer_getparams, reflected_parameters, retirejs, shodan_idb, smuggler, speculate, telerik, trufflehog, url_manipulation, wpscan</td>
+<td>ajaxpro, aspnet_bin_exposure, azure_tenant, baddns, baddns_direct, baddns_zone, badsecrets, bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_hetzner, bucket_microsoft, bypass403, dotnetnuke, generic_ssrf, git, gitlab_onprem, graphql_introspection, host_header, hunt, legba, lightfuzz, medusa, newsletters, ntlm, nuclei, reflected_parameters, retirejs, shodan_enterprise, shodan_idb, speculate, telerik, trajan, trufflehog, url_manipulation, waf_bypass, wayback</td>
 </tr>
 <tr>
 <td>GEOLOCATION</td>
@@ -1082,23 +1217,23 @@ event type      event data          source module    tags
 <tr>
 <td>HTTP_RESPONSE</td>
 <td>18</td>
-<td>1</td>
-<td>ajaxpro, asset_inventory, badsecrets, dotnetnuke, excavate, filedownload, gitlab_onprem, host_header, newsletters, nmap_xml, ntlm, paramminer_cookies, paramminer_getparams, paramminer_headers, speculate, telerik, trufflehog, wpscan</td>
-<td>httpx</td>
+<td>4</td>
+<td>ajaxpro, asset_inventory, badsecrets, dotnetnuke, excavate, filedownload, gitlab_onprem, host_header, newsletters, nmap_xml, ntlm, paramminer_cookies, paramminer_getparams, paramminer_headers, speculate, sslcert, telerik, trufflehog</td>
+<td>http, lightfuzz, virtualhost, wayback</td>
 </tr>
 <tr>
 <td>IP_ADDRESS</td>
-<td>10</td>
+<td>11</td>
 <td>5</td>
-<td>asn, asset_inventory, censys_ip, ip2location, ipneighbor, ipstack, nmap_xml, portscan, shodan_idb, speculate</td>
+<td>asn, asset_inventory, censys_ip, ip2location, ipneighbor, ipstack, nmap_xml, portscan, shodan_enterprise, shodan_idb, speculate</td>
 <td>asset_inventory, censys_ip, dnsresolve, ipneighbor, speculate</td>
 </tr>
 <tr>
 <td>IP_RANGE</td>
 <td>2</td>
-<td>0</td>
+<td>1</td>
 <td>portscan, speculate</td>
-<td></td>
+<td>dnsresolve</td>
 </tr>
 <tr>
 <td>MOBILE_APP</td>
@@ -1109,17 +1244,17 @@ event type      event data          source module    tags
 </tr>
 <tr>
 <td>OPEN_TCP_PORT</td>
-<td>6</td>
 <td>5</td>
-<td>asset_inventory, fingerprintx, httpx, nmap_xml, portfilter, sslcert</td>
-<td>asset_inventory, censys_ip, portscan, shodan_idb, speculate</td>
+<td>6</td>
+<td>asset_inventory, fingerprintx, http, nmap_xml, portfilter</td>
+<td>asset_inventory, censys_ip, portscan, shodan_enterprise, shodan_idb, speculate</td>
 </tr>
 <tr>
 <td>OPEN_UDP_PORT</td>
 <td>0</td>
-<td>1</td>
+<td>2</td>
 <td></td>
-<td>censys_ip</td>
+<td>censys_ip, shodan_enterprise</td>
 </tr>
 <tr>
 <td>ORG_STUB</td>
@@ -1154,7 +1289,7 @@ event type      event data          source module    tags
 <td>2</td>
 <td>1</td>
 <td>excavate, trufflehog</td>
-<td>extractous</td>
+<td>kreuzberg</td>
 </tr>
 <tr>
 <td>SOCIAL</td>
@@ -1165,38 +1300,38 @@ event type      event data          source module    tags
 </tr>
 <tr>
 <td>STORAGE_BUCKET</td>
-<td>8</td>
-<td>5</td>
-<td>baddns_direct, bucket_amazon, bucket_digitalocean, bucket_file_enum, bucket_firebase, bucket_google, bucket_microsoft, speculate</td>
-<td>bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_microsoft</td>
+<td>9</td>
+<td>6</td>
+<td>baddns_direct, bucket_amazon, bucket_digitalocean, bucket_file_enum, bucket_firebase, bucket_google, bucket_hetzner, bucket_microsoft, speculate</td>
+<td>bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_hetzner, bucket_microsoft</td>
 </tr>
 <tr>
 <td>TECHNOLOGY</td>
 <td>4</td>
-<td>8</td>
-<td>asset_inventory, gitlab_onprem, web_report, wpscan</td>
-<td>badsecrets, censys_ip, dotnetnuke, gitlab_onprem, gowitness, nuclei, shodan_idb, wpscan</td>
+<td>9</td>
+<td>asset_inventory, gitlab_onprem, trajan, web_report</td>
+<td>ajaxpro, badsecrets, censys_ip, dotnetnuke, gitlab_onprem, gowitness, nuclei, shodan_enterprise, shodan_idb</td>
 </tr>
 <tr>
 <td>URL</td>
-<td>24</td>
+<td>25</td>
 <td>2</td>
-<td>ajaxpro, aspnet_bin_exposure, asset_inventory, baddns_direct, bypass403, ffuf, generic_ssrf, git, gowitness, graphql_introspection, httpx, iis_shortnames, lightfuzz, ntlm, nuclei, portfilter, robots, smuggler, speculate, telerik, url_manipulation, vhost, wafw00f, web_report</td>
-<td>gowitness, httpx</td>
+<td>ajaxpro, aspnet_bin_exposure, asset_inventory, baddns_direct, bypass403, generic_ssrf, git, gowitness, graphql_introspection, http, iis_shortnames, lightfuzz, ntlm, nuclei, portfilter, robots, speculate, telerik, url_manipulation, virtualhost, waf_bypass, wafw00f, wayback, web_report, webbrute</td>
+<td>gowitness, http</td>
 </tr>
 <tr>
 <td>URL_HINT</td>
 <td>1</td>
 <td>1</td>
-<td>ffuf_shortnames</td>
+<td>webbrute_shortnames</td>
 <td>iis_shortnames</td>
 </tr>
 <tr>
 <td>URL_UNVERIFIED</td>
-<td>8</td>
-<td>18</td>
-<td>code_repository, filedownload, httpx, oauth, portfilter, retirejs, social, speculate</td>
-<td>bevigil, bucket_file_enum, censys_ip, dnsbimi, dnscaa, dnstlsrpt, dockerhub, excavate, ffuf, ffuf_shortnames, github_codesearch, gowitness, hunterio, robots, securitytxt, urlscan, wayback, wpscan</td>
+<td>9</td>
+<td>19</td>
+<td>code_repository, filedownload, http, oauth, portfilter, retirejs, social, speculate, trajan</td>
+<td>azure_tenant, bevigil, bucket_file_enum, censys_ip, dnsbimi, dnscaa, dnstlsrpt, dockerhub, excavate, fingerprintx, github_codesearch, gowitness, hunterio, robots, securitytxt, urlscan, wayback, webbrute, webbrute_shortnames</td>
 </tr>
 <tr>
 <td>USERNAME</td>
@@ -1206,18 +1341,11 @@ event type      event data          source module    tags
 <td>credshed, dehashed</td>
 </tr>
 <tr>
-<td>VHOST</td>
+<td>VIRTUAL_HOST</td>
+<td>0</td>
 <td>1</td>
-<td>1</td>
-<td>web_report</td>
-<td>vhost</td>
-</tr>
-<tr>
-<td>VULNERABILITY</td>
-<td>2</td>
-<td>15</td>
-<td>asset_inventory, web_report</td>
-<td>ajaxpro, aspnet_bin_exposure, baddns, baddns_direct, baddns_zone, badsecrets, dotnetnuke, generic_ssrf, lightfuzz, medusa, nuclei, shodan_idb, telerik, trufflehog, wpscan</td>
+<td></td>
+<td>virtualhost</td>
 </tr>
 <tr>
 <td>WAF</td>
@@ -1236,26 +1364,14 @@ event type      event data          source module    tags
 <tr>
 <td>WEB_PARAMETER</td>
 <td>7</td>
-<td>4</td>
+<td>5</td>
 <td>hunt, lightfuzz, paramminer_cookies, paramminer_getparams, paramminer_headers, reflected_parameters, web_parameters</td>
-<td>excavate, paramminer_cookies, paramminer_getparams, paramminer_headers</td>
+<td>excavate, paramminer_cookies, paramminer_getparams, paramminer_headers, wayback</td>
 </tr>
 </tbody>
 </table>
 <!-- END BBOT EVENTS -->
-<h2 id="findings-vs-vulnerabilities">Findings Vs. Vulnerabilities</h2>
-<p>BBOT has a sharp distinction between Findings and Vulnerabilities:</p>
-<p><strong>VULNERABILITY</strong></p>
-<ul>
-<li>There's a higher standard for what is allowed to be a vulnerability. They should be considered <strong>confirmed</strong> and <strong>actionable</strong> - no additional confirmation required</li>
-<li>They are always assigned a severity. The possible severities are: LOW, MEDIUM, HIGH, or CRITICAL</li>
-</ul>
-<p><strong>FINDING</strong></p>
-<ul>
-<li>Findings can range anywhere from "slightly interesting behavior" to "likely, but unconfirmed vulnerability"</li>
-<li>Are often false positives</li>
-</ul>
-<p>By making this separation, actionable vulnerabilities can be identified quickly in the midst of a large scan</p>
+<p><a class="md-button md-button--primary" href="../output/">Next Up: Output --&gt;</a></p>
 </article>
 </div>
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>

@@ -1,0 +1,2082 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="OSINT automation for hackers" name="description"/>
+<meta content="TheTechromancer" name="author"/>
+<link href="https://blacklanternsecurity.github.io/bbot/Stable/migration/3.0_breaking_changes/" rel="canonical"/>
+<link href="../../modules/webbrute/" rel="prev"/>
+<link href="../../contribution/" rel="next"/>
+<link href="../../favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
+<title>2.x → 3.0 Breaking Changes - BBOT Docs</title>
+<link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+<link href="../../assets/stylesheets/extra-style.xi6rhz5i.min.css" rel="stylesheet"/></head>
+<body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#migrating-from-bbot-2x-to-30">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<div data-md-color-scheme="default" data-md-component="outdated" hidden="">
+</div>
+<header class="md-header" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="BBOT Docs" class="md-header__button md-logo" data-md-component="logo" href="../.." title="BBOT Docs">
+<img alt="logo" src="../../bbot.png"/>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            BBOT Docs
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              2.x → 3.0 Breaking Changes
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-hidden="true" class="md-option" data-md-color-accent="deep-orange" data-md-color-media="" data-md-color-primary="black" data-md-color-scheme="slate" id="__palette_0" name="__palette" type="radio"/>
+</form>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/blacklanternsecurity/bbot" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    blacklanternsecurity/bbot
+  </div>
+</a>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<nav aria-label="Tabs" class="md-tabs" data-md-component="tabs">
+<div class="md-grid">
+<ul class="md-tabs__list">
+<li class="md-tabs__item md-tabs__item--active">
+<a class="md-tabs__link" href="../..">
+          
+  
+  
+  User Manual
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../dev/">
+          
+  
+  
+  Developer Manual
+
+        </a>
+</li>
+</ul>
+</div>
+</nav>
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="BBOT Docs" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="BBOT Docs">
+<img alt="logo" src="../../bbot.png"/>
+</a>
+    BBOT Docs
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/blacklanternsecurity/bbot" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    blacklanternsecurity/bbot
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_1" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    User Manual
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="true" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_1">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    User Manual
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_1" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_1" id="__nav_1_1_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    Basics
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_1_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_1">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Basics
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../how_it_works/">
+<span class="md-ellipsis">
+    
+  
+    How it Works
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../comparison/">
+<span class="md-ellipsis">
+    
+  
+    Comparison to Other Tools
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_2" id="__nav_1_2_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    Scanning
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_2_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_2">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Scanning
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/">
+<span class="md-ellipsis">
+    
+  
+    Scanning Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_2_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_2_2" id="__nav_1_2_2_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Presets
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_2_2_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_1_2_2">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Presets
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/presets/">
+<span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/presets_list/">
+<span class="md-ellipsis">
+    
+  
+    List of Presets
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/events/">
+<span class="md-ellipsis">
+    
+  
+    Events
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/output/">
+<span class="md-ellipsis">
+    
+  
+    Output
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/tips_and_tricks/">
+<span class="md-ellipsis">
+    
+  
+    Tips and Tricks
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/advanced/">
+<span class="md-ellipsis">
+    
+  
+    Advanced Usage
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/configuration/">
+<span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/scan_sanity/">
+<span class="md-ellipsis">
+    
+  
+    Scan Sanity
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_3" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_3" id="__nav_1_3_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    Modules
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_3_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_3">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Modules
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/list_of_modules/">
+<span class="md-ellipsis">
+    
+  
+    List of Modules
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/internal_modules/">
+<span class="md-ellipsis">
+    
+  
+    Internal Modules
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/nuclei/">
+<span class="md-ellipsis">
+    
+  
+    Nuclei
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/wayback/">
+<span class="md-ellipsis">
+    
+  
+    Wayback
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/custom_yara_rules/">
+<span class="md-ellipsis">
+    
+  
+    Custom YARA Rules
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/lightfuzz/">
+<span class="md-ellipsis">
+    
+  
+    Lightfuzz
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/webbrute/">
+<span class="md-ellipsis">
+    
+  
+    Webbrute
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_1_4" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_4" id="__nav_1_4_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    Migration
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="true" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Migration
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    
+  
+    2.x → 3.0 Breaking Changes
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    
+  
+    2.x → 3.0 Breaking Changes
+  
+
+    
+  </span>
+</a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#cli-targeting">
+<span class="md-ellipsis">
+      
+        CLI / Targeting
+      
+    </span>
+</a>
+<nav aria-label="CLI / Targeting" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#python-api">
+<span class="md-ellipsis">
+      
+        Python API
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#flags">
+<span class="md-ellipsis">
+      
+        Flags
+      
+    </span>
+</a>
+<nav aria-label="Flags" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#renamed">
+<span class="md-ellipsis">
+      
+        Renamed
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#removed">
+<span class="md-ellipsis">
+      
+        Removed
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#added">
+<span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#presets">
+<span class="md-ellipsis">
+      
+        Presets
+      
+    </span>
+</a>
+<nav aria-label="Presets" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#renamed_1">
+<span class="md-ellipsis">
+      
+        Renamed
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#added_1">
+<span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#syntax">
+<span class="md-ellipsis">
+      
+        Syntax
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#modules">
+<span class="md-ellipsis">
+      
+        Modules
+      
+    </span>
+</a>
+<nav aria-label="Modules" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#removed-no-direct-replacement">
+<span class="md-ellipsis">
+      
+        Removed (no direct replacement)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#removed-and-replaced">
+<span class="md-ellipsis">
+      
+        Removed and replaced
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#late-2x-removals">
+<span class="md-ellipsis">
+      
+        Late 2.x removals
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#new-modules">
+<span class="md-ellipsis">
+      
+        New modules
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#module-api">
+<span class="md-ellipsis">
+      
+        Module API
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#events">
+<span class="md-ellipsis">
+      
+        Events
+      
+    </span>
+</a>
+<nav aria-label="Events" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#removed-event-types">
+<span class="md-ellipsis">
+      
+        Removed event types
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#class-hierarchy">
+<span class="md-ellipsis">
+      
+        Class hierarchy
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#removed-attributes">
+<span class="md-ellipsis">
+      
+        Removed attributes
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#new-event-surface">
+<span class="md-ellipsis">
+      
+        New event surface
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#finding-severity-confidence">
+<span class="md-ellipsis">
+      
+        FINDING severity / confidence
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#asn-as-a-target-type">
+<span class="md-ellipsis">
+      
+        ASN as a target type
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#json-output-before-and-after">
+<span class="md-ellipsis">
+      
+        JSON output: before and after
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#config">
+<span class="md-ellipsis">
+      
+        Config
+      
+    </span>
+</a>
+<nav aria-label="Config" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#renamed_2">
+<span class="md-ellipsis">
+      
+        Renamed
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#removed_1">
+<span class="md-ellipsis">
+      
+        Removed
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#added_2">
+<span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#stale-config-files-and-reset-config-reset-secrets">
+<span class="md-ellipsis">
+      
+        Stale config files and --reset-config / --reset-secrets
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#dns-and-http-internals">
+<span class="md-ellipsis">
+      
+        DNS and HTTP internals
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#output-and-db-models">
+<span class="md-ellipsis">
+      
+        Output and DB models
+      
+    </span>
+</a>
+<nav aria-label="Output and DB models" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#output-modules-are-now-purely-additive">
+<span class="md-ellipsis">
+      
+        Output modules are now purely additive
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#omitted-event-types">
+<span class="md-ellipsis">
+      
+        Omitted event types
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#dependencies-and-tooling">
+<span class="md-ellipsis">
+      
+        Dependencies and tooling
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    Misc
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_5_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_5">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Misc
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../contribution/">
+<span class="md-ellipsis">
+    
+  
+    Contribution
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../release_history/">
+<span class="md-ellipsis">
+    
+  
+    Release History
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../troubleshooting/">
+<span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Developer Manual
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Manual
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/">
+<span class="md-ellipsis">
+    
+  
+    Development Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/dev_environment/">
+<span class="md-ellipsis">
+    
+  
+    Setting Up a Dev Environment
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/core_dependencies/">
+<span class="md-ellipsis">
+    
+  
+    Core Dependencies
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/architecture/">
+<span class="md-ellipsis">
+    
+  
+    BBOT Internal Architecture
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/module_howto/">
+<span class="md-ellipsis">
+    
+  
+    How to Write a BBOT Module
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/preset_validation/">
+<span class="md-ellipsis">
+    
+  
+    Validating &amp; Inspecting Presets
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/tests/">
+<span class="md-ellipsis">
+    
+  
+    Unit Tests
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/discord_bot/">
+<span class="md-ellipsis">
+    
+  
+    Discord Bot Example
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_9" id="__nav_2_9_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Code Reference
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_9_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_9">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Code Reference
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/scanner/">
+<span class="md-ellipsis">
+    
+  
+    Scanner
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/presets/">
+<span class="md-ellipsis">
+    
+  
+    Presets
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/event/">
+<span class="md-ellipsis">
+    
+  
+    Event
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/target/">
+<span class="md-ellipsis">
+    
+  
+    Target
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/basemodule/">
+<span class="md-ellipsis">
+    
+  
+    BaseModule
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/core/">
+<span class="md-ellipsis">
+    
+  
+    BBOTCore
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9_7" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_9_7" id="__nav_2_9_7_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Helpers
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_9_7_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_2_9_7">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Helpers
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/">
+<span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/command/">
+<span class="md-ellipsis">
+    
+  
+    Command
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/dns/">
+<span class="md-ellipsis">
+    
+  
+    DNS
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/interactsh/">
+<span class="md-ellipsis">
+    
+  
+    Interactsh
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/misc/">
+<span class="md-ellipsis">
+    
+  
+    Miscellaneous
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/web/">
+<span class="md-ellipsis">
+    
+  
+    Web
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/wordcloud/">
+<span class="md-ellipsis">
+    
+  
+    Word Cloud
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="migrating-from-bbot-2x-to-30">Migrating from BBOT 2.x to 3.0</h1>
+<p>BBOT 3.0 is a major release with a wide-ranging cleanup of the CLI, preset
+syntax, event API, and module ecosystem. This page enumerates everything that
+changed in a backwards-incompatible way so existing scans, custom modules, and
+integrations can be updated.</p>
+<p>If a change is missing here, please open an issue.</p>
+<hr/>
+<h2 id="cli-targeting">CLI / Targeting</h2>
+<p>The <code>--whitelist</code> concept was retired. BBOT now distinguishes between <strong>target</strong>
+(what defines scope, i.e. what <code>in_target()</code> checks) and <strong>seeds</strong> (the events
+that actually drive passive modules at scan start).</p>
+<table>
+<thead>
+<tr>
+<th>2.x</th>
+<th>3.0</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-t / --targets</code> (seed + scope)</td>
+<td><code>-t / --targets</code> (scope only)</td>
+</tr>
+<tr>
+<td><code>-w / --whitelist</code></td>
+<td>removed (positional <code>-t</code> now plays this role)</td>
+</tr>
+<tr>
+<td><em>(no equivalent)</em></td>
+<td><code>-s / --seeds</code> (optional override of seed events)</td>
+</tr>
+<tr>
+<td><code>-s / --silent</code></td>
+<td><code>-S / --silent</code> (capitalized; <code>-s</code> reassigned to <code>--seeds</code>)</td>
+</tr>
+<tr>
+<td><code>--allow-deadly</code></td>
+<td>removed (see flag changes below)</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition warning">
+<p class="admonition-title">The <code>-s</code> flag changed meaning</p>
+<p>In 2.x <code>-s</code> was <code>--silent</code>; in 3.0 it's <code>--seeds</code>, and silent moved to <code>-S</code>. A script still passing <code>-s</code> for quiet output will now be adding a seed instead, with no error.</p>
+</div>
+<p>Behavior:</p>
+<ul>
+<li>If <code>--seeds</code> is omitted, seeds default to whatever was passed to <code>--targets</code>,
+  so the simple case (<code>bbot -t evilcorp.com -p subdomain-enum</code>) is unchanged.</li>
+<li><code>--strict-scope</code> now means "only this exact host, no subdomains" against the
+  target, not the whitelist.</li>
+<li>The <code>Preset(...)</code> Python API mirrors the CLI: positional args are the
+  <strong>target</strong>, and <code>seeds=</code> is a keyword. <code>whitelist=</code> is gone.</li>
+</ul>
+<h3 id="python-api">Python API</h3>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># 2.x</span>
+<span style="color: #E6EDF3">preset</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">Preset(</span><span style="color: #A5D6FF">"evilcorp.com"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">whitelist</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"evilcorp.com"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"evilcorp.net"</span><span style="color: #E6EDF3">])</span>
+<span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">whitelist</span>  <span style="color: #8B949E; font-style: italic"># Target object</span>
+<span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">whitelisted(host)</span>
+
+<span style="color: #8B949E; font-style: italic"># 3.0</span>
+<span style="color: #E6EDF3">preset</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">Preset(</span><span style="color: #A5D6FF">"evilcorp.com"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"evilcorp.net"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">seeds</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"evilcorp.com"</span><span style="color: #E6EDF3">])</span>
+<span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span>          <span style="color: #8B949E; font-style: italic"># BBOTTarget wrapper</span>
+<span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span>   <span style="color: #8B949E; font-style: italic"># the radix-backed scope</span>
+<span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">target</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">seeds</span>    <span style="color: #8B949E; font-style: italic"># seed events</span>
+<span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">in_target(host)</span>
+</code></pre></div>
+<p><code>Scanner.whitelist</code> and <code>Scanner.whitelisted()</code> have been removed.
+<code>BBOTTarget.whitelist</code> is now <code>BBOTTarget.target</code>. Pickling of <code>BBOTTarget</code> was
+also removed.</p>
+<hr/>
+<h2 id="flags">Flags</h2>
+<h3 id="renamed">Renamed</h3>
+<table>
+<thead>
+<tr>
+<th>2.x</th>
+<th>3.0</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>web-basic</code></td>
+<td><code>web</code></td>
+</tr>
+<tr>
+<td><code>web-thorough</code></td>
+<td><code>web-heavy</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="removed">Removed</h3>
+<table>
+<thead>
+<tr>
+<th>Removed</th>
+<th>Replacement / notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>aggressive</code></td>
+<td>use <code>loud</code> (network volume) and/or <code>invasive</code> (destructive)</td>
+</tr>
+<tr>
+<td><code>deadly</code></td>
+<td>dropped along with <code>--allow-deadly</code>; affected modules now live under regular flags</td>
+</tr>
+</tbody>
+</table>
+<h3 id="added">Added</h3>
+<table>
+<thead>
+<tr>
+<th>Added</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>invasive</code></td>
+<td>Intrusive or potentially destructive</td>
+</tr>
+<tr>
+<td><code>safe</code></td>
+<td>Non-intrusive and non-destructive (now enforced on every module)</td>
+</tr>
+<tr>
+<td><code>download</code></td>
+<td>Modules that download files, apps, or repositories</td>
+</tr>
+</tbody>
+</table>
+<p>Every module must now declare at least one of <code>passive</code> / <code>active</code> <strong>and</strong> at
+least one of <code>safe</code>, <code>loud</code>, or <code>invasive</code>. Custom modules carrying the removed
+flags will fail validation.</p>
+<hr/>
+<h2 id="presets">Presets</h2>
+<h3 id="renamed_1">Renamed</h3>
+<table>
+<thead>
+<tr>
+<th>2.x</th>
+<th>3.0</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>web-basic</code></td>
+<td><code>web</code></td>
+</tr>
+<tr>
+<td><code>web-thorough</code></td>
+<td><code>web-heavy</code></td>
+</tr>
+<tr>
+<td><code>nuclei-intense</code></td>
+<td><code>nuclei-heavy</code></td>
+</tr>
+<tr>
+<td><code>spider-intense</code></td>
+<td><code>spider-heavy</code></td>
+</tr>
+<tr>
+<td><code>baddns-intense</code></td>
+<td><code>baddns-heavy</code></td>
+</tr>
+<tr>
+<td><code>dirbust-light</code></td>
+<td><code>webbrute</code></td>
+</tr>
+<tr>
+<td><code>dirbust-heavy</code></td>
+<td><code>webbrute-heavy</code></td>
+</tr>
+<tr>
+<td><code>lightfuzz-medium</code></td>
+<td><code>lightfuzz</code></td>
+</tr>
+<tr>
+<td><code>lightfuzz-superheavy</code></td>
+<td><code>lightfuzz-max</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="added_1">Added</h3>
+<p><code>baddns</code>, <code>waf-bypass</code>, <code>wayback</code>, <code>wayback-heavy</code>, <code>web/paramminer-heavy</code>,
+<code>web/virtualhost</code>, <code>web/virtualhost-heavy</code>.</p>
+<h3 id="syntax">Syntax</h3>
+<p>Preset YAML files now accept the singular key <code>target:</code> in addition to
+<code>targets:</code> (both are merged). The old <code>whitelist:</code> key is gone; use <code>seeds:</code> if
+you need seeds that differ from the target. Lines beginning with <code>#</code> inside
+target / seed / blacklist lists are stripped as comments. File paths in those
+lists are resolved relative to the preset file via the new <code>PresetPath</code>
+mechanism.</p>
+<p>The top-level scan options that used to be implicit are now required to live
+under <code>config:</code> inside a preset (this was previously documented behavior, now
+enforced and called out in <code>defaults.yml</code>).</p>
+<p>Presets and <code>-c key=value</code> options are now <strong>validated when loaded</strong>: unknown
+keys, typos, and wrong value types are rejected up front (usually with a
+closest-match hint, e.g. <code>Did you mean "scope.strict"?</code>) instead of being
+silently ignored. The old <code>${env:VAR}</code> interpolation inside config values is
+gone too; inject secrets with shell expansion
+(<code>-c modules.shodan.api_key="$SHODAN_KEY"</code>) or keep them in <code>secrets.yml</code>.</p>
+<hr/>
+<h2 id="modules">Modules</h2>
+<h3 id="removed-no-direct-replacement">Removed (no direct replacement)</h3>
+<ul>
+<li><code>smuggler</code></li>
+<li><code>wpscan</code></li>
+</ul>
+<h3 id="removed-and-replaced">Removed and replaced</h3>
+<table>
+<thead>
+<tr>
+<th>2.x</th>
+<th>3.0 replacement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>httpx</code></td>
+<td><code>http</code></td>
+</tr>
+<tr>
+<td><code>ffuf</code></td>
+<td><code>webbrute</code></td>
+</tr>
+<tr>
+<td><code>ffuf_shortnames</code></td>
+<td><code>webbrute_shortnames</code></td>
+</tr>
+<tr>
+<td><code>extractous</code></td>
+<td><code>kreuzberg</code></td>
+</tr>
+<tr>
+<td><code>output.http</code></td>
+<td><code>output.webhook</code></td>
+</tr>
+<tr>
+<td><code>vhost</code></td>
+<td><code>virtualhost</code> (rebuilt; emits the new <code>VIRTUAL_HOST</code> event)</td>
+</tr>
+</tbody>
+</table>
+<p>If you used any of these in a custom preset or <code>-m</code> / <code>-em</code> invocation, update
+the module name accordingly. The <code>--list-modules</code> output is the source of
+truth.</p>
+<div class="admonition warning">
+<p class="admonition-title">The <code>http</code> name was reassigned</p>
+<p>The module called <code>http</code> in 3.0 is <strong>not</strong> the same as the output module
+called <code>http</code> in 2.x. The name was reassigned:</p>
+<ul>
+<li><strong><code>http</code> (3.0, scan module)</strong> -- the replacement for the old <code>httpx</code>
+  scan module. Probes URLs over the shared in-process blasthttp client.</li>
+<li><strong><code>output.http</code> (2.x, output module)</strong> -- the webhook-style output module
+  that POSTed events to an arbitrary HTTP endpoint. This is now
+  <code>output.webhook</code> in 3.0.</li>
+</ul>
+<p>Old scans that ran <code>bbot -om http ...</code> were emitting events to a webhook;
+in 3.0 the equivalent is <code>bbot -om webhook ...</code>. By contrast, <code>bbot -m http
+...</code> enables the scan module, which probes URLs and is unrelated to the
+former output module.</p>
+</div>
+<h3 id="late-2x-removals">Late 2.x removals</h3>
+<p>These were dropped during the final 2.x releases, so they're already gone if you're on the latest 2.x, but may still surprise you if you're upgrading from an earlier 2.x version:</p>
+<ul>
+<li><code>digitorus</code>, <code>passivetotal</code>, <code>sitedossier</code>, <code>wappalyzer</code> (removed, no replacement)</li>
+<li><code>azure_realm</code> (functionality merged into <code>azure_tenant</code>)</li>
+<li><code>bucket_azure</code> (now <code>bucket_microsoft</code>)</li>
+<li><code>censys</code> (split into <code>censys_dns</code> and <code>censys_ip</code>)</li>
+</ul>
+<h3 id="new-modules">New modules</h3>
+<ul>
+<li>Scan: <code>bucket_hetzner</code>, <code>shodan_enterprise</code>, <code>trajan</code>, <code>waf_bypass</code></li>
+<li>Output: <code>elastic</code>, <code>kafka</code>, <code>mongo</code>, <code>nats</code>, <code>rabbitmq</code>, <code>zeromq</code></li>
+</ul>
+<h3 id="module-api">Module API</h3>
+<ul>
+<li><code>BaseModule</code> no longer has <code>_event_handler_watchdog_task</code> as a class
+  attribute and the watchdog is owned by <code>_setup()</code>.</li>
+<li>New <code>BaseModule.update_event(event, **kwargs)</code> and <code>emit_event(existing_event,
+  ...)</code> flow. Passing an existing event to <code>make_event()</code> now raises -- call
+  <code>update_event()</code> instead.</li>
+<li>New <code>BaseModule.setup_deps()</code> lifecycle hook (runs alongside <code>setup()</code> for
+  pure dependency installation like AI models or wordlists).</li>
+<li>New <code>_disable_auto_module_deps = True</code> opt-out so a module that watches URLs
+  doesn't automatically pull in <code>http</code>/<code>blasthttp</code>.</li>
+<li>New <code>accept_seeds</code> attribute. Defaults to <code>True</code> for passive modules,
+  <code>False</code> otherwise. Override explicitly if you want different behavior.</li>
+<li><code>default_discovery_context</code> now uses <code>{event.pretty_string}</code> instead of
+  <code>{event.data}</code> -- the latter is now a dict for URL-like events (see below).</li>
+<li>New <code>BaseModule._is_http_wildcard_host(event)</code> helper. Returns <code>True</code> when
+  the target responds identically to two random paths (catch-all / SPA
+  router). Used by <code>webbrute</code>, <code>lightfuzz</code>, and <code>paramminer</code> to skip hosts
+  that would produce only false positives.</li>
+</ul>
+<hr/>
+<h2 id="events">Events</h2>
+<h3 id="removed-event-types">Removed event types</h3>
+<ul>
+<li><code>VULNERABILITY</code> is gone. Emit a <code>FINDING</code> with <code>severity</code> set to
+  <code>"CRITICAL"</code>, <code>"HIGH"</code>, <code>"MEDIUM"</code>, <code>"LOW"</code>, or <code>"INFO"</code> instead. The pseudo
+  event type <code>TARGET</code> was also retired in favor of <code>SEED</code>.</li>
+<li><code>VHOST</code> was renamed to <code>VIRTUAL_HOST</code>, emitted by the rebuilt <code>virtualhost</code>
+  module (formerly <code>vhost</code>).</li>
+</ul>
+<h3 id="class-hierarchy">Class hierarchy</h3>
+<table>
+<thead>
+<tr>
+<th>2.x</th>
+<th>3.0</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>URL_UNVERIFIED(BaseEvent)</code> -- data is a string</td>
+<td><code>URL_UNVERIFIED(DictHostEvent)</code> -- data is a dict with <code>url</code>, <code>path</code>, etc.</td>
+</tr>
+<tr>
+<td><code>URL(URL_UNVERIFIED)</code> -- string data</td>
+<td><code>URL(URL_UNVERIFIED)</code> -- dict data</td>
+</tr>
+<tr>
+<td><code>STORAGE_BUCKET(DictEvent, URL_UNVERIFIED)</code></td>
+<td><code>STORAGE_BUCKET(URL_UNVERIFIED)</code></td>
+</tr>
+<tr>
+<td><code>HTTP_RESPONSE(URL_UNVERIFIED, DictEvent)</code></td>
+<td><code>HTTP_RESPONSE(URL_UNVERIFIED)</code></td>
+</tr>
+<tr>
+<td><code>DictPathEvent(DictEvent)</code></td>
+<td><code>DictPathEvent(DictHostEvent)</code></td>
+</tr>
+<tr>
+<td><em>(no UDP event)</em></td>
+<td><code>OPEN_UDP_PORT(OPEN_TCP_PORT)</code></td>
+</tr>
+</tbody>
+</table>
+<p>URL events are now dict-backed. Reading <code>.data</code> on a <code>URL</code> / <code>URL_UNVERIFIED</code> /
+<code>HTTP_RESPONSE</code> returns a dict, not a string. Use the new <code>event.url</code> property
+to get the URL string, or <code>event.pretty_string</code> for a human-readable form.
+Many built-in modules and most tests were updated accordingly; custom modules
+that compared or formatted <code>event.data</code> for URL events must be updated.</p>
+<h3 id="removed-attributes">Removed attributes</h3>
+<ul>
+<li><code>event.confidence</code> and <code>event.cumulative_confidence</code> no longer exist on
+  <code>BaseEvent</code>. Confidence is now a per-finding value carried inside
+  <code>FINDING.data["confidence"]</code> and validated against
+  <code>("UNKNOWN", "LOW", "MEDIUM", "HIGH", "CONFIRMED")</code>.</li>
+<li><code>source_domain</code> has been removed from events.</li>
+<li><code>_always_emit_tags</code>: the literal tag <code>"target"</code> was renamed to <code>"seed"</code>.</li>
+<li>Tags <code>ip-&lt;address&gt;</code>, <code>http-title-&lt;title&gt;</code>, and <code>cloud-&lt;type&gt;</code> are no longer
+  emitted as event tags by the <code>http</code> / cloudcheck pipelines. Use
+  <code>event.resolved_hosts</code>, <code>event.host_metadata</code>, and the simplified cloud tags
+  (<code>cloud</code>, plus a single provider tag) instead.</li>
+</ul>
+<h3 id="new-event-surface">New event surface</h3>
+<ul>
+<li><code>event.url</code> -- string URL property (works on URL-like events, returns <code>""</code>
+  otherwise).</li>
+<li><code>event.pretty_string</code> -- human-readable representation, used in logs and
+  discovery context.</li>
+<li><code>event.host_metadata</code> -- dict of structured per-host metadata (cloud
+  providers, ASN info, etc.). Replaces the long-tail of <code>cloud-*</code> tags.</li>
+<li>Mutation helpers <code>add_resolved_host()</code>, <code>update_resolved_hosts()</code>,
+  <code>add_dns_child()</code>, <code>set_raw_dns_record()</code>. Direct assignment to the backing
+  slots (<code>event._resolved_hosts = ...</code>, <code>event.dns_children["A"].add(...)</code>) is
+  no longer the public contract: the slots are lazily initialized to <code>None</code>
+  for memory reasons and exposed read-only via properties.</li>
+</ul>
+<h3 id="finding-severity-confidence">FINDING severity / confidence</h3>
+<p><code>FINDING.data</code> is now validated against a fixed allowlist:</p>
+<ul>
+<li><code>severity</code>: <code>"INFO" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"</code>
+  (the old <code>"INFORMATIONAL"</code> and <code>"MODERATE"</code> values have been renamed to
+  <code>INFO</code> and <code>MEDIUM</code>)</li>
+<li><code>confidence</code>: <code>"UNKNOWN" | "LOW" | "MEDIUM" | "HIGH" | "CONFIRMED"</code></li>
+</ul>
+<p>Severity and confidence are recorded on the event as <code>severity-&lt;level&gt;</code> and
+<code>confidence-&lt;level&gt;</code> tags. Lowercase tags like <code>high</code> or <code>medium</code> are no
+longer added directly.</p>
+<h3 id="asn-as-a-target-type">ASN as a target type</h3>
+<p><code>ASN:12345</code> (or <code>AS12345</code>) can now be used as a scan target -- the seed will be
+expanded to its registered CIDRs via the <code>asndb</code> library at scan start. If the
+lookup fails (network error, API unavailable), BBOT retries 3 times with a
+3-second delay. If all retries fail, the scan aborts with a message suggesting
+you pass CIDR ranges directly instead.</p>
+<p>ASN lookups use the BLS API at <code>api.bbot.io</code>. No API key is required --
+unauthenticated users can operate at a reasonable pace. If you want higher rate
+limits, set the <code>bbot_io_api_key</code> config value (or <code>BBOT_IO_API_KEY</code> env var).
+Currently the ASN API is the only <code>api.bbot.io</code> service BBOT uses, but any
+future BLS APIs will work with the same key.</p>
+<p>ASN <em>enrichment</em> (the ASN/subnet data attached to in-scope IPs via
+<code>host_metadata</code>) degrades gracefully rather than aborting: after several
+consecutive lookup failures, a circuit breaker disables ASN enrichment for the
+rest of the scan and the scan continues without it. This is separate from the
+ASN-as-target expansion above, which must abort because there would be nothing
+to scan.</p>
+<h3 id="json-output-before-and-after">JSON output: before and after</h3>
+<p>If you have downstream tooling that parses BBOT's NDJSON output, the schema
+has changed in several ways. Here is a representative event from each version:</p>
+<p><strong>2.x -- URL event (string data)</strong></p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">{</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"type"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"URL"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"id"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"URL:ab12cd34..."</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"data"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"https://www.evilcorp.com/login"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"host"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"www.evilcorp.com"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"port"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">443</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"resolved_hosts"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"1.2.3.4"</span><span style="color: #E6EDF3">],</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"dns_children"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">{},</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"scope_distance"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">0</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"scan"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"SCAN:deadbeef..."</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"timestamp"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">1719792000.0</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"parent"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"DNS_NAME:ef56ab78..."</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"tags"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"in-scope"</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"status-200"</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"ip-1.2.3.4"</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"http-title-Login"</span><span style="color: #E6EDF3">],</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"module"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"httpx"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"module_sequence"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"httpx"</span>
+<span style="color: #E6EDF3">}</span>
+</code></pre></div>
+<p><strong>3.0 -- same URL event (dict data)</strong></p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">{</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"type"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"URL"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"id"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"URL:ab12cd34..."</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"uuid"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"f47ac10b-58cc-4372-a567-0e02b2c3d479"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"data_json"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">{</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">"url"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"https://www.evilcorp.com/login"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">"status_code"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">200</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">"http_title"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"Login"</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">},</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"host"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"www.evilcorp.com"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"port"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">443</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"resolved_hosts"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"1.2.3.4"</span><span style="color: #E6EDF3">],</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"dns_children"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">{},</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"scope_distance"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">0</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"scan"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"SCAN:deadbeef..."</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"timestamp"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">1719792000.0</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"parent"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"DNS_NAME:ef56ab78..."</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"parent_uuid"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"a1b2c3d4-e5f6-7890-abcd-ef1234567890"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"tags"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"in-scope"</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"status-200"</span><span style="color: #E6EDF3">],</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"module"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"http"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"module_sequence"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"http"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"discovery_context"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"http probed www.evilcorp.com and found URL: https://www.evilcorp.com/login"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"discovery_path"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"SCAN:deadbeef"</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"DNS_NAME:www.evilcorp.com"</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"URL:https://www.evilcorp.com/login"</span><span style="color: #E6EDF3">],</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"parent_chain"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"SCAN:deadbeef"</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"DNS_NAME:www.evilcorp.com"</span><span style="color: #E6EDF3">],</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"host_metadata"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">{</span><span style="color: #7EE787">"cloud_provider"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"amazon"</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #7EE787">"asn"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">16509</span><span style="color: #E6EDF3">}</span>
+<span style="color: #E6EDF3">}</span>
+</code></pre></div>
+<p>Key differences for parsers:</p>
+<table>
+<thead>
+<tr>
+<th>What changed</th>
+<th>2.x</th>
+<th>3.0</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>URL event data</td>
+<td><code>"data": "https://..."</code> (string)</td>
+<td><code>"data_json": {"url": "https://...", ...}</code> (dict)</td>
+</tr>
+<tr>
+<td>Non-URL event data</td>
+<td><code>"data": "..."</code> (string)</td>
+<td><code>"data": "..."</code> (still a string)</td>
+</tr>
+<tr>
+<td>Module name for HTTP probing</td>
+<td><code>"module": "httpx"</code></td>
+<td><code>"module": "http"</code></td>
+</tr>
+<tr>
+<td>Per-host cloud/IP tags</td>
+<td><code>"ip-1.2.3.4"</code>, <code>"http-title-Login"</code>, <code>"cloud-amazon"</code> in tags</td>
+<td>Moved to <code>host_metadata</code> dict and <code>data_json</code> fields; tags simplified</td>
+</tr>
+<tr>
+<td>Event ID</td>
+<td><code>"id"</code> only</td>
+<td><code>"id"</code> + new <code>"uuid"</code> (globally unique)</td>
+</tr>
+<tr>
+<td>Parent reference</td>
+<td><code>"parent"</code> only</td>
+<td><code>"parent"</code> + new <code>"parent_uuid"</code></td>
+</tr>
+<tr>
+<td>Discovery chain</td>
+<td>not present</td>
+<td><code>"discovery_context"</code>, <code>"discovery_path"</code>, <code>"parent_chain"</code></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition warning">
+<p class="admonition-title">The <code>data</code> vs <code>data_json</code> split</p>
+<p>When an event's <code>.data</code> is a <strong>string</strong> (DNS_NAME, IP_ADDRESS, EMAIL_ADDRESS,
+OPEN_TCP_PORT, etc.), the JSON key is <code>"data"</code>. When <code>.data</code> is a <strong>dict</strong>
+(URL, URL_UNVERIFIED, HTTP_RESPONSE, FINDING, STORAGE_BUCKET, etc.), the
+JSON key is <code>"data_json"</code>. In 2.x, URL events used <code>"data"</code> with a string
+value. In 3.0, they use <code>"data_json"</code> with a dict. Parsers that key on
+<code>"data"</code> for URL events will silently get nothing back.</p>
+</div>
+<p><strong>2.x -- VULNERABILITY event</strong></p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">{</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"type"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"VULNERABILITY"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"data"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">{</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">"host"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"www.evilcorp.com"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">"severity"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"HIGH"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">"description"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"SQL injection in login form"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">"url"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"https://www.evilcorp.com/login"</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">},</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"tags"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"in-scope"</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"high"</span><span style="color: #E6EDF3">]</span>
+<span style="color: #E6EDF3">}</span>
+</code></pre></div>
+<p><strong>3.0 -- equivalent FINDING event</strong></p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">{</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"type"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"FINDING"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"data_json"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">{</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">"host"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"www.evilcorp.com"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">"severity"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"HIGH"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">"confidence"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"HIGH"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">"name"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"SQL Injection"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">"description"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"SQL injection in login form"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">"url"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"https://www.evilcorp.com/login"</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">},</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">"tags"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"in-scope"</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"severity-high"</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"confidence-high"</span><span style="color: #E6EDF3">]</span>
+<span style="color: #E6EDF3">}</span>
+</code></pre></div>
+<p>Changes:</p>
+<ul>
+<li><code>VULNERABILITY</code> type is gone; use <code>FINDING</code> instead.</li>
+<li><code>confidence</code> is now <strong>required</strong> on every FINDING (one of <code>UNKNOWN</code>, <code>LOW</code>,
+  <code>MEDIUM</code>, <code>HIGH</code>, <code>CONFIRMED</code>).</li>
+<li><code>name</code> is now <strong>required</strong> (short label for the finding).</li>
+<li>Severity strings changed: <code>INFORMATIONAL</code> is now <code>INFO</code>, <code>MODERATE</code> is now
+  <code>MEDIUM</code>.</li>
+<li>Tags changed from bare lowercase (<code>high</code>) to prefixed
+  (<code>severity-high</code>, <code>confidence-high</code>).</li>
+</ul>
+<hr/>
+<h2 id="config">Config</h2>
+<p><code>bbot/defaults.yml</code> saw a number of breaking renames and additions:</p>
+<h3 id="renamed_2">Renamed</h3>
+<table>
+<thead>
+<tr>
+<th>2.x</th>
+<th>3.0</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>web.httpx_timeout</code></td>
+<td><code>web.http_timeout</code> (target-directed traffic, default <code>10</code>)</td>
+</tr>
+<tr>
+<td><em>(no equivalent)</em></td>
+<td><code>web.http_timeout_infrastructure</code> (API calls, wordlist downloads, etc., default <code>10</code>)</td>
+</tr>
+<tr>
+<td><code>web.httpx_retries</code></td>
+<td><code>web.http_retries</code></td>
+</tr>
+<tr>
+<td><code>dns.threads</code> (global)</td>
+<td><code>dns.threads</code> (now per-resolver; default lowered from 25 -&gt; 10)</td>
+</tr>
+<tr>
+<td><code>web.ssl_verify</code></td>
+<td><code>web.ssl_verify_target</code> (target-directed traffic, default <code>false</code>)</td>
+</tr>
+<tr>
+<td><em>(no equivalent)</em></td>
+<td><code>web.ssl_verify_infrastructure</code> (API calls, wordlist downloads, etc., default <code>true</code>)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="removed_1">Removed</h3>
+<ul>
+<li><code>deps.ffuf.version</code> (ffuf is gone).</li>
+<li>The top-level <code>modules.json.siem_friendly</code> flag (and the <code>siem_friendly</code>
+  output module).</li>
+</ul>
+<h3 id="added_2">Added</h3>
+<ul>
+<li><code>max_mem_percent</code> -- global ingress throttle when RSS exceeds the threshold.</li>
+<li><code>redact_secrets</code> (default <code>true</code>) -- redacts secret values (API keys, tokens)
+  when a resolved preset is serialized to YAML (e.g. the generated <code>bbot.yml</code>).
+  Set to <code>false</code> to include them.</li>
+<li><code>web.user_agent_suffix</code> -- appended to the user agent (previously buried as a
+  hidden CLI flag).</li>
+<li><code>web.http_rate_limit</code> -- global rps cap across the shared blasthttp client.</li>
+<li><code>web.http_proxy_exclude</code> -- hosts/CIDRs to exclude from the HTTP proxy
+  (<code>NO_PROXY</code> equivalent).</li>
+<li><code>web.body_spill.{enabled,cache_mb,compress}</code> -- disk-spill HTTP response
+  bodies to keep them off the Python heap.</li>
+<li><code>dns.cache_size</code> -- DNS LRU size.</li>
+<li><code>bbot_io_api_key</code> -- optional API key for <code>api.bbot.io</code> services. Currently
+  only used by ASN lookups; no key is required for basic use. Future BLS APIs
+  will share this key.</li>
+<li><code>dns.abort_threshold</code> default lowered from <code>50</code> -&gt; <code>10</code>.</li>
+<li><code>dns.filter_ptrs</code> semantics: PTR-derived hostnames are now treated as
+  affiliates by default rather than being injected as in-scope DNS_NAME events
+  during IP-range scans.</li>
+</ul>
+<h3 id="stale-config-files-and-reset-config-reset-secrets">Stale config files and <code>--reset-config</code> / <code>--reset-secrets</code></h3>
+<p>BBOT generates two config files the first time it runs and then never
+overwrites them:</p>
+<ul>
+<li><code>~/.config/bbot/bbot.yml</code> -- a fully-commented snapshot of all default options</li>
+<li><code>~/.config/bbot/secrets.yml</code> -- the secret-bearing subset (API keys, etc.),
+  written owner-only (<code>0600</code>)</li>
+</ul>
+<p>Because they're written once and left alone, they drift out of sync with the
+defaults as you upgrade. A <code>bbot.yml</code> generated under 2.x can still mention
+<code>web.httpx_timeout</code>, <code>web.ssl_verify</code>, <code>modules.json.siem_friendly</code>, and other
+keys that were renamed or removed in 3.0.</p>
+<p>In 2.x this was harmless: unknown keys were silently ignored. In 3.0, config is
+<strong>validated on load</strong>, so a leftover key in your generated file now produces a
+validation error before the scan starts. When the offending key lives in one of
+these generated files (rather than being a <code>-c</code> typo on the command line), BBOT
+tells you which file it came from and points you at the matching reset flag.</p>
+<p>Two new CLI flags regenerate the files from current defaults:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>--reset-config<span style="color: #6E7681">    </span><span style="color: #8B949E; font-style: italic"># regenerate bbot.yml</span>
+bbot<span style="color: #6E7681"> </span>--reset-secrets<span style="color: #6E7681">   </span><span style="color: #8B949E; font-style: italic"># regenerate secrets.yml</span>
+</code></pre></div>
+<ul>
+<li><strong>Destructive.</strong> A regenerated file is a fresh, fully-commented template, so
+  any options you had <em>uncommented</em> are wiped. The existing file is backed up
+  first to <code>&lt;name&gt;.bak</code> (then <code>.bak.1</code>, <code>.bak.2</code>, ... so earlier backups aren't
+  clobbered).</li>
+<li><strong>Confirmation required.</strong> You're prompted before anything is overwritten;
+  pass <code>-y</code> / <code>--yes</code> to skip the prompt. Non-interactive runs without <code>--yes</code>
+  refuse and exit rather than overwrite silently.</li>
+<li><strong>Independent.</strong> The two files are reset separately: <code>--reset-config</code> never
+  touches the API keys in <code>secrets.yml</code>, and <code>--reset-secrets</code> never touches the
+  tuned options in <code>bbot.yml</code>. The regenerated <code>secrets.yml</code> is written
+  atomically and stays owner-only.</li>
+</ul>
+<p>The usual fix after an in-place upgrade is to copy any customizations out of the
+old file, run the matching reset flag, then re-apply your changes to the fresh
+template (or move them into a preset).</p>
+<hr/>
+<h2 id="dns-and-http-internals">DNS and HTTP internals</h2>
+<p>Both the DNS and HTTP engines were rewritten and the old subprocess
+architecture was deleted.</p>
+<ul>
+<li><strong>DNS</strong>: <code>bbot/core/helpers/dns/engine.py</code> and <code>dns/mock.py</code> were removed.
+  The <code>DNSHelper</code> no longer inherits from <code>EngineClient</code>; resolution now goes
+  through the native <a href="https://github.com/blacklanternsecurity/blastdns">blastdns</a>
+  Rust client. The <code>self.helpers.dns.resolver</code> <code>dnspython</code> resolver is gone.</li>
+<li><strong>HTTP</strong>: <code>bbot/core/helpers/web/client.py</code> and <code>web/engine.py</code> were
+  removed. <code>WebHelper</code> no longer inherits from <code>EngineClient</code>. All HTTP goes
+  through the shared <a href="https://github.com/blacklanternsecurity/blasthttp">blasthttp</a>
+  client (<code>self.helpers.blasthttp</code>). The httpx-based
+  <code>request_batch</code> / <code>request_custom_batch</code> / <code>curl</code> methods were replaced by
+  <code>request()</code>, <code>request_batch_stream(urls, threads=10, **kwargs)</code>, and
+  <code>download()</code>.</li>
+<li><strong>Engine framework removed</strong>: the <code>bbot.core.engine</code> module (<code>EngineBase</code> /
+  <code>EngineClient</code> / <code>EngineServer</code>) and the <code>BBOTEngineError</code> exception were
+  deleted along with the subprocess architecture. <code>WebError</code> and <code>DNSError</code> now
+  subclass <code>BBOTError</code> directly, and <code>CurlError</code> was removed. External code
+  importing <code>bbot.core.engine</code>, <code>BBOTEngineError</code>, or <code>CurlError</code> must be
+  updated.</li>
+<li>The blasthttp dependency line is <code>blasthttp&gt;=0.9.0</code>.</li>
+</ul>
+<p>Modules that previously instantiated their own <code>httpx.AsyncClient</code> or built
+custom curl invocations must switch to <code>self.helpers.request(...)</code> /
+<code>self.helpers.blasthttp</code>.</p>
+<hr/>
+<h2 id="output-and-db-models">Output and DB models</h2>
+<ul>
+<li>The pydantic / SQLModel models moved from <code>bbot.db.sql.models</code> to
+  <code>bbot.models.sql</code> (plus a new <code>bbot.models.pydantic</code> / <code>bbot.models.helpers</code>
+  split). External importers must update.</li>
+<li><code>output.http</code> was renamed to <code>output.webhook</code>.</li>
+<li><code>output.json</code> lost the <code>siem_friendly</code> option.</li>
+<li>New output modules: <code>elastic</code>, <code>kafka</code>, <code>mongo</code>, <code>nats</code>, <code>rabbitmq</code>,
+  <code>zeromq</code>.</li>
+<li>Neo4j output now also serializes <code>host_metadata</code>.</li>
+</ul>
+<h3 id="output-modules-are-now-purely-additive">Output modules are now purely additive</h3>
+<p>In 2.x, specifying <code>-om</code> could silently replace the default output modules
+depending on whether any of the names overlapped with the defaults. This was
+confusing and inconsistent.</p>
+<p>In 3.0, <code>-om</code> is always <strong>additive</strong>: it adds modules on top of the defaults
+(<code>csv</code>, <code>txt</code>, <code>json</code>, plus <code>stdout</code> from the CLI). To remove a default, use
+the new <code>-eom</code> / <code>--exclude-output-modules</code> flag:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># defaults (csv, txt, json, stdout) are all enabled</span>
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>subdomain-enum
+
+<span style="color: #8B949E; font-style: italic"># neo4j is added alongside all defaults</span>
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-om<span style="color: #6E7681"> </span>neo4j
+
+<span style="color: #8B949E; font-style: italic"># json only -- explicitly exclude the other defaults</span>
+bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-eom<span style="color: #6E7681"> </span>csv<span style="color: #6E7681"> </span>txt<span style="color: #6E7681"> </span>stdout
+</code></pre></div>
+<p>The same applies in preset YAML (<code>exclude_output_modules:</code>) and the Python API
+(<code>Preset(exclude_output_modules=[...])</code>).</p>
+<p>The <code>python</code> output module was also moved from <code>output/</code> to <code>internal/</code> -- it
+was never a real output module, it is the Python API event bridge.</p>
+<h3 id="omitted-event-types">Omitted event types</h3>
+<p>Certain event types are excluded from output by default via the
+<code>omit_event_types</code> config. These events are still processed by modules
+internally, but they do not appear in JSON, CSV, or stdout output unless
+you remove them from the list:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">omit_event_types</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">HTTP_RESPONSE</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">RAW_TEXT</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">URL_UNVERIFIED</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">DNS_NAME_UNRESOLVED</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">FILESYSTEM</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">WEB_PARAMETER</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">RAW_DNS_RECORD</span>
+</code></pre></div>
+<p>If your downstream tooling relied on seeing <code>HTTP_RESPONSE</code> or
+<code>URL_UNVERIFIED</code> events in the output, you will need to remove them from
+<code>omit_event_types</code> in your preset or config.</p>
+<hr/>
+<h2 id="dependencies-and-tooling">Dependencies and tooling</h2>
+<ul>
+<li><strong>Build system</strong>: migrated from Poetry to <a href="https://docs.astral.sh/uv/">uv</a>
+  with a hatchling build backend. <code>pyproject.toml</code> now follows PEP 621, and
+  <code>uv.lock</code> replaces <code>poetry.lock</code>; install dev dependencies with
+  <code>uv sync --group dev</code>. Versioning is static (<code>version = "3.0.0"</code> in
+  <code>pyproject.toml</code>) rather than derived from git tags by
+  <code>poetry-dynamic-versioning</code>.</li>
+<li><strong>License</strong>: changed from <code>GPL-3.0</code> to <code>AGPL-3.0</code>.</li>
+<li><strong>Python</strong>: minimum bumped from <code>3.9</code> to <code>3.10</code>. Upper bound is now
+  <code>&lt;3.15</code>.</li>
+<li><strong>Lockstep deps</strong>:</li>
+<li><code>radixtarget &gt;=4.0.1,&lt;5</code> (composition pattern, no longer subclassed)</li>
+<li><code>cloudcheck &gt;=11.1.0,&lt;12</code></li>
+<li><code>blasthttp &gt;=0.9.0</code> (new)</li>
+<li><code>blastdns &gt;=1.9.0,&lt;2</code> (new)</li>
+<li><code>asndb &gt;=1.1.0</code> (new)</li>
+<li><code>zstandard</code> (new; used by HTTP body spill)</li>
+<li><code>httpx</code> <strong>removed</strong> as a runtime dep.</li>
+</ul>
+<p>Custom modules that imported <code>httpx</code>, <code>dns.asyncresolver</code>, <code>radixtarget</code>
+subclasses, or <code>bbot.db.sql.models</code> will need to be ported.</p>
+</article>
+</div>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
+<script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+<script src="../../javascripts/tablesort.js"></script>
+<script src="../../javascripts/tablesort.min.js"></script>
+<script src="../../javascripts/vega@5.js"></script>
+<script src="../../javascripts/vega-lite@5.js"></script>
+<script src="../../javascripts/vega-embed@6.js"></script>
+</body>
+</html>

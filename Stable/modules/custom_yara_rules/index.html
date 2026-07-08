@@ -8,10 +8,10 @@
 <meta content="OSINT automation for hackers" name="description"/>
 <meta content="TheTechromancer" name="author"/>
 <link href="https://blacklanternsecurity.github.io/bbot/Stable/modules/custom_yara_rules/" rel="canonical"/>
-<link href="../nuclei/" rel="prev"/>
+<link href="../wayback/" rel="prev"/>
 <link href="../lightfuzz/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.7.3" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
 <title>Custom YARA Rules - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.04kfkfm3.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.xi6rhz5i.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -382,6 +382,18 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/scan_sanity/">
+<span class="md-ellipsis">
+    
+  
+    Scan Sanity
+  
+
+    
+  </span>
+</a>
+</li>
 </ul>
 </nav>
 </li>
@@ -421,11 +433,35 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../internal_modules/">
+<span class="md-ellipsis">
+    
+  
+    Internal Modules
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../nuclei/">
 <span class="md-ellipsis">
     
   
     Nuclei
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../wayback/">
+<span class="md-ellipsis">
+    
+  
+    Wayback
   
 
     
@@ -507,6 +543,15 @@
     </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#severity-and-confidence">
+<span class="md-ellipsis">
+      
+        Severity and Confidence
+      
+    </span>
+</a>
+</li>
 </ul>
 </nav>
 </li>
@@ -525,12 +570,62 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../webbrute/">
+<span class="md-ellipsis">
+    
+  
+    Webbrute
+  
+
+    
+  </span>
+</a>
+</li>
 </ul>
 </nav>
 </li>
 <li class="md-nav__item md-nav__item--section md-nav__item--nested">
 <input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_4" type="checkbox"/>
 <label class="md-nav__link" for="__nav_1_4" id="__nav_1_4_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    Migration
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Migration
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../migration/3.0_breaking_changes/">
+<span class="md-ellipsis">
+    
+  
+    2.x → 3.0 Breaking Changes
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="">
 <span class="md-ellipsis">
     
   
@@ -541,8 +636,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_1_4">
+<nav aria-expanded="false" aria-labelledby="__nav_1_5_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_5">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -641,6 +736,18 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/core_dependencies/">
+<span class="md-ellipsis">
+    
+  
+    Core Dependencies
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../../dev/architecture/">
 <span class="md-ellipsis">
     
@@ -658,6 +765,18 @@
     
   
     How to Write a BBOT Module
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/preset_validation/">
+<span class="md-ellipsis">
+    
+  
+    Validating &amp; Inspecting Presets
   
 
     
@@ -689,8 +808,8 @@
 </a>
 </li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_9" id="__nav_2_9_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -701,8 +820,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_2_7">
+<nav aria-expanded="false" aria-labelledby="__nav_2_9_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_9">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -783,21 +902,9 @@
   </span>
 </a>
 </li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/engine/">
-<span class="md-ellipsis">
-    
-  
-    Engine
-  
-
-    
-  </span>
-</a>
-</li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7_8" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7_8" id="__nav_2_7_8_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9_7" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_9_7" id="__nav_2_9_7_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -808,8 +915,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_8_label" class="md-nav" data-md-level="3">
-<label class="md-nav__title" for="__nav_2_7_8">
+<nav aria-expanded="false" aria-labelledby="__nav_2_9_7_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_2_9_7">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -923,7 +1030,7 @@
 <p>Through the <code>excavate</code> internal module, BBOT supports searching through HTTP response data using custom YARA rules.</p>
 <p>This feature can be utilized with the command line option <code>--custom-yara-rules</code> or <code>-cy</code>, followed by a file containing the YARA rules.</p>
 <p>Example:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot -m httpx --custom-yara-rules=test.yara -t http://example.com/
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot -m http --custom-yara-rules=test.yara -t http://example.com/
 </code></pre></div>
 <p>Where <code>test.yara</code> is a file on the filesystem. The file can contain multiple YARA rules, separated by lines.</p>
 <p>YARA rules can be quite simple, the simplest example being a single string search:</p>
@@ -954,7 +1061,7 @@
         $regex
 }
 </code></pre></div>
-<p><em>Note: YARA uses it's own regex engine that is not a 1:1 match with python regexes. This means many existing regexes will have to be modified before they will work with YARA. The good news is: YARA's regex engine is FAST, immensely more fast than pythons!</em></p>
+<p><em>Note: YARA uses its own regex engine that is not a 1:1 match with Python regexes. This means many existing regexes will have to be modified before they will work with YARA. The good news is: YARA's regex engine is FAST, immensely faster than Python's!</em></p>
 <p>Further discussion of art of writing complex YARA rules goes far beyond the scope of this documentation. A good place to start learning more is the <a href="https://yara.readthedocs.io/en/stable/writingrules.html">official YARA documentation</a>.</p>
 <p>The YARA engine provides plenty of room to make highly complex signatures possible, with various conditional operators available. Multiple signatures can be linked together to create sophisticated detection rules that can identify a wide range of specific content. This flexibility allows the crafting of efficient rules for detecting security vulnerabilities, leveraging logical operators, regular expressions, and other powerful features. Additionally, YARA's modular structure supports easy updates and maintenance of signature sets.</p>
 <h3 id="custom-options">Custom options</h3>
@@ -965,7 +1072,7 @@
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>[FINDING] {"description": "Custom Yara Rule [find_string] Matched via identifier [str1]", "host": "example.com", "url": "http://example.com"} excavate
 </code></pre></div>
 <p>Example with the description added:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>[FINDING] {"description": "Custom Yara Rule [AAAABBBB] with description: [contains our test string] Matched via identifier [str1]", "host": "example.com, "url": "http://example.com"}     excavate
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>[FINDING] {"description": "Custom Yara Rule [AAAABBBB] with description: [contains our test string] Matched via identifier [str1]", "host": "example.com", "url": "http://example.com"}     excavate
 </code></pre></div>
 <p>That FINDING was produced with the following signature:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>rule AAAABBBB {
@@ -1009,8 +1116,22 @@
         $title_value
 }
 </code></pre></div>
+<h4 id="severity-and-confidence">Severity and Confidence</h4>
+<p><div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>rule ContainsTitle
+{
+    meta:
+        description = "Contains an HTML title tag"
+        severity = "HIGH"
+        confidence = "CONFIRMED"
+    strings:
+        $title_value = /&lt;title&gt;(.*)?&lt;\/title&gt;/i
+    condition:
+        $title_value
+}
+</code></pre></div>
+Confidence and Severity levels will be assigned to the FINDING event produced if there is a match.</p>
 <p>When run against the Black Lantern Security homepage with the following BBOT command:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot -m httpx --custom-yara-rules=substack.yara -t http://www.blacklanternsecurity.com/
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot -m http --custom-yara-rules=substack.yara -t http://www.blacklanternsecurity.com/
 </code></pre></div>
 <p>We get the following result. Note that the finding now contains the actual title tag that was identified with the regex.</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>[FINDING] {"description": "Custom Yara Rule [ContainsTitle] with description: [Contains an HTML title] Matched via identifier [title_value] and extracted [&lt;title&gt;Black Lantern Security&lt;/title&gt;]", "host": "www.blacklanternsecurity.com", "url": "https://www.blacklanternsecurity.com/"} excavate    (cdn-github, cdn-ip)

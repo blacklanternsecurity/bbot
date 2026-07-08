@@ -7,12 +7,12 @@
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <meta content="OSINT automation for hackers" name="description"/>
 <meta content="TheTechromancer" name="author"/>
-<link href="https://blacklanternsecurity.github.io/bbot/Stable/dev/architecture/" rel="canonical"/>
-<link href="../core_dependencies/" rel="prev"/>
-<link href="../module_howto/" rel="next"/>
+<link href="https://blacklanternsecurity.github.io/bbot/Stable/dev/preset_validation/" rel="canonical"/>
+<link href="../module_howto/" rel="prev"/>
+<link href="../tests/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
 <meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
-<title>BBOT Internal Architecture - BBOT Docs</title>
+<title>Validating &amp; Inspecting Presets - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
@@ -26,7 +26,7 @@
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
 <label class="md-overlay" for="__drawer"></label>
 <div data-md-component="skip">
-<a class="md-skip" href="#bbot-internal-architecture">
+<a class="md-skip" href="#validating-sanitizing-and-inspecting-presets">
           Skip to content
         </a>
 </div>
@@ -52,7 +52,7 @@
 <div class="md-header__topic" data-md-component="header-topic">
 <span class="md-ellipsis">
             
-              BBOT Internal Architecture
+              Validating &amp; Inspecting Presets
             
           </span>
 </div>
@@ -669,20 +669,8 @@
   </span>
 </a>
 </li>
-<li class="md-nav__item md-nav__item--active">
-<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
-<label class="md-nav__link md-nav__link--active" for="__toc">
-<span class="md-ellipsis">
-    
-  
-    BBOT Internal Architecture
-  
-
-    
-  </span>
-<span class="md-nav__icon md-icon"></span>
-</label>
-<a class="md-nav__link md-nav__link--active" href="./">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../architecture/">
 <span class="md-ellipsis">
     
   
@@ -692,32 +680,6 @@
     
   </span>
 </a>
-<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
-<label class="md-nav__title" for="__toc">
-<span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
-<li class="md-nav__item">
-<a class="md-nav__link" href="#queues">
-<span class="md-ellipsis">
-      
-        Queues
-      
-    </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#event-flow">
-<span class="md-ellipsis">
-      
-        Event Flow
-      
-    </span>
-</a>
-</li>
-</ul>
-</nav>
 </li>
 <li class="md-nav__item">
 <a class="md-nav__link" href="../module_howto/">
@@ -731,8 +693,20 @@
   </span>
 </a>
 </li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="../preset_validation/">
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    
+  
+    Validating &amp; Inspecting Presets
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
 <span class="md-ellipsis">
     
   
@@ -742,6 +716,59 @@
     
   </span>
 </a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#validate-a-preset">
+<span class="md-ellipsis">
+      
+        Validate a preset
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#redact-secrets-from-a-config">
+<span class="md-ellipsis">
+      
+        Redact secrets from a config
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#mark-your-own-fields-sensitive-or-mandatory">
+<span class="md-ellipsis">
+      
+        Mark your own fields sensitive or mandatory
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#dump-all-module-metadata">
+<span class="md-ellipsis">
+      
+        Dump all module metadata
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#filter-options-by-sensitive-mandatory">
+<span class="md-ellipsis">
+      
+        Filter options by sensitive / mandatory
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
 </li>
 <li class="md-nav__item">
 <a class="md-nav__link" href="../tests/">
@@ -985,15 +1012,120 @@
 </div>
 <div class="md-content" data-md-component="content">
 <article class="md-content__inner md-typeset">
-<h1 id="bbot-internal-architecture">BBOT Internal Architecture</h1>
-<p>Here is a basic overview of BBOT's internal architecture.</p>
-<h2 id="queues">Queues</h2>
-<p>Being both <strong><em>recursive</em></strong> and <strong><em>event-driven</em></strong>, BBOT makes heavy use of queues. These enable smooth communication between the modules, and ensure that large numbers of events can be produced without slowing down or clogging up the scan.</p>
-<p>Every module in BBOT has both an <strong><em>incoming</em></strong> and <strong><em>outgoing</em></strong> queue. Event types matching the module's <code>watched_events</code> (e.g. <code>DNS_NAME</code>) are queued in its incoming queue, and processed by the module's <code>handle_event()</code> (or <code>handle_batch()</code> in the case of batched modules). If the module finds anything interesting, it creates an event and places it in its outgoing queue, to be processed by the scan and redistributed to other modules.</p>
-<h2 id="event-flow">Event Flow</h2>
-<p>Below is a graph showing the internal event flow in BBOT. White lines represent queues. Notice how some modules run in sequence, while others run in parallel. With the exception of a few specific modules, most BBOT modules are parallelized.</p>
-<p><img alt="event-flow" src="https://github.com/blacklanternsecurity/bbot/assets/20261699/6cece76b-70bd-4690-a53f-02d42e6ed05b"/></p>
-<p>For a higher-level overview, see <a href="../../how_it_works/">How it Works</a>.</p>
+<h1 id="validating-sanitizing-and-inspecting-presets">Validating, Sanitizing, and Inspecting Presets</h1>
+<p>BBOT's preset and module configs are described by <a href="https://docs.pydantic.dev/">pydantic</a> models — the same models that power <code>bbot -l</code> and <code>bbot --help</code>. The helpers below let you reuse those models from your own code to validate a preset, redact sensitive values, or dump module metadata.</p>
+<p>All of these helpers work on plain dicts (i.e. what you'd get from <code>yaml.safe_load</code>), so you can call them before instantiating a <code>Preset</code> or <code>Scanner</code>.</p>
+<h2 id="validate-a-preset">Validate a preset</h2>
+<p><a href="https://github.com/blacklanternsecurity/bbot/blob/dev/bbot/scanner/preset/validate.py"><code>validate_preset</code></a> catches typos and type errors in one pass — top-level preset keys, global config, unknown module names, and per-module options:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">bbot.scanner</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">validate_preset</span>
+
+<span style="color: #E6EDF3">errors</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">validate_preset({</span>
+    <span style="color: #A5D6FF">"modules"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"nuclei"</span><span style="color: #E6EDF3">],</span>
+    <span style="color: #A5D6FF">"config"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">{</span>
+        <span style="color: #A5D6FF">"scope"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"strict"</span><span style="color: #E6EDF3">:</span> <span style="color: #79C0FF">True</span><span style="color: #E6EDF3">},</span>
+        <span style="color: #A5D6FF">"modules"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"nuclei"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"ratelimit"</span><span style="color: #E6EDF3">:</span> <span style="color: #A5D6FF">200</span><span style="color: #E6EDF3">}},</span>
+    <span style="color: #E6EDF3">},</span>
+<span style="color: #E6EDF3">})</span>
+
+<span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">err</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">errors:</span>
+    <span style="color: #E6EDF3">print(err)</span>
+</code></pre></div>
+<p>Empty list → valid. Each <a href="https://github.com/blacklanternsecurity/bbot/blob/dev/bbot/scanner/preset/validate.py"><code>PresetValidationError</code></a> carries a <code>where</code> (e.g. <code>"preset"</code>, <code>"config"</code>, <code>"module:nuclei"</code>), a dotted <code>path</code>, and a human-readable <code>message</code> with closest-match suggestions when applicable. To validate a YAML file directly, use <code>validate_preset_file(path)</code>.</p>
+<h2 id="redact-secrets-from-a-config">Redact secrets from a config</h2>
+<p>Each module's <code>class Config(BaseModuleConfig)</code> declares which fields are sensitive (<code>sensitive=True</code>) and/or required (<code>mandatory=True</code>). <code>BBOTCore.no_secrets_config()</code> walks the config dict alongside those schemas and removes only fields explicitly marked sensitive — no fuzzy name matching:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">bbot.core</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">CORE</span>
+
+<span style="color: #E6EDF3">config</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">{</span>
+    <span style="color: #A5D6FF">"interactsh_token"</span><span style="color: #E6EDF3">:</span> <span style="color: #A5D6FF">"leaky"</span><span style="color: #E6EDF3">,</span>
+    <span style="color: #A5D6FF">"web"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"http_cookies"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"session"</span><span style="color: #E6EDF3">:</span> <span style="color: #A5D6FF">"abc"</span><span style="color: #E6EDF3">}},</span>
+    <span style="color: #A5D6FF">"modules"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">{</span>
+        <span style="color: #A5D6FF">"shodan_dns"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"api_key"</span><span style="color: #E6EDF3">:</span> <span style="color: #A5D6FF">"sh-secret"</span><span style="color: #E6EDF3">},</span>
+        <span style="color: #A5D6FF">"robots"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"include_sitemap"</span><span style="color: #E6EDF3">:</span> <span style="color: #79C0FF">True</span><span style="color: #E6EDF3">},</span>
+    <span style="color: #E6EDF3">},</span>
+<span style="color: #E6EDF3">}</span>
+
+<span style="color: #E6EDF3">print(CORE</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">no_secrets_config(config))</span>
+<span style="color: #8B949E; font-style: italic"># {'web': {}, 'modules': {'shodan_dns': {}, 'robots': {'include_sitemap': True}}}</span>
+
+<span style="color: #E6EDF3">print(CORE</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">secrets_only_config(config))</span>
+<span style="color: #8B949E; font-style: italic"># {'interactsh_token': 'leaky', 'web': {'http_cookies': {'session': 'abc'}}, ...}</span>
+</code></pre></div>
+<p>The <code>Preset.to_dict()</code> method exposes the same behavior via a <code>redact_secrets=True</code> flag:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">preset</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">to_dict(include_target</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">redact_secrets</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">)</span>
+</code></pre></div>
+<h2 id="mark-your-own-fields-sensitive-or-mandatory">Mark your own fields sensitive or mandatory</h2>
+<p>When you write a module, import <code>Field</code> from <code>bbot.core.config.models</code> (not from <code>pydantic</code> directly) so the <code>sensitive</code> and <code>mandatory</code> keyword args are accepted:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">bbot.core.config.models</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">BaseModuleConfig,</span> <span style="color: #E6EDF3">Field</span>
+
+
+<span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">my_module</span><span style="color: #E6EDF3">(BaseModule):</span>
+    <span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">Config</span><span style="color: #E6EDF3">(BaseModuleConfig):</span>
+        <span style="color: #E6EDF3">api_key:</span> <span style="color: #E6EDF3">str</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">Field(</span><span style="color: #A5D6FF">""</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">description</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"My API key"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">sensitive</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">mandatory</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">)</span>
+        <span style="color: #E6EDF3">verbose:</span> <span style="color: #E6EDF3">bool</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">Field(</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">description</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"Print extra detail"</span><span style="color: #E6EDF3">)</span>
+</code></pre></div>
+<ul>
+<li><code>sensitive=True</code> — value is redacted by <code>no_secrets_config()</code> / <code>Preset.to_dict(redact_secrets=True)</code> and lives in <code>~/.config/bbot/secrets.yml</code> rather than <code>bbot.yml</code>.</li>
+<li><code>mandatory=True</code> — module needs this option to function. Drives the <strong>Needs API Key</strong> column in <code>bbot -l</code> and the runtime <code>BaseModule.auth_required</code> property.</li>
+</ul>
+<p>A field can carry both, just one, or neither.</p>
+<h2 id="dump-all-module-metadata">Dump all module metadata</h2>
+<p><code>MODULE_LOADER.preloaded()</code> returns the full preload dict for every module — descriptions, flags, watched/produced events, deps, and (since the field-metadata refactor) the per-module <code>options_sensitive</code> and <code>options_mandatory</code> field-name sets:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">bbot.core.modules</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">MODULE_LOADER</span>
+
+<span style="color: #E6EDF3">MODULE_LOADER</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">preload()</span>
+<span style="color: #E6EDF3">shodan</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">MODULE_LOADER</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">preloaded()[</span><span style="color: #A5D6FF">"shodan_dns"</span><span style="color: #E6EDF3">]</span>
+<span style="color: #E6EDF3">print(shodan[</span><span style="color: #A5D6FF">"options_mandatory"</span><span style="color: #E6EDF3">])</span>  <span style="color: #8B949E; font-style: italic"># ['api_key']</span>
+<span style="color: #E6EDF3">print(shodan[</span><span style="color: #A5D6FF">"options_sensitive"</span><span style="color: #E6EDF3">])</span>  <span style="color: #8B949E; font-style: italic"># ['api_key']</span>
+</code></pre></div>
+<p>For pretty-printed tables, use <code>MODULE_LOADER.modules_table()</code> (module summary) or <code>MODULE_LOADER.modules_options_table()</code> (per-option name/type/description/default) — these are what <code>bbot -l</code> and <code>bbot --help -m &lt;module&gt;</code> render.</p>
+<h2 id="filter-options-by-sensitive-mandatory">Filter options by <code>sensitive</code> / <code>mandatory</code></h2>
+<p>To collect dotted-path keys (e.g. <code>modules.shodan_dns.api_key</code>) for every option carrying a particular flag, you have two options depending on scope.</p>
+<p><strong>Per-module only</strong> — fast, no schema walk. The flag sets are pre-extracted on each preloaded module, so this is just a dict comprehension:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">bbot.core.modules</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">MODULE_LOADER</span>
+
+<span style="color: #E6EDF3">MODULE_LOADER</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">preload()</span>
+
+<span style="color: #E6EDF3">sensitive_paths</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[</span>
+    <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"modules.{</span><span style="color: #E6EDF3">name</span><span style="color: #A5D6FF">}.{</span><span style="color: #E6EDF3">opt</span><span style="color: #A5D6FF">}"</span>
+    <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">name,</span> <span style="color: #E6EDF3">p</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">MODULE_LOADER</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">preloaded()</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">items()</span>
+    <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">opt</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">p</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"options_sensitive"</span><span style="color: #E6EDF3">)</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">[]</span>
+<span style="color: #E6EDF3">]</span>
+
+<span style="color: #E6EDF3">mandatory_paths</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[</span>
+    <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"modules.{</span><span style="color: #E6EDF3">name</span><span style="color: #A5D6FF">}.{</span><span style="color: #E6EDF3">opt</span><span style="color: #A5D6FF">}"</span>
+    <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">name,</span> <span style="color: #E6EDF3">p</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">MODULE_LOADER</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">preloaded()</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">items()</span>
+    <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">opt</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">p</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"options_mandatory"</span><span style="color: #E6EDF3">)</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">[]</span>
+<span style="color: #E6EDF3">]</span>
+
+<span style="color: #8B949E; font-style: italic"># Both flags at once (e.g. an api-key audit — fields a module needs *and* hides):</span>
+<span style="color: #E6EDF3">both</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[</span>
+    <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"modules.{</span><span style="color: #E6EDF3">name</span><span style="color: #A5D6FF">}.{</span><span style="color: #E6EDF3">opt</span><span style="color: #A5D6FF">}"</span>
+    <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">name,</span> <span style="color: #E6EDF3">p</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">MODULE_LOADER</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">preloaded()</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">items()</span>
+    <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">opt</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">set(p</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"options_sensitive"</span><span style="color: #E6EDF3">)</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">[])</span> <span style="color: #FF7B72; font-weight: bold">&amp;</span> <span style="color: #E6EDF3">set(p</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"options_mandatory"</span><span style="color: #E6EDF3">)</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">[])</span>
+<span style="color: #E6EDF3">]</span>
+</code></pre></div>
+<p><strong>Per-module <em>and</em> global</strong> — walk <code>MODULE_LOADER.config_schema</code>, which is the composite pydantic model with global keys (e.g. <code>interactsh_token</code>, <code>web.http_cookies</code>) and every module's <code>Config</code> grafted in under <code>modules.&lt;name&gt;</code>:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">import</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">typing</span>
+<span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">pydantic</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">BaseModel</span>
+<span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">bbot.core.config.models</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">is_sensitive,</span> <span style="color: #E6EDF3">is_mandatory</span>
+
+<span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">schema_paths</span><span style="color: #E6EDF3">(model,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">predicate,</span> <span style="color: #E6EDF3">prefix</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">""</span><span style="color: #E6EDF3">):</span>
+<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""Yield dotted paths for every field where `predicate(FieldInfo)` is True."""</span>
+    <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">name,</span> <span style="color: #E6EDF3">field</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">model</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">model_fields</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">items():</span>
+        <span style="color: #E6EDF3">path</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"{</span><span style="color: #E6EDF3">prefix</span><span style="color: #A5D6FF">}{</span><span style="color: #E6EDF3">name</span><span style="color: #A5D6FF">}"</span>
+        <span style="color: #E6EDF3">ann</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">field</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">annotation</span>
+        <span style="color: #8B949E; font-style: italic"># unwrap Optional[X]</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">typing</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get_origin(ann)</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #E6EDF3">typing</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">Union:</span>
+            <span style="color: #E6EDF3">ann</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">next((a</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">a</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">typing</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get_args(ann)</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">a</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">type(</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)),</span> <span style="color: #E6EDF3">ann)</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">isinstance(ann,</span> <span style="color: #E6EDF3">type)</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #E6EDF3">issubclass(ann,</span> <span style="color: #E6EDF3">BaseModel):</span>
+            <span style="color: #FF7B72">yield from</span> <span style="color: #E6EDF3">schema_paths(ann,</span> <span style="color: #E6EDF3">predicate</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">predicate,</span> <span style="color: #E6EDF3">prefix</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"{</span><span style="color: #E6EDF3">path</span><span style="color: #A5D6FF">}."</span><span style="color: #E6EDF3">)</span>
+        <span style="color: #FF7B72">elif</span> <span style="color: #E6EDF3">predicate(field):</span>
+            <span style="color: #FF7B72">yield</span> <span style="color: #E6EDF3">path</span>
+
+<span style="color: #E6EDF3">all_sensitive</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">list(schema_paths(MODULE_LOADER</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">config_schema,</span> <span style="color: #E6EDF3">predicate</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">is_sensitive))</span>
+<span style="color: #8B949E; font-style: italic"># ['web.http_cookies', 'interactsh_token', 'modules.shodan_dns.api_key', ...]</span>
+</code></pre></div>
+<p>The same pattern works for any field-metadata key you stash via <code>Field(..., json_schema_extra={...})</code> — swap the <code>predicate</code> for your own check.</p>
 </article>
 </div>
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>

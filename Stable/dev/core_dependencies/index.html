@@ -7,12 +7,12 @@
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <meta content="OSINT automation for hackers" name="description"/>
 <meta content="TheTechromancer" name="author"/>
-<link href="https://blacklanternsecurity.github.io/bbot/Stable/dev/discord_bot/" rel="canonical"/>
-<link href="../tests/" rel="prev"/>
-<link href="../scanner/" rel="next"/>
+<link href="https://blacklanternsecurity.github.io/bbot/Stable/dev/core_dependencies/" rel="canonical"/>
+<link href="../dev_environment/" rel="prev"/>
+<link href="../architecture/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
 <meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
-<title>Discord Bot Example - BBOT Docs</title>
+<title>Core Dependencies - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
@@ -26,6 +26,9 @@
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
 <label class="md-overlay" for="__drawer"></label>
 <div data-md-component="skip">
+<a class="md-skip" href="#core-dependencies">
+          Skip to content
+        </a>
 </div>
 <div data-md-component="announce">
 </div>
@@ -49,7 +52,7 @@
 <div class="md-header__topic" data-md-component="header-topic">
 <span class="md-ellipsis">
             
-              Discord Bot Example
+              Core Dependencies
             
           </span>
 </div>
@@ -654,8 +657,20 @@
   </span>
 </a>
 </li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="../core_dependencies/">
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    
+  
+    Core Dependencies
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
 <span class="md-ellipsis">
     
   
@@ -665,6 +680,68 @@
     
   </span>
 </a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#blasthttp-bls">
+<span class="md-ellipsis">
+      
+        blasthttp (BLS)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#blastdns-bls">
+<span class="md-ellipsis">
+      
+        blastdns (BLS)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#cloudcheck-bls">
+<span class="md-ellipsis">
+      
+        cloudcheck (BLS)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#radixtarget-bls">
+<span class="md-ellipsis">
+      
+        radixtarget (BLS)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#asndb-bls">
+<span class="md-ellipsis">
+      
+        asndb (BLS)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#other-key-dependencies">
+<span class="md-ellipsis">
+      
+        Other Key Dependencies
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
 </li>
 <li class="md-nav__item">
 <a class="md-nav__link" href="../architecture/">
@@ -714,9 +791,8 @@
   </span>
 </a>
 </li>
-<li class="md-nav__item md-nav__item--active">
-<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
-<a class="md-nav__link md-nav__link--active" href="./">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../discord_bot/">
 <span class="md-ellipsis">
     
   
@@ -945,91 +1021,77 @@
 </div>
 <div class="md-content" data-md-component="content">
 <article class="md-content__inner md-typeset">
-<h1>Discord Bot Example</h1>
-<p><img alt="bbot-discord" src="https://github.com/blacklanternsecurity/bbot/assets/20261699/22b268a2-0dfd-4c2a-b7c5-548c0f2cc6f9"/></p>
-<p>Below is a simple Discord bot designed to run BBOT scans.</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">examples/discord_bot.py</span><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">import</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">discord</span>
-<span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">discord.ext</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">commands</span>
-
-<span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">bbot.scanner</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">Scanner</span>
-
-
-<span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">BBOTDiscordBot</span><span style="color: #E6EDF3">(commands</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">Cog):</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
-<span style="color: #A5D6FF">    A simple Discord bot capable of running a BBOT scan.</span>
-
-<span style="color: #A5D6FF">    To set up:</span>
-<span style="color: #A5D6FF">        1. Go to Discord Developer Portal (https://discord.com/developers)</span>
-<span style="color: #A5D6FF">        2. Create a new application</span>
-<span style="color: #A5D6FF">        3. Create an invite link for the bot, visit the link to invite it to your server</span>
-<span style="color: #A5D6FF">            - Your Application --&gt; OAuth2 --&gt; URL Generator</span>
-<span style="color: #A5D6FF">                - For Scopes, select "bot"</span>
-<span style="color: #A5D6FF">                - For Bot Permissions, select:</span>
-<span style="color: #A5D6FF">                    - Read Messages/View Channels</span>
-<span style="color: #A5D6FF">                    - Send Messages</span>
-<span style="color: #A5D6FF">        4. Turn on "Message Content Intent"</span>
-<span style="color: #A5D6FF">            - Your Application --&gt; Bot --&gt; Privileged Gateway Intents --&gt; Message Content Intent</span>
-<span style="color: #A5D6FF">        5. Copy your Discord Bot Token and put it at the top of this file</span>
-<span style="color: #A5D6FF">            - Your Application --&gt; Bot --&gt; Reset Token</span>
-<span style="color: #A5D6FF">        6. Run this script</span>
-
-<span style="color: #A5D6FF">    To scan evilcorp.com, you would type:</span>
-
-<span style="color: #A5D6FF">        /scan evilcorp.com</span>
-
-<span style="color: #A5D6FF">    Results will be output to the same channel.</span>
-<span style="color: #A5D6FF">    """</span>
-
-    <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">__init__</span><span style="color: #E6EDF3">(self):</span>
-        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">current_scan</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">None</span>
-
-    <span style="color: #D2A8FF; font-weight: bold">@commands</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">command(name</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"scan"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">description</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"Scan a target with BBOT."</span><span style="color: #E6EDF3">)</span>
-    <span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">scan</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">ctx,</span> <span style="color: #E6EDF3">target:</span> <span style="color: #E6EDF3">str):</span>
-        <span style="color: #8B949E; font-style: italic"># stop any existing scan</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">current_scan</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">current_scan</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">stop()</span>
-        <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">ctx</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">send(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Starting scan against **{</span><span style="color: #E6EDF3">target</span><span style="color: #A5D6FF">}**"</span><span style="color: #E6EDF3">)</span>
-
-        <span style="color: #8B949E; font-style: italic"># create scan instance</span>
-        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">current_scan</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">Scanner(target,</span> <span style="color: #E6EDF3">presets</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"subdomain-enum"</span><span style="color: #E6EDF3">])</span>
-
-        <span style="color: #8B949E; font-style: italic"># iterate through results and send them to the channel</span>
-        <span style="color: #E6EDF3">num_events</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">0</span>
-        <span style="color: #FF7B72">async</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">event</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">current_scan</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">async_start():</span>
-            <span style="color: #8B949E; font-style: italic"># format findings differently to show severity</span>
-            <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">type</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #A5D6FF">"FINDING"</span><span style="color: #E6EDF3">:</span>
-                <span style="color: #E6EDF3">severity</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">data</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"severity"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"INFO"</span><span style="color: #E6EDF3">)</span>
-                <span style="color: #E6EDF3">description</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">data</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"description"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">""</span><span style="color: #E6EDF3">)</span>
-                <span style="color: #E6EDF3">event_text</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"`[FINDING]` [{</span><span style="color: #E6EDF3">severity</span><span style="color: #A5D6FF">}] **{</span><span style="color: #E6EDF3">description</span><span style="color: #A5D6FF">}**"</span>
-            <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
-                <span style="color: #E6EDF3">event_text</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"`[{</span><span style="color: #E6EDF3">event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">type</span><span style="color: #A5D6FF">}]` **`{</span><span style="color: #E6EDF3">event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">data</span><span style="color: #A5D6FF">}`**"</span>
-            <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">ctx</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">send(event_text)</span>
-            <span style="color: #E6EDF3">num_events</span> <span style="color: #FF7B72; font-weight: bold">+=</span> <span style="color: #A5D6FF">1</span>
-
-        <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">ctx</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">send(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"Finished scan against **{</span><span style="color: #E6EDF3">target</span><span style="color: #A5D6FF">}**. {</span><span style="color: #E6EDF3">num_events</span><span style="color: #A5D6FF">:,} results."</span><span style="color: #E6EDF3">)</span>
-        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">current_scan</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">None</span>
-
-    <span style="color: #D2A8FF; font-weight: bold">@commands</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">command(name</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"stop"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">description</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"Stop the current scan."</span><span style="color: #E6EDF3">)</span>
-    <span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">stop</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">ctx):</span>
-        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">current_scan</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
-            <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">ctx</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">send(</span><span style="color: #A5D6FF">"No scan is currently running."</span><span style="color: #E6EDF3">)</span>
-            <span style="color: #FF7B72">return</span>
-        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">current_scan</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">stop()</span>
-        <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">ctx</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">send(</span><span style="color: #A5D6FF">"Scan stopped."</span><span style="color: #E6EDF3">)</span>
-
-
-<span style="color: #FF7B72">if</span> <span style="color: #79C0FF">__name__</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #A5D6FF">"__main__"</span><span style="color: #E6EDF3">:</span>
-    <span style="color: #E6EDF3">intents</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">discord</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">Intents</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">default()</span>
-    <span style="color: #E6EDF3">intents</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">message_content</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">True</span>
-    <span style="color: #E6EDF3">bot</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">commands</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">Bot(command_prefix</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"/"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">intents</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">intents)</span>
-
-    <span style="color: #D2A8FF; font-weight: bold">@bot</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">event</span>
-    <span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">on_ready</span><span style="color: #E6EDF3">():</span>
-        <span style="color: #E6EDF3">print(</span><span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"We have logged in as {</span><span style="color: #E6EDF3">bot</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">user</span><span style="color: #A5D6FF">}"</span><span style="color: #E6EDF3">)</span>
-        <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">bot</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">add_cog(BBOTDiscordBot())</span>
-
-    <span style="color: #E6EDF3">bot</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">run(</span><span style="color: #A5D6FF">"DISCORD_BOT_TOKEN_HERE"</span><span style="color: #E6EDF3">)</span>
+<h1 id="core-dependencies">Core Dependencies</h1>
+<p>BBOT is built on top of several purpose-built libraries, most of which are maintained by <a href="https://github.com/blacklanternsecurity">Black Lantern Security</a>. Understanding these will help you navigate the codebase and avoid reinventing things that already exist.</p>
+<p>Libraries marked with <strong>BLS</strong> are maintained by us.</p>
+<h2 id="blasthttp-bls">blasthttp (BLS)</h2>
+<p><a href="https://github.com/blacklanternsecurity/blasthttp">blasthttp</a> is a Rust-backed HTTP client built for speed. It handles all of BBOT's outbound HTTP traffic, including module API calls, web spidering, and brute-forcing.</p>
+<p>Module authors don't typically interact with blasthttp directly. Instead, use <code>self.helpers.request()</code>:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">response</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">helpers</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">request(</span><span style="color: #A5D6FF">"https://example.com/api"</span><span style="color: #E6EDF3">)</span>
+<span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">response</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #E6EDF3">response</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">status_code</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #A5D6FF">200</span><span style="color: #E6EDF3">:</span>
+    <span style="color: #E6EDF3">data</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">response</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">json()</span>
 </code></pre></div>
+<p>The shared blasthttp client is accessible at <code>self.helpers.blasthttp</code> and respects the global <code>web.http_rate_limit</code> config.</p>
+<h2 id="blastdns-bls">blastdns (BLS)</h2>
+<p><a href="https://github.com/blacklanternsecurity/blastdns">blastdns</a> is a Rust-backed async DNS resolver. It powers all of BBOT's DNS resolution with built-in caching, retries, and per-resolver parallelism. BBOT spins up multiple workers per resolver in <code>/etc/resolv.conf</code>, so adding more resolvers directly speeds up scans.</p>
+<p>Accessed via <code>self.helpers.dns</code>:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># resolve a hostname</span>
+<span style="color: #E6EDF3">results</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">helpers</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">resolve(</span><span style="color: #A5D6FF">"example.com"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">rdtype</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"A"</span><span style="color: #E6EDF3">)</span>
+
+<span style="color: #8B949E; font-style: italic"># resolve with full record details</span>
+<span style="color: #E6EDF3">results</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">helpers</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">resolve_full(</span><span style="color: #A5D6FF">"example.com"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">rdtype</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"CNAME"</span><span style="color: #E6EDF3">)</span>
+</code></pre></div>
+<h2 id="cloudcheck-bls">cloudcheck (BLS)</h2>
+<p><a href="https://github.com/blacklanternsecurity/cloudcheck">cloudcheck</a> identifies which cloud provider (if any) owns a given IP or domain. It maintains a regularly-updated database of IP ranges for AWS, Azure, GCP, Cloudflare, and dozens of other providers. BBOT uses it to tag events with cloud provider info (e.g. <code>cloud-aws</code>, <code>cdn-cloudflare</code>).</p>
+<p>Accessed via <code>self.helpers.cloudcheck</code>:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">result</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">helpers</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cloudcheck</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">lookup(</span><span style="color: #A5D6FF">"1.2.3.4"</span><span style="color: #E6EDF3">)</span>
+<span style="color: #8B949E; font-style: italic"># CloudCheckResult with provider name, type (cdn, cloud, waf, etc.)</span>
+</code></pre></div>
+<h2 id="radixtarget-bls">radixtarget (BLS)</h2>
+<p><a href="https://github.com/blacklanternsecurity/radixtarget">radixtarget</a> is a high-performance radix tree for IP/DNS lookups. It is the data structure behind BBOT's target, seed, and blacklist storage, enabling fast scope checks against large target lists with CIDR and subdomain matching.</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">radixtarget</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">RadixTarget</span>
+
+<span style="color: #E6EDF3">rt</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">RadixTarget()</span>
+<span style="color: #E6EDF3">rt</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">insert(</span><span style="color: #A5D6FF">"10.0.0.0/8"</span><span style="color: #E6EDF3">)</span>
+<span style="color: #E6EDF3">rt</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">search(</span><span style="color: #A5D6FF">"10.1.2.3"</span><span style="color: #E6EDF3">)</span>  <span style="color: #8B949E; font-style: italic"># True</span>
+</code></pre></div>
+<h2 id="asndb-bls">asndb (BLS)</h2>
+<p><a href="https://github.com/blacklanternsecurity/asndb">asndb</a> provides ASN lookups for IP addresses, returning the owning organization, AS number, and subnet. BBOT uses it to enrich events with ASN metadata and to support ASN targets (e.g. <code>bbot -t AS1234</code>).</p>
+<p>Accessed via <code>self.helpers.asn</code>:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">result</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">helpers</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">asn</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">lookup(</span><span style="color: #A5D6FF">"8.8.8.8"</span><span style="color: #E6EDF3">)</span>
+<span style="color: #8B949E; font-style: italic"># {"asn": 15169, "name": "GOOGLE", "description": "Google LLC", ...}</span>
+</code></pre></div>
+<h2 id="other-key-dependencies">Other Key Dependencies</h2>
+<table>
+<thead>
+<tr>
+<th>Library</th>
+<th>What BBOT uses it for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://docs.pydantic.dev/">pydantic</a></td>
+<td>Preset/config validation, module config schemas (<code>BaseModuleConfig</code>)</td>
+</tr>
+<tr>
+<td><a href="https://ansible-runner.readthedocs.io/">ansible-runner</a></td>
+<td>Module dependency installation (<code>deps_apt</code>, <code>deps_ansible</code>)</td>
+</tr>
+<tr>
+<td><a href="https://yara.readthedocs.io/">yara-python</a></td>
+<td>Pattern matching in <code>excavate</code> (secret/credential extraction from HTTP responses)</td>
+</tr>
+<tr>
+<td><a href="https://zepworks.com/deepdiff/">deepdiff</a></td>
+<td>HTTP response comparison for web modules (baseline diffing, wildcard detection)</td>
+</tr>
+<tr>
+<td><a href="https://dnspython.readthedocs.io/">dnspython</a></td>
+<td>DNS record type constants and utilities (blastdns handles actual resolution)</td>
+</tr>
+</tbody>
+</table>
 </article>
 </div>
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>

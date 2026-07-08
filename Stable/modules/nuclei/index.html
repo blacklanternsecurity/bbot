@@ -8,10 +8,10 @@
 <meta content="OSINT automation for hackers" name="description"/>
 <meta content="TheTechromancer" name="author"/>
 <link href="https://blacklanternsecurity.github.io/bbot/Stable/modules/nuclei/" rel="canonical"/>
-<link href="../list_of_modules/" rel="prev"/>
-<link href="../custom_yara_rules/" rel="next"/>
+<link href="../internal_modules/" rel="prev"/>
+<link href="../wayback/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.7.3" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
 <title>Nuclei - BBOT Docs</title>
 <link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.04kfkfm3.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.xi6rhz5i.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -382,6 +382,18 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/scan_sanity/">
+<span class="md-ellipsis">
+    
+  
+    Scan Sanity
+  
+
+    
+  </span>
+</a>
+</li>
 </ul>
 </nav>
 </li>
@@ -414,6 +426,18 @@
     
   
     List of Modules
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../internal_modules/">
+<span class="md-ellipsis">
+    
+  
+    Internal Modules
   
 
     
@@ -560,6 +584,18 @@
 </nav>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../wayback/">
+<span class="md-ellipsis">
+    
+  
+    Wayback
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../custom_yara_rules/">
 <span class="md-ellipsis">
     
@@ -583,12 +619,62 @@
   </span>
 </a>
 </li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../webbrute/">
+<span class="md-ellipsis">
+    
+  
+    Webbrute
+  
+
+    
+  </span>
+</a>
+</li>
 </ul>
 </nav>
 </li>
 <li class="md-nav__item md-nav__item--section md-nav__item--nested">
 <input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_4" type="checkbox"/>
 <label class="md-nav__link" for="__nav_1_4" id="__nav_1_4_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    Migration
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Migration
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../migration/3.0_breaking_changes/">
+<span class="md-ellipsis">
+    
+  
+    2.x → 3.0 Breaking Changes
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="">
 <span class="md-ellipsis">
     
   
@@ -599,8 +685,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_1_4">
+<nav aria-expanded="false" aria-labelledby="__nav_1_5_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_5">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -699,6 +785,18 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/core_dependencies/">
+<span class="md-ellipsis">
+    
+  
+    Core Dependencies
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../../dev/architecture/">
 <span class="md-ellipsis">
     
@@ -716,6 +814,18 @@
     
   
     How to Write a BBOT Module
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/preset_validation/">
+<span class="md-ellipsis">
+    
+  
+    Validating &amp; Inspecting Presets
   
 
     
@@ -747,8 +857,8 @@
 </a>
 </li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_9" id="__nav_2_9_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -759,8 +869,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_label" class="md-nav" data-md-level="2">
-<label class="md-nav__title" for="__nav_2_7">
+<nav aria-expanded="false" aria-labelledby="__nav_2_9_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_9">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -841,21 +951,9 @@
   </span>
 </a>
 </li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="../../dev/engine/">
-<span class="md-ellipsis">
-    
-  
-    Engine
-  
-
-    
-  </span>
-</a>
-</li>
 <li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_7_8" type="checkbox"/>
-<label class="md-nav__link" for="__nav_2_7_8" id="__nav_2_7_8_label" tabindex="0">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9_7" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_9_7" id="__nav_2_9_7_label" tabindex="0">
 <span class="md-ellipsis">
     
   
@@ -866,8 +964,8 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_2_7_8_label" class="md-nav" data-md-level="3">
-<label class="md-nav__title" for="__nav_2_7_8">
+<nav aria-expanded="false" aria-labelledby="__nav_2_9_7_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_2_9_7">
 <span class="md-nav__icon md-icon"></span>
             
   
@@ -981,14 +1079,13 @@
 <p>BBOT integrates with <a href="https://github.com/projectdiscovery/nuclei">Nuclei</a>, an open-source web vulnerability scanner by Project Discovery. This is one of the ways BBOT makes it possible to go from a single target domain/IP all the way to confirmed vulnerabilities, in one scan.</p>
 <p><img alt="Nuclei Killchain" src="https://github.com/blacklanternsecurity/bbot/assets/24899338/7174c4ba-4a6e-4596-bb89-5a0c5f5abe74"/></p>
 <ul>
-<li>The BBOT Nuclei module ingests <strong>[URL]</strong> events and emits events of type <strong>[VULNERABILITY]</strong> or <strong>[FINDING]</strong></li>
-<li>Vulnerabilities will inherit their severity from the Nuclei templates</li>
-<li>Nuclei templates of severity INFO will be emitted as <strong>[FINDINGS]</strong></li>
+<li>The BBOT Nuclei module ingests <strong>[URL]</strong> events and emits events of type <strong>[FINDING]</strong></li>
+<li>Findings will inherit their severity from the Nuclei templates</li>
 </ul>
 <h2 id="default-behavior">Default Behavior</h2>
 <ul>
 <li>By default, only "directory URLs" (URLs ending in a slash) will be scanned, but ALL templates will be used (<strong>BE CAREFUL!</strong>)</li>
-<li>Because it's so aggressive, Nuclei is considered a <strong>deadly</strong> module. This means you need to use the flag <strong>--allow-deadly</strong> to turn it on.</li>
+<li>Because it's aggressive and potentially destructive, Nuclei is tagged as both <strong>loud</strong> and <strong>invasive</strong>. BBOT will warn you before starting the scan, but no special flag is needed to enable it.</li>
 </ul>
 <h2 id="specifying-custom-templates">Specifying custom templates</h2>
 <p>You can specify individual nuclei templates by setting the <code>modules.nuclei.templates</code> to their comma-separated filenames:</p>
@@ -1044,7 +1141,7 @@
 </tr>
 <tr>
 <td>modules.nuclei.mode</td>
-<td>str</td>
+<td>Literal['manual', 'technology', 'severe', 'budget']</td>
 <td>manual | technology | severe | budget. Technology: Only activate based on technology events that match nuclei tags (nuclei -as mode). Manual (DEFAULT): Fully manual settings. Severe: Only critical and high severity templates without intrusive. Budget: Limit Nuclei to a specified number of HTTP requests</td>
 <td>manual</td>
 </tr>
@@ -1094,7 +1191,7 @@
 <td>modules.nuclei.version</td>
 <td>str</td>
 <td>nuclei version</td>
-<td>3.7.1</td>
+<td>3.9.0</td>
 </tr>
 </tbody>
 </table>
@@ -1108,7 +1205,7 @@
 <h4 id="severe">Severe</h4>
 <p><strong>severe</strong> mode uses only high/critical severity templates. It also excludes the intrusive tag. This is intended to be a shortcut for times when you need to rapidly identify high severity vulnerabilities but can't afford the full scan. Because most templates are INFO, LOW, or MEDIUM, your scan will finish much faster.</p>
 <h4 id="technology">Technology</h4>
-<p>This is equivalent to the Nuclei '-as' scan option. It only use templates that match detected technologies, using wappalyzer-based signatures. This can be a nice way to run a light-weight scan that still has a chance to find some good vulnerabilities.</p>
+<p>This is equivalent to the Nuclei '-as' scan option. It only uses templates that match detected technologies, using wappalyzer-based signatures. This can be a nice way to run a light-weight scan that still has a chance to find some good vulnerabilities.</p>
 <h4 id="budget">Budget</h4>
 <p>Budget mode is unique to BBOT.</p>
 <p>For larger scans with thousands of targets, doing a FULL Nuclei scan (1000s of Requests) for each is not realistic.
@@ -1116,7 +1213,7 @@ As an alternative to the other modes, you can take advantage of Nuclei's "collap
 <p>For only the cost of one (or more) "extra" request(s) per host, it can activate several hundred modules. These are modules which happen to look at a BaseUrl, and typically look for a specific string or other attribute. Nuclei is smart about reusing the request data when it can, and we can use this to our advantage.</p>
 <p>The budget parameter is the # of extra requests per host you are willing to send to "feed" Nuclei templates (defaults to 1).
 For those times when vulnerability scanning isn't the main focus, but you want to look for easy wins.</p>
-<p>Of course, there is a rapidly diminishing return when you set he value to more than a handful. Eventually, this becomes 1 template per 1 budget value increase. However, in the 1-10 range there is a lot of value. This graphic should give you a rough visual idea of this concept.</p>
+<p>Of course, there is a rapidly diminishing return when you set the value to more than a handful. Eventually, this becomes 1 template per 1 budget value increase. However, in the 1-10 range there is a lot of value. This graphic should give you a rough visual idea of this concept.</p>
 <p><img alt="Nuclei Budget Mode" src="https://github.com/blacklanternsecurity/bbot/assets/24899338/08a3429c-5a73-437b-84de-27c07d85a529"/></p>
 <h3 id="nuclei-pass-through-options">Nuclei pass-through options</h3>
 <p>Most of the rest of the options are usually passed straight through to Nuclei when its executed. You can do things like set specific <strong>tags</strong> to include, (or exclude with <strong>etags</strong>), exactly how you'd do with Nuclei directly. You can also limit the templates with <strong>severity</strong>.</p>
@@ -1124,16 +1221,16 @@ For those times when vulnerability scanning isn't the main focus, but you want t
 <p><strong>templates</strong> will allow you to set your own templates directory. This can be very useful if you have your own custom templates that you want to use with BBOT.</p>
 <h3 id="example-commands">Example Commands</h3>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Scan a SINGLE target with a basic port scan and web modules</span>
-bbot<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>web-basic<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>portscan<span style="color: #6E7681"> </span>nuclei<span style="color: #6E7681"> </span>--allow-deadly<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>app.evilcorp.com
+bbot<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>web<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>portscan<span style="color: #6E7681"> </span>nuclei<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>app.evilcorp.com
 </code></pre></div>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Scanning MULTIPLE targets</span>
-bbot<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>web-basic<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>portscan<span style="color: #6E7681"> </span>nuclei<span style="color: #6E7681"> </span>--allow-deadly<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>app1.evilcorp.com<span style="color: #6E7681"> </span>app2.evilcorp.com<span style="color: #6E7681"> </span>app3.evilcorp.com
+bbot<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>web<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>portscan<span style="color: #6E7681"> </span>nuclei<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>app1.evilcorp.com<span style="color: #6E7681"> </span>app2.evilcorp.com<span style="color: #6E7681"> </span>app3.evilcorp.com
 </code></pre></div>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Scanning MULTIPLE targets while performing subdomain enumeration</span>
-bbot<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>web-basic<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>portscan<span style="color: #6E7681"> </span>nuclei<span style="color: #6E7681"> </span>--allow-deadly<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>app1.evilcorp.com<span style="color: #6E7681"> </span>app2.evilcorp.com<span style="color: #6E7681"> </span>app3.evilcorp.com
+bbot<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>web<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>portscan<span style="color: #6E7681"> </span>nuclei<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>app1.evilcorp.com<span style="color: #6E7681"> </span>app2.evilcorp.com<span style="color: #6E7681"> </span>app3.evilcorp.com
 </code></pre></div>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Scanning MULTIPLE targets on a BUDGET</span>
-bbot<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>web-basic<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>portscan<span style="color: #6E7681"> </span>nuclei<span style="color: #6E7681"> </span>--allow-deadly<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.nuclei.mode<span style="color: #FF7B72; font-weight: bold">=</span>budget<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>app1.evilcorp.com<span style="color: #6E7681"> </span>app2.evilcorp.com<span style="color: #6E7681"> </span>app3.evilcorp.com
+bbot<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>web<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>portscan<span style="color: #6E7681"> </span>nuclei<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.nuclei.mode<span style="color: #FF7B72; font-weight: bold">=</span>budget<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>app1.evilcorp.com<span style="color: #6E7681"> </span>app2.evilcorp.com<span style="color: #6E7681"> </span>app3.evilcorp.com
 </code></pre></div>
 </article>
 </div>
