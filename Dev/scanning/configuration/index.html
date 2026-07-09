@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.s7mo68du.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.weohdylu.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1027,7 +1027,7 @@
 <article class="md-content__inner md-typeset">
 <h1 id="configuration-overview">Configuration Overview</h1>
 <p>Normally, <a href="../presets/">Presets</a> are used to configure a scan. However, there may be cases where you want to change BBOT's global defaults so a certain option is always set, even if it's not specified in a preset.</p>
-<p>BBOT has a YAML config at <code>~/.config/bbot/bbot.yml</code>. This is the first config that BBOT loads, so it's a good place to put default settings like <code>http_proxy</code>, <code>max_threads</code>, or <code>http_user_agent</code>. You can also put any module settings here, including <strong>API keys</strong>.</p>
+<p>BBOT has a YAML config at <code>~/.config/bbot/bbot.yml</code>. This is the first config that BBOT loads, so it's a good place to put default settings like <code>http_proxy</code>, <code>max_threads</code>, or <code>http_user_agent</code>. <strong>API keys</strong> and other sensitive values go in a companion file at <code>~/.config/bbot/secrets.yml</code>.</p>
 <p>For a list of all possible config options, see:</p>
 <ul>
 <li><a href="#global-config-options">Global Options</a></li>
@@ -1037,11 +1037,12 @@
 <h2 id="configuration-files">Configuration Files</h2>
 <p>BBOT loads its config from the following files, in this order (last one loaded == highest priority):</p>
 <ul>
-<li><code>~/.config/bbot/bbot.yml</code>  &lt;-- Global BBOT config</li>
-<li>presets (<code>-p</code>)             &lt;-- Presets are good for scan-specific settings</li>
-<li>command line (<code>-c</code>)        &lt;-- CLI overrides everything</li>
+<li><code>~/.config/bbot/bbot.yml</code>      &lt;-- Global BBOT config</li>
+<li><code>~/.config/bbot/secrets.yml</code>   &lt;-- API keys and other sensitive values</li>
+<li>presets (<code>-p</code>)                 &lt;-- Presets are good for scan-specific settings</li>
+<li>command line (<code>-c</code>)            &lt;-- CLI overrides everything</li>
 </ul>
-<p><code>bbot.yml</code> will be automatically created for you when you first run BBOT.</p>
+<p>Both <code>bbot.yml</code> and <code>secrets.yml</code> are automatically created for you when you first run BBOT.</p>
 <h2 id="yaml-config-vs-command-line">YAML Config vs Command Line</h2>
 <p>You can specify config options either via the command line or the config. For example, if you want to proxy your BBOT scan through a local proxy like <a href="https://portswigger.net/burp">Burp Suite</a>, you could either do:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># send BBOT traffic through an HTTP proxy</span>
@@ -1052,8 +1053,8 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 </code></pre></div>
 <p>These two are equivalent.</p>
 <p>Config options specified via the command-line take precedence over all others. You can give BBOT a custom config file with <code>-c myconf.yml</code>, or individual arguments like this: <code>-c modules.shodan_dns.api_key=deadbeef</code>. To display the full and current BBOT config, including any command-line arguments, use <code>bbot -c</code>.</p>
-<p>Note that placing the following in <code>bbot.yml</code>:
-<div class="highlight" style="background: #0d1117"><span class="filename">~/.config/bbot/bbot.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<p>Note that placing the following in <code>secrets.yml</code>:
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.config/bbot/secrets.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">shodan_dns</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">api_key</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">deadbeef</span>
 </code></pre></div>
@@ -1960,7 +1961,7 @@ Is the same as:
 <td>modules.nuclei.version</td>
 <td>str</td>
 <td>nuclei version</td>
-<td>3.9.0</td>
+<td>3.11.0</td>
 </tr>
 <tr>
 <td>modules.oauth.try_all</td>
@@ -2866,7 +2867,7 @@ Is the same as:
 <td>modules.trufflehog.version</td>
 <td>str</td>
 <td>trufflehog version</td>
-<td>3.95.5</td>
+<td>3.95.8</td>
 </tr>
 <tr>
 <td>modules.urlscan.urls</td>

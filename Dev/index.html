@@ -19,7 +19,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="assets/stylesheets/extra-style.s7mo68du.min.css" rel="stylesheet"/></head>
+<link href="assets/stylesheets/extra-style.weohdylu.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1105,9 +1105,9 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">virustotal</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">api_key</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">cafebabe</span>
 </code></pre></div>
-<p>...in BBOT's global YAML config (<code>~/.config/bbot/bbot.yml</code>):</p>
+<p>...in BBOT's global secrets file (<code>~/.config/bbot/secrets.yml</code>):</p>
 <p>Note: this will ensure the API keys are used in all scans, regardless of preset.</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">~/.config/bbot/bbot.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.config/bbot/secrets.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">shodan_dns</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">api_key</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">deadbeef</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">virustotal</span><span style="color: #E6EDF3">:</span>
