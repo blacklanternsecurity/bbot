@@ -958,6 +958,38 @@ async def test_cli_console_control_chars(monkeypatch, capsys):
     assert "\x0e" not in err and "\x1b(0" not in err
     assert "\\x0e" in err
 
+    # tracebacks and stack info are also sanitized (an exception carrying scan-derived
+    # bytes must not reach the terminal unescaped via logger.exception / exc_info=True)
+    try:
+        raise ValueError(dirty)
+    except ValueError:
+        exc_record = logging.LogRecord(
+            name="bbot.modules.nuclei",
+            level=logging.ERROR,
+            pathname=__file__,
+            lineno=1,
+            msg="boom",
+            args=None,
+            exc_info=sys.exc_info(),
+        )
+    formatted = formatter.format(exc_record)
+    assert "\x0e" not in formatted and "\x1b(0" not in formatted
+    assert "\\x0e" in formatted and "ValueError" in formatted
+
+    stack_record = logging.LogRecord(
+        name="bbot.modules.nuclei",
+        level=logging.ERROR,
+        pathname=__file__,
+        lineno=1,
+        msg="boom",
+        args=None,
+        exc_info=None,
+    )
+    stack_record.stack_info = f"Stack: {dirty}"
+    formatted = formatter.format(stack_record)
+    assert "\x0e" not in formatted and "\x1b(0" not in formatted
+    assert "\\x0e" in formatted
+
 
 @pytest.mark.asyncio
 async def test_cli_reset_config(monkeypatch, caplog, tmp_path):
