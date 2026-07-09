@@ -2,7 +2,7 @@
 
 Normally, [Presets](presets.md) are used to configure a scan. However, there may be cases where you want to change BBOT's global defaults so a certain option is always set, even if it's not specified in a preset.
 
-BBOT has a YAML config at `~/.config/bbot/bbot.yml`. This is the first config that BBOT loads, so it's a good place to put default settings like `http_proxy`, `max_threads`, or `http_user_agent`. You can also put any module settings here, including **API keys**.
+BBOT has a YAML config at `~/.config/bbot/bbot.yml`. This is the first config that BBOT loads, so it's a good place to put default settings like `http_proxy`, `max_threads`, or `http_user_agent`. **API keys** and other sensitive values go in a companion file at `~/.config/bbot/secrets.yml`.
 
 For a list of all possible config options, see:
 
@@ -15,11 +15,12 @@ For examples of common config changes, see [Tips and Tricks](tips_and_tricks.md)
 
 BBOT loads its config from the following files, in this order (last one loaded == highest priority):
 
-- `~/.config/bbot/bbot.yml`  <-- Global BBOT config
-- presets (`-p`)             <-- Presets are good for scan-specific settings
-- command line (`-c`)        <-- CLI overrides everything
+- `~/.config/bbot/bbot.yml`      <-- Global BBOT config
+- `~/.config/bbot/secrets.yml`   <-- API keys and other sensitive values
+- presets (`-p`)                 <-- Presets are good for scan-specific settings
+- command line (`-c`)            <-- CLI overrides everything
 
-`bbot.yml` will be automatically created for you when you first run BBOT.
+Both `bbot.yml` and `secrets.yml` are automatically created for you when you first run BBOT.
 
 ## YAML Config vs Command Line
 
@@ -40,8 +41,8 @@ These two are equivalent.
 
 Config options specified via the command-line take precedence over all others. You can give BBOT a custom config file with `-c myconf.yml`, or individual arguments like this: `-c modules.shodan_dns.api_key=deadbeef`. To display the full and current BBOT config, including any command-line arguments, use `bbot -c`.
 
-Note that placing the following in `bbot.yml`:
-```yaml title="~/.config/bbot/bbot.yml"
+Note that placing the following in `secrets.yml`:
+```yaml title="~/.config/bbot/secrets.yml"
 modules:
   shodan_dns:
     api_key: deadbeef

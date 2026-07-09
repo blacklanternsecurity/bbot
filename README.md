@@ -343,7 +343,7 @@ For more information, see [Targets](https://www.blacklanternsecurity.com/bbot/St
 
 Similar to Amass or Subfinder, BBOT supports API keys for various third-party services such as SecurityTrails, etc.
 
-The standard way to do this is to enter your API keys in **`~/.config/bbot/bbot.yml`**. Note that multiple API keys are allowed:
+The standard way to do this is to enter your API keys in **`~/.config/bbot/secrets.yml`**. Note that multiple API keys are allowed:
 ```yaml
 modules:
   shodan_dns:
