@@ -43,9 +43,9 @@ usage: bbot [-h] [-t TARGET [TARGET ...]] [-s SEEDS [SEEDS ...]]
                [-om MODULE [MODULE ...]] [-eom MODULE [MODULE ...]] [-lo]
                [--json] [--brief] [--no-color]
                [--event-types EVENT_TYPES [EVENT_TYPES ...]] [--exclude-cdn]
-               [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps]
-               [--install-all-deps] [--version] [--reset-config]
-               [--reset-secrets] [--proxy HTTP_PROXY]
+               [--no-deps | --force-deps | --retry-deps |
+               --ignore-failed-deps] [--install-all-deps] [--version]
+               [--reset-config] [--reset-secrets] [--proxy HTTP_PROXY]
                [--no-proxy HOST [HOST ...]]
                [-H CUSTOM_HEADERS [CUSTOM_HEADERS ...]]
                [-C CUSTOM_COOKIES [CUSTOM_COOKIES ...]]
@@ -58,40 +58,39 @@ options:
   -h, --help            show this help message and exit
 
 Target:
-  -t TARGET [TARGET ...], --targets TARGET [TARGET ...]
+  -t, --targets TARGET [TARGET ...]
                         Target scope
-  -s SEEDS [SEEDS ...], --seeds SEEDS [SEEDS ...]
+  -s, --seeds SEEDS [SEEDS ...]
                         Define seeds to drive passive modules without being in scope (if not specified, defaults to same as targets)
-  -b BLACKLIST [BLACKLIST ...], --blacklist BLACKLIST [BLACKLIST ...]
+  -b, --blacklist BLACKLIST [BLACKLIST ...]
                         Don't touch these things
   --strict-scope        Don't consider subdomains of target to be in-scope - exact matches only
 
 Presets:
-  -p [PRESET ...], --preset [PRESET ...]
+  -p, --preset [PRESET ...]
                         Enable BBOT preset(s)
-  -c [CONFIG ...], --config [CONFIG ...]
+  -c, --config [CONFIG ...]
                         Custom config options in key=value format: e.g. 'modules.shodan.api_key=1234'
   -lp, --list-presets   List available presets.
 
 Modules:
-  -m MODULE [MODULE ...], --modules MODULE [MODULE ...]
+  -m, --modules MODULE [MODULE ...]
                         Modules to enable. Choices: affiliates,ajaxpro,anubisdb,apkpure,asn,aspnet_bin_exposure,azure_tenant,baddns,baddns_direct,baddns_zone,badsecrets,bevigil,bucket_amazon,bucket_digitalocean,bucket_file_enum,bucket_firebase,bucket_google,bucket_hetzner,bucket_microsoft,bufferoverrun,builtwith,bypass403,c99,censys_dns,censys_ip,certspotter,chaos,code_repository,credshed,crt,crt_db,dehashed,dnsbimi,dnsbrute,dnsbrute_mutations,dnscaa,dnscommonsrv,dnsdumpster,dnstlsrpt,docker_pull,dockerhub,dotnetnuke,emailformat,filedownload,fingerprintx,fullhunt,generic_ssrf,git,git_clone,gitdumper,github_codesearch,github_org,github_usersearch,github_workflows,gitlab_com,gitlab_onprem,google_playstore,gowitness,graphql_introspection,hackertarget,host_header,http,hunt,hunterio,iis_shortnames,ip2location,ipneighbor,ipstack,jadx,kreuzberg,leakix,legba,lightfuzz,medusa,myssl,newsletters,ntlm,nuclei,oauth,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,pgp,portfilter,portscan,postman,postman_download,rapiddns,reflected_parameters,retirejs,robots,securitytrails,securitytxt,shodan_dns,shodan_enterprise,shodan_idb,skymem,social,sslcert,subdomaincenter,subdomainradar,telerik,trajan,trickest,trufflehog,url_manipulation,urlscan,viewdns,virtualhost,virustotal,waf_bypass,wafw00f,wayback,webbrute,webbrute_shortnames
   -l, --list-modules    List available modules.
   -lmo, --list-module-options
                         Show all module config options
-  -em MODULE [MODULE ...], --exclude-modules MODULE [MODULE ...]
+  -em, --exclude-modules MODULE [MODULE ...]
                         Exclude these modules.
-  -f FLAG [FLAG ...], --flags FLAG [FLAG ...]
+  -f, --flags FLAG [FLAG ...]
                         Enable modules by flag. Choices: active,affiliates,baddns,cloud-enum,code-enum,download,email-enum,iis-shortnames,invasive,loud,passive,portscan,safe,service-enum,slow,social-enum,subdomain-enum,subdomain-hijack,web,web-heavy,web-paramminer,web-screenshots
   -lf, --list-flags     List available flags.
-  -rf FLAG [FLAG ...], --require-flags FLAG [FLAG ...]
+  -rf, --require-flags FLAG [FLAG ...]
                         Only enable modules with these flags (e.g. -rf passive)
-  -ef FLAG [FLAG ...], --exclude-flags FLAG [FLAG ...]
+  -ef, --exclude-flags FLAG [FLAG ...]
                         Disable modules with these flags. (e.g. -ef loud)
 
 Scan:
-  -n SCAN_NAME, --name SCAN_NAME
-                        Name of scan (default: random)
+  -n, --name SCAN_NAME  Name of scan (default: random)
   -v, --verbose         Be more verbose
   -d, --debug           Enable debugging
   -S, --silent          Be quiet
@@ -102,15 +101,14 @@ Scan:
   --current-preset      Show the current preset in YAML format
   --current-preset-full
                         Show the current preset in its full form, including defaults
-  -mh MODULE, --module-help MODULE
+  -mh, --module-help MODULE
                         Show help for a specific module
 
 Output:
-  -o DIR, --output-dir DIR
-                        Directory to output scan results
-  -om MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
+  -o, --output-dir DIR  Directory to output scan results
+  -om, --output-modules MODULE [MODULE ...]
                         Add output module(s). Choices: asset_inventory,csv,discord,elastic,emails,json,kafka,mongo,mysql,nats,neo4j,nmap_xml,postgres,rabbitmq,slack,splunk,sqlite,stdout,subdomains,teams,txt,web_parameters,web_report,webhook,websocket,zeromq
-  -eom MODULE [MODULE ...], --exclude-output-modules MODULE [MODULE ...]
+  -eom, --exclude-output-modules MODULE [MODULE ...]
                         Exclude output module(s)
   -lo, --list-output-modules
                         List available output modules
@@ -137,15 +135,15 @@ Misc:
   --proxy HTTP_PROXY    Use this proxy for all HTTP requests
   --no-proxy HOST [HOST ...]
                         Exclude these hosts from proxy (e.g. localhost *.internal.corp 10.0.0.0/8)
-  -H CUSTOM_HEADERS [CUSTOM_HEADERS ...], --custom-headers CUSTOM_HEADERS [CUSTOM_HEADERS ...]
+  -H, --custom-headers CUSTOM_HEADERS [CUSTOM_HEADERS ...]
                         List of custom headers as key value pairs (header=value).
-  -C CUSTOM_COOKIES [CUSTOM_COOKIES ...], --custom-cookies CUSTOM_COOKIES [CUSTOM_COOKIES ...]
+  -C, --custom-cookies CUSTOM_COOKIES [CUSTOM_COOKIES ...]
                         List of custom cookies as key value pairs (cookie=value).
-  --custom-yara-rules CUSTOM_YARA_RULES, -cy CUSTOM_YARA_RULES
+  --custom-yara-rules, -cy CUSTOM_YARA_RULES
                         Add custom yara rules to excavate
-  --user-agent USER_AGENT, -ua USER_AGENT
+  --user-agent, -ua USER_AGENT
                         Set the user-agent for all HTTP requests
-  --user-agent-suffix SUFFIX, -uas SUFFIX
+  --user-agent-suffix, -uas SUFFIX
                         Suffix to append to the user-agent
 
 EXAMPLES
