@@ -70,6 +70,9 @@ class Stdout(BaseOutputModule):
         else:
             event_str = self.human_event_str(event)
 
+        # escape control characters so they can't corrupt the terminal
+        event_str = self.helpers.make_printable(event_str)
+
         # color findings: severity picks the hue, confidence dims the brightness
         if event.type == "FINDING" and isinstance(event.data, dict) and self.use_color:
             event_str = self._colorize_finding(event_str, event)

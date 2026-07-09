@@ -472,6 +472,17 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert helpers.is_printable("4") is True
     assert helpers.is_printable("asdf\x00") is False
 
+    # make_printable
+    assert helpers.make_printable("asdf") == "asdf"
+    assert helpers.make_printable("ドメイン.テスト") == "ドメイン.テスト"
+    # 0x0e (Shift Out) is the byte that flips a terminal into its line-drawing charset
+    assert helpers.make_printable("a\x0eb") == "a\\x0eb"
+    assert helpers.make_printable("\x00\x1b\x7f") == "\\x00\\x1b\x7f"
+    # tab, newline, and carriage return are preserved
+    assert helpers.make_printable("tab\tnl\ncr\r") == "tab\tnl\ncr\r"
+    # bytes are decoded before escaping
+    assert helpers.make_printable(b"a\x0eb") == "a\\x0eb"
+
     # punycode
     assert helpers.smart_encode_punycode("ドメイン.テスト") == "xn--eckwd4c7c.xn--zckzah"
     assert helpers.smart_decode_punycode("xn--eckwd4c7c.xn--zckzah") == "ドメイン.テスト"
