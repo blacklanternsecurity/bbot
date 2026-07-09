@@ -1,6 +1,6 @@
 # BBOT Helpers
 
-In this section are various helper functions that are designed to make your life easier when devving on BBOT. Whether you're extending BBOT by writing a module or working on its core engine, these functions are designed to act as useful machine parts to perform essential tasks, such as making a web request or executing a DNS query.
+In this section are various helper functions that are designed to make your life easier when devving on BBOT. Whether you're extending BBOT by writing a module or working on its core, these functions are designed to act as useful machine parts to perform essential tasks, such as making a web request or executing a DNS query.
 
 The vast majority of these helpers can be accessed directly from the `.helpers` attribute of a scan or module, like so:
 

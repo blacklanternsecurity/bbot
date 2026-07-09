@@ -43,7 +43,7 @@ class github_workflows(github):
     async def filter_event(self, event):
         if "git" not in event.tags:
             return False, "event is not a git repository"
-        elif "github.com" not in event.url:
+        elif str(event.host) != "github.com":
             return False, "event is not a github repository"
         return True
 
@@ -150,16 +150,11 @@ class github_workflows(github):
         if self.output_dir.is_symlink():
             self.warning(f"Refusing to write through symlink: {self.output_dir}")
             return False
-        try:
-            rel = folder.relative_to(self.output_dir)
-        except ValueError:
+        # resolve() collapses ".." and follows symlinks, so this rejects both path
+        # traversal and symlinked components that escape the output directory
+        if not folder.resolve().is_relative_to(self.output_dir.resolve()):
+            self.warning(f"Refusing to write outside output directory: {folder}")
             return False
-        current = self.output_dir
-        for part in rel.parts:
-            current = current / part
-            if current.is_symlink():
-                self.warning(f"Refusing to write through symlink: {current}")
-                return False
         return True
 
     async def download_run_logs(self, owner, repo, run_id):
@@ -230,7 +225,10 @@ class github_workflows(github):
         if not self._check_output_path(folder):
             return None
         self.helpers.mkdir(folder)
-        file_destination = folder / Path(artifact_name).name
+        safe_name = Path(artifact_name).name
+        if safe_name in ("", ".", ".."):
+            safe_name = f"artifact_{artifact_id}"
+        file_destination = folder / safe_name
         try:
             await self.api_download(
                 f"{self.base_url}/repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip",

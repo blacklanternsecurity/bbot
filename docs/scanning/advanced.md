@@ -40,10 +40,12 @@ usage: bbot [-h] [-t TARGET [TARGET ...]] [-s SEEDS [SEEDS ...]]
                [-ef FLAG [FLAG ...]] [-n SCAN_NAME] [-v] [-d] [-S] [--force]
                [-y] [--fast-mode] [--dry-run] [--current-preset]
                [--current-preset-full] [-mh MODULE] [-o DIR]
-               [-om MODULE [MODULE ...]] [-lo] [--json] [--brief] [--no-color]
+               [-om MODULE [MODULE ...]] [-eom MODULE [MODULE ...]] [-lo]
+               [--json] [--brief] [--no-color]
                [--event-types EVENT_TYPES [EVENT_TYPES ...]] [--exclude-cdn]
                [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps]
-               [--install-all-deps] [--version] [--proxy HTTP_PROXY]
+               [--install-all-deps] [--version] [--reset-config]
+               [--reset-secrets] [--proxy HTTP_PROXY]
                [--no-proxy HOST [HOST ...]]
                [-H CUSTOM_HEADERS [CUSTOM_HEADERS ...]]
                [-C CUSTOM_COOKIES [CUSTOM_COOKIES ...]]
@@ -73,7 +75,7 @@ Presets:
 
 Modules:
   -m MODULE [MODULE ...], --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: affiliates,ajaxpro,anubisdb,apkpure,asn,aspnet_bin_exposure,azure_tenant,baddns,baddns_direct,baddns_zone,badsecrets,bevigil,bucket_amazon,bucket_digitalocean,bucket_file_enum,bucket_firebase,bucket_google,bucket_hetzner,bucket_microsoft,bufferoverrun,builtwith,bypass403,c99,censys_dns,censys_ip,certspotter,chaos,code_repository,credshed,crt,crt_db,dehashed,dnsbimi,dnsbrute,dnsbrute_mutations,dnscaa,dnscommonsrv,dnsdumpster,dnstlsrpt,docker_pull,dockerhub,dotnetnuke,emailformat,filedownload,fingerprintx,fullhunt,generic_ssrf,git,git_clone,gitdumper,github_codesearch,github_org,github_usersearch,github_workflows,gitlab_com,gitlab_onprem,google_playstore,gowitness,graphql_introspection,hackertarget,host_header,http,hunt,hunterio,iis_shortnames,ip2location,ipneighbor,ipstack,jadx,kreuzberg,leakix,legba,lightfuzz,medusa,myssl,newsletters,ntlm,nuclei,oauth,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,pgp,portfilter,portscan,postman,postman_download,rapiddns,reflected_parameters,retirejs,robots,securitytrails,securitytxt,shodan_dns,shodan_enterprise,shodan_idb,skymem,social,sslcert,subdomaincenter,subdomainradar,telerik,trajan,trickest,trufflehog,url_manipulation,urlscan,viewdns,virustotal,wafw00f,wayback,webbrute,webbrute_shortnames,wpscan
+                        Modules to enable. Choices: affiliates,ajaxpro,anubisdb,apkpure,asn,aspnet_bin_exposure,azure_tenant,baddns,baddns_direct,baddns_zone,badsecrets,bevigil,bucket_amazon,bucket_digitalocean,bucket_file_enum,bucket_firebase,bucket_google,bucket_hetzner,bucket_microsoft,bufferoverrun,builtwith,bypass403,c99,censys_dns,censys_ip,certspotter,chaos,code_repository,credshed,crt,crt_db,dehashed,dnsbimi,dnsbrute,dnsbrute_mutations,dnscaa,dnscommonsrv,dnsdumpster,dnstlsrpt,docker_pull,dockerhub,dotnetnuke,emailformat,filedownload,fingerprintx,fullhunt,generic_ssrf,git,git_clone,gitdumper,github_codesearch,github_org,github_usersearch,github_workflows,gitlab_com,gitlab_onprem,google_playstore,gowitness,graphql_introspection,hackertarget,host_header,http,hunt,hunterio,iis_shortnames,ip2location,ipneighbor,ipstack,jadx,kreuzberg,leakix,legba,lightfuzz,medusa,myssl,newsletters,ntlm,nuclei,oauth,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,pgp,portfilter,portscan,postman,postman_download,rapiddns,reflected_parameters,retirejs,robots,securitytrails,securitytxt,shodan_dns,shodan_enterprise,shodan_idb,skymem,social,sslcert,subdomaincenter,subdomainradar,telerik,trajan,trickest,trufflehog,url_manipulation,urlscan,viewdns,virtualhost,virustotal,waf_bypass,wafw00f,wayback,webbrute,webbrute_shortnames
   -l, --list-modules    List available modules.
   -lmo, --list-module-options
                         Show all module config options
@@ -107,7 +109,9 @@ Output:
   -o DIR, --output-dir DIR
                         Directory to output scan results
   -om MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
-                        Output module(s). Choices: asset_inventory,csv,discord,elastic,emails,json,kafka,mongo,mysql,nats,neo4j,nmap_xml,postgres,python,rabbitmq,slack,splunk,sqlite,stdout,subdomains,teams,txt,web_parameters,web_report,webhook,websocket,zeromq
+                        Add output module(s). Choices: asset_inventory,csv,discord,elastic,emails,json,kafka,mongo,mysql,nats,neo4j,nmap_xml,postgres,rabbitmq,slack,splunk,sqlite,stdout,subdomains,teams,txt,web_parameters,web_report,webhook,websocket,zeromq
+  -eom MODULE [MODULE ...], --exclude-output-modules MODULE [MODULE ...]
+                        Exclude output module(s)
   -lo, --list-output-modules
                         List available output modules
   --json, -j            Output scan data in JSON format
@@ -128,6 +132,8 @@ Module dependencies:
 
 Misc:
   --version             show BBOT version and exit
+  --reset-config        Regenerate bbot.yml from current defaults (overwrites; backs up to .bak)
+  --reset-secrets       Regenerate secrets.yml from current defaults (overwrites; backs up to .bak)
   --proxy HTTP_PROXY    Use this proxy for all HTTP requests
   --no-proxy HOST [HOST ...]
                         Exclude these hosts from proxy (e.g. localhost *.internal.corp 10.0.0.0/8)
@@ -179,3 +185,5 @@ EXAMPLES
 
 ```
 <!-- END BBOT HELP OUTPUT -->
+
+[Next Up: Configuration -->](./configuration.md){ .md-button .md-button--primary }

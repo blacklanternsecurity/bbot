@@ -18,7 +18,7 @@ bbot -t example.com -m webbrute
 bbot -t example.com -m webbrute -c modules.webbrute.extensions=php,asp,jsp
 
 # Aggressive mode with larger wordlist and recursion
-bbot -t example.com -p dirbust-heavy
+bbot -t example.com -p webbrute-heavy
 ```
 
 ## Features
@@ -142,7 +142,7 @@ Hits are collected during the response stream but are not emitted immediately. B
 
 BBOT includes two presets for directory brute-forcing:
 
-### `dirbust-light`
+### `webbrute`
 
 Surface-level directory discovery with a smaller wordlist. Good for quick scans.
 
@@ -151,10 +151,10 @@ Surface-level directory discovery with a smaller wordlist. Good for quick scans.
 - WAF avoidance enabled
 
 ```bash
-bbot -t example.com -p dirbust-light
+bbot -t example.com -p webbrute
 ```
 
-### `dirbust-heavy`
+### `webbrute-heavy`
 
 Aggressive recursive brute-forcing with a large extension list. Includes spidering and wayback URL extraction to discover additional directories to fuzz. WAF avoidance is disabled so brute-forcing proceeds even against WAF-protected hosts.
 
@@ -165,5 +165,5 @@ Aggressive recursive brute-forcing with a large extension list. Includes spideri
 - `avoid_wafs` disabled
 
 ```bash
-bbot -t example.com -p dirbust-heavy
+bbot -t example.com -p webbrute-heavy
 ```

@@ -47,7 +47,7 @@ bbot -t evilcorp.com -f subdomain-enum -c dns.brute_threads=5000
 
 ### Speed Up Scans with More DNS Resolvers
 
-By far the most effective way to speed up a BBOT scan is to **add more resolvers to `/etc/resolv.conf`**. BBOT's DNS engine (blastdns) spins up ten workers per resolver, so more resolvers = more parallelism = faster scans.
+By far the most effective way to speed up a BBOT scan is to **add more resolvers to `/etc/resolv.conf`**. BBOT's DNS resolver (blastdns) spins up multiple threads per resolver (default: `10`, configurable via `dns.threads`), so more resolvers = more parallelism = faster scans.
 
 For OSINT, it's critical that every resolver is **unfiltered**. Specialized resolvers that try to block ads, malicious domains, etc. will intentionally omit results. Below is a sample `/etc/resolv.conf` with 11 unfiltered public resolvers:
 
@@ -55,55 +55,52 @@ For OSINT, it's critical that every resolver is **unfiltered**. Specialized reso
 --8<-- "docs/data/resolv-sample.conf"
 ```
 
-Copy this to `/etc/resolv.conf` (or append the `nameserver` lines to your existing config). With all 11 resolvers, blastdns will run 110 workers in parallel instead of the typical 10-30 you get from a default OS config.
+Copy this to `/etc/resolv.conf` (or append the `nameserver` lines to your existing config). With all 11 resolvers at the default 10 threads each, blastdns will run 110 workers in parallel instead of the typical 10-30 you get from a default OS config.
 
 !!! tip
     If your system uses `systemd-resolved` or `resolvconf`, you may need to configure the upstream forwarders there instead of editing `/etc/resolv.conf` directly.
 
 ### Web Spider
 
-The web spider is great for finding juicy data like subdomains, email addresses, and javascript secrets buried in webpages. However since it can lengthen the duration of a scan, it's disabled by default. To enable the web spider, you must increase the value of `web.spider_distance`.
+The web spider is great for finding juicy data like subdomains, email addresses, and javascript secrets buried in webpages. However since it can lengthen the duration of a scan, it's disabled by default. To enable it, use one of the built-in spider presets:
 
-The web spider is controlled with three config values:
-
-- `web.spider_depth` (default: `1`: the maximum directory depth allowed. This is to prevent the spider from delving too deep into a website.
-- `web.spider_distance` (`0` == all spidering disabled, default: `0`): the maximum number of links that can be followed in a row. This is designed to limit the spider in cases where `web.spider_depth` fails (e.g. for an ecommerce website with thousands of base-level URLs).
-- `web.spider_links_per_page` (default: `25`): the maximum number of links per page that can be followed. This is designed to save you in cases where a single page has hundreds or thousands of links.
-
-Here is a typical example:
-
-```yaml title="spider.yml"
-config:
-  web:
-    spider_depth: 2
-    spider_distance: 2
-    spider_links_per_page: 25
-```
+- **`spider`** -- follows links up to distance 2, depth 4, 25 links per page. Includes a blacklist to avoid following logout links.
+- **`spider-heavy`** -- more aggressive: distance 4, depth 6, 50 links per page.
 
 ```bash
-# run the web spider against www.evilcorp.com
-bbot -t www.evilcorp.com -m http -c spider.yml
+# spider www.evilcorp.com
+bbot -t www.evilcorp.com -p spider
+
+# pair with subdomain enumeration
+bbot -t evilcorp.com -p subdomain-enum spider
+
+# use the heavier spider
+bbot -t evilcorp.com -p subdomain-enum spider-heavy
 ```
 
-You can also pair the web spider with subdomain enumeration:
+If you need custom settings, the spider is controlled with three config values:
+
+- `web.spider_distance` (`0` == disabled, default: `0`): the maximum number of links that can be followed in a row.
+- `web.spider_depth` (default: `1`): the maximum directory depth allowed.
+- `web.spider_links_per_page` (default: `25`): the maximum number of links per page that can be followed.
 
 ```bash
-# spider every subdomain of evilcorp.com
-bbot -t evilcorp.com -f subdomain-enum -c spider.yml
+# custom spider settings on the command line
+bbot -t www.evilcorp.com -m http -c web.spider_distance=3 web.spider_depth=5
 ```
 
 ### Exclude CDNs from Port Scan
 
-Use `--exclude-cdns` to filter out unwanted open ports from CDNs and WAFs, e.g. Cloudflare. You can also customize the criteria by setting `modules.portfilter.cdn_tags`. By default, only open ports with `cdn-*` tags are filtered, but you can include all cloud providers by setting `cdn_tags` to `cdn,cloud`:
+Use `--exclude-cdn` to filter out unwanted open ports from CDNs and WAFs, e.g. Cloudflare. You can also customize the criteria by setting `modules.portfilter.cdn_tags`. By default, only open ports with `cdn-*` tags are filtered, but you can include all cloud providers by setting `cdn_tags` to `cdn,cloud`:
 
 ```bash
-bbot -t evilcorp.com --exclude-cdns -c modules.portfilter.cdn_tags=cdn,cloud
+bbot -t evilcorp.com --exclude-cdn -c modules.portfilter.cdn_tags=cdn,cloud
 ```
 
 Additionally, you can customize the allowed ports by setting `modules.portscan.allowed_cdn_ports`.
 
 ```bash
-bbot -t evilcorp.com --exclude-cdns -c modules.portfilter.allowed_cdn_ports=80,443,8443
+bbot -t evilcorp.com --exclude-cdn -c modules.portfilter.allowed_cdn_ports=80,443,8443
 ```
 
 Example preset:
@@ -157,16 +154,14 @@ If you have a ready list of hosts/urls and just want to scan them as fast as pos
 --8<-- "bbot/presets/fast.yml"
 ```
 
-If you already have a list of discovered targets (e.g. URLs), you can speed up the scan by skipping BBOT's DNS resolution. You can do this by setting `dns.disable` to `true`:
-
-If you don't care about DNS-based scope checks, you can go even further by completely disabling DNS resolution:
+If you already have a list of discovered targets (e.g. URLs) and don't need DNS-based scope checks, you can go further by completely disabling DNS resolution:
 
 ~~~bash
 # completely disable DNS resolution
 bbot -m http gowitness -t urls.txt -c dns.disable=true
 ~~~
 
-Note that the above setting _completely_ disables DNS, meaning even `A` and `AAAA` records are not resolved. This can cause problems if you're using an IP whitelist or blacklist. In this case, you'll want to use `dns.minimal` instead:
+Note that the above setting _completely_ disables DNS, meaning even `A` and `AAAA` records are not resolved. This can cause problems if you're using an IP-based target or blacklist. In this case, you'll want to use `dns.minimal` instead:
 
 ~~~bash
 # only resolve A and AAAA records
@@ -197,3 +192,5 @@ bbot -t evilcorp.com -m sslcert -c modules.sslcert.module_threads=50
 ```
 
 `module_threads` is one of several [universal module options](./configuration.md) that can be applied to any module.
+
+[Next Up: Advanced Usage -->](./advanced.md){ .md-button .md-button--primary }

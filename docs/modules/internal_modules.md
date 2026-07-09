@@ -1,4 +1,4 @@
-# List of Modules
+# Internal Modules
 
 ## What are internal modules?
 
@@ -25,11 +25,11 @@ These modules are executing core functionality that is normally essential for a 
 
 Summarize statistics at the end of a scan. Disable if you don't want to see this table.
 
-### cloud
+### cloudcheck
 
 The cloud module looks at events and tries to determine if they are associated with a cloud provider and tags them as such, and can also identify certain cloud resources
 
-### dns
+### dnsresolve
 
 The DNS internal module controls the basic DNS resolution the BBOT performs, and all of the supporting machinery like wildcard detection, etc.
 
@@ -41,12 +41,11 @@ Here is a summary of the data it produces:
 
 #### URLs
 
-By extracting URLs from all visited pages, this is actually already half of a web-spider. The other half is recursion, which is baked in to BBOT from the ground up. Therefore, protections are in place by default in the form of `web_spider_distance` and `web_spider_depth` settings. These settings govern restrictions to URLs recursively harvested from HTTP responses, preventing endless runaway scans. However, in the right situation the controlled use of a web-spider is extremely powerful.
+By extracting URLs from all visited pages, this is actually already half of a web-spider. The other half is recursion, which is baked in to BBOT from the ground up. Therefore, protections are in place by default in the form of the `web.spider_distance` and `web.spider_depth` settings. These settings govern restrictions to URLs recursively harvested from HTTP responses, preventing endless runaway scans. However, in the right situation the controlled use of a web-spider is extremely powerful.
 
 #### Parameter Extraction
 
-Parameter Extraction
-The parameter extraction functionality identifies and extracts key web parameters from HTTP responses, and produced `WEB_PARAMETER` events. This includes parameters found in GET and POST requests, HTML forms, and jQuery requests. Currently, these are only used by the `hunt` module, and by the `paramminer` modules, to a limited degree. However, future functionality will make extensive use of these events.
+The parameter extraction functionality identifies and extracts key web parameters from HTTP responses, and produces `WEB_PARAMETER` events. This includes parameters found in GET and POST requests, HTML forms, and jQuery requests. Currently, these are only used by the `hunt` module, and by the `paramminer` modules, to a limited degree. However, future functionality will make extensive use of these events.
 
 #### Email Extraction
 
@@ -70,7 +69,7 @@ The non-HTTP scheme detection capability extracts URLs with non-HTTP schemes, su
 
 #### Custom Yara Rules
 
-Excavate supports the use of custom YARA rules, which will be added to the other rules before the scan start. For more info, view this.
+Excavate supports the use of custom YARA rules, which will be added to the other rules before the scan starts. For more info, see [Custom YARA Rules](custom_yara_rules.md).
 
 ### speculate
 
