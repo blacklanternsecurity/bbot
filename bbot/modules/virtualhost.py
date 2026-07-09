@@ -990,6 +990,10 @@ class virtualhost(BaseModule):
 
                 self.verbose(f"FINISH METHOD: Starting wildcard check for {host}")
                 baseline_response = await self._get_baseline_response(event, host, host_ip)
+                if not baseline_response:
+                    self.debug(f"FINISH METHOD: Failed to get baseline response for {host}, skipping wordcloud check")
+                    self.wordcloud_tried_hosts.add(host)
+                    continue
                 if not await self._wildcard_canary_check(
                     host_parsed_url.scheme, host_parsed_url.netloc, event, host_ip, baseline_response
                 ):
