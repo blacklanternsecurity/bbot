@@ -11,7 +11,7 @@ from bbot.modules.base import BaseInterceptModule, BaseModule
 
 class DNSResolve(BaseInterceptModule):
     watched_events = ["*"]
-    produced_events = ["DNS_NAME", "IP_ADDRESS", "RAW_DNS_RECORD"]
+    produced_events = ["DNS_NAME", "IP_ADDRESS", "IP_RANGE", "RAW_DNS_RECORD"]
     meta = {"description": "Perform DNS resolution", "created_date": "2022-04-08", "author": "@TheTechromancer"}
     _priority = 1
     scope_distance_modifier = None
@@ -203,7 +203,8 @@ class DNSResolve(BaseInterceptModule):
                 try:
                     child_event = self.scan.make_event(
                         child_host,
-                        "DNS_NAME",
+                        # auto-detect the type; SPF TXT children can be IP_ADDRESS / IP_RANGE
+                        None,
                         module=module,
                         parent=event,
                         context=f"{rdtype} record for {event.host} contains {{event.type}}: {{event.host}}",
@@ -272,10 +273,12 @@ class DNSResolve(BaseInterceptModule):
         in_target = False
         blacklisted = False
         dns_children = event.dns_children
+        # collect all resolved hosts locally then assign once; resolved_hosts
+        # is naturally immutable (frozenset) and has no in-place mutation API
+        all_hosts = set()
         for rdtype in ("A", "AAAA", "CNAME"):
             hosts = dns_children.get(rdtype, [])
-            # update resolved hosts
-            event.update_resolved_hosts(sys.intern(h) for h in hosts)
+            all_hosts.update(sys.intern(h) for h in hosts)
             for host in hosts:
                 # having a CNAME to an in-scope host doesn't make you in-scope
                 if rdtype != "CNAME":
@@ -291,6 +294,8 @@ class DNSResolve(BaseInterceptModule):
                             blacklisted = True
                             event.add_tag("blacklisted")
                             event.add_tag(f"dns-blacklisted-{rdtype}")
+        if all_hosts:
+            event.resolved_hosts = all_hosts
         if blacklisted:
             in_target = False
         return in_target, blacklisted

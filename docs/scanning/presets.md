@@ -25,7 +25,7 @@ output_modules:
 
 ## How to use Presets (`-p`)
 
-BBOT has a ready-made collection of presets for common tasks like subdomain enumeration and web spidering. They live in `~/.bbot/presets`.
+BBOT ships with a collection of presets for common tasks like subdomain enumeration and web spidering. The defaults live in `bbot/presets` inside the installed package. You can also place custom presets anywhere and reference them by path.
 
 To list them, you can do:
 
@@ -111,18 +111,56 @@ bbot -t evilcorp.com -p ./my_spider.yml spider
 bbot -t evilcorp.com -p spider ./my_spider.yml
 ```
 
-## Validating Presets
+## Preset Validation
 
-To make sure BBOT is configured the way you expect, you can always check the `--current-preset` to show the final version of the config that will be used when BBOT executes:
+BBOT automatically validates presets when they load. If your preset has a typo in a top-level key, an unknown module name, or an invalid config option, BBOT will catch it and suggest the closest match:
+
+```text
+$ bbot -p ./mypreset.yml
+ERROR  [preset:modlues] Could not find preset option "modlues". Did you mean "modules"?
+```
+
+This also applies to module config and flags -- for example, misspelling a module name under `config.modules` or using a flag that doesn't exist will produce a helpful error.
+
+To inspect the final merged preset that BBOT will use (after all includes and overrides are applied), use `--current-preset`:
 
 ```bash
-# verify the preset is what you want
+# show the final resolved preset
 bbot -p ./mypreset.yml --current-preset
+
+# show the full config including defaults
+bbot -p ./mypreset.yml --current-preset-full
 ```
+
+## Preset YAML Reference
+
+Here is the full list of supported top-level keys in a preset YAML file:
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `target` (or `targets`) | list | In-scope targets (see [Accepted Input Types](index.md#accepted-input-types)) |
+| `seeds` | list | Seed events to feed into modules. If omitted, targets are used as seeds |
+| `blacklist` | list | Excluded targets. Takes ultimate precedence |
+| `modules` | list | Scan modules to enable |
+| `output_modules` | list | Output modules (default: `csv`, `txt`, `json`) |
+| `exclude_modules` | list | Modules to exclude |
+| `flags` | list | Enable all modules with these flags |
+| `require_flags` | list | Only enable modules that have these flags |
+| `exclude_flags` | list | Exclude modules that have any of these flags |
+| `config` | dict | Config overrides (global and per-module) |
+| `include` (or `presets`) | list | Other presets to include |
+| `module_dirs` | list | Additional directories to load modules from |
+| `conditions` | list | Jinja2 conditions evaluated before scan start |
+| `scan_name` | string | Custom scan name (default: random, e.g. `demonic_jimmy`) |
+| `output_dir` | string | Custom output directory (default: `~/.bbot`) |
+| `description` | string | Human-readable description of the preset |
+| `verbose` | bool | Enable verbose logging |
+| `debug` | bool | Enable debug logging |
+| `silent` | bool | Silence all stderr output |
 
 ## Advanced Usage
 
-BBOT Presets support advanced features like file-based targets, environment variable substitution, and custom conditions.
+BBOT Presets support advanced features like file-based targets, custom modules, and custom conditions.
 
 ### Files as Targets
 
@@ -149,33 +187,9 @@ You can mix file paths and literal targets in the same list. If an entry doesn't
 If you want to use a custom BBOT `.py` module, you can either move it into `bbot/modules` where BBOT is installed, or add its parent folder to `module_dirs` like so:
 
 ```yaml title="custom_modules.yml"
-# load extra BBOT modules from this locaation
+# load extra BBOT modules from this location
 module_dirs:
   - /home/user/custom_modules
-```
-
-### Environment Variables
-
-You can insert environment variables into your preset like this: `${env:<variable>}`:
-
-```yaml title="my_nuclei.yml"
-description: Do a nuclei scan
-
-target:
-  - evilcorp.com
-
-modules:
-  - nuclei
-
-config:
-  modules:
-    nuclei:
-      # allow the nuclei templates to be specified at runtime via an environment variable
-      tags: ${env:NUCLEI_TAGS}
-```
-
-```bash
-NUCLEI_TAGS=apache,nginx bbot -p ./my_nuclei.yml
 ```
 
 ### Conditions
@@ -196,16 +210,16 @@ conditions:
 ```
 
 ```yaml title="my_preset.yml"
-description: Enable ffuf but only when the web spider isn't also enabled
+description: Enable webbrute but only when the web spider isn't also enabled
 
 modules:
-  - ffuf
+  - webbrute
 
 conditions:
   - |
     {% if config.web.spider_distance > 0 and config.web.spider_depth > 0 %}
-      {{ warn("Disabling ffuf because the web spider is enabled") }}
-      {{ preset.exclude_module("ffuf") }}
+      {{ warn("Disabling webbrute because the web spider is enabled") }}
+      {{ preset.exclude_module("webbrute") }}
     {% endif %}
 ```
 
@@ -217,3 +231,5 @@ Conditions use [Jinja](https://palletsprojects.com/p/jinja/), which means they c
 - `abort(message)` - abort the scan with an optional message
 
 If you aren't able to accomplish what you want with conditions, or if you need access to a new variable/function, please let us know on [Github](https://github.com/blacklanternsecurity/bbot/issues/new/choose).
+
+[Next Up: Events -->](./events.md){ .md-button .md-button--primary }

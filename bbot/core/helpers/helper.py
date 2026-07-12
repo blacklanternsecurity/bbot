@@ -1,4 +1,9 @@
 import os
+import sys
+import signal
+import ctypes
+import ctypes.util
+import asyncio
 import logging
 from pathlib import Path
 import multiprocessing as mp
@@ -21,6 +26,24 @@ from .async_helpers import get_event_loop
 from bbot.scanner.target import BaseTarget
 
 log = logging.getLogger("bbot.core.helpers")
+
+_PR_SET_PDEATHSIG = 1
+
+
+def _pool_worker_init():
+    """Set PR_SET_PDEATHSIG so pool workers die when the parent process dies.
+
+    Prevents zombie worker accumulation after OOM kills, SIGKILL, etc.
+    Uses SIGKILL because ProcessPoolExecutor's `except BaseException` catches
+    SIGTERM's SystemExit, keeping workers alive until the broken pipe surfaces.
+
+    prctl is Linux-specific, so this is a no-op elsewhere (the symbol is absent
+    on other platforms and would otherwise raise, breaking the whole pool).
+    """
+    if not sys.platform.startswith("linux"):
+        return
+    libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
+    libc.prctl(_PR_SET_PDEATHSIG, signal.SIGKILL, 0, 0, 0)
 
 
 class ConfigAwareHelper:
@@ -75,15 +98,12 @@ class ConfigAwareHelper:
 
         self._loop = None
 
-        # multiprocessing thread pool
+        # multiprocessing process pool
         start_method = mp.get_start_method()
         if start_method != "spawn":
             self.warning(f"Multiprocessing spawn method is set to {start_method}.")
-
-        # we spawn 1 fewer processes than cores
-        # this helps to avoid locking up the system or competing with the main python process for cpu time
-        num_processes = max(1, mp.cpu_count() - 1)
-        self.process_pool = ProcessPoolExecutor(max_workers=num_processes)
+        self.process_pool = self._create_process_pool()
+        self._pool_reset_lock = asyncio.Lock()
 
         self._cloud = None
         self._blasthttp_client = None
@@ -135,7 +155,8 @@ class ConfigAwareHelper:
         if self._cloudcheck is None:
             from cloudcheck import CloudCheck
 
-            self._cloudcheck = CloudCheck()
+            ssl_verify = self.web_config.get("ssl_verify_infrastructure", True)
+            self._cloudcheck = CloudCheck(verify_ssl=ssl_verify)
         return self._cloudcheck
 
     def bloom_filter(self, size):
@@ -157,6 +178,7 @@ class ConfigAwareHelper:
         data=None,
         json=None,
         timeout=10,
+        on_baseline_ready=None,
     ):
         return HttpCompare(
             url,
@@ -169,6 +191,7 @@ class ConfigAwareHelper:
             method=method,
             data=data,
             json=json,
+            on_baseline_ready=on_baseline_ready,
         )
 
     def temp_filename(self, extension=None):
@@ -214,6 +237,18 @@ class ConfigAwareHelper:
             self._loop.set_default_executor(self._io_executor)
         return self._loop
 
+    @staticmethod
+    def _create_process_pool():
+        # we spawn 1 fewer processes than cores
+        # this helps to avoid locking up the system or competing with the main python process for cpu time
+        num_processes = max(1, mp.cpu_count() - 1)
+        pool_kwargs = {"max_workers": num_processes, "initializer": _pool_worker_init}
+        # max_tasks_per_child replaces workers after N tasks, preventing memory leaks
+        # and reducing the chance of a degraded worker process causing hangs
+        if sys.version_info >= (3, 11):
+            pool_kwargs["max_tasks_per_child"] = 25
+        return ProcessPoolExecutor(**pool_kwargs)
+
     def run_in_executor_io(self, callback, *args, **kwargs):
         """
         Run a synchronous task in the event loop's default thread pool executor
@@ -237,17 +272,55 @@ class ConfigAwareHelper:
         callback = partial(callback, **kwargs)
         return self.loop.run_in_executor(self._cpu_executor, callback, *args)
 
-    def run_in_executor_mp(self, callback, *args, **kwargs):
+    async def run_in_executor_mp(self, callback, *args, **kwargs):
         """
-        Same as run_in_executor_io() except with a process pool executor
-        Use only in cases where callback is CPU-bound
+        Same as run_in_executor_io() except with a process pool executor.
+        Use only in cases where callback is CPU-bound.
+
+        Includes a timeout (default 300s) to prevent indefinite hangs if a child process dies or the pool enters a broken state.
+        On timeout, the entire pool is terminated and replaced so that stuck workers cannot accumulate and starve the scan.
+
+        Pass ``_timeout=seconds`` to override the default timeout.
 
         Examples:
             Execute callback:
             >>> result = await self.helpers.run_in_executor_mp(callback_fn, arg1, arg2)
         """
+        timeout = kwargs.pop("_timeout", 300)
         callback = partial(callback, **kwargs)
-        return self.loop.run_in_executor(self.process_pool, callback, *args)
+        future = self.loop.run_in_executor(self.process_pool, callback, *args)
+        try:
+            return await asyncio.wait_for(future, timeout=timeout)
+        except asyncio.TimeoutError:
+            log.warning(f"Process pool task timed out after {timeout}s, killing stuck workers and replacing pool")
+            await self._reset_process_pool()
+            raise
+
+    async def _reset_process_pool(self):
+        """Terminate all workers in the current process pool and replace it.
+
+        This is the nuclear option — every in-flight task on the old pool will fail with BrokenProcessPool.
+        We accept that trade-off because a timeout means something is genuinely broken, and leaving the stuck worker alive would permanently consume a pool slot.
+
+        # TODO: Python 3.14 adds ProcessPoolExecutor.terminate_workers()
+        # and kill_workers() (https://github.com/python/cpython/pull/130849).
+        # Once we drop 3.13 support we can replace the _processes access
+        # with those official methods.
+        """
+        async with self._pool_reset_lock:
+            old_pool = self.process_pool
+            self.process_pool = self._create_process_pool()
+            # snapshot workers before shutdown (shutdown sets _processes = None)
+            workers = list((old_pool._processes or {}).values())
+            # terminate workers before shutdown so stuck ones don't block
+            for proc in workers:
+                if proc.is_alive():
+                    proc.terminate()
+            old_pool.shutdown(wait=False, cancel_futures=True)
+            # escalate to SIGKILL for anything that ignored SIGTERM
+            for proc in workers:
+                if proc.is_alive():
+                    proc.kill()
 
     @property
     def in_tests(self):

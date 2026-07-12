@@ -5,10 +5,9 @@ import aiosqlite
 import multiprocessing
 import platform
 from pathlib import Path
-from contextlib import suppress
-from shutil import copyfile, copymode
 
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class gowitness(BaseModule):
@@ -16,28 +15,20 @@ class gowitness(BaseModule):
     produced_events = ["WEBSCREENSHOT", "URL", "URL_UNVERIFIED", "TECHNOLOGY"]
     flags = ["safe", "active", "web-screenshots"]
     meta = {"description": "Take screenshots of webpages", "created_date": "2022-07-08", "author": "@TheTechromancer"}
-    options = {
-        "version": "3.1.1",
-        "threads": 0,
-        "timeout": 10,
-        "resolution_x": 1440,
-        "resolution_y": 900,
-        "output_path": "",
-        "social": False,
-        "idle_timeout": 1800,
-        "chrome_path": "",
-    }
-    options_desc = {
-        "version": "Gowitness version",
-        "threads": "How many gowitness threads to spawn (default is number of CPUs x 2)",
-        "timeout": "Preflight check timeout",
-        "resolution_x": "Screenshot resolution x",
-        "resolution_y": "Screenshot resolution y",
-        "output_path": "Where to save screenshots",
-        "social": "Whether to screenshot social media webpages",
-        "idle_timeout": "Skip the current gowitness batch if it stalls for longer than this many seconds",
-        "chrome_path": "Path to chrome executable",
-    }
+
+    class Config(BaseModuleConfig):
+        version: str = Field("3.1.1", description="Gowitness version")
+        threads: int = Field(0, description="How many gowitness threads to spawn (default is number of CPUs x 2)")
+        timeout: int = Field(10, description="Preflight check timeout")
+        resolution_x: int = Field(1440, description="Screenshot resolution x")
+        resolution_y: int = Field(900, description="Screenshot resolution y")
+        output_path: str = Field("", description="Where to save screenshots")
+        social: bool = Field(False, description="Whether to screenshot social media webpages")
+        idle_timeout: int = Field(
+            1800, description="Skip the current gowitness batch if it stalls for longer than this many seconds"
+        )
+        chrome_path: str = Field("", description="Path to chrome executable")
+
     deps_common = ["chromium"]
     deps_pip = ["aiosqlite"]
     deps_ansible = [
@@ -119,23 +110,10 @@ class gowitness(BaseModule):
         if chrome_devel_sandbox.is_file():
             os.environ["CHROME_DEVEL_SANDBOX"] = str(chrome_devel_sandbox)
 
-        self.db_path = self.base_path / "gowitness.sqlite3"
         self.screenshot_path = self.base_path / "screenshots"
-        self.command = self.construct_command()
-        self.prepped = False
-        self.screenshots_taken = {}
-        self.connections_logged = set()
-        self.technologies_found = set()
+        self.helpers.mkdir(self.screenshot_path)
+        self.screenshot_count = 0
         return True
-
-    def prep(self):
-        if not self.prepped:
-            self.helpers.mkdir(self.screenshot_path)
-            self.db_path.touch()
-            with suppress(Exception):
-                copyfile(self.helpers.tools_dir / "gowitness", self.base_path / "gowitness")
-                copymode(self.helpers.tools_dir / "gowitness", self.base_path / "gowitness")
-            self.prepped = True
 
     async def filter_event(self, event):
         # Ignore URLs that are redirects
@@ -179,94 +157,126 @@ class gowitness(BaseModule):
         return parent
 
     async def handle_batch(self, *events):
-        self.prep()
+        # Each batch gets its own throwaway database. Nothing is persisted once the
+        # batch's events are emitted, which keeps memory flat regardless of scan size
+        # (gowitness's network_logs table grows enormous on large scans otherwise).
+        db_path = self.scan.temp_dir / f"gowitness_{self.helpers.rand_string()}.sqlite3"
         self._event_dict = {}
         self._event_dict_loose = {}
         stdin_urls = []
         for e in events:
-            url = e.url or e.data
-            if e.type == "SOCIAL":
-                url = e.url
+            url = e.url if e.type == "SOCIAL" else (e.url or e.data)
             stdin_urls.append(url)
             self._event_dict[url] = e
-            loose_key = self._url_key(self.helpers.urlparse(url))
-            self._event_dict_loose.setdefault(loose_key, e)
+            self._event_dict_loose.setdefault(self._url_key(self.helpers.urlparse(url)), e)
         stdin = "\n".join(stdin_urls)
 
         try:
-            async for line in self.run_process_live(self.command, input=stdin, idle_timeout=self.idle_timeout):
-                self.debug(line)
-        except asyncio.exceptions.TimeoutError:
-            urls_str = ",".join(self._event_dict)
-            self.warning(f"Gowitness timed out while visiting the following URLs: {urls_str}", trace=False)
-            return
+            try:
+                async for line in self.run_process_live(
+                    self.construct_command(db_path), input=stdin, idle_timeout=self.idle_timeout
+                ):
+                    self.debug(line)
+            except asyncio.exceptions.TimeoutError:
+                urls_str = ",".join(self._event_dict)
+                self.warning(f"Gowitness timed out while visiting the following URLs: {urls_str}", trace=False)
+                return
 
-        # emit web screenshots
-        new_screenshots = await self.get_new_screenshots()
-        for filename, screenshot in new_screenshots.items():
-            raw_url = screenshot["url"]
-            final_url = screenshot["final_url"]
-            filename = self.screenshot_path / screenshot["filename"]
-            filename = filename.relative_to(self.scan.home)
-            # NOTE: this prevents long filenames from causing problems in BBOT, but gowitness will still fail to save it.
-            filename = self.helpers.truncate_filename(filename)
-            webscreenshot_data = {"path": str(filename), "url": final_url}
-            parent_event = self._resolve_parent(raw_url)
-            if parent_event is None:
-                self.warning(f"Could not correlate screenshot to parent event for URL: {raw_url}")
-                continue
-            await self.emit_event(
-                webscreenshot_data,
-                "WEBSCREENSHOT",
-                parent=parent_event,
-                context=f"{{module}} visited {final_url} and saved {{event.type}} to {filename}",
-            )
-
-        # emit URLs
-        new_network_logs = await self.get_new_network_logs()
-        for url, row in new_network_logs.items():
-            ip = row["remote_ip"]
-            status_code = row["status_code"]
-            tags = [f"status-{status_code}", "spider-danger"]
-
-            _id = row["result_id"]
-            raw_parent_url = self.screenshots_taken[_id]
-            parent_event = self._resolve_parent(raw_parent_url)
-            if parent_event is None:
-                self.warning(f"Could not correlate network log to parent event for URL: {raw_parent_url}")
-                continue
-            if url and url.startswith("http"):
-                url_event = self.make_event(
-                    url,
-                    "URL_UNVERIFIED",
-                    parent=parent_event,
-                    tags=tags,
-                    context=f"{{module}} visited {{event.type}}: {url}",
+            try:
+                await self.emit_results(db_path)
+            except aiosqlite.Error as e:
+                # gowitness exited before writing a usable database (chrome likely failed to
+                # launch), so the whole batch produced nothing
+                self.warning(
+                    f"Gowitness produced no results for {len(events)} URLs; chrome may have failed to launch ({e})",
+                    trace=False,
                 )
-                if url_event and ip:
-                    url_event.add_resolved_host(sys.intern(ip))
-                await self.emit_event(url_event)
+        finally:
+            # discard the batch database; the screenshots themselves live on disk
+            db_path.unlink(missing_ok=True)
 
-        # emit technologies
-        new_technologies = await self.get_new_technologies()
-        for row in new_technologies.values():
-            parent_id = row["result_id"]
-            raw_parent_url = self.screenshots_taken[parent_id]
-            parent_event = self._resolve_parent(raw_parent_url)
-            if parent_event is None:
-                self.warning(f"Could not correlate technology to parent event for URL: {raw_parent_url}")
-                continue
-            technology = row["value"]
-            parent_url = self.helpers.clean_url(raw_parent_url).geturl()
-            tech_data = {"technology": technology, "url": parent_url, "host": str(parent_event.host)}
-            await self.emit_event(
-                tech_data,
-                "TECHNOLOGY",
-                parent=parent_event,
-                context=f"{{module}} visited {parent_url} and found {{event.type}}: {technology}",
-            )
+    async def emit_results(self, db_path):
+        if not db_path.is_file():
+            return
+        async with aiosqlite.connect(str(db_path)) as con:
+            con.row_factory = aiosqlite.Row
+            con.text_factory = self.helpers.smart_decode
 
-    def construct_command(self):
+            # gowitness result_id -> the URL it visited, used to attribute child rows back to their page
+            result_urls = {}
+
+            # screenshots
+            async with con.execute("SELECT * FROM results") as cur:
+                async for row in cur:
+                    row = dict(row)
+                    raw_url = row["url"]
+                    result_urls[row["id"]] = raw_url
+                    final_url = row["final_url"]
+                    filename = self.screenshot_path / row["filename"]
+                    filename = filename.relative_to(self.scan.home)
+                    # NOTE: this prevents long filenames from causing problems in BBOT, but gowitness will still fail to save it.
+                    filename = self.helpers.truncate_filename(filename)
+                    parent_event = self._resolve_parent(raw_url)
+                    if parent_event is None:
+                        self.warning(f"Could not correlate screenshot to parent event for URL: {raw_url}")
+                        continue
+                    await self.emit_event(
+                        {"path": str(filename), "url": final_url},
+                        "WEBSCREENSHOT",
+                        parent=parent_event,
+                        context=f"{{module}} visited {final_url} and saved {{event.type}} to {filename}",
+                    )
+                    self.screenshot_count += 1
+
+            # network logs -> URLs (one event per unique URL within the batch)
+            seen_urls = set()
+            async with con.execute("SELECT * FROM network_logs") as cur:
+                async for row in cur:
+                    row = dict(row)
+                    url = row["url"]
+                    if not (url and url.startswith("http")) or url in seen_urls:
+                        continue
+                    seen_urls.add(url)
+                    raw_parent_url = result_urls.get(row["result_id"])
+                    if raw_parent_url is None:
+                        continue
+                    parent_event = self._resolve_parent(raw_parent_url)
+                    if parent_event is None:
+                        self.warning(f"Could not correlate network log to parent event for URL: {raw_parent_url}")
+                        continue
+                    ip = row["remote_ip"]
+                    url_event = self.make_event(
+                        url,
+                        "URL_UNVERIFIED",
+                        parent=parent_event,
+                        tags=[f"status-{row['status_code']}", "spider-danger"],
+                        context=f"{{module}} visited {{event.type}}: {url}",
+                    )
+                    if url_event and ip:
+                        url_event.resolved_hosts = (sys.intern(ip),)
+                    await self.emit_event(url_event)
+
+            # technologies
+            async with con.execute("SELECT * FROM technologies") as cur:
+                async for row in cur:
+                    row = dict(row)
+                    raw_parent_url = result_urls.get(row["result_id"])
+                    if raw_parent_url is None:
+                        continue
+                    parent_event = self._resolve_parent(raw_parent_url)
+                    if parent_event is None:
+                        self.warning(f"Could not correlate technology to parent event for URL: {raw_parent_url}")
+                        continue
+                    technology = row["value"]
+                    parent_url = self.helpers.clean_url(raw_parent_url).geturl()
+                    await self.emit_event(
+                        {"technology": technology, "url": parent_url, "host": str(parent_event.host)},
+                        "TECHNOLOGY",
+                        parent=parent_event,
+                        context=f"{{module}} visited {parent_url} and found {{event.type}}: {technology}",
+                    )
+
+    def construct_command(self, db_path):
         # base executable
         command = ["gowitness", "scan"]
         # chrome path
@@ -274,7 +284,7 @@ class gowitness(BaseModule):
             command += ["--chrome-path", str(self.chrome_path)]
         # db path
         command += ["--write-db"]
-        command += ["--write-db-uri", f"sqlite://{self.db_path}"]
+        command += ["--write-db-uri", f"sqlite://{db_path}"]
         # screenshot path
         command += ["--screenshot-path", str(self.screenshot_path)]
         # user agent
@@ -293,61 +303,8 @@ class gowitness(BaseModule):
         command += ["file", "-f", "-"]
         return command
 
-    async def get_new_screenshots(self):
-        screenshots = {}
-        if self.db_path.is_file():
-            async with aiosqlite.connect(str(self.db_path)) as con:
-                con.row_factory = aiosqlite.Row
-                con.text_factory = self.helpers.smart_decode
-                async with con.execute("SELECT * FROM results") as cur:
-                    async for row in cur:
-                        row = dict(row)
-                        _id = row["id"]
-                        if _id not in self.screenshots_taken:
-                            self.screenshots_taken[_id] = row["url"]
-                            screenshots[_id] = row
-        return screenshots
-
-    async def get_new_network_logs(self):
-        network_logs = {}
-        if self.db_path.is_file():
-            async with aiosqlite.connect(str(self.db_path)) as con:
-                con.row_factory = aiosqlite.Row
-                async with con.execute("SELECT * FROM network_logs") as cur:
-                    async for row in cur:
-                        row = dict(row)
-                        url = row["url"]
-                        if url not in self.connections_logged:
-                            self.connections_logged.add(url)
-                            network_logs[url] = row
-        return network_logs
-
-    async def get_new_technologies(self):
-        technologies = {}
-        if self.db_path.is_file():
-            async with aiosqlite.connect(str(self.db_path)) as con:
-                con.row_factory = aiosqlite.Row
-                async with con.execute("SELECT * FROM technologies") as cur:
-                    async for row in cur:
-                        _id = row["id"]
-                        if _id not in self.technologies_found:
-                            self.technologies_found.add(_id)
-                            row = dict(row)
-                            technologies[_id] = row
-        return technologies
-
-    async def cur_execute(self, cur, query):
-        try:
-            return await cur.execute(query)
-        except aiosqlite.OperationalError as e:
-            self.warning(f"Error executing query: {query}: {e}")
-            return []
-
     async def report(self):
-        if self.screenshots_taken:
-            self.success(f"{len(self.screenshots_taken):,} web screenshots captured. To view:")
-            self.success("    - Start gowitness")
-            self.success(f"        - cd {self.base_path} && ./gowitness report server")
-            self.success("    - Browse to http://localhost:7171")
+        if self.screenshot_count:
+            self.success(f"{self.screenshot_count:,} web screenshots captured. Saved to: {self.screenshot_path}")
         else:
             self.info("No web screenshots captured")

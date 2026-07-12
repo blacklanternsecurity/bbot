@@ -10,13 +10,13 @@ class TestNucleiManual(ModuleTestBase):
             "spider_distance": 1,
             "spider_depth": 1,
         },
+        "interactsh_disable": True,
         "modules": {
             "nuclei": {
                 "mode": "manual",
                 "concurrency": 2,
                 "ratelimit": 10,
                 "templates": "/tmp/.bbot_test/tools/nuclei-state/templates/http/miscellaneous/",
-                "interactsh_disable": True,
                 "directory_only": False,
             }
         },
@@ -109,15 +109,15 @@ class TestNucleiTechnology(TestNucleiManual):
 
 class TestNucleiBudget(TestNucleiManual):
     config_overrides = {
+        "interactsh_disable": True,
         "modules": {
             "nuclei": {
                 "mode": "budget",
                 "concurrency": 1,
                 "tags": "spiderfoot",
                 "templates": "/tmp/.bbot_test/tools/nuclei-state/templates/exposed-panels/spiderfoot.yaml",
-                "interactsh_disable": True,
             }
-        }
+        },
     }
 
     async def setup_before_prep(self, module_test):

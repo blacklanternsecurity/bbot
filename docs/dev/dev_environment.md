@@ -11,15 +11,19 @@ The following will show you how to set up a fully functioning python environment
 
 ```bash
 # clone your forked repo and cd into it
-git clone git@github.com/<username>/bbot.git
+git clone git@github.com:<username>/bbot.git
 cd bbot
 
-# install uv
+# switch to the dev branch and create a feature branch
+git checkout dev
+git checkout -b my-feature
+
+# install uv (if you haven't already)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # install pip dependencies
 uv sync --group dev
-# install pre-commit hooks, etc.
+# install pre-commit hooks
 uv run pre-commit install
 
 # enter virtual environment
@@ -32,7 +36,8 @@ bbot --help
 - After making your changes, run the tests locally to ensure they pass.
 
 ```bash
-# auto-format code indentation, etc.
+# lint and auto-format
+ruff check
 ruff format
 
 # run tests

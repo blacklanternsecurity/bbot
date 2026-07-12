@@ -1,4 +1,5 @@
 from .webhook import webhook
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class Elastic(webhook):
@@ -12,18 +13,16 @@ class Elastic(webhook):
         "created_date": "2022-11-21",
         "author": "@TheTechromancer",
     }
-    options = {
-        "url": "https://localhost:9200/bbot_events/_doc",
-        "username": "elastic",
-        "password": "bbotislife",
-        "timeout": 10,
-    }
-    options_desc = {
-        "url": "Elastic URL (e.g. https://localhost:9200/<your_index>/_doc)",
-        "username": "Elastic username",
-        "password": "Elastic password",
-        "timeout": "HTTP timeout",
-    }
+
+    class Config(BaseModuleConfig):
+        url: str = Field(
+            "https://localhost:9200/bbot_events/_doc",
+            description="Elastic URL (e.g. https://localhost:9200/<your_index>/_doc)",
+            sensitive=True,
+        )
+        username: str = Field("elastic", description="Elastic username", sensitive=True)
+        password: str = Field("bbotislife", description="Elastic password", sensitive=True)
+        timeout: int = Field(10, description="HTTP timeout")
 
     async def cleanup(self):
         # refresh the index

@@ -2,8 +2,10 @@ import pickle
 import re
 import random
 import string
+from typing import Union
 
 from bbot.modules.webbrute import webbrute
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class webbrute_shortnames(webbrute):
@@ -16,27 +18,29 @@ class webbrute_shortnames(webbrute):
         "author": "@liquidsec",
     }
 
-    options = {
-        "wordlist_extensions": "",  # default is defined within setup function
-        "max_depth": 1,
-        "extensions": "",
-        "find_common_prefixes": False,
-        "find_delimiters": True,
-        "find_subwords": False,
-        "max_predictions": 250,
-        "rate": 0,
-    }
-
-    options_desc = {
-        "wordlist_extensions": "Specify wordlist to use when making extension lists. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
-        "max_depth": "the maximum directory depth to attempt to solve",
-        "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
-        "find_common_prefixes": "Attempt to automatically detect common prefixes and make additional runs against them",
-        "find_delimiters": "Attempt to detect common delimiters and make additional runs against them",
-        "find_subwords": "Attempt to detect subwords and make additional runs against them",
-        "max_predictions": "The maximum number of predictions to generate per shortname prefix",
-        "rate": "Rate of requests per second (default: 0)",
-    }
+    class Config(BaseModuleConfig):
+        wordlist_extensions: Union[str, list[str]] = Field(
+            "",
+            description="Specify wordlist to use when making extension lists. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
+        )
+        max_depth: int = Field(1, description="the maximum directory depth to attempt to solve")
+        extensions: str = Field(
+            "", description="Optionally include a list of extensions to extend the keyword with (comma separated)"
+        )
+        find_common_prefixes: bool = Field(
+            False,
+            description="Attempt to automatically detect common prefixes and make additional runs against them",
+        )
+        find_delimiters: bool = Field(
+            True, description="Attempt to detect common delimiters and make additional runs against them"
+        )
+        find_subwords: bool = Field(
+            False, description="Attempt to detect subwords and make additional runs against them"
+        )
+        max_predictions: int = Field(
+            250, description="The maximum number of predictions to generate per shortname prefix"
+        )
+        rate: int = Field(0, description="Rate of requests per second (default: 0)")
 
     deps_pip = ["numpy"]
     in_scope_only = True
@@ -120,7 +124,9 @@ class webbrute_shortnames(webbrute):
             def find_class(self, module, name):
                 if name == "MinimalWordPredictor":
                     return MinimalWordPredictor
-                return super().find_class(module, name)
+                if module.startswith("numpy"):
+                    return super().find_class(module, name)
+                raise pickle.UnpicklingError(f"Forbidden class: {module}.{name}")
 
         self.info("Loading shortname prediction models, could take a while if not cached")
         endpoint_model = await self.helpers.wordlist(
@@ -157,6 +163,8 @@ class webbrute_shortnames(webbrute):
 
         self.per_host_collection = {}
         self.shortname_to_event = {}
+        self._host_timeouts = {}
+        self._blocked_hosts = set()
 
         return True
 
@@ -217,6 +225,7 @@ class webbrute_shortnames(webbrute):
 
         root_stub = "/".join(event.parsed_url.path.split("/")[:-1])
         root_url = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}{root_stub}/"
+        netloc = event.parsed_url.netloc
 
         if shortname_type == "endpoint":
             used_extensions = self.build_extension_list(event)
@@ -231,7 +240,7 @@ class webbrute_shortnames(webbrute):
         if words_len > 0:
             if shortname_type == "endpoint":
                 for ext in used_extensions:
-                    async for r in self.execute_fuzz(words, root_url, suffix=f".{ext}"):
+                    async for r in self.execute_fuzz(words, root_url, netloc, suffix=f".{ext}"):
                         await self.emit_event(
                             r["url"],
                             "URL_UNVERIFIED",
@@ -241,7 +250,7 @@ class webbrute_shortnames(webbrute):
                         )
 
             elif shortname_type == "directory":
-                async for r in self.execute_fuzz(words, root_url, exts=["/"]):
+                async for r in self.execute_fuzz(words, root_url, netloc, exts=["/"]):
                     r_url = f"{r['url'].rstrip('/')}/"
                     await self.emit_event(
                         r_url,
@@ -259,7 +268,7 @@ class webbrute_shortnames(webbrute):
                     self.verbose(f"Detected delimiter [{delimiter}] in hint [{filename_hint}]")
                     words, words_len = await self.generate_templist(partial_hint, "directory")
                     fuzz_prefix = f"{prefix}{delimiter}"
-                    async for r in self.execute_fuzz(words, root_url, prefix=fuzz_prefix, exts=["/"]):
+                    async for r in self.execute_fuzz(words, root_url, netloc, prefix=fuzz_prefix, exts=["/"]):
                         await self.emit_event(
                             r["url"],
                             "URL_UNVERIFIED",
@@ -276,7 +285,9 @@ class webbrute_shortnames(webbrute):
                         self.verbose(f"Detected delimiter [{delimiter}] in hint [{filename_hint}]")
                         words, words_len = await self.generate_templist(partial_hint, "endpoint")
                         fuzz_prefix = f"{prefix}{delimiter}"
-                        async for r in self.execute_fuzz(words, root_url, prefix=fuzz_prefix, suffix=f".{ext}"):
+                        async for r in self.execute_fuzz(
+                            words, root_url, netloc, prefix=fuzz_prefix, suffix=f".{ext}"
+                        ):
                             await self.emit_event(
                                 r["url"],
                                 "URL_UNVERIFIED",
@@ -290,7 +301,7 @@ class webbrute_shortnames(webbrute):
             if subword:
                 if "shortname-directory" in event.tags:
                     words, words_len = await self.generate_templist(suffix, "directory")
-                    async for r in self.execute_fuzz(words, root_url, prefix=subword, exts=["/"]):
+                    async for r in self.execute_fuzz(words, root_url, netloc, prefix=subword, exts=["/"]):
                         await self.emit_event(
                             r["url"],
                             "URL_UNVERIFIED",
@@ -301,7 +312,7 @@ class webbrute_shortnames(webbrute):
                 elif "shortname-endpoint" in event.tags:
                     for ext in used_extensions:
                         words, words_len = await self.generate_templist(suffix, "endpoint")
-                        async for r in self.execute_fuzz(words, root_url, prefix=subword, suffix=f".{ext}"):
+                        async for r in self.execute_fuzz(words, root_url, netloc, prefix=subword, suffix=f".{ext}"):
                             await self.emit_event(
                                 r["url"],
                                 "URL_UNVERIFIED",
@@ -323,6 +334,7 @@ class webbrute_shortnames(webbrute):
                     self.verbose(f"Found common prefix: [{prefix}] for host [{host}]")
                     for hint_tuple in hint_tuple_list:
                         hint, url = hint_tuple
+                        netloc = self.shortname_to_event[hint].parsed_url.netloc
                         if hint.startswith(prefix):
                             if "shortname-endpoint" in self.shortname_to_event[hint].tags:
                                 shortname_type = "endpoint"
@@ -343,7 +355,7 @@ class webbrute_shortnames(webbrute):
                                         f"Running common prefix check for URL_HINT: {hint} with prefix: {prefix} and partial_hint: {partial_hint}"
                                     )
 
-                                    async for r in self.execute_fuzz(words, url, prefix=prefix, exts=["/"]):
+                                    async for r in self.execute_fuzz(words, url, netloc, prefix=prefix, exts=["/"]):
                                         await self.emit_event(
                                             r["url"],
                                             "URL_UNVERIFIED",
@@ -358,7 +370,9 @@ class webbrute_shortnames(webbrute):
                                         self.verbose(
                                             f"Running common prefix check for URL_HINT: {hint} with prefix: {prefix}, extension: .{ext}, and partial_hint: {partial_hint}"
                                         )
-                                        async for r in self.execute_fuzz(words, url, prefix=prefix, suffix=f".{ext}"):
+                                        async for r in self.execute_fuzz(
+                                            words, url, netloc, prefix=prefix, suffix=f".{ext}"
+                                        ):
                                             await self.emit_event(
                                                 r["url"],
                                                 "URL_UNVERIFIED",

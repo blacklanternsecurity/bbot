@@ -1,5 +1,6 @@
 from bbot.modules.templates.github import github
 from bbot.modules.templates.subdomain_enum import subdomain_enum
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class github_codesearch(github, subdomain_enum):
@@ -10,10 +11,11 @@ class github_codesearch(github, subdomain_enum):
         "description": "Query Github's API for code containing the target domain name",
         "created_date": "2023-12-14",
         "author": "@domwhewell-sage",
-        "auth_required": True,
     }
-    options = {"api_key": "", "limit": 100}
-    options_desc = {"api_key": "Github token", "limit": "Limit code search to this many results"}
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="Github token", sensitive=True, mandatory=True)
+        limit: int = Field(100, description="Limit code search to this many results")
 
     github_raw_url = "https://raw.githubusercontent.com/"
 

@@ -2,9 +2,7 @@ from .base import ModuleTestBase
 
 
 class TestGithub_Org(ModuleTestBase):
-    config_overrides = {
-        "modules": {"github_org": {"api_key": "asdf"}, "github": {"api_key": "asdf"}, "git_clone": {"api_key": ""}}
-    }
+    config_overrides = {"modules": {"github_org": {"api_key": "asdf"}, "git_clone": {"api_key": ""}}}
     modules_overrides = ["github_org", "speculate"]
 
     async def setup_before_prep(self, module_test):
@@ -320,7 +318,7 @@ class TestGithub_Org(ModuleTestBase):
 
 
 class TestGithub_Org_No_Members(TestGithub_Org):
-    config_overrides = {"modules": {"github_org": {"include_members": False}, "github": {"api_key": "asdf"}}}
+    config_overrides = {"modules": {"github_org": {"include_members": False, "api_key": "asdf"}}}
 
     def check(self, module_test, events):
         assert 1 == len(
@@ -349,7 +347,7 @@ class TestGithub_Org_No_Members(TestGithub_Org):
 class TestGithub_Org_MemberRepos(TestGithub_Org):
     config_overrides = {
         "scope": {"report_distance": 2, "search_distance": 2},
-        "modules": {"github_org": {"include_member_repos": True}, "github": {"api_key": "asdf"}},
+        "modules": {"github_org": {"include_member_repos": True, "api_key": "asdf"}},
     }
 
     def check(self, module_test, events):
@@ -367,7 +365,7 @@ class TestGithub_Org_Custom_Target(TestGithub_Org):
         "scope": {"report_distance": 10, "search_distance": 2},
         "omit_event_types": [],
         "speculate": True,
-        "modules": {"github": {"api_key": "asdf"}},
+        "modules": {"github_org": {"api_key": "asdf"}},
     }
 
     def check(self, module_test, events):

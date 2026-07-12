@@ -63,7 +63,7 @@ class TestSpeculate_OpenPorts(ModuleTestBase):
         # since the dummy module was added after speculate's setup phase
         speculate_module = module_test.scan.modules["speculate"]
         speculate_module.open_port_consumers = True
-        speculate_module.emit_open_ports = True
+        speculate_module._always_emit_open_ports = True
 
     async def setup_before_prep(self, module_test):
         module_test.blasthttp_mock.add_response(
@@ -78,6 +78,56 @@ class TestSpeculate_OpenPorts(ModuleTestBase):
         assert all(
             x in events_data
             for x in ("evilcorp.com:80", "evilcorp.com:443", "asdf.evilcorp.com:80", "asdf.evilcorp.com:443")
+        )
+
+
+class TestSpeculate_OutOfScopeIPRange(ModuleTestBase):
+    """Out-of-scope IP ranges from SPF (or any source) should not be enumerated into individual IPs."""
+
+    targets = ["evilcorp.com"]
+    modules_overrides = ["speculate"]
+    config_overrides = {"dns": {"minimal": False}}
+
+    async def setup_after_prep(self, module_test):
+        await module_test.mock_dns(
+            {
+                "evilcorp.com": {
+                    "A": ["127.0.254.1"],
+                    "TXT": ['"v=spf1 ip4:192.168.0.0/24 ~all"'],
+                },
+            }
+        )
+
+        from bbot.modules.base import BaseModule
+
+        class IPCollector(BaseModule):
+            _name = "ip_collector"
+            watched_events = ["IP_ADDRESS"]
+            scope_distance_modifier = 10
+            accept_dupes = True
+
+            async def setup(self):
+                self.events = []
+                return True
+
+            async def handle_event(self, event):
+                self.events.append(event)
+
+        collector = IPCollector(module_test.scan)
+        await collector.setup()
+        module_test.scan.modules["ip_collector"] = collector
+
+    def check(self, module_test, events):
+        import ipaddress
+
+        net = ipaddress.ip_network("192.168.0.0/24")
+        speculated_ips = [
+            e
+            for e in module_test.scan.modules["ip_collector"].events
+            if e.type == "IP_ADDRESS" and ipaddress.ip_address(e.data) in net
+        ]
+        assert len(speculated_ips) == 0, (
+            f"speculate enumerated {len(speculated_ips)} IPs from out-of-scope IP_RANGE 192.168.0.0/24"
         )
 
 

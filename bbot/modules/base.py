@@ -18,7 +18,7 @@ class BaseModule:
 
         produced_events (List): Event types to produce.
 
-        meta (Dict): Metadata about the module, such as whether authentication is required and a description.
+        meta (Dict): Metadata about the module — description, author, created_date, etc.
 
         flags (List): Flags indicating the type of module (must have at least "passive" or "active").
 
@@ -86,7 +86,7 @@ class BaseModule:
 
     watched_events = []
     produced_events = []
-    meta = {"auth_required": False, "description": "Base module"}
+    meta = {"description": "Base module"}
     flags = []
     options = {}
     options_desc = {}
@@ -106,6 +106,7 @@ class BaseModule:
     target_only = False
     in_scope_only = False
     accept_url_special = False
+    _avoid_duplicate_content = False
     _module_threads = 1
     _batch_size = 1
 
@@ -144,6 +145,7 @@ class BaseModule:
         self._outgoing_event_queue = None
         # track incoming events to prevent unwanted duplicates
         self._incoming_dup_tracker = set()
+        self._content_dup_tracker = set()
         # tracks which subprocesses are running under this module
         self._proc_tracker = set()
         # seconds since we've submitted a batch
@@ -868,13 +870,13 @@ class BaseModule:
         if self.target_only and "target" not in event.tags:
             return False, "it did not meet target_only filter criteria"
 
-        # limit js URLs to modules that opt in to receive them
-        if (not self.accept_url_special) and event.type.startswith("URL"):
+        # limit events with special URL extensions (e.g. .js) to modules that opt in
+        if not self.accept_url_special:
             extension = getattr(event, "url_extension", "")
             if extension in self.scan.url_extension_special:
                 return (
                     False,
-                    f"it is a special URL (extension {extension}) but the module does not opt in to receive special URLs",
+                    f"it has a special URL extension ({extension}) but the module does not opt in to receive special URLs",
                 )
 
         return True, "precheck succeeded"
@@ -938,6 +940,30 @@ class BaseModule:
                 return False, msg
 
         return True, ""
+
+    async def _is_http_wildcard_host(self, event):
+        """Check whether the event's host is an HTTP wildcard responder.
+
+        Extracts scheme/host/port from the event's parsed_url when available,
+        otherwise falls back to ``event.host`` with https/443.  Returns True
+        (wildcard), False (not wildcard), or None (probe failed / no host).
+        """
+        p = getattr(event, "parsed_url", None)
+        if p is not None and p.hostname:
+            host = p.hostname
+            port = p.port or (443 if p.scheme == "https" else 80)
+            scheme = p.scheme
+        elif event.host:
+            # may miss HTTP-only wildcard hosts, but not worth doubling probe requests
+            host = str(event.host)
+            port = 443
+            scheme = "https"
+        else:
+            return None
+        result = await self.helpers.is_http_wildcard_host(scheme, host, port)
+        if result in (False, None):
+            return result
+        return True
 
     def _scope_distance_check(self, event):
         # Seeds bypass scope distance checks
@@ -1121,9 +1147,21 @@ class BaseModule:
             return True, msg
         with suppress(TypeError, ValueError):
             event_hash, reason = event_hash
-        is_dup = event_hash in self._incoming_dup_tracker
-        if add:
+        is_post = isinstance(event.data, dict) and event.data.get("method", "") == "POST"
+        is_dup = event_hash in self._incoming_dup_tracker and not is_post
+        if add and not is_post:
             self._incoming_dup_tracker.add(event_hash)
+        if not is_dup and self._avoid_duplicate_content:
+            hash_dict = event.data.get("hash") if isinstance(event.data, dict) else None
+            body_hash = hash_dict.get("body_sha256", "") if isinstance(hash_dict, dict) else ""
+            # skip dedup for empty bodies (e.g. 302 redirects) where the useful data is in headers
+            if body_hash and body_hash != "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855":
+                content_key = hash((event.host, event.port, body_hash))
+                if content_key in self._content_dup_tracker:
+                    is_dup = True
+                    reason = f"duplicate content (body_hash={body_hash})"
+                if add:
+                    self._content_dup_tracker.add(content_key)
         return is_dup, reason
 
     def _incoming_dedup_hash(self, event):
@@ -1302,6 +1340,10 @@ class BaseModule:
         for _ in range(self.api_retries):
             if "headers" not in kwargs:
                 kwargs["headers"] = {}
+            if "ssl_verify" not in kwargs:
+                kwargs["ssl_verify"] = self.helpers.web.ssl_verify_infrastructure
+            if "timeout" not in kwargs:
+                kwargs["timeout"] = self.http_timeout_infrastructure
             new_url, kwargs = self.prepare_api_request(url, kwargs)
             kwargs["url"] = new_url
 
@@ -1502,14 +1544,27 @@ class BaseModule:
 
     @property
     def auth_required(self):
-        return self.meta.get("auth_required", False)
+        """True iff this module's `class Config` declares any `mandatory=True` field."""
+        cfg = getattr(type(self), "Config", None)
+        if cfg is None:
+            return False
+        from bbot.core.config.models import is_mandatory
+
+        return any(is_mandatory(f) for f in getattr(cfg, "model_fields", {}).values())
 
     @property
     def http_timeout(self):
         """
-        Convenience shortcut to `http_timeout` in the config
+        Convenience shortcut to `http_timeout` in the config (target-directed traffic)
         """
         return self.scan.web_config.get("http_timeout", 10)
+
+    @property
+    def http_timeout_infrastructure(self):
+        """
+        Convenience shortcut to `http_timeout_infrastructure` in the config (APIs, wordlist downloads, etc.)
+        """
+        return self.scan.web_config.get("http_timeout_infrastructure", 10)
 
     @property
     def log(self):
@@ -1775,21 +1830,21 @@ class BaseModule:
             self.trace()
 
     @classmethod
-    def help_text(self):
+    def help_text(cls):
         """
         Returns a string containing help text for the module.
         This includes the module's description, metadata, events, flags, and available options.
         """
-        # Retrieve the module's metadata, options, events, and flags
-        meta = getattr(self, "meta", {})
-        options = getattr(self, "options", {})
-        options_desc = getattr(self, "options_desc", {})
-        watched_events = getattr(self, "watched_events", [])
-        produced_events = getattr(self, "produced_events", [])
-        flags = getattr(self, "flags", [])
+        from pydantic_core import PydanticUndefined
+
+        # Retrieve the module's metadata, events, and flags
+        meta = getattr(cls, "meta", {})
+        watched_events = getattr(cls, "watched_events", [])
+        produced_events = getattr(cls, "produced_events", [])
+        flags = getattr(cls, "flags", [])
 
         help_text = "\n" + "=" * 40 + "\n"
-        help_text += f"Module Help: {self.__name__}\n"
+        help_text += f"Module Help: {cls.__name__}\n"
         help_text += "=" * 40 + "\n\n"
 
         for key, value in meta.items():
@@ -1804,12 +1859,24 @@ class BaseModule:
         help_text += "\nFlags:\n"
         help_text += "  " + ", ".join(flags) + "\n" if flags else "  None\n"
 
+        # Options come from the module's `class Config`; show only its own declared fields
+        # (mirrors `--list-module-options`), not inherited universal options.
+        config_cls = getattr(cls, "Config", None)
+        own_options = (
+            [name for name in getattr(config_cls, "__annotations__", {}) if name in config_cls.model_fields]
+            if config_cls is not None
+            else []
+        )
         help_text += "\nOptions:\n"
-        if options:
-            for option, default_value in options.items():
-                option_description = options_desc.get(option, "No description available.")
+        if own_options:
+            for option in sorted(own_options):
+                field = config_cls.model_fields[option]
+                default_value = field.get_default(call_default_factory=True)
+                if default_value is PydanticUndefined:
+                    default_value = ""
+                description = field.description or "No description available."
                 help_text += f"  - {option}:\n"
-                help_text += f"      Description: {option_description}\n"
+                help_text += f"      Description: {description}\n"
                 help_text += f"      Default: {default_value}\n"
         else:
             help_text += "  No options available."
@@ -1937,6 +2004,3 @@ class BaseInterceptModule(BaseModule):
             self.incoming_event_queue.put_nowait((event, kwargs))
         except AttributeError:
             self.debug("Not in an acceptable state to queue incoming event")
-
-    async def _event_postcheck(self, event):
-        return await self._event_postcheck_inner(event)

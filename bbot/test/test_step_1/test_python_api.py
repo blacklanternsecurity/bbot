@@ -49,11 +49,15 @@ async def test_python_api(clean_default_config):
     await scan4._prep()
     assert os.environ["BBOT_TOOLS"] == str(Path(bbot_home) / "tools")
 
-    # output modules override
+    # output modules are additive
     scan5 = Scanner()
-    assert set(scan5.preset.output_modules) == {"csv", "json", "python", "txt"}
+    assert set(scan5.preset.output_modules) == {"csv", "json", "txt"}
+    # adding json is a no-op (already a default), defaults stay
     scan6 = Scanner(output_modules=["json"])
-    assert set(scan6.preset.output_modules) == {"json"}
+    assert set(scan6.preset.output_modules) == {"csv", "json", "txt"}
+    # use exclude_output_modules to remove defaults
+    scan6b = Scanner(exclude_output_modules=["csv", "txt"])
+    assert set(scan6b.preset.output_modules) == {"json"}
 
     # custom target types
     custom_target_scan = Scanner("ORG:evilcorp")

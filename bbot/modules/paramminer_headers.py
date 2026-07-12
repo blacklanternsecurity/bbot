@@ -1,7 +1,9 @@
 import re
+from typing import Union
 
 from bbot.errors import HttpCompareError
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 _case_split = re.compile(r"[-_]+")
 
@@ -39,16 +41,17 @@ class paramminer_headers(BaseModule):
         "created_date": "2022-04-15",
         "author": "@liquidsec",
     }
-    options = {
-        "wordlist": "",  # default is defined within setup function
-        "recycle_words": False,
-        "skip_boring_words": True,
-    }
-    options_desc = {
-        "wordlist": "Define the wordlist to be used to derive headers. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
-        "recycle_words": "Attempt to use words found during the scan on all other endpoints",
-        "skip_boring_words": "Remove commonly uninteresting words from the wordlist",
-    }
+
+    class Config(BaseModuleConfig):
+        wordlist: Union[str, list[str]] = Field(
+            "",
+            description="Define the wordlist to be used to derive headers. Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
+        )
+        recycle_words: bool = Field(
+            False, description="Attempt to use words found during the scan on all other endpoints"
+        )
+        skip_boring_words: bool = Field(True, description="Remove commonly uninteresting words from the wordlist")
+
     # URLs ending with these extensions are known to be case-insensitive — skip case mutation.
     # (Used by paramminer_getparams and paramminer_cookies; HTTP headers are inherently
     # case-insensitive per RFC 7230 so this isn't relevant to paramminer_headers itself.)
@@ -130,7 +133,7 @@ class paramminer_headers(BaseModule):
     async def setup(self):
         self.recycle_words = self.config.get("recycle_words", True)
         self.event_dict = {}
-        self.already_checked = set()
+        self.already_checked = {}
 
         # global parameter blacklist (shared with excavate) — known framework/CDN/tracker names
         self.global_blacklist = {p.lower() for p in self.scan.config.get("parameter_blacklist", [])}
@@ -162,10 +165,10 @@ class paramminer_headers(BaseModule):
         return self.helpers.rand_string(*args, **kwargs)
 
     async def do_mining(self, wl, url, batch_size, compare_helper):
+        url_checked = self.already_checked.setdefault(url, set())
         for i in wl:
             if i not in self.wl:
-                h = hash(i + url)
-                self.already_checked.add(h)
+                url_checked.add(hash(i))
 
         results = set()
         abort_threshold = 15
@@ -313,10 +316,9 @@ class paramminer_headers(BaseModule):
             except HttpCompareError as e:
                 self.debug(f"Error initializing compare helper: {e}")
                 continue
+            url_checked = self.already_checked.get(url, set())
             words_to_process = {
-                i
-                for i in self._mutate_for_url(url, self.extracted_words_master)
-                if hash(i + url) not in self.already_checked
+                i for i in self._mutate_for_url(url, self.extracted_words_master) if hash(i) not in url_checked
             }
             try:
                 results = await self.do_mining(words_to_process, url, batch_size, compare_helper)
@@ -324,10 +326,30 @@ class paramminer_headers(BaseModule):
                 self.debug(f"Encountered HttpCompareError: [{e}] for URL [{url}]")
                 continue
             await self.process_results(event, results)
+            self.already_checked.pop(url, None)
+
+    def _incoming_dedup_hash(self, event):
+        # dedup by endpoint structure, not full URL string -- value mutations
+        # of the same parameter set (e.g. from lightfuzz probes) are one test surface
+        p = getattr(event, "parsed_url", None)
+        if p is None:
+            return hash(event), ""
+        if event.type == "WEB_PARAMETER":
+            name = event.data.get("name", "")
+            additional_params = event.data.get("additional_params") or {}
+            param_keys = tuple(sorted(additional_params.keys()))
+        else:
+            name = ""
+            param_keys = ()
+        return hash((event.type, p.scheme, p.netloc, p.path, name, param_keys)), "per_endpoint+keys"
 
     async def filter_event(self, event):
+        if await self._is_http_wildcard_host(event) is True:
+            return False, "host is an HTTP wildcard responder"
+
         # Filter out static endpoints
-        if event.url.endswith(tuple(f".{ext}" for ext in self.config.get("url_extension_static", []))):
+        ext = getattr(event, "url_extension", None)
+        if ext and ext in self.scan.config.get("url_extension_static", []):
             return False
 
         # We don't need to look at WEB_PARAMETERS that we produced

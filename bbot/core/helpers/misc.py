@@ -2754,6 +2754,11 @@ def get_waf_strings():
     return [
         "The requested URL was rejected",
         "This content has been blocked",
+        "The URL you requested has been blocked",
+        "Request unsuccessful. Incapsula incident",
+        "Access Denied - Sucuri Website Firewall",
+        "Attention Required! | Cloudflare",
+        "Microsoft-Azure-Application-Gateway",
     ]
 
 
@@ -2818,36 +2823,23 @@ def truncate_filename(file_path, max_length=255):
 
 
 def get_keys_in_dot_syntax(config):
-    """Retrieve all keys in an OmegaConf configuration in dot notation.
-
-    This function converts an OmegaConf configuration into a list of keys
-    represented in dot notation.
+    """Retrieve all leaf keys in a nested dict in dot notation.
 
     Args:
-        config (DictConfig): The OmegaConf configuration object.
+        config (dict): A nested dict.
 
     Returns:
-        List[str]: A list of keys in dot notation.
+        List[str]: A list of leaf keys in dot notation.
 
     Examples:
-        >>> config = OmegaConf.create({
-        ...     "web": {
-        ...         "test": True
-        ...     },
-        ...     "db": {
-        ...         "host": "localhost",
-        ...         "port": 5432
-        ...     }
-        ... })
-        >>> get_keys_in_dot_syntax(config)
+        >>> get_keys_in_dot_syntax({"web": {"test": True}, "db": {"host": "localhost", "port": 5432}})
         ['web.test', 'db.host', 'db.port']
     """
-    from omegaconf import OmegaConf
-
-    container = OmegaConf.to_container(config, resolve=True)
     keys = []
 
     def recursive_keys(d, parent_key=""):
+        if not isinstance(d, dict):
+            return
         for k, v in d.items():
             full_key = f"{parent_key}.{k}" if parent_key else k
             if isinstance(v, dict):
@@ -2855,7 +2847,7 @@ def get_keys_in_dot_syntax(config):
             else:
                 keys.append(full_key)
 
-    recursive_keys(container)
+    recursive_keys(config)
     return keys
 
 
@@ -3007,3 +2999,18 @@ def is_printable(s):
     # Exclude control characters that break display/printing
     s = set(s)
     return all(ord(c) >= 32 or c in "\t\n\r" for c in s)
+
+
+_control_char_re = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+
+
+def make_printable(s):
+    """
+    Escape non-printable control characters so a string is safe to write to a terminal.
+
+    Keeps tab, newline, and carriage return; renders other control bytes (e.g. 0x0e Shift Out) as \\xNN.
+    Inverse of is_printable().
+    """
+    if not isinstance(s, str):
+        s = smart_decode(s)
+    return _control_char_re.sub(lambda m: f"\\x{ord(m.group()):02x}", s)

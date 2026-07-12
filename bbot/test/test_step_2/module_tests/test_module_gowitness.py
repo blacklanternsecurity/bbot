@@ -12,7 +12,7 @@ class TestGowitness(ModuleTestBase):
     home_dir = Path("/tmp/.bbot_gowitness_test")
     shutil.rmtree(home_dir, ignore_errors=True)
     config_overrides = {
-        "force_deps": True,
+        "deps": {"behavior": "force_install"},
         "home": str(home_dir),
         "scope": {"report_distance": 2},
         "omit_event_types": [],
@@ -150,7 +150,7 @@ class TestGowitness_MultiPort(ModuleTestBase):
     home_dir = Path("/tmp/.bbot_gowitness_multiport_test")
     shutil.rmtree(home_dir, ignore_errors=True)
     config_overrides = {
-        "force_deps": True,
+        "deps": {"behavior": "force_install"},
         "home": str(home_dir),
         "omit_event_types": [],
     }

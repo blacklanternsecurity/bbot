@@ -55,7 +55,7 @@ def _run_scan(num_urls):
 
     targets = [f"http://127.0.0.1:{BENCH_PORT}/dir{i}/" for i in range(num_urls)]
     config = {
-        "web": {"http_timeout": 10, "http_retries": 0, "ssl_verify": False},
+        "web": {"http_timeout": 10, "http_retries": 0, "ssl_verify_target": False},
         "scope": {"search_distance": 0, "report_distance": 0},
         "modules": {"speculate": {"ports": str(BENCH_PORT)}},
         "excavate": False,

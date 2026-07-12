@@ -7,7 +7,7 @@ These helpers can be invoked directly from `self.helpers`, but inside a module t
 ```python
 # simple subprocess
 ls_result = await self.run_process("ls", "-l")
-for line ls_result.stdout.splitlines():
+for line in ls_result.stdout.splitlines():
     # ...
 
 # iterate through each line in real time

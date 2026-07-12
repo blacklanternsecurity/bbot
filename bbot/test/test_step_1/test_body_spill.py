@@ -6,13 +6,28 @@ Two layers:
   - ``TestHTTPResponseSpill``: integration tests asserting that
     HTTP_RESPONSE events route bodies through the spill store when one
     is attached to the scan, and fall back to in-memory data when not.
+  - ``TestBaselineSnapshot``: unit tests of the HttpCompare baseline
+    snapshot that also spills its body through the store.
 """
+
+import gc
 
 import pytest
 
 from bbot.core.event.spill import BodySpillStore
+from bbot.core.helpers.diff import _BaselineSnapshot
 
 from ..bbot_fixtures import *  # noqa: F401, F403
+
+
+class _FakeResponse:
+    """Minimal stand-in for a blasthttp Response for snapshot tests."""
+
+    def __init__(self, body_bytes=b"", text="", status_code=200, headers=None):
+        self.body_bytes = body_bytes
+        self.text = text
+        self.status_code = status_code
+        self.headers = {} if headers is None else headers
 
 
 # ── BodySpillStore unit tests ─────────────────────────────────────────
@@ -220,3 +235,44 @@ class TestHTTPResponseSpill:
         raw = event.raw_response
         assert "<html><body>hi</body></html>" in raw
         assert "HTTP/1.1 200 OK" in raw
+
+
+# ── _BaselineSnapshot unit tests ──────────────────────────────────────
+
+
+class TestBaselineSnapshot:
+    def test_roundtrip_via_spill_store(self, tmp_path):
+        """text/content are served from the spill store, not pinned on the snapshot."""
+        store = BodySpillStore(tmp_path, cache_bytes=4096)
+        body = "<html>ünïcödé body</html>".encode("utf-8")
+        snap = _BaselineSnapshot(_FakeResponse(body_bytes=body), spill_store=store)
+        assert snap.content == body
+        assert snap.text == body.decode("utf-8")
+        assert snap._text is None  # body is not held on the Python object
+
+    def test_no_spill_store_falls_back_to_memory(self, tmp_path):
+        """Without a store, text/content come from the in-memory text."""
+        snap = _BaselineSnapshot(_FakeResponse(text="hello"), spill_store=None)
+        assert snap.text == "hello"
+        assert snap.content == b"hello"
+        assert not any(tmp_path.iterdir())
+
+    def test_del_reclaims_spilled_body(self, tmp_path):
+        """Garbage-collecting the snapshot deletes its spill file and cache entry."""
+        store = BodySpillStore(tmp_path, cache_bytes=4096)
+        snap = _BaselineSnapshot(_FakeResponse(body_bytes=b"X" * 256), spill_store=store)
+        assert any(tmp_path.iterdir())
+        assert store.stats()["cache_entries"] == 1
+
+        del snap
+        gc.collect()
+        assert not list(tmp_path.iterdir())
+        assert store.stats()["cache_entries"] == 0
+
+    def test_cleanup_is_idempotent(self, tmp_path):
+        """Calling _cleanup twice (e.g. explicit + __del__) is safe."""
+        store = BodySpillStore(tmp_path, cache_bytes=4096)
+        snap = _BaselineSnapshot(_FakeResponse(body_bytes=b"data"), spill_store=store)
+        snap._cleanup()
+        snap._cleanup()
+        assert not list(tmp_path.iterdir())

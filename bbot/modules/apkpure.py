@@ -1,6 +1,7 @@
 import re
 from pathlib import Path
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class apkpure(BaseModule):
@@ -12,10 +13,12 @@ class apkpure(BaseModule):
         "created_date": "2024-10-11",
         "author": "@domwhewell-sage",
     }
-    options = {"output_folder": ""}
-    options_desc = {
-        "output_folder": "Folder to download APKs to. If not specified, downloaded APKs will be deleted when the scan completes, to minimize disk usage."
-    }
+
+    class Config(BaseModuleConfig):
+        output_folder: str = Field(
+            "",
+            description="Folder to download APKs to. If not specified, downloaded APKs will be deleted when the scan completes, to minimize disk usage.",
+        )
 
     async def setup(self):
         output_folder = self.config.get("output_folder", "")
@@ -46,6 +49,9 @@ class apkpure(BaseModule):
 
     async def download_apk(self, app_id):
         path = None
+        if "/" in app_id or "\\" in app_id or ".." in app_id:
+            self.warning(f"Unsafe app_id, skipping: {app_id}")
+            return path
         url = f"https://d.apkpure.com/b/XAPK/{app_id}?version=latest"
         self.helpers.mkdir(self.output_dir / app_id)
         response = await self.helpers.request(url, allow_redirects=True)

@@ -1,5 +1,6 @@
 from bbot.core.helpers.dns.helpers import common_srvs
 from bbot.modules.templates.subdomain_enum import subdomain_enum
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class dnscommonsrv(subdomain_enum):
@@ -10,11 +11,12 @@ class dnscommonsrv(subdomain_enum):
     dedup_strategy = "lowest_parent"
     deps_common = ["massdns"]
 
-    options = {"max_depth": 2, "recursive_mutations": False}
-    options_desc = {
-        "max_depth": "The maximum subdomain depth to brute-force SRV records",
-        "recursive_mutations": "If True, brute-force SRV records on hosts discovered by dnsbrute_mutations. Default False skips them.",
-    }
+    class Config(BaseModuleConfig):
+        max_depth: int = Field(2, description="The maximum subdomain depth to brute-force SRV records")
+        recursive_mutations: bool = Field(
+            False,
+            description="If True, brute-force SRV records on hosts discovered by dnsbrute_mutations. Default False skips them.",
+        )
 
     async def setup(self):
         self.max_subdomain_depth = self.config.get("max_depth", 2)

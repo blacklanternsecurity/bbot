@@ -540,7 +540,7 @@ async def test_manager_scope_accuracy_correct(bbot_scanner, bbot_httpserver, bbo
         "127.0.0.33",
         seeds=["127.0.0.111/31"],
         modules=["http"],
-        output_modules=["python"],
+        exclude_output_modules=["csv", "json", "txt"],
         _config={
             "dns": {"minimal": False, "search_distance": 2},
             "scope": {"search_distance": 0, "report_distance": 0},
@@ -842,6 +842,11 @@ async def test_scope_accuracy_with_special_urls(bbot_scanner, bbot_httpserver):
     await scan._prep()
     scan.modules["dockerhub"].site_url = "http://127.0.0.1:8888"
     scan.modules["dockerhub"].api_url = "http://127.0.0.1:8888/v2"
+
+    async def mock_wildcard(*args, **kwargs):
+        return False
+
+    scan.helpers.web.is_http_wildcard_host = mock_wildcard
 
     from bbot.modules.base import BaseModule
 

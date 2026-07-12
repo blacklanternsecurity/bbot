@@ -2,10 +2,10 @@ import pytest
 import asyncio
 import logging
 import pytest_asyncio
-from omegaconf import OmegaConf
 
 from ...bbot_fixtures import *
 from bbot.scanner import Scanner
+from bbot.core.config.merge import deep_merge
 from bbot.core.helpers.misc import rand_string
 
 log = logging.getLogger("bbot.test.modules")
@@ -28,7 +28,7 @@ class ModuleTestBase:
             self, module_test_base, blasthttp_mock, httpserver, httpserver_ssl, monkeypatch, request, caplog, capsys
         ):
             self.name = module_test_base.name
-            self.config = OmegaConf.merge(CORE.config, OmegaConf.create(module_test_base.config_overrides))
+            self.config = deep_merge(dict(CORE.custom_config), dict(module_test_base.config_overrides))
 
             self.caplog = caplog
             self.capsys = capsys
@@ -41,9 +41,8 @@ class ModuleTestBase:
             self.preloaded = DEFAULT_PRESET.module_loader.preloaded()
 
             # handle output, internal module types
-            output_modules = None
+            output_modules = []
             modules = list(module_test_base.modules)
-            output_modules = ["python"]
             for module in list(modules):
                 module_type = self.preloaded[module]["type"]
                 if module_type in ("internal", "output"):
@@ -51,14 +50,17 @@ class ModuleTestBase:
                     if module_type == "output":
                         output_modules.append(module)
                     elif module_type == "internal" and not module == "dnsresolve":
-                        self.config = OmegaConf.merge(self.config, {module: True})
+                        self.config = deep_merge(self.config, {module: True})
 
             seeds = module_test_base.seeds or None
+
+            default_output_modules = [m for m in ("csv", "json", "txt") if m not in output_modules]
 
             self.scan = Scanner(
                 *module_test_base.targets,
                 modules=modules,
                 output_modules=output_modules,
+                exclude_output_modules=default_output_modules,
                 scan_name=module_test_base._scan_name,
                 config=self.config,
                 seeds=seeds,
@@ -108,6 +110,8 @@ class ModuleTestBase:
         await module_test.scan._prep()
         self.log.debug("Mocking DNS")
         await module_test.mock_dns({"blacklanternsecurity.com": {"A": ["127.0.0.88"]}})
+        self.log.debug("Disabling HTTP wildcard detection for test")
+        module_test.scan.helpers.web.is_http_wildcard_host = self._mock_http_wildcard
         self.log.debug("Executing setup_after_prep()")
         await self.setup_after_prep(module_test)
         self.log.debug("Starting scan")
@@ -169,6 +173,10 @@ class ModuleTestBase:
 
     async def setup_after_prep(self, module_test):
         pass
+
+    @staticmethod
+    async def _mock_http_wildcard(*args, **kwargs):
+        return False
 
     async def wait_for_port_open(self, port):
         while not await self.is_port_open("localhost", port):

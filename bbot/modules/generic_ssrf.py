@@ -1,5 +1,6 @@
 from bbot.errors import InteractshError
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 ssrf_params = [
@@ -122,8 +123,7 @@ class Generic_SSRF_POST(BaseSubmodule):
         post_data_list = [(subdomain_tag, post_data), (subdomain_tag_lower, post_data_lower)]
 
         for tag, pd in post_data_list:
-            # Send raw body (not URL-encoded) so payload URLs like http://... reach the
-            # server literally — matching old curl -d behavior.
+            # Send raw body (not URL-encoded) so payload URLs like http://... reach the server literally.
             raw_body = "&".join(f"{k}={v}" for k, v in pd.items())
             r = await self.generic_ssrf.helpers.request(url=test_url, method="POST", body=raw_body)
             if r:
@@ -158,12 +158,10 @@ class generic_ssrf(BaseModule):
     produced_events = ["FINDING"]
     flags = ["active", "invasive", "web-heavy"]
     meta = {"description": "Check for generic SSRFs", "created_date": "2022-07-30", "author": "@liquidsec"}
-    options = {
-        "skip_dns_interaction": False,
-    }
-    options_desc = {
-        "skip_dns_interaction": "Do not report DNS interactions (only HTTP interaction)",
-    }
+
+    class Config(BaseModuleConfig):
+        skip_dns_interaction: bool = Field(False, description="Do not report DNS interactions (only HTTP interaction)")
+
     in_scope_only = True
 
     async def setup(self):

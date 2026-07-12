@@ -13,7 +13,11 @@ from bs4.builder import XMLParsedAsHTMLWarning
 from blasthttp import HTTPStatusError
 
 from bbot.core.helpers.misc import truncate_filename, bytes_to_human, get_exception_chain
-from bbot.errors import WordlistError, WebError
+from cachetools import LRUCache
+
+from bbot.core.helpers.async_helpers import NamedLock
+from bbot.core.helpers.diff import HttpCompare
+from bbot.errors import HttpCompareError, WordlistError, WebError
 
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
@@ -49,7 +53,8 @@ class WebHelper:
     Attributes:
         parent_helper (object): The parent helper object containing scan configurations.
         http_debug (bool): Flag to indicate whether HTTP debugging is enabled.
-        ssl_verify (bool): Flag to indicate whether SSL verification is enabled.
+        ssl_verify_target (bool): Whether to verify SSL for target-directed traffic (default False).
+        ssl_verify_infrastructure (bool): Whether to verify SSL for non-target traffic (default True).
 
     Examples:
         Basic web request:
@@ -71,9 +76,10 @@ class WebHelper:
         self.web_spider_distance = self.web_config.get("spider_distance", 0)
         self.target = self.preset.target
         self.http_debug = self.web_config.get("debug", False)
-        self.ssl_verify = self.web_config.get("ssl_verify", False)
+        self.ssl_verify_target = self.web_config.get("ssl_verify_target", False)
+        self.ssl_verify_infrastructure = self.web_config.get("ssl_verify_infrastructure", True)
         # Pre-compute config values for request preprocessing
-        self._http_timeout = self.web_config.get("http_timeout", 20)
+        self._http_timeout = self.web_config.get("http_timeout", 10)
         self._http_retries = self.web_config.get("http_retries", 1)
         self._http_proxy = self.web_config.get("http_proxy", None)
         self._http_proxy_exclude = self.web_config.get("http_proxy_exclude", []) or []
@@ -82,6 +88,8 @@ class WebHelper:
         self._user_agent = f"{ua} {ua_suffix}".strip()
         self._custom_headers = self.web_config.get("http_headers", {})
         self._custom_cookies = self.web_config.get("http_cookies", {})
+        self._wildcard_cache = LRUCache(maxsize=50000)
+        self._wildcard_locks = NamedLock(max_size=50000)
 
     @property
     def client(self):
@@ -122,6 +130,7 @@ class WebHelper:
         params = kwargs.pop("params", None)
         cookies = kwargs.pop("cookies", None)
         auth = kwargs.pop("auth", None)
+        ssl_verify = kwargs.pop("ssl_verify", None)
         max_body_size = kwargs.pop("max_body_size", None)
         request_target = kwargs.pop("request_target", None)
         resolve_ip = kwargs.pop("resolve_ip", None)
@@ -199,7 +208,7 @@ class WebHelper:
             "method": method,
             "headers": header_list,
             "timeout": int(timeout) if timeout else self._http_timeout,
-            "verify_certs": bool(self.ssl_verify),
+            "verify_certs": bool(ssl_verify if ssl_verify is not None else self.ssl_verify_target),
             "retries": int(retries),
         }
 
@@ -251,6 +260,8 @@ class WebHelper:
             proxy (str, optional): HTTP proxy URL.
             allow_redirects (bool, optional): Enables or disables redirection. Defaults to None.
             raise_error (bool, optional): Whether to raise exceptions for HTTP connect, timeout errors. Defaults to False.
+            ssl_verify (bool, optional): Override SSL certificate verification for this request.
+                Defaults to ssl_verify_target for target traffic; pass ssl_verify_infrastructure for API/infra calls.
             request_target (str, optional): Override the HTTP request-line target.
             resolve_ip (str, optional): Connect TCP to this IP instead of DNS resolution.
             ignore_bbot_global_settings (bool, optional): Skip User-Agent/header/cookie merging.
@@ -320,7 +331,8 @@ class WebHelper:
             # Classify error for appropriate log level
             lower = error_msg.lower()
             if "timeout" in lower:
-                log.verbose(f"HTTP timeout to URL: {url}")
+                attempts = blast_kwargs.get("retries", 0) + 1
+                log.verbose(f"HTTP timeout to URL: {url} (after {attempts} attempt(s))")
             elif "connect" in lower or "connection" in lower:
                 log.debug(f"HTTP connect failed to URL: {url}")
             else:
@@ -455,6 +467,8 @@ class WebHelper:
                 kwargs["follow_redirects"] = kwargs.pop("follow_redirects", True)
                 if "method" not in kwargs:
                     kwargs["method"] = "GET"
+                if "ssl_verify" not in kwargs:
+                    kwargs["ssl_verify"] = self.ssl_verify_infrastructure
                 kwargs["raise_error"] = True
                 # Use a longer timeout for downloads (default 5 minutes)
                 if "timeout" not in kwargs:
@@ -653,6 +667,68 @@ class WebHelper:
         except Exception as e:
             log.debug(f"Error parsing beautifulsoup: {e}")
             return False
+
+    async def is_http_wildcard_host(self, scheme, host, port):
+        """Detect whether a host returns the same response regardless of URL path.
+
+        Probes two random paths and the root URL via HttpCompare. Cached per
+        (scheme, host, port); 3 HTTP requests on first call, instant thereafter.
+
+        Returns:
+            HttpCompare -- host is a wildcard responder (cached baseline).
+            False       -- host distinguishes responses by path.
+            None        -- probe failed after retry; treat as unknown.
+        """
+        key = (scheme, host, port)
+        if key in self._wildcard_cache:
+            return self._wildcard_cache[key]
+        async with self._wildcard_locks.lock(key):
+            if key in self._wildcard_cache:
+                return self._wildcard_cache[key]
+            result = await self._probe_wildcard_host(scheme, host, port)
+            if result == "retry":
+                log.debug(f"is_http_wildcard_host: first probe failed for {host}:{port}; retrying once")
+                result = await self._probe_wildcard_host(scheme, host, port)
+                if result == "retry":
+                    log.debug(f"is_http_wildcard_host: retry also failed for {host}:{port}; caching as unknown")
+                    self._wildcard_cache[key] = None
+                    return None
+            self._wildcard_cache[key] = result
+            return result
+
+    async def _probe_wildcard_host(self, scheme, host, port):
+        """Single probe attempt. Returns HttpCompare (wildcard), False (not wildcard), or "retry"."""
+        baseline_url_1 = (
+            f"{scheme}://{host}:{port}/{self.parent_helper.rand_string(12)}/{self.parent_helper.rand_string(8)}"
+        )
+        baseline_url_2 = (
+            f"{scheme}://{host}:{port}/{self.parent_helper.rand_string(12)}/{self.parent_helper.rand_string(8)}"
+        )
+        compare = HttpCompare(
+            baseline_url_1,
+            self.parent_helper,
+            allow_redirects=False,
+            timeout=10,
+            baseline_url_2=baseline_url_2,
+        )
+        try:
+            await compare._baseline()
+        except HttpCompareError as e:
+            log.debug(f"is_http_wildcard_host: baseline failed for {host}:{port}: {e}")
+            return "retry"
+        root_url = f"{scheme}://{host}:{port}/"
+        try:
+            root_match, root_reasons, _, _ = await compare.compare(root_url)
+        except HttpCompareError as e:
+            log.debug(f"is_http_wildcard_host: root probe failed for {host}:{port}: {e}")
+            return "retry"
+        if not root_match:
+            log.debug(
+                f"is_http_wildcard_host: {host}:{port} root distinct from random-path baseline ({root_reasons}); not a wildcard"
+            )
+            return False
+        log.verbose(f"is_http_wildcard_host: {scheme}://{host}:{port} is an HTTP wildcard responder")
+        return compare
 
     def response_to_json(self, response):
         """

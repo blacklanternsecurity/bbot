@@ -1,4 +1,6 @@
+import os
 import io
+import shutil
 import zipfile
 from pathlib import Path
 
@@ -524,3 +526,129 @@ class TestGithub_Workflows(ModuleTestBase):
         for filesystem_event in filesystem_events:
             file = Path(filesystem_event.data["path"])
             assert file.is_file(), "Destination file does not exist"
+
+
+class TestGithubWorkflowsSymlinkCheck(ModuleTestBase):
+    modules_overrides = ["github_workflows"]
+    config_overrides = {"modules": {"github_workflows": {"api_key": "asdf"}}}
+
+    async def setup_before_prep(self, module_test):
+        module_test.blasthttp_mock.add_response(url="https://api.github.com/zen")
+
+    async def setup_after_prep(self, module_test):
+        m = module_test.scan.modules["github_workflows"]
+
+        symlink_target = Path("/tmp/.bbot_test/symlink_target")
+        if symlink_target.exists():
+            shutil.rmtree(symlink_target)
+        symlink_target.mkdir(parents=True, exist_ok=True)
+
+        # symlink at the repo level: output_dir/owner/repo -> symlink_target
+        owner_dir = m.output_dir / "testowner"
+        owner_dir.mkdir(parents=True, exist_ok=True)
+        repo_symlink = owner_dir / "testrepo"
+        os.symlink(str(symlink_target), str(repo_symlink))
+
+        # symlink at the owner level: output_dir/badowner -> symlink_target
+        bad_owner = m.output_dir / "badowner"
+        os.symlink(str(symlink_target), str(bad_owner))
+
+        # symlink at the output_dir level itself
+        output_dir_symlink_base = Path("/tmp/.bbot_test/fake_output_dir")
+        output_dir_symlink_base.mkdir(parents=True, exist_ok=True)
+        output_dir_link = Path("/tmp/.bbot_test/output_dir_link")
+        if output_dir_link.is_symlink() or output_dir_link.exists():
+            output_dir_link.unlink()
+        os.symlink(str(output_dir_symlink_base), str(output_dir_link))
+
+        saved_output_dir = m.output_dir
+        m.output_dir = output_dir_link
+
+        self.results = {}
+        self.results["output_dir_symlink"] = m._check_output_path(output_dir_link / "owner" / "repo")
+        m.output_dir = saved_output_dir
+        self.results["normal_path"] = m._check_output_path(m.output_dir / "clean" / "repo")
+        self.results["repo_symlink"] = m._check_output_path(repo_symlink)
+        self.results["owner_symlink"] = m._check_output_path(bad_owner / "anyrepo")
+
+    def check(self, module_test, events):
+        assert self.results["normal_path"], "Normal path was rejected"
+        assert not self.results["repo_symlink"], "Symlink at repo level was not rejected"
+        assert not self.results["owner_symlink"], "Symlink at owner level was not rejected"
+        assert not self.results["output_dir_symlink"], "Symlink at output_dir level was not rejected"
+
+
+class TestGithubWorkflowsPathTraversal(ModuleTestBase):
+    modules_overrides = ["github_workflows"]
+    config_overrides = {"modules": {"github_workflows": {"api_key": "asdf"}}}
+
+    data = io.BytesIO()
+    with zipfile.ZipFile(data, mode="w", compression=zipfile.ZIP_DEFLATED) as _zip:
+        _zip.writestr("artifact.txt", "artifact data")
+    data.seek(0)
+    zip_content = data.getvalue()
+
+    async def setup_before_prep(self, module_test):
+        module_test.blasthttp_mock.add_response(url="https://api.github.com/zen")
+        module_test.blasthttp_mock.add_response(
+            url="https://api.github.com/repos/testowner/testrepo/actions/artifacts/991/zip",
+            content=self.zip_content,
+        )
+        module_test.blasthttp_mock.add_response(
+            url="https://api.github.com/repos/testowner/testrepo/actions/artifacts/992/zip",
+            content=self.zip_content,
+        )
+
+    async def setup_after_prep(self, module_test):
+        m = module_test.scan.modules["github_workflows"]
+        self.results = {}
+
+        # Bug 1: a "../.." folder that escapes output_dir must be rejected
+        self.results["traversal"] = m._check_output_path(m.output_dir / ".." / "..")
+        self.results["normal_path"] = m._check_output_path(m.output_dir / "owner" / "repo")
+
+        # Bug 2: filter_event must reject URLs where "github.com" is only a path segment
+        malicious_repo = module_test.scan.make_event(
+            {"url": "http://127.0.0.1:19080/github.com/../.."},
+            "CODE_REPOSITORY",
+            tags="git",
+            parent=module_test.scan.root_event,
+        )
+        legit_repo = module_test.scan.make_event(
+            {"url": "https://github.com/blacklanternsecurity/bbot"},
+            "CODE_REPOSITORY",
+            tags="git",
+            parent=module_test.scan.root_event,
+        )
+        self.results["malicious_filter"] = await m.filter_event(malicious_repo)
+        self.results["legit_filter"] = await m.filter_event(legit_repo)
+
+        # Bug 3: a dangerous artifact name must be sanitized to a safe basename inside output_dir
+        self.results["dangerous_artifact"] = await m.download_run_artifacts("testowner", "testrepo", 991, "..")
+        self.results["normal_artifact"] = await m.download_run_artifacts("testowner", "testrepo", 992, "build.tar.gz")
+
+    def check(self, module_test, events):
+        m = module_test.scan.modules["github_workflows"]
+
+        # Bug 1
+        assert not self.results["traversal"], "'..' path traversal was not rejected by _check_output_path"
+        assert self.results["normal_path"], "normal path was incorrectly rejected by _check_output_path"
+
+        # Bug 2 — filter_event returns True to accept, or (False, reason) to reject
+        def accepted(result):
+            return bool(result[0]) if isinstance(result, tuple) else bool(result)
+
+        assert not accepted(self.results["malicious_filter"]), (
+            "filter_event accepted a URL with github.com only as a path segment"
+        )
+        assert accepted(self.results["legit_filter"]), "filter_event rejected a legitimate github.com repository"
+
+        # Bug 3
+        dangerous = self.results["dangerous_artifact"]
+        assert dangerous is not None, "dangerous artifact name was not sanitized (download failed)"
+        assert dangerous.name == "artifact_991", f"artifact name not sanitized to a safe basename: {dangerous}"
+        assert dangerous.resolve().is_relative_to(m.output_dir.resolve()), (
+            f"artifact was written outside the output directory: {dangerous}"
+        )
+        normal = self.results["normal_artifact"]
+        assert normal is not None and normal.name == "build.tar.gz", f"legitimate artifact name was altered: {normal}"

@@ -2,6 +2,7 @@ import zipfile
 import json
 from pathlib import Path
 from bbot.modules.templates.postman import postman
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class postman_download(postman):
@@ -13,11 +14,14 @@ class postman_download(postman):
         "created_date": "2024-09-07",
         "author": "@domwhewell-sage",
     }
-    options = {"output_folder": "", "api_key": ""}
-    options_desc = {
-        "output_folder": "Folder to download postman workspaces to. If not specified, downloaded workspaces will be deleted when the scan completes, to minimize disk usage.",
-        "api_key": "Postman API Key",
-    }
+
+    class Config(BaseModuleConfig):
+        output_folder: str = Field(
+            "",
+            description="Folder to download postman workspaces to. If not specified, downloaded workspaces will be deleted when the scan completes, to minimize disk usage.",
+        )
+        api_key: str | list[str] = Field("", description="Postman API Key", sensitive=True, mandatory=True)
+
     scope_distance_modifier = 2
 
     async def setup(self):
@@ -57,15 +61,18 @@ class postman_download(postman):
 
     def save_workspace(self, workspace, environments, collections):
         zip_path = None
-        # Create a folder for the workspace
         name = workspace["name"]
         id = workspace["id"]
-        folder = self.output_dir / name
+        safe_name = self.helpers.tagify(name)
+        folder = self.output_dir / safe_name
+        if not folder.resolve().is_relative_to(self.output_dir.resolve()):
+            self.warning(f"Workspace name {name!r} resulted in path traversal, skipping")
+            return None
         self.helpers.mkdir(folder)
         zip_path = folder / f"{id}.zip"
 
         # Main Workspace
-        self.add_json_to_zip(zip_path, workspace, f"{name}.postman_workspace.json")
+        self.add_json_to_zip(zip_path, workspace, f"{safe_name}.postman_workspace.json")
 
         # Workspace Environments
         if environments:
@@ -77,7 +84,8 @@ class postman_download(postman):
             if collections:
                 for collection in collections:
                     collection_name = collection["info"]["name"]
-                    self.add_json_to_zip(zip_path, collection, f"{collection_name}.postman_collection.json")
+                    safe_collection_name = self.helpers.tagify(collection_name)
+                    self.add_json_to_zip(zip_path, collection, f"{safe_collection_name}.postman_collection.json")
         return zip_path
 
     def add_json_to_zip(self, zip_path, data, filename):

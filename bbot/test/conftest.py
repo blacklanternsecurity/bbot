@@ -1,13 +1,13 @@
 import os
 import ssl
 import time
+import yaml
 import pytest
 import shutil
 import asyncio
 import logging
 from pathlib import Path
 from contextlib import suppress
-from omegaconf import OmegaConf
 from pytest_httpserver import HTTPServer
 
 from bbot.core import CORE
@@ -23,7 +23,8 @@ debug_format = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s %(filenam
 debug_handler.setFormatter(debug_format)
 root_logger.addHandler(debug_handler)
 
-test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
+with open(Path(__file__).parent / "test.conf") as _f:
+    test_config = yaml.safe_load(_f) or {}
 
 os.environ["BBOT_DEBUG"] = "True"
 CORE.logger.log_level = logging.DEBUG
@@ -448,6 +449,16 @@ def pytest_sessionfinish(session, exitstatus):
         handlers = getattr(logger, "handlers", [])
         for handler in handlers:
             logger.removeHandler(handler)
+
+    # Kill any orphaned ProcessPoolExecutor workers that could block exit
+    import multiprocessing
+
+    for child in multiprocessing.active_children():
+        if child.is_alive():
+            child.terminate()
+            child.join(timeout=5)
+            if child.is_alive():
+                child.kill()
 
     # Wipe out BBOT home dir
     shutil.rmtree("/tmp/.bbot_test", ignore_errors=True)
