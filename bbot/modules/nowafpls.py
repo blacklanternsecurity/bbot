@@ -27,7 +27,11 @@ class nowafpls(BaseModule):
 
     async def filter_event(self, event):
         # TEMP DEBUG
-        self.critical(f"filter_event url={event.url} tags={sorted(event.tags)}")
+        self.critical(
+            f"filter_event url={event.url} tags={sorted(event.tags)} "
+            f"resolved_hosts={sorted(str(h) for h in event.resolved_hosts)} "
+            f"host_metadata_keys={list(event.host_metadata.keys()) if hasattr(event, 'host_metadata') else '<none>'}"
+        )
         if "cloudflare" not in event.tags:
             # TEMP DEBUG
             self.critical(f"filter_event REJECT (no cloudflare tag) url={event.url}")
