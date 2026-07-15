@@ -26,7 +26,7 @@ class waf_bypass(BaseModule):
         similarity_threshold: float = Field(0.90, description="Similarity threshold for content matching")
         search_ip_neighbors: bool = Field(True, description="Also check IP neighbors of the target domain")
         neighbor_cidr: int = Field(
-            24,
+            28,
             ge=24,
             le=31,
             description="CIDR mask (24-31) used for neighbor enumeration when search_ip_neighbors is true",
