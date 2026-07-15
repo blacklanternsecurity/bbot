@@ -52,17 +52,15 @@ class nowafpls(BaseModule):
                 "severity": "LOW",
                 "confidence": "CONFIRMED",
                 "name": "WAF Bypass via Body Padding",
-                "description": (
-                    f"{provider} bypassable via nowafpls-style body padding. "
-                    f"Unpadded malicious POST diverged from the baseline; "
-                    f"a POST prepending {result.padding_size} bytes of padding "
-                    f"converged back to the baseline, indicating the payload "
-                    f"reached the application past the inspection layer."
-                ),
+                "description": f"{provider} bypassable via nowafpls-style body padding.",
             },
             "FINDING",
             parent=event,
-            context=(f"{{module}} bypassed the WAF at {event.url} via {result.padding_size}-byte body padding"),
+            context=(
+                f"{{module}} bypassed the WAF at {event.url} via {result.padding_size}-byte body padding. "
+                f"Unpadded malicious POST diverged from the baseline; the padded POST converged back, "
+                f"indicating the payload reached the application past the inspection layer."
+            ),
         )
 
     # expose the status constants for consumers/tests that want to reason about
