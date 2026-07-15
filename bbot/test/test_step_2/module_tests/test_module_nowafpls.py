@@ -20,7 +20,7 @@ class TestNowafpls(ModuleTestBase):
                 "http://nowafpls.test/",
                 "URL",
                 parent=event,
-                tags=["cloudflare", "in-scope", "status-200"],
+                tags=["waf", "cloudflare", "in-scope", "status-200"],
             )
             if url_event is not None:
                 await self.emit_event(url_event)
@@ -30,18 +30,26 @@ class TestNowafpls(ModuleTestBase):
 
         module_test.scan.modules["dummy_module"] = self.DummyModule(module_test.scan)
 
+        # Response model for the mocked host:
+        #   * benign body ("q=hello")                   -> baseline app response
+        #   * unpadded malicious ("q=<script>...")      -> WAF block page (403)
+        #   * padded malicious ("padding=AAA...&q=...") -> baseline app response (bypass works)
         def waf_callback(request):
             content = request.content or b""
             if isinstance(content, str):
                 content = content.encode()
             if content.startswith(b"padding="):
                 return MockResponse(status_code=200, text="Welcome to the application")
-            return MockResponse(
-                status_code=403,
-                text="Attention Required! | Cloudflare\nCloudflare Ray ID: 1234abcd",
-            )
+            if b"%3Cscript" in content or b"<script" in content:
+                return MockResponse(
+                    status_code=403,
+                    text="Attention Required! | Cloudflare\nCloudflare Ray ID: 1234abcd",
+                )
+            return MockResponse(status_code=200, text="Welcome to the application")
 
-        module_test.blasthttp_mock.add_callback(callback=waf_callback, url="http://nowafpls.test/")
+        # No url= constraint: HttpCompare's baseline sample #2 appends random query
+        # params to the URL, so we accept any URL for this test host.
+        module_test.blasthttp_mock.add_callback(callback=waf_callback)
 
     def check(self, module_test, events):
         findings = [e for e in events if e.type == "FINDING"]
