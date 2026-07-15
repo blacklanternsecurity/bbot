@@ -194,8 +194,10 @@ class waf_bypass(BaseModule):
                         continue
 
                     if ip not in waf_ips:  # And IP isn't a known WAF IP
-                        ip_bypass_candidates[ip] = domain
-                        self.debug(f"Added potential bypass IP {ip} from domain {domain}")
+                        # first attribution wins so logs are stable across scans
+                        if ip not in ip_bypass_candidates:
+                            ip_bypass_candidates[ip] = f"{domain} (direct)"
+                            self.debug(f"Added potential bypass IP {ip} from domain {domain}")
 
                         # if we have IP neighbors searching enabled, and the IP isn't a cloud IP, we can add the IP neighbors to our list of potential bypasses
                         if self.search_ip_neighbors and ip not in self.cloud_ips:
@@ -226,7 +228,9 @@ class waf_bypass(BaseModule):
                                         self.debug(
                                             f"Added Neighbor IP ({ip} -> {neighbor_ip_str}) as potential bypass IP derived from {domain}"
                                         )
-                                        ip_bypass_candidates[neighbor_ip_str] = domain
+                                        ip_bypass_candidates[neighbor_ip_str] = (
+                                            f"{domain} (neighbor of {ip}/{self.neighbor_cidr})"
+                                        )
                     else:
                         self.debug(f"IP {ip} is in WAF IPS so we don't check as potential bypass")
 
