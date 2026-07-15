@@ -77,7 +77,7 @@ class waf_bypass(BaseModule):
                         self.cloud_ips.add(ip_str)
                         self.debug(f"Added cloud-ip {ip_str} to cloud_ips")
                 else:
-                    self.warning(f"DNS resolution for {domain} returned non-IP result: {ip_str}")
+                    self.verbose(f"DNS resolution for {domain} returned non-IP result: {ip_str}")
         else:
             self.warning(f"DNS resolution failed for {domain}")
 
