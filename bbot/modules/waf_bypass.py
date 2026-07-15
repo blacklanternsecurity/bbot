@@ -31,6 +31,11 @@ class waf_bypass(BaseModule):
             le=31,
             description="CIDR mask (24-31) used for neighbor enumeration when search_ip_neighbors is true",
         )
+        max_concurrent_checks: int = Field(
+            100,
+            ge=1,
+            description="Maximum number of concurrent bypass-attempt HTTP checks in finish()",
+        )
 
     meta = {
         "description": "Detects potential WAF bypasses",
@@ -245,7 +250,9 @@ class waf_bypass(BaseModule):
         )
 
         self.debug(f"about to start {len(coros)} coroutines")
-        async for completed in self.helpers.as_completed(coros):
+        async for completed in self.helpers.as_completed(
+            coros, max_concurrent=int(self.config.get("max_concurrent_checks") or 100)
+        ):
             result = await completed
             if result:
                 confirmed_bypasses.append(result)
