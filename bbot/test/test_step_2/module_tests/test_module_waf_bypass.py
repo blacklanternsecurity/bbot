@@ -43,7 +43,7 @@ class TestWAFBypass(ModuleTestBase):
                 self.events_seen.append(event.data)
                 url = "http://protected.test:8888/"
                 url_event = self.scan.make_event(
-                    url, "URL", parent=self.scan.root_event, tags=["cdn-cloudflare", "in-scope", "status-200"]
+                    url, "URL", parent=self.scan.root_event, tags=["cloudflare", "in-scope", "status-200"]
                 )
                 if url_event is not None:
                     await self.emit_event(url_event)
@@ -135,3 +135,58 @@ class TestWAFBypass(ModuleTestBase):
             in e.data["description"]
         ]
         assert correct_description, "Incorrect description"
+
+
+class TestWAFBypassTagRecognition(ModuleTestBase):
+    """Regression: waf_bypass keys off the flat cloud-provider tags cloudcheck emits
+    post-`Migrate cloudcheck to host_metadata` refactor. Both `cloudflare` and `imperva`
+    tags must trigger protected-domain detection."""
+
+    targets = ["evilcorp.com"]
+    modules_overrides = ["waf_bypass"]
+
+    async def setup_after_prep(self, module_test):
+        pass
+
+    async def check(self, module_test, events):
+        waf_module = module_test.scan.modules["waf_bypass"]
+
+        async def fake_resolve(host):
+            return []
+
+        module_test.monkeypatch.setattr(waf_module.helpers.dns, "resolve", fake_resolve)
+
+        async def fake_get_url_content(url, ip=None):
+            return None
+
+        import types
+
+        module_test.monkeypatch.setattr(
+            waf_module, "get_url_content", types.MethodType(fake_get_url_content, waf_module), raising=True
+        )
+
+        for tag in ("cloudflare", "imperva"):
+            waf_module.protected_domains = {}
+            url_event = module_test.scan.make_event(
+                f"http://{tag}-protected.test/",
+                "URL",
+                parent=module_test.scan.root_event,
+                tags=[tag, "in-scope", "status-200"],
+            )
+            await waf_module.handle_event(url_event)
+            assert f"{tag}-protected.test" in waf_module.protected_domains, (
+                f"waf_bypass did not recognize {tag!r}-tagged URL as protected"
+            )
+
+        # sanity: an untagged URL is not treated as protected
+        waf_module.protected_domains = {}
+        untagged = module_test.scan.make_event(
+            "http://plain.test/",
+            "URL",
+            parent=module_test.scan.root_event,
+            tags=["in-scope", "status-200"],
+        )
+        await waf_module.handle_event(untagged)
+        assert "plain.test" not in waf_module.protected_domains, (
+            "waf_bypass should not flag untagged URLs as protected"
+        )

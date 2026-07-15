@@ -83,9 +83,9 @@ class waf_bypass(BaseModule):
 
         # Detect WAF/CDN protection based on tags
         provider_name = None
-        if "cdn-cloudflare" in event.tags or "waf-cloudflare" in event.tags:
+        if "cloudflare" in event.tags:
             provider_name = "CloudFlare"
-        elif "cdn-imperva" in event.tags:
+        elif "imperva" in event.tags:
             provider_name = "Imperva"
 
         is_protected = provider_name is not None

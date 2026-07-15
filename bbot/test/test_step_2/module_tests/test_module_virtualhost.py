@@ -1070,3 +1070,36 @@ class TestVirtualhostCertificateSANs(VirtualhostTestBase):
             f"SAN analyzer received {type(san_arg).__name__}, expected str. Value: {san_arg!r}"
         )
         assert san_arg.startswith("https://"), f"Expected HTTPS URL, got {san_arg!r}"
+
+
+class TestVirtualhostSkipsCdnWaf(VirtualhostTestBase):
+    """filter_event must reject URLs tagged with any of the flat cloud-provider tags
+    that cloudcheck emits (post-`Migrate cloudcheck to host_metadata` refactor)."""
+
+    targets = ["http://localhost:8888"]
+    modules_overrides = ["virtualhost"]
+
+    async def setup_after_prep(self, module_test):
+        pass
+
+    async def check(self, module_test, events):
+        vh_module = module_test.scan.modules["virtualhost"]
+
+        for tag in ("cloudflare", "imperva", "akamai", "cloudfront"):
+            url_event = module_test.scan.make_event(
+                "http://cdn-test.local:8888/",
+                "URL",
+                parent=module_test.scan.root_event,
+                tags=[tag, "in-scope", "status-200"],
+            )
+            result = await vh_module.filter_event(url_event)
+            assert result is False, f"virtualhost must skip URL tagged {tag!r} (got {result!r})"
+
+        untagged_event = module_test.scan.make_event(
+            "http://plain.local:8888/",
+            "URL",
+            parent=module_test.scan.root_event,
+            tags=["in-scope", "status-200"],
+        )
+        result = await vh_module.filter_event(untagged_event)
+        assert result is True, f"virtualhost must not skip an untagged URL (got {result!r})"
