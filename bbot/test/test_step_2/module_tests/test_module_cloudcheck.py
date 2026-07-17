@@ -123,6 +123,59 @@ class TestCloudCheck(ModuleTestBase):
         assert "google" in child_disjoint.tags
         assert "cloud" in child_disjoint.tags
 
+        # ── _minimize() must not wipe resolved_hosts ───────────────────
+        # Real scan flow: a DNS_NAME gets processed by dnsresolve + cloudcheck,
+        # then Event._minimize() decrements its consumer count. Later, child
+        # events (URL, OPEN_TCP_PORT) that share the DNS_NAME's host reach
+        # dnsresolve and copy the parent's resolved_hosts (line 156). If
+        # _minimize() wiped resolved_hosts, that copy carries nothing and
+        # cloudcheck's per-host filter has no IPs to match against, so the
+        # cloud tag never inherits.
+        minimized = scan.make_event("minimize.evilcorp.com", parent=scan.root_event)
+        minimized.resolved_hosts = ("asdf.amazonaws.com", "10.0.0.1")
+        await module.handle_event(minimized)
+        # drive _module_consumers below 0 so the wipe block runs
+        minimized._minimize()
+        minimized._minimize()
+        assert minimized.resolved_hosts, (
+            "_minimize() must preserve resolved_hosts — dnsresolve line 156 copies it to child "
+            "URL/OPEN_TCP_PORT events, and cloudcheck's per-host inheritance needs those IPs"
+        )
+        # cloud host_metadata already survives minimization; confirm
+        assert "asdf.amazonaws.com" in minimized.host_metadata
+
+        # ── URL/OPEN_TCP_PORT propagation end-to-end ──────────────────
+        # Together with the _minimize() preservation above, this exercises
+        # the real flow: parent DNS_NAME cloud-tagged, then minimized, then a
+        # URL child gets its resolved_hosts populated (mirroring dnsresolve),
+        # and cloudcheck's existing subset-gate + per-host filter should copy
+        # the cloud tag onto the child.
+        url_child = scan.make_event(
+            "http://minimize.evilcorp.com/",
+            "URL",
+            parent=minimized,
+            tags=["status-200", "in-scope"],
+        )
+        # simulate dnsresolve intercept: child inherits parent's resolved_hosts
+        url_child._resolved_hosts = minimized.resolved_hosts
+        await module.handle_event(url_child)
+        assert "amazon" in url_child.tags, (
+            "URL child of amazon-tagged DNS_NAME must inherit the cloud tag "
+            "once its resolved_hosts carries the parent's IPs"
+        )
+        assert "cloud" in url_child.tags
+        assert "asdf.amazonaws.com" in url_child.host_metadata
+
+        port_child = scan.make_event(
+            "minimize.evilcorp.com:443",
+            "OPEN_TCP_PORT",
+            parent=minimized,
+        )
+        port_child._resolved_hosts = minimized.resolved_hosts
+        await module.handle_event(port_child)
+        assert "amazon" in port_child.tags, "OPEN_TCP_PORT child must inherit cloud tag from parent"
+        assert "asdf.amazonaws.com" in port_child.host_metadata
+
         # ── YARA prefilter short-circuit ───────────────────────────────
         # When no host could possibly match any bucket regex (mismatched
         # suffix) the prefilter returns no matches and we skip the Python

@@ -1019,10 +1019,10 @@ class virtualhost(BaseModule):
 
     async def filter_event(self, event):
         if (
-            "cdn-cloudflare" in event.tags
-            or "cdn-imperva" in event.tags
-            or "cdn-akamai" in event.tags
-            or "cdn-cloudfront" in event.tags
+            "cloudflare" in event.tags
+            or "imperva" in event.tags
+            or "akamai" in event.tags
+            or "cloudfront" in event.tags
         ):
             self.debug(f"Not processing URL {event.url} because it's behind a WAF or CDN, and that's pointless")
             return False
