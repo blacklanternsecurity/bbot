@@ -227,8 +227,6 @@ include:
 
 config:
   modules:
-    baddns:
-      enable_references: True
     dnsbrute:
       recursive_mutations: true
     dnscommonsrv:
