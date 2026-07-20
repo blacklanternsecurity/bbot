@@ -453,14 +453,16 @@ class DepsInstaller:
         For special entries like openssl_dev_headers, use a custom check.
         """
         if command == "openssl_dev_headers":
-            # check for openssl headers by looking for the pkg-config file or header
+            # look for the actual header. the openssl binary is NOT a proxy: many minimal
+            # images (e.g. python:3.11-slim) ship openssl but not the -dev headers, and
+            # anything that compiles against libssl needs the header.
             return any(
                 Path(p).exists()
                 for p in [
                     "/usr/include/openssl/ssl.h",
                     "/usr/local/include/openssl/ssl.h",
                 ]
-            ) or bool(self.parent_helper.which("openssl"))
+            )
         return bool(self.parent_helper.which(command))
 
     async def install_core_deps(self):
