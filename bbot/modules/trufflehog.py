@@ -37,6 +37,7 @@ class trufflehog(BaseModule):
     ]
 
     scope_distance_modifier = 2
+    _module_threads = 2
 
     async def setup_deps(self):
         self.config_file = self.config.get("config", "")
