@@ -221,8 +221,6 @@ Everything everywhere all at once
     
     config:
       modules:
-        baddns:
-          enable_references: True
         dnsbrute:
           recursive_mutations: true
         dnscommonsrv:
@@ -777,7 +775,7 @@ WAF bypass detection with subdomain enumeration
         waf_bypass:
           similarity_threshold: 0.90
           search_ip_neighbors: true
-          neighbor_cidr: 24 
+          neighbor_cidr: 28
     ```
 
 

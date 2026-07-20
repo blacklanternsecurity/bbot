@@ -124,6 +124,34 @@ class TestStdoutFindingColor(TestStdout):
         assert colored_info == "\033[38;2;62;88;140mtest\033[0m"
 
 
+class TestStdoutControlChars(TestStdout):
+    module_name = "stdout"
+
+    async def check(self, module_test, events):
+        module = module_test.module
+        # a FINDING whose description carries a raw 0x0e (Shift Out), as matched response content can
+        finding = module_test.scan.make_event(
+            {
+                "host": "evilcorp.com",
+                "severity": "INFO",
+                "confidence": "UNKNOWN",
+                "name": "Test",
+                "description": "matched banner \x0e deadbeef",
+            },
+            "FINDING",
+            dummy=True,
+        )
+        # sanity: the raw control byte really does reach the human-readable string
+        assert "\x0e" in module.human_event_str(finding)
+
+        module_test.capsys.readouterr()  # discard captured scan output
+        await module.handle_text(finding, finding.json(mode="human"))
+        out, err = module_test.capsys.readouterr()
+        # the byte that would flip the terminal into its line-drawing charset is escaped, not printed raw
+        assert "\x0e" not in out
+        assert "\\x0e" in out
+
+
 class TestStdoutNoDupes(TestStdoutDupes):
     config_overrides = {
         "dns": {"minimal": False},

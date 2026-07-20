@@ -273,7 +273,7 @@ Wildcard hosts are collapsed into a single host beginning with `_wildcard`:
 
 If you don't want this, you can disable wildcard detection on a domain-to-domain basis in the [config](configuration.md):
 
-```yaml title="~/.bbot/config/bbot.yml"
+```yaml title="~/.config/bbot/bbot.yml"
 dns:
   wildcard_ignore:
     - evilcorp.com
@@ -282,7 +282,7 @@ dns:
 
 There are certain edge cases (such as with dynamic DNS rules) where BBOT's wildcard detection fails. In these cases, you can try increasing the number of wildcard checks in the config:
 
-```yaml title="~/.bbot/config/bbot.yml"
+```yaml title="~/.config/bbot/bbot.yml"
 # default == 10
 dns:
   wildcard_tests: 20
