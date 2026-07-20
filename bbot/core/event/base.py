@@ -790,7 +790,6 @@ class BaseEvent:
             # release container slots; lazy-init pattern means None == empty
             self._dns_children = None
             self._raw_dns_records = None
-            self._resolved_hosts = None
 
     def clone(self):
         # Create a shallow copy of the event first

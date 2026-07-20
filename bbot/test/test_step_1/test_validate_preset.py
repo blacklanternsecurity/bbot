@@ -212,6 +212,23 @@ def test_validate_preset_interactsh_server_rejects_invalid():
         assert repr(v) in errs[0].message
 
 
+def test_bundled_presets_validate_clean():
+    """Every YAML preset shipped under bbot/presets/ must pass validation."""
+    from pathlib import Path
+    import bbot
+    from bbot.scanner import validate_preset_file
+
+    presets_dir = Path(bbot.__file__).parent / "presets"
+    failures = {}
+    for preset_path in sorted(presets_dir.rglob("*.yml")):
+        errs = validate_preset_file(preset_path)
+        if errs:
+            failures[str(preset_path.relative_to(presets_dir))] = [str(e) for e in errs]
+    assert not failures, "bundled presets failed validation:\n" + "\n".join(
+        f"  {name}:\n    " + "\n    ".join(msgs) for name, msgs in failures.items()
+    )
+
+
 def test_defaults_yml_validates_against_schema():
     """BBOT's own defaults.yml must pass its own validator. Guards against the pydantic
     schema (core/config/models.py) silently drifting from defaults.yml -- if a key is

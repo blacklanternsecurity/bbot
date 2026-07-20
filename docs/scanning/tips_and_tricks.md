@@ -133,7 +133,7 @@ bbot -t evilcorp.com -f subdomain-enum -m gowitness -c web.http_proxy=http://127
 
 BBOT's `http` module emits `HTTP_RESPONSE` events, but by default they're hidden from output. These events contain the full raw HTTP body along with headers, etc. If you want to see them, you can modify `omit_event_types` in the config:
 
-```yaml title="~/.bbot/config/bbot.yml"
+```yaml title="~/.config/bbot/bbot.yml"
 omit_event_types:
   - URL_UNVERIFIED
   # - HTTP_RESPONSE

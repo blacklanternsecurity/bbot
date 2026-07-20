@@ -990,6 +990,10 @@ class virtualhost(BaseModule):
 
                 self.verbose(f"FINISH METHOD: Starting wildcard check for {host}")
                 baseline_response = await self._get_baseline_response(event, host, host_ip)
+                if not baseline_response:
+                    self.debug(f"FINISH METHOD: Failed to get baseline response for {host}, skipping wordcloud check")
+                    self.wordcloud_tried_hosts.add(host)
+                    continue
                 if not await self._wildcard_canary_check(
                     host_parsed_url.scheme, host_parsed_url.netloc, event, host_ip, baseline_response
                 ):
@@ -1015,10 +1019,10 @@ class virtualhost(BaseModule):
 
     async def filter_event(self, event):
         if (
-            "cdn-cloudflare" in event.tags
-            or "cdn-imperva" in event.tags
-            or "cdn-akamai" in event.tags
-            or "cdn-cloudfront" in event.tags
+            "cloudflare" in event.tags
+            or "imperva" in event.tags
+            or "akamai" in event.tags
+            or "cloudfront" in event.tags
         ):
             self.debug(f"Not processing URL {event.url} because it's behind a WAF or CDN, and that's pointless")
             return False

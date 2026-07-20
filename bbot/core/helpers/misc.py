@@ -2999,3 +2999,18 @@ def is_printable(s):
     # Exclude control characters that break display/printing
     s = set(s)
     return all(ord(c) >= 32 or c in "\t\n\r" for c in s)
+
+
+_control_char_re = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+
+
+def make_printable(s):
+    """
+    Escape non-printable control characters so a string is safe to write to a terminal.
+
+    Keeps tab, newline, and carriage return; renders other control bytes (e.g. 0x0e Shift Out) as \\xNN.
+    Inverse of is_printable().
+    """
+    if not isinstance(s, str):
+        s = smart_decode(s)
+    return _control_char_re.sub(lambda m: f"\\x{ord(m.group()):02x}", s)
