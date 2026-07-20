@@ -26,10 +26,15 @@ class waf_bypass(BaseModule):
         similarity_threshold: float = Field(0.90, description="Similarity threshold for content matching")
         search_ip_neighbors: bool = Field(True, description="Also check IP neighbors of the target domain")
         neighbor_cidr: int = Field(
-            24,
+            28,
             ge=24,
             le=31,
             description="CIDR mask (24-31) used for neighbor enumeration when search_ip_neighbors is true",
+        )
+        max_concurrent_checks: int = Field(
+            100,
+            ge=1,
+            description="Maximum number of concurrent bypass-attempt HTTP checks in finish()",
         )
 
     meta = {
@@ -77,15 +82,15 @@ class waf_bypass(BaseModule):
                         self.cloud_ips.add(ip_str)
                         self.debug(f"Added cloud-ip {ip_str} to cloud_ips")
                 else:
-                    self.warning(f"DNS resolution for {domain} returned non-IP result: {ip_str}")
+                    self.verbose(f"DNS resolution for {domain} returned non-IP result: {ip_str}")
         else:
             self.warning(f"DNS resolution failed for {domain}")
 
         # Detect WAF/CDN protection based on tags
         provider_name = None
-        if "cdn-cloudflare" in event.tags or "waf-cloudflare" in event.tags:
+        if "cloudflare" in event.tags:
             provider_name = "CloudFlare"
-        elif "cdn-imperva" in event.tags:
+        elif "imperva" in event.tags:
             provider_name = "Imperva"
 
         is_protected = provider_name is not None
@@ -189,8 +194,10 @@ class waf_bypass(BaseModule):
                         continue
 
                     if ip not in waf_ips:  # And IP isn't a known WAF IP
-                        ip_bypass_candidates[ip] = domain
-                        self.debug(f"Added potential bypass IP {ip} from domain {domain}")
+                        # first attribution wins so logs are stable across scans
+                        if ip not in ip_bypass_candidates:
+                            ip_bypass_candidates[ip] = f"{domain} (direct)"
+                            self.debug(f"Added potential bypass IP {ip} from domain {domain}")
 
                         # if we have IP neighbors searching enabled, and the IP isn't a cloud IP, we can add the IP neighbors to our list of potential bypasses
                         if self.search_ip_neighbors and ip not in self.cloud_ips:
@@ -221,7 +228,9 @@ class waf_bypass(BaseModule):
                                         self.debug(
                                             f"Added Neighbor IP ({ip} -> {neighbor_ip_str}) as potential bypass IP derived from {domain}"
                                         )
-                                        ip_bypass_candidates[neighbor_ip_str] = domain
+                                        ip_bypass_candidates[neighbor_ip_str] = (
+                                            f"{domain} (neighbor of {ip}/{self.neighbor_cidr})"
+                                        )
                     else:
                         self.debug(f"IP {ip} is in WAF IPS so we don't check as potential bypass")
 
@@ -245,7 +254,9 @@ class waf_bypass(BaseModule):
         )
 
         self.debug(f"about to start {len(coros)} coroutines")
-        async for completed in self.helpers.as_completed(coros):
+        async for completed in self.helpers.as_completed(
+            coros, max_concurrent=int(self.config.get("max_concurrent_checks") or 100)
+        ):
             result = await completed
             if result:
                 confirmed_bypasses.append(result)
