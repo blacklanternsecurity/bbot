@@ -15,7 +15,7 @@ class trufflehog(BaseModule):
     }
 
     class Config(BaseModuleConfig):
-        version: str = Field("3.95.5", description="trufflehog version")
+        version: str = Field("3.95.9", description="trufflehog version")
         config: str = Field("", description="File path or URL to YAML trufflehog config")
         only_verified: bool = Field(True, description="Only report credentials that have been verified")
         concurrency: int = Field(8, description="Number of concurrent workers")
