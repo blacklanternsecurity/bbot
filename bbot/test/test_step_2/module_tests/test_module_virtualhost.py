@@ -892,6 +892,113 @@ class TestVirtualhostHTTPResponse(VirtualhostTestBase):
         )
 
 
+class TestVirtualhostFinishNoneBaseline(VirtualhostTestBase):
+    """Regression: finish() must not crash when _get_baseline_response returns None.
+
+    Previously, finish() passed the baseline response straight into
+    _wildcard_canary_check without a null check. A failed baseline request
+    surfaced as: `'NoneType' object has no attribute 'status_code'`.
+    """
+
+    targets = ["http://finishnone.test:8888"]
+    modules_overrides = ["http", "virtualhost"]
+    config_overrides = {
+        "modules": {
+            "virtualhost": {
+                "subdomain_brute": False,
+                "mutation_check": False,
+                "special_hosts": False,
+                "certificate_sans": False,
+                "wordcloud_check": True,
+                "require_inaccessible": False,
+            }
+        }
+    }
+
+    async def setup_after_prep(self, module_test):
+        await super().setup_after_prep(module_test)
+
+        await module_test.mock_dns({"finishnone.test": {"A": ["127.0.0.1"]}})
+
+        def mock_wordcloud_keys(self):
+            return ["staging", "prod", "dev"]
+
+        module_test.monkeypatch.setattr("bbot.core.helpers.wordcloud.WordCloud.keys", mock_wordcloud_keys)
+
+        vh_module = module_test.scan.modules["virtualhost"]
+        original_get_baseline = vh_module._get_baseline_response
+        original_wildcard_check = vh_module._wildcard_canary_check
+        self.baseline_calls = 0
+        self.wildcard_check_probes = []
+
+        async def flaky_baseline(event, normalized_url, host_ip):
+            self.baseline_calls += 1
+            # First call (from handle_event) returns a real response so the
+            # host gets recorded in scanned_hosts. Subsequent calls (from
+            # finish()) return None to reproduce the crash.
+            if self.baseline_calls == 1:
+                return await original_get_baseline(event, normalized_url, host_ip)
+            return None
+
+        async def spying_wildcard_check(probe_scheme, probe_host, event, host_ip, probe_response):
+            self.wildcard_check_probes.append(probe_response)
+            return await original_wildcard_check(probe_scheme, probe_host, event, host_ip, probe_response)
+
+        module_test.monkeypatch.setattr(vh_module, "_get_baseline_response", flaky_baseline)
+        module_test.monkeypatch.setattr(vh_module, "_wildcard_canary_check", spying_wildcard_check)
+
+        from bbot.modules.base import BaseModule
+
+        class DummyModule(BaseModule):
+            _name = "dummy_module_finish_none"
+            watched_events = ["SCAN"]
+
+            async def handle_event(self, event):
+                if event.type == "SCAN":
+                    url_event = self.scan.make_event(
+                        "http://finishnone.test:8888/",
+                        "URL",
+                        parent=event,
+                        tags=["status-200", "ip-127.0.0.1"],
+                    )
+                    await self.emit_event(url_event)
+
+        module_test.scan.modules["dummy_module_finish_none"] = DummyModule(module_test.scan)
+
+        orig_handle_event = vh_module.handle_event
+
+        async def patched_handle_event(ev):
+            ev._resolved_hosts = {"127.0.0.1"}
+            return await orig_handle_event(ev)
+
+        module_test.monkeypatch.setattr(vh_module, "handle_event", patched_handle_event)
+
+    def request_handler(self, request):
+        host_header = request.headers.get("Host", "").lower()
+
+        if not host_header or host_header in ["finishnone.test", "finishnone.test:8888"]:
+            return Response("baseline response from finishnone.test", status=200)
+
+        if re.match(r"[a-z]inishnone\.test(?::8888)?$", host_header):
+            return Response("wildcard canary response", status=404)
+
+        if re.match(r"^[a-z]{12}\.com(?::8888)?$", host_header):
+            return Response("random canary response", status=404)
+
+        return Response("default response", status=404)
+
+    def check(self, module_test, events):
+        assert self.baseline_calls >= 2, (
+            f"finish() wordcloud path did not run; only {self.baseline_calls} baseline call(s)"
+        )
+        # finish() must guard against None baseline_response before calling
+        # _wildcard_canary_check. Passing None causes the crash.
+        assert None not in self.wildcard_check_probes, (
+            "finish() invoked _wildcard_canary_check with probe_response=None; "
+            "expected the None baseline to be skipped instead"
+        )
+
+
 class TestVirtualhostCertificateSANs(VirtualhostTestBase):
     """Exercise the certificate-SAN code path on HTTPS URL events."""
 
@@ -963,3 +1070,36 @@ class TestVirtualhostCertificateSANs(VirtualhostTestBase):
             f"SAN analyzer received {type(san_arg).__name__}, expected str. Value: {san_arg!r}"
         )
         assert san_arg.startswith("https://"), f"Expected HTTPS URL, got {san_arg!r}"
+
+
+class TestVirtualhostSkipsCdnWaf(VirtualhostTestBase):
+    """filter_event must reject URLs tagged with any of the flat cloud-provider tags
+    that cloudcheck emits (post-`Migrate cloudcheck to host_metadata` refactor)."""
+
+    targets = ["http://localhost:8888"]
+    modules_overrides = ["virtualhost"]
+
+    async def setup_after_prep(self, module_test):
+        pass
+
+    async def check(self, module_test, events):
+        vh_module = module_test.scan.modules["virtualhost"]
+
+        for tag in ("cloudflare", "imperva", "akamai", "cloudfront"):
+            url_event = module_test.scan.make_event(
+                "http://cdn-test.local:8888/",
+                "URL",
+                parent=module_test.scan.root_event,
+                tags=[tag, "in-scope", "status-200"],
+            )
+            result = await vh_module.filter_event(url_event)
+            assert result is False, f"virtualhost must skip URL tagged {tag!r} (got {result!r})"
+
+        untagged_event = module_test.scan.make_event(
+            "http://plain.local:8888/",
+            "URL",
+            parent=module_test.scan.root_event,
+            tags=["in-scope", "status-200"],
+        )
+        result = await vh_module.filter_event(untagged_event)
+        assert result is True, f"virtualhost must not skip an untagged URL (got {result!r})"
