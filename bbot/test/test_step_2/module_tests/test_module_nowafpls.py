@@ -31,14 +31,14 @@ class TestNowafpls(ModuleTestBase):
         module_test.scan.modules["dummy_module"] = self.DummyModule(module_test.scan)
 
         # Response model for the mocked host:
-        #   * benign body ("q=hello")                   -> baseline app response
-        #   * unpadded malicious ("q=<script>...")      -> WAF block page (403)
-        #   * padded malicious ("padding=AAA...&q=...") -> baseline app response (bypass works)
+        #   * benign body ("q=hello")                          -> baseline app response
+        #   * unpadded malicious ("q=<script>...")             -> WAF block page (403)
+        #   * padded malicious ("__nowafpls_pad=AAA...&q=...") -> baseline app response (bypass works)
         def waf_callback(request):
             content = request.content or b""
             if isinstance(content, str):
                 content = content.encode()
-            if content.startswith(b"padding="):
+            if content.startswith(b"__nowafpls_pad="):
                 return MockResponse(status_code=200, text="Welcome to the application")
             if b"%3Cscript" in content or b"<script" in content:
                 return MockResponse(

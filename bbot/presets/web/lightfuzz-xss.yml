@@ -3,6 +3,7 @@ description: "XSS-only: enables only the xss submodule with paramminer_getparams
 modules:
   - http
   - lightfuzz
+  - nowafpls
   - paramminer_getparams
   - reflected_parameters
   - portfilter

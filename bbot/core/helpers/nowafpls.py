@@ -10,6 +10,10 @@ log = logging.getLogger("bbot.core.helpers.nowafpls")
 
 DEFAULT_PADDING_SIZE = 131072
 DEFAULT_PAYLOAD = "<script>alert(1)</script>"
+# Field name used to carry the junk padding in POST bodies. The double-underscore
+# prefix keeps it out of the way of legitimate form fields when lightfuzz merges
+# the pad into a real form.
+PADDING_FIELD_NAME = "__nowafpls_pad"
 
 
 @dataclass
@@ -74,13 +78,37 @@ class NowafplsHelper:
             self._per_host[host] = asyncio.create_task(self._probe(event, padding_size, payload))
         return await self._per_host[host]
 
+    async def pad_form_body(self, event, body: str) -> str:
+        """Prepend a large junk field to a form-urlencoded POST body when the host's WAF is
+        bypassable. No-op for events without a ``waf`` tag or hosts where padding doesn't help.
+        Callers can drop this in around any adversarial POST body; the return value is either
+        the original body or the padded version, and callers compare (or track locally) if they
+        need to know whether the pad was applied."""
+        if "waf" not in event.tags:
+            return body
+        result = await self.is_bypassable(event)
+        if not result.bypassed:
+            return body
+        pad = f"{PADDING_FIELD_NAME}={'A' * DEFAULT_PADDING_SIZE}"
+        return f"{pad}&{body}" if body else pad
+
+    async def pad_json(self, event, data):
+        """Prepend a junk padding key to a JSON dict body when the host's WAF is bypassable.
+        No-op for events without a ``waf`` tag, non-bypassable hosts, or non-dict bodies."""
+        if "waf" not in event.tags or not isinstance(data, dict):
+            return data
+        result = await self.is_bypassable(event)
+        if not result.bypassed:
+            return data
+        return {PADDING_FIELD_NAME: "A" * DEFAULT_PADDING_SIZE, **data}
+
     async def _probe(self, event, padding_size: int, payload: str) -> BypassResult:
         url = event.url
         provider = self._identify_provider(event)
         encoded_payload = _urlquote(payload, safe="")
         benign_body = "q=hello"
         unpadded_body = f"q={encoded_payload}"
-        padded_body = f"padding={'A' * padding_size}&q={encoded_payload}"
+        padded_body = f"{PADDING_FIELD_NAME}={'A' * padding_size}&q={encoded_payload}"
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
         compare = self.parent_helper.http_compare(
