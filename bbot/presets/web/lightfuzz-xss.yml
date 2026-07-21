@@ -1,4 +1,4 @@
-description: "XSS-only: enables only the xss submodule with paramminer_getparams and reflected_parameters. POST disabled, no query string collapsing. Example of a focused single-submodule preset."
+description: "XSS-only: enables only the xss submodule with paramminer_getparams and reflected_parameters. POST fuzzing enabled and try_get_as_post retests every discovered GET parameter as POST, so the nowafpls body-padding bypass gets a chance on WAF-tagged targets (a padded-POST XSS is triggerable from an attacker-controlled form)."
 
 modules:
   - http
@@ -7,14 +7,15 @@ modules:
   - paramminer_getparams
   - reflected_parameters
   - portfilter
-  
+
 config:
   url_querystring_remove: False
   url_querystring_collapse: False
   modules:
     lightfuzz:
       enabled_submodules: [xss]
-      disable_post: True
+      try_get_as_post: True
+      avoid_wafs: try_bypasses
 
 conditions:
   - |
