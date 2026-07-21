@@ -11,16 +11,16 @@
 <link href="../interactsh/" rel="prev"/>
 <link href="../web/" rel="next"/>
 <link href="../../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.7" name="generator"/>
 <title>Miscellaneous - BBOT Docs</title>
-<link href="../../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
+<link href="../../../assets/stylesheets/main.ec1eaa64.min.css" rel="stylesheet"/>
 <link href="../../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../../assets/stylesheets/extra-style.xi6rhz5i.min.css" rel="stylesheet"/></head>
+<link href="../../../assets/stylesheets/extra-style.7hf4c2zy.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -7513,6 +7513,41 @@ or an IPv4 or IPv6 network object. If none of these conversions are possible, th
 </div>
 </div>
 <div class="doc doc-object doc-function">
+<h1 class="doc doc-heading" id="bbot.core.helpers.misc.make_printable">
+<span class="doc doc-object-name doc-function-name">make_printable</span>
+</h1>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">make_printable(s)</span>
+</code></pre></div>
+<div class="doc doc-contents">
+<p>Escape non-printable control characters so a string is safe to write to a terminal.</p>
+<p>Keeps tab, newline, and carriage return; renders other control bytes (e.g. 0x0e Shift Out) as \xNN.
+Inverse of is_printable().</p>
+<details class="mkdocstrings-source">
+<summary>Source code in <code>bbot/core/helpers/misc.py</code></summary>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">3007</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">3008</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">3009</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">3010</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">3011</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">3012</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">3013</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">3014</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">3015</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">3016</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">make_printable</span><span style="color: #E6EDF3">(s):</span>
+<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
+<span style="color: #A5D6FF">    Escape non-printable control characters so a string is safe to write to a terminal.</span>
+
+<span style="color: #A5D6FF">    Keeps tab, newline, and carriage return; renders other control bytes (e.g. 0x0e Shift Out) as \\xNN.</span>
+<span style="color: #A5D6FF">    Inverse of is_printable().</span>
+<span style="color: #A5D6FF">    """</span>
+    <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">isinstance(s,</span> <span style="color: #E6EDF3">str):</span>
+        <span style="color: #E6EDF3">s</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">smart_decode(s)</span>
+    <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">_control_char_re</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">sub(</span><span style="color: #FF7B72">lambda</span> <span style="color: #E6EDF3">m:</span> <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"</span><span style="color: #79C0FF">\\</span><span style="color: #A5D6FF">x{</span><span style="color: #E6EDF3">ord(m</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">group())</span><span style="color: #A5D6FF">:02x}"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">s)</span>
+</code></pre></div></td></tr></table></div>
+</details>
+</div>
+</div>
+<div class="doc doc-object doc-function">
 <h1 class="doc doc-heading" id="bbot.core.helpers.misc.make_table">
 <span class="doc doc-object-name doc-function-name">make_table</span>
 </h1>
@@ -11226,7 +11261,7 @@ It runs a command with sudo, feeding in the password via stdin, and checks the r
 <div class="md-dialog__inner md-typeset"></div>
 </div>
 <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
-<script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+<script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
 <script src="../../../javascripts/tablesort.js"></script>
 <script src="../../../javascripts/tablesort.min.js"></script>
 <script src="../../../javascripts/vega@5.js"></script>
