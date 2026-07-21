@@ -199,6 +199,38 @@ Category: web
 
 Modules: [0]("")
 
+## **js-audit**
+
+Hunt for leaked credentials and vulnerable libraries in client-side JavaScript
+
+??? note "`js-audit.yml`"
+    ```yaml title="~/.bbot/presets/web/js-audit.yml"
+    description: Hunt for leaked credentials and vulnerable libraries in client-side JavaScript
+    
+    
+    modules:
+      - http
+      - trufflehog
+      - badsecrets
+      - retirejs
+      - robots
+      - wayback
+    
+    config:
+      modules:
+        trufflehog:
+          only_verified: false
+        robots:
+          include_sitemap: true
+        wayback:
+          urls: true
+          archive: true
+    ```
+
+Category: web
+
+Modules: [0]("")
+
 ## **kitchen-sink**
 
 Everything everywhere all at once
@@ -221,8 +253,6 @@ Everything everywhere all at once
     
     config:
       modules:
-        baddns:
-          enable_references: True
         dnsbrute:
           recursive_mutations: true
         dnscommonsrv:
@@ -777,7 +807,7 @@ WAF bypass detection with subdomain enumeration
         waf_bypass:
           similarity_threshold: 0.90
           search_ip_neighbors: true
-          neighbor_cidr: 24 
+          neighbor_cidr: 28
     ```
 
 
@@ -993,6 +1023,7 @@ Here is a the same data, but in a table:
 | email-enum        |            | Enumerate email addresses from APIs, web crawling, etc.                                                                                                                                                                                                                                                                                                                                                                                                                                                 | 0           |                                                                                                    |
 | fast              |            | Scan only the provided targets as fast as possible - no extra discovery                                                                                                                                                                                                                                                                                                                                                                                                                                 | 0           |                                                                                                    |
 | iis-shortnames    | web        | Recursively enumerate IIS shortnames                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | 0           |                                                                                                    |
+| js-audit          | web        | Hunt for leaked credentials and vulnerable libraries in client-side JavaScript                                                                                                                                                                                                                                                                                                                                                                                                                          | 6           | badsecrets, http, retirejs, robots, trufflehog, wayback                                            |
 | kitchen-sink      |            | Everything everywhere all at once                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | 7           | baddns, baddns_direct, baddns_zone, http, hunt, reflected_parameters, webbrute                     |
 | lightfuzz         | web        | Default fuzzing: all 9 submodules (cmdi, crypto, path, serial, sqli, ssti, xss, esi, ssrf) plus companion modules (badsecrets, hunt, reflected_parameters). POST fuzzing disabled but try_post_as_get enabled, so POST params are retested as GET. Skips confirmed WAFs.                                                                                                                                                                                                                                | 6           | badsecrets, http, hunt, lightfuzz, portfilter, reflected_parameters                                |
 | lightfuzz-heavy   | web        | Aggressive fuzzing: everything in lightfuzz, plus paramminer brute-force parameter discovery (headers, GET params, cookies), POST request fuzzing enabled, try_get_as_post enabled (GET params retested as POST), and robots.txt parsing. Still skips confirmed WAFs.                                                                                                                                                                                                                                   | 8           | badsecrets, http, hunt, lightfuzz, portfilter, reflected_parameters, robots, wayback               |
