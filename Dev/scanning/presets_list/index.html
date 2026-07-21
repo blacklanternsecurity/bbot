@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.cmqy0qzi.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.9oa1j_96.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -404,6 +404,15 @@
 <span class="md-ellipsis">
       
         iis-shortnames
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#js-audit">
+<span class="md-ellipsis">
+      
+        js-audit
       
     </span>
 </a>
@@ -1445,6 +1454,34 @@
 </details>
 <p>Category: web</p>
 <p>Modules: <a href="" title="">0</a></p>
+<h2 id="js-audit"><strong>js-audit</strong></h2>
+<p>Hunt for leaked credentials and vulnerable libraries in client-side JavaScript</p>
+<details class="note">
+<summary><code>js-audit.yml</code></summary>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/js-audit.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Hunt for leaked credentials and vulnerable libraries in client-side JavaScript</span>
+
+
+<span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">trufflehog</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">badsecrets</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">retirejs</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">robots</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">wayback</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">trufflehog</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">only_verified</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">false</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">robots</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">include_sitemap</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">wayback</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">urls</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">archive</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span>
+</code></pre></div>
+</details>
+<p>Category: web</p>
+<p>Modules: <a href="" title="">0</a></p>
 <h2 id="kitchen-sink"><strong>kitchen-sink</strong></h2>
 <p>Everything everywhere all at once</p>
 <details class="note">
@@ -2172,6 +2209,13 @@
 <td>Recursively enumerate IIS shortnames</td>
 <td>0</td>
 <td></td>
+</tr>
+<tr>
+<td>js-audit</td>
+<td>web</td>
+<td>Hunt for leaked credentials and vulnerable libraries in client-side JavaScript</td>
+<td>6</td>
+<td>badsecrets, http, retirejs, robots, trufflehog, wayback</td>
 </tr>
 <tr>
 <td>kitchen-sink</td>
