@@ -5,7 +5,7 @@ from .base import ModuleTestBase
 class TestTelerik(ModuleTestBase):
     targets = ["http://127.0.0.1:8888", "http://127.0.0.1:8888/telerik.aspx"]
     modules_overrides = ["http", "telerik"]
-    config_overrides = {"modules": {"telerik": {"exploit_rau": True}}}
+    config_overrides = {"modules": {"telerik": {"rau_confirm_version": True}}}
 
     async def setup_before_prep(self, module_test):
         # Simulate Telerik.Web.UI.WebResource.axd?type=rau detection
@@ -127,7 +127,7 @@ class TestTelerikRAUDefaultKeys(ModuleTestBase):
     config_overrides = {
         "modules": {
             "telerik": {
-                "exploit_rau": False,
+                "rau_confirm_version": False,
                 "try_known_keys": False,
                 "probe_dialoghandler_oracle": False,
             }
@@ -187,7 +187,7 @@ class TestTelerikDialogHandlerOracle(ModuleTestBase):
             "telerik": {
                 "probe_dialoghandler_oracle": True,
                 "try_known_keys": False,
-                "exploit_rau": False,
+                "rau_confirm_version": False,
             }
         }
     }
@@ -254,7 +254,7 @@ class TestTelerikDialogHandlerKnownKey(ModuleTestBase):
             "telerik": {
                 "probe_dialoghandler_oracle": False,
                 "try_known_keys": True,
-                "exploit_rau": False,
+                "rau_confirm_version": False,
             }
         }
     }

@@ -167,9 +167,13 @@ class telerik(BaseModule):
     ]
 
     class Config(BaseModuleConfig):
-        exploit_rau: bool = Field(
+        rau_confirm_version: bool = Field(
             False,
-            description="Attempt to confirm RAU RCE with default keys. Uploads a benign file if successful.",
+            description=(
+                "WARNING: writes a benign 1-byte file to the target's C:\\Windows\\Temp\\ on success. "
+                "Iterates candidate Telerik versions with default keys; the version that uploads is "
+                "the installed one, which also confirms RCE."
+            ),
         )
         include_subdirs: bool = Field(
             False,
@@ -293,7 +297,7 @@ class telerik(BaseModule):
         # so a hit proves the crypto works without persisting anything on the target.
         await self._probe_rau_default_keys(url, event)
 
-        if self.config.get("exploit_rau") and base_url not in self._rau_confirmed:
+        if self.config.get("rau_confirm_version") and base_url not in self._rau_confirmed:
             self._rau_confirmed.add(base_url)
             await self._confirm_rau_knownkey(url, event, base_url)
 
@@ -334,7 +338,7 @@ class telerik(BaseModule):
         """
         Version-identification + exploit. Iterate real Telerik versions with default keys;
         the one producing `{"fileInfo":` also uploads the benign 1-byte probe file to the
-        target's C:\\Windows\\Temp\\. Only runs when exploit_rau=True.
+        target's C:\\Windows\\Temp\\. Only runs when rau_confirm_version=True.
         """
         for version in self.telerik_versions:
             if int(version[:4]) <= 2017 or version == "2018.1.117":
