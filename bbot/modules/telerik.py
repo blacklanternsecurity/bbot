@@ -334,11 +334,17 @@ class telerik(BaseModule):
             self.verbose(f"Fingerprinting DialogHandler KDF mode at {dh_url}")
             kdf_mode = await self._detect_kdf_mode(dh_url)
             self.verbose(f"DialogHandler KDF mode: [{kdf_mode}]")
-            if kdf_mode in ("PBKDF1_MS", "PBKDF2"):
-                self.verbose(f"Spraying known keys against DialogHandler ({kdf_mode})")
-                if await self._probe_dialoghandler_knownkey(dh_url, event, kdf_mode):
+            # Post-patch targets validate input length before touching crypto, so the short
+            # AAAA probe can't reveal KDF. The real known-key probes are long enough to pass
+            # that gate, so try both modes and let the actual oracle strings tell us.
+            candidate_kdfs = (
+                (kdf_mode,) if kdf_mode in ("PBKDF1_MS", "PBKDF2") else ("PBKDF1_MS", "PBKDF2")
+            )
+            for candidate in candidate_kdfs:
+                self.verbose(f"Spraying known keys against DialogHandler ({candidate})")
+                if await self._probe_dialoghandler_knownkey(dh_url, event, candidate):
                     return
-                self.verbose("Known-key spray exhausted, no match")
+                self.verbose(f"Known-key spray exhausted for {candidate}, no match")
         if self.config.get("probe_dialoghandler_oracle"):
             if kdf_mode is None:
                 self.verbose(f"Fingerprinting DialogHandler KDF mode at {dh_url}")
