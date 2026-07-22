@@ -644,6 +644,9 @@ class telerik(BaseModule):
 
     @staticmethod
     def _classify_kdf_response(text):
+        # "Invalid length for a Base-64" comes from an input-length gate that fires before
+        # any crypto happens — it tells us nothing about KDF or patch status. Only the
+        # crypto-layer error strings actually classify the derivation mode.
         if (
             "Exception of type 'System.Exception' was thrown" in text
             or "The cryptographic operation has failed!" in text
@@ -651,8 +654,6 @@ class telerik(BaseModule):
             return "PBKDF2"
         if "Length cannot be less than zero" in text:
             return "PBKDF1_MS"
-        if "Invalid length for a Base-64 char array or string" in text:
-            return "PATCHED"
         return None
 
     async def _probe_dialoghandler_oracle(self, dh_url, event):
