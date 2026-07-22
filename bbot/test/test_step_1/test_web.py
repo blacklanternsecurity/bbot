@@ -698,3 +698,109 @@ async def test_is_http_wildcard_host(bbot_scanner):
     assert result2 is None
 
     await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_base_module_is_http_wildcard_host_per_url(bbot_scanner):
+    """Base module wrapper does a per-URL compare against the wildcard baseline
+    so real endpoints on a catchall host aren't wrongly rejected. WEB_PARAMETER
+    GETPARAM events are probed with the parameter baked into the URL."""
+    from bbot.errors import HttpCompareError
+    from bbot.modules.base import BaseModule
+
+    scan = bbot_scanner("wildcardhost.test")
+    await scan._prep()
+
+    # baseline HttpCompare stub: records the URL passed to compare()
+    class FakeCompare:
+        def __init__(self):
+            self.calls = []
+            self.behaviour = "match"  # override per test
+
+        async def compare(self, url, **kwargs):
+            self.calls.append(url)
+            if self.behaviour == "raise":
+                raise HttpCompareError("boom")
+            match = self.behaviour == "match"
+            return (match, [], False, None)
+
+    fake_compare = FakeCompare()
+
+    async def wildcard_returns_compare(scheme, host, port):
+        return fake_compare
+
+    scan.helpers.web.is_http_wildcard_host = wildcard_returns_compare
+
+    module = BaseModule(scan)
+
+    def make_url_event(url):
+        return scan.make_event(url, "URL", parent=scan.root_event, tags=["status-200"])
+
+    def make_web_param_event(url, name, value, ptype="GETPARAM"):
+        data = {"host": "wildcardhost.test", "type": ptype, "name": name, "original_value": value, "url": url}
+        return scan.make_event(data, "WEB_PARAMETER", parent=scan.root_event)
+
+    # 1) URL that matches the wildcard baseline: skip (True)
+    fake_compare.behaviour = "match"
+    fake_compare.calls.clear()
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/index.php"))
+    assert result is True
+    assert fake_compare.calls == ["https://wildcardhost.test/index.php"]
+
+    # 2) URL that diverges from the baseline: real endpoint (False)
+    fake_compare.behaviour = "differ"
+    fake_compare.calls.clear()
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/params.php"))
+    assert result is False
+    assert fake_compare.calls == ["https://wildcardhost.test/params.php"]
+
+    # 3) WEB_PARAMETER GETPARAM: probe URL with the parameter baked in, not the bare URL
+    fake_compare.behaviour = "differ"
+    fake_compare.calls.clear()
+    result = await module._is_http_wildcard_host(
+        make_web_param_event("https://wildcardhost.test/index.php", "manager", "foo")
+    )
+    assert result is False
+    assert len(fake_compare.calls) == 1
+    assert fake_compare.calls[0].startswith("https://wildcardhost.test/index.php?")
+    assert "manager=foo" in fake_compare.calls[0]
+
+    # 4) WEB_PARAMETER POSTPARAM: probe uses the bare URL (POST body isn't reflected in a GET probe)
+    fake_compare.behaviour = "differ"
+    fake_compare.calls.clear()
+    result = await module._is_http_wildcard_host(
+        make_web_param_event("https://wildcardhost.test/index.php", "manager", "foo", ptype="POSTPARAM")
+    )
+    assert result is False
+    assert fake_compare.calls == ["https://wildcardhost.test/index.php"]
+
+    # 5) HttpCompareError from the compare -> None
+    fake_compare.behaviour = "raise"
+    fake_compare.calls.clear()
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/broken.php"))
+    assert result is None
+
+    # 6) Scalar True from a test mock (no .compare attribute) -> True (backward-compat)
+    async def wildcard_returns_true(scheme, host, port):
+        return True
+
+    scan.helpers.web.is_http_wildcard_host = wildcard_returns_true
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/whatever"))
+    assert result is True
+
+    # 7) False / None from the helper pass through unchanged
+    async def wildcard_returns_false(scheme, host, port):
+        return False
+
+    scan.helpers.web.is_http_wildcard_host = wildcard_returns_false
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/anything"))
+    assert result is False
+
+    async def wildcard_returns_none(scheme, host, port):
+        return None
+
+    scan.helpers.web.is_http_wildcard_host = wildcard_returns_none
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/anything"))
+    assert result is None
+
+    await scan._cleanup()

@@ -54,7 +54,10 @@ class nowafpls(BaseModule):
                 "severity": "LOW",
                 "confidence": "CONFIRMED",
                 "name": "WAF Bypass via Body Padding",
-                "description": f"{provider} bypassable via nowafpls-style body padding.",
+                "description": (
+                    f"{provider} bypassable via nowafpls-style body padding "
+                    f"(padding size: {result.padding_size} bytes)."
+                ),
             },
             "FINDING",
             parent=event,
