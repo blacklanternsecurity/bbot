@@ -206,7 +206,7 @@ class TestTelerikRAUDefaultKeys(ModuleTestBase):
         )
         assert handler_detected, "Expected Telerik RAU Handler INFO finding"
         assert keys_accepted, "Expected Telerik RAU Default Keys Accepted HIGH finding"
-        assert not rce_confirmed, "Should NOT emit RCE finding without exploit_rau=True"
+        assert not rce_confirmed, "Should NOT emit RCE finding without rau_confirm_version=True"
 
 
 class TestTelerikDialogHandlerOracle(ModuleTestBase):
@@ -479,4 +479,4 @@ class TestTelerikDialogHandler_includesubdirs(TestTelerik):
         finding_count = sum(
             1 for e in events if e.type == "FINDING" and "Telerik DialogHandler detected" in e.data["description"]
         )
-        assert finding_count == 2, "Expected 2 FINDING events (root and /temp), got {finding_count}"
+        assert finding_count == 2, f"Expected 2 FINDING events (root and /temp), got {finding_count}"

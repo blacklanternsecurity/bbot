@@ -282,7 +282,6 @@ class telerik(BaseModule):
     _module_threads = 5
 
     async def setup(self):
-        self._rau_confirmed = set()
         # base_url -> Telerik version confirmed via the RAU upload path. The same install
         # backs the DialogHandler, so an RAU-confirmed version enriches DH findings too.
         self._rau_version_by_base = {}
@@ -423,10 +422,6 @@ class telerik(BaseModule):
             self.verbose("rau_confirm_version disabled; emitting HIGH finding without version identification")
             await self._emit_rau_keys_accepted(url, event, key_material, version_attempted=False)
             return
-
-        if base_url in self._rau_confirmed:
-            return
-        self._rau_confirmed.add(base_url)
 
         self.verbose(
             f"rau_confirm_version enabled; iterating {len(self.telerik_versions)} candidate versions "
