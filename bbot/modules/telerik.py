@@ -337,9 +337,7 @@ class telerik(BaseModule):
             # Post-patch targets validate input length before touching crypto, so the short
             # AAAA probe can't reveal KDF. The real known-key probes are long enough to pass
             # that gate, so try both modes and let the actual oracle strings tell us.
-            candidate_kdfs = (
-                (kdf_mode,) if kdf_mode in ("PBKDF1_MS", "PBKDF2") else ("PBKDF1_MS", "PBKDF2")
-            )
+            candidate_kdfs = (kdf_mode,) if kdf_mode in ("PBKDF1_MS", "PBKDF2") else ("PBKDF1_MS", "PBKDF2")
             for candidate in candidate_kdfs:
                 self.verbose(f"Spraying known keys against DialogHandler ({candidate})")
                 if await self._probe_dialoghandler_knownkey(dh_url, event, candidate):
@@ -350,7 +348,10 @@ class telerik(BaseModule):
                 self.verbose(f"Fingerprinting DialogHandler KDF mode at {dh_url}")
                 kdf_mode = await self._detect_kdf_mode(dh_url)
                 self.verbose(f"DialogHandler KDF mode: [{kdf_mode}]")
-            if kdf_mode == "PBKDF1_MS":
+            # dp_cryptomg's byte oracle only works on PBKDF1_MS targets. When the classifier
+            # gave us None (target validates input length before crypto and never leaks a
+            # KDF-specific error), the target could still be oracle-vulnerable — try anyway.
+            if kdf_mode != "PBKDF2":
                 self.verbose("Running dp_cryptomg find_baseline byte-oracle probe (up to 81 requests)")
                 await self._probe_dialoghandler_oracle(dh_url, event)
 
