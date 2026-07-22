@@ -115,6 +115,67 @@ class TestTelerik(ModuleTestBase):
         assert telerik_http_response_parameters_detection, "Telerik SerializedParameters detection failed"
 
 
+class TestTelerikRAUDefaultKeys(ModuleTestBase):
+    """
+    RAU default-keys probe (safe, no upload): fake-version payload triggers
+    'Could not load file or assembly' when default keys are still accepted.
+    """
+
+    targets = ["http://127.0.0.1:8888"]
+    module_name = "telerik"
+    modules_overrides = ["http", "telerik"]
+    config_overrides = {
+        "modules": {
+            "telerik": {
+                "exploit_rau": False,
+                "try_known_keys": False,
+                "probe_dialoghandler_oracle": False,
+            }
+        }
+    }
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/Telerik.Web.UI.WebResource.axd", "query_string": "type=rau"},
+            respond_args={
+                "response_data": '{ "message" : "RadAsyncUpload handler is registered succesfully, however, it may not be accessed directly." }'
+            },
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "POST", "uri": "/Telerik.Web.UI.WebResource.axd", "query_string": "type=rau"},
+            respond_args={
+                "response_data": (
+                    "Exception Details: System.IO.FileLoadException: Could not load file or assembly "
+                    "'Telerik.Web.UI, Version=9999.9.999, Culture=neutral, PublicKeyToken=121fae78165ba3d4'"
+                )
+            },
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/Telerik.Web.UI.SpellCheckHandler.axd"},
+            respond_args={"status": 404},
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/ChartImage.axd"},
+            respond_args={"status": 404},
+        )
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["telerik"].dialoghandler_urls = []
+
+    def check(self, module_test, events):
+        handler_detected = any(e.type == "FINDING" and e.data.get("name") == "Telerik RAU Handler" for e in events)
+        keys_accepted = any(
+            e.type == "FINDING" and e.data.get("name") == "Telerik RAU Default Keys Accepted (CVE-2017-11317)"
+            for e in events
+        )
+        rce_confirmed = any(
+            e.type == "FINDING" and e.data.get("name") == "Telerik RAU RCE (CVE-2017-11317)" for e in events
+        )
+        assert handler_detected, "Expected Telerik RAU Handler INFO finding"
+        assert keys_accepted, "Expected Telerik RAU Default Keys Accepted HIGH finding"
+        assert not rce_confirmed, "Should NOT emit RCE finding without exploit_rau=True"
+
+
 class TestTelerikDialogHandlerOracle(ModuleTestBase):
     """CVE-2017-9248 quick_check: PBKDF1_MS 'Length cannot be less than zero' oracle → HIGH finding."""
 
