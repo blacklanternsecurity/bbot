@@ -2,12 +2,40 @@ import re
 from .base import ModuleTestBase
 
 
+_rau_call_count = [0]
+
+
+def _rau_two_stage_handler(request):
+    """
+    Mock a vulnerable RAU endpoint. The safe fake-version probe (POST #1) gets 'Could not
+    load file or assembly'; subsequent POSTs (version iteration) get the fileInfo upload
+    blob. The version string is encrypted so we distinguish stages by call ordering.
+    """
+    from werkzeug.wrappers import Response
+
+    _rau_call_count[0] += 1
+    if _rau_call_count[0] == 1:
+        return Response(
+            "Exception Details: System.IO.FileLoadException: Could not load file or assembly "
+            "'Telerik.Web.UI, Version=9999.9.999, Culture=neutral, PublicKeyToken=121fae78165ba3d4'",
+            status=200,
+        )
+    return Response(
+        '{"fileInfo":{"FileName":"RAU_crypto.bypass","ContentType":"text/html","ContentLength":5,'
+        '"DateJson":"2019-01-02T03:04:05.067Z","Index":0}, "metaData":"stub"}',
+        status=200,
+    )
+
+
 class TestTelerik(ModuleTestBase):
     targets = ["http://127.0.0.1:8888", "http://127.0.0.1:8888/telerik.aspx"]
     modules_overrides = ["http", "telerik"]
     config_overrides = {"modules": {"telerik": {"rau_confirm_version": True}}}
 
     async def setup_before_prep(self, module_test):
+        # Reset the RAU handler call counter for test isolation.
+        _rau_call_count[0] = 0
+
         # Simulate Telerik.Web.UI.WebResource.axd?type=rau detection
         expect_args = {"method": "GET", "uri": "/Telerik.Web.UI.WebResource.axd", "query_string": "type=rau"}
         respond_args = {
@@ -15,16 +43,13 @@ class TestTelerik(ModuleTestBase):
         }
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
-        # Simulate a vulnerable RAU endpoint: any POST returns the fileInfo blob.
-        expect_args = {
-            "method": "POST",
-            "uri": "/Telerik.Web.UI.WebResource.axd",
-            "query_string": "type=rau",
-        }
-        respond_args = {
-            "response_data": '{"fileInfo":{"FileName":"RAU_crypto.bypass","ContentType":"text/html","ContentLength":5,"DateJson":"2019-01-02T03:04:05.067Z","Index":0}, "metaData":"stub"}'
-        }
-        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+        # Vulnerable RAU endpoint: first POST is the safe fake-version probe (Could not load
+        # file or assembly response); every POST after that is the version-iteration path
+        # (fileInfo upload success). Distinguish by call order because the assembly version
+        # is inside the encrypted rauPostData blob.
+        module_test.httpserver.expect_request(
+            "/Telerik.Web.UI.WebResource.axd", method="POST", query_string="type=rau"
+        ).respond_with_handler(_rau_two_stage_handler)
 
         # Simulate SpellCheckHandler detection
         expect_args = {"method": "GET", "uri": "/Telerik.Web.UI.SpellCheckHandler.axd"}
@@ -77,6 +102,7 @@ class TestTelerik(ModuleTestBase):
 
     def check(self, module_test, events):
         telerik_axd_detection = False
+        telerik_axd_keys_accepted = False
         telerik_axd_vulnerable = False
         telerik_spellcheck_detection = False
         telerik_dialoghandler_detection = False
@@ -86,6 +112,10 @@ class TestTelerik(ModuleTestBase):
         for e in events:
             if e.type == "FINDING" and e.data.get("name") == "Telerik RAU Handler":
                 telerik_axd_detection = True
+                continue
+
+            if e.type == "FINDING" and e.data.get("name") == "Telerik RAU Default Keys Accepted (CVE-2017-11317)":
+                telerik_axd_keys_accepted = True
                 continue
 
             if e.type == "FINDING" and e.data.get("name") == "Telerik RAU RCE (CVE-2017-11317)":
@@ -108,6 +138,9 @@ class TestTelerik(ModuleTestBase):
                 continue
 
         assert telerik_axd_detection, "Telerik AXD detection failed"
+        assert not telerik_axd_keys_accepted, (
+            "HIGH RAU Keys Accepted should be suppressed when the CRITICAL RCE also fires"
+        )
         assert telerik_axd_vulnerable, "Telerik vulnerable AXD detection failed"
         assert telerik_spellcheck_detection, "Telerik spellcheck detection failed"
         assert telerik_dialoghandler_detection, "Telerik dialoghandler detection failed"
