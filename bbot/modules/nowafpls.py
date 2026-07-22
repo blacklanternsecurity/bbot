@@ -29,6 +29,8 @@ class nowafpls(BaseModule):
     async def filter_event(self, event):
         if "waf" not in event.tags:
             return False, "target is not tagged as behind a WAF"
+        if any(t.startswith("status-3") for t in event.tags):
+            return False, "URL is a redirect; padding probe would target the redirect, not the app"
         return True
 
     async def handle_event(self, event):

@@ -8,7 +8,7 @@ from bbot.errors import HttpCompareError
 log = logging.getLogger("bbot.core.helpers.nowafpls")
 
 
-DEFAULT_PADDING_SIZE = 131072
+DEFAULT_PADDING_SIZE = 1048576
 DEFAULT_PAYLOAD = "<script>alert(1)</script>"
 # Field name used to carry the junk padding in POST bodies. The double-underscore
 # prefix keeps it out of the way of legitimate form fields when lightfuzz merges
