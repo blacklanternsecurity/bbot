@@ -137,21 +137,27 @@ class TestTelerikDialogHandlerOracle(ModuleTestBase):
             expect_args={"method": "GET", "uri": "/Telerik.Web.UI.WebResource.axd", "query_string": "type=rau"},
             respond_args={"status": 404},
         )
-        # DialogHandler discovery: matches on ?dp=1 with the deserialize-error banner
+        # DialogHandler discovery: default path hits with the deserialize-error banner
         module_test.set_expect_requests(
             expect_args={
                 "method": "GET",
-                "uri": "/App_Master/Telerik.Web.UI.DialogHandler.aspx",
+                "uri": "/Telerik.Web.UI.DialogHandler.aspx",
                 "query_string": "dp=1",
             },
             respond_args={
                 "response_data": "<div>Cannot deserialize dialog parameters. Please refresh the editor page.</div>",
             },
         )
-        # KDF-mode probe (POST dialogParametersHolder=AAAA) returns pre-patch PBKDF1_MS error
+        # KDF-mode probe (POST dialogParametersHolder=AAAA) returns pre-patch PBKDF1_MS banner
+        # so the oracle-probe gate lets us proceed past known-key skip (try_known_keys=False)
         module_test.set_expect_requests(
-            expect_args={"method": "POST", "uri": "/App_Master/Telerik.Web.UI.DialogHandler.aspx"},
+            expect_args={"method": "POST", "uri": "/Telerik.Web.UI.DialogHandler.aspx"},
             respond_args={"response_data": "Server Error: Length cannot be less than zero. Parameter name: length."},
+        )
+        # find_baseline probe: GET ?dp=<base64(4 test bytes)> should leak an oracle error string
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/Telerik.Web.UI.DialogHandler.aspx"},
+            respond_args={"response_data": "Server Error: Index was outside the bounds of the array."},
         )
         # SpellCheck/ChartImage: not present
         module_test.set_expect_requests(
@@ -165,7 +171,7 @@ class TestTelerikDialogHandlerOracle(ModuleTestBase):
 
     async def setup_after_prep(self, module_test):
         module_test.scan.modules["telerik"].dialoghandler_urls = [
-            "App_Master/Telerik.Web.UI.DialogHandler.aspx",
+            "Telerik.Web.UI.DialogHandler.aspx",
         ]
 
     def check(self, module_test, events):

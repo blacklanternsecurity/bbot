@@ -1,4 +1,5 @@
 import base64
+import itertools
 
 from Crypto.Cipher import AES
 from badsecrets import modules_loaded
@@ -221,18 +222,30 @@ class telerik(BaseModule):
             await self._probe_rau(base_url, event)
             dh_url = await self._probe_dialoghandler(base_url, event)
             if dh_url:
-                kdf_mode = None
-                if self.config.get("probe_dialoghandler_oracle"):
-                    kdf_mode = await self._probe_dialoghandler_oracle(dh_url, event)
-                if self.config.get("try_known_keys"):
-                    if kdf_mode is None:
-                        kdf_mode = await self._detect_kdf_mode(dh_url)
-                    if kdf_mode in ("PBKDF1_MS", "PBKDF2"):
-                        await self._probe_dialoghandler_knownkey(dh_url, event, kdf_mode)
+                await self._probe_dialoghandler_exploit(dh_url, event)
             await self._probe_spellcheck(base_url, event)
             await self._probe_chartimage(base_url, event)
         elif event.type == "HTTP_RESPONSE":
             await self._carve_http_response(event)
+
+    async def _probe_dialoghandler_exploit(self, dh_url, event):
+        """
+        Known-key spray first (definitive: recovers the actual keys). If nothing matches,
+        fall back to the dp_cryptomg baseline probe (chosen-plaintext byte-oracle test).
+        Oracle only runs on PBKDF1_MS targets; the CVE-2017-9248 patch moved to PBKDF2
+        specifically to defeat this attack, so probing PBKDF2 is wasted requests.
+        """
+        kdf_mode = None
+        if self.config.get("try_known_keys"):
+            kdf_mode = await self._detect_kdf_mode(dh_url)
+            if kdf_mode in ("PBKDF1_MS", "PBKDF2"):
+                if await self._probe_dialoghandler_knownkey(dh_url, event, kdf_mode):
+                    return
+        if self.config.get("probe_dialoghandler_oracle"):
+            if kdf_mode is None:
+                kdf_mode = await self._detect_kdf_mode(dh_url)
+            if kdf_mode == "PBKDF1_MS":
+                await self._probe_dialoghandler_oracle(dh_url, event)
 
     def _base_url(self, event):
         if self.config.get("include_subdirs"):
@@ -365,10 +378,26 @@ class telerik(BaseModule):
     # -----------------------------------------------------------------------
 
     async def _probe_dialoghandler(self, base_url, event):
-        candidates = {f"{base_url}{dh}?dp=1": dh for dh in self.dialoghandler_urls}
+        """
+        Try the default path first (sequential) — DialogHandler is a global handler that
+        responds identically regardless of path, so on a real target the default path
+        almost always works and produces a less confusing finding URL. Only fan out to
+        the extended candidate list if the default doesn't match.
+        """
+        if not self.dialoghandler_urls:
+            return None
+
+        default_dh = self.dialoghandler_urls[0]
+        default_response = await self.helpers.request(f"{base_url}{default_dh}?dp=1", timeout=self.scan.http_timeout)
+        if default_response and "Cannot deserialize dialog parameters" in default_response.text:
+            return await self._emit_dialoghandler(base_url, default_dh, event)
+
+        remaining = {f"{base_url}{dh}?dp=1": dh for dh in self.dialoghandler_urls[1:]}
+        if not remaining:
+            return None
 
         fail_count = 0
-        async for url, response in self.helpers.request_batch_stream(list(candidates)):
+        async for url, response in self.helpers.request_batch_stream(list(remaining)):
             if response is None:
                 fail_count += 1
                 if fail_count < 2:
@@ -377,26 +406,26 @@ class telerik(BaseModule):
                 return None
             if "Cannot deserialize dialog parameters" not in response.text:
                 continue
-            dh = candidates[url]
-            dh_url = f"{base_url}{dh}"
-            self.debug(f"Detected Telerik DialogHandler ({dh})")
-            await self.emit_event(
-                {
-                    "host": str(event.host),
-                    "url": dh_url,
-                    "description": "Telerik DialogHandler detected",
-                    "name": "Telerik DialogHandler",
-                    "confidence": "CONFIRMED",
-                    "severity": "INFO",
-                },
-                "FINDING",
-                event,
-                context=f"{{module}} scanned {base_url} and identified {{event.type}}: Telerik DialogHandler",
-            )
-            # The generic Telerik.Web.UI.DialogHandler.aspx often matches under a path wildcard on the target;
-            # stop after the first hit to keep noise down.
-            return dh_url
+            return await self._emit_dialoghandler(base_url, remaining[url], event)
         return None
+
+    async def _emit_dialoghandler(self, base_url, dh, event):
+        dh_url = f"{base_url}{dh}"
+        self.debug(f"Detected Telerik DialogHandler ({dh})")
+        await self.emit_event(
+            {
+                "host": str(event.host),
+                "url": dh_url,
+                "description": "Telerik DialogHandler detected",
+                "name": "Telerik DialogHandler",
+                "confidence": "CONFIRMED",
+                "severity": "INFO",
+            },
+            "FINDING",
+            event,
+            context=f"{{module}} scanned {base_url} and identified {{event.type}}: Telerik DialogHandler",
+        )
+        return dh_url
 
     async def _detect_kdf_mode(self, dh_url):
         """Send an empty probe; response error tells us which KDF the target uses."""
@@ -420,46 +449,60 @@ class telerik(BaseModule):
 
     async def _probe_dialoghandler_oracle(self, dh_url, event):
         """
-        CVE-2017-9248 quick_check: pre-patch PBKDF1_MS variants leak the
-        `Length cannot be less than zero` error string, which is the same signal
-        dp_cryptomg uses to confirm the byte-oracle key-recovery attack works.
+        Port of dp_cryptomg's find_baseline(): send crafted GET ?dp=<base64(4 bytes)>
+        payloads iterating combinations of [0x00, 0x6b, 0x08]. A response containing
+        `Index was outside the bounds of the array.` or `String was not recognized as a
+        valid Boolean.` proves the byte-oracle leaks decryption state and CVE-2017-9248
+        byte-by-byte key recovery is feasible against this target.
         """
-        kdf_mode = await self._detect_kdf_mode(dh_url)
-        if kdf_mode == "PBKDF1_MS":
-            await self.emit_event(
-                {
-                    "host": str(event.host),
-                    "url": dh_url,
-                    "description": (
-                        "Telerik DialogHandler exposes CVE-2017-9248 crypto oracle "
-                        "(PBKDF1_MS mode, key recovery viable via dp_cryptomg)"
-                    ),
-                    "name": "Telerik DialogHandler Oracle (CVE-2017-9248)",
-                    "severity": "HIGH",
-                    "confidence": "HIGH",
-                },
-                "FINDING",
-                event,
-                context=f"{{module}} confirmed CVE-2017-9248 crypto oracle at {dh_url}",
-            )
-        return kdf_mode
+        test_bytes = [b"\x00", b"\x6b", b"\x08"]
+        for combo in itertools.product(test_bytes, repeat=4):
+            payload = base64.b64encode(b"".join(combo)).decode()
+            response = await self.helpers.request(f"{dh_url}?dp={payload}", timeout=self.scan.http_timeout)
+            if not response:
+                continue
+            text = response.text
+            if (
+                "Index was outside the bounds of the array." in text
+                or "String was not recognized as a valid Boolean." in text
+            ):
+                self.debug(f"CVE-2017-9248 baseline hit on combo {combo!r}")
+                await self.emit_event(
+                    {
+                        "host": str(event.host),
+                        "url": dh_url,
+                        "description": (
+                            "Telerik DialogHandler is exploitable via CVE-2017-9248 byte-oracle "
+                            "key recovery (baseline probe leaked decryption state)"
+                        ),
+                        "name": "Telerik DialogHandler Oracle (CVE-2017-9248)",
+                        "severity": "CRITICAL",
+                        "confidence": "CONFIRMED",
+                    },
+                    "FINDING",
+                    event,
+                    context=f"{{module}} confirmed CVE-2017-9248 byte-oracle at {dh_url}",
+                )
+                return True
+        return False
 
     async def _probe_dialoghandler_knownkey(self, dh_url, event, kdf_mode):
+        """Returns True if a known key pair was recovered and a finding emitted."""
         include_machinekeys = self.config.get("include_machinekeys", False)
         if kdf_mode == "PBKDF1_MS":
             hash_key = await self._solve_dh_hashkey(dh_url, include_machinekeys)
             if not hash_key:
-                return
+                return False
             enc_key = await self._solve_dh_enckey(dh_url, hash_key, kdf_mode, include_machinekeys)
             if not enc_key:
-                return
+                return False
         elif kdf_mode == "PBKDF2":
             match = await self._solve_dh_pbkdf2_combined(dh_url, include_machinekeys)
             if not match:
-                return
+                return False
             hash_key, enc_key = match
         else:
-            return
+            return False
 
         await self.emit_event(
             {
@@ -477,6 +520,7 @@ class telerik(BaseModule):
             event,
             context=f"{{module}} recovered a known Telerik key pair at {dh_url}",
         )
+        return True
 
     async def _solve_dh_hashkey(self, dh_url, include_machinekeys):
         """PBKDF1_MS mode: hashkey solves independently via 'input data is not a complete block' oracle."""
