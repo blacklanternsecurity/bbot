@@ -310,33 +310,56 @@ class xss(BaseLightfuzz):
             )
 
         if in_javascript:
-            in_javascript_probe = rf"</script><script>{random_string}</script>"
-            result = await self.check_probe(
-                cookies, in_javascript_probe, in_javascript_probe, "In Javascript"
-            )  # After reflection in the HTTP response, did the script tags survive without url-encoding or other sanitization/escaping?
-            if result is False:
-                # To attempt this technique, we need to determine the type of quote we are within
-                quote_context = await self.determine_javascript_quote_context(
-                    random_string, reflection_probe_result.text
+            # Break out without injecting tags. Determine the quote context so
+            # the first probe targets the escaping behavior around the reflection.
+            detected = False
+            quote_context = await self.determine_javascript_quote_context(random_string, reflection_probe_result.text)
+            if quote_context in ("single", "double"):
+                # Quoted-string context: escape the backslash escape to break the string.
+                if quote_context == "single":
+                    in_javascript_escape_probe = rf"a\';zzzzz({random_string})\\"
+                    in_javascript_escape_match = rf"a\\';zzzzz({random_string})\\"
+                else:
+                    in_javascript_escape_probe = rf"a\";zzzzz({random_string})\\"
+                    in_javascript_escape_match = rf'a\\";zzzzz({random_string})\\'
+                detected = await self.check_probe(
+                    cookies,
+                    in_javascript_escape_probe,
+                    in_javascript_escape_match,
+                    f"In Javascript (escaping the escape character, {quote_context} quote)",
                 )
-
-                # Only run the escape-the-escape probe for quoted-string
-                # contexts. Backtick-wrapped (template-literal) context is
-                # handled separately below.
-                if quote_context in ("single", "double"):
-                    if quote_context == "single":
-                        in_javascript_escape_probe = rf"a\';zzzzz({random_string})\\"
-                        in_javascript_escape_match = rf"a\\';zzzzz({random_string})\\"
-                    else:
-                        in_javascript_escape_probe = rf"a\";zzzzz({random_string})\\"
-                        in_javascript_escape_match = rf'a\\";zzzzz({random_string})\\'
-
-                    await self.check_probe(
-                        cookies,
-                        in_javascript_escape_probe,
-                        in_javascript_escape_match,
-                        f"In Javascript (escaping the escape character, {quote_context} quote)",
-                    )
+            else:
+                # Unquoted / between-statements context (what the tag-close probe used
+                # to be the only cover for): inject a statement directly. Needs no
+                # <script>, so it evades the WAF. If `;zzzzz(canary)//` survives
+                # unescaped inside the <script> block, arbitrary JS can be injected.
+                in_javascript_stmt_probe = rf";zzzzz({random_string})//"
+                detected = await self.check_probe(
+                    cookies, in_javascript_stmt_probe, in_javascript_stmt_probe, "In Javascript (statement break)"
+                )
+            if not detected:
+                # The escape-the-escape form targets applications that add a
+                # backslash before quotes. If the value is reflected without
+                # that escaping, use the matching direct quote break instead.
+                # For non-string expressions, close a surrounding parenthesis
+                # after supplying a valid numeric operand. These retain the
+                # original JavaScript-context coverage without the universally
+                # WAF-signatured `</script>` sequence.
+                if quote_context == "single":
+                    in_javascript_fallback_probe = rf"a';zzzzz({random_string})//"
+                    fallback_description = "In Javascript (single quote break)"
+                elif quote_context == "double":
+                    in_javascript_fallback_probe = rf'a";zzzzz({random_string})//'
+                    fallback_description = "In Javascript (double quote break)"
+                else:
+                    in_javascript_fallback_probe = rf"0);zzzzz({random_string})//"
+                    fallback_description = "In Javascript (expression break)"
+                await self.check_probe(
+                    cookies,
+                    in_javascript_fallback_probe,
+                    in_javascript_fallback_probe,
+                    fallback_description,
+                )
 
         if in_html_comment:
             # Breakout probe: if `-->` survives reflection inside an HTML

@@ -186,9 +186,9 @@ SECRET_FROM_PARENT_DIR
                     simple_pathtraversal_finding_emitted = True
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
-        assert simple_pathtraversal_finding_emitted, (
-            "Simple single-dot path traversal FINDING not emitted — strict-resolver detection regression."
-        )
+        assert (
+            simple_pathtraversal_finding_emitted
+        ), "Simple single-dot path traversal FINDING not emitted — strict-resolver detection regression."
 
 
 # Negative regression test for the JSF-style path-traversal FP: a server
@@ -226,27 +226,20 @@ class Test_Lightfuzz_path_singledot_rejection_fp(Test_Lightfuzz_path_singledot):
         for e in events:
             if e.type == "FINDING":
                 desc = e.data["description"]
-                assert "Possible Path Traversal" not in desc and "POSSIBLE Path Traversal" not in desc, (
-                    f"Path Traversal false positive emitted when server rejects `..`: {desc}"
-                )
+                assert (
+                    "Possible Path Traversal" not in desc and "POSSIBLE Path Traversal" not in desc
+                ), f"Path Traversal false positive emitted when server rejects `..`: {desc}"
 
 
 # Path Traversal Absolute path
 class Test_Lightfuzz_path_absolute(Test_Lightfuzz_path_singledot):
-    etc_passwd = """
-root:x:0:0:root:/root:/bin/bash
-daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
-bin:x:2:2:bin:/bin:/usr/sbin/nologin
-sys:x:3:3:sys:/dev:/usr/sbin/nologin
-sync:x:4:65534:sync:/bin:/bin/sync
-games:x:5:60:games:/usr/games:/usr/sbin/nologin
-man:x:6:12:man:/var/cache/man:/usr/sbin/nologin
-lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
-"""
-
     async def setup_after_prep(self, module_test):
-        expect_args = {"method": "GET", "uri": "/images", "query_string": "filename=/etc/passwd"}
-        respond_args = {"response_data": self.etc_passwd}
+        expect_args = {
+            "method": "GET",
+            "uri": "/images",
+            "query_string": "filename=/sys/class/net/lo/address",
+        }
+        respond_args = {"response_data": "00:00:00:00:00:00\n"}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
         expect_args = {"method": "GET", "uri": "/images"}
@@ -270,7 +263,7 @@ lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
 
             if e.type == "FINDING":
                 if (
-                    "POSSIBLE Path Traversal. Parameter: [filename] Parameter Type: [GETPARAM] Original Value: [default.jpg] Detection Method: [Absolute Path: /etc/passwd]"
+                    "POSSIBLE Path Traversal. Parameter: [filename] Parameter Type: [GETPARAM] Original Value: [default.jpg] Detection Method: [Absolute Path: /sys/class/net/lo/address]"
                     in e.data["description"]
                 ):
                     pathtraversal_finding_emitted = True
@@ -814,9 +807,9 @@ class Test_Lightfuzz_xss_url_scheme_value_attr_fp(Test_Lightfuzz_xss):
         for e in events:
             if e.type == "FINDING":
                 desc = e.data["description"]
-                assert "URL-scheme Injection" not in desc, (
-                    f"URL-scheme Injection false positive emitted for non-URL-bearing attribute: {desc}"
-                )
+                assert (
+                    "URL-scheme Injection" not in desc
+                ), f"URL-scheme Injection false positive emitted for non-URL-bearing attribute: {desc}"
 
 
 # Base64 Envelope XSS Detection
@@ -1140,12 +1133,46 @@ console.log(lang);
                         original_value_captured = True
 
             if e.type == "FINDING":
-                if "Possible Reflected XSS. Parameter: [language] Context: [In Javascript]" in e.data["description"]:
+                if (
+                    "Possible Reflected XSS. Parameter: [language] " "Context: [In Javascript (single quote break)]"
+                ) in e.data["description"]:
                     xss_finding_emitted = True
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
         assert original_value_captured, "original_value not captured"
         assert xss_finding_emitted, "In Javascript XSS FINDING not emitted"
+
+
+class Test_Lightfuzz_xss_injs_double_quote_break(Test_Lightfuzz_xss_injs):
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+        if "language=" in qs:
+            value = qs.split("=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+            return Response(
+                f"""
+<html>
+<head>
+<script>
+var lang = "{unquote(value)}";
+console.log(lang);
+</script>
+</head>
+<body><p>test</p></body>
+</html>
+""",
+                status=200,
+            )
+        return Response(self.parameter_block, status=200)
+
+    def check(self, module_test, events):
+        descriptions = [e.data["description"] for e in events if e.type == "FINDING"]
+        assert any(
+            "Possible Reflected XSS. Parameter: [language] "
+            "Context: [In Javascript (double quote break)]" in description
+            for description in descriptions
+        ), "Double-quoted direct-break XSS FINDING not emitted"
 
 
 # XSS Parameter Needing URL-Encoding
@@ -1177,7 +1204,9 @@ class Test_Lightfuzz_urlencoding(Test_Lightfuzz_xss_injs):
                         original_value_captured = True
 
             if e.type == "FINDING":
-                if "Possible Reflected XSS. Parameter: [language] Context: [In Javascript]" in e.data["description"]:
+                if (
+                    "Possible Reflected XSS. Parameter: [language] " "Context: [In Javascript (single quote break)]"
+                ) in e.data["description"]:
                     xss_finding_emitted = True
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
@@ -1518,7 +1547,7 @@ class Test_Lightfuzz_sqli_delay(Test_Lightfuzz_sqli):
 
         """
         if "search=" in qs:
-            value = qs.split("=")[1]
+            value = qs.split("=", 1)[1]
 
             if "&" in value:
                 value = value.split("&")[0]
@@ -1530,7 +1559,7 @@ class Test_Lightfuzz_sqli_delay(Test_Lightfuzz_sqli):
         </section>
         """
             decoded = unquote(value)
-            m = re.search(r"AND \(SLEEP\((\d+)\)\) AND", decoded)
+            m = re.search(r"1'\^SLEEP#q\n\((\d+)\)\^'0", decoded)
             if m:
                 sleep(int(m.group(1)))
             return Response(sql_block, status=200)
@@ -1546,11 +1575,7 @@ class Test_Lightfuzz_sqli_delay(Test_Lightfuzz_sqli):
 
             if e.type == "FINDING":
                 desc = e.data["description"]
-                if (
-                    "Possible Blind SQL Injection" in desc
-                    and "Delay Probe" in desc
-                    and "1' AND (SLEEP(8)) AND '" in desc
-                ):
+                if "Possible Blind SQL Injection" in desc and "Delay Probe" in desc and "1'^SLEEP#q\n(8)^'0" in desc:
                     sqldelay_finding_emitted = True
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
@@ -1579,7 +1604,7 @@ class Test_Lightfuzz_sqli_delay_or_rowindependent(Test_Lightfuzz_sqli):
         </section>
         """
         if "search=" in qs:
-            value = qs.split("=")[1]
+            value = qs.split("=", 1)[1]
             if "&" in value:
                 value = value.split("&")[0]
             decoded = unquote(value)
@@ -1591,10 +1616,9 @@ class Test_Lightfuzz_sqli_delay_or_rowindependent(Test_Lightfuzz_sqli):
             <hr>
         </section>
         """
-            # Only the one-shot row-independent MySQL payload triggers a delay.
-            # The original AND-based mysql probe does not fire here, simulating
-            # a context where the injected value does not match any row.
-            m = re.search(r"OR SLEEP\((\d+)\) IS NOT NULL", decoded)
+            # Only the bare XOR MySQL payload triggers a delay, simulating a
+            # context where row-scoped quoted predicates do not execute.
+            m = re.search(r"\^SLEEP#q\n\((\d+)\)#", decoded)
             if m:
                 sleep(int(m.group(1)))
             return Response(sql_block, status=200)
@@ -1609,26 +1633,21 @@ class Test_Lightfuzz_sqli_delay_or_rowindependent(Test_Lightfuzz_sqli):
                     web_parameter_emitted = True
             if e.type == "FINDING":
                 desc = e.data["description"]
-                if (
-                    "Possible Blind SQL Injection" in desc
-                    and "Delay Probe" in desc
-                    and "OR SLEEP(8) IS NOT NULL LIMIT 1-- -" in desc
-                ):
+                if "Possible Blind SQL Injection" in desc and "Delay Probe" in desc and "^SLEEP#q\n(8)#" in desc:
                     one_shot_delay_finding = True
 
-        # Guard against regression of the missing-comma bug: Python string-literal
-        # concatenation of adjacent list entries would produce a payload containing
-        # both DBMS_LOCK.SLEEP and WAITFOR, which is never a valid single probe.
-        garbled = [p for p in self.received_payloads if "DBMS_LOCK.SLEEP" in p and "WAITFOR" in p]
+        # Guard against regression of the missing-comma bug: adjacent Oracle
+        # and MSSQL entries must never fuse into one malformed probe.
+        garbled = [p for p in self.received_payloads if "RECEıVE_MEſſAGE" in p and "EXECUTE" in p]
         assert not garbled, (
             f"Garbled Oracle+MSSQL concatenated probe was sent ({len(garbled)} times): "
             f"{garbled[:1]}. This indicates the missing-comma bug has regressed."
         )
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
-        assert one_shot_delay_finding, (
-            "One-shot row-independent SLEEP finding not emitted - row-independent blind sqli detection regression."
-        )
+        assert (
+            one_shot_delay_finding
+        ), "One-shot row-independent SLEEP finding not emitted - row-independent blind sqli detection regression."
 
 
 class Test_Lightfuzz_sqli_delay_jitter_fp(Test_Lightfuzz_sqli):
@@ -1723,7 +1742,7 @@ class Test_Lightfuzz_serial_errorresolution(ModuleTestBase):
                 </div>
             </form>
 
-            
+
         </body>
         </html>
         """
@@ -1781,9 +1800,9 @@ class Test_Lightfuzz_serial_errorresolution(ModuleTestBase):
 
         assert excavate_extracted_form_parameter, "WEB_PARAMETER for POST form was not emitted"
         assert excavate_extracted_form_parameter_details, "WEB_PARAMETER for POST form did not have correct data"
-        assert lightfuzz_serial_detect_errorresolution, (
-            "Lightfuzz Serial module failed to detect ASP.NET error resolution based deserialization"
-        )
+        assert (
+            lightfuzz_serial_detect_errorresolution
+        ), "Lightfuzz Serial module failed to detect ASP.NET error resolution based deserialization"
 
 
 # Serialization Module (Error Resolution False Positive)
@@ -1842,7 +1861,7 @@ class Test_Lightfuzz_serial_errorresolution_existingvalue_valid(Test_Lightfuzz_s
                 </div>
             </form>
 
-            
+
         </body>
         </html>
         """
@@ -1887,9 +1906,9 @@ class Test_Lightfuzz_serial_errorresolution_existingvalue_valid(Test_Lightfuzz_s
         assert excavate_extracted_form_parameter, "WEB_PARAMETER for POST form was not emitted"
         assert excavate_extracted_form_parameter_details, "WEB_PARAMETER for POST form did not have correct data"
         assert excavate_detect_serialization_value, "WEB_PARAMETER for POST form did not have correct data"
-        assert lightfuzz_serial_detect_errorresolution, (
-            "Lightfuzz Serial module failed to detect ASP.NET error resolution based deserialization"
-        )
+        assert (
+            lightfuzz_serial_detect_errorresolution
+        ), "Lightfuzz Serial module failed to detect ASP.NET error resolution based deserialization"
 
 
 class Test_Lightfuzz_serial_errorresolution_existingvalue_invalid(Test_Lightfuzz_serial_errorresolution_falsepositive):
@@ -1919,7 +1938,7 @@ class Test_Lightfuzz_serial_errorresolution_existingvalue_invalid(Test_Lightfuzz
                 </div>
             </form>
 
-            
+
         </body>
         </html>
         """
@@ -1984,9 +2003,9 @@ class Test_Lightfuzz_serial_errordifferential(Test_Lightfuzz_serial_errorresolut
                     lightfuzz_serial_detect_errordifferential = True
 
         assert excavate_extracted_cookie_parameter, "WEB_PARAMETER for cookie was not emitted"
-        assert lightfuzz_serial_detect_errordifferential, (
-            "Lightfuzz Serial module failed to detect Java error differential based deserialization"
-        )
+        assert (
+            lightfuzz_serial_detect_errordifferential
+        ), "Lightfuzz Serial module failed to detect Java error differential based deserialization"
 
 
 # Serialization Modules (Error Differential - False positive check)
@@ -2059,9 +2078,9 @@ class Test_Lightfuzz_serial_errorresolution_multi_language(Test_Lightfuzz_serial
         for e in events:
             if e.type == "FINDING" and "Error Resolution" in e.data.get("description", ""):
                 no_finding_emitted = False
-        assert no_finding_emitted, (
-            "False positive Error Resolution finding was emitted despite multiple language families triggering"
-        )
+        assert (
+            no_finding_emitted
+        ), "False positive Error Resolution finding was emitted despite multiple language families triggering"
 
 
 class Test_Lightfuzz_serial_errorresolution_nonstandard_status(Test_Lightfuzz_serial_errorresolution):
@@ -2091,9 +2110,9 @@ class Test_Lightfuzz_serial_errorresolution_nonstandard_status(Test_Lightfuzz_se
         for e in events:
             if e.type == "FINDING" and "Error Resolution" in e.data.get("description", ""):
                 no_finding_emitted = False
-        assert no_finding_emitted, (
-            "False positive Error Resolution finding was emitted for non-standard baseline status code (>511)"
-        )
+        assert (
+            no_finding_emitted
+        ), "False positive Error Resolution finding was emitted for non-standard baseline status code (>511)"
 
 
 # Python pickle Error Resolution — verifies the new python_pickle_base64
@@ -2261,16 +2280,14 @@ class Test_Lightfuzz_cmdi(ModuleTestBase):
             if "&" in value:
                 value = value.split("&")[0]
             decoded = unquote(value)
-            # Simulate a Linux bash-family shell: evaluate $((A*B)) first so
-            # the arithmetic confirmation probe lands a product value, then
-            # fall back to plain-echo reflection for the generic probe.
-            arith = re.search(r"&& echo \$\(\((\d+)\*(\d+)\)\) &&", decoded)
+            # Simulate a POSIX shell: expr emits the arithmetic product, while
+            # the empty-quote echo spelling emits the generic canary.
+            arith = re.search(r"&& expr (\d+) \\\* (\d+) &&", decoded)
             if arith:
                 cmdi_value = str(int(arith.group(1)) * int(arith.group(2)))
-            elif "&& echo " in decoded:
-                cmdi_value = decoded.split("&& echo ")[1].split(" ")[0]
             else:
-                cmdi_value = decoded
+                generic = re.search(r'&& ec""ho (\d+) &&', decoded)
+                cmdi_value = generic.group(1) if generic else decoded
             cmdi_block = f"""
         <section class=blog-header>
             <h1>0 search results for '{cmdi_value}'</h1>
@@ -2333,15 +2350,15 @@ class Test_Lightfuzz_cmdi_windows(Test_Lightfuzz_cmdi):
             if "&" in value:
                 value = value.split("&")[0]
             decoded = unquote(value)
-            # Simulate cmd.exe: evaluate `set /A A*B` and print the product;
-            # reflect $((A*B)) literal (cmd doesn't expand POSIX arithmetic);
-            # reflect `echo X` args verbatim.
+            # Simulate cmd.exe: evaluate `set /A A*B`, execute the caret-escaped
+            # echo spelling, and leave POSIX probes unexpanded.
             setA = re.search(r"&& set /A (\d+)\*(\d+) &&", decoded)
             if setA:
                 result = int(setA.group(1)) * int(setA.group(2))
                 return Response(f"<section><h1>{result}</h1></section>", status=200)
-            if "&& echo " in decoded:
-                cmdi_value = decoded.split("&& echo ")[1].split(" ")[0]
+            generic = re.search(r"&& ec\^ho (\d+) &&", decoded)
+            if generic:
+                cmdi_value = generic.group(1)
                 return Response(
                     f"<section><h1>0 search results for '{cmdi_value}'</h1></section>",
                     status=200,
@@ -2371,7 +2388,7 @@ class Test_Lightfuzz_cmdi_windows(Test_Lightfuzz_cmdi):
 # CMDi parser-error reflection: simulates a parser (SQL, JSON, YAML) that
 # reflects the probe's offending token back in its error. Under the three-
 # stage cascade this should NOT produce a "Possible Command Injection"
-# finding at all, because neither the POSIX `$((A*B))` nor the Windows
+# finding at all, because neither the POSIX `expr A \* B` nor the Windows
 # `set /A A*B` confirmation probe can coax a shell product out of a text
 # parser. Instead, a separate "Possible Parameter Reflection" finding is
 # emitted to preserve the adjacent-vuln signal without overclaiming cmdi.
@@ -2394,10 +2411,10 @@ class Test_Lightfuzz_cmdi_parser_reflection_downgrade(Test_Lightfuzz_cmdi):
             # Real parsers only trip when a shell-style metachar breaks the
             # surrounding syntax. Require a delimiter before the token so the
             # AAAA false-positive probe does not accidentally reflect.
-            arith_match = re.search(r"[;|&]\s*echo\s+(\$\(\(\d+\*\d+\)\))", decoded)
+            arith_match = re.search(r"[;|&]\s*expr\s+(\d+)\s+\\\*\s+(\d+)", decoded)
             if arith_match:
                 return Response(
-                    f'{{"error":"parse error near {arith_match.group(1)}"}}',
+                    f'{{"error":"parse error near {arith_match.group(1)}*{arith_match.group(2)}"}}',
                     status=500,
                     mimetype="application/json",
                 )
@@ -2408,7 +2425,7 @@ class Test_Lightfuzz_cmdi_parser_reflection_downgrade(Test_Lightfuzz_cmdi):
                     status=500,
                     mimetype="application/json",
                 )
-            generic_match = re.search(r"[;|&]\s*echo\s+(\d+)", decoded)
+            generic_match = re.search(r'[;|&]\s*(?:ec""ho|ec\^ho)\s+(\d+)', decoded)
             if generic_match:
                 return Response(
                     f'{{"error":"parse error near {generic_match.group(1)}"}}',
@@ -2445,8 +2462,8 @@ class Test_Lightfuzz_cmdi_parser_reflection_downgrade(Test_Lightfuzz_cmdi):
 class Test_Lightfuzz_cmdi_interactsh(Test_Lightfuzz_cmdi):
     @staticmethod
     def extract_subdomain_tag(data):
-        pattern = r"search=.+%26%26%20nslookup%20(.+)\.fakedomain\.fakeinteractsh.com%20%26%26"
-        match = re.search(pattern, data)
+        pattern = r"search=.+%26%26%20nsl(?:%22%22|%5e)ookup%20" r"(.+)\.fakedomain\.fakeinteractsh.com%20%26%26"
+        match = re.search(pattern, data, re.I)
         if match:
             return match.group(1)
 
@@ -2585,14 +2602,14 @@ class Test_Lightfuzz_ssrf(ModuleTestBase):
                 ):
                     if "Interaction Protocol: [dns]" in e.data["description"]:
                         ssrf_dns_finding_emitted = True
-                        assert e.data["confidence"] == "MEDIUM", (
-                            f"DNS SSRF should be MEDIUM, got {e.data['confidence']}"
-                        )
+                        assert (
+                            e.data["confidence"] == "MEDIUM"
+                        ), f"DNS SSRF should be MEDIUM, got {e.data['confidence']}"
                     elif "Interaction Protocol: [http]" in e.data["description"]:
                         ssrf_http_finding_emitted = True
-                        assert e.data["confidence"] == "CONFIRMED", (
-                            f"HTTP SSRF should be CONFIRMED, got {e.data['confidence']}"
-                        )
+                        assert (
+                            e.data["confidence"] == "CONFIRMED"
+                        ), f"HTTP SSRF should be CONFIRMED, got {e.data['confidence']}"
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
         assert ssrf_dns_finding_emitted, "interactsh SSRF DNS FINDING not emitted"
@@ -2762,9 +2779,9 @@ class Test_Lightfuzz_crypto_error_falsepositive(ModuleTestBase):
                 if "Possible Cryptographic Error" in e.data["description"]:
                     cryptoerror_finding_emitted = True
         assert cryptoerror_parameter_extracted, "Parameter not extracted"
-        assert not cryptoerror_finding_emitted, (
-            "Crypto Error Message FINDING was emitted (it is an intentional false positive)"
-        )
+        assert (
+            not cryptoerror_finding_emitted
+        ), "Crypto Error Message FINDING was emitted (it is an intentional false positive)"
 
 
 class Test_Lightfuzz_PaddingOracleDetection(ModuleTestBase):
@@ -2970,9 +2987,9 @@ class Test_Lightfuzz_PaddingOracleDetection_Noisy(Test_Lightfuzz_PaddingOracleDe
 
         assert web_parameter_extracted, "Web parameter was not extracted"
         assert cryptographic_parameter_finding, "Cryptographic parameter not detected"
-        assert not padding_oracle_detected, (
-            "Padding oracle should NOT be detected when 30 probes differ (exceeds block size)"
-        )
+        assert (
+            not padding_oracle_detected
+        ), "Padding oracle should NOT be detected when 30 probes differ (exceeds block size)"
 
 
 class Test_Lightfuzz_PaddingOracleDetection_NarrowCharset(ModuleTestBase):
@@ -3101,9 +3118,9 @@ class Test_Lightfuzz_PaddingOracleDetection_Jitter(Test_Lightfuzz_PaddingOracleD
                     padding_oracle_detected = True
 
         assert web_parameter_extracted, "Web parameter was not extracted"
-        assert not padding_oracle_detected, (
-            "Padding oracle should NOT be detected when confirmation round fails (jitter false positive)"
-        )
+        assert (
+            not padding_oracle_detected
+        ), "Padding oracle should NOT be detected when confirmation round fails (jitter false positive)"
 
 
 class Test_Lightfuzz_XSS_jsquotecontext(ModuleTestBase):
@@ -3495,9 +3512,9 @@ class Test_Lightfuzz_ECBDetection_Negative(ModuleTestBase):
     def check(self, module_test, events):
         for e in events:
             if e.type == "FINDING":
-                assert "ECB Mode Encryption Detected" not in e.data["description"], (
-                    "ECB falsely detected on unique blocks"
-                )
+                assert (
+                    "ECB Mode Encryption Detected" not in e.data["description"]
+                ), "ECB falsely detected on unique blocks"
 
 
 # CBC Bit-Flipping Detection: server returns different responses for different byte-position mutations
@@ -3592,9 +3609,9 @@ class Test_Lightfuzz_CBCBitflipDetection_Negative(ModuleTestBase):
     def check(self, module_test, events):
         for e in events:
             if e.type == "FINDING":
-                assert "CBC Bit-Flipping Detected" not in e.data["description"], (
-                    "CBC Bit-Flipping falsely detected on identical responses"
-                )
+                assert (
+                    "CBC Bit-Flipping Detected" not in e.data["description"]
+                ), "CBC Bit-Flipping falsely detected on identical responses"
 
 
 # CBC Bit-Flipping without Padding Oracle: server never fails decryption (OPENSSL_ZERO_PADDING equivalent).
@@ -3851,9 +3868,9 @@ class Test_Lightfuzz_try_post_as_get(ModuleTestBase):
                     sqli_postparam_finding_emitted = True
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
-        assert sqli_getparam_finding_emitted, (
-            "SQLi GETPARAM (converted from POSTPARAM) FINDING not emitted (try_post_as_get failed)"
-        )
+        assert (
+            sqli_getparam_finding_emitted
+        ), "SQLi GETPARAM (converted from POSTPARAM) FINDING not emitted (try_post_as_get failed)"
         assert not sqli_postparam_finding_emitted, "POSTPARAM FINDING emitted despite disable_post=True"
 
 
@@ -3926,9 +3943,9 @@ class Test_Lightfuzz_try_get_as_post(ModuleTestBase):
                     sqli_postparam_converted_finding_emitted = True
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
-        assert sqli_postparam_converted_finding_emitted, (
-            "SQLi POSTPARAM (converted from GETPARAM) FINDING not emitted (try_get_as_post failed)"
-        )
+        assert (
+            sqli_postparam_converted_finding_emitted
+        ), "SQLi POSTPARAM (converted from GETPARAM) FINDING not emitted (try_get_as_post failed)"
 
 
 # Padding Oracle Jitter Stability Pre-Check
@@ -3973,9 +3990,7 @@ class Test_Lightfuzz_PaddingOracleDetection_JitterStability(Test_Lightfuzz_Paddi
                     padding_oracle_detected = True
 
         assert web_parameter_extracted, "Web parameter was not extracted"
-        assert not padding_oracle_detected, (
-            "Padding oracle should NOT be detected when endpoint has jittery responses (stability pre-check should abort)"
-        )
+        assert not padding_oracle_detected, "Padding oracle should NOT be detected when endpoint has jittery responses (stability pre-check should abort)"
 
 
 # XSS Multi-Context Reflection False Positive
@@ -4037,9 +4052,7 @@ class Test_Lightfuzz_xss_multicontext(Test_Lightfuzz_xss):
                     tag_attribute_xss_emitted = True
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
-        assert not tag_attribute_xss_emitted, (
-            "Tag Attribute XSS should NOT be reported when the quote only survives in text content, not in tag attributes"
-        )
+        assert not tag_attribute_xss_emitted, "Tag Attribute XSS should NOT be reported when the quote only survives in text content, not in tag attributes"
 
 
 # SQLi WAF False Positive (Akamai-style 403)
@@ -4089,9 +4102,9 @@ class Test_Lightfuzz_sqli_waf(Test_Lightfuzz_sqli):
                     sqli_finding_emitted = True
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
-        assert not sqli_finding_emitted, (
-            "SQLi should NOT be reported when single quote probe triggers a WAF 403 response"
-        )
+        assert (
+            not sqli_finding_emitted
+        ), "SQLi should NOT be reported when single quote probe triggers a WAF 403 response"
 
 
 # SQLi flappy baseline: server alternates between status codes across rounds.
@@ -4142,9 +4155,9 @@ class Test_Lightfuzz_sqli_flappy_baseline(Test_Lightfuzz_sqli):
                     sqli_finding_emitted = True
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
-        assert not sqli_finding_emitted, (
-            "SQLi code-change finding should NOT be emitted when baseline is flappy across confirmation rounds"
-        )
+        assert (
+            not sqli_finding_emitted
+        ), "SQLi code-change finding should NOT be emitted when baseline is flappy across confirmation rounds"
 
 
 # Verify that POST SQLi findings include additional_params in the description
@@ -4248,9 +4261,9 @@ class Test_Lightfuzz_static_url_filter(ModuleTestBase):
                 if "Possible SQL Injection" in e.data["description"]:
                     sqli_finding_emitted = True
 
-        assert not sqli_finding_emitted, (
-            "SQLi finding should NOT be emitted for WEB_PARAMETER on a static-asset URL (.pdf)"
-        )
+        assert (
+            not sqli_finding_emitted
+        ), "SQLi finding should NOT be emitted for WEB_PARAMETER on a static-asset URL (.pdf)"
 
 
 # End-to-end test for the baseline → HTTP_RESPONSE → excavate chain.
@@ -4344,9 +4357,9 @@ class Test_Lightfuzz_baseline_to_excavate_chain(ModuleTestBase):
             None,
         )
         assert role_param is not None, "WEB_PARAMETER for 'role' was not emitted"
-        assert role_param.data.get("original_value") == "admin", (
-            f"select picker chose the wrong option: expected 'admin', got {role_param.data.get('original_value')!r}"
-        )
+        assert (
+            role_param.data.get("original_value") == "admin"
+        ), f"select picker chose the wrong option: expected 'admin', got {role_param.data.get('original_value')!r}"
 
         # The HTTP_RESPONSE that lightfuzz emitted should carry the `from-lightfuzz`
         # tag so downstream consumers can distinguish baseline-emission events from
@@ -4355,9 +4368,9 @@ class Test_Lightfuzz_baseline_to_excavate_chain(ModuleTestBase):
             e for e in events if e.type == "HTTP_RESPONSE" and str(getattr(e, "module", "")) == "lightfuzz"
         ]
         assert lightfuzz_responses, "Expected at least one HTTP_RESPONSE emitted by lightfuzz"
-        assert all("from-lightfuzz" in e.tags for e in lightfuzz_responses), (
-            "lightfuzz-emitted HTTP_RESPONSE events missing 'from-lightfuzz' tag"
-        )
+        assert all(
+            "from-lightfuzz" in e.tags for e in lightfuzz_responses
+        ), "lightfuzz-emitted HTTP_RESPONSE events missing 'from-lightfuzz' tag"
 
         # `from-lightfuzz` should propagate down the parent chain (parallel to
         # `from-wayback` / `affiliate`). The URL_UNVERIFIED that excavate mined out
@@ -4371,9 +4384,9 @@ class Test_Lightfuzz_baseline_to_excavate_chain(ModuleTestBase):
             None,
         )
         assert secret_event is not None, "URL_UNVERIFIED for /secret-endpoint not found in events"
-        assert "from-lightfuzz" in secret_event.tags, (
-            f"`from-lightfuzz` tag did not propagate to URL_UNVERIFIED child, got tags: {secret_event.tags}"
-        )
+        assert (
+            "from-lightfuzz" in secret_event.tags
+        ), f"`from-lightfuzz` tag did not propagate to URL_UNVERIFIED child, got tags: {secret_event.tags}"
 
 
 # End-to-end test for keystream-reuse detection.
@@ -4421,9 +4434,9 @@ class Test_Lightfuzz_keystream_reuse(ModuleTestBase):
             None,
         )
         assert keystream_finding is not None, "Expected a Stream Cipher Keystream Reuse FINDING from lightfuzz crypto"
-        assert keystream_finding.data.get("severity") == "HIGH", (
-            f"expected HIGH severity, got {keystream_finding.data.get('severity')!r}"
-        )
+        assert (
+            keystream_finding.data.get("severity") == "HIGH"
+        ), f"expected HIGH severity, got {keystream_finding.data.get('severity')!r}"
 
         # Sanity check: WEB_PARAMETER for SortBy should carry the second ciphertext
         # via same_param_values (the new field excavate populates for collapsed dupes).
@@ -4798,15 +4811,15 @@ class Test_Lightfuzz_baseline_probe_no_dual_for_selected(ModuleTestBase):
         posts = self._request_log["posts"]
         # All POSTs should carry role=admin (the captured selected value). If
         # Probe B fired for this field, we'd see at least one POST with role="a".
-        assert all(p.get("role") == "admin" for p in posts), (
-            f"Probe B fired for a field with a captured default; posts: {posts}"
-        )
+        assert all(
+            p.get("role") == "admin" for p in posts
+        ), f"Probe B fired for a field with a captured default; posts: {posts}"
         # And we expect just one unique POST body (Probe A) — caching collapses
         # any duplicate Probe A fires across siblings.
         unique_bodies = {tuple(sorted(p.items())) for p in posts}
-        assert len(unique_bodies) == 1, (
-            f"Expected one unique POST body for the selected-option form, got {len(unique_bodies)}: {unique_bodies}"
-        )
+        assert (
+            len(unique_bodies) == 1
+        ), f"Expected one unique POST body for the selected-option form, got {len(unique_bodies)}: {unique_bodies}"
 
 
 # End-to-end test for host-page priming: forms whose action URL is a different
@@ -4895,16 +4908,16 @@ class Test_Lightfuzz_host_url_priming(ModuleTestBase):
         ]
         assert keyword_params, "WEB_PARAMETER for 'keyword' was not emitted"
         host_urls = [kp.data.get("host_url") for kp in keyword_params]
-        assert any(h and h.endswith("/host.html") for h in host_urls), (
-            f"no keyword WEB_PARAMETER carried host_url pointing to /host.html; got: {host_urls}"
-        )
+        assert any(
+            h and h.endswith("/host.html") for h in host_urls
+        ), f"no keyword WEB_PARAMETER carried host_url pointing to /host.html; got: {host_urls}"
 
         # Action POSTs should carry Referer matching the host page URL.
         referers = [r for r in self._request_log["action_referers"] if r]
         assert referers, "no Referer header was sent on action POSTs"
-        assert any(r.endswith("/host.html") for r in referers), (
-            f"action POSTs did not carry Referer pointing to host page; got: {referers}"
-        )
+        assert any(
+            r.endswith("/host.html") for r in referers
+        ), f"action POSTs did not carry Referer pointing to host page; got: {referers}"
 
 
 # ---------------------------------------------------------------------------
@@ -5128,9 +5141,9 @@ class Test_Lightfuzz_keystream_reuse_mongo_objectid_fp(Test_Lightfuzz_keystream_
             for e in events
             if e.type == "FINDING" and "Stream Cipher Keystream Reuse" in e.data.get("description", "")
         ]
-        assert not keystream_findings, (
-            f"FP keystream-reuse on MongoDB ObjectIds: {[f.data.get('description') for f in keystream_findings]}"
-        )
+        assert (
+            not keystream_findings
+        ), f"FP keystream-reuse on MongoDB ObjectIds: {[f.data.get('description') for f in keystream_findings]}"
 
 
 # ---------------------------------------------------------------------------
@@ -5193,12 +5206,12 @@ class Test_Lightfuzz_type_mutation_restored(ModuleTestBase):
                 f"WEB_PARAMETER '{p['name']}' type was not restored after conversion passes: "
                 f"type={p['type']}, converted_from_get={p['converted_from_get']}"
             )
-            assert p["converted_from_get"] is None, (
-                f"WEB_PARAMETER '{p['name']}' still has converted_from_get flag after handle_event"
-            )
-            assert p["converted_from_post"] is None, (
-                f"WEB_PARAMETER '{p['name']}' still has converted_from_post flag after handle_event"
-            )
+            assert (
+                p["converted_from_get"] is None
+            ), f"WEB_PARAMETER '{p['name']}' still has converted_from_get flag after handle_event"
+            assert (
+                p["converted_from_post"] is None
+            ), f"WEB_PARAMETER '{p['name']}' still has converted_from_post flag after handle_event"
 
 
 # ---------------------------------------------------------------------------
@@ -5208,10 +5221,9 @@ class Test_Lightfuzz_type_mutation_restored(ModuleTestBase):
 
 class Test_Lightfuzz_cmdi_no_leading_zero_arith(Test_Lightfuzz_cmdi):
     """The arithmetic confirmation cascade must not produce leading-zero
-    multiplicands, which bash interprets as octal (diverging from Python's
-    decimal int()).  This test forces rand_string to return a leading-zero
-    value first, then verifies that the while loop rejects it and the
-    detection still succeeds with a valid pair against a faithful bash mock.
+    multiplicands. This test forces rand_string to return a leading-zero value
+    first, then verifies that the loop rejects it and detection succeeds with
+    a valid pair against the POSIX expr mock.
     """
 
     _rand_call_idx = 0
@@ -5231,20 +5243,16 @@ class Test_Lightfuzz_cmdi_no_leading_zero_arith(Test_Lightfuzz_cmdi):
             if "&" in value:
                 value = value.split("&")[0]
             decoded = unquote(value)
-            # Faithful bash arithmetic: leading-zero literals are octal
-            arith = re.search(r"&& echo \$\(\((\d+)\*(\d+)\)\) &&", decoded)
+            arith = re.search(r"&& expr (\d+) \\\* (\d+) &&", decoded)
             if arith:
                 a_str, b_str = arith.group(1), arith.group(2)
-                try:
-                    a_val = int(a_str, 8) if (len(a_str) > 1 and a_str[0] == "0") else int(a_str)
-                    b_val = int(b_str, 8) if (len(b_str) > 1 and b_str[0] == "0") else int(b_str)
-                    cmdi_value = str(a_val * b_val)
-                except ValueError:
+                if a_str.startswith("0") or b_str.startswith("0"):
                     cmdi_value = ""
-            elif "&& echo " in decoded:
-                cmdi_value = decoded.split("&& echo ")[1].split(" ")[0]
+                else:
+                    cmdi_value = str(int(a_str) * int(b_str))
             else:
-                cmdi_value = decoded
+                generic = re.search(r'&& ec""ho (\d+) &&', decoded)
+                cmdi_value = generic.group(1) if generic else decoded
             cmdi_block = f"""
         <section class=blog-header>
             <h1>0 search results for '{cmdi_value}'</h1>
@@ -5290,8 +5298,7 @@ class Test_Lightfuzz_cmdi_no_leading_zero_arith(Test_Lightfuzz_cmdi):
             for e in events
         )
         assert cmdi_finding, (
-            "POSIX arithmetic canary CMDi finding not emitted -- "
-            "leading-zero multiplicand may have been used (bash octal vs Python decimal)"
+            "POSIX arithmetic canary CMDi finding not emitted -- " "leading-zero multiplicand may have been used"
         )
 
 
@@ -5386,6 +5393,6 @@ class TestLightfuzzWildcardSkip(ModuleTestBase):
         findings = [e for e in events if e.type == "FINDING" and str(e.module) == "lightfuzz"]
         web_params_fuzzed = [e for e in events if e.type == "WEB_PARAMETER" and "lightfuzz" in str(e.module).lower()]
         assert len(findings) == 0, f"lightfuzz should not fuzz wildcard hosts, but emitted findings: {findings}"
-        assert len(web_params_fuzzed) == 0, (
-            f"lightfuzz should not fuzz wildcard hosts, but processed params: {web_params_fuzzed}"
-        )
+        assert (
+            len(web_params_fuzzed) == 0
+        ), f"lightfuzz should not fuzz wildcard hosts, but processed params: {web_params_fuzzed}"

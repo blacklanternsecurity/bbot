@@ -16,8 +16,8 @@ class path(BaseLightfuzz):
        - Attempts various path validation bypass techniques
 
     * Absolute Path Traversal:
-       - Tests absolute paths for Windows (c:\\windows\\win.ini)
-       - Tests absolute paths for Unix (/etc/passwd)
+       - Tests an always-present Windows system DLL
+       - Tests the Linux loopback interface sysfs entry
        - Tests null byte injection for extension bypass (%00)
 
     Results are validated using multiple confirmations and WAF response filtering to eliminate false positives.
@@ -211,11 +211,12 @@ class path(BaseLightfuzz):
                 if confirmations == 0:
                     break
 
-        # Absolute path test, covering Windows and Linux
+        # Use deterministic default OS objects with stable response markers. The
+        # embedded NUL is serialized as %00 for both query strings and form bodies.
         absolute_paths = {
-            r"c:\\windows\\win.ini": "; for 16-bit app support",
-            "/etc/passwd": "daemon:x:",
-            "../../../../../etc/passwd%00.png": "daemon:x:",
+            "/sys/class/net/lo/address": "00:00:00:00:00:00",
+            "/sys/class/net/lo/address\x00.png": "00:00:00:00:00:00",
+            r"c:\windows\system32\kernel32.dll": "KERNEL32.dll",
         }
 
         for path, trigger in absolute_paths.items():

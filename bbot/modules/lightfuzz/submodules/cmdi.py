@@ -45,6 +45,9 @@ class cmdi(BaseLightfuzz):
         )  # Retrieve assigned cookies from WEB_PARAMETER event data, if present
         probe_value = self.incoming_probe_value()
 
+        # POSIX removes the empty quotes; cmd.exe removes the caret escape.
+        echo_tokens = ('ec""ho', "ec^ho")
+
         canary = self.lightfuzz.helpers.rand_string(10, numeric_only=True)
         # Arithmetic canary: the multiplicands are in the probe, but their
         # product is NOT — so a response containing the product is evidence
@@ -75,19 +78,22 @@ class cmdi(BaseLightfuzz):
         reflection_detections = []  # generic matched but neither shell proved execution
         for p in cmdi_probe_strings:
             try:
-                generic_probe_str = f"{probe_value}{p} echo {canary} {p}"
-                if self.event.data["type"] == "GETPARAM":
-                    generic_probe_str = urllib.parse.quote(generic_probe_str.encode(), safe="")
+                generic_match = False
+                for echo_token in echo_tokens:
+                    generic_probe_str = f"{probe_value}{p} {echo_token} {canary} {p}"
+                    if self.event.data["type"] == "GETPARAM":
+                        generic_probe_str = urllib.parse.quote(generic_probe_str.encode(), safe="")
 
-                generic_probe = await self.compare_probe(
-                    http_compare, self.event.data["type"], generic_probe_str, cookies, skip_urlencoding=True
-                )
-
-                generic_match = (
-                    generic_probe[3] is not None
-                    and canary in generic_probe[3].text
-                    and "echo" not in generic_probe[3].text
-                )
+                    generic_probe = await self.compare_probe(
+                        http_compare, self.event.data["type"], generic_probe_str, cookies, skip_urlencoding=True
+                    )
+                    generic_match = (
+                        generic_probe[3] is not None
+                        and canary in generic_probe[3].text
+                        and echo_token not in generic_probe[3].text
+                    )
+                    if generic_match:
+                        break
                 if not generic_match:
                     continue
                 if p == "AAAA":
@@ -104,7 +110,7 @@ class cmdi(BaseLightfuzz):
                 linux_match = await self._arith_confirm(
                     http_compare,
                     cookies,
-                    f"{probe_value}{p} echo $(({arith_a}*{arith_b})) {p}",
+                    f"{probe_value}{p} expr {arith_a} \\* {arith_b} {p}",
                     arith_canary,
                     raw_marker,
                     p,
@@ -165,6 +171,7 @@ class cmdi(BaseLightfuzz):
         # Blind OS Command Injection
         if self.lightfuzz.interactsh_instance:
             self.lightfuzz.event_dict[self.event.url] = self.event  # Store the event associated with the URL
+            lookup_tokens = ('nsl""ookup', "nsl^ookup")
             for p in cmdi_probe_strings:
                 _, host = self.register_interactsh_tag(
                     name="OS Command Injection",
@@ -172,18 +179,18 @@ class cmdi(BaseLightfuzz):
                     severity="CRITICAL",
                     confidence="CONFIRMED",
                 )
-                interactsh_probe = f"{p} nslookup {host} {p}"
-                # we have to handle our own URL-encoding here, because our payloads include the & character
-                if self.event.data["type"] == "GETPARAM":
-                    interactsh_probe = urllib.parse.quote(interactsh_probe.encode(), safe="")
-                # we send the probe here, and any positive detections are processed in the interactsh_callback defined in lightfuzz.py
-                await self.standard_probe(
-                    self.event.data["type"],
-                    cookies,
-                    f"{probe_value}{interactsh_probe}",
-                    timeout=15,
-                    skip_urlencoding=True,
-                )
+                for lookup_token in lookup_tokens:
+                    interactsh_probe = f"{p} {lookup_token} {host} {p}"
+                    # We handle URL encoding because delimiters can contain '&'.
+                    if self.event.data["type"] == "GETPARAM":
+                        interactsh_probe = urllib.parse.quote(interactsh_probe.encode(), safe="")
+                    await self.standard_probe(
+                        self.event.data["type"],
+                        cookies,
+                        f"{probe_value}{interactsh_probe}",
+                        timeout=15,
+                        skip_urlencoding=True,
+                    )
 
     async def _arith_confirm(self, http_compare, cookies, probe_str, expected, raw_marker, delim, shell_label):
         """Send a shell-arithmetic confirmation probe and return True iff the

