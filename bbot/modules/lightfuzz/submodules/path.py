@@ -211,12 +211,15 @@ class path(BaseLightfuzz):
                 if confirmations == 0:
                     break
 
-        # Use deterministic default OS objects with stable response markers. The
-        # embedded NUL is serialized as %00 for both query strings and form bodies.
+        # Try lower-signature OS objects first, then retain the original
+        # absolute-path probes as fallbacks.
         absolute_paths = {
             "/sys/class/net/lo/address": "00:00:00:00:00:00",
             "/sys/class/net/lo/address\x00.png": "00:00:00:00:00:00",
-            r"c:\windows\system32\kernel32.dll": "KERNEL32.dll",
+            r"\\?\C:\windows\system32\drivers\etc\networks": "loopback 127",
+            "/etc/passwd": "daemon:x:",
+            "../../../../../etc/passwd%00.png": "daemon:x:",
+            r"c:\windows\win.ini": "; for 16-bit app support",
         }
 
         for path, trigger in absolute_paths.items():

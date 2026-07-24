@@ -45,8 +45,9 @@ class cmdi(BaseLightfuzz):
         )  # Retrieve assigned cookies from WEB_PARAMETER event data, if present
         probe_value = self.incoming_probe_value()
 
-        # POSIX removes the empty quotes; cmd.exe removes the caret escape.
-        echo_tokens = ('ec""ho', "ec^ho")
+        # These emit the same numeric canary as `echo N` on POSIX and cmd.exe.
+        # Keep the original cross-platform command as the final fallback.
+        echo_tokens = ("expr", "echo.", "echo")
 
         canary = self.lightfuzz.helpers.rand_string(10, numeric_only=True)
         # Arithmetic canary: the multiplicands are in the probe, but their
@@ -107,15 +108,22 @@ class cmdi(BaseLightfuzz):
                 # literal, so only real shell execution can place it in the
                 # response. Either confirmation upgrades to HIGH.
                 raw_marker = f"{arith_a}*{arith_b}"
-                linux_match = await self._arith_confirm(
-                    http_compare,
-                    cookies,
+                linux_match = False
+                for linux_probe in (
                     f"{probe_value}{p} expr {arith_a} \\* {arith_b} {p}",
-                    arith_canary,
-                    raw_marker,
-                    p,
-                    "linux",
-                )
+                    f"{probe_value}{p} echo $(({arith_a}*{arith_b})) {p}",
+                ):
+                    linux_match = await self._arith_confirm(
+                        http_compare,
+                        cookies,
+                        linux_probe,
+                        arith_canary,
+                        raw_marker,
+                        p,
+                        "linux",
+                    )
+                    if linux_match:
+                        break
                 if linux_match:
                     linux_detections.append(p)
                     continue
@@ -171,7 +179,7 @@ class cmdi(BaseLightfuzz):
         # Blind OS Command Injection
         if self.lightfuzz.interactsh_instance:
             self.lightfuzz.event_dict[self.event.url] = self.event  # Store the event associated with the URL
-            lookup_tokens = ('nsl""ookup', "nsl^ookup")
+            lookup_tokens = ('nsl""ookup', "nsl^ookup", "nslookup")
             for p in cmdi_probe_strings:
                 _, host = self.register_interactsh_tag(
                     name="OS Command Injection",

@@ -317,11 +317,11 @@ class xss(BaseLightfuzz):
             if quote_context in ("single", "double"):
                 # Quoted-string context: escape the backslash escape to break the string.
                 if quote_context == "single":
-                    in_javascript_escape_probe = rf"a\';zzzzz({random_string})\\"
-                    in_javascript_escape_match = rf"a\\';zzzzz({random_string})\\"
+                    in_javascript_escape_probe = rf"a\';zzzzz({random_string})//"
+                    in_javascript_escape_match = rf"a\\';zzzzz({random_string})//"
                 else:
-                    in_javascript_escape_probe = rf"a\";zzzzz({random_string})\\"
-                    in_javascript_escape_match = rf'a\\";zzzzz({random_string})\\'
+                    in_javascript_escape_probe = rf"a\";zzzzz({random_string})//"
+                    in_javascript_escape_match = rf'a\\";zzzzz({random_string})//'
                 detected = await self.check_probe(
                     cookies,
                     in_javascript_escape_probe,
@@ -354,12 +354,17 @@ class xss(BaseLightfuzz):
                 else:
                     in_javascript_fallback_probe = rf"0);zzzzz({random_string})//"
                     fallback_description = "In Javascript (expression break)"
-                await self.check_probe(
+                detected = await self.check_probe(
                     cookies,
                     in_javascript_fallback_probe,
                     in_javascript_fallback_probe,
                     fallback_description,
                 )
+            if not detected:
+                # Preserve the original parser-level script breakout as the
+                # final fallback when narrower statement probes are filtered.
+                in_javascript_probe = rf"</script><script>{random_string}</script>"
+                await self.check_probe(cookies, in_javascript_probe, in_javascript_probe, "In Javascript")
 
         if in_html_comment:
             # Breakout probe: if `-->` survives reflection inside an HTML

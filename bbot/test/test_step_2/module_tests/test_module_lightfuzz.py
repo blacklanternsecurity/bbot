@@ -56,24 +56,32 @@ def test_lightfuzz_build_query_string_preserves_fragment():
     assert result.endswith("#frag")
 
 
-def test_lightfuzz_sqli_keeps_minimal_mssql_default_and_evasive_pairs():
+def test_lightfuzz_sqli_keeps_mssql_defaults():
     templates = SqliSubmodule.DELAY_PROBE_TEMPLATES
     assert "'; WAITFOR DELAY '00:00:{d:02d}'--" in templates
     assert "; WAITFOR DELAY '00:00:{d:02d}'--" in templates
 
-    quoted_evasive = "';EXECUTE('W'+'AITFOR D'+'ELAY ''00:00:{d:02d}''')--"
-    numeric_evasive = ";EXECUTE('W'+'AITFOR D'+'ELAY ''00:00:{d:02d}''')--"
-    assert quoted_evasive in templates
-    assert numeric_evasive in templates
-    assert "\n" not in quoted_evasive
-    assert "\n" not in numeric_evasive
 
-
-def test_lightfuzz_sqli_keeps_minimal_postgres_and_mysql_waf_variants():
+def test_lightfuzz_sqli_keeps_proven_waf_variants_and_mysql_defaults():
     templates = SqliSubmodule.DELAY_PROBE_TEMPLATES
-    assert '\'||U&"pg\\005fsleep"({d})--' in templates
-    assert '\'OR(U&"pg\\005fsleep"({d})IS NULL)--' in templates
-    assert "^''^SLEEP#q\n({d})#" in templates
+    pairs = (
+        ('\'||U&"pg\\005fsleep"({d})--', "'||pg_sleep({d})--"),
+        (
+            '\'OR(U&"pg\\005fsleep"({d})IS NOT NULL)FETCH FIRST 1 ROW ONLY-- -',
+            "' OR (SELECT TRUE FROM pg_sleep({d})) LIMIT 1-- -",
+        ),
+        (
+            "'||DBMſ_PıPE.RECEıVE_MEſſAGE('a',{d})||'",
+            "'||DBMS_PIPE.RECEIVE_MESSAGE('a',{d})||'",
+        ),
+    )
+    for evasive, default in pairs:
+        assert templates.index(default) == templates.index(evasive) + 1
+
+    assert "1' AND (SLEEP({d})) AND '" in templates
+    assert "' OR SLEEP({d}) IS NOT NULL LIMIT 1-- -" in templates
+    assert " OR SLEEP({d}) IS NOT NULL LIMIT 1-- -" in templates
+    assert "' AND (SELECT 1 FROM DUAL WHERE DBMS_LOCK.SLEEP({d})=0) AND '1'='1" in templates
 
 
 # Path Traversal single dot tolerance
@@ -291,6 +299,37 @@ class Test_Lightfuzz_path_absolute(Test_Lightfuzz_path_singledot):
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
         assert pathtraversal_finding_emitted, "Path Traversal single dot tolerance FINDING not emitted"
+
+
+class Test_Lightfuzz_path_absolute_default_fallback(Test_Lightfuzz_path_absolute):
+    async def setup_after_prep(self, module_test):
+        expect_args = {
+            "method": "GET",
+            "uri": "/images",
+            "query_string": "filename=/etc/passwd",
+        }
+        respond_args = {
+            "response_data": "root:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\n"
+        }
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/images"}
+        respond_args = {"response_data": "<p>ERROR: Invalid File</p>", "status": 200}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {
+            "response_data": '"<section class="images"><img src="/images?filename=default.jpg"></section>',
+            "status": 200,
+        }
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check(self, module_test, events):
+        assert any(
+            event.type == "FINDING"
+            and "Detection Method: [Absolute Path: /etc/passwd]" in event.data.get("description", "")
+            for event in events
+        ), "Original /etc/passwd absolute-path fallback did not emit a finding"
 
 
 # SSTI Integer Multiplcation
@@ -1196,6 +1235,39 @@ console.log(lang);
         ), "Double-quoted direct-break XSS FINDING not emitted"
 
 
+class Test_Lightfuzz_xss_injs_default_fallback(Test_Lightfuzz_xss_injs):
+    def request_handler(self, request):
+        qs = str(request.query_string.decode())
+        if "language=" in qs:
+            value = qs.split("=")[1]
+            if "&" in value:
+                value = value.split("&")[0]
+            decoded = unquote(value)
+            if decoded != "AAAAAAAAAAAAAA" and not decoded.startswith("</script><script>"):
+                decoded = decoded.replace("zzzzz", "blocked")
+            return Response(
+                f"""
+<html>
+<head>
+<script>
+var lang = '{decoded}';
+</script>
+</head>
+</html>
+""",
+                status=200,
+            )
+        return Response(self.parameter_block, status=200)
+
+    def check(self, module_test, events):
+        assert any(
+            event.type == "FINDING"
+            and "Possible Reflected XSS. Parameter: [language] Context: [In Javascript]"
+            in event.data.get("description", "")
+            for event in events
+        ), "Original </script><script> JavaScript fallback did not emit a finding"
+
+
 # XSS Parameter Needing URL-Encoding
 class Test_Lightfuzz_urlencoding(Test_Lightfuzz_xss_injs):
     config_overrides = {
@@ -1580,7 +1652,7 @@ class Test_Lightfuzz_sqli_delay(Test_Lightfuzz_sqli):
         </section>
         """
             decoded = unquote(value)
-            m = re.search(r"1'\^SLEEP#q\n\((\d+)\)\^'0", decoded)
+            m = re.search(r"1' AND \(SLEEP\((\d+)\)\) AND '", decoded)
             if m:
                 sleep(int(m.group(1)))
             return Response(sql_block, status=200)
@@ -1596,7 +1668,11 @@ class Test_Lightfuzz_sqli_delay(Test_Lightfuzz_sqli):
 
             if e.type == "FINDING":
                 desc = e.data["description"]
-                if "Possible Blind SQL Injection" in desc and "Delay Probe" in desc and "1'^SLEEP#q\n(8)^'0" in desc:
+                if (
+                    "Possible Blind SQL Injection" in desc
+                    and "Delay Probe" in desc
+                    and "1' AND (SLEEP(8)) AND '" in desc
+                ):
                     sqldelay_finding_emitted = True
 
         assert web_parameter_emitted, "WEB_PARAMETER was not emitted"
@@ -1637,9 +1713,9 @@ class Test_Lightfuzz_sqli_delay_or_rowindependent(Test_Lightfuzz_sqli):
             <hr>
         </section>
         """
-            # Only the bare XOR MySQL payload triggers a delay, simulating a
+            # Only the numeric-context MySQL payload triggers a delay, simulating a
             # context where row-scoped quoted predicates do not execute.
-            m = re.search(r"\^SLEEP#q\n\((\d+)\)#", decoded)
+            m = re.search(r" OR SLEEP\((\d+)\) IS NOT NULL LIMIT 1-- -", decoded)
             if m:
                 sleep(int(m.group(1)))
             return Response(sql_block, status=200)
@@ -1654,12 +1730,16 @@ class Test_Lightfuzz_sqli_delay_or_rowindependent(Test_Lightfuzz_sqli):
                     web_parameter_emitted = True
             if e.type == "FINDING":
                 desc = e.data["description"]
-                if "Possible Blind SQL Injection" in desc and "Delay Probe" in desc and "^SLEEP#q\n(8)#" in desc:
+                if (
+                    "Possible Blind SQL Injection" in desc
+                    and "Delay Probe" in desc
+                    and " OR SLEEP(8) IS NOT NULL LIMIT 1-- -" in desc
+                ):
                     one_shot_delay_finding = True
 
         # Guard against regression of the missing-comma bug: adjacent Oracle
         # and MSSQL entries must never fuse into one malformed probe.
-        garbled = [p for p in self.received_payloads if "RECEıVE_MEſſAGE" in p and "EXECUTE" in p]
+        garbled = [p for p in self.received_payloads if "RECEıVE_MEſſAGE" in p and "WAITFOR" in p]
         assert not garbled, (
             f"Garbled Oracle+MSSQL concatenated probe was sent ({len(garbled)} times): "
             f"{garbled[:1]}. This indicates the missing-comma bug has regressed."
@@ -1672,7 +1752,7 @@ class Test_Lightfuzz_sqli_delay_or_rowindependent(Test_Lightfuzz_sqli):
 
 
 class Test_Lightfuzz_sqli_delay_mssql_default_fallback(Test_Lightfuzz_sqli):
-    """The plain WAITFOR payload must remain usable when evasive probes do not delay."""
+    """The plain WAITFOR payload must remain usable."""
 
     def request_handler(self, request):
         from time import sleep
@@ -2336,13 +2416,13 @@ class Test_Lightfuzz_cmdi(ModuleTestBase):
             if "&" in value:
                 value = value.split("&")[0]
             decoded = unquote(value)
-            # Simulate a POSIX shell: expr emits the arithmetic product, while
-            # the empty-quote echo spelling emits the generic canary.
+            # Simulate a POSIX shell: expr emits either the arithmetic product
+            # or the generic numeric canary.
             arith = re.search(r"&& expr (\d+) \\\* (\d+) &&", decoded)
             if arith:
                 cmdi_value = str(int(arith.group(1)) * int(arith.group(2)))
             else:
-                generic = re.search(r'&& ec""ho (\d+) &&', decoded)
+                generic = re.search(r"&& (?:expr|echo) (\d+) &&", decoded)
                 cmdi_value = generic.group(1) if generic else decoded
             cmdi_block = f"""
         <section class=blog-header>
@@ -2406,13 +2486,13 @@ class Test_Lightfuzz_cmdi_windows(Test_Lightfuzz_cmdi):
             if "&" in value:
                 value = value.split("&")[0]
             decoded = unquote(value)
-            # Simulate cmd.exe: evaluate `set /A A*B`, execute the caret-escaped
-            # echo spelling, and leave POSIX probes unexpanded.
+            # Simulate cmd.exe: execute `echo. N`, evaluate `set /A A*B`,
+            # and leave POSIX expr probes unexpanded.
             setA = re.search(r"&& set /A (\d+)\*(\d+) &&", decoded)
             if setA:
                 result = int(setA.group(1)) * int(setA.group(2))
                 return Response(f"<section><h1>{result}</h1></section>", status=200)
-            generic = re.search(r"&& ec\^ho (\d+) &&", decoded)
+            generic = re.search(r"&& echo\. (\d+) &&", decoded)
             if generic:
                 cmdi_value = generic.group(1)
                 return Response(
@@ -2481,7 +2561,7 @@ class Test_Lightfuzz_cmdi_parser_reflection_downgrade(Test_Lightfuzz_cmdi):
                     status=500,
                     mimetype="application/json",
                 )
-            generic_match = re.search(r'[;|&]\s*(?:ec""ho|ec\^ho)\s+(\d+)', decoded)
+            generic_match = re.search(r"[;|&]\s*(?:expr|echo)\s+(\d+)", decoded)
             if generic_match:
                 return Response(
                     f'{{"error":"parse error near {generic_match.group(1)}"}}',
@@ -2512,6 +2592,29 @@ class Test_Lightfuzz_cmdi_parser_reflection_downgrade(Test_Lightfuzz_cmdi):
             "Expected a Possible Parameter Reflection finding for the "
             "reflection-only detection path (preserves adjacent-vuln signal "
             "without overclaiming cmdi)."
+        )
+
+
+class Test_Lightfuzz_cmdi_encoded_edge_reflection_fp(Test_Lightfuzz_cmdi):
+    def request_handler(self, request):
+        qs = request.query_string.decode()
+        if "search=" in qs:
+            return Response(f"<html><body>challenge URL: /?{qs}</body></html>", status=429)
+        return Response(
+            """
+<form action=/ method=GET>
+    <input type=text name=search>
+</form>
+""",
+            status=200,
+        )
+
+    def check(self, module_test, events):
+        assert any(event.type == "WEB_PARAMETER" for event in events), "WEB_PARAMETER was not emitted"
+        findings = [event for event in events if event.type == "FINDING" and str(event.module) == "lightfuzz"]
+        assert not findings, (
+            "A URL-encoded edge challenge reflection must not be interpreted "
+            f"as command execution or application reflection: {[event.data for event in findings]}"
         )
 
 
@@ -5307,7 +5410,7 @@ class Test_Lightfuzz_cmdi_no_leading_zero_arith(Test_Lightfuzz_cmdi):
                 else:
                     cmdi_value = str(int(a_str) * int(b_str))
             else:
-                generic = re.search(r'&& ec""ho (\d+) &&', decoded)
+                generic = re.search(r"&& (?:expr|echo) (\d+) &&", decoded)
                 cmdi_value = generic.group(1) if generic else decoded
             cmdi_block = f"""
         <section class=blog-header>
