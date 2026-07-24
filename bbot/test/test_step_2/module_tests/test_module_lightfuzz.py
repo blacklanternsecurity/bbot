@@ -11,6 +11,7 @@ from urllib.parse import unquote, quote
 import xml.etree.ElementTree as ET
 
 from bbot.core.helpers.url import add_get_params
+from bbot.modules.base import BaseModule
 from bbot.modules.lightfuzz.submodules.base import BaseLightfuzz
 
 from .test_module_paramminer_headers import helper
@@ -3697,7 +3698,7 @@ class Test_Lightfuzz_filter_event(ModuleTestBase):
         "modules": {
             "lightfuzz": {
                 "enabled_submodules": ["xss"],
-                "avoid_wafs": True,
+                "avoid_wafs": "always",
             }
         },
     }
@@ -3772,6 +3773,151 @@ class Test_Lightfuzz_filter_event(ModuleTestBase):
     def check(self, module_test, events):
         # This test doesn't need to check events since it's testing the filter method directly
         pass
+
+
+class _NowafplsFuzzTestBase(ModuleTestBase):
+    """Shared setup: dummy module emits a WAF-tagged POSTPARAM WEB_PARAMETER, and the mocked
+    endpoint's callback records every POST body so tests can assert on what actually fired.
+
+    Subclasses set ``bypass_works`` and ``avoid_wafs`` — the callback maps unpadded/padded
+    payloads to responses based on ``bypass_works``, giving the helper a real verdict to
+    memoize (rather than us monkey-patching it)."""
+
+    targets = ["nowafpls-fuzz.test"]
+    bypass_works = True
+    avoid_wafs = "try_bypasses"
+
+    class DummyModule(BaseModule):
+        watched_events = ["DNS_NAME"]
+        _name = "dummy_module"
+
+        async def handle_event(self, event):
+            if event.data != "nowafpls-fuzz.test":
+                return
+            url = self.scan.make_event(
+                "http://nowafpls-fuzz.test/",
+                "URL",
+                parent=event,
+                tags=["waf", "cloudflare", "in-scope", "status-200"],
+            )
+            if url is not None:
+                await self.emit_event(url)
+            param = self.scan.make_event(
+                {
+                    "host": "nowafpls-fuzz.test",
+                    "type": "POSTPARAM",
+                    "name": "q",
+                    "original_value": "hello",
+                    "url": "http://nowafpls-fuzz.test/",
+                    "description": "test parameter",
+                    "additional_params": {},
+                },
+                "WEB_PARAMETER",
+                parent=event,
+                tags=["waf", "in-scope", "distance-0"],
+            )
+            if param is not None:
+                await self.emit_event(param)
+
+    @property
+    def modules_overrides(self):
+        return ["http", "lightfuzz", "excavate"]
+
+    @property
+    def config_overrides(self):
+        return {
+            "interactsh_disable": True,
+            "modules": {
+                "lightfuzz": {
+                    "enabled_submodules": ["xss"],
+                    "disable_post": False,
+                    "avoid_wafs": self.avoid_wafs,
+                }
+            },
+        }
+
+    async def setup_after_prep(self, module_test):
+        from blasthttp.mock import MockResponse
+
+        await module_test.mock_dns({"nowafpls-fuzz.test": {"A": ["127.0.0.1"]}})
+        self.post_bodies: list[bytes] = []
+        bypass = self.bypass_works
+
+        def cb(request):
+            body = request.content or b""
+            if isinstance(body, str):
+                body = body.encode()
+            if request.method == "POST":
+                self.post_bodies.append(body)
+            # Baseline (benign) is always accepted.
+            # Malicious payload without pad is WAF-blocked (403).
+            # Padded malicious is accepted iff bypass_works.
+            has_pad = body.startswith(b"__nowafpls_pad=")
+            has_malicious = b"%3Cscript" in body or b"<script" in body
+            if has_malicious and not has_pad:
+                return MockResponse(status_code=403, text="Attention Required! | Cloudflare\nRay ID: abcd")
+            if has_malicious and has_pad and not bypass:
+                return MockResponse(status_code=403, text="Attention Required! | Cloudflare\nRay ID: abcd")
+            return MockResponse(status_code=200, text="Welcome to the application")
+
+        module_test.blasthttp_mock.add_callback(callback=cb)
+        module_test.scan.modules["dummy_module"] = self.DummyModule(module_test.scan)
+
+
+class Test_Nowafpls_try_bypasses_bypassable(_NowafplsFuzzTestBase):
+    """try_bypasses + WAF is bypassable: XSS submodule should fire padded POST bodies against the target."""
+
+    bypass_works = True
+    avoid_wafs = "try_bypasses"
+
+    def check(self, module_test, events):
+        padded_malicious = [
+            b for b in self.post_bodies if b.startswith(b"__nowafpls_pad=") and (b"%3Cscript" in b or b"<script" in b)
+        ]
+        unpadded_malicious = [
+            b
+            for b in self.post_bodies
+            if not b.startswith(b"__nowafpls_pad=") and (b"%3Cscript" in b or b"<script" in b)
+        ]
+        assert padded_malicious, f"Expected padded fuzz probes. Bodies: {self.post_bodies[:5]}"
+        # nowafpls's own probe fires exactly one unpadded malicious body; any additional unpadded
+        # malicious would mean lightfuzz's fuzz probes are missing the pad.
+        assert len(unpadded_malicious) <= 1, (
+            f"Only the helper's own probe should send unpadded malicious payloads (<=1). "
+            f"Got {len(unpadded_malicious)}: {unpadded_malicious[:5]}"
+        )
+
+
+class Test_Nowafpls_try_bypasses_blocked(_NowafplsFuzzTestBase):
+    """try_bypasses + WAF holds: helper reports 'blocked', filter_event rejects the WEB_PARAMETER,
+    XSS submodule should fire zero fuzz probes (helper's own 3-request probe is the only POST traffic)."""
+
+    bypass_works = False
+    avoid_wafs = "try_bypasses"
+
+    def check(self, module_test, events):
+        malicious = [b for b in self.post_bodies if b"%3Cscript" in b or b"<script" in b]
+        # The helper's probe itself fires one unpadded and one padded malicious POST as part of
+        # deciding bypass; anything beyond that would be lightfuzz fuzzing.
+        assert len(malicious) <= 2, (
+            f"With bypass blocked, only nowafpls's own probe should send malicious payloads (<=2). "
+            f"Got {len(malicious)}: {malicious[:5]}"
+        )
+
+
+class Test_Nowafpls_never_still_pads(_NowafplsFuzzTestBase):
+    """avoid_wafs=never: no filter-time probe, but prepare_request still opportunistically pads POST
+    when the helper reports bypassable. Padded fuzz bodies should still land on the wire."""
+
+    bypass_works = True
+    avoid_wafs = "never"
+
+    def check(self, module_test, events):
+        padded = [b for b in self.post_bodies if b.startswith(b"__nowafpls_pad=")]
+        assert padded, (
+            f"Under 'never' + bypassable, prepare_request should still opportunistically pad. "
+            f"Got bodies: {self.post_bodies[:5]}"
+        )
 
 
 # try_post_as_get: fuzz POST parameters as GET parameters

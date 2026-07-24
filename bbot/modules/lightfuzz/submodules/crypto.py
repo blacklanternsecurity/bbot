@@ -466,7 +466,7 @@ class crypto(BaseLightfuzz):
             except ValueError:
                 continue
             # Use probe_a as the baseline, compare probe_b against it
-            http_compare = self.compare_baseline(self.event.data["type"], probe_a, cookies)
+            http_compare = await self.compare_baseline(self.event.data["type"], probe_a, cookies)
             try:
                 result = await self.compare_probe(http_compare, self.event.data["type"], probe_b, cookies)
             except HttpCompareError as e:
@@ -527,7 +527,7 @@ class crypto(BaseLightfuzz):
         baseline_probe_value = self.format_agnostic_encode(
             ivblock + paddingblock[:-1] + baseline_byte + datablock, encoding
         )
-        baseline = self.compare_baseline(
+        baseline = await self.compare_baseline(
             self.event.data["type"],
             baseline_probe_value,
             cookies,
@@ -749,7 +749,7 @@ class crypto(BaseLightfuzz):
 
         # Cryptographic Response Divergence Test
 
-        http_compare = self.compare_baseline(self.event.data["type"], probe_value, cookies)
+        http_compare = await self.compare_baseline(self.event.data["type"], probe_value, cookies)
         try:
             arbitrary_probe = await self.compare_probe(http_compare, self.event.data["type"], "AAAAAAA", cookies)  #
             truncate_probe = await self.compare_probe(

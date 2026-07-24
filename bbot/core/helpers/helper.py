@@ -15,6 +15,7 @@ from .asn import ASNHelper
 from .dns import DNSHelper
 from .web import WebHelper
 from .diff import HttpCompare
+from .nowafpls import NowafplsHelper
 from .regex import RegexHelper
 from .wordcloud import WordCloud
 from .interactsh import Interactsh
@@ -116,6 +117,7 @@ class ConfigAwareHelper:
         self._asn = None
         self._cloudcheck = None
         self._asn = None
+        self._nowafpls = None
         self.config_aware_validators = self.validators.Validators(self)
         self.depsinstaller = DepsInstaller(self)
         self.word_cloud = WordCloud(self)
@@ -158,6 +160,12 @@ class ConfigAwareHelper:
             ssl_verify = self.web_config.get("ssl_verify_infrastructure", True)
             self._cloudcheck = CloudCheck(verify_ssl=ssl_verify)
         return self._cloudcheck
+
+    @property
+    def nowafpls(self):
+        if self._nowafpls is None:
+            self._nowafpls = NowafplsHelper(self)
+        return self._nowafpls
 
     def bloom_filter(self, size):
         from .bloom import BloomFilter
