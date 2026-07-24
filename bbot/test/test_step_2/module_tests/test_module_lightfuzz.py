@@ -12,6 +12,7 @@ import xml.etree.ElementTree as ET
 
 from bbot.core.helpers.url import add_get_params
 from bbot.modules.lightfuzz.submodules.base import BaseLightfuzz
+from bbot.modules.lightfuzz.submodules.sqli import sqli as SqliSubmodule
 
 from .test_module_paramminer_headers import helper
 
@@ -53,6 +54,26 @@ def test_lightfuzz_build_query_string_preserves_fragment():
     result = bl.build_query_string("PROBE", "p")
     assert result.count("?") == 1
     assert result.endswith("#frag")
+
+
+def test_lightfuzz_sqli_keeps_minimal_mssql_default_and_evasive_pairs():
+    templates = SqliSubmodule.DELAY_PROBE_TEMPLATES
+    assert "'; WAITFOR DELAY '00:00:{d:02d}'--" in templates
+    assert "; WAITFOR DELAY '00:00:{d:02d}'--" in templates
+
+    quoted_evasive = "';EXECUTE('W'+'AITFOR D'+'ELAY ''00:00:{d:02d}''')--"
+    numeric_evasive = ";EXECUTE('W'+'AITFOR D'+'ELAY ''00:00:{d:02d}''')--"
+    assert quoted_evasive in templates
+    assert numeric_evasive in templates
+    assert "\n" not in quoted_evasive
+    assert "\n" not in numeric_evasive
+
+
+def test_lightfuzz_sqli_keeps_minimal_postgres_and_mysql_waf_variants():
+    templates = SqliSubmodule.DELAY_PROBE_TEMPLATES
+    assert '\'||U&"pg\\005fsleep"({d})--' in templates
+    assert '\'OR(U&"pg\\005fsleep"({d})IS NULL)--' in templates
+    assert "^''^SLEEP#q\n({d})#" in templates
 
 
 # Path Traversal single dot tolerance
@@ -1648,6 +1669,41 @@ class Test_Lightfuzz_sqli_delay_or_rowindependent(Test_Lightfuzz_sqli):
         assert (
             one_shot_delay_finding
         ), "One-shot row-independent SLEEP finding not emitted - row-independent blind sqli detection regression."
+
+
+class Test_Lightfuzz_sqli_delay_mssql_default_fallback(Test_Lightfuzz_sqli):
+    """The plain WAITFOR payload must remain usable when evasive probes do not delay."""
+
+    def request_handler(self, request):
+        from time import sleep
+
+        qs = str(request.query_string.decode())
+        parameter_block = """
+        <section class=search>
+            <form action=/ method=GET>
+                <input type=text placeholder='Search the blog...' name=search>
+                <button type=submit class=button>Search</button>
+            </form>
+        </section>
+        """
+        if "search=" in qs:
+            value = qs.split("=", 1)[1]
+            if "&" in value:
+                value = value.split("&")[0]
+            decoded = unquote(value)
+            match = re.search(r"; WAITFOR DELAY '00:00:(\d+)'--", decoded)
+            if match:
+                sleep(int(match.group(1)))
+            return Response("<h1>0 search results found</h1>", status=200)
+        return Response(parameter_block, status=200)
+
+    def check(self, module_test, events):
+        assert any(
+            event.type == "FINDING"
+            and "Possible Blind SQL Injection" in event.data.get("description", "")
+            and "WAITFOR DELAY '00:00:08'" in event.data.get("description", "")
+            for event in events
+        ), "Plain MSSQL WAITFOR fallback did not emit a blind SQL injection finding"
 
 
 class Test_Lightfuzz_sqli_delay_jitter_fp(Test_Lightfuzz_sqli):

