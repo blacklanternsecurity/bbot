@@ -1,7 +1,9 @@
 import re
 import json
+from hashlib import md5, sha256
 from urllib.parse import urljoin
 
+import mmh3
 import yara
 
 from bbot.modules.base import BaseModule
@@ -22,6 +24,16 @@ class BaseUnpacker:
         """Re-emit an HTTP_RESPONSE with unpacked body so excavate can extract from it."""
         data = dict(event.data)
         data["body"] = body
+        # recompute body hashes so downstream content-dedup doesn't collapse this
+        # against the original response
+        body_bytes = body.encode("utf-8", errors="replace") if isinstance(body, str) else body
+        old_hash = data.get("hash") or {}
+        data["hash"] = {
+            **old_hash,
+            "body_md5": md5(body_bytes).hexdigest(),
+            "body_mmh3": mmh3.hash(body_bytes),
+            "body_sha256": sha256(body_bytes).hexdigest(),
+        }
         await self.module.emit_event(
             data,
             "HTTP_RESPONSE",
@@ -91,6 +103,7 @@ rule source_map
             {
                 "host": str(event.host),
                 "url": source_url,
+                "name": "Exposed source map",
                 "description": f"Source map with {len(non_empty)} source files exposed ({len(sources)} total entries)",
                 "severity": "LOW",
                 "confidence": "CONFIRMED",
