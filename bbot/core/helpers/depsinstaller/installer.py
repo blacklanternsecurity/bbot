@@ -15,6 +15,8 @@ from contextlib import suppress
 from secrets import token_bytes
 from ansible_runner.interface import run
 from subprocess import CalledProcessError
+from importlib.metadata import PackageNotFoundError, version as installed_version
+from packaging.requirements import InvalidRequirement, Requirement
 
 from bbot import __version__
 from ..misc import can_sudo_without_password, os_platform, rm_at_exit, get_python_constraints
@@ -184,6 +186,13 @@ class DepsInstaller:
                     succeeded.append(m)
                     continue
                 else:
+                    # don't trust the cache if the packages it claims to have installed are gone
+                    # (e.g. the virtualenv was rebuilt by "uv sync")
+                    if success is True:
+                        satisfied, reason = self._pip_deps_satisfied(preloaded["deps"]["pip"])
+                        if not satisfied:
+                            log.verbose(f'Dependencies for module "{m}" need reinstalling ({reason})')
+                            success = None
                     if (
                         success is None
                         or (success is False and self.deps_behavior == "retry_failed")
@@ -464,6 +473,29 @@ class DepsInstaller:
                 ]
             )
         return bool(self.parent_helper.which(command))
+
+    def _pip_deps_satisfied(self, deps_pip):
+        """Check whether a module's pip dependencies are currently installed in this environment.
+
+        Returns (success, reason). Unparseable requirements (e.g. VCS URLs) can't be checked,
+        so they're assumed satisfied.
+        """
+        for dep in deps_pip:
+            try:
+                requirement = Requirement(dep)
+            except InvalidRequirement:
+                log.debug(f'Unable to verify pip dependency "{dep}"; assuming it is installed')
+                continue
+            # skip deps that don't apply to this interpreter/platform
+            if requirement.marker is not None and not requirement.marker.evaluate():
+                continue
+            try:
+                version = installed_version(requirement.name)
+            except PackageNotFoundError:
+                return False, f'pip package "{requirement.name}" is not installed'
+            if not requirement.specifier.contains(version, prereleases=True):
+                return False, f'pip package "{requirement.name}=={version}" does not satisfy "{dep}"'
+        return True, ""
 
     async def install_core_deps(self):
         # skip if we've already successfully installed core deps for this definition
