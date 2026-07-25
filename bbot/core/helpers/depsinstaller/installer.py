@@ -185,45 +185,43 @@ class DepsInstaller:
                     log.debug(f'No dependency work to do for module "{m}"')
                     succeeded.append(m)
                     continue
-                else:
-                    # don't trust the cache if the packages it claims to have installed are gone
-                    # (e.g. the virtualenv was rebuilt by "uv sync")
-                    if success is True:
-                        satisfied, reason = self._pip_deps_satisfied(preloaded["deps"]["pip"])
-                        if not satisfied:
-                            log.verbose(f'Dependencies for module "{m}" need reinstalling ({reason})')
-                            success = None
-                    if (
-                        success is None
-                        or (success is False and self.deps_behavior == "retry_failed")
-                        or self.deps_behavior == "force_install"
-                    ):
-                        if not notified:
-                            log.hugeinfo("Installing module dependencies. Please be patient, this may take a while.")
-                            notified = True
-                        log.verbose(f'Installing dependencies for module "{m}"')
-                        # get sudo access if we need it
-                        if preloaded.get("sudo", False) is True:
-                            self.ensure_root(f'Module "{m}" needs root privileges to install its dependencies.')
-                        success = await self.install_module(m)
-                        self.setup_status[module_hash] = success
-                        if success or self.deps_behavior == "ignore_failed":
-                            log.debug(f'Setup succeeded for module "{m}"')
-                            succeeded.append(m)
-                        else:
-                            log.error(f'Setup failed for module "{m}"')
-                            failed.append(m)
+                # don't trust the cache if the packages it claims to have installed are gone
+                # (e.g. the virtualenv was rebuilt by "uv sync")
+                if success is True:
+                    satisfied, reason = self._pip_deps_satisfied(preloaded["deps"]["pip"])
+                    if not satisfied:
+                        log.verbose(f'Dependencies for module "{m}" need reinstalling ({reason})')
+                        success = None
+                if (
+                    success is None
+                    or (success is False and self.deps_behavior == "retry_failed")
+                    or self.deps_behavior == "force_install"
+                ):
+                    if not notified:
+                        log.hugeinfo("Installing module dependencies. Please be patient, this may take a while.")
+                        notified = True
+                    log.verbose(f'Installing dependencies for module "{m}"')
+                    # get sudo access if we need it
+                    if preloaded.get("sudo", False) is True:
+                        self.ensure_root(f'Module "{m}" needs root privileges to install its dependencies.')
+                    success = await self.install_module(m)
+                    self.setup_status[module_hash] = success
+                    if success or self.deps_behavior == "ignore_failed":
+                        log.debug(f'Setup succeeded for module "{m}"')
+                        succeeded.append(m)
                     else:
-                        if success or self.deps_behavior == "ignore_failed":
-                            log.debug(
-                                f'Skipping dependency install for module "{m}" because it\'s already done (--force-deps to re-run)'
-                            )
-                            succeeded.append(m)
-                        else:
-                            log.error(
-                                f'Skipping dependency install for module "{m}" because it failed previously (--retry-deps to retry or --ignore-failed-deps to ignore)'
-                            )
-                            failed.append(m)
+                        log.error(f'Setup failed for module "{m}"')
+                        failed.append(m)
+                elif success or self.deps_behavior == "ignore_failed":
+                    log.debug(
+                        f'Skipping dependency install for module "{m}" because it\'s already done (--force-deps to re-run)'
+                    )
+                    succeeded.append(m)
+                else:
+                    log.error(
+                        f'Skipping dependency install for module "{m}" because it failed previously (--retry-deps to retry or --ignore-failed-deps to ignore)'
+                    )
+                    failed.append(m)
 
         finally:
             self.write_setup_status()
@@ -280,7 +278,7 @@ class DepsInstaller:
         command = [sys.executable, "-m", "pip", "install", "--upgrade"] + packages
 
         # if no custom constraints are provided, use the constraints of the currently installed version of bbot
-        if constraints is not None:
+        if not constraints:
             constraints = get_python_constraints()
 
         constraints_tempfile = self.parent_helper.tempfile(constraints, pipe=False)

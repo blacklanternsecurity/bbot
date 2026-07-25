@@ -63,6 +63,41 @@ async def test_depsinstaller_pip_deps_satisfied(bbot_scanner):
 
 
 @pytest.mark.asyncio
+async def test_depsinstaller_pip_constraints(monkeypatch, bbot_scanner):
+    scan = bbot_scanner("127.0.0.1")
+    await scan._prep()
+    installer = scan.helpers.depsinstaller
+
+    commands = []
+
+    class MockProcess:
+        stdout = "Successfully installed nothing"
+
+    async def mock_run(command, *args, **kwargs):
+        commands.append(command)
+        return MockProcess()
+
+    monkeypatch.setattr(installer.parent_helper, "run", mock_run)
+
+    def last_constraints():
+        command = commands[-1]
+        return Path(command[command.index("--constraint") + 1]).read_text()
+
+    # custom constraints are passed through to pip
+    assert await installer.pip_install(["pydantic"], constraints=["pydantic==1.2.3"]) is True
+    assert "pydantic==1.2.3" in last_constraints()
+
+    # modules without custom constraints fall back to bbot's own constraints
+    for no_constraints in ([], None):
+        assert await installer.pip_install(["pydantic"], constraints=no_constraints) is True
+        bbot_constraints = last_constraints()
+        assert "pydantic==1.2.3" not in bbot_constraints
+        assert "pydantic" in bbot_constraints
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
 async def test_depsinstaller_stale_pip_cache(monkeypatch, bbot_scanner):
     """
     A cached dependency success must not be trusted when its pip packages have since vanished
