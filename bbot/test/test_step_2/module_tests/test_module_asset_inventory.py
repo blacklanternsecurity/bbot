@@ -1,14 +1,16 @@
 from .base import ModuleTestBase
-from bbot.test.worker import HTTPSERVER_SSL_HOSTPORT
+from bbot.test.worker import HTTPSERVER_SSL_HOSTPORT, HTTPSERVER_SSL_PORT
 
 
 class TestAsset_Inventory(ModuleTestBase):
     targets = ["127.0.0.1", "bbottest.notreal"]
     scan_name = "asset_inventory_test"
-    config_overrides = {"dns": {"minimal": False}, "modules": {"portscan": {"ports": "9999"}}}
+    config_overrides = {"dns": {"minimal": False}, "modules": {"portscan": {"ports": f"{HTTPSERVER_SSL_PORT}"}}}
     modules_overrides = ["asset_inventory", "portscan", "sslcert"]
 
-    masscan_output = """{   "ip": "127.0.0.1",   "timestamp": "1680197558", "ports": [ {"port": 9999, "proto": "tcp", "status": "open", "reason": "syn-ack", "ttl": 54} ] }"""
+    # Mocked masscan output. The port here is what the module "discovers", so it
+    # has to match the port the assertions expect, which moves per xdist worker.
+    masscan_output = f"""{{   "ip": "127.0.0.1",   "timestamp": "1680197558", "ports": [ {{"port": {HTTPSERVER_SSL_PORT}, "proto": "tcp", "status": "open", "reason": "syn-ack", "ttl": 54}} ] }}"""
 
     async def setup_after_prep(self, module_test):
         async def run_masscan(command, *args, **kwargs):
@@ -53,7 +55,7 @@ class TestAsset_InventoryEmitPrevious(TestAsset_Inventory):
     modules_overrides = ["asset_inventory"]
 
     def check(self, module_test, events):
-        assert any(e.data == "www.bbottest.notreal:9999" for e in events), "No open port found"
+        assert any(e.data == f"www.bbottest.notreal:{HTTPSERVER_SSL_PORT}" for e in events), "No open port found"
         assert any(e.data == "www.bbottest.notreal" for e in events), "No DNS name found"
         filename = next(module_test.scan.home.glob("asset-inventory.csv"))
         with open(filename) as f:

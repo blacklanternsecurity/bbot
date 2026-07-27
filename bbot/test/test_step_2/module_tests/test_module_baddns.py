@@ -7,7 +7,7 @@ from baddns.lib.findings import SEVERITY_LEVELS, CONFIDENCE_LEVELS
 from bbot.modules.baddns import SUBMODULE_MAX_SEVERITY, SUBMODULE_MAX_CONFIDENCE
 
 from .base import ModuleTestBase
-from bbot.test.worker import HTTPSERVER_HOSTPORT
+from bbot.test.worker import HTTPSERVER_HOSTPORT, HTTPSERVER_PORT
 
 
 def _extract_finding_values(module_cls):
@@ -184,7 +184,7 @@ class TestBaddns_cname_nxdomain(BaseTestBaddns):
 
 
 class TestBaddns_cname_signature(BaseTestBaddns):
-    targets = ["bad.dns:8888"]
+    targets = [f"bad.dns:{HTTPSERVER_PORT}"]
     modules_overrides = ["baddns", "speculate"]
 
     async def setup_after_prep(self, module_test):

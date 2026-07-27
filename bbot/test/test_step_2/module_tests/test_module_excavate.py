@@ -7,7 +7,7 @@ from bbot.modules.internal.excavate import ExcavateRule
 from pathlib import Path
 import time
 import yara
-from bbot.test.worker import HTTPSERVER_URL, LOCALHOST_URL
+from bbot.test.worker import HTTPSERVER_PORT, HTTPSERVER_URL, LOCALHOST_URL
 
 
 class TestExcavate(ModuleTestBase):
@@ -1564,7 +1564,7 @@ startxref
             and "JWT" in e.data["description"]
             and e.data["url"] == f"{HTTPSERVER_URL}/Test_PDF"
             and e.data["host"] == "127.0.0.1"
-            and e.data["path"].endswith("http-127-0-0-1-8888-test-pdf.pdf")
+            and e.data["path"].endswith(f"http-127-0-0-1-{HTTPSERVER_PORT}-test-pdf.pdf")
             and str(e.host) == "127.0.0.1"
             for e in finding_events
         ), f"Failed to emit JWT event got {finding_events}"
@@ -1573,7 +1573,7 @@ startxref
             and "DOTNET" in e.data["description"]
             and e.data["url"] == f"{HTTPSERVER_URL}/Test_PDF"
             and e.data["host"] == "127.0.0.1"
-            and e.data["path"].endswith("http-127-0-0-1-8888-test-pdf.pdf")
+            and e.data["path"].endswith(f"http-127-0-0-1-{HTTPSERVER_PORT}-test-pdf.pdf")
             and str(e.host) == "127.0.0.1"
             for e in finding_events
         ), f"Failed to emit serialized event got {finding_events}"

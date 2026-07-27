@@ -1,7 +1,13 @@
 from werkzeug.wrappers import Response
 
 from .base import ModuleTestBase
-from bbot.test.worker import HTTPSERVER_HOSTPORT, HTTPSERVER_SSL_URL, HTTPSERVER_URL
+from bbot.test.worker import (
+    HTTPSERVER_HOSTPORT,
+    HTTPSERVER_PORT,
+    HTTPSERVER_SSL_PORT,
+    HTTPSERVER_SSL_URL,
+    HTTPSERVER_URL,
+)
 
 
 class TestHTTPBase(ModuleTestBase):
@@ -54,14 +60,15 @@ class TestHTTPBase(ModuleTestBase):
                     url = True
         assert url, "Failed to visit target URL"
         assert open_port, "Failed to visit target OPEN_TCP_PORT"
-        saved_response = module_test.scan.home / "http_responses" / "127.0.0.1.8888[slash]url.txt"
+        # The http module encodes host:port into the filename with a dot separator.
+        saved_response = module_test.scan.home / "http_responses" / f"127.0.0.1.{HTTPSERVER_PORT}[slash]url.txt"
         assert saved_response.is_file(), "Failed to save raw http response"
 
 
 class TestHTTP_404(ModuleTestBase):
     targets = [HTTPSERVER_SSL_URL]
     modules_overrides = ["http", "speculate", "excavate"]
-    config_overrides = {"modules": {"speculate": {"ports": "8888,9999"}}}
+    config_overrides = {"modules": {"speculate": {"ports": f"{HTTPSERVER_PORT},{HTTPSERVER_SSL_PORT}"}}}
 
     async def setup_after_prep(self, module_test):
         module_test.httpserver.expect_request("/").respond_with_data(

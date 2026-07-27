@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 
 from .base import ModuleTestBase
+from bbot.test.worker import BBOT_TEST_DIR
 from bbot.test.bbot_fixtures import bbot_test_dir
 
 
@@ -162,7 +163,7 @@ class TestGit_Clone(ModuleTestBase):
         )
 
     async def setup_after_prep(self, module_test):
-        temp_path = Path("/tmp/.bbot_test")
+        temp_path = Path(BBOT_TEST_DIR)
         shutil.rmtree(temp_path / "test_keys", ignore_errors=True)
         subprocess.run(["git", "init", "test_keys"], cwd=temp_path)
         temp_repo_path = temp_path / "test_keys"

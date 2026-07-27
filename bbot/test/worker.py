@@ -43,6 +43,29 @@ def worker_id():
     return worker if worker.startswith("gw") else ""
 
 
+def _reset_logging_setup_flag():
+    """Let each xdist worker set up its own logging.
+
+    ``BBOTLogger`` only configures logging when ``_BBOT_LOGGING_SETUP`` is
+    absent from the environment, so that bbot subprocesses spawned during a
+    scan reuse the parent's setup instead of building a second one.
+
+    xdist workers are forked from the pytest parent and inherit that variable,
+    so every worker skipped setup: ``listener`` stayed None and nothing was
+    ever written to ``debug.log``. Tests that read the scan's debug log then
+    asserted against an empty file.
+
+    Clearing it here (before ``bbot.core`` is imported) makes each worker a
+    fresh logging root. ``BBOTLogger`` immediately sets the variable again, so
+    subprocesses spawned by this worker still inherit it and still skip setup.
+    """
+    if worker_id():
+        os.environ.pop("_BBOT_LOGGING_SETUP", None)
+
+
+_reset_logging_setup_flag()
+
+
 def worker_index():
     """This xdist worker's zero-based index, or 0 when running serially."""
     worker = worker_id()
@@ -52,9 +75,22 @@ def worker_index():
     return 0
 
 
+def port_offset():
+    """Global port shift, from ``BBOT_TEST_PORT_OFFSET``.
+
+    Lets a second copy of the suite run alongside one that already owns the
+    base ports (another checkout, a CI container, a stray leftover server).
+    Without it the two collide on 8888 and the failures look like a bug in the
+    worker isolation rather than two runs fighting over a socket.
+    """
+    with suppress(ValueError):
+        return int(os.environ.get("BBOT_TEST_PORT_OFFSET", "0"))
+    return 0
+
+
 def worker_port(base):
     """Offset ``base`` into this worker's port block."""
-    return base + (worker_index() * WORKER_PORT_STRIDE)
+    return base + (worker_index() * WORKER_PORT_STRIDE) + port_offset()
 
 
 def worker_dir(base=BASE_BBOT_TEST_DIR):
@@ -96,6 +132,14 @@ FASTAPI_URL = f"http://127.0.0.1:{FASTAPI_PORT}"
 
 # websockets server started by the websocket module test.
 WEBSOCKET_PORT = worker_port(BASE_WEBSOCKET_PORT)
+
+# The scope-accuracy test starts six more servers on distinct loopback IPs
+# (127.0.0.77, .88, ...). Distinct IPs are not enough under xdist: every worker
+# binds the same IP:port pairs, so these have to move with the worker too.
+# Both live inside the worker's stride block, so they cannot reach the next
+# worker's range.
+OTHER_HTTPSERVER_PORT = HTTPSERVER_PORT
+OTHER_HTTPSERVER_PORT_ALT = HTTPSERVER_PORT + 1
 
 # How long a test waits for a docker-backed service (elasticsearch, mongo, ...)
 # to accept connections before giving up. These used to spin forever, so a

@@ -10,7 +10,7 @@ from werkzeug.wrappers import Response
 
 from .base import ModuleTestBase
 from bbot.test.bbot_fixtures import bbot_test_dir
-from bbot.test.worker import HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_URL, BBOT_TEST_DIR
 
 
 # Custom trufflehog detector that verifies against module_test.httpserver,
@@ -881,7 +881,7 @@ class TestTrufflehog(ModuleTestBase):
                 },
             },
         )
-        temp_path = Path("/tmp/.bbot_test")
+        temp_path = Path(f"{BBOT_TEST_DIR}")
         tar_path = temp_path / "docker_pull_test.tar.gz"
         shutil.rmtree(tar_path, ignore_errors=True)
         with tarfile.open(tar_path, "w:gz") as tar:
@@ -1156,7 +1156,7 @@ class TestTrufflehog(ModuleTestBase):
                 }
             },
         )
-        temp_path = Path("/tmp/.bbot_test")
+        temp_path = Path(f"{BBOT_TEST_DIR}")
         temp_repo_path = temp_path / "test_keys"
         shutil.rmtree(temp_repo_path, ignore_errors=True)
         subprocess.run(["git", "init", "test_keys"], cwd=temp_path)

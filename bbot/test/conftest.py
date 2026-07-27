@@ -44,12 +44,20 @@ CORE.logger.log_level = logging.DEBUG
 # silence all stderr output:
 stderr_handler = CORE.logger.log_handlers["stderr"]
 stderr_handler.setLevel(logging.CRITICAL)
-# Under xdist, workers inherit _BBOT_LOGGING_SETUP from the parent process, so
-# BBOTLogger skips setup and leaves listener as None. Nothing to detach then.
-if CORE.logger.listener is not None:
-    handlers = list(CORE.logger.listener.handlers)
-    handlers.remove(stderr_handler)
-    CORE.logger.listener.handlers = tuple(handlers)
+# worker.py clears _BBOT_LOGGING_SETUP for xdist workers, so every process that
+# reaches here (serial or worker) owns a real QueueListener. If it is missing,
+# logging never got set up and debug.log would silently stay empty, so fail
+# loudly instead of continuing with logging quietly broken.
+if CORE.logger.listener is None:
+    raise RuntimeError(
+        "BBOT logging was not initialized in this process "
+        f"(PYTEST_XDIST_WORKER={os.environ.get('PYTEST_XDIST_WORKER', '')!r}). "
+        "debug.log would be empty and log-reading tests would fail with "
+        "confusing assertion errors."
+    )
+handlers = list(CORE.logger.listener.handlers)
+handlers.remove(stderr_handler)
+CORE.logger.listener.handlers = tuple(handlers)
 
 for h in root_logger.handlers:
     h.addFilter(lambda x: x.levelname not in ("STDOUT", "TRACE"))

@@ -1,7 +1,14 @@
 from .base import ModuleTestBase, tempwordlist
 import re
 from werkzeug.wrappers import Response
-from bbot.test.worker import HTTPSERVER_HOSTPORT, HTTPSERVER_URL, LOCALHOST_HOSTPORT, LOCALHOST_SSL_URL, LOCALHOST_URL
+from bbot.test.worker import (
+    HTTPSERVER_HOSTPORT,
+    HTTPSERVER_PORT,
+    HTTPSERVER_URL,
+    LOCALHOST_HOSTPORT,
+    LOCALHOST_SSL_URL,
+    LOCALHOST_URL,
+)
 
 
 class VirtualhostTestBase(ModuleTestBase):
@@ -81,11 +88,11 @@ class TestVirtualhostSpecialHosts(VirtualhostTestBase):
             return Response("baseline response from localhost", status=200)
 
         # Wildcard canary check
-        if re.match(r"[a-z]ocalhost(?::8888)?$", host_header):
+        if re.match(r"[a-z]ocalhost(?::" + str(HTTPSERVER_PORT) + r")?$", host_header):
             return Response("different wildcard response", status=404)
 
         # Random canary requests (12 lowercase letters .com)
-        if re.match(r"^[a-z]{12}\.com(?::8888)?$", host_header):
+        if re.match(r"^[a-z]{12}\.com(?::" + str(HTTPSERVER_PORT) + r")?$", host_header):
             return Response(
                 """<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
 <html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>Random canary host.</p></body></html>""",
@@ -134,7 +141,7 @@ class TestVirtualhostSpecialHosts(VirtualhostTestBase):
 class TestVirtualhostBruteForce(VirtualhostTestBase):
     """Test subdomain brute-force detection using HTTP Host headers"""
 
-    targets = ["http://test.example:8888"]
+    targets = [f"http://test.example:{HTTPSERVER_PORT}"]
     modules_overrides = ["virtualhost"]  # Remove http, we'll manually create URL events
     test_wordlist = ["admin", "api", "test"]
     config_overrides = {
@@ -169,7 +176,10 @@ class TestVirtualhostBruteForce(VirtualhostTestBase):
                 if event.type == "SCAN":
                     # Create and emit URL event for virtualhost module to process
                     url_event = self.scan.make_event(
-                        "http://test.example:8888/", "URL", parent=event, tags=["status-200", "ip-127.0.0.1"]
+                        f"http://test.example:{HTTPSERVER_PORT}/",
+                        "URL",
+                        parent=event,
+                        tags=["status-200", "ip-127.0.0.1"],
                     )
                     await self.emit_event(url_event)
 
@@ -193,7 +203,12 @@ class TestVirtualhostBruteForce(VirtualhostTestBase):
         host_header = request.headers.get("Host", "").lower()
 
         # Baseline request to test.example or example (with or without port)
-        if not host_header or host_header in ["test.example", "test.example:8888", "example", "example:8888"]:
+        if not host_header or host_header in [
+            "test.example",
+            f"test.example:{HTTPSERVER_PORT}",
+            "example",
+            f"example:{HTTPSERVER_PORT}",
+        ]:
             return Response("baseline response from example baseline", status=200)
 
         # Wildcard canary check - change one character in test.example
@@ -201,15 +216,15 @@ class TestVirtualhostBruteForce(VirtualhostTestBase):
             return Response("wildcard canary different response", status=404)
 
         # Brute-force canary requests - random string + .test.example (with optional port)
-        if re.match(r"^[a-z]{12}\.test\.example(?::8888)?$", host_header):
+        if re.match(r"^[a-z]{12}\.test\.example(?::" + str(HTTPSERVER_PORT) + r")?$", host_header):
             return Response("subdomain canary response", status=404)
 
         # Brute-force matches on discovered basehost (admin|api|test).test.example (with optional port)
-        if host_header in ["admin.test.example", "admin.test.example:8888"]:
+        if host_header in ["admin.test.example", f"admin.test.example:{HTTPSERVER_PORT}"]:
             return Response("Admin panel found here!", status=200)
-        if host_header in ["api.test.example", "api.test.example:8888"]:
+        if host_header in ["api.test.example", f"api.test.example:{HTTPSERVER_PORT}"]:
             return Response("API endpoint found here!", status=200)
-        if host_header in ["test.test.example", "test.test.example:8888"]:
+        if host_header in ["test.test.example", f"test.test.example:{HTTPSERVER_PORT}"]:
             return Response("Test environment found here!", status=200)
 
         # Default response
@@ -229,7 +244,7 @@ class TestVirtualhostBruteForce(VirtualhostTestBase):
 class TestVirtualhostMutations(VirtualhostTestBase):
     """Test host mutation detection using HTTP Host headers"""
 
-    targets = ["http://subdomain.target.test:8888"]
+    targets = [f"http://subdomain.target.test:{HTTPSERVER_PORT}"]
     modules_overrides = ["http", "virtualhost"]
     config_overrides = {
         "modules": {
@@ -276,7 +291,7 @@ class TestVirtualhostMutations(VirtualhostTestBase):
             async def handle_event(self, event):
                 if event.type == "SCAN":
                     url_event = self.scan.make_event(
-                        "http://subdomain.target.test:8888/",
+                        f"http://subdomain.target.test:{HTTPSERVER_PORT}/",
                         "URL",
                         parent=event,
                         tags=["status-200", "ip-127.0.0.1"],
@@ -299,15 +314,17 @@ class TestVirtualhostMutations(VirtualhostTestBase):
         host_header = request.headers.get("Host", "").lower()
 
         # Baseline request to target.test (with or without port)
-        if not host_header or host_header in ["subdomain.target.test", "subdomain.target.test:8888"]:
+        if not host_header or host_header in ["subdomain.target.test", f"subdomain.target.test:{HTTPSERVER_PORT}"]:
             return Response("baseline response from target.test", status=200)
 
         # Wildcard canary check
-        if re.match(r"[a-z]subdomain\.target\.test(?::8888)?$", host_header):  # Modified target.test
+        if re.match(
+            r"[a-z]subdomain\.target\.test(?::" + str(HTTPSERVER_PORT) + r")?$", host_header
+        ):  # Modified target.test
             return Response("wildcard canary response", status=404)
 
         # Mutation canary requests (4 chars + dash + original host)
-        if re.match(r"^[a-z]{4}-subdomain\.target\.test(?::8888)?$", host_header):
+        if re.match(r"^[a-z]{4}-subdomain\.target\.test(?::" + str(HTTPSERVER_PORT) + r")?$", host_header):
             return Response("<!DOCTYPE html><html><body>Mutation Canary</body></html>", status=404)
 
         # Word cloud mutation matches - return different content than canary
@@ -341,7 +358,7 @@ class TestVirtualhostMutations(VirtualhostTestBase):
 class TestVirtualhostWordcloud(VirtualhostTestBase):
     """Test finish() wordcloud-based detection using HTTP Host headers"""
 
-    targets = ["http://wordcloud.test:8888"]
+    targets = [f"http://wordcloud.test:{HTTPSERVER_PORT}"]
     modules_overrides = ["http", "virtualhost"]
     config_overrides = {
         "modules": {
@@ -379,7 +396,7 @@ class TestVirtualhostWordcloud(VirtualhostTestBase):
             async def handle_event(self, event):
                 if event.type == "SCAN":
                     url_event = self.scan.make_event(
-                        "http://wordcloud.test:8888/",
+                        f"http://wordcloud.test:{HTTPSERVER_PORT}/",
                         "URL",
                         parent=event,
                         tags=["status-200", "ip-127.0.0.1"],
@@ -402,23 +419,25 @@ class TestVirtualhostWordcloud(VirtualhostTestBase):
         host_header = request.headers.get("Host", "").lower()
 
         # Baseline request to wordcloud.test (with or without port)
-        if not host_header or host_header in ["wordcloud.test", "wordcloud.test:8888"]:
+        if not host_header or host_header in ["wordcloud.test", f"wordcloud.test:{HTTPSERVER_PORT}"]:
             return Response("baseline response from wordcloud.test", status=200)
 
         # Wildcard canary check
-        if re.match(r"[a-z]ordcloud\.test(?::8888)?$", host_header):  # Modified wordcloud.test
+        if re.match(
+            r"[a-z]ordcloud\.test(?::" + str(HTTPSERVER_PORT) + r")?$", host_header
+        ):  # Modified wordcloud.test
             return Response("wildcard canary response", status=404)
 
         # Random canary requests (12 chars + .com)
-        if re.match(r"^[a-z]{12}\.com(?::8888)?$", host_header):
+        if re.match(r"^[a-z]{12}\.com(?::" + str(HTTPSERVER_PORT) + r")?$", host_header):
             return Response("random canary response", status=404)
 
         # Wordcloud-based matches - these are checked in finish()
-        if host_header in ["staging.wordcloud.test", "staging.wordcloud.test:8888"]:
+        if host_header in ["staging.wordcloud.test", f"staging.wordcloud.test:{HTTPSERVER_PORT}"]:
             return Response("Staging environment found!", status=200)
-        if host_header in ["prod.wordcloud.test", "prod.wordcloud.test:8888"]:
+        if host_header in ["prod.wordcloud.test", f"prod.wordcloud.test:{HTTPSERVER_PORT}"]:
             return Response("Production environment found!", status=200)
-        if host_header in ["dev.wordcloud.test", "dev.wordcloud.test:8888"]:
+        if host_header in ["dev.wordcloud.test", f"dev.wordcloud.test:{HTTPSERVER_PORT}"]:
             return Response("Development environment found!", status=200)
 
         # Default response
@@ -545,7 +564,7 @@ class TestVirtualhostForceBasehost(VirtualhostTestBase):
 class TestVirtualhostInterestingDefaultContent(VirtualhostTestBase):
     """Test reporting of interesting default canary content during wildcard check"""
 
-    targets = ["http://interesting.test:8888"]
+    targets = [f"http://interesting.test:{HTTPSERVER_PORT}"]
     modules_overrides = ["http", "virtualhost"]
     config_overrides = {
         "modules": {
@@ -578,7 +597,7 @@ class TestVirtualhostInterestingDefaultContent(VirtualhostTestBase):
             async def handle_event(self, event):
                 if event.type == "SCAN":
                     url_event = self.scan.make_event(
-                        "http://interesting.test:8888/",
+                        f"http://interesting.test:{HTTPSERVER_PORT}/",
                         "URL",
                         parent=event,
                         tags=["status-404", "ip-127.0.0.1"],
@@ -601,11 +620,11 @@ class TestVirtualhostInterestingDefaultContent(VirtualhostTestBase):
         host_header = request.headers.get("Host", "").lower()
 
         # Baseline response for original host (ensure status differs from canary)
-        if not host_header or host_header in ["interesting.test", "interesting.test:8888"]:
+        if not host_header or host_header in ["interesting.test", f"interesting.test:{HTTPSERVER_PORT}"]:
             return Response("baseline not found", status=404)
 
         # Wildcard canary mutated hostname: change first alpha to 'z' -> znteresting.test
-        if host_header in ["znteresting.test", "znteresting.test:8888"]:
+        if host_header in ["znteresting.test", f"znteresting.test:{HTTPSERVER_PORT}"]:
             long_body = (
                 "This is a sufficiently long default page body that exceeds forty characters "
                 "to trigger the interesting default content branch."
@@ -635,7 +654,7 @@ class TestVirtualhostInterestingDefaultContent(VirtualhostTestBase):
 class TestVirtualhostKeywordWildcard(VirtualhostTestBase):
     """Test keyword-based wildcard detection using 'www' in hostname"""
 
-    targets = ["http://acme.test:8888"]
+    targets = [f"http://acme.test:{HTTPSERVER_PORT}"]
     modules_overrides = ["http", "virtualhost"]
     config_overrides = {
         "modules": {
@@ -687,7 +706,7 @@ class TestVirtualhostKeywordWildcard(VirtualhostTestBase):
             async def handle_event(self, event):
                 if event.type == "SCAN":
                     url_event = self.scan.make_event(
-                        "http://acme.test:8888/",
+                        f"http://acme.test:{HTTPSERVER_PORT}/",
                         "URL",
                         parent=event,
                         tags=["status-404", "ip-127.0.0.1"],
@@ -709,7 +728,7 @@ class TestVirtualhostKeywordWildcard(VirtualhostTestBase):
         host_header = request.headers.get("Host", "").lower()
 
         # Baseline response for original host
-        if not host_header or host_header in ["acme.test", "acme.test:8888"]:
+        if not host_header or host_header in ["acme.test", f"acme.test:{HTTPSERVER_PORT}"]:
             return Response("baseline not found", status=404)
 
         # If hostname contains 'www' anywhere, return the same body as baseline (simulating keyword wildcard)
@@ -717,7 +736,7 @@ class TestVirtualhostKeywordWildcard(VirtualhostTestBase):
             return Response("baseline not found", status=404)
 
         # Exact-match virtual host that should still be detected
-        if host_header in ["admin.acme.test", "admin.acme.test:8888"]:
+        if host_header in ["admin.acme.test", f"admin.acme.test:{HTTPSERVER_PORT}"]:
             return Response("Admin portal", status=200)
 
         # Default
@@ -741,7 +760,7 @@ class TestVirtualhostKeywordWildcard(VirtualhostTestBase):
 class TestVirtualhostHTTPResponse(VirtualhostTestBase):
     """Test virtual host discovery with badsecrets analysis of HTTP_RESPONSE events"""
 
-    targets = ["http://secrets.test:8888"]
+    targets = [f"http://secrets.test:{HTTPSERVER_PORT}"]
     modules_overrides = ["virtualhost", "badsecrets"]
     test_wordlist = ["admin"]
     config_overrides = {
@@ -776,7 +795,10 @@ class TestVirtualhostHTTPResponse(VirtualhostTestBase):
                 if event.type == "SCAN":
                     # Create and emit URL event for virtualhost module to process
                     url_event = self.scan.make_event(
-                        "http://secrets.test:8888/", "URL", parent=event, tags=["status-200", "ip-127.0.0.1"]
+                        f"http://secrets.test:{HTTPSERVER_PORT}/",
+                        "URL",
+                        parent=event,
+                        tags=["status-200", "ip-127.0.0.1"],
                     )
                     await self.emit_event(url_event)
 
@@ -800,7 +822,7 @@ class TestVirtualhostHTTPResponse(VirtualhostTestBase):
         host_header = request.headers.get("Host", "").lower()
 
         # Baseline request to secrets.test (with or without port)
-        if not host_header or host_header in ["secrets.test", "secrets.test:8888"]:
+        if not host_header or host_header in ["secrets.test", f"secrets.test:{HTTPSERVER_PORT}"]:
             return Response("baseline response from secrets.test", status=200)
 
         # Wildcard canary check - change one character in secrets.test
@@ -808,11 +830,11 @@ class TestVirtualhostHTTPResponse(VirtualhostTestBase):
             return Response("wildcard canary different response", status=404)
 
         # Brute-force canary requests - random string + .secrets.test (with optional port)
-        if re.match(r"^[a-z]{12}\.secrets\.test(?::8888)?$", host_header):
+        if re.match(r"^[a-z]{12}\.secrets\.test(?::" + str(HTTPSERVER_PORT) + r")?$", host_header):
             return Response("subdomain canary response", status=404)
 
         # Virtual host with vulnerable JWT cookie and JWT in body - both using weak secret '1234' - this should trigger badsecrets twice
-        if host_header in ["admin.secrets.test", "admin.secrets.test:8888"]:
+        if host_header in ["admin.secrets.test", f"admin.secrets.test:{HTTPSERVER_PORT}"]:
             return Response(
                 "<html><body><p>Admin Panel</p><script>const session = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMjMsInVzZXJuYW1lIjoiYWRtaW4iLCJleHAiOjE1OTMxMzM0ODMsImlhdCI6MTQ2NjkwMzA4M30.03xPSXavrMk0HK4BD3_hPKgu3RLu6CmTSPGfrDx2qpg';</script></body></html>",
                 status=200,
@@ -901,7 +923,7 @@ class TestVirtualhostFinishNoneBaseline(VirtualhostTestBase):
     surfaced as: `'NoneType' object has no attribute 'status_code'`.
     """
 
-    targets = ["http://finishnone.test:8888"]
+    targets = [f"http://finishnone.test:{HTTPSERVER_PORT}"]
     modules_overrides = ["http", "virtualhost"]
     config_overrides = {
         "modules": {
@@ -957,7 +979,7 @@ class TestVirtualhostFinishNoneBaseline(VirtualhostTestBase):
             async def handle_event(self, event):
                 if event.type == "SCAN":
                     url_event = self.scan.make_event(
-                        "http://finishnone.test:8888/",
+                        f"http://finishnone.test:{HTTPSERVER_PORT}/",
                         "URL",
                         parent=event,
                         tags=["status-200", "ip-127.0.0.1"],
@@ -977,13 +999,13 @@ class TestVirtualhostFinishNoneBaseline(VirtualhostTestBase):
     def request_handler(self, request):
         host_header = request.headers.get("Host", "").lower()
 
-        if not host_header or host_header in ["finishnone.test", "finishnone.test:8888"]:
+        if not host_header or host_header in ["finishnone.test", f"finishnone.test:{HTTPSERVER_PORT}"]:
             return Response("baseline response from finishnone.test", status=200)
 
-        if re.match(r"[a-z]inishnone\.test(?::8888)?$", host_header):
+        if re.match(r"[a-z]inishnone\.test(?::" + str(HTTPSERVER_PORT) + r")?$", host_header):
             return Response("wildcard canary response", status=404)
 
-        if re.match(r"^[a-z]{12}\.com(?::8888)?$", host_header):
+        if re.match(r"^[a-z]{12}\.com(?::" + str(HTTPSERVER_PORT) + r")?$", host_header):
             return Response("random canary response", status=404)
 
         return Response("default response", status=404)
@@ -1088,7 +1110,7 @@ class TestVirtualhostSkipsCdnWaf(VirtualhostTestBase):
 
         for tag in ("cloudflare", "imperva", "akamai", "cloudfront"):
             url_event = module_test.scan.make_event(
-                "http://cdn-test.local:8888/",
+                f"http://cdn-test.local:{HTTPSERVER_PORT}/",
                 "URL",
                 parent=module_test.scan.root_event,
                 tags=[tag, "in-scope", "status-200"],
@@ -1097,7 +1119,7 @@ class TestVirtualhostSkipsCdnWaf(VirtualhostTestBase):
             assert result is False, f"virtualhost must skip URL tagged {tag!r} (got {result!r})"
 
         untagged_event = module_test.scan.make_event(
-            "http://plain.local:8888/",
+            f"http://plain.local:{HTTPSERVER_PORT}/",
             "URL",
             parent=module_test.scan.root_event,
             tags=["in-scope", "status-200"],
