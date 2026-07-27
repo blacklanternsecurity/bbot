@@ -81,7 +81,10 @@ class docker_pull(BaseModule):
         """Make a request to the URL if that fails try to obtain an authentication token and try again."""
         for _ in range(2):
             response = await self.helpers.request(url, headers=self.headers, follow_redirects=True)
-            if response is not None and response.status_code != 401:
+            if response is None:
+                self.log.warning(f"Request to {url} failed")
+                break
+            if response.status_code != 401:
                 return response
             www_auth = response.headers.get("www-authenticate", "")
             realm, service, scope = self._parse_www_authenticate(www_auth)
