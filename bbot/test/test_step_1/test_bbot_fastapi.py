@@ -7,6 +7,7 @@ from contextlib import suppress
 from urllib.request import urlopen, Request
 from urllib.error import URLError
 from urllib.parse import urlencode
+from bbot.test.ports import HTTPSERVER_URL
 
 cwd = Path(__file__).parent.parent.parent
 
@@ -14,7 +15,7 @@ cwd = Path(__file__).parent.parent.parent
 def run_bbot_multiprocess(queue):
     from bbot.scanner import Scanner
 
-    scan = Scanner("http://127.0.0.1:8888", "blacklanternsecurity.com", modules=["http"])
+    scan = Scanner(HTTPSERVER_URL, "blacklanternsecurity.com", modules=["http"])
     events = [e.json() for e in scan.start()]
     queue.put(events)
 
@@ -52,7 +53,7 @@ def test_bbot_fastapi(bbot_httpserver):
                 continue
 
         # run a scan
-        params = urlencode({"targets": ["http://127.0.0.1:8888", "blacklanternsecurity.com"]}, doseq=True)
+        params = urlencode({"targets": [HTTPSERVER_URL, "blacklanternsecurity.com"]}, doseq=True)
         req = Request(f"http://127.0.0.1:8978/start?{params}")
         response = urlopen(req, timeout=100)
         events = json.loads(response.read())

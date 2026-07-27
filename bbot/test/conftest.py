@@ -10,6 +10,12 @@ from pathlib import Path
 from contextlib import suppress
 from pytest_httpserver import HTTPServer
 
+from bbot.test.ports import (
+    HTTPSERVER_ALLINTERFACES_PORT,
+    HTTPSERVER_PORT,
+    HTTPSERVER_SSL_PORT,
+)
+
 from bbot.core import CORE
 from bbot.core.helpers.misc import execute_sync_or_async
 from bbot.core.helpers.interactsh import server_list as interactsh_servers
@@ -32,9 +38,12 @@ CORE.logger.log_level = logging.DEBUG
 # silence all stderr output:
 stderr_handler = CORE.logger.log_handlers["stderr"]
 stderr_handler.setLevel(logging.CRITICAL)
-handlers = list(CORE.logger.listener.handlers)
-handlers.remove(stderr_handler)
-CORE.logger.listener.handlers = tuple(handlers)
+# Under xdist, workers inherit _BBOT_LOGGING_SETUP from the parent process, so
+# BBOTLogger skips setup and leaves listener as None. Nothing to detach then.
+if CORE.logger.listener is not None:
+    handlers = list(CORE.logger.listener.handlers)
+    handlers.remove(stderr_handler)
+    CORE.logger.listener.handlers = tuple(handlers)
 
 for h in root_logger.handlers:
     h.addFilter(lambda x: x.levelname not in ("STDOUT", "TRACE"))
@@ -96,7 +105,7 @@ def stop_server(server):
 
 @pytest.fixture
 def bbot_httpserver():
-    server = HTTPServer(host="127.0.0.1", port=8888, threaded=True)
+    server = HTTPServer(host="127.0.0.1", port=HTTPSERVER_PORT, threaded=True)
     server.start()
 
     yield server
@@ -115,7 +124,7 @@ def bbot_httpserver_ssl():
     keyfile = str(current_dir / "testsslkey.pem")
     certfile = str(current_dir / "testsslcert.pem")
     context.load_cert_chain(certfile, keyfile)
-    server = HTTPServer(host="127.0.0.1", port=9999, ssl_context=context, threaded=True)
+    server = HTTPServer(host="127.0.0.1", port=HTTPSERVER_SSL_PORT, ssl_context=context, threaded=True)
     server.start()
 
     yield server
@@ -222,7 +231,7 @@ def blasthttp_mock():
 
 @pytest.fixture
 def bbot_httpserver_allinterfaces():
-    server = HTTPServer(host="0.0.0.0", port=5556, threaded=True)
+    server = HTTPServer(host="0.0.0.0", port=HTTPSERVER_ALLINTERFACES_PORT, threaded=True)
     server.start()
 
     yield server

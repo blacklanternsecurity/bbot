@@ -1,5 +1,6 @@
 from .base import ModuleTestBase
 from bbot.modules.base import BaseModule
+from bbot.test.ports import HTTPSERVER_HOSTPORT
 
 
 class BaseTestBaddns(ModuleTestBase):
@@ -36,7 +37,7 @@ class TestBaddns_direct_cloudflare(BaseTestBaddns):
         from baddns.lib.whoismanager import WhoisManager
 
         def set_target(self, target):
-            return "127.0.0.1:8888"
+            return HTTPSERVER_HOSTPORT
 
         self.module_test = module_test
 

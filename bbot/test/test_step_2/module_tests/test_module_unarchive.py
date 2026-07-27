@@ -7,10 +7,11 @@ from pathlib import Path
 from .base import ModuleTestBase
 
 from ...bbot_fixtures import *
+from bbot.test.ports import HTTPSERVER_URL
 
 
 class TestUnarchive(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["filedownload", "http", "excavate", "speculate", "unarchive"]
     config_overrides = {
         "modules": {

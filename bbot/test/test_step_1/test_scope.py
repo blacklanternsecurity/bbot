@@ -1,9 +1,10 @@
 from ..bbot_fixtures import *  # noqa: F401
 from ..test_step_2.module_tests.base import ModuleTestBase
+from bbot.test.ports import HTTPSERVER_URL
 
 
 class TestScopeBaseline(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http"]
     config_overrides = {"omit_event_types": []}
 

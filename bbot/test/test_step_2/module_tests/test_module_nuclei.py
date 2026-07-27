@@ -1,9 +1,10 @@
 from ...bbot_fixtures import *
 from .base import ModuleTestBase
+from bbot.test.ports import HTTPSERVER_URL
 
 
 class TestNucleiManual(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "excavate", "nuclei"]
     config_overrides = {
         "web": {
@@ -22,7 +23,7 @@ class TestNucleiManual(ModuleTestBase):
         },
     }
 
-    test_html = """
+    test_html = f"""
     html>
  <head>
   <title>Index of /test</title>
@@ -34,7 +35,7 @@ class TestNucleiManual(ModuleTestBase):
    <tr><th colspan="3"><hr></th></tr>
 <tr><td><a href="/">Parent Directory</a></td><td>&nbsp;</td><td align="right">  - </td></tr>
 </table>
-<address>Apache/2.4.38 (Debian) Server at http://127.0.0.1:8888/testmultipleruns.html</address>
+<address>Apache/2.4.38 (Debian) Server at {HTTPSERVER_URL}/testmultipleruns.html</address>
 </body></html>
 """
 

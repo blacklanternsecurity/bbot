@@ -1,10 +1,11 @@
 from pathlib import Path
 
 from .base import ModuleTestBase
+from bbot.test.ports import HTTPSERVER_HOSTPORT, HTTPSERVER_SSL_URL, HTTPSERVER_URL
 
 
 class TestGowitness(ModuleTestBase):
-    targets = ["127.0.0.1:8888"]
+    targets = [HTTPSERVER_HOSTPORT]
     modules_overrides = ["gowitness", "http", "social", "excavate"]
     import shutil
     from pathlib import Path
@@ -38,7 +39,7 @@ class TestGowitness(ModuleTestBase):
 
         async def new_emit_event(event, **kwargs):
             if event.data["url"] == "https://github.com/blacklanternsecurity":
-                event.data["url"] = event.data["url"].replace("https://github.com", "http://127.0.0.1:8888")
+                event.data["url"] = event.data["url"].replace("https://github.com", HTTPSERVER_URL)
                 event.parsed_url = module_test.scan.helpers.urlparse(event.data["url"])
             await old_emit_event(event, **kwargs)
 
@@ -56,14 +57,14 @@ class TestGowitness(ModuleTestBase):
         assert len(screenshots) == 1, (
             f"{len(screenshots):,} .jpeg files found at {screenshots_path}, should have been 1"
         )
-        assert 1 == len([e for e in events if e.type == "URL" and e.url == "http://127.0.0.1:8888/"])
+        assert 1 == len([e for e in events if e.type == "URL" and e.url == f"{HTTPSERVER_URL}/"])
         assert 1 == len([e for e in events if e.type == "URL_UNVERIFIED" and e.url == "https://fonts.googleapis.com/"])
         assert 0 == len([e for e in events if e.type == "URL" and e.url == "https://fonts.googleapis.com/"])
         assert 1 == len(
-            [e for e in events if e.type == "SOCIAL" and e.data["url"] == "http://127.0.0.1:8888/blacklanternsecurity"]
+            [e for e in events if e.type == "SOCIAL" and e.data["url"] == f"{HTTPSERVER_URL}/blacklanternsecurity"]
         )
         assert 1 == len([e for e in events if e.type == "WEBSCREENSHOT"])
-        assert 1 == len([e for e in events if e.type == "WEBSCREENSHOT" and e.data["url"] == "http://127.0.0.1:8888/"])
+        assert 1 == len([e for e in events if e.type == "WEBSCREENSHOT" and e.data["url"] == f"{HTTPSERVER_URL}/"])
         assert len([e for e in events if e.type == "TECHNOLOGY"])
 
 
@@ -82,7 +83,7 @@ class TestGowitness_Social(TestGowitness):
             [
                 e
                 for e in events
-                if e.type == "WEBSCREENSHOT" and e.data["url"] == "http://127.0.0.1:8888/blacklanternsecurity"
+                if e.type == "WEBSCREENSHOT" and e.data["url"] == f"{HTTPSERVER_URL}/blacklanternsecurity"
             ]
         )
         assert len(
@@ -90,7 +91,7 @@ class TestGowitness_Social(TestGowitness):
                 e
                 for e in events
                 if e.type == "TECHNOLOGY"
-                and e.data["url"] == "http://127.0.0.1:8888/blacklanternsecurity"
+                and e.data["url"] == f"{HTTPSERVER_URL}/blacklanternsecurity"
                 and e.parent.type == "SOCIAL"
             ]
         )
@@ -111,7 +112,7 @@ class TestGoWitnessLongFilename(TestGowitness):
     """
 
     targets = [
-        "http://127.0.0.1:8888/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity"
+        f"{HTTPSERVER_URL}/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity"
     ]
     config_overrides = {"file_blobs": True}
 
@@ -142,7 +143,7 @@ class TestGowitness_MultiPort(ModuleTestBase):
     Exercises the real gowitness binary and _resolve_parent tiered lookup.
     """
 
-    targets = ["http://127.0.0.1:8888", "https://127.0.0.1:9999"]
+    targets = [HTTPSERVER_URL, HTTPSERVER_SSL_URL]
     modules_overrides = ["gowitness", "http"]
 
     import shutil

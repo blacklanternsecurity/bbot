@@ -1,6 +1,7 @@
 from .base import ModuleTestBase, tempwordlist
 import re
 from werkzeug.wrappers import Response
+from bbot.test.ports import HTTPSERVER_HOSTPORT, HTTPSERVER_URL, LOCALHOST_HOSTPORT, LOCALHOST_SSL_URL, LOCALHOST_URL
 
 
 class VirtualhostTestBase(ModuleTestBase):
@@ -24,7 +25,7 @@ class VirtualhostTestBase(ModuleTestBase):
 class TestVirtualhostSpecialHosts(VirtualhostTestBase):
     """Test special hosts detection"""
 
-    targets = ["http://localhost:8888"]
+    targets = [LOCALHOST_URL]
     modules_overrides = ["http", "virtualhost"]
     config_overrides = {
         "modules": {
@@ -53,7 +54,7 @@ class TestVirtualhostSpecialHosts(VirtualhostTestBase):
             async def handle_event(self, event):
                 if event.type == "SCAN":
                     url_event = self.scan.make_event(
-                        "http://localhost:8888/",
+                        f"{LOCALHOST_URL}/",
                         "URL",
                         parent=event,
                         tags=["status-200", "ip-127.0.0.1"],
@@ -76,7 +77,7 @@ class TestVirtualhostSpecialHosts(VirtualhostTestBase):
         host_header = request.headers.get("Host", "").lower()
 
         # Baseline request to localhost (with or without port)
-        if not host_header or host_header in ["localhost", "localhost:8888"]:
+        if not host_header or host_header in ["localhost", LOCALHOST_HOSTPORT]:
             return Response("baseline response from localhost", status=200)
 
         # Wildcard canary check
@@ -439,7 +440,7 @@ class TestVirtualhostWordcloud(VirtualhostTestBase):
 class TestVirtualhostHTTPSLogic(ModuleTestBase):
     """Unit tests for HTTPS/SNI-specific functions"""
 
-    targets = ["http://localhost:8888"]  # Minimal target for unit testing
+    targets = [LOCALHOST_URL]  # Minimal target for unit testing
     modules_overrides = ["http", "virtualhost"]
 
     async def setup_before_prep(self, module_test):
@@ -479,7 +480,7 @@ class TestVirtualhostHTTPSLogic(ModuleTestBase):
 class TestVirtualhostForceBasehost(VirtualhostTestBase):
     """Test force_basehost functionality specifically"""
 
-    targets = ["http://127.0.0.1:8888"]  # Use IP to require force_basehost
+    targets = [HTTPSERVER_URL]  # Use IP to require force_basehost
     modules_overrides = ["http", "virtualhost"]
     test_wordlist = ["admin", "api"]
     config_overrides = {
@@ -501,7 +502,7 @@ class TestVirtualhostForceBasehost(VirtualhostTestBase):
         host_header = request.headers.get("Host", "").lower()
 
         # Baseline request to the IP
-        if not host_header or host_header == "127.0.0.1:8888":
+        if not host_header or host_header == HTTPSERVER_HOSTPORT:
             return Response("baseline response from IP", status=200)
 
         # Wildcard canary check
@@ -1002,7 +1003,7 @@ class TestVirtualhostFinishNoneBaseline(VirtualhostTestBase):
 class TestVirtualhostCertificateSANs(VirtualhostTestBase):
     """Exercise the certificate-SAN code path on HTTPS URL events."""
 
-    targets = ["https://localhost:9999"]
+    targets = [LOCALHOST_SSL_URL]
     modules_overrides = ["virtualhost"]
     config_overrides = {
         "modules": {
@@ -1046,7 +1047,7 @@ class TestVirtualhostCertificateSANs(VirtualhostTestBase):
             async def handle_event(self, event):
                 if event.type == "SCAN":
                     url_event = self.scan.make_event(
-                        "https://localhost:9999/",
+                        f"{LOCALHOST_SSL_URL}/",
                         "URL",
                         parent=event,
                         tags=["status-200", "ip-127.0.0.1"],
@@ -1076,7 +1077,7 @@ class TestVirtualhostSkipsCdnWaf(VirtualhostTestBase):
     """filter_event must reject URLs tagged with any of the flat cloud-provider tags
     that cloudcheck emits (post-`Migrate cloudcheck to host_metadata` refactor)."""
 
-    targets = ["http://localhost:8888"]
+    targets = [LOCALHOST_URL]
     modules_overrides = ["virtualhost"]
 
     async def setup_after_prep(self, module_test):

@@ -1,4 +1,5 @@
 from .base import ModuleTestBase
+from bbot.test.ports import HTTPSERVER_SSL_HOSTPORT
 
 
 class TestAsset_Inventory(ModuleTestBase):
@@ -32,7 +33,7 @@ class TestAsset_Inventory(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        assert any(e.data == "127.0.0.1:9999" for e in events), "No open port found"
+        assert any(e.data == HTTPSERVER_SSL_HOSTPORT for e in events), "No open port found"
         assert any(e.data == "www.bbottest.notreal" for e in events), "No DNS name found"
         filename = next(module_test.scan.home.glob("asset-inventory.csv"))
         with open(filename) as f:

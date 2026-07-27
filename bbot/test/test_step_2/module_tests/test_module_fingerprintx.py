@@ -1,10 +1,11 @@
 import json
 
 from .base import ModuleTestBase
+from bbot.test.ports import HTTPSERVER_HOSTPORT
 
 
 class TestFingerprintx(ModuleTestBase):
-    targets = ["127.0.0.1:8888"]
+    targets = [HTTPSERVER_HOSTPORT]
 
     def check(self, module_test, events):
         assert any(
