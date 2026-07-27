@@ -96,3 +96,9 @@ FASTAPI_URL = f"http://127.0.0.1:{FASTAPI_PORT}"
 
 # websockets server started by the websocket module test.
 WEBSOCKET_PORT = worker_port(BASE_WEBSOCKET_PORT)
+
+# How long a test waits for a docker-backed service (elasticsearch, mongo, ...)
+# to accept connections before giving up. These used to spin forever, so a
+# container that died on startup hung the whole run until the global pytest
+# timeout fired, with no indication of what was stuck.
+CONTAINER_READY_TIMEOUT = int(os.environ.get("BBOT_TEST_CONTAINER_TIMEOUT", "180"))

@@ -7,6 +7,7 @@ from urllib.error import URLError
 from base64 import b64encode
 
 from .base import ModuleTestBase
+from bbot.test.worker import CONTAINER_READY_TIMEOUT
 
 
 def _elastic_request(method, url, body=None):
@@ -58,12 +59,20 @@ class TestElastic(ModuleTestBase):
         )
 
         # Connect to Elasticsearch with retry logic
+        deadline = time.time() + CONTAINER_READY_TIMEOUT
         while True:
             try:
                 response = _elastic_request("GET", "https://localhost:9200/_cat/health")
                 response.read()
                 break
             except (URLError, ConnectionError, OSError) as e:
+                if time.time() > deadline:
+                    raise RuntimeError(
+                        f"Elasticsearch did not become ready within {CONTAINER_READY_TIMEOUT}s. "
+                        "If the container exited with code 137 it was OOM-killed: this test needs "
+                        "roughly 2GB, and it competes with the other test workers for memory. "
+                        f"Last error: {e}"
+                    ) from e
                 self.log.verbose(f"Connection failed: {e}. Retrying...")
                 time.sleep(0.5)
 
