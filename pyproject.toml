@@ -79,6 +79,7 @@ dev = [
     "fastapi>=0.115.5,<0.141.0",
     "pytest-httpx>=0.35",
     "pytest-benchmark>=4,<6",
+    "pytest-xdist>=3.6,<4",
     "baddns~=2.4.1",
     "ruff==0.15.22",
     "maturin>=1.4,<2",
