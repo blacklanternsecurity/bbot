@@ -1,7 +1,7 @@
 import json
 
 from .base import ModuleTestBase
-from bbot.test.ports import HTTPSERVER_HOSTPORT
+from bbot.test.worker import HTTPSERVER_HOSTPORT
 
 
 class TestFingerprintx(ModuleTestBase):

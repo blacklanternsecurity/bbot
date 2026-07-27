@@ -12,7 +12,7 @@ from bbot.modules.reflected_parameters import reflected_parameters as reflected_
 
 from .test_module_paramminer_getparams import TestParamminer_Getparams
 from .test_module_paramminer_headers import helper
-from bbot.test.ports import HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_URL
 
 
 @pytest.mark.asyncio

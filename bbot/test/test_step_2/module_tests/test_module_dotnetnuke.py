@@ -1,7 +1,7 @@
 import re
 from .base import ModuleTestBase
 from werkzeug.wrappers import Response
-from bbot.test.ports import HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_URL
 
 
 dotnetnuke_http_response = """

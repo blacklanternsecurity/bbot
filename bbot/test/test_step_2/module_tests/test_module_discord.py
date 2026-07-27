@@ -1,7 +1,7 @@
 from bbot.test.mock_blasthttp import MockResponse
 
 from .base import ModuleTestBase
-from bbot.test.ports import HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestDiscord(ModuleTestBase):

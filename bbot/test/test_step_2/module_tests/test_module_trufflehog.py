@@ -10,7 +10,7 @@ from werkzeug.wrappers import Response
 
 from .base import ModuleTestBase
 from bbot.test.bbot_fixtures import bbot_test_dir
-from bbot.test.ports import HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_URL
 
 
 # Custom trufflehog detector that verifies against module_test.httpserver,

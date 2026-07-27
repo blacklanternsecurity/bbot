@@ -1,7 +1,7 @@
 from .base import ModuleTestBase
 
 from werkzeug.wrappers import Response
-from bbot.test.ports import HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestWafw00f(ModuleTestBase):

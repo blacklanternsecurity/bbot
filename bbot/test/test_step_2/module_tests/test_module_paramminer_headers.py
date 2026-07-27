@@ -1,7 +1,7 @@
 from bbot.core.helpers import helper
 
 from .base import ModuleTestBase, tempwordlist
-from bbot.test.ports import HTTPSERVER_HOSTPORT, HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_HOSTPORT, HTTPSERVER_URL
 
 
 class Paramminer_Headers(ModuleTestBase):

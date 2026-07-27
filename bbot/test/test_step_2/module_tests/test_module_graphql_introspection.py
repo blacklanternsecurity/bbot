@@ -1,5 +1,5 @@
 from .base import ModuleTestBase
-from bbot.test.ports import HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestGraphQLIntrospectionNon200(ModuleTestBase):

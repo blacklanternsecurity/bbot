@@ -1,5 +1,5 @@
 from .base import ModuleTestBase, tempwordlist
-from bbot.test.ports import HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestBadSecrets(ModuleTestBase):

@@ -2,7 +2,7 @@ import re
 
 from .base import ModuleTestBase
 from bbot.core.helpers.misc import rand_string
-from bbot.test.ports import HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_URL
 
 __all__ = ["random_bucket_name_1", "random_bucket_name_2", "random_bucket_name_3", "Bucket_Amazon_Base"]
 

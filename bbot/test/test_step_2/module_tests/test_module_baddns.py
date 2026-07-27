@@ -7,7 +7,7 @@ from baddns.lib.findings import SEVERITY_LEVELS, CONFIDENCE_LEVELS
 from bbot.modules.baddns import SUBMODULE_MAX_SEVERITY, SUBMODULE_MAX_CONFIDENCE
 
 from .base import ModuleTestBase
-from bbot.test.ports import HTTPSERVER_HOSTPORT
+from bbot.test.worker import HTTPSERVER_HOSTPORT
 
 
 def _extract_finding_values(module_cls):

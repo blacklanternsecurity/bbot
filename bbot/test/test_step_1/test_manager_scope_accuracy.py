@@ -12,7 +12,7 @@ understand exactly what changed and why (and whether it's okay) before changing 
 from ..bbot_fixtures import *  # noqa: F401
 
 from pytest_httpserver import HTTPServer
-from bbot.test.ports import HTTPSERVER_HOSTPORT, HTTPSERVER_SSL_HOSTPORT, HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_HOSTPORT, HTTPSERVER_SSL_HOSTPORT, HTTPSERVER_URL
 
 
 @pytest.fixture

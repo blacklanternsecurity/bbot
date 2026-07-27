@@ -1,6 +1,6 @@
 from .base import ModuleTestBase
 from bbot.test.bbot_fixtures import bbot_test_dir
-from bbot.test.ports import HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestBucket_File_Enum(ModuleTestBase):

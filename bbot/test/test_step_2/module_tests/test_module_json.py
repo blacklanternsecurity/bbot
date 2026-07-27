@@ -2,7 +2,7 @@ import json
 
 from .base import ModuleTestBase
 from bbot.core.event.base import event_from_json
-from bbot.test.ports import HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestJSON(ModuleTestBase):

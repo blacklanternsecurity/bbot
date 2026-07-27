@@ -14,7 +14,7 @@ from bbot.core.helpers.url import add_get_params
 from bbot.modules.lightfuzz.submodules.base import BaseLightfuzz
 
 from .test_module_paramminer_headers import helper
-from bbot.test.ports import HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_URL
 
 
 def _make_base_lightfuzz(url):

@@ -3,7 +3,7 @@ import asyncio
 from werkzeug.wrappers import Response
 
 from .base import ModuleTestBase
-from bbot.test.ports import HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_URL
 
 
 def extract_subdomain_tag(data):

@@ -1,5 +1,5 @@
 from .base import ModuleTestBase
-from bbot.test.ports import HTTPSERVER_SSL_HOSTPORT
+from bbot.test.worker import HTTPSERVER_SSL_HOSTPORT
 
 
 class TestAsset_Inventory(ModuleTestBase):

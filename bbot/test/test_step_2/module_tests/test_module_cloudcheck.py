@@ -1,7 +1,7 @@
 from .base import ModuleTestBase
 
 from bbot.scanner import Scanner
-from bbot.test.ports import HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestCloudCheck(ModuleTestBase):

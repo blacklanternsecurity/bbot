@@ -11,7 +11,7 @@ only matched word characters and dots.
 import yara
 
 from bbot.modules.internal.excavate import excavate
-from bbot.test.ports import HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_URL
 
 
 full_url_regex = excavate.URLExtractor.full_url_regex

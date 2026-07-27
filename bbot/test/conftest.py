@@ -10,7 +10,8 @@ from pathlib import Path
 from contextlib import suppress
 from pytest_httpserver import HTTPServer
 
-from bbot.test.ports import (
+from bbot.test.worker import (
+    BBOT_TEST_DIR,
     HTTPSERVER_ALLINTERFACES_PORT,
     HTTPSERVER_PORT,
     HTTPSERVER_SSL_PORT,
@@ -31,6 +32,11 @@ root_logger.addHandler(debug_handler)
 
 with open(Path(__file__).parent / "test.conf") as _f:
     test_config = yaml.safe_load(_f) or {}
+
+# Give each xdist worker its own BBOT home. test.conf carries the serial default;
+# under -n the workers would otherwise share caches, scan output and temp files,
+# and the sessionfinish cleanup below would delete a directory still in use.
+test_config["home"] = str(BBOT_TEST_DIR)
 
 os.environ["BBOT_DEBUG"] = "True"
 CORE.logger.log_level = logging.DEBUG
@@ -343,6 +349,24 @@ def proxy_server():
     server_thread.join()
 
 
+def pytest_collection_modifyitems(config, items):
+    """Pin docker-backed tests to a single xdist worker.
+
+    A handful of module tests start real containers with fixed names and fixed
+    host port bindings (kafka, elastic, mongo, mysql, nats, postgres, rabbitmq).
+    Two workers running those at once would fight over both. They already mark
+    themselves with ``skip_distro_tests``, so reuse that as the signal and put
+    them all in one ``xdist_group``, which makes xdist schedule them onto the
+    same worker.
+
+    Harmless when running serially or without the loadgroup dist mode.
+    """
+    for item in items:
+        cls = getattr(item, "cls", None)
+        if cls is not None and getattr(cls, "skip_distro_tests", False):
+            item.add_marker(pytest.mark.xdist_group("docker"))
+
+
 def pytest_terminal_summary(terminalreporter, exitstatus, config):  # pragma: no cover
     RED = "\033[1;31m"
     GREEN = "\033[1;32m"
@@ -469,8 +493,10 @@ def pytest_sessionfinish(session, exitstatus):
             if child.is_alive():
                 child.kill()
 
-    # Wipe out BBOT home dir
-    shutil.rmtree("/tmp/.bbot_test", ignore_errors=True)
+    # Wipe out BBOT home dir. Scoped to this worker: under xdist the first
+    # worker to finish would otherwise delete the directory out from under
+    # every worker still running.
+    shutil.rmtree(BBOT_TEST_DIR, ignore_errors=True)
 
     # Ensure stdout/stderr are blocking before pytest writes summaries
     try:

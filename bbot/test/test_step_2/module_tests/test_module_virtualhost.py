@@ -1,7 +1,7 @@
 from .base import ModuleTestBase, tempwordlist
 import re
 from werkzeug.wrappers import Response
-from bbot.test.ports import HTTPSERVER_HOSTPORT, HTTPSERVER_URL, LOCALHOST_HOSTPORT, LOCALHOST_SSL_URL, LOCALHOST_URL
+from bbot.test.worker import HTTPSERVER_HOSTPORT, HTTPSERVER_URL, LOCALHOST_HOSTPORT, LOCALHOST_SSL_URL, LOCALHOST_URL
 
 
 class VirtualhostTestBase(ModuleTestBase):

@@ -7,7 +7,7 @@ from bbot.modules.internal.excavate import ExcavateRule
 from pathlib import Path
 import time
 import yara
-from bbot.test.ports import HTTPSERVER_URL, LOCALHOST_URL
+from bbot.test.worker import HTTPSERVER_URL, LOCALHOST_URL
 
 
 class TestExcavate(ModuleTestBase):

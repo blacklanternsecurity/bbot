@@ -1,6 +1,6 @@
 from .base import ModuleTestBase
 import re
-from bbot.test.ports import HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestAspnetBinExposure(ModuleTestBase):

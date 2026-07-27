@@ -1,5 +1,5 @@
 from ..bbot_fixtures import *  # noqa: F401
-from bbot.test.ports import HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_URL
 
 
 @pytest.mark.asyncio

@@ -1,7 +1,7 @@
 from werkzeug.wrappers import Response
 
 from .base import ModuleTestBase
-from bbot.test.ports import HTTPSERVER_HOSTPORT, HTTPSERVER_SSL_URL, HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_HOSTPORT, HTTPSERVER_SSL_URL, HTTPSERVER_URL
 
 
 class TestHTTPBase(ModuleTestBase):

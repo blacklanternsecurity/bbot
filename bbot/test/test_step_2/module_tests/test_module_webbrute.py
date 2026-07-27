@@ -3,7 +3,7 @@ import re
 from werkzeug.wrappers import Response
 
 from .base import ModuleTestBase, tempwordlist
-from bbot.test.ports import HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestWebBrute(ModuleTestBase):

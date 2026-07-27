@@ -1,6 +1,6 @@
 from .base import ModuleTestBase
 from bbot.modules.base import BaseModule
-from bbot.test.ports import HTTPSERVER_HOSTPORT
+from bbot.test.worker import HTTPSERVER_HOSTPORT
 
 
 class BaseTestBaddns(ModuleTestBase):

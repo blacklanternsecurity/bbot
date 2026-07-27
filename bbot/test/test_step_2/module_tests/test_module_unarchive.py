@@ -7,7 +7,7 @@ from pathlib import Path
 from .base import ModuleTestBase
 
 from ...bbot_fixtures import *
-from bbot.test.ports import HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestUnarchive(ModuleTestBase):

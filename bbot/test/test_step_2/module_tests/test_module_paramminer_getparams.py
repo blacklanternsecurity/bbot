@@ -1,5 +1,5 @@
 from .test_module_paramminer_headers import Paramminer_Headers, tempwordlist, helper
-from bbot.test.ports import HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestParamminer_Getparams(Paramminer_Headers):

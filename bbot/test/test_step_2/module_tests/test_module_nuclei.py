@@ -1,6 +1,6 @@
 from ...bbot_fixtures import *
 from .base import ModuleTestBase
-from bbot.test.ports import HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestNucleiManual(ModuleTestBase):
