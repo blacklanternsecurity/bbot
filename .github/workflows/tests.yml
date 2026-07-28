@@ -60,8 +60,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Fail unless every dependency succeeded
-        uses: re-actors/alls-green@release/v1
+        uses: re-actors/alls-green@afee1c1eac2a506084c274e9c02c8e0687b48d9e # v1.2.2
         with:
+          allowed-skips: test
           jobs: ${{ toJSON(needs) }}
 
   publish_code:
