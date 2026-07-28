@@ -40,7 +40,7 @@ async def test_command(bbot_scanner):
     assert result.splitlines() == [b"some", b"random", b"stdin"]
 
     # test overflow - run
-    tmpfile_path = Path("/tmp/test_bigfile")
+    tmpfile_path = BBOT_TEST_DIR / "test_bigfile"
     with open(tmpfile_path, "w") as f:
         # write 2MB
         f.write("A" * 1024 * 1024 * 2)
@@ -48,7 +48,7 @@ async def test_command(bbot_scanner):
     assert len(result) == 1024 * 1024 * 2
     tmpfile_path.unlink(missing_ok=True)
     # test overflow - run_live
-    tmpfile_path = Path("/tmp/test_bigfile")
+    tmpfile_path = BBOT_TEST_DIR / "test_bigfile"
     with open(tmpfile_path, "w") as f:
         # write 2MB
         f.write("A" * 10 + "\n")
