@@ -18,7 +18,7 @@ jobs:
         with:
           filters: |
             code:
-              - '!(docs/**|**/*.md|mkdocs.yml|LICENSE|.gitignore)'
+              - '!{docs/**,**/*.md,*.md,mkdocs.yml,LICENSE,.gitignore}'
 
   test-distros:
     needs: changes
