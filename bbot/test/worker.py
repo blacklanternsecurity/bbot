@@ -107,6 +107,12 @@ HTTPSERVER_PORT = worker_port(BASE_HTTPSERVER_PORT)
 HTTPSERVER_SSL_PORT = worker_port(BASE_HTTPSERVER_SSL_PORT)
 HTTPSERVER_ALLINTERFACES_PORT = worker_port(BASE_HTTPSERVER_ALLINTERFACES_PORT)
 
+# Basename of the BBOT home directory (".bbot_test", or ".bbot_test_gw0" under
+# xdist). Some modules embed the home directory's *name* in the paths they
+# produce -- git_clone writes to ``git_repos/<home name>/<repo>`` -- so tests
+# asserting on those paths need this rather than a hardcoded ".bbot_test".
+BBOT_TEST_DIR_NAME = worker_dir().name
+
 # Host:port pairs, for tests that build their own URLs.
 HTTPSERVER_HOSTPORT = f"127.0.0.1:{HTTPSERVER_PORT}"
 HTTPSERVER_SSL_HOSTPORT = f"127.0.0.1:{HTTPSERVER_SSL_PORT}"

@@ -10,7 +10,7 @@ from werkzeug.wrappers import Response
 
 from .base import ModuleTestBase
 from bbot.test.bbot_fixtures import bbot_test_dir
-from bbot.test.worker import HTTPSERVER_URL, BBOT_TEST_DIR
+from bbot.test.worker import HTTPSERVER_URL, BBOT_TEST_DIR, BBOT_TEST_DIR_NAME
 
 
 # Custom trufflehog detector that verifies against module_test.httpserver,
@@ -1216,7 +1216,8 @@ class TestTrufflehog(ModuleTestBase):
             [
                 e
                 for e in filesystem_events
-                if e.data["path"].endswith("/git_repos/.bbot_test/test_keys") and Path(e.data["path"]).is_dir()
+                if e.data["path"].endswith(f"/git_repos/{BBOT_TEST_DIR_NAME}/test_keys")
+                and Path(e.data["path"]).is_dir()
             ]
         ), "Test keys repo dir does not exist"
         assert 1 == len(
@@ -1287,7 +1288,8 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
             [
                 e
                 for e in filesystem_events
-                if e.data["path"].endswith("/git_repos/.bbot_test/test_keys") and Path(e.data["path"]).is_dir()
+                if e.data["path"].endswith(f"/git_repos/{BBOT_TEST_DIR_NAME}/test_keys")
+                and Path(e.data["path"]).is_dir()
             ]
         ), "Test keys repo dir does not exist"
         assert 1 == len(
