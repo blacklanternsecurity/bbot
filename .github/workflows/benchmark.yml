@@ -42,10 +42,13 @@ jobs:
 
     # Generate benchmark comparison report using our branch-based script
     - name: Generate benchmark comparison report
+      env:
+        BASE_REF: ${{ github.base_ref }}
+        HEAD_REF: ${{ github.head_ref }}
       run: |
         uv run python bbot/scripts/benchmark_report.py \
-          --base ${{ github.base_ref }} \
-          --current ${{ github.head_ref }} \
+          --base "$BASE_REF" \
+          --current "$HEAD_REF" \
           --output benchmark_report.md \
           --keep-results
       continue-on-error: true
