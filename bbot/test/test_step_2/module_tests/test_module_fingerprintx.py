@@ -1,7 +1,7 @@
 import json
 
 from .base import ModuleTestBase
-from bbot.test.worker import HTTPSERVER_HOSTPORT
+from bbot.test.worker import HTTPSERVER_HOSTPORT, HTTPSERVER_PORT
 
 
 class TestFingerprintx(ModuleTestBase):
@@ -11,7 +11,7 @@ class TestFingerprintx(ModuleTestBase):
         assert any(
             event.type == "PROTOCOL"
             and event.host == module_test.scan.helpers.make_ip_type("127.0.0.1")
-            and event.port == 8888
+            and event.port == HTTPSERVER_PORT
             and event.data["protocol"] == "HTTP"
             for event in events
         ), "HTTP protocol not detected"

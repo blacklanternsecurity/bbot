@@ -54,6 +54,19 @@ class TestAsset_InventoryEmitPrevious(TestAsset_Inventory):
     config_overrides = {"dns": {"minimal": False}, "modules": {"asset_inventory": {"use_previous": True}}}
     modules_overrides = ["asset_inventory"]
 
+    async def setup_before_prep(self, module_test):
+        await super().setup_before_prep(module_test)
+        # use_previous=True reads the asset-inventory.csv left behind by a
+        # prior scan of the same name. Relying on TestAsset_Inventory to have
+        # produced it makes this test order-dependent, which does not survive
+        # xdist: sibling tests can run in any order, and on any worker. Seed
+        # the file instead so the test stands on its own.
+        scan_home = module_test.scan.home
+        scan_home.mkdir(parents=True, exist_ok=True)
+        with open(scan_home / "asset-inventory.csv", "w") as f:
+            f.write("Host,Provider,IP(s),Status,Open Ports,Risk Rating,Findings,Description\n")
+            f.write(f"www.bbottest.notreal,,127.0.0.1,Active,{HTTPSERVER_SSL_PORT},,,\n")
+
     def check(self, module_test, events):
         assert any(e.data == f"www.bbottest.notreal:{HTTPSERVER_SSL_PORT}" for e in events), "No open port found"
         assert any(e.data == "www.bbottest.notreal" for e in events), "No DNS name found"
