@@ -7,7 +7,6 @@ import shutil
 import asyncio
 import logging
 from pathlib import Path
-from collections import Counter
 from contextlib import suppress
 from pytest_httpserver import HTTPServer
 
@@ -359,44 +358,17 @@ def proxy_server():
 
 
 def pytest_collection_modifyitems(config, items):
-    """Pin tests to a single xdist worker where they cannot be split apart.
+    """Pin docker-backed tests to one xdist worker.
 
-    Two cases:
-
-    *Docker-backed tests.* A handful of module tests start real containers with
-    fixed names and fixed host port bindings (kafka, elastic, mongo, mysql,
-    nats, postgres, rabbitmq). Two workers running those at once would fight
-    over both. They already mark themselves with ``skip_distro_tests``, so
-    reuse that as the signal.
-
-    *Tests that share a scan name.* Some module tests hand output to each other
-    through the scan's home directory: ``asset_inventory`` writes
-    ``asset-inventory.csv``, then the ``use_previous`` variant reads it back.
-    That only works if both run in the same worker, because each worker has its
-    own BBOT home. They are linked by a shared ``scan_name``, so group on that.
-
-    Harmless when running serially or without the loadgroup dist mode.
+    They start real containers with fixed names and fixed host port bindings
+    (kafka, elastic, mongo, mysql, nats, postgres, rabbitmq), so two workers
+    running them at once fight over both. They already mark themselves with
+    ``skip_distro_tests``, so reuse that as the signal.
     """
-    scan_name_counts = Counter()
     for item in items:
         cls = getattr(item, "cls", None)
-        scan_name = getattr(cls, "scan_name", None) if cls is not None else None
-        if scan_name:
-            scan_name_counts[scan_name] += 1
-
-    for item in items:
-        cls = getattr(item, "cls", None)
-        if cls is None:
-            continue
-        if getattr(cls, "skip_distro_tests", False):
+        if cls is not None and getattr(cls, "skip_distro_tests", False):
             item.add_marker(pytest.mark.xdist_group("docker"))
-            continue
-        # Only group when the name is actually shared; a unique scan_name
-        # carries no cross-test dependency and grouping it would just make
-        # scheduling lumpier for no benefit.
-        scan_name = getattr(cls, "scan_name", None)
-        if scan_name and scan_name_counts[scan_name] > 1:
-            item.add_marker(pytest.mark.xdist_group(f"scan_name:{scan_name}"))
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):  # pragma: no cover

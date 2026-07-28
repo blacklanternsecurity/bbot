@@ -1,35 +1,19 @@
 #!/usr/bin/env python3
 """Print the number of pytest-xdist workers to use.
 
-`-n logical` is wrong on machines with many cores relative to RAM. Each worker
-holds roughly 600MB once the suite is warm, and the docker-backed tests
-(elasticsearch in particular) need a couple of GB of headroom on top. A 16-core
-/ 16GB box running 16 workers leaves too little for elasticsearch, which then
-gets OOM-killed with exit code 137 and takes the run down with it.
+Bounded by cores *and* memory. `-n logical` is wrong on a box with many cores
+relative to RAM: each worker holds roughly 700MB once warm, and elasticsearch
+wants ~2GB on top, so a 16-core/16GB machine running 16 workers gets its
+container OOM-killed (exit 137) and takes the run down with it.
 
-So: bounded by cores, but also by memory, keeping a reserve free.
-
-Override with BBOT_TEST_WORKERS=<n> to pin an exact count.
+Override with BBOT_TEST_WORKERS=<n>.
 """
 
 import os
-import sys
 
-# Rough steady-state resident size of one worker running this suite.
 MB_PER_WORKER = 700
-
-# Kept free for docker-backed services (elasticsearch wants ~2GB) plus the
-# OS, the docker daemon and the pytest parent process.
+# Docker-backed services (elasticsearch ~2GB), the daemon, and the pytest parent.
 RESERVE_MB = 5120
-
-MIN_WORKERS = 2
-
-
-def total_memory_mb():
-    try:
-        return os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") // (1024 * 1024)
-    except (ValueError, OSError, AttributeError):
-        return None
 
 
 def cpu_count():
@@ -44,21 +28,12 @@ def worker_count():
     pinned = os.environ.get("BBOT_TEST_WORKERS", "").strip()
     if pinned:
         return max(1, int(pinned))
-
-    cores = cpu_count()
-    total_mb = total_memory_mb()
-    if not total_mb:
-        return cores
-
-    by_memory = (total_mb - RESERVE_MB) // MB_PER_WORKER
-    return max(MIN_WORKERS, min(cores, by_memory))
+    try:
+        total_mb = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") // (1024 * 1024)
+    except (ValueError, OSError, AttributeError):
+        return cpu_count()
+    return max(1, min(cpu_count(), (total_mb - RESERVE_MB) // MB_PER_WORKER))
 
 
 if __name__ == "__main__":
-    n = worker_count()
-    if "-v" in sys.argv:
-        print(
-            f"cores={cpu_count()} total_mem={total_memory_mb()}MB reserve={RESERVE_MB}MB -> {n} workers",
-            file=sys.stderr,
-        )
-    print(n)
+    print(worker_count())

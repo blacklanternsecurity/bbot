@@ -1,8 +1,7 @@
-import time
 import asyncio
 
 from .base import ModuleTestBase
-from bbot.test.worker import CONTAINER_READY_TIMEOUT
+from bbot.test.worker import wait_for_container
 
 
 class TestMongo(ModuleTestBase):
@@ -43,24 +42,14 @@ class TestMongo(ModuleTestBase):
         from pymongo import AsyncMongoClient
 
         # Connect to the MongoDB collection with retry logic
-        deadline = time.time() + CONTAINER_READY_TIMEOUT
-        while True:
-            try:
-                client = AsyncMongoClient("mongodb://localhost:27017", username="bbot", password="bbotislife")
-                db = client[self.test_db_name]
-                events_collection = db.get_collection(self.test_collection_prefix + "events")
-                # Attempt a simple operation to confirm the connection
-                await events_collection.count_documents({})
-                break  # Exit the loop if connection is successful
-            except Exception as e:
-                if time.time() > deadline:
-                    raise RuntimeError(
-                        f"MongoDB did not become ready within {CONTAINER_READY_TIMEOUT}s. "
-                        "A container that exits with code 137 was OOM-killed. Last error: "
-                        f"{e}"
-                    ) from e
-                print(f"Connection failed: {e}. Retrying...")
-                await asyncio.sleep(0.5)
+        async def connect():
+            client = AsyncMongoClient("mongodb://localhost:27017", username="bbot", password="bbotislife")
+            db = client[self.test_db_name]
+            events_collection = db.get_collection(self.test_collection_prefix + "events")
+            await events_collection.count_documents({})
+            return client, events_collection
+
+        client, events_collection = await wait_for_container("MongoDB", connect)
 
         # Check that there are no events in the collection
         count = await events_collection.count_documents({})
