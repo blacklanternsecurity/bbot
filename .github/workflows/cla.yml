@@ -11,5 +11,6 @@ permissions:
 
 jobs:
   cla:
+    name: check the CLA is signed
     uses: blacklanternsecurity/CLA/.github/workflows/cla-reusable.yml@main
     secrets: inherit

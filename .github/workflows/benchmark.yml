@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   benchmark:
+    name: compare performance against the base branch
     runs-on: ubuntu-latest
 
     steps:

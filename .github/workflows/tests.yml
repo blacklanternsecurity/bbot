@@ -12,6 +12,7 @@ concurrency:
 
 jobs:
   test:
+    name: run test suite on python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     strategy:
       # if one python version fails, let the others finish
@@ -51,7 +52,20 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./cov.xml
           verbose: true
+
+  all_checks:
+    name: all checks passed
+    if: always()
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail unless every dependency succeeded
+        uses: re-actors/alls-green@release/v1
+        with:
+          jobs: ${{ toJSON(needs) }}
+
   publish_code:
+    name: publish package and docker images
     needs: test
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stable')
@@ -200,6 +214,7 @@ jobs:
     outputs:
       BBOT_VERSION: ${{ steps.version.outputs.BBOT_VERSION }}
   tag_commit:
+    name: tag the release commit
     needs: publish_code
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev')
@@ -222,6 +237,7 @@ jobs:
           git push origin "$VERSION"
 
   publish_docs:
+    name: publish the docs site
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev')
     steps:
