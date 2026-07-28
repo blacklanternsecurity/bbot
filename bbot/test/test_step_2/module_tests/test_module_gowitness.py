@@ -1,7 +1,14 @@
 from pathlib import Path
 
 from .base import ModuleTestBase
-from bbot.test.worker import HTTPSERVER_HOSTPORT, HTTPSERVER_SSL_URL, HTTPSERVER_URL
+from bbot.test.worker import (
+    worker_dir,
+    HTTPSERVER_HOSTPORT,
+    HTTPSERVER_PORT,
+    HTTPSERVER_SSL_PORT,
+    HTTPSERVER_SSL_URL,
+    HTTPSERVER_URL,
+)
 
 
 class TestGowitness(ModuleTestBase):
@@ -10,7 +17,7 @@ class TestGowitness(ModuleTestBase):
     import shutil
     from pathlib import Path
 
-    home_dir = Path("/tmp/.bbot_gowitness_test")
+    home_dir = worker_dir("/tmp/.bbot_gowitness_test")
     shutil.rmtree(home_dir, ignore_errors=True)
     config_overrides = {
         "deps": {"behavior": "force_install"},
@@ -139,7 +146,7 @@ class TestGoWitnessLongFilename(TestGowitness):
 class TestGowitness_MultiPort(ModuleTestBase):
     """
     Integration test: two URLs on the same host with different ports
-    (HTTP :8888 and HTTPS :9999) both get correctly correlated screenshots.
+    (one HTTP, one HTTPS) both get correctly correlated screenshots.
     Exercises the real gowitness binary and _resolve_parent tiered lookup.
     """
 
@@ -148,7 +155,7 @@ class TestGowitness_MultiPort(ModuleTestBase):
 
     import shutil
 
-    home_dir = Path("/tmp/.bbot_gowitness_multiport_test")
+    home_dir = worker_dir("/tmp/.bbot_gowitness_multiport_test")
     shutil.rmtree(home_dir, ignore_errors=True)
     config_overrides = {
         "deps": {"behavior": "force_install"},
@@ -157,16 +164,16 @@ class TestGowitness_MultiPort(ModuleTestBase):
     }
 
     async def setup_after_prep(self, module_test):
-        # HTTP server on port 8888
+        # plain HTTP server
         module_test.set_expect_requests(
             respond_args={
-                "response_data": "<html><head><title>Port 8888</title></head><body>Port 8888</body></html>",
+                "response_data": f"<html><head><title>Port {HTTPSERVER_PORT}</title></head><body>Port {HTTPSERVER_PORT}</body></html>",
                 "headers": {"Server": "Apache/2.4.41"},
             },
         )
-        # HTTPS server on port 9999
+        # TLS server
         module_test.httpserver_ssl.expect_request("/").respond_with_data(
-            "<html><head><title>Port 9999</title></head><body>Port 9999</body></html>",
+            f"<html><head><title>Port {HTTPSERVER_SSL_PORT}</title></head><body>Port {HTTPSERVER_SSL_PORT}</body></html>",
             headers={"Server": "nginx/1.18.0"},
         )
 
@@ -175,14 +182,19 @@ class TestGowitness_MultiPort(ModuleTestBase):
         assert len(webscreenshots) >= 2, f"Expected at least 2 WEBSCREENSHOT events, got {len(webscreenshots)}"
 
         screenshot_urls = {e.data["url"] for e in webscreenshots}
-        assert any("8888" in url for url in screenshot_urls), f"No screenshot for port 8888. URLs: {screenshot_urls}"
-        assert any("9999" in url for url in screenshot_urls), f"No screenshot for port 9999. URLs: {screenshot_urls}"
+        http_port, ssl_port = str(HTTPSERVER_PORT), str(HTTPSERVER_SSL_PORT)
+        assert any(http_port in url for url in screenshot_urls), (
+            f"No screenshot for port {http_port}. URLs: {screenshot_urls}"
+        )
+        assert any(ssl_port in url for url in screenshot_urls), (
+            f"No screenshot for port {ssl_port}. URLs: {screenshot_urls}"
+        )
 
         # Verify parent events reference the correct port
         for ws in webscreenshots:
             url = ws.data["url"]
             parent = ws.parent
-            if "8888" in url:
-                assert "8888" in str(parent.data), f"Screenshot for :8888 has wrong parent: {parent.data}"
-            elif "9999" in url:
-                assert "9999" in str(parent.data), f"Screenshot for :9999 has wrong parent: {parent.data}"
+            if http_port in url:
+                assert http_port in str(parent.data), f"Screenshot for :{http_port} has wrong parent: {parent.data}"
+            elif ssl_port in url:
+                assert ssl_port in str(parent.data), f"Screenshot for :{ssl_port} has wrong parent: {parent.data}"
