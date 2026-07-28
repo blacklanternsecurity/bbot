@@ -1,6 +1,6 @@
 import re
 from .base import ModuleTestBase
-from bbot.test.worker import HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_PORT, HTTPSERVER_URL
 
 
 class TestRobots(ModuleTestBase):
@@ -34,7 +34,7 @@ class TestRobots(ModuleTestBase):
                 if e.url == f"{HTTPSERVER_URL}/sitemap.txt":
                     sitemap_bool = True
 
-                if re.match(r"http://127\.0\.0\.1:8888/\w+/wildcard\.txt", e.url):
+                if re.match(rf"http://127\.0\.0\.1:{HTTPSERVER_PORT}/\w+/wildcard\.txt", e.url):
                     wildcard_bool = True
 
         assert allow_bool
