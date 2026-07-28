@@ -11,7 +11,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          # Anything that is not documentation. Listing what counts as docs and
+          # negating it means a new top-level directory runs the suite by
+          # default, rather than being silently skipped.
+          filters: |
+            code:
+              - '!(docs/**|**/*.md|mkdocs.yml|LICENSE|.gitignore)'
+
   test:
+    needs: changes
+    # Skipped jobs report success to required status checks, where a job that
+    # never runs at all reports nothing and blocks the PR forever. The matrix
+    # contexts here are required, so this has to be a job-level `if`, not a
+    # workflow-level `paths-ignore`.
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     strategy:
       # if one python version fails, let the others finish
@@ -54,7 +76,13 @@ jobs:
   publish_code:
     needs: test
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stable')
+    # !failure() && !cancelled() rather than success(): `test` is skipped on a
+    # docs-only push, and a skipped dependency would otherwise take the publish
+    # down with it.
+    if: |
+      !failure() && !cancelled()
+      && github.event_name == 'push'
+      && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stable')
     continue-on-error: true
     steps:
       - uses: actions/checkout@v7
