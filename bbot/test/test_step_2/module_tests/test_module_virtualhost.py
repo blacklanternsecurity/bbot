@@ -525,7 +525,7 @@ class TestVirtualhostForceBasehost(VirtualhostTestBase):
             return Response("baseline response from IP", status=200)
 
         # Wildcard canary check
-        if re.match(r"[0-9]27\.0\.0\.1:8888", host_header):
+        if re.match(r"[0-9]27\.0\.0\.1:" + str(HTTPSERVER_PORT), host_header):
             return Response("wildcard canary response", status=404)
 
         # Subdomain canary (12 random chars + .forced.domain)
