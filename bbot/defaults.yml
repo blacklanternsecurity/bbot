@@ -47,6 +47,8 @@ dns:
   disable: false
   # Speed up scan by not creating any new DNS events, and only resolving A and AAAA records
   minimal: false
+  # Nameservers to use instead of the system ones (empty = use system resolvers)
+  nameservers: []
   # How many queries to keep in flight per resolver (best way to increase speed is to put more resolvers in /etc/resolv.conf)
   threads: 10
   # How many DNS records to cache

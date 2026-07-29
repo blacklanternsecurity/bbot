@@ -902,11 +902,36 @@ async def test_dns_helpers(bbot_scanner):
     # all_rdtypes is the canonical list -- make sure it's not empty and contains the basics
     assert "A" in all_rdtypes and "AAAA" in all_rdtypes and "CNAME" in all_rdtypes
 
-    # make sure system nameservers are excluded from use by DNS brute force
+    # make sure the resolvers used for normal resolution are excluded from brute-forcing
     brute_nameservers = tempwordlist(["1.2.3.4", "8.8.4.4", "4.3.2.1", "8.8.8.8"])
     scan = bbot_scanner(config={"dns": {"brute_nameservers": brute_nameservers}})
     await scan._prep()
-    scan.helpers.dns.system_resolvers = ["8.8.8.8", "8.8.4.4"]
+    scan.helpers.dns.resolvers = ["8.8.8.8", "8.8.4.4"]
     resolver_file = await scan.helpers.dns.brute.resolver_file()
     resolvers = set(scan.helpers.read_file(resolver_file))
     assert resolvers == {"1.2.3.4", "4.3.2.1"}
+
+    # custom nameservers replace the system ones, and are likewise kept out of
+    # the brute-force pool so brute traffic can't rate-limit our own queries
+    scan = bbot_scanner(
+        config={"dns": {"nameservers": ["8.8.8.8", "8.8.4.4"], "brute_nameservers": brute_nameservers}}
+    )
+    await scan._prep()
+    assert scan.helpers.dns.resolvers == ["8.8.8.8", "8.8.4.4"]
+    assert scan.helpers.dns.blastdns.resolvers == ["8.8.8.8:53", "8.8.4.4:53"]
+    # resolver_file is what external tools (e.g. nuclei) are pointed at
+    assert set(scan.helpers.read_file(scan.helpers.dns.resolver_file)) == {"8.8.8.8", "8.8.4.4"}
+    resolver_file = await scan.helpers.dns.brute.resolver_file()
+    assert set(scan.helpers.read_file(resolver_file)) == {"1.2.3.4", "4.3.2.1"}
+
+    # with no custom nameservers, the system ones are used
+    scan = bbot_scanner()
+    await scan._prep()
+    assert scan.helpers.dns.resolvers == list(scan.helpers.dns.system_resolvers)
+
+    # An unusable nameserver fails loudly instead of being silently ignored.
+    # Validation is blastdns's, so it happens when the client is built on first
+    # DNS use rather than at config-parse time.
+    scan = bbot_scanner(config={"dns": {"nameservers": ["not-an-ip"]}})
+    with pytest.raises(ValidationError, match="dns.nameservers"):
+        _ = scan.helpers.dns.resolvers

@@ -10,6 +10,7 @@ from blastdns import Client, ClientConfig, DNSError, DNSResult, MockClient, get_
 from blastdns.exceptions import BlastDNSError
 
 from bbot.core.helpers.async_helpers import NamedLock, async_cachedmethod
+from bbot.errors import ValidationError
 from .helpers import all_rdtypes, extract_targets, record_to_text
 from ..misc import clean_dns_record, domain_parents, is_dns_name, is_domain, is_ip, parent_domain, rand_string
 
@@ -50,22 +51,36 @@ class DNSHelper:
         # how many consecutive DNS resolution hops we allow before tagging an event as runaway
         self.runaway_limit = self.dns_config.get("runaway_limit", 5)
 
-        # blastdns client
+        # resolvers: operator-supplied nameservers replace the OS ones entirely.
+        # system_resolvers keeps meaning "what the OS reported"; self.resolvers is
+        # what we actually query.
         self.system_resolvers = get_system_resolvers()
+        custom_nameservers = self.dns_config.get("nameservers", None) or []
+        if custom_nameservers:
+            self.resolvers = list(custom_nameservers)
+            self.log.info(f"Using {len(self.resolvers):,} custom nameserver(s) instead of system resolvers")
+        else:
+            self.resolvers = list(self.system_resolvers)
+
         self.log.debug(
             f"Starting BlastDNS client with {self.threads} queries in flight per resolver, "
             f"{self.retries} retries, {self.cache_size} cache size, "
             f"and {self.timeout} second timeout"
         )
-        self.blastdns = Client(
-            self.system_resolvers,
-            ClientConfig(
-                request_timeout_ms=self.timeout * 1000,
-                max_retries=self.retries,
-                max_inflight_per_resolver=self.threads,
-                cache_capacity=self.cache_size,
-            ),
-        )
+        try:
+            self.blastdns = Client(
+                self.resolvers,
+                ClientConfig(
+                    request_timeout_ms=self.timeout * 1000,
+                    max_retries=self.retries,
+                    max_inflight_per_resolver=self.threads,
+                    cache_capacity=self.cache_size,
+                ),
+            )
+        except BlastDNSError as e:
+            # blastdns validates resolver addresses; surface which setting is at fault
+            source = "dns.nameservers" if custom_nameservers else "system resolvers"
+            raise ValidationError(f"Error in {source}: {e}") from e
 
         # parse dns.omit_queries (e.g. "A:internal.bad.com") into {rdtype: {host, ...}}
         self.dns_omit_queries = {}
@@ -91,8 +106,8 @@ class DNSHelper:
         self._last_dns_success = None
         self._last_connectivity_warning = time.time()
 
-        # copy the system's current resolvers to a text file for tool use
-        self.resolver_file = self.parent_helper.tempfile(self.system_resolvers, pipe=False)
+        # copy the resolvers we're using to a text file for tool use
+        self.resolver_file = self.parent_helper.tempfile(self.resolvers, pipe=False)
 
         # brute force helper
         self._brute = None

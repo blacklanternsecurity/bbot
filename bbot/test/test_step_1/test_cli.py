@@ -828,6 +828,14 @@ config:
     stdout_preset.pop("description")
     assert stdout_preset == {"config": {"web": {"http_proxy": "http://127.0.0.1:8080"}}}
 
+    # --custom-nameserver
+    monkeypatch.setattr("sys.argv", ["bbot", "--custom-nameserver", "1.1.1.1", "8.8.8.8:53", "--current-preset"])
+    cli.main()
+    captured = capsys.readouterr()
+    stdout_preset = yaml.safe_load(captured.out)
+    stdout_preset.pop("description")
+    assert stdout_preset == {"config": {"dns": {"nameservers": ["1.1.1.1", "8.8.8.8:53"]}}}
+
     # cli config overrides all presets
     monkeypatch.setattr(
         "sys.argv",

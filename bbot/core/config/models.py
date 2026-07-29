@@ -244,6 +244,7 @@ class DnsConfig(BaseModel):
 
     disable: Optional[bool] = None
     minimal: Optional[bool] = None
+    nameservers: Optional[list[str]] = None
     threads: Optional[int] = None
     cache_size: Optional[int] = None
     brute_concurrency: Optional[int] = None
