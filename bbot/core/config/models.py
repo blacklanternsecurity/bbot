@@ -246,7 +246,9 @@ class DnsConfig(BaseModel):
     minimal: Optional[bool] = None
     threads: Optional[int] = None
     cache_size: Optional[int] = None
-    brute_threads: Optional[int] = None
+    brute_concurrency: Optional[int] = None
+    brute_inflight_per_resolver: Optional[int] = None
+    brute_rate_limit: Optional[float] = None
     brute_nameservers: Optional[str] = None
     search_distance: Optional[int] = None
     runaway_limit: Optional[int] = None

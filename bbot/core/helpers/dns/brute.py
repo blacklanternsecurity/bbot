@@ -1,18 +1,22 @@
-import json
 import random
 import asyncio
 import logging
-import subprocess
+
+from blastdns import Client, ClientConfig, DNSError
 
 
 class DNSBrute:
     """
     Helper for DNS brute-forcing.
 
+    Uses its own blastdns client, separate from the one backing normal
+    resolution: brute-forcing runs against a large public resolver list rather
+    than the system resolvers, and needs its own concurrency and rate limits.
+
     Examples:
     >>> domain = "evilcorp.com"
     >>> subdomains = ["www", "mail"]
-    >>> results = await self.helpers.dns.brute(self, domain, subdomains)
+    >>> results = await self.helpers.dns.brute(domain, subdomains)
     """
 
     _nameservers_url = (
@@ -24,11 +28,15 @@ class DNSBrute:
         self.log = logging.getLogger("bbot.helper.dns.brute")
         self.dns_config = self.parent_helper.config.get("dns", {})
         self.num_canaries = 100
-        self.max_resolvers = self.dns_config.get("brute_threads", 1000)
+        self.concurrency = self.dns_config.get("brute_concurrency", 1000)
+        self.inflight_per_resolver = self.dns_config.get("brute_inflight_per_resolver", 2)
+        self.rate_limit = self.dns_config.get("brute_rate_limit", 0)
         self.nameservers_url = self.dns_config.get("brute_nameservers", self._nameservers_url)
         self.devops_mutations = list(self.parent_helper.word_cloud.devops_mutations)
         self.digit_regex = self.parent_helper.re.compile(r"\d+")
         self._resolver_file = None
+        self._client = None
+        self._client_lock = None
         self._dnsbrute_lock = None
 
     async def __call__(self, *args, **kwargs):
@@ -40,7 +48,42 @@ class DNSBrute:
             self._dnsbrute_lock = asyncio.Lock()
         return self._dnsbrute_lock
 
-    async def dnsbrute(self, module, domain, subdomains, type=None):
+    @property
+    def client_lock(self):
+        if self._client_lock is None:
+            self._client_lock = asyncio.Lock()
+        return self._client_lock
+
+    async def client(self):
+        """The blastdns client used for brute-forcing, built on first use.
+
+        Construction is deferred because the resolver list has to be downloaded
+        first, and blastdns takes its resolvers at construction time.
+        """
+        async with self.client_lock:
+            if self._client is None:
+                resolver_file = await self.resolver_file()
+                resolvers = list(self.parent_helper.read_file(resolver_file))
+                self.log.verbose(f"Starting brute-force DNS client with {len(resolvers):,} resolvers")
+                self._client = Client(
+                    resolvers,
+                    ClientConfig(
+                        max_concurrency=self.concurrency,
+                        max_inflight_per_resolver=self.inflight_per_resolver,
+                        rate_limit=self.rate_limit or None,
+                        # A public resolver list carries a lot of dead entries;
+                        # drop them up front instead of paying for them all scan.
+                        resolver_probe=True,
+                        # Brute-force queries are unique by construction, so a
+                        # cache would only consume memory.
+                        cache_capacity=0,
+                        request_timeout_ms=self.parent_helper.dns.timeout * 1000,
+                        max_retries=self.parent_helper.dns.retries,
+                    ),
+                )
+            return self._client
+
+    async def dnsbrute(self, domain, subdomains, type=None):
         subdomains = list(subdomains)
 
         if type is None:
@@ -53,7 +96,7 @@ class DNSBrute:
             wildcard_rdtypes.update(rdtypes)
         if wildcard_domains:
             self.log.hugewarning(
-                f"Aborting massdns on {domain} because it's a wildcard domain ({','.join(sorted(wildcard_rdtypes))})"
+                f"Aborting brute-force of {domain} because it's a wildcard domain ({','.join(sorted(wildcard_rdtypes))})"
             )
             return []
 
@@ -66,7 +109,7 @@ class DNSBrute:
 
         results = []
         canaries_triggered = []
-        async for hostname, ip, rdtype in self._massdns(module, domain, subdomains, rdtype=type):
+        async for hostname in self._resolve_subdomains(domain, subdomains, rdtype=type):
             sub = hostname.split(domain)[0].rstrip(".")
             if sub in canary_set:
                 canaries_triggered.append(sub)
@@ -75,77 +118,64 @@ class DNSBrute:
 
         if len(canaries_triggered) > 5:
             self.log.info(
-                f"Aborting massdns on {domain} due to false positive: ({len(canaries_triggered):,} canaries triggered - {','.join(canaries_triggered)})"
+                f"Aborting brute-force of {domain} due to false positive: ({len(canaries_triggered):,} canaries triggered - {','.join(canaries_triggered)})"
             )
             return []
 
         # everything checks out
         return results
 
-    async def _massdns(self, module, domain, subdomains, rdtype):
-        """
-        {
-            "name": "www.blacklanternsecurity.com.",
-            "type": "A",
-            "class": "IN",
-            "status": "NOERROR",
-            "data": {
-            "answers": [
-                {
-                "ttl": 3600,
-                "type": "CNAME",
-                "class": "IN",
-                "name": "www.blacklanternsecurity.com.",
-                "data": "blacklanternsecurity.github.io."
-                },
-                {
-                "ttl": 3600,
-                "type": "A",
-                "class": "IN",
-                "name": "blacklanternsecurity.github.io.",
-                "data": "185.199.108.153"
-                }
-            ]
-            },
-            "resolver": "168.215.165.186:53"
-        }
-        """
-        resolver_file = await self.resolver_file()
-        command = (
-            "massdns",
-            "-r",
-            resolver_file,
-            "-s",
-            self.max_resolvers,
-            "-t",
-            rdtype,
-            "-o",
-            "J",
-            "-q",
-        )
-        subdomains = self.gen_subdomains(subdomains, domain)
-        hosts_yielded = set()
-        async with self.dnsbrute_lock:
-            async for line in module.run_process_live(*command, stderr=subprocess.DEVNULL, input=subdomains):
-                try:
-                    j = json.loads(line)
-                except json.decoder.JSONDecodeError:
-                    self.log.debug(f"Failed to decode line: {line}")
-                    continue
-                answers = j.get("data", {}).get("answers", [])
-                if type(answers) == list and len(answers) > 0:
-                    answer = answers[0]
-                    hostname = answer.get("name", "").strip(".").lower()
-                    if hostname.endswith(f".{domain}"):
-                        data = answer.get("data", "")
-                        rdtype = answer.get("type", "").upper()
-                        if data and rdtype:
-                            hostname_hash = hash(hostname)
-                            if hostname_hash not in hosts_yielded:
-                                hosts_yielded.add(hostname_hash)
-                                yield hostname, data, rdtype
+    async def _resolve_subdomains(self, domain, subdomains, rdtype):
+        """Resolve each candidate under ``domain``, yielding the ones that exist.
 
-    async def gen_subdomains(self, prefixes, domain):
+        Uses ``resolve_batch_full`` rather than ``resolve_batch`` so failures stay
+        visible: a query that ran out of retries is a silently missed subdomain,
+        which is the one error brute-forcing must not hide.
+        """
+        client = await self.client()
+        queries = self.gen_subdomains(subdomains, domain)
+        suffix = f".{domain}"
+        hosts_yielded = set()
+        answered = 0
+        empty = 0
+        failed = 0
+
+        async with self.dnsbrute_lock:
+            async for host, result in client.resolve_batch_full(queries, rdtype):
+                if isinstance(result, DNSError):
+                    failed += 1
+                    continue
+                if not result.response.answers:
+                    empty += 1
+                    continue
+                answered += 1
+
+                # A CNAME can point anywhere; only names under the domain we
+                # asked about are subdomains of it.
+                hostname = host.strip(".").lower()
+                if not hostname.endswith(suffix) or hostname in hosts_yielded:
+                    continue
+                hosts_yielded.add(hostname)
+                yield hostname
+
+        self._log_delivery(domain, answered, empty, failed)
+
+    def _log_delivery(self, domain, answered, empty, failed):
+        """Report how much of the wordlist actually got an answer.
+
+        A run that silently drops queries looks identical to one that found
+        nothing, so unanswered queries are worth surfacing.
+        """
+        total = answered + empty + failed
+        if not total:
+            return
+        message = f"Brute-force of {domain}: {answered:,} resolved, {empty:,} no record, {failed:,} unanswered"
+        if failed / total > 0.05:
+            self.log.warning(f"{message} ({failed / total:.0%} unanswered, results may be incomplete)")
+        else:
+            self.log.verbose(message)
+
+    def gen_subdomains(self, prefixes, domain):
         for p in prefixes:
             if domain:
                 p = f"{p}.{domain}"

@@ -53,7 +53,7 @@ class DNSHelper:
         # blastdns client
         self.system_resolvers = get_system_resolvers()
         self.log.debug(
-            f"Starting BlastDNS client with {self.threads} threads per resolver, "
+            f"Starting BlastDNS client with {self.threads} queries in flight per resolver, "
             f"{self.retries} retries, {self.cache_size} cache size, "
             f"and {self.timeout} second timeout"
         )
@@ -62,7 +62,7 @@ class DNSHelper:
             ClientConfig(
                 request_timeout_ms=self.timeout * 1000,
                 max_retries=self.retries,
-                threads_per_resolver=self.threads,
+                max_inflight_per_resolver=self.threads,
                 cache_capacity=self.cache_size,
             ),
         )
@@ -430,10 +430,18 @@ class DNSHelper:
         return self._brute
 
     async def _mock_dns(self, mock_data):
-        """Swap the underlying client for a ``MockClient`` configured with ``mock_data``."""
+        """Swap the underlying clients for ``MockClient``s configured with ``mock_data``.
+
+        The brute-force helper has its own client, so it has to be mocked too or
+        brute-forcing modules would reach the network during tests.
+        """
         mock_client = MockClient()
         mock_client.mock_dns(mock_data)
         self.blastdns = mock_client
+
+        brute_mock = MockClient()
+        brute_mock.mock_dns(mock_data)
+        self.brute._client = brute_mock
 
     @staticmethod
     def _empty_result(host=""):
