@@ -140,7 +140,10 @@ class DNSBrute:
         empty = 0
         failed = 0
 
+        # Runs are serialized by dnsbrute_lock, so a stats snapshot taken here
+        # describes this run and no other.
         async with self.dnsbrute_lock:
+            before = {s.resolver: s for s in client.stats()}
             async for host, result in client.resolve_batch_full(queries, rdtype):
                 if isinstance(result, DNSError):
                     failed += 1
@@ -157,23 +160,40 @@ class DNSBrute:
                     continue
                 hosts_yielded.add(hostname)
                 yield hostname
+            after = client.stats()
 
-        self._log_delivery(domain, answered, empty, failed)
+        self._log_delivery(domain, answered, empty, failed, before, after)
 
-    def _log_delivery(self, domain, answered, empty, failed):
+    def _log_delivery(self, domain, answered, empty, failed, before, after):
         """Report how much of the wordlist actually got an answer.
 
         A run that silently drops queries looks identical to one that found
-        nothing, so unanswered queries are worth surfacing.
+        nothing, so unanswered queries are worth surfacing. When a meaningful
+        share went unanswered, also report the resolver-side picture, since
+        otherwise there's no way to tell rate-limiting apart from backoff.
         """
         total = answered + empty + failed
         if not total:
             return
         message = f"Brute-force of {domain}: {answered:,} resolved, {empty:,} no record, {failed:,} unanswered"
-        if failed / total > 0.05:
-            self.log.warning(f"{message} ({failed / total:.0%} unanswered, results may be incomplete)")
-        else:
+        if failed / total <= 0.05:
             self.log.verbose(message)
+            return
+
+        used = 0
+        timeouts = 0
+        paced = 0
+        for stats in after:
+            previous = before.get(stats.resolver)
+            if stats.attempted - (previous.attempted if previous else 0):
+                used += 1
+            timeouts += stats.timeout - (previous.timeout if previous else 0)
+            if stats.rate_qps is not None:
+                paced += 1
+        self.log.warning(
+            f"{message} ({failed / total:.0%} unanswered, results may be incomplete). "
+            f"{used:,} resolvers used, {paced:,} throttled by backoff, {timeouts:,} timeouts"
+        )
 
     def gen_subdomains(self, prefixes, domain):
         for p in prefixes:
