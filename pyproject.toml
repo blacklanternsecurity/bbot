@@ -49,7 +49,7 @@ dependencies = [
     "tldextract>=5.3.0,<6",
     "cloudcheck>=11.1.0,<12",
     "blasthttp>=0.9.0",
-    "blastdns>=1.9.0,<2",
+    "blastdns>=2.0.0,<3",
     "zstandard>=0.22,<1",
 ]
 
