@@ -107,13 +107,16 @@ dns:
   disable: false
   # Speed up scan by not creating any new DNS events, and only resolving A and AAAA records
   minimal: false
-  # How many threads to use per resolver (best way to increase speed is to put more resolvers in /etc/resolv.conf)
+  # How many queries to keep in flight per resolver (best way to increase speed is to put more resolvers in /etc/resolv.conf)
   threads: 10
   # How many DNS records to cache
   cache_size: 100000
-  # How many concurrent DNS resolvers to use when brute-forcing
-  # (under the hood this is passed through directly to massdns -s)
-  brute_threads: 1000
+  # How many queries to keep in flight in total when brute-forcing
+  brute_concurrency: 1000
+  # How many brute-force queries to keep in flight per resolver (the politeness bound)
+  brute_inflight_per_resolver: 2
+  # Hard ceiling on brute-force DNS queries per second (0 = unlimited; backoff is automatic regardless)
+  brute_rate_limit: 0
   # nameservers to use for DNS brute-forcing
   # default is updated weekly and contains ~10K high-quality public servers
   brute_nameservers: https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt

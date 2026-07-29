@@ -9,7 +9,7 @@ class dnsbrute_mutations(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     meta = {
-        "description": "Brute-force subdomains with massdns + target-specific mutations",
+        "description": "Brute-force subdomains with target-specific mutations",
         "author": "@TheTechromancer",
         "created_date": "2024-04-25",
     }
@@ -17,7 +17,6 @@ class dnsbrute_mutations(BaseModule):
     class Config(BaseModuleConfig):
         max_mutations: int = Field(100, description="Maximum number of target-specific mutations to try per subdomain")
 
-    deps_common = ["massdns"]
     _qsize = 10000
 
     async def setup(self):

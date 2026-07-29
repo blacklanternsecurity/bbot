@@ -38,16 +38,20 @@ bbot -t evilcorp.com -m baddns -c modules.baddns.module_threads=20
 
 ### Boost DNS Brute-force Speed
 
-If you have a fast internet connection or are running BBOT from a cloud VM, you can speed up subdomain enumeration by cranking the threads for `massdns`. The default is `1000`, which is about 1MB/s of DNS traffic:
+If you have a fast internet connection or are running BBOT from a cloud VM, you can speed up subdomain enumeration by raising how many brute-force queries stay in flight. The default is `1000`, which is roughly 1MB/s of DNS traffic:
 
 ```bash
-# massdns with 5000 resolvers, about 5MB/s
-bbot -t evilcorp.com -f subdomain-enum -c dns.brute_threads=5000
+# about 5MB/s
+bbot -t evilcorp.com -f subdomain-enum -c dns.brute_concurrency=5000
 ```
+
+Brute-forcing backs off on its own when resolvers start dropping queries, so raising this sets how fast BBOT will go when the resolvers can keep up, not how hard it will push regardless. If you need a firm ceiling as well, set `dns.brute_rate_limit` (queries per second, `0` for unlimited).
+
+To be gentler on individual resolvers rather than faster, lower `dns.brute_inflight_per_resolver` (default `2`). No resolver ever receives more than this at once, however large the resolver list.
 
 ### Speed Up Scans with More DNS Resolvers
 
-By far the most effective way to speed up a BBOT scan is to **add more resolvers to `/etc/resolv.conf`**. BBOT's DNS resolver (blastdns) spins up multiple threads per resolver (default: `10`, configurable via `dns.threads`), so more resolvers = more parallelism = faster scans.
+By far the most effective way to speed up a BBOT scan is to **add more resolvers to `/etc/resolv.conf`**. BBOT's DNS resolver (blastdns) keeps multiple queries in flight per resolver (default: `10`, configurable via `dns.threads`), so more resolvers = more parallelism = faster scans.
 
 For OSINT, it's critical that every resolver is **unfiltered**. Specialized resolvers that try to block ads, malicious domains, etc. will intentionally omit results. Below is a sample `/etc/resolv.conf` with 11 unfiltered public resolvers:
 
