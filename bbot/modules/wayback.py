@@ -5,6 +5,7 @@ from datetime import datetime
 from urllib.parse import parse_qs, urlparse, urlunparse
 
 import orjson
+from cachetools import LRUCache
 
 from bbot.core.helpers.misc import get_file_extension
 from bbot.core.helpers.validators import clean_url
@@ -158,6 +159,47 @@ rule akamai_bot_manager_url
         kept = [url for idx, url in enumerate(candidates) if idx not in junk_set]
         return kept, len(junk_set)
 
+    # HTTP liveness probing for hosts found in CDX results. A dead host's URLs are dropped
+    # instead of being emitted for the rest of the scan to chase.
+    # 40K (scheme, netloc) -> bool entries measures out to roughly 10MB.
+    _liveness_cache_size = 40000
+    _liveness_probe_threads = 25
+    # one retry, so a single dropped packet doesn't condemn a live host
+    _liveness_probe_retries = 1
+
+    async def _live_netlocs(self, keys):
+        """Return the subset of (scheme, netloc) keys that answer HTTP.
+
+        Any response counts as alive -- only connect failures and timeouts (after retries)
+        mark a host dead. Verdicts are cached for the rest of the scan.
+        """
+        live = set()
+        probes = []
+        probe_kwargs = {
+            "method": "HEAD",
+            "follow_redirects": False,
+            "retries": self._liveness_probe_retries,
+            "timeout": self.http_timeout,
+        }
+        for key in keys:
+            cached = self._liveness_cache.get(key)
+            if cached is not None:
+                if cached:
+                    live.add(key)
+                continue
+            scheme, netloc = key
+            probes.append((f"{scheme}://{netloc}/", probe_kwargs, key))
+        if probes:
+            self.verbose(f"Probing {len(probes):,} hosts for HTTP liveness")
+            async for _, response, key in self.helpers.request_batch_stream(
+                probes, threads=self._liveness_probe_threads
+            ):
+                is_live = response is not None
+                self._liveness_cache[key] = is_live
+                if is_live:
+                    live.add(key)
+        return live
+
     def _is_interesting_file(self, url):
         ext = get_file_extension(url)
         if ext and ext.lower() in self.interesting_extensions:
@@ -192,6 +234,7 @@ rule akamai_bot_manager_url
         # (multiple request URLs can redirect to the same archived snapshot)
         # 32M bits (~4MB) supports ~400K entries with negligible false-positive rate
         self._archive_bloom = self.helpers.bloom_filter(32000000)
+        self._liveness_cache = LRUCache(maxsize=self._liveness_cache_size)
         self._junk_url_rules = self.helpers.yara.compile(source="\n".join(self._junk_url_yara_rules.values()))
         return await super().setup()
 
@@ -490,14 +533,24 @@ rule akamai_bot_manager_url
                 https_key = parsed_url._replace(scheme="https").geturl()
                 if https_key not in url_dedup or parsed_url.scheme == "https":
                     url_dedup[https_key] = parsed_url
+            # only emit URLs for hosts that actually answer HTTP -- a dead host's URLs
+            # are pure cost for every downstream module
+            live_netlocs = await self._live_netlocs({(p.scheme, p.netloc) for p in url_dedup.values()})
+            dead_urls = 0
             for parsed_url in url_dedup.values():
                 url_str = parsed_url.geturl()
+                # dead hosts are exactly what the archive is for, so they still get cached for finish()
+                if self.archive and url_str in archive_urls:
+                    self._archive_cache[url_str] = archive_urls[url_str]
+                if (parsed_url.scheme, parsed_url.netloc) not in live_netlocs:
+                    dead_urls += 1
+                    continue
                 results.add((url_str, "URL_UNVERIFIED"))
                 if self.parameters and url_str in raw_url_params:
                     base_url = urlunparse((parsed_url.scheme, parsed_url.netloc, parsed_url.path, "", "", ""))
                     self._parameter_cache[url_str] = (raw_url_params[url_str], base_url)
-                if self.archive and url_str in archive_urls:
-                    self._archive_cache[url_str] = archive_urls[url_str]
+            if dead_urls:
+                self.verbose(f"Dropped {dead_urls:,} URLs belonging to hosts that don't answer HTTP")
         else:
             for parsed_url in parsed_urls:
                 collapsed_urls += 1
