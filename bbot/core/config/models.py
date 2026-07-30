@@ -250,6 +250,7 @@ class DnsConfig(BaseModel):
     brute_concurrency: Optional[int] = None
     brute_inflight_per_resolver: Optional[int] = None
     brute_rate_limit: Optional[float] = None
+    brute_retries: Optional[int] = None
     brute_nameservers: Optional[str] = None
     search_distance: Optional[int] = None
     runaway_limit: Optional[int] = None

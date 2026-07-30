@@ -59,6 +59,9 @@ dns:
   brute_inflight_per_resolver: 2
   # Hard ceiling on brute-force DNS queries per second (0 = unlimited; backoff is automatic regardless)
   brute_rate_limit: 0
+  # Attempts per brute-force name before giving up (each retry lands on a different resolver)
+  # Only timeouts retry, not NXDOMAIN, so this costs traffic proportional to the failure rate
+  brute_retries: 20
   # nameservers to use for DNS brute-forcing
   # default is updated weekly and contains ~10K high-quality public servers
   brute_nameservers: https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt

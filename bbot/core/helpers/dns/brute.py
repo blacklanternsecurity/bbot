@@ -31,6 +31,7 @@ class DNSBrute:
         self.concurrency = self.dns_config.get("brute_concurrency", 1000)
         self.inflight_per_resolver = self.dns_config.get("brute_inflight_per_resolver", 2)
         self.rate_limit = self.dns_config.get("brute_rate_limit", 0)
+        self.retries = self.dns_config.get("brute_retries", 20)
         self.nameservers_url = self.dns_config.get("brute_nameservers", self._nameservers_url)
         self.devops_mutations = list(self.parent_helper.word_cloud.devops_mutations)
         self.digit_regex = self.parent_helper.re.compile(r"\d+")
@@ -78,7 +79,7 @@ class DNSBrute:
                         # cache would only consume memory.
                         cache_capacity=0,
                         request_timeout_ms=self.parent_helper.dns.timeout * 1000,
-                        max_retries=self.parent_helper.dns.retries,
+                        max_retries=self.retries,
                     ),
                 )
             return self._client
