@@ -1028,6 +1028,75 @@ async def test_event_web_spider_distance(bbot_scanner):
 
 
 @pytest.mark.asyncio
+async def test_event_archived_provenance():
+    """A finding whose evidence is an archived snapshot renders with an [ARCHIVED] marker, so the
+    severity is never read as a claim about the live host."""
+    scan = Scanner()
+    await scan._prep()
+    archived_response = scan.make_event(
+        {
+            "method": "GET",
+            "url": "http://www.evilcorp.com/asdf",
+            "hash": {"header_mmh3": "1", "body_mmh3": "2"},
+            "raw_header": "HTTP/1.1 200 OK\r\n\r\n",
+            "archive_url": "http://web.archive.org/web/20190101000000/http://www.evilcorp.com/asdf",
+        },
+        "HTTP_RESPONSE",
+        parent=scan.root_event,
+        tags=["from-wayback", "archived"],
+    )
+
+    finding = scan.make_event(
+        {
+            "host": "www.evilcorp.com",
+            "description": "test",
+            "severity": "HIGH",
+            "confidence": "HIGH",
+            "name": "Test Finding",
+        },
+        "FINDING",
+        parent=archived_response,
+    )
+    archive_url = "http://web.archive.org/web/20190101000000/http://www.evilcorp.com/asdf"
+    assert finding.archive_url == archive_url
+    assert finding.pretty_string.startswith("[ARCHIVED] Severity: [HIGH]")
+    # output.txt / stdout render data_human, which carries the snapshot URL itself
+    assert finding.data_human.startswith("Severity: [HIGH]")
+    assert finding.data_human.endswith(f"(archived: {archive_url})")
+    # output.json serializes json(), and the snapshot URL must not become part of the finding's identity
+    assert finding.json()["archive_url"] == archive_url
+    assert "archive_url" not in finding.json()["data_json"]
+
+    live_response = scan.make_event(
+        {
+            "method": "GET",
+            "url": "http://www.evilcorp.com/qwerty",
+            "hash": {"header_mmh3": "3", "body_mmh3": "4"},
+            "raw_header": "HTTP/1.1 200 OK\r\n\r\n",
+        },
+        "HTTP_RESPONSE",
+        parent=scan.root_event,
+    )
+    live_finding = scan.make_event(
+        {
+            "host": "www.evilcorp.com",
+            "description": "test",
+            "severity": "HIGH",
+            "confidence": "HIGH",
+            "name": "Live Finding",
+        },
+        "FINDING",
+        parent=live_response,
+    )
+    assert live_finding.archive_url is None
+    assert live_finding.pretty_string.startswith("Severity: [HIGH]")
+    assert live_finding.data_human.startswith("Severity: [HIGH]")
+    assert "archive_url" not in live_finding.json()
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
 async def test_event_closest_host():
     scan = Scanner()
     await scan._prep()

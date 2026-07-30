@@ -133,6 +133,17 @@ class TestWaybackArchive(ModuleTestBase):
                 assert "web.archive.org" not in e.data["url"], (
                     f"FINDING url should NOT be an archive.org URL, got: {e.data['url']}"
                 )
+                # the evidence is a snapshot, not the live host, and that has to be visible
+                # without reading discovery_path
+                assert e.archive_url, f"FINDING from archived content has no archive_url: {e.tags}"
+                assert e.pretty_string.startswith("[ARCHIVED] "), (
+                    f"FINDING from archived content is not marked as archived: {e.pretty_string}"
+                )
+                # the snapshot URL has to survive into output.txt and output.json
+                assert e.data_human.endswith(f"(archived: {e.archive_url})"), (
+                    f"output.txt is missing the archive URL: {e.data_human}"
+                )
+                assert e.json()["archive_url"] == e.archive_url
         # web.archive.org should NOT appear as a DNS_NAME event
         assert not any(e.type == "DNS_NAME" and e.data == "web.archive.org" for e in events), (
             "web.archive.org should not leak as a DNS_NAME event"
