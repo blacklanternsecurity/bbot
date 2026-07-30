@@ -558,6 +558,28 @@ class TestDockerPullRealmValidation(ModuleTestBase):
         assert "test_token_value" not in auth_header, "Module followed a non-HTTPS realm"
 
 
+class TestDockerPullRequestFailure(ModuleTestBase):
+    modules_overrides = ["docker_pull"]
+
+    async def setup_after_prep(self, module_test):
+        m = module_test.scan.modules["docker_pull"]
+        # no mock is registered for this URL, so the request fails and returns None
+        try:
+            self.result = await m.docker_api_request("https://registry-1.docker.io/v2/nonexistent/tags/list")
+        except Exception as e:
+            self.result = f"error: {e}"
+        # a failed request must not prevent the higher-level helpers from returning sane defaults
+        self.tags = await m.get_tags("https://registry-1.docker.io", "nonexistent")
+        self.manifest = await m.get_manifest("https://registry-1.docker.io", "nonexistent", "latest")
+        self.blob = await m.download_blob("https://registry-1.docker.io", "nonexistent", "sha256:deadbeef")
+
+    def check(self, module_test, events):
+        assert self.result is None, f"expected None when the request fails, got {self.result!r}"
+        assert self.tags == ["latest"]
+        assert self.manifest == {}
+        assert self.blob is None
+
+
 class TestDockerPullPathTraversal(ModuleTestBase):
     modules_overrides = ["docker_pull"]
     config_overrides = {"modules": {"docker_pull": {"output_folder": str(bbot_test_dir / "test_docker_traversal")}}}
