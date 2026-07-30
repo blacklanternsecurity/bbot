@@ -122,6 +122,10 @@ dns:
   # Attempts per brute-force name before giving up (each retry lands on a different resolver)
   # Only timeouts retry, not NXDOMAIN, so this costs traffic proportional to the failure rate
   brute_retries: 20
+  # Per-query timeout in seconds when brute-forcing. Deliberately much shorter than
+  # dns.timeout: a public resolver that hasn't answered by now won't, and retrying
+  # elsewhere is cheaper than waiting.
+  brute_timeout: 1
   # nameservers to use for DNS brute-forcing
   # default is updated weekly and contains ~10K high-quality public servers
   brute_nameservers: https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt
