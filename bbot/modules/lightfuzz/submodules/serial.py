@@ -207,6 +207,29 @@ class serial(BaseLightfuzz):
         """Extract the language family from a payload name (e.g. 'java_base64_string_error' -> 'java')."""
         return payload_name.split("_")[0]
 
+    @staticmethod
+    def corrupt_payload(payload, encoding):
+        """Return a twin of ``payload`` with the same encoding, length and trailing bytes but a
+        scrambled magic/type header: still parses like the original, deserializes under nothing.
+        Returns None when no distinguishable twin can be built.
+        """
+        if not payload:
+            return None
+        if encoding == "php_raw":
+            # PHP serialized data leads with a single type character
+            return f"z{payload[1:]}" if payload[0] != "z" else f"q{payload[1:]}"
+        try:
+            data = bytes.fromhex(payload) if encoding == "hex" else base64.b64decode(payload)
+        except Exception:
+            return None
+        header_length = min(4, len(data))
+        if not header_length:
+            return None
+        corrupted = bytes((b + 0x55) % 256 for b in data[:header_length]) + data[header_length:]
+        if encoding == "hex":
+            return corrupted.hex().upper() if payload.isupper() else corrupted.hex()
+        return base64.b64encode(corrupted).decode()
+
     async def confirm_baseline(self, control_payload, cookies):
         """Re-send the control payload to confirm the baseline error state is stable (not transient)."""
         confirmation = await self.standard_probe(self.event.data["type"], cookies, control_payload)
@@ -250,13 +273,13 @@ class serial(BaseLightfuzz):
 
         # Map each payload set to its control payload for baseline confirmation
         payload_sets = [
-            (base64_serialization_payloads, http_compare_base64, control_payload_base64),
-            (hex_serialization_payloads, http_compare_hex, control_payload_hex),
-            (php_raw_serialization_payloads, http_compare_php_raw, control_payload_php_raw),
+            (base64_serialization_payloads, http_compare_base64, control_payload_base64, "base64"),
+            (hex_serialization_payloads, http_compare_hex, control_payload_hex, "hex"),
+            (php_raw_serialization_payloads, http_compare_php_raw, control_payload_php_raw, "php_raw"),
         ]
 
         # Proceed with payload probes
-        for payload_set, payload_baseline, control_payload in payload_sets:
+        for payload_set, payload_baseline, control_payload, encoding in payload_sets:
             for payload_type, payload in payload_set.items():
                 try:
                     matches_baseline, diff_reasons, reflection, response = await self.compare_probe(
@@ -316,6 +339,22 @@ class serial(BaseLightfuzz):
                             f"Baseline confirmation returned 200 for {payload_type}, original error was transient, skipping"
                         )
                         continue
+
+                    # Deserialization is a claim about the payload's content, so a same-shape twin
+                    # with a scrambled header must not resolve the error too. If it does, the value
+                    # is only being parsed (e.g. as a URL/host), not deserialized.
+                    corrupted_payload = self.corrupt_payload(payload, encoding)
+                    if corrupted_payload is not None:
+                        corrupted_response = await self.standard_probe(
+                            self.event.data["type"], cookies, corrupted_payload
+                        )
+                        corrupted_status = getattr(corrupted_response, "status_code", None)
+                        if corrupted_status == status_code:
+                            self.debug(
+                                f"Corrupted twin of {payload_type} also returned {corrupted_status}, "
+                                "outcome is independent of payload content, skipping"
+                            )
+                            continue
 
                     def get_title(text):
                         soup = self.lightfuzz.helpers.beautifulsoup(text, "html.parser")

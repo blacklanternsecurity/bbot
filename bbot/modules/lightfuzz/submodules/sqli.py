@@ -1,5 +1,8 @@
+from urllib.parse import quote
+
 from .base import BaseLightfuzz
 from bbot.errors import HttpCompareError
+from bbot.core.helpers.diff import parse_body
 
 
 class sqli(BaseLightfuzz):
@@ -12,6 +15,10 @@ class sqli(BaseLightfuzz):
        - Injects single quotes and observes error responses
        - Tests quote escape sequence variations
        - Matches against known SQL error patterns
+
+    * Code-change Detection:
+       - Compares the status code of a single-quote probe against a doubled-quote probe
+       - Requires a positive boolean (TRUE/FALSE) content differential to confirm
 
     * Time-based Blind Detection:
        - Uses vendor-specific time delay payloads
@@ -39,6 +46,14 @@ class sqli(BaseLightfuzz):
         "Incorrect syntax near",
         "SQL command not properly ended",
         "string not properly terminated",
+    ]
+
+    # TRUE/FALSE payload pairs used to confirm the value reaches a SQL query. Both halves of a
+    # pair are the same length and differ by a single character, so a reflected payload can be
+    # stripped cleanly and any surviving body difference comes from the query result set.
+    BOOLEAN_PROBE_PAIRS = [
+        ("' AND '1'='1", "' AND '1'='2"),
+        (" AND 1=1", " AND 1=2"),
     ]
 
     DELAY_PROBE_TEMPLATES = [
@@ -115,6 +130,106 @@ class sqli(BaseLightfuzz):
 
         return True
 
+    @staticmethod
+    def _strip_payload(text, payload):
+        """Remove reflected copies of a payload from a response body, in raw and encoded form."""
+        for variant in (payload, quote(payload), payload.replace(" ", "+")):
+            text = text.replace(variant, "")
+        return text
+
+    async def _probe_body(self, http_compare, payload, cookies):
+        """Send ``payload`` and return its parsed response body, reflections of the payload
+        stripped, ready for ``http_compare.compare_body()``.
+
+        Returns None when the probe fails, or when the response is 403/429 (WAF or rate limit,
+        which tells us nothing about the query behind the parameter).
+        """
+        try:
+            probe = await self.compare_probe(
+                http_compare,
+                self.event.data["type"],
+                payload,
+                cookies,
+                additional_params_populate_empty=True,
+            )
+        except HttpCompareError as e:
+            self.debug(f"Boolean probe [{payload}] failed: {e}")
+            return None
+        if not probe[3]:
+            return None
+        if probe[3].status_code in (403, 429):
+            self.debug(f"Boolean probe [{payload}] returned {probe[3].status_code}, cannot confirm")
+            return None
+        return parse_body(self._strip_payload(probe[3].text, payload))
+
+    async def confirm_boolean_differential(self, http_compare, probe_value, cookies):
+        """Require positive SQL-logic evidence before asserting injection from a status change.
+
+        A bare status flip is not SQL: a WAF signature match, or an envelope whose structural
+        validity changes when the payload is repacked, both produce one. Only a TRUE/FALSE pair
+        that changes the response *content* shows the value is reaching a query.
+
+        Returns the confirming ``(true_payload, false_payload)`` pair, or None.
+        """
+        for true_suffix, false_suffix in self.BOOLEAN_PROBE_PAIRS:
+            true_payload = f"{probe_value}{true_suffix}"
+            false_payload = f"{probe_value}{false_suffix}"
+
+            true_body = await self._probe_body(http_compare, true_payload, cookies)
+            if true_body is None:
+                continue
+            false_body = await self._probe_body(http_compare, false_payload, cookies)
+            if false_body is None:
+                continue
+
+            if http_compare.compare_body(true_body, false_body) is not False:
+                self.debug(f"No boolean differential for [{true_suffix}] / [{false_suffix}]")
+                continue
+
+            # A page that renders differently on every request produces a differential on its
+            # own. Re-send the TRUE payload; the body must reproduce for the pair to mean anything.
+            repeat_body = await self._probe_body(http_compare, true_payload, cookies)
+            if repeat_body is None:
+                continue
+            if http_compare.compare_body(true_body, repeat_body) is False:
+                self.debug("Response body is not deterministic, discarding boolean differential")
+                continue
+
+            self.verbose(f"Boolean differential confirmed for {self.event.url}: [{true_suffix}] vs [{false_suffix}]")
+            return true_payload, false_payload
+        return None
+
+    async def is_quote_specific(self, http_compare, probe_value, cookies, status_codes):
+        """Verify the status flip tracks the quote characters and not the payload's shape.
+
+        Appending one vs. two benign characters mirrors the `'`/`''` pair in length while
+        carrying no SQL meaning. If that benign pair reproduces the same status triplet, the
+        flip tracks value length or envelope validity rather than quoting.
+        """
+        control_codes = []
+        for suffix in ("a", "aa"):
+            try:
+                control = await self.compare_probe(
+                    http_compare,
+                    self.event.data["type"],
+                    f"{probe_value}{suffix}",
+                    cookies,
+                    additional_params_populate_empty=True,
+                )
+            except HttpCompareError as e:
+                self.debug(f"Quote-specificity control probe failed: {e}")
+                return True
+            if not control[3]:
+                return True
+            control_codes.append(control[3].status_code)
+
+        if (status_codes[0], *control_codes) == status_codes:
+            self.debug(
+                f"Benign control pair reproduced the status triplet {status_codes}, the change is not quote-specific"
+            )
+            return False
+        return True
+
     async def fuzz(self):
         cookies = self.event.data.get("assigned_cookies", {})
         probe_value = self.incoming_probe_value(populate_empty=True)
@@ -165,19 +280,14 @@ class sqli(BaseLightfuzz):
                     if "code" in single_quote[1] and (
                         single_quote[3].status_code != double_single_quote[3].status_code
                     ):
-                        # Check if the status code change is due to a WAF, not SQL injection
-                        is_waf = False
-                        if single_quote[3].status_code == 403:
-                            waf_matches = await self.lightfuzz.helpers.yara.match(
-                                self.lightfuzz.waf_yara_rules, single_quote[3].text
+                        # A transition into 403 is access control (usually a WAF matching its managed
+                        # SQLi signature on the bare quote), not a code change driven by the query.
+                        if 403 in (single_quote[3].status_code, double_single_quote[3].status_code):
+                            self.debug(
+                                "Quote probe transitioned into 403 (access control/WAF), "
+                                "suppressing SQL injection finding"
                             )
-                            if waf_matches:
-                                self.debug(
-                                    "Single quote probe returned 403 with WAF signature, "
-                                    "suppressing SQL injection finding"
-                                )
-                                is_waf = True
-                        if not is_waf:
+                        else:
                             # Confirmation loop: require 2 additional rounds with fresh baselines
                             # to confirm the status-code triplet is stable and not a transient CDN/server flap.
                             # TODO: apply this same confirmation pattern to other submodules that use compare_probe-based detection.
@@ -187,14 +297,27 @@ class sqli(BaseLightfuzz):
                                 double_single_quote[3].status_code,
                             )
                             confirmed = await self._confirm_code_change(probe_value, cookies, initial_status_codes)
-                            if confirmed:
+                            quote_specific = confirmed and await self.is_quote_specific(
+                                http_compare, probe_value, cookies, initial_status_codes
+                            )
+                            boolean_pair = (
+                                await self.confirm_boolean_differential(http_compare, probe_value, cookies)
+                                if quote_specific
+                                else None
+                            )
+                            if boolean_pair:
                                 self.results.append(
                                     {
                                         "name": "Possible SQL Injection",
                                         "severity": "HIGH",
                                         "confidence": "MEDIUM",
-                                        "description": f"Possible SQL Injection. {self.metadata()} Detection Method: [Single Quote/Two Single Quote, Code Change ({initial_status_codes[0]}->{initial_status_codes[1]}->{initial_status_codes[2]})]",
+                                        "description": f"Possible SQL Injection. {self.metadata()} Detection Method: [Single Quote/Two Single Quote, Code Change ({initial_status_codes[0]}->{initial_status_codes[1]}->{initial_status_codes[2]})] Boolean Confirmation: [{boolean_pair[0]}] vs [{boolean_pair[1]}]",
                                     }
+                                )
+                            elif confirmed and quote_specific:
+                                self.verbose(
+                                    f"Discarding code change {initial_status_codes} for {self.event.url}: "
+                                    "no boolean differential, the value does not reach a query"
                                 )
             else:
                 self.debug("Failed to get responses for both single_quote and double_single_quote")
