@@ -32,7 +32,8 @@ class DNSBrute:
         self.inflight_per_resolver = self.dns_config.get("brute_inflight_per_resolver", 2)
         self.rate_limit = self.dns_config.get("brute_rate_limit", 0)
         self.retries = self.dns_config.get("brute_retries", 20)
-        self.timeout = self.dns_config.get("brute_timeout", 1)
+        self.timeout = self.dns_config.get("brute_timeout", 0.5)
+        self.persistent_socket = self.dns_config.get("brute_persistent_socket", False)
         self.nameservers_url = self.dns_config.get("brute_nameservers", self._nameservers_url)
         self.devops_mutations = list(self.parent_helper.word_cloud.devops_mutations)
         self.digit_regex = self.parent_helper.re.compile(r"\d+")
@@ -81,6 +82,7 @@ class DNSBrute:
                         cache_capacity=0,
                         request_timeout_ms=int(self.timeout * 1000),
                         max_retries=self.retries,
+                        persistent_socket=self.persistent_socket,
                     ),
                 )
             return self._client

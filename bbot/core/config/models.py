@@ -252,6 +252,7 @@ class DnsConfig(BaseModel):
     brute_rate_limit: Optional[float] = None
     brute_retries: Optional[int] = None
     brute_timeout: Optional[float] = None
+    brute_persistent_socket: Optional[bool] = None
     brute_nameservers: Optional[str] = None
     search_distance: Optional[int] = None
     runaway_limit: Optional[int] = None
