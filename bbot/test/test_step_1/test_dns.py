@@ -982,6 +982,14 @@ async def test_dns_brute_client_config(bbot_scanner, monkeypatch):
     assert captured["config"].rate_limit is None
     # the shipped default must not silently drift back to a slow tail
     assert captured["config"].request_timeout_ms == 500
+    # one socket per resolver keeps NAT state bounded by the resolver count instead
+    # of growing with query volume, so it has to stay on by default
+    assert captured["config"].persistent_socket is True
+
+    # and it stays overridable, for anywhere the extra sockets are the tighter bound
+    scan = bbot_scanner(config={"dns": {"brute_nameservers": brute_nameservers, "brute_persistent_socket": False}})
+    await scan._prep()
+    await scan.helpers.dns.brute.client()
     assert captured["config"].persistent_socket is False
 
     # An unusable nameserver fails loudly instead of being silently ignored.

@@ -65,9 +65,9 @@ dns:
   # Per-query timeout in seconds when brute-forcing, deliberately much shorter than dns.timeout
   # Retrying elsewhere is cheaper than waiting; going below this starts shrinking the resolver pool
   brute_timeout: 0.5
-  # Reuse one socket per resolver instead of one per query, for networks with a small
-  # NAT/conntrack table. Cuts connection-tracking state ~4x at a large throughput cost
-  brute_persistent_socket: false
+  # Reuse one socket per resolver instead of binding one per query, which keeps NAT/conntrack
+  # state bounded by the resolver count rather than growing with query volume
+  brute_persistent_socket: true
   # nameservers to use for DNS brute-forcing
   # default is updated weekly and contains ~10K high-quality public servers
   brute_nameservers: https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt
