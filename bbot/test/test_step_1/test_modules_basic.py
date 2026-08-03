@@ -163,7 +163,7 @@ async def test_modules_basic_checks(events, blasthttp_mock):
     assert "wordlist" in all_preloaded["dnsbrute"]["config"]
     assert type(all_preloaded["dnsbrute"]["config"]["max_depth"]) == int
     assert all_preloaded["baddns"]["deps"]["pip"]
-    assert all_preloaded["dnsbrute"]["deps"]["common"]
+    assert all_preloaded["portscan"]["deps"]["common"]
     assert all_preloaded["gowitness"]["deps"]["ansible"]
 
     all_flags = set()
