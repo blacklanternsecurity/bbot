@@ -60,6 +60,12 @@ class sqli(BaseLightfuzz):
         (" AND 1=1", " AND 1=2"),
     ]
 
+    # one vs. two benign characters, mirroring the `'`/`''` pair in length with no SQL meaning
+    BENIGN_CONTROL_SUFFIXES = ("a", "aa")
+
+    # a WAF block or a rate limit says nothing about the query behind the parameter
+    INCONCLUSIVE_STATUS_CODES = (403, 429)
+
     DELAY_PROBE_TEMPLATES = [
         "'||pg_sleep({d})--",
         "' OR (SELECT TRUE FROM pg_sleep({d})) LIMIT 1-- -",
@@ -164,7 +170,7 @@ class sqli(BaseLightfuzz):
             return None
         if not probe[3]:
             return None
-        if probe[3].status_code in (403, 429):
+        if probe[3].status_code in self.INCONCLUSIVE_STATUS_CODES:
             self.debug(f"Boolean probe [{payload}] returned {probe[3].status_code}, cannot confirm")
             return None
         return http_compare.parse_body(self._strip_payload(probe[3].text, payload))
@@ -214,7 +220,7 @@ class sqli(BaseLightfuzz):
         flip tracks value length or envelope validity rather than quoting.
         """
         control_codes = []
-        for suffix in ("a", "aa"):
+        for suffix in self.BENIGN_CONTROL_SUFFIXES:
             try:
                 control = await self.compare_probe(
                     http_compare,

@@ -6,6 +6,11 @@ import struct
 from .base import BaseLightfuzz
 from bbot.errors import HttpCompareError
 
+# enough leading bytes to break every magic header we send (java `AC ED`, dotnet `00 01 00 00`,
+# pickle `80 04`) without disturbing the payload's length or trailing bytes
+MAGIC_HEADER_LENGTH = 4
+HEADER_SCRAMBLE_DELTA = 0x55
+
 
 class _PickleOOB:
     """Pickle-RCE canary: __reduce__ makes the deserializing process resolve
@@ -222,10 +227,10 @@ class serial(BaseLightfuzz):
             data = bytes.fromhex(payload) if encoding == "hex" else base64.b64decode(payload)
         except Exception:
             return None
-        header_length = min(4, len(data))
+        header_length = min(MAGIC_HEADER_LENGTH, len(data))
         if not header_length:
             return None
-        corrupted = bytes((b + 0x55) % 256 for b in data[:header_length]) + data[header_length:]
+        corrupted = bytes((b + HEADER_SCRAMBLE_DELTA) % 256 for b in data[:header_length]) + data[header_length:]
         if encoding == "hex":
             return corrupted.hex().upper() if payload.isupper() else corrupted.hex()
         return base64.b64encode(corrupted).decode()
