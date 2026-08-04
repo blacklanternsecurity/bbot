@@ -328,9 +328,8 @@ class HttpCompare:
 
     @staticmethod
     def parse_body(text):
-        """Parse a response body into the structure compare_body() expects: a document tree
-        when the body is well-formed XML, otherwise a list of lines. Passing raw text to
-        compare_body() works but bypasses the ddiff_filters that mask dynamic content."""
+        """Parse a response body into the structure compare_body() expects. Passing raw text works
+        but bypasses the ddiff_filters that mask dynamic content."""
         try:
             return xmltodict.parse(text)
         except ExpatError:

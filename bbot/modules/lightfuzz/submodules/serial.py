@@ -214,10 +214,8 @@ class serial(BaseLightfuzz):
 
     @staticmethod
     def corrupt_payload(payload, encoding):
-        """Return a twin of ``payload`` with the same encoding, length and trailing bytes but a
-        scrambled magic/type header: still parses like the original, deserializes under nothing.
-        Returns None when no distinguishable twin can be built.
-        """
+        """Return a twin of ``payload``: same encoding, length and trailing bytes, scrambled magic
+        header. Parses like the original, deserializes under nothing. None if no twin can be built."""
         if not payload:
             return None
         if encoding == "php_raw":
@@ -343,9 +341,8 @@ class serial(BaseLightfuzz):
                         )
                         continue
 
-                    # Deserialization is a claim about the payload's content, so a same-shape twin
-                    # with a scrambled header must not resolve the error too. If it does, the value
-                    # is only being parsed (e.g. as a URL/host), not deserialized.
+                    # a same-shape twin with a scrambled header deserializes under nothing, so if it
+                    # resolves the error too, the value is only being parsed (e.g. as a URL/host)
                     corrupted_payload = self.corrupt_payload(payload, encoding)
                     if corrupted_payload is not None:
                         corrupted_response = await self.standard_probe(
