@@ -287,14 +287,19 @@ class sqli(BaseLightfuzz):
                     if "code" in single_quote[1] and (
                         single_quote[3].status_code != double_single_quote[3].status_code
                     ):
-                        # A transition into 403 is access control (usually a WAF matching its managed
-                        # SQLi signature on the bare quote), not a code change driven by the query.
-                        if 403 in (single_quote[3].status_code, double_single_quote[3].status_code):
-                            self.debug(
-                                "Quote probe transitioned into 403 (access control/WAF), "
-                                "suppressing SQL injection finding"
+                        # Check if the status code change is due to a WAF, not SQL injection
+                        is_waf = False
+                        if single_quote[3].status_code == 403:
+                            waf_matches = await self.lightfuzz.helpers.yara.match(
+                                self.lightfuzz.waf_yara_rules, single_quote[3].text
                             )
-                        else:
+                            if waf_matches:
+                                self.debug(
+                                    "Single quote probe returned 403 with WAF signature, "
+                                    "suppressing SQL injection finding"
+                                )
+                                is_waf = True
+                        if not is_waf:
                             # Confirmation loop: require 2 additional rounds with fresh baselines
                             # to confirm the status-code triplet is stable and not a transient CDN/server flap.
                             # TODO: apply this same confirmation pattern to other submodules that use compare_probe-based detection.
