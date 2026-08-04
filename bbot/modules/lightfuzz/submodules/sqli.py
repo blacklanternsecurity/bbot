@@ -1,7 +1,12 @@
+import html
 from urllib.parse import quote
 
 from .base import BaseLightfuzz
 from bbot.errors import HttpCompareError
+
+# frameworks disagree on how they spell an escaped quote (Jinja/ASP.NET `&#39;`, Django `&#x27;`,
+# PHP `&#039;`, XHTML `&apos;`), and a reflected payload has to be removed in whichever it uses.
+HTML_QUOTE_ENTITIES = ("&#39;", "&#x27;", "&#039;", "&apos;")
 
 
 class sqli(BaseLightfuzz):
@@ -131,8 +136,11 @@ class sqli(BaseLightfuzz):
 
     @staticmethod
     def _strip_payload(text, payload):
-        """Remove reflected copies of a payload from a response body, in raw and encoded form."""
-        for variant in (payload, quote(payload), payload.replace(" ", "+")):
+        """Remove reflected copies of a payload from a response body, raw, URL-encoded and HTML-escaped."""
+        escaped = html.escape(payload)
+        variants = [payload, quote(payload), payload.replace(" ", "+"), escaped]
+        variants += [escaped.replace("&#x27;", entity) for entity in HTML_QUOTE_ENTITIES]
+        for variant in variants:
             text = text.replace(variant, "")
         return text
 

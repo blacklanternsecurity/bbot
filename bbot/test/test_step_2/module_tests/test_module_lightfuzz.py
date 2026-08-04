@@ -1,6 +1,7 @@
 import json
 import re
 import base64
+import html
 from types import SimpleNamespace
 from urllib.parse import urlparse, parse_qs
 
@@ -4133,6 +4134,25 @@ class Test_Lightfuzz_sqli_length_keyed_fp(Test_Lightfuzz_sqli):
     def check(self, module_test, events):
         findings = _sqli_code_change_findings(events)
         assert not findings, f"SQLi reported from a length-keyed status flip: {findings}"
+
+
+# SQLi negative test: the parameter never reaches a query, and the app reflects it HTML-escaped.
+# The escaped reflection differs between the TRUE and FALSE boolean payloads, so unless every
+# escape spelling is stripped, the reflection itself reads as a boolean differential.
+class Test_Lightfuzz_sqli_escaped_reflection_fp(Test_Lightfuzz_sqli):
+    def request_handler(self, request):
+        value = request.args.get("search")
+        if value is None:
+            return Response(self.parameter_block, status=200)
+        if value.endswith("'") and not value.endswith("''"):
+            return Response("<html><p>Bad Request</p></html>", status=500)
+        # the Jinja/ASP.NET spelling, deliberately not the one html.escape() produces
+        reflection = html.escape(value).replace("&#x27;", "&#39;")
+        return Response(f"<html><p>0 results for: {reflection}</p></html>", status=200)
+
+    def check(self, module_test, events):
+        findings = _sqli_code_change_findings(events)
+        assert not findings, f"SQLi reported from an HTML-escaped reflection: {findings}"
 
 
 # Verify that POST SQLi findings include additional_params in the description
