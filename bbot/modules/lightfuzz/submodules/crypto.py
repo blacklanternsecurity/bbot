@@ -41,20 +41,20 @@ def _ascii_xor_score(b):
 
 def _is_structured_id_pair(bytes_a, bytes_b, xored, zero_run):
     """True when the pair looks like structured identifiers (MongoDB ObjectIds,
-    hex timestamps, sequential counters, record GUIDs) rather than reused-keystream
-    ciphertexts.
+    hex timestamps, sequential counters, time-ordered UUIDs) rather than
+    reused-keystream ciphertexts.
 
-    Structured IDs share a byte prefix (timestamp, process ID, ...) and differ only
-    in a short counter/random suffix.  Their XOR has a leading-zero run followed by
-    a sparse or random tail -- superficially identical to keystream reuse with
-    shared-prefix plaintexts, but distinguishable by what the tail looks like.
+    Structured IDs share a long byte prefix (timestamp, process ID, ...) and
+    differ only in a short counter/random suffix.  Their XOR has a long leading-
+    zero run followed by a sparse or random tail -- superficially identical to
+    keystream reuse with shared-prefix plaintexts, but distinguishable by what
+    the tail looks like.
 
     Real many-time-pad: the tail is XOR of diverging ASCII plaintexts -- dense,
     diverse bytes mostly in [0x00, 0x60].
 
-    Structured IDs: the tail is a small counter delta (sparse zeros with one nonzero
-    byte), random machine/process bytes (fails the ASCII-XOR check), or a fixed-field
-    template whose matching segments zero out scattered through the tail.
+    Structured IDs: the tail is either a small counter delta (sparse zeros with
+    one nonzero byte) or random machine/process bytes (fails ASCII-XOR check).
     """
     tail = xored[zero_run:]
 
@@ -66,15 +66,6 @@ def _is_structured_id_pair(bytes_a, bytes_b, xored, zero_run):
     # incrementing identifiers (MongoDB ObjectId 3-byte counter, hex
     # timestamps differing by 1-2 bytes, etc.).
     if len(bytes_a) == len(bytes_b) and len(tail) <= 4:
-        return True
-
-    # Zeros scattered *through* the tail mean the two values keep re-converging at
-    # fixed offsets -- a shared field template (an instance/table/timestamp segment
-    # in a record GUID). Two ciphertexts under a reused keystream zero out only where
-    # their plaintexts still coincide, which is the leading run, or a shared suffix.
-    # Trailing zeros are stripped first so shared-suffix plaintexts aren't caught here.
-    core = tail.rstrip(b"\x00")
-    if sum(1 for b in core if b == 0) >= 2:
         return True
 
     # For longer tails: real many-time-pad XOR reveals XOR of diverging ASCII
@@ -378,10 +369,11 @@ class crypto(BaseLightfuzz):
                 # At least 2 leading zero bytes OR ≥90% of bytes in ASCII-XOR-ASCII range
                 if zero_run < 2 and ascii_score < 0.9:
                     continue
-                # Both entry conditions are met just as easily by structured hex identifiers
-                # as by real ciphertexts, so every candidate pair goes through the same
-                # discrimination on what the diverging region actually looks like.
-                if _is_structured_id_pair(bytes_a, bytes_b, xored, zero_run):
+                # A leading-zero run alone is the hallmark of structured hex
+                # identifiers (MongoDB ObjectIds, hex timestamps, sequential
+                # counters, time-ordered UUIDs) sharing a byte prefix -- not
+                # keystream reuse.  Filter those out by examining the tail.
+                if zero_run >= 2 and _is_structured_id_pair(bytes_a, bytes_b, xored, zero_run):
                     continue
                 pair_score = (zero_run, ascii_score)
                 if best is None or pair_score > (best[0], best[1]):

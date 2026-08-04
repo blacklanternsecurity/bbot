@@ -5029,20 +5029,6 @@ def test_keystream_fp_sibling_form_fields_incremental():
     assert not c.results, f"FP on sibling sequential hex form fields: {c.results}"
 
 
-def test_keystream_fp_record_guid_shared_template():
-    """Two 32-hex record GUIDs from the same platform instance. They share no leading byte, so
-    the leading-zero test never applies, but they re-converge at fixed offsets where the shared
-    instance/table segment sits -- and the XOR of the diverging bytes lands almost entirely in
-    the ASCII-XOR range by coincidence, clearing the 0.9 score on its own."""
-    ids = [
-        "e42a5af4c700201072b211d4d8c2607c",
-        "c86a62e2c7022010099a308dc7c26022",
-    ]
-    c = _make_crypto_for_keystream(ids[0], additional_params={"app_sys_id": ids[1]})
-    c.detect_keystream_reuse(ids[0])
-    assert not c.results, f"FP on record GUIDs sharing a field template: {c.results}"
-
-
 def test_keystream_fp_decimal_account_numbers():
     """Digit-only parameter values (account numbers, zip codes, etc.) are valid
     hex but are plain decimal IDs. Their decoded bytes XOR to small values that
