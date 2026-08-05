@@ -223,7 +223,7 @@ class serial(BaseLightfuzz):
             return f"z{payload[1:]}" if payload[0] != "z" else f"q{payload[1:]}"
         try:
             data = bytes.fromhex(payload) if encoding == "hex" else base64.b64decode(payload)
-        except Exception:
+        except ValueError:
             return None
         header_length = min(MAGIC_HEADER_LENGTH, len(data))
         if not header_length:
