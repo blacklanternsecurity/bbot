@@ -51,6 +51,7 @@ dependencies = [
     "blasthttp>=0.9.0",
     "blastdns>=1.9.0,<2",
     "zstandard>=0.22,<1",
+    "packaging>=23.0",
 ]
 
 [project.urls]
@@ -67,7 +68,7 @@ bbot = "bbot.cli:main"
 dev = [
     "urllib3>=2.0.2,<3",
     "werkzeug>=2.3.4,<4.0.0",
-    "pytest-env>=0.8.2,<1.7.0",
+    "pytest-env>=0.8.2,<1.8.0",
     "pre-commit>=3.4,<5.0",
     "pytest-cov>=5,<8",
     "pytest-rerunfailures>=14,<17",
@@ -75,8 +76,8 @@ dev = [
     "pytest-httpserver>=1.0.11,<2",
     "pytest>=8.3.1,<10",
     "pytest-asyncio==1.4.0",
-    "uvicorn>=0.32,<0.50",
-    "fastapi>=0.115.5,<0.140.0",
+    "uvicorn>=0.32,<0.53",
+    "fastapi>=0.115.5,<0.142.0",
     "pytest-httpx>=0.35",
     "pytest-benchmark>=4,<6",
     "baddns~=2.4.1",
