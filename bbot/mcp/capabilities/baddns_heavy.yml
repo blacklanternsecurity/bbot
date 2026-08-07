@@ -37,59 +37,34 @@ meta:
     - FINDING
 
   when_not_to_use: |
-    Do not use it when you want a short list of things to act on. It reports at
-    INFO severity and UNKNOWN confidence, which means everything the library can
-    say about a name comes back, including observations that are not problems.
-    Expect to triage. Use `baddns` when you want only what is worth acting on.
+    Do not use it when you want a short list of things to act on. It reports at INFO severity and UNKNOWN confidence, which means everything the library can say about a name comes back, including observations that are not problems. Expect to triage. Use `baddns` when you want only what is worth acting on.
 
-    Do not expect it to find your subdomains for you. Like `baddns`, it checks
-    exactly the names you pass. Run `find_subdomains_fast` first and bring the
-    list here.
+    Do not expect it to find your subdomains for you. Like `baddns`, it checks exactly the names you pass. Run `find_subdomains_fast` first and bring the list here.
 
-    Skip it for a URL or an IP. It reads DNS records; a hostname is the only
-    meaningful input.
+    Skip it for a URL or an IP. It reads DNS records; a hostname is the only meaningful input.
 
   how_to_call: |
-    Pass hostnames, as many as you like. Still cheap per name - this is DNS
-    lookups and a few HTTP requests, not brute-force - so a large list is fine.
-    What grows is the output, not the runtime.
+    Pass hostnames, as many as you like. Still cheap per name - this is DNS lookups and a few HTTP requests, not brute-force - so a large list is fine.
 
-    The difference from `baddns` is entirely breadth and threshold. It adds NS,
-    DMARC, SPF, MTA-STS, WILDCARD and reference checks to the three takeover
-    record types, adds zone-level and direct-resource checks, and drops both the
-    severity and confidence floors to the bottom so nothing is filtered out.
+    The difference from `baddns`: It adds NS, DMARC, SPF, MTA-STS, WILDCARD and reference checks to the three takeover record types, adds zone-level and direct-resource checks, and drops both the severity and confidence floors to the bottom so nothing is filtered out.
 
     It does not crawl, brute-force, or enumerate. Coverage is whatever you pass.
 
-    `strict_scope` and `blacklist` are close to inert here for the same reason:
-    nothing is discovered, so there is no scope to tighten. `baddns_direct` does
-    make requests to the resources a record points at, so `blacklist` is the one
-    to reach for if some third-party endpoint must not be contacted at all.
+    `strict_scope` and `blacklist` are close to inert here for the same reason: nothing is discovered, so there is no scope to tighten. `baddns_direct` does make requests to the resources a record points at, so `blacklist` is functional for those calls.
 
   interpreting_results: |
-    Sort by severity and confidence before reading, because most of what comes
-    back at this threshold is informational. An INFO/UNKNOWN result is an
-    observation the library is not sure means anything; a HIGH/CONFIRMED one is
-    a real lead.
+    Sort by severity and confidence before reading, because most of what comes back at this threshold is informational. An INFO/UNKNOWN result is an observation the library is not sure means anything; a HIGH/CONFIRMED one is a real lead.
 
-    The extra submodules answer different questions from the takeover ones. SPF,
-    DMARC and MTA-STS findings are email security posture: they matter for
-    spoofing and phishing, not for taking over a host. NS and zone findings are
-    about delegation and transfer. Do not read them as takeover candidates.
+    The extra submodules answer different questions from the takeover ones. SPF, DMARC and MTA-STS findings are email security posture: they matter for spoofing and phishing, not for taking over a host. NS and zone findings are about delegation and transfer. Do not read them as takeover candidates.
 
-    Takeover findings still need manual confirmation, and at UNKNOWN confidence
-    they need it more. Whether the third-party resource can actually still be
-    registered is the check that decides whether there is a finding.
+    Takeover findings still need manual confirmation, and at UNKNOWN confidence they need it more. Whether the third-party resource can actually still be registered is the check that decides whether there is a finding.
 
     Do not claim any resource without explicit written authorization.
 
   caveats: |
-    The low thresholds are the point and the problem. Everything the library can
-    say is reported, so the volume per hostname is several times what `baddns`
-    returns and the signal-to-noise is correspondingly worse.
+    The low thresholds are the point and the problem. Everything the library can say is reported, so the volume per hostname is several times what `baddns` returns and the signal-to-noise is correspondingly worse.
 
-    Coverage of takeover conditions is still bounded by the fingerprint
-    database, no matter how many submodules are enabled.
+    Coverage of takeover conditions is still bounded by the fingerprint database, no matter how many submodules are enabled.
 
   examples:
     - description: Full DNS posture audit of an organization's known hostnames.

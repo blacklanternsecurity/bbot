@@ -22,55 +22,30 @@ meta:
     - FINDING
 
   when_not_to_use: |
-    Do not expect it to find your subdomains for you. It checks the names you
-    give it and nothing else: pointed at `evilcorp.com` it examines that one
-    name, not the hundred hosts beneath it. Takeovers live on forgotten
-    subdomains, so run `find_subdomains_fast` first and bring the hostname list
-    here.
+    Do not expect it to find your subdomains for you. It checks the names you give it and nothing else: pointed at `evilcorp.com` it examines that one name, not the hundred hosts beneath it. Takeovers live on forgotten subdomains, so run `find_subdomains_fast` first and bring the hostname list here.
 
-    Skip it for a URL or an IP. It reads DNS records, so a hostname is the only
-    input that means anything.
+    Skip it for a URL or an IP. It reads DNS records, so a hostname is the only input that means anything.
 
-    Use `baddns_heavy` when you want everything: more record types, zone
-    transfer and direct-resource checks, and no severity floor. This one is
-    tuned to report only what is worth acting on.
+    Use `baddns_heavy` when you want everything: more record types, zone transfer and direct-resource checks, and no severity floor. This one is tuned to report only what is worth acting on.
 
   how_to_call: |
-    Pass hostnames, as many as you like in one call. This is cheap - a handful
-    of DNS lookups per name - so there is no reason to be selective. A list of
-    several hundred subdomains from an earlier enumeration is a perfectly
-    normal input.
+    Pass hostnames, as many as you like in one call. This is cheap - a handful of DNS lookups per name - so there is no reason to be selective. A list of several hundred subdomains from an earlier enumeration is a perfectly normal input.
 
-    It does not crawl, brute-force, or enumerate. What you pass is what gets
-    checked, which makes the cost entirely predictable and makes coverage
-    entirely your responsibility.
+    It does not crawl, brute-force, or enumerate. What you pass is what gets checked, which makes the cost entirely predictable and makes coverage entirely your responsibility.
 
-    `strict_scope` and `blacklist` are close to inert here, and that is worth
-    knowing rather than guessing at. Nothing is discovered and nothing beyond
-    the names you passed is contacted, so there is no scope to tighten and
-    nothing to exclude. Set them if a name must not be touched at all; otherwise
-    they change nothing.
+    `strict_scope` and `blacklist` are close to inert here, and that is worth knowing rather than guessing at. Nothing is discovered and nothing beyond the names you passed is contacted, so there is no scope to tighten and nothing to exclude. Set them if a name must not be touched at all; otherwise they change nothing.
 
   interpreting_results: |
-    A finding is a strong lead, not a confirmed takeover. It means a record
-    points at a third-party resource whose fingerprint matches a service with
-    known takeover conditions. Whether that resource can actually still be
-    registered is a manual check, and it is the check that decides whether you
-    have a finding at all.
+    A finding is a strong lead, not a confirmed takeover. It means a record points at a third-party resource whose fingerprint matches a service with known takeover conditions. Whether that resource can actually still be registered is a manual check, and it is the check that decides whether you have a finding at all.
 
-    Confidence matters more than severity for this class. At this tool's floor
-    everything returned is MEDIUM or better, so a CONFIRMED result usually means
-    the fingerprint matched precisely.
+    Confidence matters more than severity for this class. At this tool's floor everything returned is MEDIUM or better, so a CONFIRMED result usually means the fingerprint matched precisely.
 
-    Do not claim the resource without explicit written authorization.
-    Registering it is the takeover, not proof of one.
+    Do not claim the resource without explicit written authorization. Registering it is the takeover, not proof of one.
 
   caveats: |
-    Coverage is the fingerprint database. A dangling record pointing at a
-    service nobody has fingerprinted yet is not reported.
+    Coverage is the fingerprint database. A dangling record pointing at a service nobody has fingerprinted yet is not reported.
 
-    Only CNAME, MX and TXT records are examined here. `baddns_heavy` adds NS,
-    DMARC, SPF, MTA-STS, WILDCARD and reference checks.
+    Only CNAME, MX and TXT records are examined here. `baddns_heavy` adds NS, DMARC, SPF, MTA-STS, WILDCARD and reference checks.
 
   examples:
     - description: Check a list of known subdomains for dangling records.

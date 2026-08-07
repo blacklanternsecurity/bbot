@@ -26,59 +26,36 @@ meta:
     - FINDING
 
   when_not_to_use: |
-    Do not run it without authorization covering active testing. It does
-    everything `iis_shortnames_exploit` does and then brute-forces filenames on
-    top, so it is the loudest tool in this family by a wide margin.
+    Do not run it without authorization covering active testing. It does everything `iis_shortnames_exploit` does and then brute-forces filenames on top, so it is the loudest tool in this family by a wide margin.
 
-    Do not reach for it first. `iis_shortnames_detect` answers "is this server
-    vulnerable" in seconds, and `iis_shortnames_exploit` answers "what is in
-    there" without the brute-force. Come here when a recovered fragment looks
-    worth resolving.
+    Do not reach for it first. `iis_shortnames_detect` answers "is this server vulnerable" in seconds, and `iis_shortnames_exploit` answers "what is in there" without the brute-force. Come here when a recovered fragment looks worth resolving.
 
     Skip it for anything that is not IIS.
 
   how_to_call: |
-    Give it URLs at the directory levels you care about. It runs in two stages:
-    first the 8.3 recovery, then up to 250 candidate full names per recovered
-    fragment, each of which is a request.
+    Give it URLs at the directory levels you care about. It runs in two stages: first the 8.3 recovery, then up to 250 candidate full names per recovered fragment, each of which is a request.
 
-    That second stage is the cost. A directory yielding twenty fragments is five
-    thousand extra requests before anything is confirmed, and it happens per
-    directory. Point it at directories that matter rather than at a whole site.
+    That second stage is the cost. A directory yielding twenty fragments is five thousand extra requests before anything is confirmed, and it happens per directory. Point it at directories that matter rather than at a whole site.
 
-    `blacklist` is the safety valve if any path must not be hammered.
-    `strict_scope=True` limits which directories are walked.
+    `blacklist` is the safety valve if any path must not be hammered. `strict_scope=True` limits which directories are walked.
 
-    Expect it to run long and to be conspicuous. Read partial results with
-    `scan_results` as they arrive.
+    Expect it to run long and to be conspicuous. Read partial results with `scan_results` as they arrive.
 
   interpreting_results: |
-    Read the URLs first. Those are solved names the server actually served, so
-    they are directly fetchable and are the point of the whole exercise.
+    Read the URLs first. Those are solved names the server actually served, so they are directly fetchable and are the point of the whole exercise.
 
-    Then read the URL_HINT fragments that have no matching URL. Those were
-    recovered but not solved: the file exists and the wordlist did not guess its
-    full name. `SECRET~1.TXT` with no corresponding URL is still actionable
-    intelligence, and often the most interesting line in the output, because it
-    names something the brute-force could not reach.
+    Then read the URL_HINT fragments that have no matching URL. Those were recovered but not solved: the file exists and the wordlist did not guess its full name. `SECRET~1.TXT` with no corresponding URL is still actionable intelligence, and often the most interesting line in the output, because it names something the brute-force could not reach.
 
-    Findings carry the detection itself plus notable recoveries, such as a zip
-    in the web root at MEDIUM severity.
+    Findings carry the detection itself plus notable recoveries, such as a zip in the web root at MEDIUM severity.
 
-    A solved URL is a name that resolved, not necessarily a file worth having.
-    Check what it actually serves.
+    A solved URL is a name that resolved, not necessarily a file worth having. Check what it actually serves.
 
   caveats: |
-    Solving is a dictionary attack against the truncated stem. An application
-    filename that is not a word, or is a word not in the list, stays unsolved no
-    matter how long this runs, which is why the unsolved fragments are reported
-    rather than discarded.
+    Solving is a dictionary attack against the truncated stem. An application filename that is not a word, or is a word not in the list, stays unsolved no matter how long this runs, which is why the unsolved fragments are reported rather than discarded.
 
-    Capped at 250 predictions per fragment and one directory level of solving by
-    default, so a large directory returns a partial answer.
+    Capped at 250 predictions per fragment and one directory level of solving by default, so a large directory returns a partial answer.
 
-    Everything true of `iis_shortnames_exploit` about `max_node_count`, six-
-    character truncation and lost case applies here too.
+    Everything true of `iis_shortnames_exploit` about `max_node_count`, six- character truncation and lost case applies here too.
 
   examples:
     - description: Recover and resolve the hidden filenames in an IIS web root.

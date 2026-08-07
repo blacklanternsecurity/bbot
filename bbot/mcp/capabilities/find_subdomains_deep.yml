@@ -31,76 +31,42 @@ meta:
     - DNS_NAME
 
   when_to_use: |
-    Use this when coverage matters more than time: an engagement scoped to a
-    whole organization, an attack-surface review meant to be defensible, or any
-    situation where a missed subdomain is a missed finding.
+    Use this when coverage matters more than time: an engagement scoped to a whole organization, an attack-surface review meant to be defensible, or any situation where a missed subdomain is a missed finding.
 
-    It is also the right choice against targets with a thin public footprint,
-    where third-party sources return little and guessing is the only thing that
-    works.
+    It is also the right choice against targets with a thin public footprint, where third-party sources return little and guessing is the only thing that works.
 
   when_not_to_use: |
-    Do not use it when you need an answer soon. This runs for hours on a large
-    organization, and most of that time is spent on brute-force that may return
-    nothing. Use `find_subdomains_fast` for a first pass.
+    Do not use it when you need an answer soon. This runs for hours on a large organization, and most of that time is spent on brute-force that may return nothing. Use `find_subdomains_fast` for a first pass.
 
-    Do not use it under passive-only rules of engagement. It sends a large
-    volume of DNS queries directly to the target's nameservers, which is visible
-    to them and attributable.
+    Do not use it under passive-only rules of engagement. It sends a large volume of DNS queries directly to the target's nameservers, which is visible to them and attributable.
 
     Skip it when the target is a specific host, URL, or IP range.
 
   how_it_works: |
-    Everything the fast variant does, plus two brute-force stages. The first
-    grinds a wordlist against the target's nameservers. The second mutates the
-    hostnames already discovered to guess their neighbours: finding
-    `dev1.evilcorp.com` prompts it to try `dev2`, `dev3`, `dev-staging` and so
-    on, up to 200 guesses per name.
+    Everything the fast variant does, plus two brute-force stages. The first grinds a wordlist against the target's nameservers. The second mutates the hostnames already discovered to guess their neighbours: finding `dev1.evilcorp.com` prompts it to try `dev2`, `dev3`, `dev-staging` and so on, up to 200 guesses per name.
 
-    Those two feed each other here. A name found by mutation goes back into the
-    wordlist brute-force, and its discoveries are mutated again, until nothing
-    new appears.
+    Those two feed each other here. A name found by mutation goes back into the wordlist brute-force, and its discoveries are mutated again, until nothing new appears.
 
   how_to_call: |
-    Pass every domain in one call rather than one call each; the brute-force
-    stages share their work across targets.
+    Pass every domain in one call rather than one call each; the brute-force stages share their work across targets.
 
-    Scope matters more here than in the fast variant, because this one
-    generates names rather than just looking them up. By default BBOT treats
-    everything under a target as in-scope, so `evilcorp.com` covers every name
-    this invents beneath it, and each one it confirms becomes a seed for more
-    guessing. That recursion is the point, and it is also how a scan grows
-    beyond what you expected. Pass `strict_scope=True` to hold the scan to the
-    exact names you gave.
+    Scope matters more here than in the fast variant, because this one generates names rather than just looking them up. By default BBOT treats everything under a target as in-scope, so `evilcorp.com` covers every name this invents beneath it, and each one it confirms becomes a seed for more guessing. That recursion is the point, and it is also how a scan grows beyond what you expected. Pass `strict_scope=True` to hold the scan to the exact names you gave.
 
-    Use `blacklist` for hosts that must not be touched at all. It overrides
-    scope, so it is the only reliable way to keep this off a production system
-    that happens to live under a target domain. Put those in before starting,
-    not after.
+    Use `blacklist` for hosts that must not be touched at all. It overrides scope, so it is the only reliable way to keep this off a production system that happens to live under a target domain. Put those in before starting, not after.
 
-    Expect to leave it running. If you need an answer sooner, run
-    `find_subdomains_fast` first and come back to this one.
+    Expect to leave it running. If you need an answer sooner, run `find_subdomains_fast` first and come back to this one.
 
   interpreting_results: |
-    Read this the same way as the fast variant, with one addition: names that
-    only brute-force found are the interesting ones. They were never published,
-    never certificated, and never crawled, which is often exactly why they are
-    worth looking at.
+    Read this the same way as the fast variant, with one addition: names that only brute-force found are the interesting ones. They were never published, never certificated, and never crawled, which is often exactly why they are worth looking at.
 
-    Wildcard DNS is the main source of noise. BBOT detects and filters
-    wildcards, but a target using them aggressively can still inflate the count.
-    A sudden run of names that all resolve to one address is the tell.
+    Wildcard DNS is the main source of noise. BBOT detects and filters wildcards, but a target using them aggressively can still inflate the count. A sudden run of names that all resolve to one address is the tell.
 
   caveats: |
-    Runtime is dominated by the recursion, and on a large organization it can
-    run for hours. The scan reports its progress, so let it run rather than
-    concluding early from a partial result.
+    Runtime is dominated by the recursion, and on a large organization it can run for hours. The scan reports its progress, so let it run rather than concluding early from a partial result.
 
-    Brute-force coverage is bounded by the wordlist. Widen it with
-    `modules.dnsbrute.wordlist`, which accepts several lists and merges them.
+    Brute-force coverage is bounded by the wordlist. Widen it with `modules.dnsbrute.wordlist`, which accepts several lists and merges them.
 
-    This generates enough DNS traffic to be noticed and, on some targets, to be
-    rate-limited. If results taper off partway through, that is usually why.
+    This generates enough DNS traffic to be noticed and, on some targets, to be rate-limited. If results taper off partway through, that is usually why.
 
   examples:
     - description: Exhaustively map an organization ahead of an engagement.

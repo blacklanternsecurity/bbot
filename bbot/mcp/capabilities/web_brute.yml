@@ -31,61 +31,36 @@ meta:
     - URL
 
   when_not_to_use: |
-    Do not run it where the traffic matters. This is five thousand requests per
-    URL you pass, and it is unmistakable in logs. It is the definition of a
-    loud tool.
+    Do not run it where the traffic matters. This is five thousand requests per URL you pass, and it is unmistakable in logs. It is the definition of a loud tool.
 
-    Do not expect it to find its own targets. It brute-forces exactly the URLs
-    you give it and does not crawl, so pointing it at a site root examines that
-    one directory. Run `web_discovery` or a spider-backed tool first if you need
-    to know what directories exist.
+    Do not expect it to find its own targets. It brute-forces exactly the URLs you give it and does not crawl, so pointing it at a site root examines that one directory. Run `web_discovery` or a spider-backed tool first if you need to know what directories exist.
 
-    Do not rely on it against a WAF-protected host. Those are skipped outright,
-    so a quiet result may mean the host was never tested.
+    Do not rely on it against a WAF-protected host. Those are skipped outright, so a quiet result may mean the host was never tested.
 
-    Use `iis_shortnames_solve` instead on IIS. Where 8.3 disclosure is present,
-    recovered filename fragments produce far better guesses than any wordlist,
-    and this tool has no way to use them.
+    Use `iis_shortnames_solve` instead on IIS. Where 8.3 disclosure is present, recovered filename fragments produce far better guesses than any wordlist, and this tool has no way to use them.
 
   how_to_call: |
-    Give it the URLs whose contents you want enumerated, one call for all of
-    them. Directory URLs work best; each is brute-forced at its own level.
+    Give it the URLs whose contents you want enumerated, one call for all of them. Directory URLs work best; each is brute-forced at its own level.
 
-    It does not recurse. A directory it discovers is reported but not itself
-    brute-forced, so if you want to go deeper, pass the discovered directory
-    back in as a target on a second call. That keeps the cost visible and under
-    your control rather than expanding on its own.
+    It does not recurse. A directory it discovers is reported but not itself brute-forced, so if you want to go deeper, pass the discovered directory back in as a target on a second call. That keeps the cost visible and under your control rather than expanding on its own.
 
-    `blacklist` overrides scope and is worth setting for anything that must not
-    receive five thousand requests. `strict_scope=True` holds the scan to the
-    exact URLs given.
+    `blacklist` overrides scope and is worth setting for anything that must not receive five thousand requests. `strict_scope=True` holds the scan to the exact URLs given.
 
   interpreting_results: |
-    Everything returned is a URL the server actually served, not a guess that
-    was tried. Guesses that failed never reach you.
+    Everything returned is a URL the server actually served, not a guess that was tried. Guesses that failed never reach you.
 
-    A 200 is not automatically interesting and a 403 often is: it means the path
-    exists and something is deliberately guarding it. Look at what each result
-    actually returns rather than assuming discovery equals access.
+    A 200 is not automatically interesting and a 403 often is: it means the path exists and something is deliberately guarding it. Look at what each result actually returns rather than assuming discovery equals access.
 
-    Watch for a long run of uniform results. That usually means a catch-all
-    route or a wildcard responder answering everything, not a real trove. If
-    every guess resolves, none of them mean anything.
+    Watch for a long run of uniform results. That usually means a catch-all route or a wildcard responder answering everything, not a real trove. If every guess resolves, none of them mean anything.
 
-    Backup and config extensions are where this pays off. A `.bak`, `.old`,
-    `.zip` or `.config` in a web root is frequently the finding, not the
-    directory listing.
+    Backup and config extensions are where this pays off. A `.bak`, `.old`, `.zip` or `.config` in a web root is frequently the finding, not the directory listing.
 
   caveats: |
-    Coverage is the wordlist. A path with an application-specific name that is
-    not in the raft list stays hidden no matter how long this runs.
+    Coverage is the wordlist. A path with an application-specific name that is not in the raft list stays hidden no matter how long this runs.
 
-    Surface only by default, so content nested below the URLs you passed is
-    untouched unless you go back for it.
+    Surface only by default, so content nested below the URLs you passed is untouched unless you go back for it.
 
-    No extensions are appended by default; it brute-forces directory names. If
-    you are hunting for files of a particular type, that needs the module's
-    `extensions` option, which this tool does not expose.
+    No extensions are appended by default; it brute-forces directory names. If you are hunting for files of a particular type, that needs the module's `extensions` option, which this tool does not expose.
 
   examples:
     - description: Enumerate the contents of a web root.

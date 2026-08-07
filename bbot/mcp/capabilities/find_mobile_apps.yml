@@ -27,63 +27,38 @@ meta:
     - FINDING
 
   when_not_to_use: |
-    Skip it if the organization publishes no mobile apps. There is nothing to
-    find and the discovery step is the only thing that runs.
+    Skip it if the organization publishes no mobile apps. There is nothing to find and the discovery step is the only thing that runs.
 
-    Do not run it where downloading and decompiling third-party binaries is a
-    problem. This pulls APKs from an app store onto your machine and runs a
-    decompiler over them. That is a heavier local operation than anything else
-    here, and the artifacts are somebody else's.
+    Do not run it where downloading and decompiling third-party binaries is a problem. This pulls APKs from an app store onto your machine and runs a decompiler over them. That is a heavier local operation than anything else here, and the artifacts are somebody else's.
 
-    Think about scope. The apps come from a public store, not from the target's
-    infrastructure, and they are the publisher's copyrighted software.
-    Authorization to test a company's systems does not automatically cover
-    reverse-engineering their published applications.
+    Think about scope. The apps come from a public store, not from the target's infrastructure, and they are the publisher's copyrighted software. Authorization to test a company's systems does not automatically cover reverse-engineering their published applications.
 
     Expect it to be slow and disk-hungry. Download plus decompilation, per app.
 
   how_to_call: |
-    Give it the organization's domains. Apps are found from the organization
-    name rather than from the domain directly, so a domain that does not
-    obviously map to the publisher name may find nothing.
+    Give it the organization's domains. Apps are found from the organization name rather than from the domain directly, so a domain that does not obviously map to the publisher name may find nothing.
 
-    The chain is discovery, then download, then decompilation, then scanning.
-    Nothing useful appears until the last step, so a scan that looks idle for a
-    long time is working.
+    The chain is discovery, then download, then decompilation, then scanning. Nothing useful appears until the last step, so a scan that looks idle for a long time is working.
 
-    Clones and decompiled output land in the scan's output directory. Clean up
-    afterwards.
+    Clones and decompiled output land in the scan's output directory. Clean up afterwards.
 
-    `strict_scope` and `blacklist` have little to do here: discovery happens on
-    an app store rather than in the target's DNS.
+    `strict_scope` and `blacklist` have little to do here: discovery happens on an app store rather than in the target's DNS.
 
   interpreting_results: |
-    Credentials in a mobile app are qualitatively different from credentials in
-    a repository. They shipped to every user who installed the app, so they are
-    not leaked so much as published. Rotation is the only fix, and it usually
-    means a new release.
+    Credentials in a mobile app are qualitatively different from credentials in a repository. They shipped to every user who installed the app, so they are not leaked so much as published. Rotation is the only fix, and it usually means a new release.
 
-    Most will be unverified, and that is expected rather than a sign of noise. A
-    key for an internal API, a staging backend or a region-locked service is
-    unreachable from where the scanner sits and is still entirely real. Judge by
-    what the key is for, not by whether it verified.
+    Most will be unverified, and that is expected rather than a sign of noise. A key for an internal API, a staging backend or a region-locked service is unreachable from where the scanner sits and is still entirely real. Judge by what the key is for, not by whether it verified.
 
-    Look for what the key unlocks rather than its severity label. A Firebase
-    config or a cloud storage key embedded in an app frequently grants access to
-    the backend for every user of that app.
+    Look for what the key unlocks rather than its severity label. A Firebase config or a cloud storage key embedded in an app frequently grants access to the backend for every user of that app.
 
-    Confirm the publisher is actually the target before reporting. App store
-    attribution by organization name is imprecise.
+    Confirm the publisher is actually the target before reporting. App store attribution by organization name is imprecise.
 
   caveats: |
-    Android only. iOS apps are not covered, since the store does not permit the
-    equivalent download.
+    Android only. iOS apps are not covered, since the store does not permit the equivalent download.
 
-    Decompilation is lossy. Obfuscated or natively-compiled portions of an app
-    stay unreadable, and secrets in native libraries are not reached.
+    Decompilation is lossy. Obfuscated or natively-compiled portions of an app stay unreadable, and secrets in native libraries are not reached.
 
-    Detection is pattern-based, so an unrecognised credential format is not
-    reported.
+    Detection is pattern-based, so an unrecognised credential format is not reported.
 
   examples:
     - description: Check whether an organization's Android apps ship embedded credentials.
