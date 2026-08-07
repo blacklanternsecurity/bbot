@@ -270,8 +270,13 @@ class ConfigAwareHelper:
 
     def run_in_executor_cpu(self, callback, *args, **kwargs):
         """
-        Run short CPU-bound work that releases the GIL in a dedicated thread pool,
-        separate from I/O so it never queues behind long-running network calls.
+        Run short CPU-bound work in a dedicated thread pool, separate from I/O so it
+        never queues behind long-running network calls.
+
+        This is a thread pool, so it only buys parallelism for work that releases the
+        GIL (yara). Pure-Python work still runs one call at a time and competes with
+        the event loop for the GIL, so keep it short. Anything long-running and
+        GIL-bound belongs in run_in_executor_mp() instead.
 
         Examples:
             Execute callback:
@@ -283,7 +288,12 @@ class ConfigAwareHelper:
     async def run_in_executor_mp(self, callback, *args, **kwargs):
         """
         Same as run_in_executor_io() except with a process pool executor.
-        Use only in cases where callback is CPU-bound.
+
+        Use for CPU-bound work that holds the GIL long enough to stall the event loop,
+        or that needs crash/hang isolation from hostile input. Arguments and return
+        values are pickled, so prefer plain data over objects with big object graphs.
+        Workers are recycled periodically, so this is a poor fit for very high rates of
+        very short tasks.
 
         Includes a timeout (default 300s) to prevent indefinite hangs if a child process dies or the pool enters a broken state.
         On timeout, the entire pool is terminated and replaced so that stuck workers cannot accumulate and starve the scan.

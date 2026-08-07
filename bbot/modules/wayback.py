@@ -439,7 +439,7 @@ rule akamai_bot_manager_url
         # parse JSON + extract URLs off the event loop
         # (CDX responses can contain 100k+ entries)
         try:
-            urls = await self.helpers.run_in_executor_cpu(_parse_cdx_response, r.text)
+            urls = await self.helpers.run_in_executor_mp(_parse_cdx_response, r.text)
         except Exception:
             urls = None
         if urls is None:
@@ -520,7 +520,7 @@ rule akamai_bot_manager_url
         collapsed_urls = 0
         start_time = datetime.now()
         # consolidate URLs to cut down on garbage data (CPU-intensive, runs off the event loop)
-        parsed_urls = await self.helpers.run_in_executor_cpu(
+        parsed_urls = await self.helpers.run_in_executor_mp(
             self.helpers.validators.collapse_urls,
             urls,
             threshold=self.garbage_threshold,
