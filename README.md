@@ -388,6 +388,7 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/Stabl
             - [List of Presets](https://www.blacklanternsecurity.com/bbot/Stable/scanning/presets_list)
         - [Events](https://www.blacklanternsecurity.com/bbot/Stable/scanning/events)
         - [Output](https://www.blacklanternsecurity.com/bbot/Stable/scanning/output)
+        - [MCP Server](https://www.blacklanternsecurity.com/bbot/Stable/scanning/mcp)
         - [Tips and Tricks](https://www.blacklanternsecurity.com/bbot/Stable/scanning/tips_and_tricks)
         - [Advanced Usage](https://www.blacklanternsecurity.com/bbot/Stable/scanning/advanced)
         - [Configuration](https://www.blacklanternsecurity.com/bbot/Stable/scanning/configuration)

@@ -1,0 +1,95 @@
+description: Find an organization's subdomains from third-party data, without brute-forcing DNS.
+
+include:
+  - subdomain-enum
+
+exclude_modules:
+  # The two that dominate a subdomain scan's wall time: dnsbrute grinds a
+  # 5,000-word list against every domain it discovers, and the mutation module
+  # then does it again with target-specific guesses. Everything else is API
+  # lookups that run in parallel and finish in minutes.
+  - dnsbrute
+  - dnsbrute_mutations
+
+meta:
+  accepts:
+    # domain-level: there is nothing to enumerate from a bare URL or IP
+    - DNS_NAME
+
+  yields:
+    # A subdomain scan's result is the hostname list. Everything else BBOT
+    # emits on the way there is scaffolding for that.
+    - DNS_NAME
+
+  when_to_use: |
+    Reach for this first whenever a target is a domain rather than a specific
+    host. It answers "what does this organization expose?" in minutes rather
+    than hours, and its output is what most other work depends on.
+
+    It is also the right choice when you need an answer now and can come back
+    for the thorough version later. Everything it finds, the deep variant finds
+    too, so nothing is wasted by starting here.
+
+  when_not_to_use: |
+    Skip it when the target is already a specific host, URL, or IP range. There
+    is nothing to enumerate from those.
+
+    Use `find_subdomains_deep` instead when coverage matters more than time. This
+    one only finds names that some third party has already recorded, so anything
+    never logged in a certificate, never crawled, and never published stays
+    invisible to it. On a target with an unremarkable public footprint that can
+    be most of what exists.
+
+  how_it_works: |
+    Queries certificate transparency logs, passive DNS providers, search
+    engines, code-hosting platforms and threat-intel feeds for hostnames under
+    the target domain, then resolves what it finds and filters wildcards.
+
+    A few modules still touch the target directly to read certificates and
+    well-known files, which is cheap. The expensive brute-force modules are the
+    only things switched off.
+
+  how_to_call: |
+    Pass every domain you care about in one call. A single scan over several
+    targets runs them together and is far faster than one call each.
+
+    Scope is the setting that surprises people. By default BBOT treats
+    everything under a target as in-scope, so `evilcorp.com` also covers
+    `anything.evilcorp.com`, including hosts you have never seen. That is
+    normally what you want from a subdomain scan, and it is the reason this
+    finds anything at all. Pass `strict_scope=True` to limit the scan to the
+    exact names you gave, which is what you want when authorization covers
+    named hosts rather than a whole domain.
+
+    Use `blacklist` for anything that must not be touched regardless. It
+    overrides scope, so a blacklisted host stays untouched even when it falls
+    inside a target domain. Production hosts and third-party-managed
+    infrastructure belong there.
+
+  interpreting_results: |
+    The `subdomains` output module writes a deduplicated list to
+    `subdomains.txt`, which is usually what you want to hand to whatever comes
+    next.
+
+    Resolution is not evidence of a live service. Expect a long tail of names
+    that resolve but serve nothing.
+
+    Only in-scope names come back. The scan also turns up the target's
+    nameservers, its mail exchangers, and affiliate infrastructure named in its
+    certificates, and those are dropped: they are real discoveries but they are
+    not subdomains of what you asked about, and they belong to someone else.
+
+  caveats: |
+    Coverage scales directly with how many API keys are configured. With none
+    set, the key-gated modules soft-fail and the scan continues on certificate
+    transparency alone, which still works but returns meaningfully less.
+
+    Results skew toward what was true when a third party observed it, so some
+    names will no longer resolve. That is useful signal in itself: a dead name
+    still pointing at a released cloud resource is a takeover candidate.
+
+  examples:
+    - description: Get a quick picture of an organization's public footprint.
+      targets: [evilcorp.com]
+    - description: Scope several related domains at once.
+      targets: [evilcorp.com, evilcorp.org]

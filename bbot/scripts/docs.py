@@ -206,6 +206,15 @@ def update_docs():
     assert len(bbot_presets_table.splitlines()) > 5
     update_md_files("BBOT PRESETS", bbot_presets_table)
 
+    # BBOT MCP capabilities
+    from bbot.mcp.format import capabilities_table
+    from bbot.mcp.registry import get_registry
+
+    bbot_capabilities_table = capabilities_table(get_registry().sorted())
+    # header + separator + one row per pseudotool
+    assert len(bbot_capabilities_table.splitlines()) > 2
+    update_md_files("BBOT MCP CAPABILITIES", bbot_capabilities_table)
+
     # BBOT presets
     for _, (loaded_preset, category, preset_path, original_filename) in DEFAULT_PRESET.all_presets.items():
         str_category = "" if not category else f"/{category}"

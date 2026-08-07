@@ -1,0 +1,96 @@
+description: Fuzz a web application's parameters for injection flaws - SQLi, XSS, command injection, path traversal, SSTI, SSRF.
+
+include:
+  # the fuzzer itself: all nine submodules plus badsecrets, hunt and
+  # reflected_parameters as companions
+  - lightfuzz
+  # lightfuzz can only fuzz parameters something has found. Without a crawl it
+  # sees the seed URLs and nothing else, which is why the bundled preset warns
+  # when the spider is off.
+  - spider
+
+config:
+  modules:
+    lightfuzz:
+      # lightfuzz-light turns POST off; this is an offensive tool, so it goes
+      # back on. Forms get submitted.
+      disable_post: false
+      # fuzz every parameter both ways. Backends routinely handle the query
+      # string and the request body with different code paths -- a filter on one
+      # is often absent on the other -- and testing only where a parameter was
+      # first seen misses exactly that.
+      try_post_as_get: true
+      try_get_as_post: true
+      # Skip hosts behind a confirmed WAF. Fuzzing through one produces blocked
+      # requests, false negatives, and a good chance of the source IP being
+      # banned partway through. Flip this to false once nowafpls lands, so
+      # requests get padded past the WAF instead of just bouncing off it.
+      avoid_wafs: true
+
+meta:
+  accepts:
+    # URL-level: point it at the application, not the organization
+    - URL
+
+  yields:
+    - FINDING
+
+  when_not_to_use: |
+    Do not use it without written authorization naming these hosts. This sends
+    injection payloads to a live application: it submits forms, it can write
+    data, and it can trip lockouts or alerts. It is the most intrusive tool
+    here.
+
+    Do not point it at a bare domain. It fuzzes parameters on URLs, so give it
+    the application's entry points. Use `find_subdomains_fast` first if you need
+    to discover what exists, then bring the interesting URLs here.
+
+    Do not expect it on WAF-protected hosts. Those are skipped by design, and
+    the scan will look quiet for reasons that have nothing to do with the
+    application being sound.
+
+    Use `lightfuzz_deep` instead when the application hides its parameters:
+    this one only fuzzes what the crawl can see.
+
+  how_to_call: |
+    Give it URLs, one call for all of them. Entry points work well: a login
+    page, a search endpoint, an API root. The spider walks out from there two
+    links deep, four directories down, twenty-five links per page.
+
+    Scope: BBOT treats everything under a target as in-scope, so a URL on
+    `app.evilcorp.com` keeps the fuzzer on that host and whatever it links to
+    beneath it. `strict_scope=True` holds it to the exact URLs you gave, which
+    is what you want when authorization names specific endpoints.
+
+    `blacklist` is the one that matters here. It overrides scope, so it is the
+    only reliable way to keep payloads off an endpoint that must not receive
+    them: password reset, payment, anything that emails a customer. Put those in
+    before you start, not after. The spider preset already blacklists sign-out
+    and log-out URLs so the crawl does not destroy its own session.
+
+  interpreting_results: |
+    Read severity and confidence together. A CRITICAL at low confidence is a
+    lead worth reproducing by hand; a MEDIUM at CONFIRMED is a result. Findings
+    come back sorted by severity.
+
+    Every finding here is a machine's opinion formed from a response
+    differential. Reproduce anything you intend to report: reflected input is
+    not proof of XSS, and a timing difference is not proof of SQLi.
+
+    A quiet scan is not a clean application. Check whether the host was skipped
+    as WAF-protected, and whether the spider actually found parameters to fuzz
+    -- with nothing to work on, lightfuzz has nothing to say.
+
+  caveats: |
+    Coverage is bounded entirely by parameter discovery. Parameters that only
+    appear after login, or that the application never mentions in HTML, are
+    invisible to it.
+
+    Fuzzing both directions roughly doubles the request count against the
+    target. Budget for it.
+
+  examples:
+    - description: Fuzz a single application's parameters for injection flaws.
+      targets: ["https://app.evilcorp.com/"]
+    - description: Fuzz several known entry points in one scan.
+      targets: ["https://app.evilcorp.com/login", "https://api.evilcorp.com/v1/"]

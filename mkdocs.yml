@@ -26,6 +26,7 @@ nav:
       - List of Presets: scanning/presets_list.md
     - Events: scanning/events.md
     - Output: scanning/output.md
+    - MCP Server: scanning/mcp.md
     - Tips and Tricks: scanning/tips_and_tricks.md
     - Advanced Usage: scanning/advanced.md
     - Configuration: scanning/configuration.md
