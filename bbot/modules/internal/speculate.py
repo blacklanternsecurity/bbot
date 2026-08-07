@@ -25,7 +25,7 @@ class speculate(BaseInternalModule):
         "AZURE_TENANT",
         "USERNAME",
     ]
-    produced_events = ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS", "FINDING", "ORG_STUB"]
+    produced_events = ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS", "FINDING", "ORG_STUB", "URL_UNVERIFIED"]
     flags = ["safe", "passive"]
     meta = {
         "description": "Derive certain event types from others by common sense",

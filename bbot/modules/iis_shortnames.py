@@ -16,7 +16,7 @@ class IISShortnamesError(Exception):
 
 class iis_shortnames(BaseModule):
     watched_events = ["URL"]
-    produced_events = ["URL_HINT"]
+    produced_events = ["URL_HINT", "FINDING"]
     flags = ["loud", "active", "web", "iis-shortnames"]
     meta = {
         "description": "Check for IIS shortname vulnerability",

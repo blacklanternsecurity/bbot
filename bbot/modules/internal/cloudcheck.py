@@ -9,6 +9,7 @@ from bbot.modules.base import BaseInterceptModule
 
 class CloudCheck(BaseInterceptModule):
     watched_events = ["*"]
+    produced_events = ["STORAGE_BUCKET"]
     meta = {
         "description": "Tag events by cloud provider, identify cloud resources like storage buckets",
         "created_date": "2024-07-07",

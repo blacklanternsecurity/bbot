@@ -6,7 +6,7 @@ from bbot.core.config.models import BaseModuleConfig, Field
 
 class OAUTH(BaseModule):
     watched_events = ["DNS_NAME", "URL_UNVERIFIED"]
-    produced_events = ["DNS_NAME"]
+    produced_events = ["DNS_NAME", "FINDING"]
     flags = ["safe", "affiliates", "subdomain-enum", "cloud-enum", "web", "active"]
     meta = {
         "description": "Enumerate OAUTH and OpenID Connect services",

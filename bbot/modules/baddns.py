@@ -40,7 +40,7 @@ SUBMODULE_MAX_CONFIDENCE = {
 
 class baddns(BaseModule):
     watched_events = ["DNS_NAME", "DNS_NAME_UNRESOLVED"]
-    produced_events = ["FINDING"]
+    produced_events = ["FINDING", "DNS_NAME"]
     flags = ["safe", "active", "web", "baddns", "cloud-enum", "subdomain-hijack"]
     meta = {
         "description": "Check hosts for domain/subdomain takeovers",

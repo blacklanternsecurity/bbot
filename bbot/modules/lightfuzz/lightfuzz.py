@@ -15,7 +15,7 @@ from bbot.modules.lightfuzz.submodules.serial import serial as _serial_submodule
 
 class lightfuzz(BaseModule):
     watched_events = ["URL", "WEB_PARAMETER"]
-    produced_events = ["FINDING", "HTTP_RESPONSE"]
+    produced_events = ["FINDING", "HTTP_RESPONSE", "WEB_PARAMETER"]
     flags = ["active", "loud", "web-heavy", "invasive"]
 
     class Config(BaseModuleConfig):
