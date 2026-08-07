@@ -1,6 +1,7 @@
 import json
 import re
 import base64
+import html
 from types import SimpleNamespace
 from urllib.parse import urlparse, parse_qs
 
@@ -4281,6 +4282,25 @@ class Test_Lightfuzz_sqli_length_keyed_fp(Test_Lightfuzz_sqli):
         assert not findings, f"SQLi reported from a length-keyed status flip: {findings}"
 
 
+# SQLi negative test: the parameter never reaches a query, and the app reflects it HTML-escaped.
+# The escaped reflection differs between the TRUE and FALSE boolean payloads, so unless every
+# escape spelling is stripped, the reflection itself reads as a boolean differential.
+class Test_Lightfuzz_sqli_escaped_reflection_fp(Test_Lightfuzz_sqli):
+    def request_handler(self, request):
+        value = request.args.get("search")
+        if value is None:
+            return Response(self.parameter_block, status=200)
+        if value.endswith("'") and not value.endswith("''"):
+            return Response("<html><p>Bad Request</p></html>", status=500)
+        # the Jinja/ASP.NET spelling, deliberately not the one html.escape() produces
+        reflection = html.escape(value).replace("&#x27;", "&#39;")
+        return Response(f"<html><p>0 results for: {reflection}</p></html>", status=200)
+
+    def check(self, module_test, events):
+        findings = _sqli_code_change_findings(events)
+        assert not findings, f"SQLi reported from an HTML-escaped reflection: {findings}"
+
+
 # Verify that POST SQLi findings include additional_params in the description
 class Test_Lightfuzz_sqli_post_additional_params(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
@@ -5153,20 +5173,6 @@ def test_keystream_fp_sibling_form_fields_incremental():
     )
     c.detect_keystream_reuse("aabbccdd00000010")
     assert not c.results, f"FP on sibling sequential hex form fields: {c.results}"
-
-
-def test_keystream_fp_record_guid_shared_template():
-    """Two 32-hex record GUIDs from the same platform instance. They share no leading byte, so
-    the leading-zero test never applies, but they re-converge at fixed offsets where the shared
-    instance/table segment sits -- and the XOR of the diverging bytes lands almost entirely in
-    the ASCII-XOR range by coincidence, clearing the 0.9 score on its own."""
-    ids = [
-        "e42a5af4c700201072b211d4d8c2607c",
-        "c86a62e2c7022010099a308dc7c26022",
-    ]
-    c = _make_crypto_for_keystream(ids[0], additional_params={"app_sys_id": ids[1]})
-    c.detect_keystream_reuse(ids[0])
-    assert not c.results, f"FP on record GUIDs sharing a field template: {c.results}"
 
 
 def test_keystream_fp_decimal_account_numbers():

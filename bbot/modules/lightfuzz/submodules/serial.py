@@ -6,6 +6,11 @@ import struct
 from .base import BaseLightfuzz
 from bbot.errors import HttpCompareError
 
+# enough leading bytes to break every magic header we send (java `AC ED`, dotnet `00 01 00 00`,
+# pickle `80 04`) without disturbing the payload's length or trailing bytes
+MAGIC_HEADER_LENGTH = 4
+HEADER_SCRAMBLE_DELTA = 0x55
+
 
 class _PickleOOB:
     """Pickle-RCE canary: __reduce__ makes the deserializing process resolve
@@ -209,10 +214,8 @@ class serial(BaseLightfuzz):
 
     @staticmethod
     def corrupt_payload(payload, encoding):
-        """Return a twin of ``payload`` with the same encoding, length and trailing bytes but a
-        scrambled magic/type header: still parses like the original, deserializes under nothing.
-        Returns None when no distinguishable twin can be built.
-        """
+        """Return a twin of ``payload``: same encoding, length and trailing bytes, scrambled magic
+        header. Parses like the original, deserializes under nothing. None if no twin can be built."""
         if not payload:
             return None
         if encoding == "php_raw":
@@ -220,12 +223,12 @@ class serial(BaseLightfuzz):
             return f"z{payload[1:]}" if payload[0] != "z" else f"q{payload[1:]}"
         try:
             data = bytes.fromhex(payload) if encoding == "hex" else base64.b64decode(payload)
-        except Exception:
+        except ValueError:
             return None
-        header_length = min(4, len(data))
+        header_length = min(MAGIC_HEADER_LENGTH, len(data))
         if not header_length:
             return None
-        corrupted = bytes((b + 0x55) % 256 for b in data[:header_length]) + data[header_length:]
+        corrupted = bytes((b + HEADER_SCRAMBLE_DELTA) % 256 for b in data[:header_length]) + data[header_length:]
         if encoding == "hex":
             return corrupted.hex().upper() if payload.isupper() else corrupted.hex()
         return base64.b64encode(corrupted).decode()
@@ -340,9 +343,8 @@ class serial(BaseLightfuzz):
                         )
                         continue
 
-                    # Deserialization is a claim about the payload's content, so a same-shape twin
-                    # with a scrambled header must not resolve the error too. If it does, the value
-                    # is only being parsed (e.g. as a URL/host), not deserialized.
+                    # a same-shape twin with a scrambled header deserializes under nothing, so if it
+                    # resolves the error too, the value is only being parsed (e.g. as a URL/host)
                     corrupted_payload = self.corrupt_payload(payload, encoding)
                     if corrupted_payload is not None:
                         corrupted_response = await self.standard_probe(

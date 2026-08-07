@@ -1,8 +1,13 @@
+import html
 from urllib.parse import quote
 
 from .base import BaseLightfuzz
 from bbot.errors import HttpCompareError
 from bbot.core.helpers.diff import parse_body
+
+# frameworks disagree on how they spell an escaped quote (Jinja/ASP.NET `&#39;`, Django `&#x27;`,
+# PHP `&#039;`, XHTML `&apos;`), and a reflected payload has to be removed in whichever it uses.
+HTML_QUOTE_ENTITIES = ("&#39;", "&#x27;", "&#039;", "&apos;")
 
 
 class sqli(BaseLightfuzz):
@@ -48,13 +53,18 @@ class sqli(BaseLightfuzz):
         "string not properly terminated",
     ]
 
-    # TRUE/FALSE payload pairs used to confirm the value reaches a SQL query. Both halves of a
-    # pair are the same length and differ by a single character, so a reflected payload can be
-    # stripped cleanly and any surviving body difference comes from the query result set.
+    # both halves are the same length and differ by one character, so a reflected copy strips
+    # cleanly and any surviving body difference comes from the query result set
     BOOLEAN_PROBE_PAIRS = [
         ("' AND '1'='1", "' AND '1'='2"),
         (" AND 1=1", " AND 1=2"),
     ]
+
+    # one vs. two benign characters, mirroring the `'`/`''` pair in length with no SQL meaning
+    BENIGN_CONTROL_SUFFIXES = ("a", "aa")
+
+    # a WAF block or a rate limit says nothing about the query behind the parameter
+    INCONCLUSIVE_STATUS_CODES = (403, 429)
 
     DELAY_PROBE_TEMPLATES = [
         "'||pg_sleep({d})--",
@@ -132,18 +142,17 @@ class sqli(BaseLightfuzz):
 
     @staticmethod
     def _strip_payload(text, payload):
-        """Remove reflected copies of a payload from a response body, in raw and encoded form."""
-        for variant in (payload, quote(payload), payload.replace(" ", "+")):
+        """Remove reflected copies of a payload from a response body, raw, URL-encoded and HTML-escaped."""
+        escaped = html.escape(payload)
+        variants = [payload, quote(payload), payload.replace(" ", "+"), escaped]
+        variants += [escaped.replace("&#x27;", entity) for entity in HTML_QUOTE_ENTITIES]
+        for variant in variants:
             text = text.replace(variant, "")
         return text
 
     async def _probe_body(self, http_compare, payload, cookies):
-        """Send ``payload`` and return its parsed response body, reflections of the payload
-        stripped, ready for ``http_compare.compare_body()``.
-
-        Returns None when the probe fails, or when the response is 403/429 (WAF or rate limit,
-        which tells us nothing about the query behind the parameter).
-        """
+        """Send ``payload`` and return its parsed body with reflections stripped, or None when the
+        probe fails or the status is inconclusive."""
         try:
             probe = await self.compare_probe(
                 http_compare,
@@ -157,7 +166,7 @@ class sqli(BaseLightfuzz):
             return None
         if not probe[3]:
             return None
-        if probe[3].status_code in (403, 429):
+        if probe[3].status_code in self.INCONCLUSIVE_STATUS_CODES:
             self.debug(f"Boolean probe [{payload}] returned {probe[3].status_code}, cannot confirm")
             return None
         return parse_body(self._strip_payload(probe[3].text, payload))
@@ -165,9 +174,8 @@ class sqli(BaseLightfuzz):
     async def confirm_boolean_differential(self, http_compare, probe_value, cookies):
         """Require positive SQL-logic evidence before asserting injection from a status change.
 
-        A bare status flip is not SQL: a WAF signature match, or an envelope whose structural
-        validity changes when the payload is repacked, both produce one. Only a TRUE/FALSE pair
-        that changes the response *content* shows the value is reaching a query.
+        A WAF signature match or a repacked envelope both produce a bare status flip; only a
+        content differential shows the value reaching a query.
 
         Returns the confirming ``(true_payload, false_payload)`` pair, or None.
         """
@@ -186,8 +194,7 @@ class sqli(BaseLightfuzz):
                 self.debug(f"No boolean differential for [{true_suffix}] / [{false_suffix}]")
                 continue
 
-            # A page that renders differently on every request produces a differential on its
-            # own. Re-send the TRUE payload; the body must reproduce for the pair to mean anything.
+            # an unstable page produces a differential on its own, so the TRUE body must reproduce
             repeat_body = await self._probe_body(http_compare, true_payload, cookies)
             if repeat_body is None:
                 continue
@@ -202,12 +209,11 @@ class sqli(BaseLightfuzz):
     async def is_quote_specific(self, http_compare, probe_value, cookies, status_codes):
         """Verify the status flip tracks the quote characters and not the payload's shape.
 
-        Appending one vs. two benign characters mirrors the `'`/`''` pair in length while
-        carrying no SQL meaning. If that benign pair reproduces the same status triplet, the
-        flip tracks value length or envelope validity rather than quoting.
+        If the benign control pair reproduces the same status triplet, the flip tracks value
+        length or envelope validity rather than quoting.
         """
         control_codes = []
-        for suffix in ("a", "aa"):
+        for suffix in self.BENIGN_CONTROL_SUFFIXES:
             try:
                 control = await self.compare_probe(
                     http_compare,
@@ -280,14 +286,19 @@ class sqli(BaseLightfuzz):
                     if "code" in single_quote[1] and (
                         single_quote[3].status_code != double_single_quote[3].status_code
                     ):
-                        # A transition into 403 is access control (usually a WAF matching its managed
-                        # SQLi signature on the bare quote), not a code change driven by the query.
-                        if 403 in (single_quote[3].status_code, double_single_quote[3].status_code):
-                            self.debug(
-                                "Quote probe transitioned into 403 (access control/WAF), "
-                                "suppressing SQL injection finding"
+                        # Check if the status code change is due to a WAF, not SQL injection
+                        is_waf = False
+                        if single_quote[3].status_code == 403:
+                            waf_matches = await self.lightfuzz.helpers.yara.match(
+                                self.lightfuzz.waf_yara_rules, single_quote[3].text
                             )
-                        else:
+                            if waf_matches:
+                                self.debug(
+                                    "Single quote probe returned 403 with WAF signature, "
+                                    "suppressing SQL injection finding"
+                                )
+                                is_waf = True
+                        if not is_waf:
                             # Confirmation loop: require 2 additional rounds with fresh baselines
                             # to confirm the status-code triplet is stable and not a transient CDN/server flap.
                             # TODO: apply this same confirmation pattern to other submodules that use compare_probe-based detection.

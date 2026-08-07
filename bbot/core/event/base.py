@@ -958,8 +958,7 @@ class BaseEvent:
         web_spider_distance = getattr(self, "web_spider_distance", None)
         if web_spider_distance is not None:
             j["web_spider_distance"] = web_spider_distance
-        # provenance for events whose evidence is an archived snapshot rather than the live host.
-        # kept out of `data` so it doesn't become part of the event's identity.
+        # kept out of `data` so the snapshot URL doesn't become part of the event's identity
         archive_url = self.archive_url
         if archive_url:
             j["archive_url"] = archive_url
@@ -1971,7 +1970,6 @@ class FINDING(ClosestHostEvent):
             confidence_str = f"[\033[1m{confidence}\033[0m]"
         else:
             confidence_str = f"[{confidence}]"
-        # the evidence came out of an archive, so the severity describes a snapshot, not the live host
         archived_str = "[ARCHIVED] " if self.archive_url else ""
         return f"{archived_str}Severity: [{severity}] Confidence: {confidence_str} {description}"
 
@@ -1986,7 +1984,6 @@ class FINDING(ClosestHostEvent):
         cves = self.data.get("cves", [])
         if cves:
             parts.append(f"[{', '.join(cves)}]")
-        # the evidence came out of an archive, so the severity describes a snapshot, not the live host
         archive_url = self.archive_url
         if archive_url:
             parts.append(f"(archived: {archive_url})")
