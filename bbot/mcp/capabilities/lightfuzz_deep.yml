@@ -1,0 +1,61 @@
+description: Fuzz a web application exhaustively - brute-forces hidden parameters and replays archived URLs, then fuzzes everything found.
+
+include:
+  # lightfuzz plus paramminer, robots and wayback. Already sets disable_post
+  # false, try_post_as_get and try_get_as_post, so this file does not repeat them.
+  - lightfuzz-heavy
+  # a wider crawl than the standard tool: distance 4, depth 6, 50 links per page
+  - spider-heavy
+
+modules:
+  # Named here rather than inherited, for the same reason as in `lightfuzz`:
+  # this tool's prose promises WAF-bypass detection, so it owns that guarantee.
+  - nowafpls
+
+config:
+  # Fuzz every parameter-value pair on its own instead of collapsing repeats
+  # into one. An application that reads the same parameter more than once often
+  # treats the occurrences differently, and collapsing hides that.
+  url_querystring_collapse: false
+  modules:
+    wayback:
+      # lightfuzz-heavy already turns on wayback urls and parameters. `archive`
+      # is the piece it lacks: it pulls archived copies of dead URLs back down
+      # and replays them, so parameters that only ever existed on a page that is
+      # now gone still get fuzzed.
+      archive: true
+
+meta:
+  accepts:
+    - URL
+
+  yields:
+    - FINDING
+
+  when_not_to_use: |
+    Everything true of `lightfuzz` applies, plus paramminer brute-forcing parameter names against every endpoint it finds.
+
+    Start with `lightfuzz`. Come here when its coverage was not enough, or the engagement warrants a much longer scan and a much heavier load on the target.
+
+  how_to_call: |
+    WAF handling is identical to `lightfuzz`.
+
+    Provide URLs (single or list). Spider is enabled and will expand testing surface; paramminer and wayback expand it further.
+
+    Blacklist anything that must not receive payloads before you start - paramminer reaches endpoints you never thought about.
+
+  interpreting_results: |
+    Read the same way as `lightfuzz`, including the `used-nowafpls` tag.
+
+    Findings tagged `from-wayback` came from the archive, not the live site. Check whether the URL still resolves before reporting it.
+
+  caveats: |
+    Most of the runtime is parameter discovery, not fuzzing, and much of it finds nothing.
+
+    Paramminer's coverage is bounded by its wordlist. Archived content is only as good as what Wayback captured.
+
+  examples:
+    - description: Exhaustively fuzz a single application, including its archived history.
+      targets: ["https://app.evilcorp.com/"]
+    - description: Deep-fuzz an API whose parameters are not linked from anywhere.
+      targets: ["https://api.evilcorp.com/v1/"]

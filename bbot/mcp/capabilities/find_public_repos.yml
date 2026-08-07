@@ -1,0 +1,52 @@
+description: Find an organization's public code repositories and audit their CI/CD configuration, without cloning anything.
+
+modules:
+  # repositories owned by the organization
+  - github_org
+  # code on GitHub mentioning the target domain, wherever it lives
+  - github_codesearch
+  - gitlab_com
+  # repository links referenced from the organization's own web content
+  - code_repository
+  - http
+  # reads each repository's CI/CD configuration for misconfigurations, over the
+  # API. This is what makes the tool produce findings rather than inventory.
+  - trajan
+
+meta:
+  accepts:
+    - DNS_NAME
+
+  yields:
+    - CODE_REPOSITORY
+    - FINDING
+
+  when_not_to_use: |
+    Use `find_leaked_secrets` if you want credentials. This clones nothing, so it cannot read commit history.
+
+    Without a GitHub API key, `github_codesearch` will not run - that is the module that finds code outside the organization's own account.
+
+    Code search finds repositories belonging to employees personally. Authorization to test a company may not cover those.
+
+  how_to_call: |
+    Provide domains (single or list). Downloads nothing.
+
+    Set a GitHub API key if you have one. Without it, results are limited to accounts the organization obviously owns.
+
+  interpreting_results: |
+    CODE_REPOSITORY events are inventory. Confirm ownership - a repository that merely mentions the domain may belong to a customer or a stranger.
+
+    Findings come from `trajan` and describe pipeline configuration, not code contents: workflows triggerable by outsiders, secrets exposed to forks, writable registries.
+
+  caveats: |
+    Attribution is heuristic, producing both misses and false attributions.
+
+    No commit history is read. Only `find_leaked_secrets` sees that.
+
+    GitLab coverage is thinner than GitHub's.
+
+  examples:
+    - description: Inventory an organization's public repositories and check their pipelines.
+      targets: [evilcorp.com]
+    - description: Cover an organization with several domains.
+      targets: [evilcorp.com, evilcorp.io]

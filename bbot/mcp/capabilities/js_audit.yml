@@ -1,0 +1,39 @@
+description: Hunt for leaked credentials and vulnerable libraries in a site's client-side JavaScript.
+
+include:
+  # mirrors bbot's bundled js-audit preset
+  - js-audit
+
+meta:
+  accepts:
+    - URL
+
+  yields:
+    - FINDING
+    # the JavaScript files and paths actually examined, including ones recovered
+    # from the archive and unpacked from obfuscated bundles
+    - URL
+
+  when_not_to_use: |
+    Skip it for a site with no meaningful client-side JavaScript.
+
+
+  how_to_call: |
+    Give it URLs. It reads what the pages load, so an application's entry point is enough; you do not name the script files.
+
+  interpreting_results: |
+    Credentials are reported whether or not trufflehog could verify them. Verified ones are worth acting on immediately. An unverified one is not a false positive by default.
+
+    Vulnerable library findings from retirejs name a version with a known CVE. Exploitability depends on how the page uses the library, so treat the version as the fact and the CVE as the hypothesis.
+
+    Findings from archived JavaScript may describe a file the site no longer serves. A credential in one is still worth chasing. 
+
+
+  caveats: |
+    Unpacking handles known obfuscation and packing frameworks transparently. 
+
+  examples:
+    - description: Look for leaked keys and vulnerable libraries in a web application's JavaScript.
+      targets: ["https://app.evilcorp.com/"]
+    - description: Audit the client-side code of several applications in one pass.
+      targets: ["https://app.evilcorp.com/", "https://portal.evilcorp.com/"]

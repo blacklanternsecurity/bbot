@@ -1,0 +1,66 @@
+description: Find an organization's subdomains from third-party data, without brute-forcing DNS.
+
+include:
+  - subdomain-enum
+
+exclude_modules:
+  # The two that dominate a subdomain scan's wall time: dnsbrute grinds a
+  # 5,000-word list against every domain it discovers, and the mutation module
+  # then does it again with target-specific guesses. Everything else is API
+  # lookups that run in parallel and finish in minutes.
+  - dnsbrute
+  - dnsbrute_mutations
+  # writes third-party Postman workspaces to local disk. A subdomain scan has no
+  # business downloading anything.
+  - postman_download
+  - shodan_idb
+
+meta:
+  accepts:
+    # domain-level: there is nothing to enumerate from a bare URL or IP
+    - DNS_NAME
+
+  yields:
+    # A subdomain scan's result is the hostname list. Everything else BBOT
+    # emits on the way there is scaffolding for that.
+    - DNS_NAME
+
+  when_to_use: |
+    Reach for this first whenever a target is a domain rather than a specific host. It answers "what does this organization expose?" in minutes rather than hours, and its output is what most other work depends on.
+
+    It is also the right choice when you need an answer now and can come back for the thorough version later. Everything it finds, the deep variant finds too, so nothing is wasted by starting here.
+
+  when_not_to_use: |
+    Skip it when the target is already a specific host, URL, or IP range.
+
+    Use `find_subdomains_deep` when coverage matters more than time. This only finds names some third party already recorded, so anything never certificated, crawled or published stays invisible.
+
+  how_it_works: |
+    Queries certificate transparency, passive DNS, search engines, code-hosting platforms and threat-intel feeds, then resolves what it finds and filters wildcards.
+
+    A few modules touch the target directly to read certificates and well-known files. The expensive brute-force modules are the only things switched off.
+
+  how_to_call: |
+    Provide domains (single or list). One call for all of them is far faster than one call each.
+
+    `strict_scope=True` mostly defeats this - scope expansion is why it finds anything. Reach for it only when authorization covers named hosts.
+
+    Production hosts and third-party-managed infrastructure belong in `blacklist`.
+
+  interpreting_results: |
+    The `subdomains` output module writes a deduplicated list to `subdomains.txt`.
+
+    Resolution is not evidence of a live service. Expect a long tail of names that resolve but serve nothing.
+
+    Only in-scope names come back. Nameservers, mail exchangers and affiliate infrastructure found in certificates are dropped.
+
+  caveats: |
+    Coverage scales with how many API keys are configured. With none, the key-gated modules soft-fail and the scan continues on certificate transparency alone.
+
+    Results skew to what was true when a third party observed it, so some names no longer resolve. A dead name still pointing at a released cloud resource is a takeover candidate.
+
+  examples:
+    - description: Get a quick picture of an organization's public footprint.
+      targets: [evilcorp.com]
+    - description: Scope several related domains at once.
+      targets: [evilcorp.com, evilcorp.org]

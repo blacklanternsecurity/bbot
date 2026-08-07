@@ -439,6 +439,14 @@ class DepsInstaller:
 
             if message:
                 log.warning(message)
+            # Only prompt when there is a terminal to prompt on. Without a TTY
+            # getpass falls back to reading sys.stdin, which in a non-interactive
+            # caller is not a keyboard: for a stdio server it is the protocol
+            # channel itself, so the prompt would block forever on a password
+            # that never arrives while consuming that stream.
+            if not sys.stdin.isatty():
+                log.error("Root privileges are required, but there is no TTY to prompt on. Set BBOT_SUDO_PASS.")
+                return
             while not self._sudo_password:
                 # sleep for a split second to flush previous log messages
                 sleep(0.1)

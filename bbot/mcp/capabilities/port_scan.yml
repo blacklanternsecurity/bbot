@@ -1,0 +1,58 @@
+description: Find open TCP ports across hosts or network ranges, and identify what service is listening on each.
+
+modules:
+  - portscan
+  # An open port on its own says a handshake completed and nothing more.
+  # fingerprintx names the protocol, which is what turns a port number into
+  # something you can act on.
+  - fingerprintx
+
+config:
+  modules:
+    portscan:
+      # ten times the default coverage. The top 100 misses services parked on
+      # non-standard ports, which is exactly where the interesting ones sit.
+      top_ports: 1000
+      # BBOT's shipped rate. Deliberately low: raising it makes the scan more
+      # visible and starts dropping real results on an unreliable path.
+      rate: 300
+
+meta:
+  accepts:
+    - DNS_NAME
+    - IP_ADDRESS
+    - IP_RANGE
+
+  yields:
+    - OPEN_TCP_PORT
+    - PROTOCOL
+
+  when_not_to_use: |
+    Be aware it needs root. A SYN scan uses raw sockets; without root BBOT falls back to a connect scan that is markedly slower and more visible on the target.
+
+  how_to_call: |
+    Give it hostnames, IPs, or CIDR ranges - one call for all of them. A single scan across many targets is far faster than one call each, because masscan works on the whole set at once.
+
+    Settings are top 1000 ports at 300 packets per second. Service identification via `fingerprintx` runs on discovered ports, skipping common web ports (80, 443, 8080, 8443).
+
+    Root matters. With it, this is a masscan SYN sweep. Without it, BBOT silently substitutes a slower connect scan.
+
+    Blacklist specific addresses to keep them out of a range you are otherwise sweeping. `strict_scope` does nothing useful here.
+
+  interpreting_results: |
+    An OPEN_TCP_PORT means a TCP handshake completed. It does not say what is listening, and the port number is a convention rather than a guarantee.
+
+    PROTOCOL events are from `fingerprintx` and may be very useful.
+
+  caveats: |
+    TCP only. UDP services are not scanned.
+
+    Top 1000 ports still leaves the majority of the port space untouched. A service deliberately parked high will not be found.
+
+    Rate limiting, SYN cookies and stateful firewalls all distort results.
+
+  examples:
+    - description: Sweep an internal range for reachable services.
+      targets: ["10.0.0.0/24"]
+    - description: Check what a set of known hosts is exposing.
+      targets: [mail.evilcorp.com, vpn.evilcorp.com]

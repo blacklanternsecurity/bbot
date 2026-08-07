@@ -1,0 +1,60 @@
+description: Find a web server leaking its .git directory, reconstruct the source from it, and scan that source for credentials.
+
+modules:
+  - http
+  # detects a readable .git on the web server
+  - git
+  # pulls the loose objects down and rebuilds the repository from them
+  - gitdumper
+  # scans the reconstructed history for credentials
+  - trufflehog
+
+config:
+  modules:
+    trufflehog:
+      # report unverified credentials too. A key for an internal or retired
+      # service is still a leak, and a repository's history is full of them.
+      only_verified: false
+
+meta:
+  accepts:
+    - URL
+
+  yields:
+    - FINDING
+
+  when_not_to_use: |
+    Skip it unless you have reason to think a `.git` directory is exposed. The detection itself is a couple of requests, but this tool exists for what happens after, and on a site with nothing leaking it does nothing.
+
+    Do not run it where downloading is a problem. A reconstructed repository lands on local disk, and a large one with deep history is not small.
+
+    It only looks where you point it. A `.git` under `/app/` will not be found by scanning the site root, so pass the paths you suspect.
+
+  how_to_call: |
+    Give it URLs, at the directory levels you want checked. Each is tested for a readable `.git`.
+
+    What it downloads is the target's own leaked .git data, from a URL you were already authorized to scan. Distinct from other code tools which pull third-party content.
+
+    Reconstruction writes to the scan's output directory.
+
+    `blacklist` and `strict_scope` behave as elsewhere, though with no crawling there is little for them to constrain.
+
+  interpreting_results: |
+    Two very different kinds of finding come back and they should not be conflated.
+
+    The exposure itself is the first: a readable `.git` on a production web server. That is a finding on its own, whatever is inside, because it hands over the application's full source and history to anyone who asks.
+
+    Credentials recovered from the reconstructed history are the second, and usually the more serious. A secret committed and later removed is still in the history, and this is exactly how it gets found.
+
+    Credentials are reported whether or not trufflehog could verify them, so treat an unverified hit as a candidate. Check before reporting, and do not assume an unverified key is dead.
+
+  caveats: |
+    Reconstruction is only as complete as what the server exposes. A partially readable `.git` yields a partial history, and some objects may be unrecoverable.
+
+    Secret detection is pattern-based. A credential in a format trufflehog does not recognise is not reported.
+
+  examples:
+    - description: Check a web root for an exposed .git and recover what it holds.
+      targets: ["https://app.evilcorp.com/"]
+    - description: Check several application paths that might each have their own repository.
+      targets: ["https://evilcorp.com/", "https://evilcorp.com/portal/"]

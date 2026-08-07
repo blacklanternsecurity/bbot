@@ -459,6 +459,11 @@ class PresetSchema(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
 
+    # Free-form metadata for tools built on top of presets. The scanner ignores
+    # it entirely; it exists so a preset can carry documentation for a consumer
+    # (the MCP server reads it) without needing a parallel file format.
+    meta: Optional[dict[str, Any]] = None
+
     conditions: Optional[list[str]] = None
 
     verbose: Optional[bool] = None

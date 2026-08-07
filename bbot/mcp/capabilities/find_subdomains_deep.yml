@@ -1,0 +1,71 @@
+description: Find an organization's subdomains exhaustively, adding recursive DNS brute-force and mutations.
+
+include:
+  - subdomain-enum
+
+exclude_modules:
+  # writes third-party Postman workspaces to local disk. A subdomain scan has no
+  # business downloading anything.
+  - postman_download
+  - shodan_idb
+
+config:
+  modules:
+    dnsbrute:
+      # Feed the mutation module's discoveries back into the wordlist brute-force,
+      # so a name found by guessing becomes the seed for more guessing.
+      recursive_mutations: true
+    dnscommonsrv:
+      recursive_mutations: true
+    dnsbrute_mutations:
+      # Twice the default. Mutations are where non-public names actually come
+      # from, and this is the setting that decides how many get tried.
+      max_mutations: 200
+
+meta:
+  accepts:
+    # domain-level: there is nothing to enumerate from a bare URL or IP
+    - DNS_NAME
+
+  yields:
+    - DNS_NAME
+
+  when_to_use: |
+    Use this when coverage matters more than time: an engagement scoped to a whole organization, an attack-surface review meant to be defensible, or any situation where a missed subdomain is a missed finding.
+
+    It is also the right choice against targets with a thin public footprint, where third-party sources return little and guessing is the only thing that works.
+
+  when_not_to_use: |
+    Runs for hours on a large organization, mostly on brute-force that may return nothing. Use `find_subdomains_fast` for a first pass.
+
+    Not passive. It sends a large volume of DNS queries directly to the target's nameservers, visible and attributable.
+
+    Skip it when the target is a specific host, URL, or IP range.
+
+  how_it_works: |
+    Everything the fast variant does, plus two brute-force stages: a wordlist against the target's nameservers, and mutation of names already found - `dev1.evilcorp.com` prompts `dev2`, `dev3`, `dev-staging`, up to 200 guesses per name.
+
+    Those feed each other. A mutated name goes back into the wordlist brute-force and its discoveries are mutated again, until nothing new appears.
+
+  how_to_call: |
+    Provide domains (single or list). The brute-force stages share work across targets.
+
+    Scope matters more than in the fast variant: this invents names, and each one it confirms seeds more guessing. That recursion is the point, and also how a scan grows past what you expected.
+
+    Blacklist production systems living under a target domain before starting.
+
+  interpreting_results: |
+    Read as the fast variant, plus: names only brute-force found are the interesting ones. Never published, never certificated, never crawled.
+
+    Wildcard DNS is the main source of noise. A sudden run of names resolving to one address is the tell.
+
+  caveats: |
+    Brute-force coverage is bounded by the wordlist. Widen with `modules.dnsbrute.wordlist`, which merges several lists.
+
+    Generates enough DNS traffic to be rate-limited. Results tapering off partway through is usually why.
+
+  examples:
+    - description: Exhaustively map an organization ahead of an engagement.
+      targets: [evilcorp.com]
+    - description: Hunt for unpublished infrastructure on a target with little public presence.
+      targets: [evilcorp.com]

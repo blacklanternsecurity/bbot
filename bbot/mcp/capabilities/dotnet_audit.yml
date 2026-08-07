@@ -1,0 +1,68 @@
+description: Audit an IIS/.NET application for known framework vulnerabilities - Telerik, DotNetNuke, AjaxPro, exposed binaries and weak keys.
+
+modules:
+  - http
+  # weak or known machineKeys, viewstate signing, framework secrets
+  - badsecrets
+  # CVE-2017-11317 and friends: RadAsyncUpload, DialogHandler, key spraying
+  - telerik
+  - ajaxpro
+  - dotnetnuke
+  # /bin/ directory left readable, which hands over the application's assemblies
+  - aspnet_bin_exposure
+  - iis_shortnames
+
+config:
+  modules:
+    iis_shortnames:
+      # Detection only. This tool reports that 8.3 disclosure exists and stops;
+      # `iis_shortnames_exploit` and `iis_shortnames_solve` are the tools that
+      # go and get the filenames.
+      detect_only: true
+    telerik:
+      # Uploads a benign 1-byte file to the target to pin down the exact Telerik
+      # version. See "when not to use" -- this is the only thing in this tool
+      # that writes anything to a target.
+      rau_confirm_version: true
+      # probe every directory discovered rather than only the site root
+      include_subdirs: true
+
+meta:
+  accepts:
+    - URL
+
+  yields:
+    - FINDING
+
+  when_not_to_use: |
+
+    Skip it for anything that is not IIS or .NET. Every module here is framework-specific, and against nginx or a Java stack the scan finds nothing and tells you nothing.
+
+    It does not discover content. It examines the URLs you pass. 
+
+    It also does not extract shortnames. IIS 8.3 disclosure is reported if present; use `iis_shortnames_exploit` to act on it.
+
+  how_to_call: |
+    Give it the directories you care about, not just the site root.
+
+    Several of these modules are `invasive`. Expect a WAF to notice.
+
+  interpreting_results: |
+    Findings come back sorted by severity. On a .NET stack the ones that matter most are usually a Telerik version with a known deserialization CVE, an ASP.NET viewstate signed with a published machineKey, and a readable `/bin/` directory.
+
+    Those three compound. A readable `/bin/` gives up the assemblies, which frequently contain the machineKey, which turns viewstate signing into remote code execution. Read them together rather than as separate findings.
+
+    A Telerik finding that names an exact version came from the upload probe and is reliable. One that says a handler is present without a version means the probe did not confirm it, and the CVE mapping is a guess.
+
+    An IIS shortnames finding here is detection only. It tells you filenames are leaking, not what they are.
+
+  caveats: |
+    Coverage is the URLs you pass. With no crawl and no brute-force, an application whose interesting endpoints you did not name is largely unexamined.
+
+    Every check is signature-based against known framework flaws. A custom vulnerability in the application's own code is out of scope here; that is what `lightfuzz` is for.
+
+  examples:
+    - description: Audit a .NET application for known framework vulnerabilities.
+      targets: ["https://iis.evilcorp.com/"]
+    - description: Audit specific application directories rather than just the root.
+      targets: ["https://iis.evilcorp.com/", "https://iis.evilcorp.com/portal/"]

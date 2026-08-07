@@ -1,0 +1,44 @@
+description: Check whether an IIS server leaks 8.3 short filenames, without extracting any.
+
+modules:
+  - iis_shortnames
+  - http
+
+config:
+  modules:
+    iis_shortnames:
+      # report the vulnerability and stop. `iis_shortnames_exploit` is the tool
+      # that actually runs the scanner.
+      detect_only: true
+
+meta:
+  accepts:
+    - URL
+
+  yields:
+    - FINDING
+
+  when_not_to_use: |
+    Skip it for anything that is not IIS. The vulnerability is specific to IIS.
+
+    Use `iis_shortnames_exploit` when you want the actual shortname hints.
+
+    Skip it if you already plan to run `iis_shortnames_exploit` or `iis_shortnames_solve`.
+
+  how_to_call: |
+    Give it URLs.
+
+    It does not crawl. Each URL you pass is checked at its own directory level. Different directories in IIS can be vulnerable or not: the root being non-vulnerable does not mean subdirs are.
+
+
+  interpreting_results: |
+    A finding means the server answered differently for names that exist versus names that do not, which is the 8.3 enumeration oracle. 
+
+    What makes it matter is what the filenames turn out to be. A leaked `BACKUP~1.ZIP` in the web root is a very different outcome from a leaked `IMAGES~1`. Run `iis_shortnames_exploit` to find out which you have.
+
+  caveats: |
+    Detection only. Nothing is extracted, so this cannot tell you whether the leak exposes anything sensitive.
+
+  examples:
+    - description: Check whether an IIS host leaks short filenames before deciding to dig.
+      targets: ["https://iis.evilcorp.com/"]

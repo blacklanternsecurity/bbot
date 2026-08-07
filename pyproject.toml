@@ -61,8 +61,14 @@ Documentation = "https://www.blacklanternsecurity.com/bbot/"
 Discord = "https://discord.com/invite/PZqkgxu5SA"
 "Docker Hub" = "https://hub.docker.com/r/blacklanternsecurity/bbot"
 
+[project.optional-dependencies]
+mcp = [
+    "mcp>=1.2,<2",
+]
+
 [project.scripts]
 bbot = "bbot.cli:main"
+bbot-mcp = "bbot.mcp.server:main"
 
 [dependency-groups]
 dev = [
@@ -83,6 +89,7 @@ dev = [
     "baddns~=2.4.1",
     "ruff==0.15.22",
     "maturin>=1.4,<2",
+    "mcp>=1.2,<2",
 ]
 docs = [
     "mkdocs>=1.5.2,<2",
