@@ -161,6 +161,30 @@ def test_un_omitting_a_type_satisfies_the_check(tmp_path):
     assert facts.omitted_types == ["RAW_TEXT"], "the preset's list replaces the default wholesale"
 
 
+def test_submodules_are_declared_not_left_to_the_module(tmp_path):
+    """A module may declare an empty `enabled_submodules` default and resolve
+    the real one at runtime, so the baked config cannot be trusted to say what
+    runs. A capability that leaves it unset would under-report its own checks."""
+    vague = {
+        **MINIMAL,
+        "modules": ["baddns"],
+        "meta": {**MINIMAL["meta"], "accepts": ["DNS_NAME"], "yields": ["FINDING"]},
+    }
+    (tmp_path / "find_takeovers.yml").write_text(yaml.safe_dump(vague))
+    with pytest.raises(ValueError, match="enabled_submodules"):
+        Registry(capability_dir=tmp_path).warm()
+
+
+def test_declared_submodules_are_surfaced(registry):
+    """What a tool tests for is invisible from the module list alone: lightfuzz
+    is one module whether it runs one submodule or nine."""
+    assert registry.get("baddns").facts.submodules == {"baddns": ["CNAME", "MX", "TXT"]}
+    assert len(registry.get("baddns_heavy").facts.submodules["baddns"]) == 9
+    for name in ("lightfuzz", "lightfuzz_deep"):
+        subs = registry.get(name).facts.submodules["lightfuzz"]
+        assert {"crypto", "serial", "esi"} <= set(subs), "submodules the description never names"
+
+
 def test_shipped_tools_return_what_they_promise(registry):
     """Every yielded type must survive the scan's own output filter."""
     for entry in registry:

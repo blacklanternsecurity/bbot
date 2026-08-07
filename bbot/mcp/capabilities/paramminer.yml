@@ -34,33 +34,25 @@ meta:
     - FINDING
 
   when_not_to_use: |
-    Do not point it at a whole site. It mines only the URLs you give it, by design, and its cost is wordlist size multiplied by endpoints. Naming twenty URLs means twenty full brute-forces.
+    Will only mine the URLs you give it, no spidering. Cost is wordlist size multiplied by endpoints.
 
-    Do not use it where the traffic is a problem. All three miners carry BBOT's `loud` and `slow` flags: this issues thousands of requests per endpoint before anything is found, and most of them find nothing. Expect it in logs and expect rate limiting.
+    Will issue thousands of requests per endpoint. Expect benign results. Expect rate limiting.
 
-    Use `lightfuzz_deep` instead if what you actually want is vulnerabilities. It runs paramminer and then fuzzes everything it discovers, which is the usual reason to want hidden parameters in the first place. This tool stops at discovery.
-
-    Skip it for an endpoint that takes no parameters at all - a static page, an asset, a redirect. There is nothing to find and it will still pay full price looking.
+    Use `lightfuzz_deep` instead if what you actually want is vulnerabilities. It runs paramminer and also fuzzes everything it discovers.
 
   how_to_call: |
-    Give it the specific endpoints you care about. Unlike the other web tools here, this one does not crawl: it mines exactly the URLs you pass and nothing else. That is deliberate, because the cost scales directly with endpoint count and you should be the one choosing which are worth it.
+    Be selective about its use. This does not crawl. That is deliberate, because the cost scales directly with endpoint count.
 
-    Pick endpoints that plausibly take input: a search, a form handler, an API route, anything with a query string already. An endpoint that already shows one parameter usually accepts others.
+    Pick endpoints that plausibly take input.
 
-    Scope and `blacklist` behave as everywhere else, but matter less here since the tool only touches what you name. `strict_scope=True` is close to redundant for the same reason.
-
-    Expect it to run for a while and to be noisy. Read partial results with `scan_results` as they arrive rather than waiting.
 
   interpreting_results: |
-    A WEB_PARAMETER is a name the endpoint responded to differently from the baseline. It says the application looked at that name; it does not say what the parameter does or that it is exploitable.
+    A WEB_PARAMETER is a name the endpoint responded to differently from the baseline.
 
-    Read the parameter type. GETPARAM, HEADER and COOKIE come from three separate wordlists and mean different things: a header the application honours (`X-Original-URL`, `X-Forwarded-For`) is frequently an access-control bypass, while a GET parameter is more often an injection point.
+    Read the parameter type. GETPARAM, HEADER and COOKIE come from separate wordlists and mean different things.
 
-    Parameters tagged `http_reflection` had their value come back in the response. Those are the ones to look at first: reflection is the precondition for XSS and often for injection generally.
+    Parameters tagged `http_reflection` had their value come back in the response. Look at those first - reflection is the precondition for XSS and often for injection generally.
 
-    Findings alongside come from `hunt` and `reflected_parameters`, and are opinions about the parameters just discovered, not separate vulnerabilities. Treat them as ranking, not as results.
-
-    False positives are normal. Detection is a response differential, so an application with any per-request variation will produce names that are not real parameters.
 
   caveats: |
     Coverage is the wordlist. A parameter with an application-specific name that is not in it stays hidden, no matter how long this runs.

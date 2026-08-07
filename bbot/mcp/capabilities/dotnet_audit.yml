@@ -35,20 +35,17 @@ meta:
     - FINDING
 
   when_not_to_use: |
-    Do not run it without authorization that covers writing to the target. To confirm a Telerik version it uploads a 1-byte file into `C:\windows\temp\` on the server. Nothing else in this tool set modifies anything on a target, and some engagement rules forbid it outright. If yours does, say so and this tool needs its telerik settings changed before use.
 
     Skip it for anything that is not IIS or .NET. Every module here is framework-specific, and against nginx or a Java stack the scan finds nothing and tells you nothing.
 
-    It does not discover content. There is no crawl and no brute-force, by design, so it examines the URLs you pass and the directories they reveal. Run `web_brute` or `iis_shortnames_solve` separately if you want to find what is there first.
+    It does not discover content. It examines the URLs you pass. 
 
     It also does not extract shortnames. IIS 8.3 disclosure is reported if present; use `iis_shortnames_exploit` to act on it.
 
   how_to_call: |
-    Give it URLs, and give it the directories you care about rather than just the site root. `telerik.include_subdirs` probes every directory it learns about, but with no crawler running it only learns about the ones you pass.
+    Give it the directories you care about, not just the site root.
 
-    Several of these modules are `invasive`: Telerik key spraying and the DotNetNuke checks send real exploitation attempts, not just fingerprints. Expect them in logs and expect a WAF to notice.
-
-    `blacklist` overrides scope and is the way to keep any path out of it entirely. `strict_scope=True` holds the scan to the exact URLs given.
+    Several of these modules are `invasive`. Expect a WAF to notice.
 
   interpreting_results: |
     Findings come back sorted by severity. On a .NET stack the ones that matter most are usually a Telerik version with a known deserialization CVE, an ASP.NET viewstate signed with a published machineKey, and a readable `/bin/` directory.

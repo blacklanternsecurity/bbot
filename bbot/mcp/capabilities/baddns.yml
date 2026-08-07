@@ -22,30 +22,26 @@ meta:
     - FINDING
 
   when_not_to_use: |
-    Do not expect it to find your subdomains for you. It checks the names you give it and nothing else: pointed at `evilcorp.com` it examines that one name, not the hundred hosts beneath it. Takeovers live on forgotten subdomains, so run `find_subdomains_fast` first and bring the hostname list here.
+    Checks the names you give it and nothing else. Run `find_subdomains_fast` first and bring the hostname list here - takeovers live on forgotten subdomains.
 
-    Skip it for a URL or an IP. It reads DNS records, so a hostname is the only input that means anything.
+    Hostnames only. It reads DNS records, so a URL or IP means nothing.
 
-    Use `baddns_heavy` when you want everything: more record types, zone transfer and direct-resource checks, and no severity floor. This one is tuned to report only what is worth acting on.
+    Use `baddns_heavy` for more submodules, zone transfer and direct-resource checks, and no severity floor.
 
   how_to_call: |
-    Pass hostnames, as many as you like in one call. This is cheap - a handful of DNS lookups per name - so there is no reason to be selective. A list of several hundred subdomains from an earlier enumeration is a perfectly normal input.
+    Provide hostnames (single or list). Cheap per name - a handful of DNS lookups - so several hundred subdomains from an earlier enumeration is a normal input.
 
-    It does not crawl, brute-force, or enumerate. What you pass is what gets checked, which makes the cost entirely predictable and makes coverage entirely your responsibility.
-
-    `strict_scope` and `blacklist` are close to inert here, and that is worth knowing rather than guessing at. Nothing is discovered and nothing beyond the names you passed is contacted, so there is no scope to tighten and nothing to exclude. Set them if a name must not be touched at all; otherwise they change nothing.
+    Does not crawl or enumerate. Coverage is whatever you pass.
 
   interpreting_results: |
-    A finding is a strong lead, not a confirmed takeover. It means a record points at a third-party resource whose fingerprint matches a service with known takeover conditions. Whether that resource can actually still be registered is a manual check, and it is the check that decides whether you have a finding at all.
+    A finding is a strong lead, not a confirmed takeover. Whether the third-party resource can actually still be registered is a manual check.
 
-    Confidence matters more than severity for this class. At this tool's floor everything returned is MEDIUM or better, so a CONFIRMED result usually means the fingerprint matched precisely.
+    Everything returned is MEDIUM or better, so confidence is the discriminator.
 
     Do not claim the resource without explicit written authorization. Registering it is the takeover, not proof of one.
 
   caveats: |
-    Coverage is the fingerprint database. A dangling record pointing at a service nobody has fingerprinted yet is not reported.
-
-    Only CNAME, MX and TXT records are examined here. `baddns_heavy` adds NS, DMARC, SPF, MTA-STS, WILDCARD and reference checks.
+    Baddns may be missing signatures: a negative result does not absolve a dangling record.
 
   examples:
     - description: Check a list of known subdomains for dangling records.

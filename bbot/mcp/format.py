@@ -130,6 +130,8 @@ def tool_details(entry):
         out.append("\n")
 
     out.append(f"\n**Modules ({len(facts.modules)}):** {', '.join(f'`{m}`' for m in facts.modules)}\n")
+    for module, subs in facts.submodules.items():
+        out.append(f"\n**`{module}` submodules ({len(subs)}):** {', '.join(subs)}\n")
 
     out.append("\n## The preset this runs\n\n```yaml\n")
     out.append(yaml.safe_dump(cap.preset.to_preset_dict(), sort_keys=False, default_flow_style=False).strip())

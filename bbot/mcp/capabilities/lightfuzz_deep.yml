@@ -33,40 +33,26 @@ meta:
     - FINDING
 
   when_not_to_use: |
-    Do not use it without written authorization naming these hosts. Everything true of `lightfuzz` is true here and more so: it sends injection payloads to a live application, submits forms, and additionally brute-forces parameter names against every endpoint it finds.
+    Everything true of `lightfuzz` applies, plus paramminer brute-forcing parameter names against every endpoint it finds.
 
-    Do not reach for it first. It runs far longer and puts far more load on the target than `lightfuzz`, and most of that cost buys parameter discovery you may not need. Start with `lightfuzz`; come here when its coverage was not enough or when the engagement warrants the time.
-
-    Do not use it when the target cannot absorb the traffic. Paramminer alone issues thousands of requests per endpoint before any fuzzing begins, and every parameter it finds then gets fuzzed in both directions.
-
-    Do not rely on it against a WAF-protected host. Like `lightfuzz`, it skips any host whose WAF it cannot get past.
+    Start with `lightfuzz`. Come here when its coverage was not enough, or the engagement warrants a much longer scan and a much heavier load on the target.
 
   how_to_call: |
-    Know this before you launch it: this is the heaviest tool here, and a WAF-protected host is still skipped unless the WAF turns out to be bypassable.
+    WAF handling is identical to `lightfuzz`.
 
-    WAF handling is identical to `lightfuzz`. Each protected host is probed with nowafpls body padding first, fuzzed with padding if that works, and dropped entirely if it does not. Padding is body-only, so GET, cookie and header parameters on a WAF'd host have no bypass available.
+    Provide URLs (single or list). Spider is enabled and will expand testing surface; paramminer and wayback expand it further.
 
-    Give it URLs, one call for all of them. Scope works as everywhere else: BBOT treats everything under a target as in-scope, and `strict_scope=True` holds the scan to the exact URLs you gave.
-
-    `blacklist` matters more here than anywhere else. Paramminer will find parameters on endpoints the spider reached but you never thought about, and lightfuzz will then fuzz them. Anything that must not receive payloads - password reset, payment, anything that emails a customer - goes in the blacklist before you start. It overrides scope; nothing else reliably does.
-
-    Expect it to run for a long time. Read partial results with `scan_results` while it works rather than waiting for the end, and use `scan_stop` if you have what you need.
+    Blacklist anything that must not receive payloads before you start - paramminer reaches endpoints you never thought about.
 
   interpreting_results: |
-    Read this the same way as `lightfuzz`, with one addition that matters.
+    Read the same way as `lightfuzz`, including the `used-nowafpls` tag.
 
-    Findings tagged `from-wayback` came from the archive rather than the live site. The URL may not exist any more, the parameter may be long gone, and the vulnerability may be unreachable today. That is not a reason to discard them: an archived endpoint that is still routable is a genuine finding, and one that is not still tells you what the application used to expose. Check whether the URL currently resolves before reporting it.
-
-    Wayback also emits its own findings for interesting archived files, tagged `from-wayback`, `archived` and `interesting-file`. Those are discoveries about what the site once served, not vulnerabilities in what it serves now.
-
-    Everything in `lightfuzz`'s guidance about severity, confidence, the `used-nowafpls` tag and the "WAF Bypass via Body Padding" finding applies here unchanged.
+    Findings tagged `from-wayback` came from the archive, not the live site. Check whether the URL still resolves before reporting it.
 
   caveats: |
-    Most of the runtime is parameter discovery, not fuzzing, and much of it finds nothing. That is the trade this tool makes.
+    Most of the runtime is parameter discovery, not fuzzing, and much of it finds nothing.
 
-    Paramminer's coverage is bounded by its wordlist, so a parameter with an unguessable name is still invisible unless the archive happens to contain it.
-
-    Archived content is only as good as what the Wayback Machine captured. A site it never crawled adds nothing here beyond the live scan.
+    Paramminer's coverage is bounded by its wordlist. Archived content is only as good as what Wayback captured.
 
   examples:
     - description: Exhaustively fuzz a single application, including its archived history.

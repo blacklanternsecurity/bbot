@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from ..bbot_fixtures import *  # noqa F401
@@ -107,13 +109,21 @@ async def test_running_requires_reading_the_details_first(registry):
     assert "describe_tool" in await call(fresh, names[1], targets=["evilcorp.com"])
 
 
-async def test_details_cover_scope_and_knobs(server, registry):
+async def test_details_only_name_knobs_that_exist(server, registry):
     """The long tier is where 'how do I actually call this' lives, and every
-    knob it mentions has to be a parameter the agent can really pass."""
+    knob it tells the agent to pass has to be a real parameter. Prose writes a
+    tool argument as `name=value` and a BBOT config option as `name: value`,
+    so only the former is a promise this checks.
+
+    What each knob means is not prose's job -- the parameter descriptions carry
+    that, on every generated tool, and are covered by the signature and
+    description tests above."""
+    tools = {t.name: t for t in await server.list_tools()}
     for entry in registry:
         details = await call(server, "describe_tool", name=entry.name)
-        assert "strict_scope" in details, f"{entry.name} does not explain the scope knob"
-        assert "blacklist" in details
+        declared = set(tools[entry.name].inputSchema["properties"])
+        named = set(re.findall(r"`([a-z_][a-z0-9_]*)\s*=", details))
+        assert named <= declared, f"{entry.name} tells the agent to pass {sorted(named - declared)}"
 
 
 async def test_describe_tool_unknown_name_suggests(server, registry):

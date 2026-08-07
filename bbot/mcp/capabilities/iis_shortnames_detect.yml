@@ -19,25 +19,22 @@ meta:
     - FINDING
 
   when_not_to_use: |
-    Skip it for anything that is not IIS. The vulnerability is specific to IIS serving on Windows with 8.3 name generation left on; against nginx, Apache or a cloud front end there is nothing to find.
+    Skip it for anything that is not IIS. The vulnerability is specific to IIS.
 
-    Use `iis_shortnames_exploit` when you want the leaked names rather than a yes or no. This tool deliberately stops at detection, and knowing the vulnerability exists is rarely the end of what you want.
+    Use `iis_shortnames_exploit` when you want the actual shortname hints.
 
-    Skip it if you already plan to run `iis_shortnames_exploit` or `iis_shortnames_solve`. Both detect as their first step, so running this first is wasted work.
+    Skip it if you already plan to run `iis_shortnames_exploit` or `iis_shortnames_solve`.
 
   how_to_call: |
-    Give it URLs. Detection is a handful of requests per host with deliberately malformed paths, comparing status codes, so this is quick and cheap even across many targets.
+    Give it URLs.
 
-    It does not crawl. Each URL you pass is checked at its own directory level, so pass the paths you care about rather than expecting it to find them.
+    It does not crawl. Each URL you pass is checked at its own directory level. Different directories in IIS can be vulnerable or not: the root being non-vulnerable does not mean subdirs are.
 
-    `strict_scope` and `blacklist` behave as elsewhere, though with no discovery happening there is little for them to constrain.
 
   interpreting_results: |
-    A finding means the server answered differently for names that exist versus names that do not, which is the 8.3 enumeration oracle. It is reported at LOW severity with HIGH confidence, and the LOW is about the finding on its own: the vulnerability is a stepping stone rather than an end state.
+    A finding means the server answered differently for names that exist versus names that do not, which is the 8.3 enumeration oracle. 
 
     What makes it matter is what the filenames turn out to be. A leaked `BACKUP~1.ZIP` in the web root is a very different outcome from a leaked `IMAGES~1`. Run `iis_shortnames_exploit` to find out which you have.
-
-    The finding names the methods and techniques that worked, which is worth keeping: it tells you how the server is misconfigured, not just that it is.
 
   caveats: |
     Detection only. Nothing is extracted, so this cannot tell you whether the leak exposes anything sensitive.

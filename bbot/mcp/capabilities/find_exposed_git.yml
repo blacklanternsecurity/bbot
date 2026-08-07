@@ -33,9 +33,9 @@ meta:
   how_to_call: |
     Give it URLs, at the directory levels you want checked. Each is tested for a readable `.git`.
 
-    What it downloads is the target's own leaked data, from a URL you were already authorized to scan. That is worth being clear about, because the other code tools pull third-party content: an employee's personal repository, an app from a store. This one does not - if a `.git` is readable, it is the target's, and it is already public.
+    What it downloads is the target's own leaked .git data, from a URL you were already authorized to scan. Distinct from other code tools which pull third-party content.
 
-    Reconstruction writes to the scan's output directory. Budget disk for it.
+    Reconstruction writes to the scan's output directory.
 
     `blacklist` and `strict_scope` behave as elsewhere, though with no crawling there is little for them to constrain.
 
@@ -44,7 +44,7 @@ meta:
 
     The exposure itself is the first: a readable `.git` on a production web server. That is a finding on its own, whatever is inside, because it hands over the application's full source and history to anyone who asks.
 
-    Credentials recovered from the reconstructed history are the second, and usually the more serious. A secret committed and later removed is still in the history, and this is exactly how it gets found. Age is not much comfort: keys outlive the code that leaked them far more often than they should.
+    Credentials recovered from the reconstructed history are the second, and usually the more serious. A secret committed and later removed is still in the history, and this is exactly how it gets found.
 
     Credentials are reported whether or not trufflehog could verify them, so treat an unverified hit as a candidate. Check before reporting, and do not assume an unverified key is dead.
 

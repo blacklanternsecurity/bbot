@@ -269,3 +269,8 @@ class DerivedFacts(BaseModel):
     download_modules: list[str]
     slow_modules: list[str]
     unsafe_modules: list[str]
+
+    # Named sub-behaviors of modules that expose `enabled_submodules`. What a
+    # capability actually tests for is invisible from the module list alone:
+    # lightfuzz is one module whether it runs one submodule or nine.
+    submodules: dict[str, list[str]]

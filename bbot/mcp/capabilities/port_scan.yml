@@ -28,40 +28,28 @@ meta:
     - PROTOCOL
 
   when_not_to_use: |
-    Do not run it without authorization covering the addresses, not just the hostnames. A CIDR target scans every address in it, including any that belong to someone else on shared hosting.
-
-    Skip it when the target is a specific URL and you only care about that web service. Port scanning answers "what else is here", which is a different question.
-
-    Do not expect it to find hosts for you. It scans what you pass. Run `find_subdomains_fast` first if you need the host list.
-
-    Be aware it needs root. A SYN scan uses raw sockets; without root BBOT falls back to a connect scan that is markedly slower and more visible on the target. See "How to call it".
+    Be aware it needs root. A SYN scan uses raw sockets; without root BBOT falls back to a connect scan that is markedly slower and more visible on the target.
 
   how_to_call: |
     Give it hostnames, IPs, or CIDR ranges - one call for all of them. A single scan across many targets is far faster than one call each, because masscan works on the whole set at once.
 
-    Two things determine the runtime. The port sweep is bounded by the top 1000 ports at 300 packets per second, so it is predictable. Service identification is not: `fingerprintx` carries BBOT's `slow` flag and works through whatever the sweep turned up, so a host with many open ports takes proportionally longer. It also skips common web ports by default, on the basis that a web service is better identified by fetching it.
+    Settings are top 1000 ports at 300 packets per second. Service identification via `fingerprintx` runs on discovered ports, skipping common web ports (80, 443, 8080, 8443).
 
-    Root matters. With it, this is a masscan SYN sweep. Without it, BBOT silently substitutes a connect scan: every port gets a full TCP handshake, which is slower and leaves a complete connection in the target's logs rather than a half-open one. Nothing fails, but the scan you get is not the scan you asked for, and on a large range the difference is hours.
+    Root matters. With it, this is a masscan SYN sweep. Without it, BBOT silently substitutes a slower connect scan.
 
-    `blacklist` overrides scope and is the reliable way to keep specific addresses out of a range you are otherwise sweeping. Use it rather than trimming the range, since it applies no matter how the address was reached.
-
-    `strict_scope` has little to do here. Nothing in this tool discovers new hosts, so there is no scope expansion to hold back: it scans the targets you passed and stops. If you gave it a CIDR, every address in that CIDR is the target, and `strict_scope` does not change that - `blacklist` is what does.
+    Blacklist specific addresses to keep them out of a range you are otherwise sweeping. `strict_scope` does nothing useful here.
 
   interpreting_results: |
     An OPEN_TCP_PORT means a TCP handshake completed. It does not say what is listening, and the port number is a convention rather than a guarantee.
 
-    PROTOCOL events are `fingerprintx`'s answer to that, and they are the ones worth reading first. A confirmed `redis` on 6379 or `rdp` on 3389 is a concrete finding; the same ports with no PROTOCOL event mean the sweep found something but identification did not resolve it.
-
-    Common web ports usually have no PROTOCOL event by design, since they are skipped. Their absence there means nothing.
-
-    Ports open uniformly across an entire range are almost always a firewall or load balancer answering on behalf of hosts that are not really there, rather than a genuinely wide attack surface. Check whether the same port set repeats on every address before believing it.
+    PROTOCOL events are from `fingerprintx` and may be very useful.
 
   caveats: |
     TCP only. UDP services are not scanned.
 
     Top 1000 ports still leaves the majority of the port space untouched. A service deliberately parked high will not be found.
 
-    Rate limiting, SYN cookies and stateful firewalls all distort results, in both directions: they can hide open ports and can make closed ones look open.
+    Rate limiting, SYN cookies and stateful firewalls all distort results.
 
   examples:
     - description: Sweep an internal range for reachable services.

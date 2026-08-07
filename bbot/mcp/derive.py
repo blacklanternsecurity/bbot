@@ -122,7 +122,34 @@ def facts_from_baked(preset, baked):
         download_modules=sorted(m for m, f in module_flags.items() if "download" in f),
         slow_modules=sorted(m for m, f in module_flags.items() if "slow" in f),
         unsafe_modules=sorted(m for m, f in module_flags.items() if "safe" not in f),
+        submodules=_derive_submodules(baked, scan_modules, preloaded),
     )
+
+
+def _derive_submodules(baked, scan_modules, preloaded):
+    """
+    Read `enabled_submodules` off the baked config for every enabled module that
+    exposes one.
+
+    A module is free to declare an empty default and resolve the real one at
+    runtime, which means the baked config cannot be trusted to say what will
+    actually run. A capability that leaves the option unset would therefore
+    under-report what it tests, so it has to set it explicitly.
+    """
+    module_config = baked.config.get("modules") or {}
+    submodules = {}
+    for module in scan_modules:
+        if "enabled_submodules" not in (preloaded[module].get("config") or {}):
+            continue
+        enabled = (module_config.get(module) or {}).get("enabled_submodules")
+        if not enabled:
+            raise ValueError(
+                f"`{module}` exposes enabled_submodules but this preset leaves it empty, so the "
+                f"tool cannot say which checks it runs. Set it explicitly under "
+                f"`config.modules.{module}.enabled_submodules`."
+            )
+        submodules[module] = sorted(str(s) for s in enabled)
+    return submodules
 
 
 def _derive_api_keys(preset, scan_modules, preloaded):

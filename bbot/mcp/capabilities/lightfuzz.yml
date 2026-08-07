@@ -44,42 +44,24 @@ meta:
     - FINDING
 
   when_not_to_use: |
-    Do not use it without written authorization naming these hosts. This sends injection payloads to a live application: it submits forms, it can write data, and it can trip lockouts or alerts. It is the most intrusive tool here.
+    Lightfuzz is aggressive and intrusive, including form-submitting. 
 
-    Do not point it at a bare domain. It fuzzes parameters on URLs, so give it the application's entry points. Use `find_subdomains_fast` first if you need to discover what exists, then bring the interesting URLs here.
+    Although it can sometimes bypass WAFs automatically, if not, it will skip them. 
 
-    Do not rely on it against a WAF-protected host. It skips any host whose WAF it cannot get past -- see "How to call it" before you point it at one.
-
-    Use `lightfuzz_deep` when you want a more thorough inspection and can afford it. It does everything this one does and adds paramminer brute-forcing and a wayback-heavy run on top, which costs a much longer scan and a much heavier load on the target. This tool is the one to reach for otherwise.
+    Use `lightfuzz_deep` for a more thorough inspection. It does everything this one does and adds paramminer brute-forcing and a wayback-heavy run on top, which costs a much longer scan and a much heavier load on the target. This tool is the one to reach for otherwise.
 
   how_to_call: |
-    Know this before you launch it: a WAF-protected host is skipped unless the WAF turns out to be bypassable.
+    WAF-protected hosts are checked for vulnerability to 'nowafpls' style bypasses. POST-based parameters will automatically pad if detected.
 
-    On any host tagged as WAF-protected, lightfuzz first asks nowafpls whether body padding gets a payload past the inspection layer. If it does, the host is fuzzed with every POST-style payload padded. If it does not, the host is dropped and nothing is fuzzed on it at all. Padding is body-only, so GET, cookie and header parameters on a WAF'd host have no bypass available and are skipped even when a POST bypass exists.
-
-    That makes an empty result ambiguous, and the ambiguity is the point: it can mean the application is sound, or it can mean nothing was ever tested. Check the scan's findings for a "WAF Bypass via Body Padding" entry. Its presence means the host was reachable and genuinely fuzzed; its absence on a WAF'd host means the host was skipped. If you need coverage there anyway, that is a conversation about source IP allowlisting, not a scan setting.
-
-    Give it URLs, one call for all of them. Entry points work well: a login page, a search endpoint, an API root. The spider walks out from there two links deep, four directories down, twenty-five links per page.
-
-    Scope: BBOT treats everything under a target as in-scope, so a URL on `app.evilcorp.com` keeps the fuzzer on that host and whatever it links to beneath it. `strict_scope=True` holds it to the exact URLs you gave, which is what you want when authorization names specific endpoints.
-
-    `blacklist` is the one that matters here. It overrides scope, so it is the only reliable way to keep payloads off an endpoint that must not receive them: password reset, payment, anything that emails a customer. Put those in before you start, not after. The spider preset already blacklists sign-out and log-out URLs so the crawl does not destroy its own session.
+    Provide URLs (single or list). Spider is enabled and will expand testing surface.
 
   interpreting_results: |
-    Read severity and confidence together. A CRITICAL at low confidence is a lead worth reproducing by hand; a MEDIUM at CONFIRMED is a result. Findings come back sorted by severity.
+    Read severity and confidence together. Each module is rated by confidence based on expected false-positive rate.
 
-    Every finding here is a machine's opinion formed from a response differential. Reproduce anything you intend to report: reflected input is not proof of XSS, and a timing difference is not proof of SQLi.
-
-    "WAF Bypass via Body Padding" is a finding in its own right, not just bookkeeping. LOW/CONFIRMED, naming the provider and the padding size, it says the WAF can be walked past with a few kilobytes of junk in the request body. That is worth reporting even when nothing is found behind it, and it is worth keeping: the same padding makes every other tool's payloads land on that host.
-
-    A finding tagged `used-nowafpls` only worked because the payload was padded past a WAF's inspection buffer. That changes what it means twice over: the WAF is the only thing standing between the application and the bug, and the finding will not reproduce by hand without the same padding. Expect a separate LOW/CONFIRMED "WAF Bypass via Body Padding" finding alongside it, naming the padding size.
-
-    A quiet scan is not a clean application. Check whether the host's WAF turned out not to be bypassable, and whether the spider actually found parameters to fuzz -- with nothing to work on, lightfuzz has nothing to say.
+    Findings tagged `used-nowafpls` only landed because the payload was padded past the WAF, and will not reproduce without it.
 
   caveats: |
     Coverage is bounded entirely by parameter discovery. Parameters that only appear after login, or that the application never mentions in HTML, are invisible to it.
-
-    Fuzzing both directions roughly doubles the request count against the target. Budget for it.
 
   examples:
     - description: Fuzz a single application's parameters for injection flaws.
