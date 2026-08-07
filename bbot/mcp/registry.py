@@ -57,16 +57,13 @@ class CapabilityEntry:
         # simply never handed to an output module -- and the scan's event stream
         # is one. A tool yielding an omitted type returns nothing at all, which
         # reads exactly like a clean target.
-        from bbot.mcp.run import default_omitted_types
-
-        preset_config = self.capability.preset.config or {}
-        omitted = set(default_omitted_types()) - set(preset_config.get("omit_event_types") or [])
-        silenced = sorted(set(self.capability.yields) & omitted)
+        silenced = sorted(set(self.capability.yields) & set(facts.omitted_types))
         if silenced:
             raise ValueError(
                 f'"{self.name}" yields {", ".join(silenced)}, which BBOT omits from output by default, '
-                f"so the scan would return nothing. Set `config.omit_event_types` in the preset to a list "
-                f"that leaves {'it' if len(silenced) == 1 else 'them'} out."
+                f"so the scan would return nothing. Set `config.omit_event_types` in the preset to the "
+                f"shipped default minus {'it' if len(silenced) == 1 else 'them'} -- the key replaces the "
+                f"default list rather than adding to it."
             )
         return facts
 

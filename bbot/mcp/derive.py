@@ -116,8 +116,10 @@ def facts_from_baked(preset, baked):
         consumes_any=consumes_any,
         api_keys=api_keys,
         api_key_options=api_key_options,
+        omitted_types=sorted(str(t) for t in (baked.config.get("omit_event_types") or [])),
         interaction=_derive_interaction(module_flags),
         noise=_derive_noise(module_flags),
+        download_modules=sorted(m for m, f in module_flags.items() if "download" in f),
         slow_modules=sorted(m for m, f in module_flags.items() if "slow" in f),
         unsafe_modules=sorted(m for m, f in module_flags.items() if "safe" not in f),
     )

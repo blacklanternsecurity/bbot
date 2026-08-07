@@ -1,0 +1,84 @@
+description: Hunt for leaked credentials and vulnerable libraries in a site's client-side JavaScript.
+
+include:
+  # mirrors bbot's bundled js-audit preset
+  - js-audit
+
+meta:
+  accepts:
+    - URL
+
+  yields:
+    - FINDING
+    # the JavaScript files and paths actually examined, including ones recovered
+    # from the archive and unpacked from obfuscated bundles
+    - URL
+
+  when_not_to_use: |
+    Skip it for a site with no meaningful client-side JavaScript. A server-
+    rendered application with a couple of inline scripts gives it nothing to
+    work with.
+
+    Skip it when you only want framework secrets. `badsecrets` alone covers
+    viewstates, signed cookies and known keys in a fraction of the time; this
+    tool includes it but wraps it in a much larger job.
+
+    Be careful running it where outbound traffic to third parties is a problem.
+    Verifying a credential means trufflehog contacting the service that
+    credential belongs to, and the archive stage talks to the Wayback Machine.
+    Neither is the target, but both are external.
+
+  how_to_call: |
+    Give it URLs. It reads what the pages load, so an application's entry point
+    is usually enough; you do not need to name the script files.
+
+    It reaches JavaScript four ways: the scripts pages reference directly, paths
+    named in robots.txt and sitemaps, files recovered from the Wayback Machine,
+    and bundles unpacked from obfuscation or packing. That last one matters -
+    a secret in a minified or packed bundle is invisible until it is unpacked.
+
+    This is a read-only tool. It fetches and analyses; it sends no payloads and
+    changes nothing on the target.
+
+    `blacklist` and `strict_scope` behave as elsewhere. The archive stage is
+    worth knowing about: it pulls historical URLs, so `strict_scope=True` keeps
+    the analysis to exactly the hosts you named.
+
+  interpreting_results: |
+    Credentials are reported whether or not trufflehog could verify them, so a
+    hit is a candidate rather than a confirmed live key. Verified ones are worth
+    acting on immediately; unverified ones may be revoked, may be for an
+    internal service the scanner cannot reach, or may be a test fixture. Check
+    before reporting, and check before assuming a negative.
+
+    An unverified key is not a false positive by default. A key for an internal
+    or decommissioned service is still a real leak and still tells you the
+    build pipeline is shipping secrets to the browser.
+
+    Vulnerable library findings from retirejs name a version with a known CVE.
+    Whether it is exploitable depends entirely on how the page uses the library,
+    so treat the version as the fact and the CVE as the hypothesis.
+
+    Findings from archived JavaScript may describe a file the site no longer
+    serves. A credential in one is still worth chasing - keys outlive the code
+    that leaked them far more often than they should - but confirm the file is
+    gone before reporting it as current exposure.
+
+    URLs returned are the scripts and paths actually examined. Read them to see
+    what the analysis covered, and to spot a bundle worth opening by hand.
+
+  caveats: |
+    Coverage is what the crawl and the archive reached. JavaScript loaded only
+    after authentication, or only on a route nothing linked, is not examined.
+
+    Secret detection is pattern-based. A credential in a format trufflehog does
+    not recognise is not reported, and no amount of runtime changes that.
+
+    Unpacking handles known obfuscation and packing frameworks. A custom scheme
+    stays opaque.
+
+  examples:
+    - description: Look for leaked keys and vulnerable libraries in a web application's JavaScript.
+      targets: ["https://app.evilcorp.com/"]
+    - description: Audit the client-side code of several applications in one pass.
+      targets: ["https://app.evilcorp.com/", "https://portal.evilcorp.com/"]

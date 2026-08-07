@@ -43,13 +43,24 @@ def _render_list(events, limit):
 # Tags that say something about a finding's provenance rather than its content.
 # `from-wayback` means the URL came out of an archive, so the vulnerability may
 # be on a page that no longer exists -- which changes what the finding is worth.
-_PROVENANCE_TAG_HINTS = ("wayback", "paramminer", "spider", "speculative", "affiliate", "http-title")
+_PROVENANCE_TAG_HINTS = (
+    "wayback",
+    "paramminer",
+    "spider",
+    "speculative",
+    "affiliate",
+    "http-title",
+    # lightfuzz stamps this when a payload only landed because nowafpls padded it
+    # past a WAF's inspection buffer. Such a finding will not reproduce by hand
+    # without the same padding, and it says the WAF is the only control in place.
+    "nowafpls",
+)
 
 # Highest first, so a reader sorting by eye starts at the top.
 _SEVERITY_ORDER = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3, "INFO": 4, "UNKNOWN": 5}
 
 
-def _render_findings(events, limit):
+def _render_findings(events, limit, detail=False):
     """Findings carry the conclusions, so they get the most structure.
 
     Severity and confidence are read together: a CRITICAL/UNKNOWN is a lead and a
@@ -81,7 +92,13 @@ def _render_findings(events, limit):
             block.append(f"    tags: {', '.join(sorted(tags))}")
         if event.get("module"):
             block.append(f"    found by: {event['module']}")
-        if event.get("why"):
+        # The whole route from the scan's seed to this finding. `why` is only the
+        # last step of it, so the path replaces rather than repeats it.
+        path = event.get("discovery_path") if detail else None
+        if path:
+            block.append("    how it was reached:")
+            block.extend(f"      {i}. {step}" for i, step in enumerate(path, 1))
+        elif event.get("why"):
             block.append(f"    via: {event['why']}")
         blocks.append("\n".join(block))
     if len(events) > limit:
@@ -91,14 +108,59 @@ def _render_findings(events, limit):
 
 def _render_web_parameters(events, limit):
     """A discovered parameter is only useful with the URL and the place it goes
-    (query string, body, cookie, header)."""
+    (query string, body, cookie, header).
+
+    Reflected ones are called out: a value that comes back in the response is the
+    precondition for XSS and often for injection generally, so it is the first
+    thing to look at in a list that can run to hundreds.
+    """
     lines = []
     for event in events[:limit]:
         data = event.get("data")
         data = data if isinstance(data, dict) else {"name": str(data)}
         where = data.get("url") or event.get("host") or ""
         kind = data.get("type") or data.get("param_type") or ""
-        lines.append(f"{data.get('name', '')}  {f'({kind}) ' if kind else ''}{where}".strip())
+        reflected = "[reflected] " if any("reflect" in str(t).lower() for t in event.get("tags") or []) else ""
+        lines.append(f"{reflected}{data.get('name', '')}  {f'({kind}) ' if kind else ''}{where}".strip())
+    if len(events) > limit:
+        lines.append(f"... and {len(events) - limit} more (page with `since`)")
+    return "\n".join(lines)
+
+
+def _render_url_hints(events, limit):
+    """Recovered 8.3 shortname fragments.
+
+    Whether a fragment is a directory or a file changes what you do with it: a
+    directory is a new place to scan, a file is something to try to fetch. That
+    distinction lives in the tags, so the generic renderer would drop it.
+    """
+    lines = []
+    for event in events[:limit]:
+        tags = [str(t) for t in event.get("tags") or []]
+        kind = "dir " if any("directory" in t for t in tags) else "file"
+        magic = "  (iis magic url)" if any("magic" in t for t in tags) else ""
+        lines.append(f"[{kind}] {event.get('data')}{magic}")
+    if len(events) > limit:
+        lines.append(f"... and {len(events) - limit} more (page with `since`)")
+    return "\n".join(lines)
+
+
+def _render_protocols(events, limit):
+    """An identified service: what is actually listening on a port.
+
+    The banner is included where there is one, because it usually carries the
+    version, and a version is the difference between "there is SSH here" and
+    "there is a specific SSH build here".
+    """
+    lines = []
+    for event in events[:limit]:
+        data = event.get("data")
+        data = data if isinstance(data, dict) else {"protocol": str(data)}
+        host = data.get("host") or event.get("host") or ""
+        port = data.get("port")
+        where = f"{host}:{port}" if port else host
+        banner = str(data.get("banner") or "").strip().replace("\n", " ")
+        lines.append(f"{where:24} {data.get('protocol', '')}" + (f"   {banner[:90]}" if banner else ""))
     if len(events) > limit:
         lines.append(f"... and {len(events) - limit} more (page with `since`)")
     return "\n".join(lines)
@@ -153,6 +215,8 @@ RENDERERS = {
     "IP_ADDRESS": _render_list,
     "CODE_REPOSITORY": _render_list,
     "USERNAME": _render_list,
+    "URL_HINT": _render_url_hints,
+    "PROTOCOL": _render_protocols,
     "FINDING": _render_findings,
     "WEB_PARAMETER": _render_web_parameters,
     "TECHNOLOGY": _render_technologies,
@@ -164,15 +228,35 @@ def known_types():
     return sorted(RENDERERS)
 
 
-def render(events, limit=DEFAULT_LIMIT):
+def has_full_records(events):
+    """Whether any of these events kept its complete BBOT record."""
+    return any("_full" in event for event in events)
+
+
+def full_records(events):
+    """The complete BBOT event records, as they appear in the scan's output.json.
+
+    Only high-signal events keep one; everything else returns its compact form
+    so nothing silently disappears from a detailed read.
+    """
+    return [event.get("_full") or {k: v for k, v in event.items() if k != "_full"} for event in events]
+
+
+def render(events, limit=DEFAULT_LIMIT, detail=False):
     """Group events by type and render each group with its own renderer.
 
-    Returns `{event_type: rendered_text}`.
+    `detail` adds the discovery chain to the renderers that have one. Returns
+    `{event_type: rendered_text}`.
     """
     grouped = {}
     for event in events:
         grouped.setdefault(event.get("type") or "UNKNOWN", []).append(event)
-    return {
-        event_type: RENDERERS.get(event_type, _render_generic)(group, limit)
-        for event_type, group in sorted(grouped.items())
-    }
+    out = {}
+    for event_type, group in sorted(grouped.items()):
+        renderer = RENDERERS.get(event_type, _render_generic)
+        try:
+            out[event_type] = renderer(group, limit, detail=detail)
+        except TypeError:
+            # renderers that have no detailed form take the two-argument shape
+            out[event_type] = renderer(group, limit)
+    return out

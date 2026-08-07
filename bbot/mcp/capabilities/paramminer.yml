@@ -1,0 +1,105 @@
+description: Brute-force a web endpoint for hidden GET parameters, headers and cookies it accepts but never advertises.
+
+# Composed rather than `include: paramminer`, because that preset carries a
+# condition warning that the spider is off -- which here is deliberate, and would
+# fire on every single scan as a warning about a choice already made.
+flags:
+  - web-paramminer
+
+modules:
+  - http
+  # raise findings about the parameters found: one whose value comes back in the
+  # response, or whose name matches a known-dangerous pattern
+  - hunt
+  - reflected_parameters
+
+config:
+  # BBOT withholds WEB_PARAMETER from output by default, so a tool built to
+  # return them would return nothing at all. This is the shipped default list
+  # with WEB_PARAMETER taken out; everything else stays withheld.
+  omit_event_types:
+    - HTTP_RESPONSE
+    - RAW_TEXT
+    - URL_UNVERIFIED
+    - DNS_NAME_UNRESOLVED
+    - FILESYSTEM
+    - RAW_DNS_RECORD
+
+meta:
+  accepts:
+    - URL
+
+  yields:
+    - WEB_PARAMETER
+    - FINDING
+
+  when_not_to_use: |
+    Do not point it at a whole site. It mines only the URLs you give it, by
+    design, and its cost is wordlist size multiplied by endpoints. Naming
+    twenty URLs means twenty full brute-forces.
+
+    Do not use it where the traffic is a problem. All three miners carry BBOT's
+    `loud` and `slow` flags: this issues thousands of requests per endpoint
+    before anything is found, and most of them find nothing. Expect it in logs
+    and expect rate limiting.
+
+    Use `lightfuzz_deep` instead if what you actually want is vulnerabilities.
+    It runs paramminer and then fuzzes everything it discovers, which is the
+    usual reason to want hidden parameters in the first place. This tool stops
+    at discovery.
+
+    Skip it for an endpoint that takes no parameters at all - a static page, an
+    asset, a redirect. There is nothing to find and it will still pay full price
+    looking.
+
+  how_to_call: |
+    Give it the specific endpoints you care about. Unlike the other web tools
+    here, this one does not crawl: it mines exactly the URLs you pass and
+    nothing else. That is deliberate, because the cost scales directly with
+    endpoint count and you should be the one choosing which are worth it.
+
+    Pick endpoints that plausibly take input: a search, a form handler, an API
+    route, anything with a query string already. An endpoint that already shows
+    one parameter usually accepts others.
+
+    Scope and `blacklist` behave as everywhere else, but matter less here since
+    the tool only touches what you name. `strict_scope=True` is close to
+    redundant for the same reason.
+
+    Expect it to run for a while and to be noisy. Read partial results with
+    `scan_results` as they arrive rather than waiting.
+
+  interpreting_results: |
+    A WEB_PARAMETER is a name the endpoint responded to differently from the
+    baseline. It says the application looked at that name; it does not say what
+    the parameter does or that it is exploitable.
+
+    Read the parameter type. GETPARAM, HEADER and COOKIE come from three
+    separate wordlists and mean different things: a header the application
+    honours (`X-Original-URL`, `X-Forwarded-For`) is frequently an access-control
+    bypass, while a GET parameter is more often an injection point.
+
+    Parameters tagged `http_reflection` had their value come back in the
+    response. Those are the ones to look at first: reflection is the precondition
+    for XSS and often for injection generally.
+
+    Findings alongside come from `hunt` and `reflected_parameters`, and are
+    opinions about the parameters just discovered, not separate vulnerabilities.
+    Treat them as ranking, not as results.
+
+    False positives are normal. Detection is a response differential, so an
+    application with any per-request variation will produce names that are not
+    real parameters.
+
+  caveats: |
+    Coverage is the wordlist. A parameter with an application-specific name that
+    is not in it stays hidden, no matter how long this runs.
+
+    Nothing here is fuzzed. The output is a list of input names; turning that
+    into findings is a separate job.
+
+  examples:
+    - description: Find hidden parameters on a specific API endpoint.
+      targets: ["https://api.evilcorp.com/v1/user"]
+    - description: Mine a handful of known form handlers.
+      targets: ["https://app.evilcorp.com/search", "https://app.evilcorp.com/profile"]

@@ -5,16 +5,19 @@ import pytest
 
 from ..bbot_fixtures import *  # noqa F401
 
+from bbot.mcp import events as event_render
 from bbot.mcp import run as runner
 
 
 class _SampleEvent:
-    def __init__(self, type, data, host=None, module="testmodule", context="", scope="in-scope"):
+    def __init__(self, type, data, host=None, module="testmodule", context="", scope="in-scope", path=None):
         self.type = type
         self.data = data
         self.host = host
         self.module = module
         self.scope_description = scope
+        self.discovery_path = path or ([context] if context else [])
+        self.parent_chain = ["uuid-root", "uuid-self"] if path else []
         self.tags = ["test"]
         self.discovery_context = context
 
@@ -103,6 +106,77 @@ def test_finished_scan_is_not_stopped_into_aborted():
 def test_scan_still_running_when_the_stream_ends_is_stopped():
     scanner, _, _ = _collect([], max_events=10, status="RUNNING")
     assert scanner.stopped is True
+
+
+def test_the_chain_and_raw_record_are_opt_in():
+    """Both are held in memory and neither is returned unless asked for: most
+    reads of a result list need neither, and they are not cheap."""
+    chain = ["seeded with evilcorp.com", "excavate found GETPARAM id", "lightfuzz fuzzed it"]
+    record = runner.event_record(
+        _SampleEvent("FINDING", {"description": "SQLi"}, host="app.evilcorp.com", context=chain[-1], path=chain)
+    )
+    assert "_full" not in event_render.render([record])["FINDING"]
+
+    default = event_render.render([record])["FINDING"]
+    assert "how it was reached" not in default
+    assert chain[0] not in default, "the chain must not leak into the default view"
+    assert "via: lightfuzz fuzzed it" in default, "the last step alone is cheap and still worth showing"
+
+    detailed = event_render.render([record], detail=True)["FINDING"]
+    assert "how it was reached" in detailed
+    assert all(step in detailed for step in chain)
+    assert len(detailed) > len(default)
+
+
+def test_full_records_returns_the_raw_bbot_event():
+    class _WithJson(_SampleEvent):
+        def json(self):
+            return {"type": "FINDING", "id": "FINDING:abc", "uuid": "u-1", "scope_distance": 0}
+
+    record = runner.event_record(_WithJson("FINDING", {"description": "x"}, host="h", path=["a"]))
+    assert event_render.has_full_records([record])
+    raw = event_render.full_records([record])[0]
+    assert raw["id"] == "FINDING:abc", "the raw record is BBOT's own, not our summary"
+
+    # a bulk event has no raw record, and must still come back rather than vanish
+    bulk = runner.event_record(_SampleEvent("DNS_NAME", "a.evilcorp.com", host="a.evilcorp.com"))
+    assert not event_render.has_full_records([bulk])
+    assert event_render.full_records([bulk])[0]["data"] == "a.evilcorp.com"
+
+
+def test_findings_carry_their_full_discovery_chain():
+    """`discovery_path` is what output.json carries: every step from the scan's
+    seed to this event. For a finding it is the difference between 'there is a
+    bug here' and 'here is the route that reached it'."""
+    chain = [
+        "Scan seeded with evilcorp.com",
+        "crt found DNS_NAME: app.evilcorp.com",
+        "excavate found GETPARAM id",
+        "lightfuzz fuzzed GETPARAM id",
+    ]
+    record = runner.event_record(
+        _SampleEvent("FINDING", {"description": "SQLi"}, host="app.evilcorp.com", context=chain[-1], path=chain)
+    )
+    assert record["discovery_path"] == chain
+    # the ids that tie a finding back to the scan's own output.json live in the
+    # raw record, which `full_records=True` returns
+    assert "_full" not in event_render.render([record], detail=True)["FINDING"]
+
+    rendered = event_render.render([record], detail=True)["FINDING"]
+    assert "how it was reached:" in rendered
+    for step in chain:
+        assert step in rendered
+    # the chain already ends with `why`, so it is not printed twice
+    assert "via:" not in rendered
+
+
+def test_bulk_events_do_not_carry_the_chain():
+    """On a flood of DNS_NAMEs the chain costs far more than it says."""
+    record = runner.event_record(
+        _SampleEvent("DNS_NAME", "a.evilcorp.com", host="a.evilcorp.com", path=["seeded", "crt found it"])
+    )
+    assert "discovery_path" not in record
+    assert "why" not in record
 
 
 def test_event_record_carries_why_only_on_high_signal():

@@ -3,6 +3,12 @@ description: Find an organization's subdomains exhaustively, adding recursive DN
 include:
   - subdomain-enum
 
+exclude_modules:
+  # writes third-party Postman workspaces to local disk. A subdomain scan has no
+  # business downloading anything.
+  - postman_download
+  - shodan_idb
+
 config:
   modules:
     dnsbrute:

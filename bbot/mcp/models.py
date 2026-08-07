@@ -257,7 +257,15 @@ class DerivedFacts(BaseModel):
     api_keys: str
     api_key_options: list[str]
 
+    # Event types this scan will withhold from output, after the preset's own
+    # config is applied. BBOT ships a default list and a preset replaces it
+    # wholesale, so this is read off the baked config rather than reasoned about.
+    omitted_types: list[str]
+
     interaction: str
     noise: str
+    # Modules that write third-party content to local disk. A cost no other
+    # part of this layer expresses: every other tool only makes requests.
+    download_modules: list[str]
     slow_modules: list[str]
     unsafe_modules: list[str]

@@ -1,0 +1,126 @@
+description: Find the unprotected origin behind an organization's WAF by reaching its content directly through sibling IPs.
+
+flags:
+  # Not optional garnish. The module works by testing whether WAF-protected
+  # content can be fetched through IPs belonging to *other* domains the same
+  # organization owns, so its hit rate is a direct function of how many sibling
+  # domains the scan collected. With one hostname it has nothing to pivot
+  # through and will find nothing.
+  - subdomain-enum
+
+modules:
+  - waf_bypass
+  # produces the URL events waf_bypass watches
+  - http
+
+exclude_modules:
+  # writes third-party Postman workspaces to local disk. A subdomain scan has no
+  # business downloading anything.
+  - postman_download
+  - shodan_idb
+
+config:
+  modules:
+    waf_bypass:
+      similarity_threshold: 0.90
+      search_ip_neighbors: true
+      # Widest useful sweep: 256 addresses around every IP the scan discovered.
+      # Catches an origin parked elsewhere in the hosting range, at the cost of
+      # probing addresses whose ownership you have no evidence for. See
+      # "when not to use".
+      neighbor_cidr: 24
+
+meta:
+  accepts:
+    # domain-level: it needs the organization, not one host
+    - DNS_NAME
+
+  yields:
+    - FINDING
+
+  when_not_to_use: |
+    Do not run it against a single host. The whole technique is pivoting through
+    sibling infrastructure, so a scan with one domain in it has no candidate IPs
+    and will report nothing. That silence means "nothing to test", not "no
+    bypass exists", and the two are indistinguishable in the output.
+
+    Do not run it under a narrow authorization. At `neighbor_cidr: 24` this
+    probes 256 addresses around every IP it discovers. On shared or cloud
+    hosting most of those belong to other tenants who have not authorized you.
+    Make sure your scope covers netblocks, not just hostnames, or lower the
+    sweep.
+
+    Do not reach for it casually. This is the most expensive tool here by a
+    wide margin - see "How to call it" for what it actually costs. If you are
+    not specifically hunting for an exposed origin, something cheaper answers
+    your question.
+
+    Skip it when the target has no WAF. It only fingerprints content on domains
+    tagged CloudFlare or Imperva; without one there is nothing to bypass.
+
+  how_to_call: |
+    Know what this costs before you launch it. It is the most expensive tool
+    here, and the cost is multiplicative rather than additive.
+
+    It runs 48 modules in two stages. First a full subdomain enumeration of the
+    organization, DNS brute-force and mutations included - that alone is the
+    `find_subdomains_deep` workload, hours on a large target. Then, in the
+    scan's finishing stage, it sweeps 256 addresses around every unique IP it
+    discovered. Fifty hostnames resolving to twenty distinct IPs means roughly
+    five thousand extra HTTP fetches after the enumeration has already finished,
+    and a large organization goes well past that.
+
+    Budget hours and a lot of outbound traffic. Run it when an exposed origin is
+    specifically what you are after, on one organization at a time, and not as
+    part of a routine sweep.
+
+    Give it the organization's domains, not a URL and not a single host. It
+    needs breadth to work.
+
+    Understand the shape of the scan before launching: subdomain enumeration
+    runs first and takes the bulk of the time, and waf_bypass does its actual
+    testing in `finish()`, after everything else is done. A scan that looks idle
+    near the end is not stuck; that is when this module works. Do not stop it
+    early or you will lose exactly the part you ran it for.
+
+    Scope matters more than usual. BBOT treats everything under a target as
+    in-scope, which is what lets enumeration find the siblings this depends on.
+    `strict_scope=True` will hold it to the exact names you gave and largely
+    defeat the tool.
+
+    `blacklist` is the safety valve for the neighbour sweep. Anything in a shared
+    range that must not be probed goes there; it overrides scope, and nothing
+    else reliably will.
+
+  interpreting_results: |
+    A finding means content served behind the WAF was successfully fetched
+    through an IP that was not supposed to serve it. In practice that is an
+    origin server reachable directly, and it means every protection the WAF
+    provides - rate limiting, filtering, bot management - can be skipped by
+    anyone who knows the address.
+
+    Verify before reporting. Confirmation is a simhash comparison at 90%
+    similarity, so two pages sharing a template can match without the origin
+    really being exposed. Fetch the candidate IP yourself with the right Host
+    header and confirm you get the application rather than a default vhost.
+
+    An empty result has two very different causes and the finding list cannot
+    distinguish them: the origin is properly firewalled, or the scan never found
+    enough sibling infrastructure to test. Check how many hostnames the
+    enumeration turned up before concluding anything.
+
+  caveats: |
+    WAF detection is tag-based and currently covers CloudFlare and Imperva. A
+    site behind a different provider is not fingerprinted, so it is not tested.
+
+    Only directory URLs are considered; endpoint URLs are skipped.
+
+    A neighbour sweep at /24 probes addresses on evidence of adjacency alone.
+    That is the setting that finds origins nothing else will, and it is also the
+    setting most likely to touch something outside your engagement.
+
+  examples:
+    - description: Look for an exposed origin behind an organization's CDN.
+      targets: [evilcorp.com]
+    - description: Cover several related domains so the pivot has more IPs to work with.
+      targets: [evilcorp.com, evilcorp.net]

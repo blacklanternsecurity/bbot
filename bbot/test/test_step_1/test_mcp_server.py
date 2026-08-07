@@ -136,6 +136,19 @@ async def test_bad_targets_are_refused(registry):
         assert "scan_id" not in result
 
 
+async def test_scan_results_advertises_what_it_withheld(server):
+    """The agent should know the chain and the raw record exist without paying
+    for them, so the tool says so and names the parameters."""
+    tools = {t.name: t for t in await server.list_tools()}
+    schema = tools["scan_results"].inputSchema["properties"]
+    assert set(schema) == {"scan_id", "since", "limit", "detail", "full_records"}
+    assert "discovery chain" in schema["detail"]["description"]
+    assert "output.json" in schema["full_records"]["description"]
+    # both descriptions have to say what they cost, or an agent cannot budget
+    assert "Costs" in schema["detail"]["description"]
+    assert "Large" in schema["full_records"]["description"]
+
+
 async def test_instructions_stay_small():
     """The catalog is the tool list, so the instructions carry workflow only."""
     assert len(INSTRUCTIONS) <= 1500

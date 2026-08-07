@@ -78,6 +78,8 @@ def behavior_line(facts):
     """One line naming what the scan will do to the target. Short enough to sit
     in every tool description, and the part an agent needs before it acts."""
     parts = [f"{facts.interaction} against the target", f"{facts.noise} on the wire"]
+    if facts.download_modules:
+        parts.append("downloads third-party content to local disk")
     if facts.slow_modules:
         parts.append("slow (hours on a large target)")
     if facts.api_keys == "required":
@@ -111,6 +113,8 @@ def tool_details(entry):
 
     out.append("\n## What it produces\n\n")
     out.append(f"**Event types:** {', '.join(facts.produces) or 'nothing'}\n")
+    if facts.download_modules:
+        out.append(f"\n**Writes to local disk:** {', '.join(facts.download_modules)}\n")
     if facts.slow_modules:
         out.append(f"\n**Slow modules:** {', '.join(facts.slow_modules)}\n")
     if facts.unsafe_modules:

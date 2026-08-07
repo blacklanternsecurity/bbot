@@ -200,13 +200,27 @@ def event_record(event):
         "data": data if isinstance(data, (dict, str, int, float, bool)) else str(data),
     }
     # BBOT writes a plain-English sentence on every event explaining how it got
-    # there, which is usually what decides whether a finding is worth chasing.
-    # Carried on high-signal events only: on a flood of DNS_NAMEs it costs more
-    # than it says.
+    # there, and `discovery_path` is that sentence for every ancestor back to the
+    # scan's seed. It is what `output.json` carries, and for a finding it is the
+    # difference between "there is a bug here" and "here is the route that
+    # reached it" -- which is what a reader needs to judge and to reproduce it.
+    # Carried on high-signal events only: on a flood of DNS_NAMEs the chain costs
+    # far more than it says.
     if event_type in HIGH_SIGNAL_TYPES:
         context = str(getattr(event, "discovery_context", "") or "")
         if context:
             record["why"] = context
+        path = getattr(event, "discovery_path", None)
+        if path:
+            record["discovery_path"] = [str(step) for step in path]
+        # The complete BBOT event, exactly as it appears in the scan's
+        # output.json. Held in memory but never returned unless asked for: it is
+        # several times the size of everything else on this record, and almost
+        # every question about a finding is answered without it.
+        to_json = getattr(event, "json", None)
+        if callable(to_json):
+            with suppress(Exception):
+                record["_full"] = to_json()
     return record
 
 

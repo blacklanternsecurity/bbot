@@ -16,6 +16,7 @@ from typing import Annotated, Optional
 
 from pydantic import Field
 
+from bbot.mcp import deps
 from bbot.mcp import events as event_render
 from bbot.mcp import format as fmt
 from bbot.mcp import run as runner
@@ -134,6 +135,16 @@ def create_server():
             }
             if handle.queued_behind:
                 payload["queued_behind"] = handle.queued_behind
+            # Modules that escalate at scan time soft-fail without root rather
+            # than stopping the scan, so the run looks healthy and quietly does
+            # less. Say so at launch, while it can still be fixed.
+            rootless = [] if deps.root_available() else deps.modules_needing_root(entry)
+            if rootless:
+                warnings = list(warnings) + [
+                    f"{', '.join(rootless)} may need root and this process cannot obtain it. Those modules "
+                    f"will be skipped, so results will be narrower than the tool advertises. Fix with "
+                    f"`bbot-mcp --install-deps` from a terminal, or set BBOT_SUDO_PASS."
+                ]
             if warnings:
                 payload["warnings"] = warnings
             return json.dumps(payload, indent=2, default=str)
@@ -219,6 +230,25 @@ def create_server():
             Field(description="Index into the events already returned. Pass back the previous next_since.", ge=0),
         ] = 0,
         limit: Annotated[int, Field(description="Maximum events to return in this page.", ge=1)] = 500,
+        detail: Annotated[
+            bool,
+            Field(
+                description="Add the discovery chain to each finding: every step from the scan's seed to "
+                "the finding, in order. Costs roughly a paragraph per finding. Ask for it when you need to "
+                "judge or reproduce a specific result, not when scanning the list."
+            ),
+        ] = False,
+        full_records: Annotated[
+            bool,
+            Field(
+                description="Return the complete raw BBOT event records instead of the readable summary - "
+                "the same objects the scan writes to its output.json, with every field: ids, uuids, "
+                "timestamps, parent references, resolved hosts, scope distance, module sequence, host "
+                "metadata. Large: several times the size of the summary per event, so page with a small "
+                "`limit`. Only high-signal events keep one. Ask for it when you need a field the summary "
+                "does not show, or to cross-reference against the scan's own output files."
+            ),
+        ] = False,
     ) -> str:
         """Events a scan has found, readable while it is still running.
 
@@ -230,6 +260,13 @@ def create_server():
         found it, its `scope` (in-scope / affiliate / distance-N) and BBOT's `tags`.
         High-signal events also carry `why`: BBOT's own sentence describing how it
         was discovered, which is usually what tells you whether it is worth chasing.
+
+        By default this returns a compact, readable summary shaped for each event
+        type. Two things are held back because most reads do not need them and
+        they are not cheap: `detail=True` adds each finding's full discovery
+        chain, and `full_records=True` returns the complete raw BBOT event
+        objects from the scan's output.json. Both are described on those
+        parameters.
 
         The reply also carries the tool's own guidance on reading its output.
         """
@@ -248,11 +285,20 @@ def create_server():
             "returned": len(window),
             "next_since": start + len(window),
             "more": start + len(window) < len(handle.events),
+        }
+        if full_records:
+            payload["records"] = event_render.full_records(window)
+        else:
             # Rendered per event type rather than as raw event objects: a
             # subdomain scan's result is a list of hostnames, and wrapping each
             # one in JSON scaffolding would bury it.
-            "results": event_render.render(window),
-        }
+            payload["results"] = event_render.render(window, detail=detail)
+            if not detail and event_render.has_full_records(window):
+                payload["more_detail_available"] = (
+                    "Findings here have a full discovery chain and a complete raw record. Neither is "
+                    "included by default. Call again with detail=true for the chain that reached each "
+                    "finding, or full_records=true for the raw BBOT events."
+                )
         if handle.running:
             payload["note"] = "still running -- call again later for events found after this point"
         if handle.result:
@@ -301,10 +347,109 @@ def create_server():
 
 
 def main():
-    logging.basicConfig(level=logging.WARNING)
+    import argparse
+    import asyncio
+
+    parser = argparse.ArgumentParser(
+        prog="bbot-mcp",
+        description="Serve BBOT's pseudotools over MCP (stdio).",
+    )
+    parser.add_argument(
+        "--check-deps",
+        action="store_true",
+        help="report which tools have unmet external dependencies, install nothing, and exit",
+    )
+    parser.add_argument(
+        "--check-keys",
+        action="store_true",
+        help="report which tools are limited by missing API keys, and where to put them",
+    )
+    parser.add_argument(
+        "--install-deps",
+        action="store_true",
+        help="install dependencies for the modules the pseudotools use, then exit. Idempotent: "
+        "a no-op where they are already present, such as bbot-docker-full",
+    )
+    args = parser.parse_args()
+
+    logging.basicConfig(
+        level=logging.INFO if (args.check_deps or args.check_keys or args.install_deps) else logging.WARNING
+    )
+    # Applied before anything reads config, so a containerised server can be
+    # given keys through the MCP client's `env` block instead of a mounted file.
+    from_env = deps.apply_env_config()
+    if from_env:
+        log.info("applied config from environment for: %s", ", ".join(sorted(from_env)))
+    registry = get_registry()
+
+    if args.check_deps:
+        installable, privileged = deps.report(registry)
+        if not installable and not privileged:
+            print("All pseudotool dependencies look satisfied.")
+            return
+        if installable:
+            print(f"{len(installable)} module(s) need dependencies installed:\n")
+            for module, reasons in sorted(installable.items()):
+                print(f"  {module:24} {'; '.join(reasons)}")
+            print(
+                "\n  Fix: bbot-mcp --install-deps"
+                + ("  (run it from a terminal; it will prompt for sudo)" if not deps.root_available() else "")
+            )
+        if privileged:
+            if installable:
+                print()
+            print(f"{len(privileged)} module(s) are installed but need root to run:\n")
+            for module, reasons in sorted(privileged.items()):
+                print(f"  {module:24} {'; '.join(reasons)}")
+            print("\n  There is nothing to install here, so --install-deps will not help.")
+            print("  Fix: set BBOT_SUDO_PASS, configure passwordless sudo, or run the server as root.")
+            print("  Otherwise these modules are skipped and the scan quietly does less.")
+        return
+
+    if args.check_keys:
+        configured, missing = deps.api_key_status(registry)
+        if configured:
+            print(f"Keys already set for: {', '.join(sorted(configured))}\n")
+        if not missing:
+            print("Every pseudotool module that takes an API key has one.")
+            return
+        affected = {}
+        for entry in registry:
+            hit = sorted(set(entry.facts.modules) & set(missing))
+            if hit:
+                affected[entry.name] = hit
+        # BBOT does not record which keys are mandatory: `options_mandatory` is
+        # empty even for modules that soft-fail without one (github_org). So the
+        # honest statement is that these take a key, not that they all demand one.
+        print(f"{len(missing)} module(s) take an API key and have none set. Some refuse to run")
+        print("without one, others just return less; BBOT does not distinguish them.\n")
+        for tool, mods in sorted(affected.items(), key=lambda kv: -len(kv[1])):
+            shown = ", ".join(mods[:6]) + (f" (+{len(mods) - 6} more)" if len(mods) > 6 else "")
+            print(f"  {tool:22} {len(mods):>2} affected: {shown}")
+        print(f"\nAdd the ones you have to {deps.secrets_path()}:\n")
+        print("modules:")
+        for module, options in sorted(missing.items()):
+            for option in options:
+                print(f'  {module}:\n    {option.rsplit(".", 1)[-1]}: ""')
+        print("\nOnly the ones you actually have -- an empty value is the same as unset.")
+        return
+
+    if args.install_deps:
+        raise SystemExit(0 if asyncio.run(deps.install(registry)) else 1)
+
     server = create_server()
     # derive everything up front so the first request doesn't pay for the registry
-    get_registry().warm()
+    registry.warm()
+    # Never install anything on its own -- just say so once, on stderr, and let
+    # the operator decide. An environment that already has the binaries sees
+    # nothing.
+    installable, privileged = deps.report(registry)
+    if installable or privileged:
+        log.warning(
+            "%d module(s) need dependencies installed, %d need root to run; run `bbot-mcp --check-deps` for detail",
+            len(installable),
+            len(privileged),
+        )
     server.run(transport="stdio")
 
 

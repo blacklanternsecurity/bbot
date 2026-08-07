@@ -10,6 +10,10 @@ exclude_modules:
   # lookups that run in parallel and finish in minutes.
   - dnsbrute
   - dnsbrute_mutations
+  # writes third-party Postman workspaces to local disk. A subdomain scan has no
+  # business downloading anything.
+  - postman_download
+  - shodan_idb
 
 meta:
   accepts:

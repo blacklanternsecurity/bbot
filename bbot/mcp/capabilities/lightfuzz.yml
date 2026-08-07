@@ -9,6 +9,15 @@ include:
   # when the spider is off.
   - spider
 
+modules:
+  # Named here rather than left to the lightfuzz preset that currently pulls it
+  # in. This tool's prose promises WAF-bypass detection, so it owns that
+  # guarantee instead of inheriting it and silently losing it if the bundled
+  # preset changes. nowafpls is also worth running for its own sake: it reports
+  # a bypassable WAF as a LOW finding whether or not anything is then found
+  # behind it.
+  - nowafpls
+
 config:
   modules:
     lightfuzz:
@@ -21,11 +30,10 @@ config:
       # first seen misses exactly that.
       try_post_as_get: true
       try_get_as_post: true
-      # Skip hosts behind a confirmed WAF. Fuzzing through one produces blocked
-      # requests, false negatives, and a good chance of the source IP being
-      # banned partway through. Flip this to false once nowafpls lands, so
-      # requests get padded past the WAF instead of just bouncing off it.
-      avoid_wafs: true
+      # avoid_wafs is left at the bundled preset's `try_bypasses`: WAF-protected
+      # hosts are not skipped, but each one is first probed with nowafpls body
+      # padding, and only fuzzed if the padding actually gets through. Findings
+      # that needed it are tagged `used-nowafpls`.
 
 meta:
   accepts:
@@ -45,14 +53,32 @@ meta:
     the application's entry points. Use `find_subdomains_fast` first if you need
     to discover what exists, then bring the interesting URLs here.
 
-    Do not expect it on WAF-protected hosts. Those are skipped by design, and
-    the scan will look quiet for reasons that have nothing to do with the
-    application being sound.
+    Do not rely on it against a WAF-protected host. It skips any host whose WAF
+    it cannot get past -- see "How to call it" before you point it at one.
 
-    Use `lightfuzz_deep` instead when the application hides its parameters:
-    this one only fuzzes what the crawl can see.
+    Use `lightfuzz_deep` when you want a more thorough inspection and can afford
+    it. It does everything this one does and adds paramminer brute-forcing and a
+    wayback-heavy run on top, which costs a much longer scan and a much heavier
+    load on the target. This tool is the one to reach for otherwise.
 
   how_to_call: |
+    Know this before you launch it: a WAF-protected host is skipped unless the
+    WAF turns out to be bypassable.
+
+    On any host tagged as WAF-protected, lightfuzz first asks nowafpls whether
+    body padding gets a payload past the inspection layer. If it does, the host
+    is fuzzed with every POST-style payload padded. If it does not, the host is
+    dropped and nothing is fuzzed on it at all. Padding is body-only, so
+    GET, cookie and header parameters on a WAF'd host have no bypass available
+    and are skipped even when a POST bypass exists.
+
+    That makes an empty result ambiguous, and the ambiguity is the point: it can
+    mean the application is sound, or it can mean nothing was ever tested.
+    Check the scan's findings for a "WAF Bypass via Body Padding" entry. Its
+    presence means the host was reachable and genuinely fuzzed; its absence on a
+    WAF'd host means the host was skipped. If you need coverage there anyway,
+    that is a conversation about source IP allowlisting, not a scan setting.
+
     Give it URLs, one call for all of them. Entry points work well: a login
     page, a search endpoint, an API root. The spider walks out from there two
     links deep, four directories down, twenty-five links per page.
@@ -77,9 +103,23 @@ meta:
     differential. Reproduce anything you intend to report: reflected input is
     not proof of XSS, and a timing difference is not proof of SQLi.
 
-    A quiet scan is not a clean application. Check whether the host was skipped
-    as WAF-protected, and whether the spider actually found parameters to fuzz
-    -- with nothing to work on, lightfuzz has nothing to say.
+    "WAF Bypass via Body Padding" is a finding in its own right, not just
+    bookkeeping. LOW/CONFIRMED, naming the provider and the padding size, it
+    says the WAF can be walked past with a few kilobytes of junk in the request
+    body. That is worth reporting even when nothing is found behind it, and it
+    is worth keeping: the same padding makes every other tool's payloads land on
+    that host.
+
+    A finding tagged `used-nowafpls` only worked because the payload was padded
+    past a WAF's inspection buffer. That changes what it means twice over: the
+    WAF is the only thing standing between the application and the bug, and the
+    finding will not reproduce by hand without the same padding. Expect a
+    separate LOW/CONFIRMED "WAF Bypass via Body Padding" finding alongside it,
+    naming the padding size.
+
+    A quiet scan is not a clean application. Check whether the host's WAF turned
+    out not to be bypassable, and whether the spider actually found parameters
+    to fuzz -- with nothing to work on, lightfuzz has nothing to say.
 
   caveats: |
     Coverage is bounded entirely by parameter discovery. Parameters that only

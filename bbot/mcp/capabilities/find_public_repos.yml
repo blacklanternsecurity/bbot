@@ -1,0 +1,86 @@
+description: Find an organization's public code repositories and audit their CI/CD configuration, without cloning anything.
+
+modules:
+  # repositories owned by the organization
+  - github_org
+  # code on GitHub mentioning the target domain, wherever it lives
+  - github_codesearch
+  - gitlab_com
+  # repository links referenced from the organization's own web content
+  - code_repository
+  - http
+  # reads each repository's CI/CD configuration for misconfigurations, over the
+  # API. This is what makes the tool produce findings rather than inventory.
+  - trajan
+
+meta:
+  accepts:
+    - DNS_NAME
+
+  yields:
+    - CODE_REPOSITORY
+    - FINDING
+
+  when_not_to_use: |
+    Use `find_leaked_secrets` if what you want is credentials. This tool
+    deliberately does not clone anything, which means it cannot read commit
+    history, which is where secrets actually live. What it gives you is the
+    inventory and the pipeline configuration.
+
+    Coverage without a GitHub API key is poor. `github_codesearch` will not run
+    at all without one, and it is the module that finds code mentioning the
+    target outside the organization's own account - often the interesting half.
+
+    Think about scope before running it. This searches GitHub and GitLab, not
+    the target's infrastructure. Authorization to test a company does not
+    automatically extend to repositories belonging to its employees personally,
+    and code search finds those.
+
+  how_to_call: |
+    Give it the organization's domains. Discovery works from the domain name and
+    from whatever the organization links to publicly.
+
+    It downloads nothing. Everything here reads public APIs and web content, so
+    there is no disk cost and nothing third-party lands on your machine. That is
+    the deliberate difference from `find_leaked_secrets`.
+
+    Set a GitHub API key if you have one. Without it the scan runs but
+    `github_codesearch` is skipped entirely, and results will be limited to
+    repositories under accounts the organization obviously owns.
+
+    `strict_scope` has little effect here, since discovery happens on GitHub and
+    GitLab rather than in the target's DNS. `blacklist` likewise.
+
+  interpreting_results: |
+    CODE_REPOSITORY events are inventory: repositories that appear to belong to,
+    or reference, the organization. Confirm ownership before treating one as in
+    scope. A repository that merely mentions the domain may belong to a
+    customer, a contractor, or a stranger.
+
+    Findings come from `trajan` and are about how the pipeline is configured
+    rather than what the code contains: workflows that can be triggered by
+    outsiders, secrets referenced in ways that expose them to forks, registries
+    left writable. Those are real vulnerabilities in the software supply chain,
+    and they do not require the repository to contain a secret at all.
+
+    An empty finding list with a healthy repository list means the inventory
+    worked and the pipelines look sound. That is a genuine result, unlike a
+    silent tool that found no repositories.
+
+  caveats: |
+    Attribution is heuristic. Matching an organization to its repositories is
+    guesswork based on names, domains and links, and it produces both misses and
+    false attributions.
+
+    No commit history is read. A repository whose current files are clean may
+    still have secrets three years back, and only `find_leaked_secrets` will
+    see them.
+
+    GitLab coverage is thinner than GitHub's, and self-hosted instances are only
+    found if something links to them.
+
+  examples:
+    - description: Inventory an organization's public repositories and check their pipelines.
+      targets: [evilcorp.com]
+    - description: Cover an organization with several domains.
+      targets: [evilcorp.com, evilcorp.io]
