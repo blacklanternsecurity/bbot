@@ -31,6 +31,9 @@ config:
       neighbor_cidr: 24
 
 meta:
+  # probes 256 addresses around every IP it discovers, most of which belong to
+  # other tenants on shared hosting, so the caveat is the difference between authorized and not.
+  force_require_tool: true
   accepts:
     # domain-level: it needs the organization, not one host
     - DNS_NAME

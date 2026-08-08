@@ -109,6 +109,15 @@ class CapabilityMeta(BaseModel):
     interpreting_results: str = ""
     caveats: str = ""
 
+    # Refuse to run until `describe_tool` has been called for this tool. Off by
+    # default: a gate on every tool taxes first contact with a research step, and
+    # an agent that meets a refusal the first time it reaches for something learns
+    # not to reach. Set it where a well-formed call still reaches past its own
+    # target list -- probing a neighbour's addresses, cloning someone's repo --
+    # because there the caveat is the difference between authorized and not, and
+    # nothing in the request itself can be validated against it.
+    force_require_tool: bool = False
+
     examples: list[CapabilityExample] = Field(default_factory=list)
 
     @field_validator("yields", "accepts")
@@ -196,6 +205,10 @@ class Capability(BaseModel):
     @property
     def caveats(self):
         return self.meta.caveats
+
+    @property
+    def force_require_tool(self):
+        return self.meta.force_require_tool
 
     @property
     def examples(self):

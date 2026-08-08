@@ -27,13 +27,18 @@ from bbot.mcp.registry import get_registry
 log = logging.getLogger("bbot.mcp.server")
 
 INSTRUCTIONS = """
-BBOT is a recursive attack-surface scanner. Each tool here is one BBOT scan
-configuration: give it targets and it runs until nothing new is discovered.
+BBOT maps an organization's attack surface: subdomains and the hosts behind them,
+open ports and the services on them, exposed .git directories, secrets leaked into
+public repos and mobile apps, hidden parameters, subdomain takeovers, and the
+origin behind a WAF. Each tool here is one BBOT scan configuration: give it
+targets and it runs until nothing new is discovered.
 
-`list_tools` shows the whole menu at once. Before running one, call
-`describe_tool` on it. The tool's own description says
-what it does; `describe_tool` says what it will miss, when it is the wrong choice,
-and how to read what comes back. Running is refused until you have.
+Every tool's one-line description is already in your tool list -- that is what it
+finds, and it is enough to pick from. `list_tools` puts those lines side by side
+when comparing. `describe_tool` goes further: what a scan will miss, when it is
+the wrong choice, how to read its output, and its caveats. Call it before a scan
+that is slow, noisy, or aimed at infrastructure you are unsure about. A few tools
+reach past the targets you give them and refuse to run until you have.
 
 Scans run in the background and return a scan_id immediately, so start one and
 carry on. A worthwhile scan takes tens of minutes to hours, and BBOT saves its
@@ -68,8 +73,9 @@ def create_server():
         fn.__doc__ = inspect.cleandoc(fn.__doc__ or "")
         return mcp.tool()(fn)
 
-    # Tools whose long description has been read this session. A scan is refused
-    # until then, so it can never be launched off the short line alone.
+    # Tools whose long description has been read this session. Only the ones that
+    # set `force_require_tool` are refused until then; the rest answer on first
+    # contact and are refused only when the call itself is wrong.
     described = set()
 
     def register(entry):
@@ -82,16 +88,20 @@ def create_server():
             blacklist: Annotated[Optional[list[str]], BLACKLIST_FIELD] = None,
             strict_scope: Annotated[bool, STRICT_SCOPE_FIELD] = False,
         ) -> str:
-            if entry.name not in described:
+            if entry.capability.force_require_tool and entry.name not in described:
                 return (
-                    f"Call describe_tool('{entry.name}') before running it. Its description says what it "
-                    "does; the details say what it will miss, when it is the wrong choice, and how to "
-                    "read its output."
+                    f"Call describe_tool('{entry.name}') before running it. This one reaches past the "
+                    "targets you give it, so what it will touch is in the detail rather than in the "
+                    "request, and nothing here can check it for you."
                 )
             try:
                 targets, blacklist, warnings = prepare(entry, targets, blacklist)
             except ComposeError as e:
-                return f"Could not start this scan: {e}"
+                return (
+                    f"Could not start this scan: {e} "
+                    f"Call describe_tool('{entry.name}') for what this scan needs, what it will miss, "
+                    "and when it is the wrong choice."
+                )
 
             preset_dict = entry.capability.preset.to_preset_dict()
             scan_kwargs = runner.scanner_kwargs(preset_dict, blacklist=blacklist, strict_scope=strict_scope)
@@ -173,16 +183,18 @@ def create_server():
     def describe_tool(
         name: Annotated[str, Field(description="The name of one of this server's scan tools.")],
     ) -> str:
-        """Read the full description of a scan tool. Required before running it.
+        """Read the full description of a scan tool.
 
-        A tool's own description says what it finds. This says what it will miss,
-        when it is the wrong choice and what to use instead, how to read its
-        output and what that output does not prove, its caveats and prerequisites,
-        the exact BBOT modules it enables, and the preset it runs.
+        A tool's own description says what it finds, and that is already in your
+        tool list. This says what it will miss, when it is the wrong choice and
+        what to use instead, how to read its output and what that output does not
+        prove, its caveats and prerequisites, the exact BBOT modules it enables,
+        and the preset it runs.
 
-        The short description cannot carry any of that, and those are the things
-        that decide whether running a scan against someone's infrastructure is
-        appropriate. Scan tools refuse until this has been called for them.
+        Worth calling before a scan that is slow, noisy, or aimed at
+        infrastructure you are unsure about, and whenever an empty result needs
+        interpreting. A few tools reach past the targets you give them and refuse
+        to run until it has been called for them; they say so when refused.
         """
         try:
             entry = registry.get(name)

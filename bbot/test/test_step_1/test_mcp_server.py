@@ -91,22 +91,48 @@ async def test_short_description_carries_what_selection_needs(server, registry):
                 assert prose not in description
 
 
-async def test_running_requires_reading_the_details_first(registry):
-    """A scan must never be launched off the short description alone."""
+async def test_only_far_reaching_tools_require_reading_the_details_first(registry):
+    """A gate on every tool taxes first contact with a research step, and an agent
+    that meets a refusal the first time it reaches for something learns not to
+    reach. A gate on none loses the caveat for the tools whose blast radius is not
+    in the request: what they touch is in the detail, and nothing can check it."""
     fresh = create_server()
-    names = sorted(e.name for e in registry)
+    gated = sorted(e.name for e in registry if e.capability.force_require_tool)
+    ungated = sorted(e.name for e in registry if not e.capability.force_require_tool)
+    assert gated, "the far-reaching tools should still be gated"
+    assert ungated, "gating everything is what this exists to avoid"
 
-    refusal = await call(fresh, names[0], targets=["evilcorp.com"])
-    assert "describe_tool" in refusal
+    # An ungated tool is not stopped. Checked with a target it will reject, so the
+    # reply proves the gate was passed without a scan actually being launched.
+    reply = await call(fresh, ungated[0], targets=["   "])
+    assert "before running it" not in reply
+    assert "Could not start this scan" in reply
+
+    refusal = await call(fresh, gated[0], targets=["evilcorp.com"])
+    assert "before running it" in refusal
     assert "scan_id" not in refusal
 
-    details = await call(fresh, "describe_tool", name=names[0])
+    details = await call(fresh, "describe_tool", name=gated[0])
     assert "## When not to use" in details
     assert "## How to call it" in details
     assert len(details) <= fmt.MAX_DETAILS_CHARS
 
     # reading one tool's details does not unlock another
-    assert "describe_tool" in await call(fresh, names[1], targets=["evilcorp.com"])
+    for other in gated[1:]:
+        assert "before running it" in await call(fresh, other, targets=["evilcorp.com"])
+
+
+async def test_a_wrong_call_is_refused_and_says_where_the_contract_is(registry):
+    """Enforcement moves from before the call to the call itself, so the refusal
+    has to carry what the pre-flight gate used to teach."""
+    fresh = create_server()
+    ungated = sorted(e.name for e in registry if not e.capability.force_require_tool)
+
+    for garbage in ([], ["   "], ["/etc/passwd"], ["x" * 600]):
+        reply = await call(fresh, ungated[0], targets=garbage)
+        assert "Could not start this scan" in reply, garbage
+        assert "describe_tool" in reply, garbage
+        assert "scan_id" not in reply, garbage
 
 
 async def test_details_only_name_knobs_that_exist(server, registry):
