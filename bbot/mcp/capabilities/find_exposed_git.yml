@@ -15,6 +15,13 @@ config:
       # report unverified credentials too. A key for an internal or retired
       # service is still a leak, and a repository's history is full of them.
       only_verified: false
+      # One trufflehog subprocess at a time instead of two. Every observed
+      # bbot-mcp crash came from a scan with both threads mid-event, and the
+      # teardown that follows shuts an executor while modules still hold work.
+      # Halving the concurrent subprocesses narrows that window; it does not
+      # close it. `concurrency` is deliberately untouched: those are goroutines
+      # inside one Go process and never cross the Python boundary.
+      module_threads: 1
 
 meta:
   accepts:
