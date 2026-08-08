@@ -36,6 +36,11 @@ meta:
   yields:
     - FINDING
 
+  when_to_use: |
+    Runs every baddns submodule against your hostnames, plus zone and direct-resource checks, with no
+    severity floor. Several times the output, most of it informational. Worth the triage when the
+    filtered pass found nothing, or when you want DNS posture beyond takeover - SPF, DMARC, delegation.
+
   when_not_to_use: |
     Reports at INFO severity and UNKNOWN confidence, including observations that are not problems. Expect to triage. Use `baddns` for only what is worth acting on.
 

@@ -21,6 +21,12 @@ meta:
     - CODE_REPOSITORY
     - FINDING
 
+  when_to_use: |
+    Finds an organization's public repositories and reads their CI/CD configuration over the API -
+    workflows outsiders can trigger, secrets exposed to forks, writable registries. Downloads nothing,
+    so it is fast and carries none of the disk or authorization cost of cloning. Also the cheapest way
+    to see what `find_leaked_secrets` would pull before starting it.
+
   when_not_to_use: |
     Use `find_leaked_secrets` if you want credentials. This clones nothing, so it cannot read commit history.
 

@@ -41,6 +41,12 @@ meta:
   yields:
     - FINDING
 
+  when_to_use: |
+    Hunts for the origin server behind a WAF by fetching protected content through sibling IPs the same
+    organization owns. Give it several domains - one hostname has nothing to pivot through. It sweeps
+    256 addresses around every IP it finds, so it refuses to run until you have read the detail. The
+    case for it is narrow: a real vulnerability behind a WAF, and nothing else in the way.
+
   when_not_to_use: |
 
     Skip it when the target has no WAF.

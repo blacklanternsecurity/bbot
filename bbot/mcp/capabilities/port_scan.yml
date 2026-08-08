@@ -27,6 +27,12 @@ meta:
     - OPEN_TCP_PORT
     - PROTOCOL
 
+  when_to_use: |
+    Sweeps hosts, IPs or CIDR ranges for the top 1000 TCP ports and identifies what is listening on
+    each. Pass everything in one call - masscan works the whole set at once, so one scan across many
+    targets beats one call each. Web enumeration only ever finds web servers; this is what turns up the
+    database, the admin service, or the forgotten daemon on a non-standard port.
+
   when_not_to_use: |
     Be aware it needs root. A SYN scan uses raw sockets; without root BBOT falls back to a connect scan that is markedly slower and more visible on the target.
 

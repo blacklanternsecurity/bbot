@@ -14,6 +14,12 @@ meta:
     # from the archive and unpacked from obfuscated bundles
     - URL
 
+  when_to_use: |
+    Reads the JavaScript a site loads and scans it for credentials and known-vulnerable libraries. An
+    entry point is enough - it follows what the pages pull in, unpacks obfuscated bundles, and recovers
+    scripts from the archive the site no longer serves. Front-end code carries keys and internal
+    endpoints that server responses never expose.
+
   when_not_to_use: |
     Skip it for a site with no meaningful client-side JavaScript.
 

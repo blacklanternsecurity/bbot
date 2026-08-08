@@ -33,6 +33,12 @@ meta:
     - WEB_PARAMETER
     - FINDING
 
+  when_to_use: |
+    Brute-forces one endpoint at a time for parameters, headers and cookies it accepts but never
+    advertises. Thousands of requests per endpoint and no crawling, so point it only at things that
+    plausibly take input. It finds names, not vulnerabilities. Parameters may also be tagged with
+    `http_reflection`, indicating potential XSS or other vulns.
+
   when_not_to_use: |
     Will only mine the URLs you give it, no spidering. Cost is wordlist size multiplied by endpoints.
 

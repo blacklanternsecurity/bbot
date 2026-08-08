@@ -34,6 +34,13 @@ meta:
   yields:
     - FINDING
 
+  when_to_use: |
+    Runs every known IIS/.NET framework check against the URLs you give it - Telerik, DotNetNuke,
+    AjaxPro, exposed `/bin/`, weak machineKeys. These compound rather than stack: a readable `/bin/`
+    yields the assemblies, the assemblies carry the machineKey, and the machineKey turns viewstate
+    signing into RCE. All signature-based and unauthenticated, so any host announcing .NET is worth a
+    pass.
+
   when_not_to_use: |
 
     Skip it for anything that is not IIS or .NET. Every module here is framework-specific, and against nginx or a Java stack the scan finds nothing and tells you nothing.

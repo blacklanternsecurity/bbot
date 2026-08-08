@@ -43,6 +43,12 @@ meta:
   yields:
     - FINDING
 
+  when_to_use: |
+    Fuzzes an application's parameters for vulnerabilities - SQLi, XSS, command injection, traversal,
+    SSTI, SSRF - crawling first to find them. Tests every parameter as both GET and POST, since
+    backends often filter one path and not the other. WAF-protected hosts are probed with padding and
+    fuzzed only if it gets through. Confidence varies by module and by finding, up to CONFIRMED.
+
   when_not_to_use: |
     Lightfuzz is aggressive and intrusive, including form-submitting. 
 

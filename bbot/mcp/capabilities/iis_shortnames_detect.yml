@@ -18,6 +18,11 @@ meta:
   yields:
     - FINDING
 
+  when_to_use: |
+    Check to see if this IIS application leaks 8.3 shortnames. Cheap and per-directory - a root that
+    does not leak says nothing about the directories under it. Use it to decide whether the exploit and
+    solve tools are worth their cost, not as a step before them.
+
   when_not_to_use: |
     Skip it for anything that is not IIS. The vulnerability is specific to IIS.
 

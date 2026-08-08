@@ -23,6 +23,11 @@ meta:
   yields:
     - FINDING
 
+  when_to_use: |
+    Tests the paths you give it for a readable `.git`, rebuilds the repository, and scans its full
+    history for credentials. Detection is a couple of requests and costs nothing when it misses. When
+    it hits, a black-box target becomes a source-code audit.
+
   when_not_to_use: |
     Skip it unless you have reason to think a `.git` directory is exposed. The detection itself is a couple of requests, but this tool exists for what happens after, and on a site with nothing leaking it does nothing.
 

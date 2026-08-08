@@ -25,6 +25,12 @@ meta:
     - URL
     - FINDING
 
+  when_to_use: |
+    Recovers the 8.3 fragments, then brute-forces each back into a real filename the server will serve.
+    Loudest of the three: up to 250 requests per fragment, so twenty fragments is five thousand
+    requests in one directory. What comes back is directly fetchable - and the fragments it fails to
+    solve are often the more interesting, since they name files no wordlist would guess.
+
   when_not_to_use: |
     Skip it for anything that is not IIS.
 

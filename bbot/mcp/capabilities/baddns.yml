@@ -21,6 +21,11 @@ meta:
   yields:
     - FINDING
 
+  when_to_use: |
+    Takes a list of hostnames and checks each one's DNS records for takeover. A handful of DNS lookups
+    per name, so a few hundred hostnames finish in about the time a single manual check would take.
+    Takeovers tend to sit on old, forgotten subdomains.
+
   when_not_to_use: |
     Checks the names you give it and nothing else. Run `find_subdomains_fast` first and bring the hostname list here - takeovers live on forgotten subdomains.
 

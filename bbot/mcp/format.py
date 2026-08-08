@@ -89,10 +89,16 @@ def behavior_line(facts):
 
 def tool_description(entry):
     """A tool's description: the short tier, resident for the whole session."""
+    # `when_to_use` is the one section that belongs in this tier: it is what
+    # connects something an agent just discovered to the tool that acts on it, and
+    # a tool nobody thinks to reach for is not chosen at all. The rest stays in the
+    # long tier, where it is read once a tool has already been picked.
+    trigger = " ".join(entry.capability.when_to_use.split())
     text = (
         f"{entry.capability.summary}\n\n"
-        f"{behavior_line(entry.facts)}\n\n"
-        f"Call describe_tool('{entry.name}') first for what it will miss, when not to use it, "
+        + (f"{trigger}\n\n" if trigger else "")
+        + f"{behavior_line(entry.facts)}\n\n"
+        + f"Call describe_tool('{entry.name}') for what it will miss, when not to use it, "
         f"and how to read its output."
     )
     return truncate(text, MAX_DESCRIPTION_CHARS, "shorten the preset's description: line")

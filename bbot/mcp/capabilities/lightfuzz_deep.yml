@@ -32,6 +32,12 @@ meta:
   yields:
     - FINDING
 
+  when_to_use: |
+    Everything `lightfuzz` does, then brute-forces parameter names and replays archived URLs before
+    fuzzing what it finds. Reaches parameters the application never mentions and pages it no longer
+    serves. Most of the runtime is discovery rather than fuzzing, and much of that finds nothing - the
+    cost buys reach, so it earns its place after the standard pass has been spent.
+
   when_not_to_use: |
     Everything true of `lightfuzz` applies, plus paramminer brute-forcing parameter names against every endpoint it finds.
 

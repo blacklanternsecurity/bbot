@@ -30,6 +30,12 @@ meta:
     # verified only: a guess becomes a URL once the server serves it
     - URL
 
+  when_to_use: |
+    Brute-forces a web server for directories and files nothing links to - admin panels, backups,
+    staging paths that exist by design and are never referenced. Five thousand requests per URL you
+    pass, no recursion, and it skips WAF-protected hosts rather than getting banned partway through.
+    Everything it returns is a path the server actually served, not a guess that was tried.
+
   when_not_to_use: |
     This is five thousand requests per URL you pass.
 
