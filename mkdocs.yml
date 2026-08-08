@@ -27,6 +27,7 @@ nav:
     - Events: scanning/events.md
     - Output: scanning/output.md
     - MCP Server: scanning/mcp.md
+    - Operating BBOT via MCP: scanning/mcp_agent_guide.md
     - Tips and Tricks: scanning/tips_and_tricks.md
     - Advanced Usage: scanning/advanced.md
     - Configuration: scanning/configuration.md
