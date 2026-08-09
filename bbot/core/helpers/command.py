@@ -289,6 +289,8 @@ def _prepare_command_kwargs(self, command, kwargs):
         kwargs["stdout"] = asyncio.subprocess.PIPE
     if "stderr" not in kwargs:
         kwargs["stderr"] = asyncio.subprocess.PIPE
+    if "stdin" not in kwargs and "input" not in kwargs:
+        kwargs["stdin"] = asyncio.subprocess.DEVNULL
     sudo = kwargs.pop("sudo", False)
 
     if len(command) == 1 and isinstance(command[0], (list, tuple)):

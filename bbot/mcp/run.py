@@ -74,6 +74,7 @@ _SCAN_TASKS = {}
 _BACKGROUND_TASKS = set()
 
 _SCAN_LOOP = None
+_SCAN_LOOP_THREAD = None
 _SCAN_LOOP_READY = threading.Event()
 _SCAN_LOOP_GUARD = threading.Lock()
 _SCAN_LOCK = None
@@ -90,12 +91,14 @@ def _serve_scan_loop():
 
 def scan_event_loop():
     """The loop scans run on. Keeps BBOT's blocking stretches off the MCP loop."""
-    global _SCAN_LOOP
+    global _SCAN_LOOP, _SCAN_LOOP_THREAD
     if _SCAN_LOOP is None:
         with _SCAN_LOOP_GUARD:
             if _SCAN_LOOP is None:
                 _SCAN_LOOP_READY.clear()
-                threading.Thread(target=_serve_scan_loop, name="bbot-mcp-scans", daemon=True).start()
+                t = threading.Thread(target=_serve_scan_loop, name="bbot-mcp-scans", daemon=True)
+                t.start()
+                _SCAN_LOOP_THREAD = t
         _SCAN_LOOP_READY.wait()
     if _SCAN_LOOP is None:  # pragma: no cover - the thread either starts or raises
         raise RuntimeError("BBOT scan loop failed to start")
@@ -663,3 +666,60 @@ async def request_stop(handle):
         handle.result = scan_result(handle.targets, handle.scanner, handle.counts, handle.events)
     log.info("scan %s %s after %.0fs with %d events", handle.scan_id, handle.state, handle.elapsed, len(handle.events))
     return handle
+
+
+def shutdown_scan_loop(timeout=10.0):
+    """Tear down the scan loop and its Rust runtimes before interpreter finalization.
+
+    blasthttp, blastdns, and cloudcheck each spin up a tokio async runtime with
+    background worker threads. Those workers call into Python through pyo3. When
+    the interpreter starts Py_Finalize while a worker is mid-call, pyo3 panics at
+    interpreter_lifecycle.rs and the process crashes. Stopping the scans and
+    dropping the Rust client references here, while the interpreter is still
+    alive, prevents that cascade.
+    """
+    global _SCAN_LOOP, _SCAN_LOOP_THREAD
+    loop = _SCAN_LOOP
+    if loop is None:
+        return
+
+    async def _stop_all():
+        for handle in list(SCANS.values()):
+            if not handle.running:
+                continue
+            with suppress(Exception):
+                await cancel_scan(handle)
+        for handle in list(SCANS.values()):
+            scanner = handle.scanner
+            if scanner is None:
+                continue
+            helpers = getattr(scanner, "helpers", None)
+            if helpers is None:
+                continue
+            # Drop references to Rust extensions so their tokio runtimes shut
+            # down while the interpreter is still alive.
+            for attr in ("_blasthttp_client", "_cloudcheck", "_dns"):
+                with suppress(Exception):
+                    obj = getattr(helpers, attr, None)
+                    if obj is not None:
+                        if hasattr(obj, "shutdown"):
+                            obj.shutdown()
+                        setattr(helpers, attr, None)
+            with suppress(Exception):
+                pool = getattr(helpers, "process_pool", None)
+                if pool is not None:
+                    pool.shutdown(wait=False, cancel_futures=True)
+
+    try:
+        future = asyncio.run_coroutine_threadsafe(_stop_all(), loop)
+        future.result(timeout=timeout)
+    except Exception:
+        pass
+
+    with suppress(Exception):
+        loop.call_soon_threadsafe(loop.stop)
+    thread = _SCAN_LOOP_THREAD
+    if thread is not None:
+        thread.join(timeout=3.0)
+    _SCAN_LOOP = None
+    _SCAN_LOOP_THREAD = None

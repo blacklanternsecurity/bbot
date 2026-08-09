@@ -450,7 +450,17 @@ def main():
             len(installable),
             len(privileged),
         )
-    server.run(transport="stdio")
+    import atexit
+    import sys
+
+    atexit.register(runner.shutdown_scan_loop)
+    try:
+        server.run(transport="stdio")
+    except BaseException as exc:
+        print(f"bbot-mcp: server.run exited with {type(exc).__name__}: {exc}", file=sys.stderr)
+        raise
+    finally:
+        runner.shutdown_scan_loop()
 
 
 if __name__ == "__main__":
