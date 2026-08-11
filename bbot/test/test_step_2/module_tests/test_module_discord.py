@@ -1,10 +1,11 @@
 from bbot.test.mock_blasthttp import MockResponse
 
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestDiscord(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888/cookie.aspx", "http://127.0.0.1:8888/cookie2.aspx", "foo.bar"]
+    targets = [f"{HTTPSERVER_URL}/cookie.aspx", f"{HTTPSERVER_URL}/cookie2.aspx", "foo.bar"]
     modules_overrides = ["discord", "excavate", "badsecrets", "http"]
 
     webhook_url = "https://discord.com/api/webhooks/1234/deadbeef-P-uF-asdf"
