@@ -1,10 +1,11 @@
 from .base import ModuleTestBase
 
 from bbot.scanner import Scanner
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestCloudCheck(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888", "asdf2.storage.googleapis.com"]
+    targets = [HTTPSERVER_URL, "asdf2.storage.googleapis.com"]
     modules_overrides = ["http", "excavate", "cloudcheck"]
 
     async def setup_after_prep(self, module_test):

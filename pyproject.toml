@@ -51,6 +51,7 @@ dependencies = [
     "blasthttp>=0.9.0",
     "blastdns>=1.9.0,<2",
     "zstandard>=0.22,<1",
+    "packaging>=23.0",
 ]
 
 [project.urls]
@@ -75,10 +76,11 @@ dev = [
     "pytest-httpserver>=1.0.11,<2",
     "pytest>=8.3.1,<10",
     "pytest-asyncio==1.4.0",
-    "uvicorn>=0.32,<0.52",
-    "fastapi>=0.115.5,<0.141.0",
+    "uvicorn>=0.32,<0.53",
+    "fastapi>=0.115.5,<0.142.0",
     "pytest-httpx>=0.35",
     "pytest-benchmark>=4,<6",
+    "pytest-xdist>=3.6,<4",
     "baddns~=2.4.1",
     "ruff==0.15.22",
     "maturin>=1.4,<2",

@@ -1,4 +1,5 @@
 from ..bbot_fixtures import *  # noqa: F401
+from bbot.test.worker import HTTPSERVER_URL
 
 
 @pytest.mark.asyncio
@@ -665,26 +666,26 @@ async def test_blacklist_regex(bbot_scanner, bbot_httpserver):
     assert "http://test.com/asdf/123456.aspx" in blacklist
 
     bbot_httpserver.expect_request(uri="/").respond_with_data(
-        """
-        <a href='http://127.0.0.1:8888/asdfevil333asdf'/>
-        <a href='http://127.0.0.1:8888/logout.aspx'/>
+        f"""
+        <a href='{HTTPSERVER_URL}/asdfevil333asdf'/>
+        <a href='{HTTPSERVER_URL}/logout.aspx'/>
     """
     )
     bbot_httpserver.expect_request(uri="/asdfevilasdf").respond_with_data("")
     bbot_httpserver.expect_request(uri="/logout.aspx").respond_with_data("")
 
     # make sure URL is detected normally
-    scan = bbot_scanner("http://127.0.0.1:8888/", presets=["spider"], config={"excavate": True}, debug=True)
+    scan = bbot_scanner(f"{HTTPSERVER_URL}/", presets=["spider"], config={"excavate": True}, debug=True)
     await scan._prep()
     assert {r.pattern for r in scan.target.blacklist.blacklist_regexes} == {r"/.*(sign|log)[_-]?out"}
     events = [e async for e in scan.async_start()]
     urls = [e.url for e in events if e.type == "URL"]
     assert len(urls) == 2
-    assert set(urls) == {"http://127.0.0.1:8888/", "http://127.0.0.1:8888/asdfevil333asdf"}
+    assert set(urls) == {f"{HTTPSERVER_URL}/", f"{HTTPSERVER_URL}/asdfevil333asdf"}
 
     # same scan again but with blacklist regex
     scan = bbot_scanner(
-        "http://127.0.0.1:8888/",
+        f"{HTTPSERVER_URL}/",
         blacklist=[r"RE:evil[0-9]{3}"],
         presets=["spider"],
         config={"excavate": True},
@@ -700,7 +701,7 @@ async def test_blacklist_regex(bbot_scanner, bbot_httpserver):
     events = [e async for e in scan.async_start()]
     urls = [e.url for e in events if e.type == "URL"]
     assert len(urls) == 1
-    assert set(urls) == {"http://127.0.0.1:8888/"}
+    assert set(urls) == {f"{HTTPSERVER_URL}/"}
 
 
 def test_blacklist_get_invalid_host():

@@ -1,10 +1,11 @@
 from bbot.core.helpers import helper
 
 from .base import ModuleTestBase, tempwordlist
+from bbot.test.worker import HTTPSERVER_HOSTPORT, HTTPSERVER_URL
 
 
 class Paramminer_Headers(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "paramminer_headers"]
     config_overrides = {"modules": {"paramminer_headers": {"wordlist": tempwordlist(["junkword1", "tracestate"])}}}
 
@@ -202,7 +203,7 @@ class TestParamminer_Headers_NoCookieRetention(Paramminer_Headers):
 class TestParamminerHeadersWildcardSkip(ModuleTestBase):
     """When the host is an HTTP wildcard, paramminer_headers should skip fuzzing entirely."""
 
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "paramminer_headers"]
     config_overrides = {"modules": {"paramminer_headers": {"wordlist": tempwordlist(["tracestate"])}}}
 
@@ -231,7 +232,7 @@ class TestParamminerHeadersDedupValueMutations(Paramminer_Headers):
         pm = module_test.scan.modules["paramminer_headers"]
 
         def make_wp(**kwargs):
-            defaults = {"host": "127.0.0.1:8888", "type": "GETPARAM", "original_value": "x"}
+            defaults = {"host": HTTPSERVER_HOSTPORT, "type": "GETPARAM", "original_value": "x"}
             defaults.update(kwargs)
             return module_test.scan.make_event(defaults, "WEB_PARAMETER", dummy=True)
 
@@ -252,14 +253,14 @@ class TestParamminerHeadersDedupValueMutations(Paramminer_Headers):
         # same endpoint, same param keys, different values (simulates lightfuzz probe cycling)
         hash_a, _ = pm._incoming_dedup_hash(
             make_wp(
-                url="http://127.0.0.1:8888/page?culture=probe_a&page=1",
+                url=f"{HTTPSERVER_URL}/page?culture=probe_a&page=1",
                 name="culture",
                 additional_params={"page": "1"},
             )
         )
         hash_b, _ = pm._incoming_dedup_hash(
             make_wp(
-                url="http://127.0.0.1:8888/page?culture=probe_b&page=2",
+                url=f"{HTTPSERVER_URL}/page?culture=probe_b&page=2",
                 name="culture",
                 additional_params={"page": "2"},
             )
@@ -269,7 +270,7 @@ class TestParamminerHeadersDedupValueMutations(Paramminer_Headers):
         # different param keys on same path -> distinct
         hash_c, _ = pm._incoming_dedup_hash(
             make_wp(
-                url="http://127.0.0.1:8888/page?culture=x&page=1&csrf=tok",
+                url=f"{HTTPSERVER_URL}/page?culture=x&page=1&csrf=tok",
                 name="culture",
                 additional_params={"page": "1", "csrf": "tok"},
             )
@@ -279,7 +280,7 @@ class TestParamminerHeadersDedupValueMutations(Paramminer_Headers):
         # different path, same keys -> distinct
         hash_d, _ = pm._incoming_dedup_hash(
             make_wp(
-                url="http://127.0.0.1:8888/other?culture=x&page=1",
+                url=f"{HTTPSERVER_URL}/other?culture=x&page=1",
                 name="culture",
                 additional_params={"page": "1"},
             )
@@ -289,7 +290,7 @@ class TestParamminerHeadersDedupValueMutations(Paramminer_Headers):
         # different focus name, same sibling keys (excavate emits one WP per param) -> distinct
         hash_e, _ = pm._incoming_dedup_hash(
             make_wp(
-                url="http://127.0.0.1:8888/page?culture=x&page=1",
+                url=f"{HTTPSERVER_URL}/page?culture=x&page=1",
                 name="page",
                 additional_params={"culture": "x"},
             )
@@ -297,8 +298,8 @@ class TestParamminerHeadersDedupValueMutations(Paramminer_Headers):
         assert hash_a != hash_e, "Different focus name with same siblings should produce different dedup hashes"
 
         # HTTP_RESPONSE events: same endpoint collapses regardless
-        hash_hr_a, _ = pm._incoming_dedup_hash(make_hr("http://127.0.0.1:8888/page"))
-        hash_hr_b, _ = pm._incoming_dedup_hash(make_hr("http://127.0.0.1:8888/page"))
+        hash_hr_a, _ = pm._incoming_dedup_hash(make_hr(f"{HTTPSERVER_URL}/page"))
+        hash_hr_b, _ = pm._incoming_dedup_hash(make_hr(f"{HTTPSERVER_URL}/page"))
         assert hash_hr_a == hash_hr_b, "HTTP_RESPONSE events for same endpoint should produce same dedup hash"
 
         # WEB_PARAMETER and HTTP_RESPONSE for same URL should NOT collide
