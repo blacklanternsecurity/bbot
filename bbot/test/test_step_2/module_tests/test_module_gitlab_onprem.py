@@ -1,8 +1,9 @@
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_HOSTPORT, HTTPSERVER_URL
 
 
 class TestGitlab_OnPrem(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["gitlab_onprem", "http"]
     config_overrides = {"modules": {"gitlab_onprem": {"api_key": "asdf"}}}
 
@@ -23,10 +24,10 @@ class TestGitlab_OnPrem(ModuleTestBase):
                     "default_branch": "master",
                     "tag_list": [],
                     "topics": [],
-                    "ssh_url_to_repo": "git@127.0.0.1:8888:bbot/bbot.git",
-                    "http_url_to_repo": "http://127.0.0.1:8888/bbotgroup/bbot.git",
-                    "web_url": "http://127.0.0.1:8888/bbotgroup/bbot",
-                    "readme_url": "http://127.0.0.1:8888/bbotgroup/bbot/-/blob/master/README.md",
+                    "ssh_url_to_repo": f"git@{HTTPSERVER_HOSTPORT}:bbot/bbot.git",
+                    "http_url_to_repo": f"{HTTPSERVER_URL}/bbotgroup/bbot.git",
+                    "web_url": f"{HTTPSERVER_URL}/bbotgroup/bbot",
+                    "readme_url": f"{HTTPSERVER_URL}/bbotgroup/bbot/-/blob/master/README.md",
                     "forks_count": 0,
                     "avatar_url": None,
                     "star_count": 1,
@@ -39,7 +40,7 @@ class TestGitlab_OnPrem(ModuleTestBase):
                         "full_path": "bbotgroup",
                         "parent_id": None,
                         "avatar_url": "/uploads/-/system/group/avatar/9/index.png",
-                        "web_url": "http://127.0.0.1:8888/groups/bbotgroup",
+                        "web_url": f"{HTTPSERVER_URL}/groups/bbotgroup",
                     },
                 },
             ],
@@ -50,7 +51,7 @@ class TestGitlab_OnPrem(ModuleTestBase):
             [
                 {
                     "id": 9,
-                    "web_url": "http://127.0.0.1:8888/groups/bbotgroup",
+                    "web_url": f"{HTTPSERVER_URL}/groups/bbotgroup",
                     "name": "bbotgroup",
                     "path": "bbotgroup",
                     "description": "OSINT automation for hackers.",
@@ -73,7 +74,7 @@ class TestGitlab_OnPrem(ModuleTestBase):
                         "allow_force_push": True,
                         "allowed_to_merge": [{"access_level": 30}],
                     },
-                    "avatar_url": "http://127.0.0.1:8888/uploads/-/system/group/avatar/9/index.png",
+                    "avatar_url": f"{HTTPSERVER_URL}/uploads/-/system/group/avatar/9/index.png",
                     "request_access_enabled": False,
                     "full_name": "bbotgroup",
                     "full_path": "bbotgroup",
@@ -104,9 +105,9 @@ class TestGitlab_OnPrem(ModuleTestBase):
                     "tag_list": [],
                     "topics": [],
                     "ssh_url_to_repo": "git@blacklanternsecurity.com:bbotgroup/bbot2.git",
-                    "http_url_to_repo": "http://127.0.0.1:8888/bbotgroup/bbot2.git",
-                    "web_url": "http://127.0.0.1:8888/bbotgroup/bbot2",
-                    "readme_url": "http://127.0.0.1:8888/bbotgroup/bbot2/-/blob/master/README.md",
+                    "http_url_to_repo": f"{HTTPSERVER_URL}/bbotgroup/bbot2.git",
+                    "web_url": f"{HTTPSERVER_URL}/bbotgroup/bbot2",
+                    "readme_url": f"{HTTPSERVER_URL}/bbotgroup/bbot2/-/blob/master/README.md",
                     "forks_count": 0,
                     "avatar_url": None,
                     "star_count": 1,
@@ -119,7 +120,7 @@ class TestGitlab_OnPrem(ModuleTestBase):
                         "full_path": "bbotgroup",
                         "parent_id": None,
                         "avatar_url": "/uploads/-/system/group/avatar/9/index.png",
-                        "web_url": "http://127.0.0.1:8888/groups/bbotgroup",
+                        "web_url": f"{HTTPSERVER_URL}/groups/bbotgroup",
                     },
                 },
             ]
@@ -140,9 +141,9 @@ class TestGitlab_OnPrem(ModuleTestBase):
                     "tag_list": [],
                     "topics": [],
                     "ssh_url_to_repo": "git@blacklanternsecurity.com:bbotgroup/bbot3.git",
-                    "http_url_to_repo": "http://127.0.0.1:8888/bbotgroup/bbot3.git",
-                    "web_url": "http://127.0.0.1:8888/bbotgroup/bbot3",
-                    "readme_url": "http://127.0.0.1:8888/bbotgroup/bbot3/-/blob/master/README.md",
+                    "http_url_to_repo": f"{HTTPSERVER_URL}/bbotgroup/bbot3.git",
+                    "web_url": f"{HTTPSERVER_URL}/bbotgroup/bbot3",
+                    "readme_url": f"{HTTPSERVER_URL}/bbotgroup/bbot3/-/blob/master/README.md",
                     "forks_count": 0,
                     "avatar_url": None,
                     "star_count": 1,
@@ -155,7 +156,7 @@ class TestGitlab_OnPrem(ModuleTestBase):
                         "full_path": "bbotgroup",
                         "parent_id": None,
                         "avatar_url": "/uploads/-/system/group/avatar/9/index.png",
-                        "web_url": "http://127.0.0.1:8888/groups/bbotgroup",
+                        "web_url": f"{HTTPSERVER_URL}/groups/bbotgroup",
                     },
                 },
             ]
@@ -168,7 +169,7 @@ class TestGitlab_OnPrem(ModuleTestBase):
                 for e in events
                 if e.type == "TECHNOLOGY"
                 and e.data["technology"] == "gitlab"
-                and e.data["url"] == "http://127.0.0.1:8888/"
+                and e.data["url"] == f"{HTTPSERVER_URL}/"
             ]
         )
         assert 1 == len(
@@ -178,7 +179,7 @@ class TestGitlab_OnPrem(ModuleTestBase):
                 if e.type == "SOCIAL"
                 and e.data["platform"] == "gitlab"
                 and e.data["profile_name"] == "bbotgroup"
-                and e.data["url"] == "http://127.0.0.1:8888/bbotgroup"
+                and e.data["url"] == f"{HTTPSERVER_URL}/bbotgroup"
                 and str(e.module) == "gitlab_onprem"
             ]
         )
@@ -188,7 +189,7 @@ class TestGitlab_OnPrem(ModuleTestBase):
                 for e in events
                 if e.type == "CODE_REPOSITORY"
                 and "git" in e.tags
-                and e.data["url"] == "http://127.0.0.1:8888/bbotgroup/bbot"
+                and e.data["url"] == f"{HTTPSERVER_URL}/bbotgroup/bbot"
             ]
         )
         assert 1 == len(
@@ -197,7 +198,7 @@ class TestGitlab_OnPrem(ModuleTestBase):
                 for e in events
                 if e.type == "CODE_REPOSITORY"
                 and "git" in e.tags
-                and e.data["url"] == "http://127.0.0.1:8888/bbotgroup/bbot2"
+                and e.data["url"] == f"{HTTPSERVER_URL}/bbotgroup/bbot2"
             ]
         )
         assert 1 == len(
@@ -206,6 +207,6 @@ class TestGitlab_OnPrem(ModuleTestBase):
                 for e in events
                 if e.type == "CODE_REPOSITORY"
                 and "git" in e.tags
-                and e.data["url"] == "http://127.0.0.1:8888/bbotgroup/bbot3"
+                and e.data["url"] == f"{HTTPSERVER_URL}/bbotgroup/bbot3"
             ]
         )
