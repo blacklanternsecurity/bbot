@@ -64,8 +64,13 @@ jobs:
           current_benchmark_results.json
         retention-days: 30
 
-    # Comment on PR with benchmark results
+    # Comment on PR with benchmark results.
+    # A pull_request run from a fork gets a read-only GITHUB_TOKEN no matter what
+    # the permissions block above says, so commenting is impossible there and the
+    # attempt fails the whole job with a 403. The report is still in the uploaded
+    # artifact either way.
     - name: Comment benchmark results on PR
+      if: github.event.pull_request.head.repo.full_name == github.repository
       uses: actions/github-script@v9
       with:
         script: |

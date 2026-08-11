@@ -6,6 +6,7 @@ from werkzeug.wrappers import Response
 from bbot.modules.wayback import wayback
 
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestWayback(ModuleTestBase):
@@ -30,7 +31,7 @@ class TestWaybackParameters(ModuleTestBase):
             url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
             json=[
                 ["original"],
-                ["http://127.0.0.1:8888/page?foo=bar&baz=qux"],
+                [f"{HTTPSERVER_URL}/page?foo=bar&baz=qux"],
             ],
         )
         # serve a response on the local httpserver so the httpx binary gets a 200
@@ -367,7 +368,7 @@ class TestWaybackLightfuzzXSS(ModuleTestBase):
         # CDX returns a URL with a search parameter pointing at the local httpserver
         module_test.blasthttp_mock.add_response(
             url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
-            json=[["original"], ["http://127.0.0.1:8888/?search=test"]],
+            json=[["original"], [f"{HTTPSERVER_URL}/?search=test"]],
         )
         # httpserver handles httpx verification and lightfuzz probes
         expect_args = re.compile("/")

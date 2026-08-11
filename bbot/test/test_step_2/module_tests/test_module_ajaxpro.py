@@ -1,8 +1,9 @@
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestAjaxpro(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "ajaxpro"]
     exploit_headers = {"X-Ajaxpro-Method": "AddItem", "Content-Type": "text/json; charset=UTF-8"}
     exploit_response = """
@@ -37,8 +38,7 @@ class TestAjaxpro(ModuleTestBase):
             if (
                 e.type == "FINDING"
                 and "Ajaxpro Deserialization RCE (CVE-2021-23758)" in e.data["description"]
-                and "http://127.0.0.1:8888/ajaxpro/AjaxPro.Services.ICartService,AjaxPro.2.ashx"
-                in e.data["description"]
+                and f"{HTTPSERVER_URL}/ajaxpro/AjaxPro.Services.ICartService,AjaxPro.2.ashx" in e.data["description"]
             ):
                 ajaxpro_exploit_detection = True
 

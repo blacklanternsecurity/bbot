@@ -4,6 +4,8 @@ from blasthttp import HTTPStatusError
 
 from ..bbot_fixtures import *
 
+from bbot.test.worker import BBOT_TEST_DIR
+
 
 @pytest.mark.asyncio
 async def test_web(bbot_scanner, bbot_httpserver, blasthttp_mock):
@@ -204,7 +206,7 @@ async def test_web_helpers(bbot_scanner, bbot_httpserver, blasthttp_mock):
     assert scan1.helpers.is_cached(url)
     with open(filename) as f:
         assert f.read() == download_content
-    filename = Path("/tmp/bbot_download_test_file")
+    filename = BBOT_TEST_DIR / "bbot_download_test_file"
     filename.unlink(missing_ok=True)
     filename2 = await scan1.helpers.download(url, filename=filename)
     assert filename2 == filename
