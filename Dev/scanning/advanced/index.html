@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.sjssc8oq.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.vjfhyrca.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1021,13 +1021,16 @@
 <h4 id="asynchronous">Asynchronous</h4>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">bbot.scanner</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">Scanner</span>
 
+
 <span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">main</span><span style="color: #E6EDF3">():</span>
     <span style="color: #E6EDF3">scan</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">Scanner(</span><span style="color: #A5D6FF">"evilcorp.com"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">presets</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"subdomain-enum"</span><span style="color: #E6EDF3">])</span>
     <span style="color: #FF7B72">async</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">event</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">scan</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">async_start():</span>
         <span style="color: #E6EDF3">print(event</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">json())</span>
 
+
 <span style="color: #FF7B72">if</span> <span style="color: #79C0FF">__name__</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #A5D6FF">"__main__"</span><span style="color: #E6EDF3">:</span>
     <span style="color: #FF7B72">import</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">asyncio</span>
+
     <span style="color: #E6EDF3">asyncio</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">run(main())</span>
 </code></pre></div>
 <h2 id="command-line-help">Command-Line Help</h2>
