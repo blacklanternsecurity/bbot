@@ -68,6 +68,13 @@ async def _main():
         # that don't construct a full Scanner.
         preset.apply_log_level(apply_core=True)
 
+        # which generated config files the user is regenerating this run
+        reset_labels = [
+            label
+            for label, requested in (("config", options.reset_config), ("secrets", options.reset_secrets))
+            if requested
+        ]
+
         # print help if no arguments
         if len(sys.argv) == 1:
             print(preset.args.parser.format_help())
@@ -77,6 +84,41 @@ async def _main():
         # --version
         if options.version:
             print(__version__)
+            sys.exit(0)
+            return
+
+        # --reset-config / --reset-secrets
+        if reset_labels:
+            reset_paths = [
+                spec["path"]
+                for spec in preset.module_loader._generated_config_files()
+                if spec["label"] in reset_labels
+            ]
+            log.hugewarning(
+                "Regenerating from current defaults. Any settings you have customized "
+                "(uncommented) in these files WILL BE WIPED OUT:"
+            )
+            for p in reset_paths:
+                log.warning(f"  {p}")
+            log.warning("A backup of each existing file will be saved with a .bak extension.")
+            try:
+                stdin_is_tty = sys.stdin.isatty()
+            except (ValueError, io.UnsupportedOperation):
+                stdin_is_tty = False
+            if not options.yes:
+                if not stdin_is_tty:
+                    log.error("Refusing to reset config without confirmation; re-run with --yes to proceed.")
+                    sys.exit(1)
+                    return
+                answer = input("Continue? [y/N] ").strip().lower()
+                if answer not in ("y", "yes"):
+                    log.info("Aborted. No changes made.")
+                    sys.exit(0)
+                    return
+            backups = preset.module_loader.reset_config_files(reset_labels)
+            log.success("Regenerated config files from current defaults.")
+            for b in backups:
+                log.info(f"Backup saved: {b}")
             sys.exit(0)
             return
 
@@ -157,7 +199,32 @@ async def _main():
                 print(row)
             return
 
-        preset.validate()
+        try:
+            preset.validate()
+        except ValidationError as e:
+            log.error(str(e))
+            # if a bad option actually lives in one of the user's generated
+            # config files (vs, say, a -c CLI typo), point them at the matching
+            # reset flag -- validate each file's own contents to be sure
+            import yaml
+            from bbot.scanner.preset.validate import validate_preset
+
+            for spec in preset.module_loader._generated_config_files():
+                if not spec["path"].exists():
+                    continue
+                try:
+                    file_config = yaml.safe_load(spec["path"].read_text()) or {}
+                except yaml.YAMLError:
+                    continue
+                if isinstance(file_config, dict) and validate_preset(
+                    {"config": file_config}, module_loader=preset.module_loader
+                ):
+                    log.warning(
+                        f"Some options in {spec['path']} are not recognized. They may be left over from an "
+                        f"older version of BBOT. You have the option of regenerating from current defaults "
+                        f"with: bbot {spec['reset_flag']}"
+                    )
+            return
         baked_preset = preset.bake()
 
         # --current-preset / --current-preset-full
@@ -232,9 +299,18 @@ async def _main():
             if stdin_is_tty:
                 # warn if any targets belong directly to a cloud provider
                 if not scan.preset.strict_scope:
+                    from cloudcheck import CloudCheckError
+
                     for event in scan.target.seeds.event_seeds:
                         if event.type == "DNS_NAME":
-                            cloudcheck_result = await scan.helpers.cloudcheck.lookup(event.host)
+                            # a cloudcheck failure here (e.g. signatures couldn't be
+                            # fetched) shouldn't abort the scan — this is only a
+                            # pre-scan heads-up, so warn and move on
+                            try:
+                                cloudcheck_result = await scan.helpers.cloudcheck.lookup(event.host)
+                            except CloudCheckError as e:
+                                scan.warning(f"Unable to check whether {event.host} is a cloud domain: {e}")
+                                cloudcheck_result = None
                             if cloudcheck_result:
                                 scan.hugewarning(
                                     f'YOUR TARGET CONTAINS A CLOUD DOMAIN: "{event.host}". You\'re in for a wild ride!'

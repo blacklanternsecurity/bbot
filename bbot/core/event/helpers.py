@@ -111,7 +111,7 @@ class BaseEventSeed(metaclass=EventSeedRegistry):
         """
         return data, None, None
 
-    async def _generate_children(self, ssl_verify=False):
+    async def _generate_children(self, helpers):
         return []
 
     def _override_input(self, input):
@@ -290,23 +290,15 @@ class ASN(BaseEventSeed):
     def _override_input(self, input):
         return f"ASN:{self.data}"
 
-    # ASNs are essentially just a superset of IP_RANGES.
-    # This method resolves the ASN to a list of IP_RANGES using the ASN API, and then adds the cidr string as a child event seed.
-    # These will later be automatically resolved to an IP_RANGE event seed and added to the target.
-    async def _generate_children(self, ssl_verify=False):
-        from asndb import ASNDB
-
-        client = ASNDB(verify=ssl_verify)
-        asn_data = await client.lookup_asn(str(self.data), include_subnets=True)
-        children = []
-        if asn_data:
-            subnets = asn_data.get("subnets")
-            if isinstance(subnets, str):
-                subnets = [subnets]
-            if subnets:
-                for cidr in subnets:
-                    children.append(cidr)
-        return children
+    # ASNs are essentially a superset of IP_RANGES. This resolves the ASN to its
+    # subnets via the shared ASN helper and emits each CIDR as a child seed,
+    # which is later resolved to an IP_RANGE seed and added to the target.
+    async def _generate_children(self, helpers):
+        asn_data = await helpers.asn.asn_to_subnets(self.data)
+        subnets = asn_data.get("subnets") or []
+        if isinstance(subnets, str):
+            subnets = [subnets]
+        return list(subnets)
 
     @staticmethod
     def handle_match(match):

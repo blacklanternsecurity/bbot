@@ -27,7 +27,7 @@ To unlock the more advanced features, you need to enable them via configuration 
 
 ### URL Discovery (`urls: True`)
 
-When `urls` is enabled, wayback emits `URL_UNVERIFIED` events for every unique URL found in the Wayback Machine's index. These are tagged with `from-wayback` and sent through BBOT's normal URL verification pipeline (httpx).
+When `urls` is enabled, wayback emits `URL_UNVERIFIED` events for every unique URL found in the Wayback Machine's index. These are tagged with `from-wayback` and sent through BBOT's normal URL verification pipeline (the `http` module).
 
 Before emission, URLs go through several cleanup steps:
 
@@ -39,7 +39,7 @@ Before emission, URLs go through several cleanup steps:
 
 When `parameters` is enabled (requires `urls: True`), wayback extracts query string parameters from archived URLs and emits them as `WEB_PARAMETER` events. This is useful for discovering GET parameters that can be fed into fuzzing modules like lightfuzz.
 
-Parameters are cached and only emitted after the corresponding URL has been verified as live by httpx. This prevents emitting parameters for URLs that no longer exist.
+Parameters are cached and only emitted after the corresponding URL has been verified as live by the `http` module. This prevents emitting parameters for URLs that no longer exist.
 
 !!! note
     Parameter extraction requires at least one module that consumes `WEB_PARAMETER` events to be active (e.g. `lightfuzz`, `hunt`, `paramminer_getparams`). If no such module is present, parameter extraction is automatically disabled with a warning.
@@ -98,10 +98,10 @@ Wayback's extended features are also enabled in several other presets:
 | Preset                | Wayback Config                          |
 |-----------------------|-----------------------------------------|
 | `kitchen-sink`        | `urls`, `parameters`, `archive`         |
-| `dirbust-heavy`       | `urls`                                  |
-| `nuclei-intense`      | `urls`                                  |
+| `webbrute-heavy`      | `urls`                                  |
+| `nuclei-heavy`        | `urls`                                  |
 | `lightfuzz-heavy`     | `urls`, `parameters`                    |
-| `lightfuzz-superheavy`| `urls`, `parameters`, `archive`         |
+| `lightfuzz-max`       | `urls`, `parameters`, `archive`         |
 
 ## Example Commands
 
@@ -122,12 +122,12 @@ bbot -p wayback-heavy -t evilcorp.com
 
 ```bash
 # Enable wayback URLs alongside a nuclei scan
-bbot -p nuclei -m wayback -c modules.wayback.urls=True --allow-deadly -t evilcorp.com
+bbot -p nuclei -m wayback -c modules.wayback.urls=True -t evilcorp.com
 ```
 
 ```bash
 # Pair with lightfuzz for parameter fuzzing using archived parameters
-bbot -p lightfuzz-heavy spider -t evilcorp.com --allow-deadly
+bbot -p lightfuzz-heavy spider -t evilcorp.com
 ```
 
 ```bash

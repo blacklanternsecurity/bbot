@@ -10,21 +10,24 @@ Here we'll go over a basic example of writing a custom BBOT module.
    - the class must have the same name as your file (case-insensitive)
 1. Define in `watched_events` what type of data your module will consume
 1. Define in `produced_events` what type of data your module will produce
-1. Define (via `flags`) whether your module is `active` or `passive`, and optionally whether it's `loud` or `invasive`
+1. Define (via `flags`) whether your module is `active` or `passive`, and whether it's `safe`, `loud`, or `invasive`
 1. **Put your main logic in `.handle_event()`**
 
 Here is an example of a simple module that performs whois lookups:
 
 ```python title="bbot/modules/whois.py"
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 class whois(BaseModule):
     watched_events = ["DNS_NAME"] # watch for DNS_NAME events
-    produced_events = ["WHOIS"] # we produce WHOIS events
-    flags = ["passive"]
-    meta = {"description": "Query WhoisXMLAPI for WHOIS data"}
-    options = {"api_key": ""} # module config options
-    options_desc = {"api_key": "WhoisXMLAPI Key"}
+    produced_events = ["DNS_NAME"] # we produce DNS_NAME events
+    flags = ["passive", "safe"]
+    meta = {"description": "Query WhoisXMLAPI for related domains", "created_date": "2024-01-01", "author": "@you"}
+
+    class Config(BaseModuleConfig):
+        api_key: str = Field("", description="WhoisXMLAPI Key", sensitive=True, mandatory=True)
+
     per_domain_only = True # only run once per domain
 
     base_url = "https://www.whoisxmlapi.com/whoisserver/WhoisService"
@@ -43,7 +46,8 @@ class whois(BaseModule):
         self.hugeinfo(f"Visiting {url}")
         response = await self.helpers.request(url)
         if response is not None:
-            await self.emit_event(response.json(), "WHOIS", parent=event)
+            for related_domain in response.json().get("domains", []):
+                await self.emit_event(related_domain, "DNS_NAME", parent=event)
 ```
 
 ## Test your new module
@@ -76,9 +80,9 @@ For details on how tests are written, see [Unit Tests](./tests.md).
 
 ## `handle_event()` and `emit_event()`
 
-The `handle_event()` method is the most important part of the module. By overriding this method, you control what the module does. During a scan, when an [event](./scanning/events.md) from your `watched_events` is encountered (a `DNS_NAME` in this example), `handle_event()` is automatically called with that event as its argument.
+The `handle_event()` method is the most important part of the module. By overriding this method, you control what the module does. During a scan, when an [event](../scanning/events.md) from your `watched_events` is encountered (a `DNS_NAME` in this example), `handle_event()` is automatically called with that event as its argument.
 
-The `emit_event()` method is how modules return data. When you call `emit_event()`, it creates an [event](./scanning/events.md) and outputs it, sending it any modules that are interested in that data type.
+The `emit_event()` method is how modules return data. When you call `emit_event()`, it creates an [event](../scanning/events.md) and outputs it, sending it any modules that are interested in that data type.
 
 ## `setup_deps()` and `setup()`
 
@@ -115,43 +119,44 @@ async def setup(self):
 
 ## Module Config Options
 
-Each module can have its own set of config options. These live in the `options` and `options_desc` attributes on your class. Both are dictionaries; `options` is for defaults and `options_desc` is for descriptions. Here is a typical example:
+Each module can have its own set of config options. These are defined as a `Config` inner class that inherits from `BaseModuleConfig`, using pydantic `Field` for defaults and descriptions. Here is a typical example:
 
-```python title="bbot/modules/nmap.py"
-class nmap(BaseModule):
+```python title="bbot/modules/portscan.py"
+from bbot.core.config.models import BaseModuleConfig, Field
+
+class portscan(BaseModule):
     # ...
-    options = {
-        "top_ports": 100,
-        "ports": "",
-        "timing": "T4",
-        "skip_host_discovery": True,
-    }
-    options_desc = {
-        "top_ports": "Top ports to scan (default 100) (to override, specify 'ports')",
-        "ports": "Ports to scan",
-        "timing": "-T<0-5>: Set timing template (higher is faster)",
-        "skip_host_discovery": "skip host discovery (-Pn)",
-    }
+    class Config(BaseModuleConfig):
+        top_ports: int = Field(100, description="Top ports to scan (default 100) (to override, specify 'ports')")
+        ports: str = Field("", description="Ports to scan")
+        rate: int = Field(300, description="Rate in packets per second")
+        wait: int = Field(5, description="Seconds to wait for replies after scan is complete")
 
     async def setup(self):
         self.ports = self.config.get("ports", "")
-        self.timing = self.config.get("timing", "T4")
+        self.rate = self.config.get("rate", 300)
         self.top_ports = self.config.get("top_ports", 100)
-        self.skip_host_discovery = self.config.get("skip_host_discovery", True)
         return True
 ```
 
-Once you've defined these variables, you can pass the options via `-c`:
+For API keys and other secrets, use `sensitive=True` (redacted in logs) and `mandatory=True` (module soft-fails if not set):
+
+```python
+class Config(BaseModuleConfig):
+    api_key: str = Field("", description="API Key", sensitive=True, mandatory=True)
+```
+
+Once you've defined these fields, you can pass the options via `-c`:
 
 ```bash
-bbot -m nmap -c modules.nmap.top_ports=250
+bbot -m portscan -c modules.portscan.top_ports=250
 ```
 
 ... or via the config:
 
 ```yaml title="~/.config/bbot/bbot.yml"
 modules:
-  nmap:
+  portscan:
     top_ports: 250
 ```
 

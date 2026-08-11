@@ -3,6 +3,7 @@ import asyncio
 from werkzeug.wrappers import Response
 
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_URL
 
 
 def extract_subdomain_tag(data):
@@ -13,7 +14,7 @@ def extract_subdomain_tag(data):
 
 
 class TestGeneric_SSRF(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "generic_ssrf"]
     config_overrides = {
         "interactsh_disable": False,

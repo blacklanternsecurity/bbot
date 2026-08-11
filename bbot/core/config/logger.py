@@ -8,7 +8,7 @@ import logging.handlers
 from pathlib import Path
 from contextlib import suppress
 
-from ..helpers.misc import mkdir, error_and_exit
+from ..helpers.misc import mkdir, error_and_exit, make_printable
 from ..multiprocess import SHARED_INTERPRETER_STATE
 from ...logger import colorize, loglevel_mapping, GzipRotatingFileHandler
 
@@ -25,6 +25,15 @@ class ColoredFormatter(logging.Formatter):
 
     def format(self, record):
         colored_record = copy(record)
+        # escape control characters in scan-derived text so they can't corrupt the terminal
+        colored_record.msg = make_printable(colored_record.getMessage())
+        colored_record.args = None
+        if colored_record.exc_info and not colored_record.exc_text:
+            colored_record.exc_text = self.formatException(colored_record.exc_info)
+        if colored_record.exc_text:
+            colored_record.exc_text = make_printable(colored_record.exc_text)
+        if colored_record.stack_info:
+            colored_record.stack_info = make_printable(colored_record.stack_info)
         levelname = colored_record.levelname
         levelshort = loglevel_mapping.get(levelname, "INFO")
         colored_record.levelname = colorize(f"[{levelshort}]", level=levelname)

@@ -49,18 +49,16 @@ For a full listing of `Scanner` attributes and functions, see the [`Scanner` Cod
 You can specify any number of targets:
 
 ```python
-# create a scan against multiple targets
 scan = Scanner(
     "evilcorp.com",
     "evilcorp.org",
-    "evilcorp.ce",
     "4.3.2.1",
     "1.2.3.4/24",
     presets=["subdomain-enum"]
 )
 
 # this is the same as:
-targets = ["evilcorp.com", "evilcorp.org", "evilcorp.ce", "4.3.2.1", "1.2.3.4/24"]
+targets = ["evilcorp.com", "evilcorp.org", "4.3.2.1", "1.2.3.4/24"]
 scan = Scanner(*targets, presets=["subdomain-enum"])
 ```
 
@@ -68,18 +66,18 @@ For more details, including which types of targets are valid, see [Targets](../s
 
 #### Other Custom Options
 
-In many cases, using a [Preset](../scanning/presets.md) like `subdomain-enum` is sufficient. However, the `Scanner` is flexible and accepts many other arguments that can override the default functionality. You can specify [`flags`](../scanning/index.md#flags-f), [`modules`](../scanning/index.md#modules-m), [`output_modules`](../output.md), a [target list / `seeds` / `blacklist`](../scanning/index.md#targets-seeds-and-blacklists), and custom [`config` options](../scanning/configuration.md):
+In many cases, using a [Preset](../scanning/presets.md) like `subdomain-enum` is sufficient. However, the `Scanner` is flexible and accepts many other arguments. You can specify [`flags`](../scanning/index.md#flags-f), [`modules`](../scanning/index.md#modules-m), [`output_modules`](../scanning/output.md) (additive on top of defaults), a [target list / `seeds` / `blacklist`](../scanning/index.md#targets-t-seeds-s-and-blacklists-b), and custom [`config` options](../scanning/configuration.md):
 
 ```python
-# create a scan against multiple targets
 scan = Scanner(
-    # targets
+    # targets (positional args define scope)
     "evilcorp.com",
+    "evilcorp.org",
     "4.3.2.1",
     # enable these presets
     presets=["subdomain-enum"],
-    # explicitly define in-scope targets
-    target=["evilcorp.com", "evilcorp.org"],
+    # seeds drive passive modules without affecting scope
+    seeds=["1.2.3.4/24"],
     # blacklist these hosts
     blacklist=["prod.evilcorp.com"],
     # also enable these individual modules

@@ -81,7 +81,10 @@ class docker_pull(BaseModule):
         """Make a request to the URL if that fails try to obtain an authentication token and try again."""
         for _ in range(2):
             response = await self.helpers.request(url, headers=self.headers, follow_redirects=True)
-            if response is not None and response.status_code != 401:
+            if response is None:
+                self.log.warning(f"Request to {url} failed")
+                break
+            if response.status_code != 401:
                 return response
             www_auth = response.headers.get("www-authenticate", "")
             realm, service, scope = self._parse_www_authenticate(www_auth)
@@ -206,6 +209,11 @@ class docker_pull(BaseModule):
 
     async def download_and_write_to_tar(self, registry, repository, tag):
         output_tar = self.output_dir / f"{repository.replace('/', '_')}_{tag}.tar"
+        # tag comes from the registry API; resolve() collapses ".." so a malicious
+        # tag can't write the tarball outside the output directory
+        if not output_tar.resolve().is_relative_to(self.output_dir.resolve()):
+            self.warning(f"Refusing to write outside output directory: {output_tar}")
+            return None
         with tarfile.open(output_tar, mode="w") as tar:
             manifest = await self.get_manifest(registry, repository, tag)
             config_file, config_filename = await self.download_and_get_filename(

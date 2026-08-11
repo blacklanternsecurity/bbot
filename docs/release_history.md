@@ -1,5 +1,8 @@
+### 2.8.6 - Jun 16, 2026
+- 2.8.6 is expected to be the last 2.x release. Supported Python versions: 3.10-3.13.
+- [https://github.com/blacklanternsecurity/bbot/pull/3199](https://github.com/blacklanternsecurity/bbot/pull/3199)
+
 ### 2.8.5 - Jun 16, 2026
-- 2.8.5 is expected to be the last 2.x release. Supported Python versions: 3.10-3.13.
 - [https://github.com/blacklanternsecurity/bbot/pull/3185](https://github.com/blacklanternsecurity/bbot/pull/3185)
 
 ### 2.8.4 - Mar 17, 2026
@@ -83,9 +86,6 @@
 
 ### 1.1.0 - Aug 4, 2023
 - [https://github.com/blacklanternsecurity/bbot/pull/598](https://github.com/blacklanternsecurity/bbot/pull/598)
-
-### 1.0.5 - Mar 10, 2023
-- [https://github.com/blacklanternsecurity/bbot/pull/352](https://github.com/blacklanternsecurity/bbot/pull/352)
 
 ### 1.0.5 - Mar 10, 2023
 - [https://github.com/blacklanternsecurity/bbot/pull/352](https://github.com/blacklanternsecurity/bbot/pull/352)

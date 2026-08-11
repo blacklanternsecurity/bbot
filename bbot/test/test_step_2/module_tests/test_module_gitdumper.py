@@ -3,11 +3,12 @@ import struct
 from pathlib import Path
 from .base import ModuleTestBase
 from bbot.test.bbot_fixtures import bbot_test_dir
+from bbot.test.worker import HTTPSERVER_PORT, HTTPSERVER_URL
 
 
 class TestGitDumper_Dirlisting(ModuleTestBase):
     targets = [
-        "http://127.0.0.1:8888/test",
+        f"{HTTPSERVER_URL}/test",
     ]
 
     modules_overrides = ["git", "gitdumper", "http"]
@@ -328,13 +329,15 @@ class TestGitDumper_Dirlisting(ModuleTestBase):
         assert any(
             e.type == "CODE_REPOSITORY"
             and "git-directory" in e.tags
-            and e.data["url"] == "http://127.0.0.1:8888/test/.git/"
+            and e.data["url"] == f"{HTTPSERVER_URL}/test/.git/"
             for e in events
         )
         filesystem_events = [
             e
             for e in events
-            if e.type == "FILESYSTEM" and "http-127-0-0-1-8888-test-git" in e.data["path"] and "git" in e.tags
+            if e.type == "FILESYSTEM"
+            and f"http-127-0-0-1-{HTTPSERVER_PORT}-test-git" in e.data["path"]
+            and "git" in e.tags
         ]
         assert 1 == len(filesystem_events), "Failed to git clone CODE_REPOSITORY"
         filesystem_event = filesystem_events[0]

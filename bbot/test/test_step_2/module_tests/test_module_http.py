@@ -1,10 +1,17 @@
 from werkzeug.wrappers import Response
 
 from .base import ModuleTestBase
+from bbot.test.worker import (
+    HTTPSERVER_HOSTPORT,
+    HTTPSERVER_PORT,
+    HTTPSERVER_SSL_PORT,
+    HTTPSERVER_SSL_URL,
+    HTTPSERVER_URL,
+)
 
 
 class TestHTTPBase(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888/url", "127.0.0.1:8888"]
+    targets = [f"{HTTPSERVER_URL}/url", HTTPSERVER_HOSTPORT]
     module_name = "http"
     modules_overrides = ["http", "excavate"]
     config_overrides = {"modules": {"http": {"store_responses": True}}}
@@ -53,30 +60,31 @@ class TestHTTPBase(ModuleTestBase):
                     url = True
         assert url, "Failed to visit target URL"
         assert open_port, "Failed to visit target OPEN_TCP_PORT"
-        saved_response = module_test.scan.home / "http_responses" / "127.0.0.1.8888[slash]url.txt"
+        # The http module encodes host:port into the filename with a dot separator.
+        saved_response = module_test.scan.home / "http_responses" / f"127.0.0.1.{HTTPSERVER_PORT}[slash]url.txt"
         assert saved_response.is_file(), "Failed to save raw http response"
 
 
 class TestHTTP_404(ModuleTestBase):
-    targets = ["https://127.0.0.1:9999"]
+    targets = [HTTPSERVER_SSL_URL]
     modules_overrides = ["http", "speculate", "excavate"]
-    config_overrides = {"modules": {"speculate": {"ports": "8888,9999"}}}
+    config_overrides = {"modules": {"speculate": {"ports": f"{HTTPSERVER_PORT},{HTTPSERVER_SSL_PORT}"}}}
 
     async def setup_after_prep(self, module_test):
         module_test.httpserver.expect_request("/").respond_with_data(
-            "Redirecting...", status=301, headers={"Location": "https://127.0.0.1:9999"}
+            "Redirecting...", status=301, headers={"Location": HTTPSERVER_SSL_URL}
         )
         module_test.httpserver_ssl.expect_request("/").respond_with_data("404 not found", status=404)
 
     def check(self, module_test, events):
         assert 1 == len(
-            [e for e in events if e.type == "URL" and e.url == "http://127.0.0.1:8888/" and "status-301" in e.tags]
+            [e for e in events if e.type == "URL" and e.url == f"{HTTPSERVER_URL}/" and "status-301" in e.tags]
         )
-        assert 1 == len([e for e in events if e.type == "URL" and e.url == "https://127.0.0.1:9999/"])
+        assert 1 == len([e for e in events if e.type == "URL" and e.url == f"{HTTPSERVER_SSL_URL}/"])
 
 
 class TestHTTP_Redirect(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "speculate", "excavate"]
 
     async def setup_after_prep(self, module_test):
@@ -86,7 +94,7 @@ class TestHTTP_Redirect(ModuleTestBase):
 
     def check(self, module_test, events):
         assert 1 == len(
-            [e for e in events if e.type == "URL" and e.url == "http://127.0.0.1:8888/" and "status-301" in e.tags]
+            [e for e in events if e.type == "URL" and e.url == f"{HTTPSERVER_URL}/" and "status-301" in e.tags]
         )
         assert 1 == len(
             [
@@ -105,7 +113,7 @@ class TestHTTP_Redirect(ModuleTestBase):
 
 
 class TestHTTP_URLBlacklist(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "speculate", "excavate"]
     config_overrides = {"web": {"spider_distance": 10, "spider_depth": 10}}
 
@@ -123,33 +131,33 @@ class TestHTTP_URLBlacklist(ModuleTestBase):
         assert 4 == len([e for e in events if e.type == "URL_UNVERIFIED"])
         assert 3 == len([e for e in events if e.type == "HTTP_RESPONSE"])
         assert 3 == len([e for e in events if e.type == "URL"])
-        assert 1 == len([e for e in events if e.type == "URL" and e.url == "http://127.0.0.1:8888/"])
-        assert 1 == len([e for e in events if e.type == "URL" and e.url == "http://127.0.0.1:8888/test.aspx"])
-        assert 1 == len([e for e in events if e.type == "URL" and e.url == "http://127.0.0.1:8888/test.txt"])
+        assert 1 == len([e for e in events if e.type == "URL" and e.url == f"{HTTPSERVER_URL}/"])
+        assert 1 == len([e for e in events if e.type == "URL" and e.url == f"{HTTPSERVER_URL}/test.aspx"])
+        assert 1 == len([e for e in events if e.type == "URL" and e.url == f"{HTTPSERVER_URL}/test.txt"])
         assert not any(e for e in events if "URL" in e.type and ".svg" in e.url)
         assert not any(e for e in events if "URL" in e.type and ".woff" in e.url)
 
 
 class TestHTTP_querystring_removed(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "speculate", "excavate"]
 
     async def setup_after_prep(self, module_test):
         module_test.httpserver.expect_request("/").respond_with_data('<a href="/test.php?foo=bar"/>')
 
     def check(self, module_test, events):
-        assert [e for e in events if e.type == "URL_UNVERIFIED" and e.url == "http://127.0.0.1:8888/test.php"]
+        assert [e for e in events if e.type == "URL_UNVERIFIED" and e.url == f"{HTTPSERVER_URL}/test.php"]
 
 
 class TestHTTP_querystring_notremoved(TestHTTP_querystring_removed):
     config_overrides = {"url_querystring_remove": False}
 
     def check(self, module_test, events):
-        assert [e for e in events if e.type == "URL_UNVERIFIED" and e.url == "http://127.0.0.1:8888/test.php?foo=bar"]
+        assert [e for e in events if e.type == "URL_UNVERIFIED" and e.url == f"{HTTPSERVER_URL}/test.php?foo=bar"]
 
 
 class TestHTTP_custom_headers(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "speculate", "excavate"]
     config_overrides = {"web": {"http_headers": {"testheader": "testvalue"}}}
 
@@ -162,7 +170,7 @@ class TestHTTP_custom_headers(ModuleTestBase):
 
 
 class TestHTTP_custom_cookies(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "speculate", "excavate"]
     config_overrides = {"web": {"http_cookies": {"testcookie": "cookievalue"}}}
 
@@ -180,13 +188,13 @@ class TestHTTP_custom_cookies(ModuleTestBase):
 class TestHTTP_429_retry(ModuleTestBase):
     """Test the module's own defer→cooldown→retry→succeed path.
 
-    blasthttp_retries=1 means blasthttp makes up to 2 wire attempts per request.
+    http_retries=1 means blasthttp makes up to 2 wire attempts per request.
     We return 429 for the first 2 requests (exhausting blasthttp's retry),
     so the module's 429 handler engages and defers with a cooldown. The 3rd
     request (from the module's retry after cooldown) succeeds.
     """
 
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http"]
     config_overrides = {"web": {"429_sleep_interval": 1, "429_max_sleep_interval": 1}}
 
@@ -211,8 +219,47 @@ class TestHTTP_429_retry(ModuleTestBase):
         )
 
 
+class TestHTTP_url_metadata(ModuleTestBase):
+    """White-box test of make_url_metadata's OPEN_TCP_PORT probe set.
+
+    Well-known ports only probe their matching scheme (443→https, 80→http);
+    every other port probes both. url_hash stays scheme-independent so incoming
+    dedup is unaffected, and IPv6 hosts get bracketed netlocs.
+    """
+
+    targets = [HTTPSERVER_URL]
+    module_name = "http"
+    modules_overrides = ["http"]
+
+    def check(self, module_test, events):
+        module = module_test.module
+        make_event = module_test.scan.make_event
+
+        e443 = make_event("127.0.0.1:443", "OPEN_TCP_PORT", dummy=True)
+        urls, url_hash = module.make_url_metadata(e443)
+        assert urls == ["https://127.0.0.1:443/"], "port 443 should probe https only"
+        # url_hash is scheme-independent, so OPEN_TCP_PORT dedup is unaffected
+        assert url_hash == hash((e443.host, e443.port, False))
+
+        e80 = make_event("127.0.0.1:80", "OPEN_TCP_PORT", dummy=True)
+        urls, _ = module.make_url_metadata(e80)
+        assert urls == ["http://127.0.0.1:80/"], "port 80 should probe http only"
+
+        e8080 = make_event("127.0.0.1:8080", "OPEN_TCP_PORT", dummy=True)
+        urls, _ = module.make_url_metadata(e8080)
+        assert urls == ["http://127.0.0.1:8080/", "https://127.0.0.1:8080/"], (
+            "non-well-known ports should probe both schemes"
+        )
+
+        e6 = make_event("[dead::beef]:8080", "OPEN_TCP_PORT", dummy=True)
+        urls, _ = module.make_url_metadata(e6)
+        assert urls == ["http://[dead::beef]:8080/", "https://[dead::beef]:8080/"], (
+            "IPv6 hosts should produce bracketed netlocs"
+        )
+
+
 class TestHTTP_429_max_retries(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http"]
     config_overrides = {"web": {"429_sleep_interval": 1, "429_max_sleep_interval": 1}}
 

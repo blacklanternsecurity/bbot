@@ -11,18 +11,48 @@ If you reuse a scan name, it will append to its original output files and levera
 
 Multiple simultaneous output formats are possible because of **output modules**. Output modules are similar to normal modules except they are enabled with `-om`.
 
+By default, `csv`, `txt`, and `json` output modules are always enabled. The `-om` flag is **additive** -- it adds modules on top of the defaults:
+
+```bash
+# default output: csv, txt, json
+bbot -t evilcorp.com -f subdomain-enum
+
+# add discord on top of defaults (csv + txt + json + discord)
+bbot -t evilcorp.com -f subdomain-enum -om discord
+
+# add multiple output modules
+bbot -t evilcorp.com -f subdomain-enum -om discord slack
+```
+
+To remove default output modules, use `-eom` (`--exclude-output-modules`):
+
+```bash
+# only json output (exclude csv and txt)
+bbot -t evilcorp.com -f subdomain-enum -eom csv txt
+```
+
+In a preset YAML, the same behavior applies:
+
+```yaml title="my_preset.yml"
+output_modules:
+  - discord  # added on top of defaults
+
+exclude_output_modules:
+  - csv  # remove csv from defaults
+```
+
 ### STDOUT
 
 The `stdout` output module is what you see when you execute BBOT in the terminal. By default it looks the same as the [`txt`](#txt) module, but it has options you can customize. You can filter by event type, choose the data format (`text`, `json`), and which fields you want to see:
 
 <!-- BBOT MODULE OPTIONS STDOUT -->
-| Config Option                | Type   | Description                                      | Default   |
-|------------------------------|--------|--------------------------------------------------|-----------|
-| modules.stdout.accept_dupes  | bool   | Whether to show duplicate events, default True   | True      |
-| modules.stdout.event_fields  | list   | Which event fields to display                    | []        |
-| modules.stdout.event_types   | list   | Which events to display, default all event types | []        |
-| modules.stdout.format        | str    | Which text format to display, choices: text,json | text      |
-| modules.stdout.in_scope_only | bool   | Whether to only show in-scope events             | False     |
+| Config Option                | Type                    | Description                                      | Default   |
+|------------------------------|-------------------------|--------------------------------------------------|-----------|
+| modules.stdout.accept_dupes  | bool                    | Whether to show duplicate events, default True   | True      |
+| modules.stdout.event_fields  | list                    | Which event fields to display                    | []        |
+| modules.stdout.event_types   | list                    | Which events to display, default all event types | []        |
+| modules.stdout.format        | Literal['text', 'json'] | Which text format to display, choices: text,json | text      |
+| modules.stdout.in_scope_only | bool                    | Whether to only show in-scope events             | False     |
 <!-- END BBOT MODULE OPTIONS STDOUT -->
 
 ### TXT
@@ -73,6 +103,8 @@ You will then see [events](events.md) like this:
   "module_sequence": "A"
 }
 ```
+
+String-typed events use the `data` key (as above); structured events like `HTTP_RESPONSE` and `FINDING` use `data_json` (a dict) instead. See [Events](events.md) for details.
 
 You can filter on the JSON output with `jq`:
 
@@ -298,7 +330,7 @@ mail.evilcorp.com
 portal.evilcorp.com
 ```
 
-## Neo4j
+### Neo4j
 
 Neo4j is the funnest (and prettiest) way to view and interact with BBOT data.
 
@@ -371,6 +403,112 @@ This is not an exhaustive list of clauses, filters, or other means to use cypher
 
 Additional note: these sample queries are dependent on the existence of the data in the target neo4j database.
 
+### Emails
+
+The `emails` output module writes any email addresses found belonging to the target domain to a file (`emails.txt` by default).
+
+### Web Report
+
+The `web_report` output module generates a markdown report of web assets, including URLs, technologies, and findings.
+
+### Nmap XML
+
+The `nmap_xml` output module exports open ports, DNS names, IP addresses, and protocols in Nmap XML format for compatibility with tools that consume Nmap output.
+
+### Kafka
+
+The `kafka` output module publishes events as JSON to a Kafka topic.
+
+```yaml title="kafka_preset.yml"
+output_modules:
+  - kafka
+
+config:
+  modules:
+    kafka:
+      bootstrap_servers: localhost:9092
+      topic: bbot_events
+```
+
+### RabbitMQ
+
+The `rabbitmq` output module publishes events as JSON to a RabbitMQ queue.
+
+```yaml title="rabbitmq_preset.yml"
+output_modules:
+  - rabbitmq
+
+config:
+  modules:
+    rabbitmq:
+      url: amqp://guest:guest@localhost/
+      queue: bbot_events
+```
+
+### NATS
+
+The `nats` output module publishes events as JSON to a NATS subject.
+
+```yaml title="nats_preset.yml"
+output_modules:
+  - nats
+
+config:
+  modules:
+    nats:
+      servers:
+        - nats://localhost:4222
+      subject: bbot_events
+```
+
+### ZeroMQ
+
+The `zeromq` output module publishes events as JSON to a ZeroMQ PUB socket.
+
+```yaml title="zeromq_preset.yml"
+output_modules:
+  - zeromq
+
+config:
+  modules:
+    zeromq:
+      zmq_address: tcp://localhost:5555
+```
+
+### WebSocket
+
+The `websocket` output module streams events as JSON to a WebSocket endpoint. Set `token` to send an `Authorization: Bearer` header.
+
+```yaml title="websocket_preset.yml"
+output_modules:
+  - websocket
+
+config:
+  modules:
+    websocket:
+      url: ws://localhost:8080
+      token: my-auth-token
+```
+
+### MongoDB
+
+The `mongo` output module sends events to a MongoDB database.
+
+```yaml title="mongo_preset.yml"
+output_modules:
+  - mongo
+
+config:
+  modules:
+    mongo:
+      uri: mongodb://localhost:27017
+      database: bbot
+```
+
+### Python API
+
+The `python` output module is used when running BBOT via the Python API. It enables programmatic access to events as they are produced. See the [Developer Documentation](../dev/index.md) for details.
+
 ### Web_parameters
 
 The `web_parameters` output module will utilize BBOT web parameter extraction capabilities, and output the resulting parameters to a file (web_parameters.txt, by default). Web parameter extraction is disabled by default, but will automatically be enabled when a module is included that consumes WEB_PARAMETER events (including the `web_parameters` output module itself).
@@ -379,4 +517,6 @@ This can be useful for those who want to discover new common web parameters or t
 
 ```bash
 bbot -t evilcorp.com -m paramminer_getparams -c modules.paramminer_getparams.wordlist=/path/to/your/new/wordlist.txt
-``` 
+```
+
+[Next Up: Tips and Tricks -->](./tips_and_tricks.md){ .md-button .md-button--primary } 

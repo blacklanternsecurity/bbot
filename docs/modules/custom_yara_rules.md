@@ -51,7 +51,7 @@ rule find_AAAABBBB_regex {
 
 ```
 
-*Note: YARA uses it's own regex engine that is not a 1:1 match with python regexes. This means many existing regexes will have to be modified before they will work with YARA. The good news is: YARA's regex engine is FAST, immensely more fast than pythons!*
+*Note: YARA uses its own regex engine that is not a 1:1 match with Python regexes. This means many existing regexes will have to be modified before they will work with YARA. The good news is: YARA's regex engine is FAST, immensely faster than Python's!*
 
 Further discussion of art of writing complex YARA rules goes far beyond the scope of this documentation. A good place to start learning more is the [official YARA documentation](https://yara.readthedocs.io/en/stable/writingrules.html).
 
@@ -74,7 +74,7 @@ Example with no description provided:
 Example with the description added:
 
 ```
-[FINDING] {"description": "Custom Yara Rule [AAAABBBB] with description: [contains our test string] Matched via identifier [str1]", "host": "example.com, "url": "http://example.com"}     excavate
+[FINDING] {"description": "Custom Yara Rule [AAAABBBB] with description: [contains our test string] Matched via identifier [str1]", "host": "example.com", "url": "http://example.com"}     excavate
 ```
 
 That FINDING was produced with the following signature:
@@ -143,6 +143,7 @@ rule ContainsTitle
         description = "Contains an HTML title tag"
         severity = "HIGH"
         confidence = "CONFIRMED"
+    strings:
         $title_value = /<title>(.*)?<\/title>/i
     condition:
         $title_value

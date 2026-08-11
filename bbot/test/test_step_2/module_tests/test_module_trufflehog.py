@@ -10,9 +10,10 @@ from werkzeug.wrappers import Response
 
 from .base import ModuleTestBase
 from bbot.test.bbot_fixtures import bbot_test_dir
+from bbot.test.worker import HTTPSERVER_URL, BBOT_TEST_DIR, BBOT_TEST_DIR_NAME
 
 
-# Custom trufflehog detector that verifies against module_test.httpserver (127.0.0.1:8888),
+# Custom trufflehog detector that verifies against module_test.httpserver,
 # so the test doesn't depend on external network reachability.
 TRUFFLEHOG_VERIFY_PATH = "/trufflehog-verify"
 TRUFFLEHOG_VERIFIED_TOKEN = "aaaaaaaaaaaaaaaa"
@@ -24,7 +25,7 @@ TRUFFLEHOG_CUSTOM_CONFIG = f"""detectors:
     regex:
       key: 'BBOTTEST-([A-Za-z0-9]{{16}})'
     verify:
-      - endpoint: http://127.0.0.1:8888{TRUFFLEHOG_VERIFY_PATH}
+      - endpoint: {HTTPSERVER_URL}{TRUFFLEHOG_VERIFY_PATH}
         unsafe: true
 """
 
@@ -880,7 +881,7 @@ class TestTrufflehog(ModuleTestBase):
                 },
             },
         )
-        temp_path = Path("/tmp/.bbot_test")
+        temp_path = Path(f"{BBOT_TEST_DIR}")
         tar_path = temp_path / "docker_pull_test.tar.gz"
         shutil.rmtree(tar_path, ignore_errors=True)
         with tarfile.open(tar_path, "w:gz") as tar:
@@ -1155,7 +1156,7 @@ class TestTrufflehog(ModuleTestBase):
                 }
             },
         )
-        temp_path = Path("/tmp/.bbot_test")
+        temp_path = Path(f"{BBOT_TEST_DIR}")
         temp_repo_path = temp_path / "test_keys"
         shutil.rmtree(temp_repo_path, ignore_errors=True)
         subprocess.run(["git", "init", "test_keys"], cwd=temp_path)
@@ -1215,7 +1216,8 @@ class TestTrufflehog(ModuleTestBase):
             [
                 e
                 for e in filesystem_events
-                if e.data["path"].endswith("/git_repos/.bbot_test/test_keys") and Path(e.data["path"]).is_dir()
+                if e.data["path"].endswith(f"/git_repos/{BBOT_TEST_DIR_NAME}/test_keys")
+                and Path(e.data["path"]).is_dir()
             ]
         ), "Test keys repo dir does not exist"
         assert 1 == len(
@@ -1286,7 +1288,8 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
             [
                 e
                 for e in filesystem_events
-                if e.data["path"].endswith("/git_repos/.bbot_test/test_keys") and Path(e.data["path"]).is_dir()
+                if e.data["path"].endswith(f"/git_repos/{BBOT_TEST_DIR_NAME}/test_keys")
+                and Path(e.data["path"]).is_dir()
             ]
         ), "Test keys repo dir does not exist"
         assert 1 == len(
@@ -1318,7 +1321,7 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
 
 
 class TestTrufflehog_HTTPResponse(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "trufflehog"]
     config_overrides = {"modules": {"trufflehog": {"only_verified": False}}}
 
@@ -1328,11 +1331,15 @@ class TestTrufflehog_HTTPResponse(ModuleTestBase):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert any(e.type == "FINDING" for e in events)
+        findings = [e for e in events if e.type == "FINDING"]
+        assert findings, "trufflehog produced no FINDING for HTTP_RESPONSE with a secret"
+        assert all(f.data.get("url", "").startswith(HTTPSERVER_URL) for f in findings), (
+            "FINDING must carry the source URL of the HTTP_RESPONSE, not a tempfile path"
+        )
 
 
 class TestTrufflehog_RAWText(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888/test.pdf"]
+    targets = [f"{HTTPSERVER_URL}/test.pdf"]
     modules_overrides = ["http", "trufflehog", "filedownload", "kreuzberg"]
 
     download_dir = bbot_test_dir / "test_trufflehog_rawtext"
@@ -1357,3 +1364,35 @@ class TestTrufflehog_RAWText(ModuleTestBase):
         # Trufflehog emits HIGH severity and MEDIUM confidence for possible secrets
         assert finding_events[0].data["severity"] == "HIGH"
         assert finding_events[0].data["confidence"] == "MEDIUM"
+
+
+class TestTrufflehog_JSSecretURL(ModuleTestBase):
+    # A secret in a linked JS bundle must produce a FINDING whose url is the JS URL,
+    # not the HTML URL and not a tempfile path.
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http", "excavate", "trufflehog"]
+    config_overrides = {
+        "modules": {"trufflehog": {"only_verified": False}},
+        "web": {"spider_distance": 1, "spider_depth": 1},
+    }
+
+    # Split the webhook literal so the source doesn't match GitHub's push-protection
+    # secret-scanning regex; assembled at runtime, trufflehog still detects it.
+    _slack_webhook = "https://hooks.slack.com/services/T7KJ4NLXR/B8QZ" + "2MP3V/xJ9vNqLpZ4dKcYm2XwRfBg7T"
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"},
+            respond_args={"response_data": '<html><script src="/app.js"></script></html>'},
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/app.js"},
+            respond_args={"response_data": f'const w = "{self._slack_webhook}";'},
+        )
+
+    def check(self, module_test, events):
+        js_findings = [e for e in events if e.type == "FINDING" and "SlackWebhook" in e.data.get("description", "")]
+        assert js_findings, "trufflehog produced no SlackWebhook FINDING from linked JS"
+        assert all(f.data.get("url", "") == f"{HTTPSERVER_URL}/app.js" for f in js_findings), (
+            f"FINDING must carry the JS URL, got: {[f.data.get('url') for f in js_findings]}"
+        )

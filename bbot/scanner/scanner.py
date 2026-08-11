@@ -20,7 +20,7 @@ from bbot.core.config.logger import GzipRotatingFileHandler
 from bbot.core.multiprocess import SHARED_INTERPRETER_STATE
 from bbot.core.helpers.async_helpers import async_to_sync_gen
 from bbot.logger import log_to_stderr
-from bbot.errors import BBOTError, ScanError, ValidationError
+from bbot.errors import ASNResolutionError, BBOTError, ScanError, ValidationError
 from bbot.constants import (
     get_scan_status_code,
     get_scan_status_name,
@@ -253,9 +253,8 @@ class Scanner:
         self.http_proxy = web_config.get("http_proxy", "")
         self.http_proxy_exclude = web_config.get("http_proxy_exclude", [])
         self.http_timeout = web_config.get("http_timeout", 10)
-        self.blasthttp_timeout = web_config.get("blasthttp_timeout", 5)
+        self.http_timeout_infrastructure = web_config.get("http_timeout_infrastructure", 10)
         self.http_retries = web_config.get("http_retries", 1)
-        self.blasthttp_retries = web_config.get("blasthttp_retries", 1)
         self.useragent = f"{web_config.get('user_agent', 'BBOT')} {web_config.get('user_agent_suffix') or ''}".strip()
         # custom HTTP headers warning
         self.custom_http_headers = web_config.get("http_headers", {})
@@ -327,9 +326,15 @@ class Scanner:
         Expands async seed types (e.g. ASN → IP ranges), evaluates preset conditions,
         creates the scan's output folder, loads its modules, and calls their .setup() methods.
         """
-        # expand async seed types (e.g. ASN → IP ranges)
-        ssl_verify = self.preset.web_config.get("ssl_verify_infrastructure", True)
-        await self.preset.target.generate_children(ssl_verify=ssl_verify)
+        # expand async seed types (e.g. ASN -> IP ranges)
+        try:
+            await self.preset.target.generate_children(helpers=self.helpers)
+        except ASNResolutionError as e:
+            raise ScanError(
+                f"Failed to resolve ASN target ({e}). "
+                f"The bbot.io ASN API could not be reached; this may be due to regional network restrictions or a temporary outage. "
+                f"To scan this ASN's networks, look up its prefixes (e.g. at bgp.tools) and pass them directly: bbot -t 1.2.3.0/24 5.6.0.0/16"
+            )
 
         # evaluate preset conditions (may abort the scan)
         if self.preset.conditions:
@@ -397,9 +402,9 @@ class Scanner:
                 intercept_module._incoming_event_queue = interqueue
                 prev_intercept_module._outgoing_event_queue = interqueue
 
-            # abort if there are no output modules
+            # abort if there are no output modules (unless the user explicitly excluded them)
             num_output_modules = len([m for m in self.modules.values() if m._type == "output"])
-            if num_output_modules < 1:
+            if num_output_modules < 1 and not self.preset.exclude_output_modules:
                 raise ScanError("Failed to load output modules. Aborting.")
             # abort if any of the module .setup()s hard-failed (i.e. they errored or returned False)
             total_failed = len(hard_failed + soft_failed)
@@ -563,7 +568,7 @@ class Scanner:
 
         if not self._stopping:
             # queue final scan event with output modules
-            output_modules = [m for m in self.modules.values() if m._type == "output" and m.name != "python"]
+            output_modules = [m for m in self.modules.values() if m._type == "output"]
             for m in output_modules:
                 await m.queue_event(scan_finish_event)
             # wait until output modules are flushed
