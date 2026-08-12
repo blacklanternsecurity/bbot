@@ -1177,7 +1177,7 @@ class TestExcavateYaraCustom(ModuleTestBase):
     """Custom YARA rules loaded via config must emit FINDINGs through CustomExtractor,
     propagating description, severity, confidence, tags, and emit_match from rule meta."""
 
-    targets = ["http://127.0.0.1:8888/"]
+    targets = [f"{HTTPSERVER_URL}/"]
     modules_overrides = ["excavate", "http"]
 
     rule_file = [
@@ -1274,7 +1274,7 @@ class TestExcavateYaraCustomEdgeCases(ModuleTestBase):
     """Custom rules whose text contains braces in strings, hex strings, comments, or regexes
     must all load and fire, rather than being dropped by the rule splitter."""
 
-    targets = ["http://127.0.0.1:8888/"]
+    targets = [f"{HTTPSERVER_URL}/"]
     modules_overrides = ["excavate", "http"]
 
     rule_file = [
