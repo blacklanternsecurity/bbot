@@ -18,13 +18,16 @@ if __name__ == "__main__":
 ```python
 from bbot.scanner import Scanner
 
+
 async def main():
     scan = Scanner("evilcorp.com", presets=["subdomain-enum"])
     async for event in scan.async_start():
         print(event.json())
 
+
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())
 ```
 

@@ -2,6 +2,7 @@ import json
 
 from .base import ModuleTestBase
 from bbot.core.event.base import event_from_json
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestJSON(ModuleTestBase):
@@ -65,7 +66,7 @@ class TestJSONGraphOrphanJSURL(ModuleTestBase):
     reference a parent that is also in the output (no orphans).
     """
 
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "excavate", "json"]
     # The test conf clears omit_event_types — restore the production default so
     # URL_UNVERIFIED (which JS URLs use) actually gets _omit=True by ScanEgress.
@@ -87,7 +88,7 @@ class TestJSONGraphOrphanJSURL(ModuleTestBase):
         module_test.set_expect_requests(
             expect_args={"method": "GET", "uri": "/"},
             respond_args={
-                "response_data": "<html><body><script src='http://127.0.0.1:8888/asdf.js'></script></body></html>",
+                "response_data": f"<html><body><script src='{HTTPSERVER_URL}/asdf.js'></script></body></html>",
                 "headers": {"Content-Type": "text/html"},
             },
         )

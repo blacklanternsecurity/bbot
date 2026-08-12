@@ -1,9 +1,10 @@
 import re
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestTelerik(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888", "http://127.0.0.1:8888/telerik.aspx"]
+    targets = [HTTPSERVER_URL, f"{HTTPSERVER_URL}/telerik.aspx"]
     modules_overrides = ["http", "telerik"]
     config_overrides = {"modules": {"telerik": {"exploit_RAU_crypto": True}}}
 
@@ -123,7 +124,7 @@ class TestTelerik(ModuleTestBase):
 
 
 class TestTelerikDialogHandler_includesubdirs(TestTelerik):
-    targets = ["http://127.0.0.1:8888/", "http://127.0.0.1:8888/temp/"]
+    targets = [f"{HTTPSERVER_URL}/", f"{HTTPSERVER_URL}/temp/"]
     config_overrides = {
         "modules": {
             "telerik": {
