@@ -2,7 +2,8 @@ from ...bbot_fixtures import *
 from bbot.modules.base import BaseModule
 from .base import ModuleTestBase, tempwordlist
 
-from bbot.modules.internal.excavate import ExcavateRule
+from bbot.errors import ExcavateError
+from bbot.modules.internal.excavate import ExcavateRule, split_yara_rules
 
 from pathlib import Path
 import time
@@ -1172,13 +1173,149 @@ class TestExcavateYara(TestExcavate):
         assert found_yara_string_2, "Did not extract Match YARA rule (2)"
 
 
-class TestExcavateYaraCustom(TestExcavateYara):
+class TestExcavateYaraCustom(ModuleTestBase):
+    """Custom YARA rules loaded via config must emit FINDINGs through CustomExtractor,
+    propagating description, severity, confidence, tags, and emit_match from rule meta."""
+
+    targets = [f"{HTTPSERVER_URL}/"]
+    modules_overrides = ["excavate", "http"]
+
     rule_file = [
-        'rule SearchForText { meta: description = "Contains the text AAAABBBBCCCC" strings: $text = "AAAABBBBCCCC" condition: $text }',
-        'rule SearchForText2 { meta: description = "Contains the text DDDDEEEEFFFF" strings: $text2 = "DDDDEEEEFFFF" condition: $text2 }',
+        'rule CustomYaraFull { meta: description = "custom rule with full meta" severity = "HIGH" confidence = "CONFIRMED" tags = "custom-yara-tag" emit_match = true strings: $marker = "CUSTOMYARAFULLMARKER" condition: $marker }',
+        'rule CustomYaraBare { meta: description = "custom rule without severity meta" strings: $marker = "CUSTOMYARABAREMARKER" condition: $marker }',
     ]
     f = tempwordlist(rule_file)
     config_overrides = {"modules": {"excavate": {"custom_yara_rules": f}}}
+
+    async def setup_before_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            "<html><body><p>CUSTOMYARAFULLMARKER</p><p>CUSTOMYARABAREMARKER</p></body></html>"
+        )
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING"]
+        descriptions = [e.data["description"] for e in findings]
+
+        full = [e for e in findings if "[CustomYaraFull]" in e.data["description"]]
+        assert full, f"Custom YARA rule CustomYaraFull produced no FINDING, got: {descriptions}"
+        full = full[0]
+        assert full.data["description"] == (
+            "Custom Yara Rule [CustomYaraFull] with description: [custom rule with full meta] "
+            "Matched via identifier [marker] and extracted [CUSTOMYARAFULLMARKER]"
+        ), f"Wrong description: {full.data['description']}"
+        assert full.data["severity"] == "HIGH", f"severity meta did not propagate: {full.data.get('severity')}"
+        assert full.data["confidence"] == "CONFIRMED", (
+            f"confidence meta did not propagate: {full.data.get('confidence')}"
+        )
+        assert "confidence-confirmed" in full.tags, f"Missing confidence tag: {full.tags}"
+        assert "custom-yara-tag" in full.tags, f"tags meta did not propagate: {full.tags}"
+
+        bare = [e for e in findings if "[CustomYaraBare]" in e.data["description"]]
+        assert bare, f"Custom YARA rule CustomYaraBare produced no FINDING, got: {descriptions}"
+        bare = bare[0]
+        assert bare.data["severity"] == "INFO", f"Wrong default severity: {bare.data.get('severity')}"
+        assert bare.data["confidence"] == "UNKNOWN", f"Wrong default confidence: {bare.data.get('confidence')}"
+
+
+def test_split_yara_rules():
+    """Rule splitting is brace-depth aware: a brace inside a string, hex string, comment, or
+    regex must not end a rule early, and a rule name must survive arbitrary whitespace."""
+
+    def names(source):
+        return [name for name, _ in split_yara_rules(source)[1]]
+
+    # a literal brace inside an earlier rule must not swallow the rules that follow
+    three_rules = (
+        'rule First { meta: description = "brace { inside" strings: $a = "a" condition: $a }\n'
+        'rule Second { strings: $b = "b" condition: $b }\n'
+        'rule Third { strings: $c = "c" condition: $c }'
+    )
+    assert names(three_rules) == ["First", "Second", "Third"]
+
+    # whitespace around the rule name and opening brace is arbitrary
+    assert names('rule Spaced  { strings: $a = "a" condition: $a }') == ["Spaced"]
+    assert names('rule  Spaced2 { strings: $a = "a" condition: $a }') == ["Spaced2"]
+    assert names('rule Newline\n{\n strings:\n  $a = "a"\n condition:\n  $a\n}') == ["Newline"]
+    assert names('rule Tagged : tag1 tag2 { strings: $a = "a" condition: $a }') == ["Tagged"]
+
+    # braces inside hex strings, comments, and regexes are not rule boundaries
+    assert names("rule Hex { strings: $h = { 4D 5A [0-4] ( 62 B3 | 87 ) ?? } condition: $h }") == ["Hex"]
+    assert names('rule Line { // }\n strings: $a = "a" condition: $a }') == ["Line"]
+    assert names('rule Block { /* } { */ strings: $a = "a" condition: $a }') == ["Block"]
+    assert names("rule Re { strings: $r = /ab{2,3}c/ nocase condition: $r }") == ["Re"]
+    assert names("rule Re2 { strings: $r = /[a-z/]{1,3}/ condition: $r }") == ["Re2"]
+    assert names(r'rule Esc { strings: $a = "quote \" then { " condition: $a }') == ["Esc"]
+
+    # rule modifiers are preserved in the extracted rule text
+    modifier_rules = split_yara_rules('global private rule Mod { strings: $a = "a" condition: $a }')[1]
+    assert modifier_rules[0][0] == "Mod"
+    assert modifier_rules[0][1].startswith("global private rule Mod")
+
+    # imports are collected separately so each rule still compiles on its own
+    imports, rules = split_yara_rules('import "pe"\nimport "math"\nrule UsesPe { condition: pe.entry_point > 0 }')
+    assert imports == ['import "pe"', 'import "math"']
+    assert [name for name, _ in rules] == ["UsesPe"]
+
+    # unparseable input raises instead of silently dropping rules
+    for bad in (
+        'rule Unterminated { strings: $a = "a"',
+        'rule BadString { strings: $a = "unterminated',
+        "rule BadRegex { strings: $a = /unterminated",
+        "rule BadComment { /* unterminated",
+        "not_a_rule here",
+        'include "other.yar"',
+        "rule { condition: true }",
+    ):
+        with pytest.raises(ExcavateError):
+            split_yara_rules(bad)
+
+
+class TestExcavateYaraCustomEdgeCases(ModuleTestBase):
+    """Custom rules whose text contains braces in strings, hex strings, comments, or regexes
+    must all load and fire, rather than being dropped by the rule splitter."""
+
+    targets = [f"{HTTPSERVER_URL}/"]
+    modules_overrides = ["excavate", "http"]
+
+    rule_file = [
+        'rule CustomBraceInString { meta: description = "brace { in a string" strings: $marker = "CUSTOMBRACEMARKER" condition: $marker }',
+        'rule CustomTwoSpaces  { meta: description = "two spaces before brace" strings: $marker = "CUSTOMSPACEMARKER" condition: $marker }',
+        'rule CustomHexString { meta: description = "hex string braces" strings: $marker = { 43 55 53 54 4F 4D 48 45 58 } condition: $marker }',
+        'rule CustomComment { /* } tricky { */ meta: description = "comment braces" strings: $marker = "CUSTOMCOMMENTMARKER" condition: $marker }',
+        'rule CustomRegex { meta: description = "regex braces" strings: $marker = /CUSTOMRE{2}GEX/ condition: $marker }',
+    ]
+    f = tempwordlist(rule_file)
+    config_overrides = {"modules": {"excavate": {"custom_yara_rules": f}}}
+
+    async def setup_before_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            "<html><body>"
+            "<p>CUSTOMBRACEMARKER</p>"
+            "<p>CUSTOMSPACEMARKER</p>"
+            "<p>CUSTOMHEX</p>"
+            "<p>CUSTOMCOMMENTMARKER</p>"
+            "<p>CUSTOMREEGEX</p>"
+            "</body></html>"
+        )
+
+    def check(self, module_test, events):
+        # every rule in the file must have been loaded, not just the ones the old splitter survived
+        expected = [
+            "CustomBraceInString",
+            "CustomTwoSpaces",
+            "CustomHexString",
+            "CustomComment",
+            "CustomRegex",
+        ]
+        loaded = module_test.scan.modules["excavate"].yara_rules_dict
+        for rule_name in expected:
+            assert rule_name in loaded, f"Rule {rule_name} was dropped by the rule splitter"
+
+        descriptions = [e.data["description"] for e in events if e.type == "FINDING"]
+        for rule_name in expected:
+            assert any(f"[{rule_name}]" in d for d in descriptions), (
+                f"Rule {rule_name} loaded but produced no FINDING, got: {descriptions}"
+            )
 
 
 class TestExcavateYaraConfidence(ModuleTestBase):
