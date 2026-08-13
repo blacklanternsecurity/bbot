@@ -246,7 +246,7 @@ class ConfigAwareHelper:
         # max_tasks_per_child replaces workers after N tasks, preventing memory leaks
         # and reducing the chance of a degraded worker process causing hangs
         if sys.version_info >= (3, 11):
-            pool_kwargs["max_tasks_per_child"] = 25
+            pool_kwargs["max_tasks_per_child"] = 250
         return ProcessPoolExecutor(**pool_kwargs)
 
     def run_in_executor_io(self, callback, *args, **kwargs):
