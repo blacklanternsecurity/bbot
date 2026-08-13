@@ -452,7 +452,7 @@ class DepsInstaller:
                 sleep(0.1)
                 try:
                     _sudo_password = getpass.getpass(prompt="[USER] Please enter sudo password: ")
-                except OSError:
+                except (OSError, EOFError):
                     log.error("Unable to read sudo password (no TTY). Set BBOT_SUDO_PASS env var.")
                     return
                 if self.parent_helper.verify_sudo_password(_sudo_password):

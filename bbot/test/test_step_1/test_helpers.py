@@ -1350,3 +1350,19 @@ async def test_asn_helper_circuit_breaker_resets_on_success(bbot_scanner, monkey
     assert result["asn"] == 15169
     assert asn_helper._consecutive_failures == 0
     assert not asn_helper._circuit_broken
+
+
+def test_can_sudo_without_password_no_sudo_binary(monkeypatch):
+    """
+    Containers frequently ship without a sudo binary at all. That must report "no passwordless
+    sudo" rather than raising, or dependency setup dies before it can say what it needed.
+    """
+    from bbot.core.helpers import misc
+
+    def no_sudo_binary(*args, **kwargs):
+        raise FileNotFoundError(2, "No such file or directory", "sudo")
+
+    monkeypatch.setattr(misc.sp, "run", no_sudo_binary)
+    monkeypatch.setattr(misc.os, "geteuid", lambda: 1000)
+
+    assert misc.can_sudo_without_password() is False
