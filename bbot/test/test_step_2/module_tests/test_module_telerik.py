@@ -1,5 +1,6 @@
 import re
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_URL
 
 
 _rau_call_count = [0]
@@ -28,7 +29,7 @@ def _rau_two_stage_handler(request):
 
 
 class TestTelerik(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888", "http://127.0.0.1:8888/telerik.aspx"]
+    targets = [HTTPSERVER_URL, f"{HTTPSERVER_URL}/telerik.aspx"]
     modules_overrides = ["http", "telerik"]
     config_overrides = {"modules": {"telerik": {"rau_confirm_version": True}}}
 
@@ -428,7 +429,7 @@ def _dh_knownkey_handler(request):
 
 
 class TestTelerikDialogHandler_includesubdirs(TestTelerik):
-    targets = ["http://127.0.0.1:8888/", "http://127.0.0.1:8888/temp/"]
+    targets = [f"{HTTPSERVER_URL}/", f"{HTTPSERVER_URL}/temp/"]
     config_overrides = {
         "modules": {
             "telerik": {

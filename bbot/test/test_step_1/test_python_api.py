@@ -1,5 +1,7 @@
 from ..bbot_fixtures import *
 
+from bbot.test.worker import worker_dir
+
 
 @pytest.mark.asyncio
 async def test_python_api(clean_default_config):
@@ -44,7 +46,7 @@ async def test_python_api(clean_default_config):
     assert "scan_logging_test" in open(debug_log).read()
 
     # make sure config loads properly
-    bbot_home = "/tmp/.bbot_python_api_test"
+    bbot_home = str(worker_dir("/tmp/.bbot_python_api_test"))
     scan4 = Scanner("127.0.0.1", config={"home": bbot_home})
     await scan4._prep()
     assert os.environ["BBOT_TOOLS"] == str(Path(bbot_home) / "tools")
@@ -88,7 +90,7 @@ async def test_python_api_sync(clean_default_config):
     out_file = scan2.helpers.scans_dir / "python_api_test" / "output.json"
     assert list(scan2.helpers.read_file(out_file))
     # make sure config loads properly
-    bbot_home = "/tmp/.bbot_python_api_test"
+    bbot_home = str(worker_dir("/tmp/.bbot_python_api_test"))
     scan3 = Scanner("127.0.0.1", config={"home": bbot_home})
     await scan3._prep()
     assert os.environ["BBOT_TOOLS"] == str(Path(bbot_home) / "tools")

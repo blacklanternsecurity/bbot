@@ -16,6 +16,7 @@ from bbot.modules.base import BaseModule
 from bbot.modules.lightfuzz.submodules.base import BaseLightfuzz
 
 from .test_module_paramminer_headers import helper
+from bbot.test.worker import HTTPSERVER_URL
 
 
 def _make_base_lightfuzz(url):
@@ -78,7 +79,7 @@ def test_lightfuzz_build_query_string_preserves_fragment():
 
 # Path Traversal single dot tolerance
 class Test_Lightfuzz_path_singledot(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
@@ -302,7 +303,7 @@ lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
 
 # SSTI Integer Multiplcation
 class Test_Lightfuzz_ssti_multiply(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
@@ -447,7 +448,7 @@ class Test_Lightfuzz_ssti_velocity(Test_Lightfuzz_ssti_multiply):
 
 # Between Tags XSS Detection
 class Test_Lightfuzz_xss(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
@@ -1208,7 +1209,7 @@ class Test_Lightfuzz_urlencoding(Test_Lightfuzz_xss_injs):
 
 # SQLI Single Quote/Two Single Quote (getparam)
 class Test_Lightfuzz_sqli(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
@@ -1258,7 +1259,7 @@ class Test_Lightfuzz_sqli(ModuleTestBase):
 
 # SQLI Single Quote/Two Single Quote (postparam)
 class Test_Lightfuzz_sqli_post(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
@@ -1349,7 +1350,7 @@ class Test_Lightfuzz_sqli_headers(Test_Lightfuzz_sqli):
 
         seed_events = []
         parent_event = module_test.scan.make_event(
-            "http://127.0.0.1:8888/",
+            f"{HTTPSERVER_URL}/",
             "URL",
             module_test.scan.root_event,
             module="http",
@@ -1361,7 +1362,7 @@ class Test_Lightfuzz_sqli_headers(Test_Lightfuzz_sqli):
             "type": "HEADER",
             "name": "testheader",
             "original_value": None,
-            "url": "http://127.0.0.1:8888",
+            "url": HTTPSERVER_URL,
             "description": "Test Dummy Header",
         }
         seed_event = module_test.scan.make_event(data, "WEB_PARAMETER", parent_event, tags=["distance-0"])
@@ -1401,7 +1402,7 @@ class Test_Lightfuzz_sqli_cookies(Test_Lightfuzz_sqli):
 
         seed_events = []
         parent_event = module_test.scan.make_event(
-            "http://127.0.0.1:8888/",
+            f"{HTTPSERVER_URL}/",
             "URL",
             module_test.scan.root_event,
             module="http",
@@ -1413,7 +1414,7 @@ class Test_Lightfuzz_sqli_cookies(Test_Lightfuzz_sqli):
             "type": "COOKIE",
             "name": "test",
             "original_value": None,
-            "url": "http://127.0.0.1:8888",
+            "url": HTTPSERVER_URL,
             "description": "Test Dummy Cookie",
         }
         seed_event = module_test.scan.make_event(data, "WEB_PARAMETER", parent_event, tags=["distance-0"])
@@ -1617,7 +1618,7 @@ class Test_Lightfuzz_sqli_delay_jitter_fp(Test_Lightfuzz_sqli):
 
 # Serialization Module (Error Resolution)
 class Test_Lightfuzz_serial_errorresolution(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
@@ -1700,7 +1701,7 @@ class Test_Lightfuzz_serial_errorresolution(ModuleTestBase):
                 if e.data["name"] == "TextBox1":
                     excavate_extracted_form_parameter = True
                     if (
-                        e.data["url"] == "http://127.0.0.1:8888/deser.aspx"
+                        e.data["url"] == f"{HTTPSERVER_URL}/deser.aspx"
                         and e.data["host"] == "127.0.0.1"
                         and e.data["additional_params"]
                         == {
@@ -1832,7 +1833,7 @@ class Test_Lightfuzz_serial_errorresolution_existingvalue_valid(Test_Lightfuzz_s
                 if e.data["name"] == "TextBox1":
                     excavate_extracted_form_parameter = True
                     if (
-                        e.data["url"] == "http://127.0.0.1:8888/deser.aspx"
+                        e.data["url"] == f"{HTTPSERVER_URL}/deser.aspx"
                         and e.data["host"] == "127.0.0.1"
                         and e.data["original_value"] == "AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw=="
                         and e.data["additional_params"]
@@ -2205,7 +2206,7 @@ class Test_Lightfuzz_serial_urldns_interactsh(Test_Lightfuzz_serial_pickle_inter
 
 # CMDi echo canary
 class Test_Lightfuzz_cmdi(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
@@ -2487,7 +2488,7 @@ class Test_Lightfuzz_cmdi_interactsh(Test_Lightfuzz_cmdi):
 
 # SSRF interactsh
 class Test_Lightfuzz_ssrf(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz", "excavate"]
 
     @staticmethod
@@ -2571,7 +2572,7 @@ class Test_Lightfuzz_ssrf(ModuleTestBase):
 
 
 class Test_Lightfuzz_speculative(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888/"]
+    targets = [f"{HTTPSERVER_URL}/"]
     modules_overrides = ["http", "excavate", "paramminer_getparams", "lightfuzz"]
     config_overrides = {
         "interactsh_disable": True,
@@ -2628,7 +2629,7 @@ class Test_Lightfuzz_speculative(ModuleTestBase):
 
 
 class Test_Lightfuzz_crypto_error(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888/"]
+    targets = [f"{HTTPSERVER_URL}/"]
     modules_overrides = ["http", "excavate", "lightfuzz"]
     config_overrides = {
         "interactsh_disable": True,
@@ -2693,7 +2694,7 @@ class Test_Lightfuzz_crypto_error(ModuleTestBase):
 
 
 class Test_Lightfuzz_crypto_error_falsepositive(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888/"]
+    targets = [f"{HTTPSERVER_URL}/"]
     modules_overrides = ["http", "excavate", "lightfuzz"]
     config_overrides = {
         "interactsh_disable": True,
@@ -2739,7 +2740,7 @@ class Test_Lightfuzz_crypto_error_falsepositive(ModuleTestBase):
 
 
 class Test_Lightfuzz_PaddingOracleDetection(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "excavate", "lightfuzz"]
     config_overrides = {
         "interactsh_disable": True,
@@ -2951,7 +2952,7 @@ class Test_Lightfuzz_PaddingOracleDetection_NarrowCharset(ModuleTestBase):
     round-trip as valid base64 but are not actual cryptographic data.
     The narrow charset check should reject these, preventing false findings."""
 
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "excavate", "lightfuzz"]
     config_overrides = {
         "interactsh_disable": True,
@@ -2972,7 +2973,7 @@ class Test_Lightfuzz_PaddingOracleDetection_NarrowCharset(ModuleTestBase):
         module_test.set_expect_requests_handler(expect_args=re.compile(".*"), request_handler=self.request_handler)
 
         parent_event = module_test.scan.make_event(
-            "http://127.0.0.1:8888/",
+            f"{HTTPSERVER_URL}/",
             "URL",
             module_test.scan.root_event,
             module="http",
@@ -2984,7 +2985,7 @@ class Test_Lightfuzz_PaddingOracleDetection_NarrowCharset(ModuleTestBase):
             "type": "COOKIE",
             "name": "custom_session_cookie",
             "original_value": self.narrow_charset_value,
-            "url": "http://127.0.0.1:8888/",
+            "url": f"{HTTPSERVER_URL}/",
             "description": "Test narrow charset cookie",
         }
         seed_event = module_test.scan.make_event(data, "WEB_PARAMETER", parent_event, tags=["distance-0"])
@@ -3078,7 +3079,7 @@ class Test_Lightfuzz_PaddingOracleDetection_Jitter(Test_Lightfuzz_PaddingOracleD
 
 
 class Test_Lightfuzz_XSS_jsquotecontext(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz", "excavate", "paramminer_getparams"]
     config_overrides = {
         "interactsh_disable": True,
@@ -3206,7 +3207,7 @@ class Test_Lightfuzz_XSS_jsquotecontext_doublequote(Test_Lightfuzz_XSS_jsquoteco
 
 
 class Test_Lightfuzz_esi(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
@@ -3379,7 +3380,7 @@ class Test_Lightfuzz_envelope_isolation_paddingoracle_reflecting(Test_Lightfuzz_
 
 # ECB Mode Detection: ciphertext with repeated 16-byte blocks (A+B+A+B pattern)
 class Test_Lightfuzz_ECBDetection(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888/"]
+    targets = [f"{HTTPSERVER_URL}/"]
     modules_overrides = ["http", "excavate", "lightfuzz"]
     config_overrides = {
         "interactsh_disable": True,
@@ -3425,7 +3426,7 @@ class Test_Lightfuzz_ECBDetection(ModuleTestBase):
 
 # ECB Negative: all unique blocks, should NOT detect ECB
 class Test_Lightfuzz_ECBDetection_Negative(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888/"]
+    targets = [f"{HTTPSERVER_URL}/"]
     modules_overrides = ["http", "excavate", "lightfuzz"]
     config_overrides = {
         "interactsh_disable": True,
@@ -3473,7 +3474,7 @@ class Test_Lightfuzz_ECBDetection_Negative(ModuleTestBase):
 
 # CBC Bit-Flipping Detection: server returns different responses for different byte-position mutations
 class Test_Lightfuzz_CBCBitflipDetection(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "excavate", "lightfuzz"]
     config_overrides = {
         "interactsh_disable": True,
@@ -3532,7 +3533,7 @@ class Test_Lightfuzz_CBCBitflipDetection(ModuleTestBase):
 
 # CBC Bit-Flipping Negative: server returns identical response regardless of mutation position
 class Test_Lightfuzz_CBCBitflipDetection_Negative(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "excavate", "lightfuzz"]
     config_overrides = {
         "interactsh_disable": True,
@@ -3573,7 +3574,7 @@ class Test_Lightfuzz_CBCBitflipDetection_Negative(ModuleTestBase):
 # Padding oracle sends ~254 probes that all get unique responses → differ_count >> block_size → not detected.
 # CBC bit-flip probes still produce different responses → detected.
 class Test_Lightfuzz_CBCBitflipDetection_NoPaddingOracle(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "excavate", "lightfuzz"]
     config_overrides = {
         "interactsh_disable": True,
@@ -3661,7 +3662,7 @@ class Test_Lightfuzz_envelope_isolation_cbc_bitflip_no_po(Test_Lightfuzz_CBCBitf
 
 # Test filter_event method with WAF tags
 class Test_Lightfuzz_filter_event(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz"]
     config_overrides = {
         "interactsh_disable": True,
@@ -3676,7 +3677,7 @@ class Test_Lightfuzz_filter_event(ModuleTestBase):
     async def setup_after_prep(self, module_test):
         # Create test events with WAF tags
         self.url_event_with_waf = module_test.scan.make_event(
-            "http://127.0.0.1:8888/",
+            f"{HTTPSERVER_URL}/",
             "URL",
             module_test.scan.root_event,
             module="http",
@@ -3689,7 +3690,7 @@ class Test_Lightfuzz_filter_event(ModuleTestBase):
                 "type": "GETPARAM",
                 "name": "test",
                 "original_value": "value",
-                "url": "http://127.0.0.1:8888/",
+                "url": f"{HTTPSERVER_URL}/",
                 "description": "Test parameter",
             },
             "WEB_PARAMETER",
@@ -3699,7 +3700,7 @@ class Test_Lightfuzz_filter_event(ModuleTestBase):
         )
 
         self.url_event_without_waf = module_test.scan.make_event(
-            "http://127.0.0.1:8888/",
+            f"{HTTPSERVER_URL}/",
             "URL",
             module_test.scan.root_event,
             module="http",
@@ -3712,7 +3713,7 @@ class Test_Lightfuzz_filter_event(ModuleTestBase):
                 "type": "GETPARAM",
                 "name": "test",
                 "original_value": "value",
-                "url": "http://127.0.0.1:8888/",
+                "url": f"{HTTPSERVER_URL}/",
                 "description": "Test parameter",
             },
             "WEB_PARAMETER",
@@ -3892,7 +3893,7 @@ class Test_Nowafpls_never_still_pads(_NowafplsFuzzTestBase):
 
 # try_post_as_get: fuzz POST parameters as GET parameters
 class Test_Lightfuzz_try_post_as_get(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
@@ -3952,7 +3953,7 @@ class Test_Lightfuzz_try_post_as_get(ModuleTestBase):
 
 # try_get_as_post: fuzz GET parameters as POST parameters
 class Test_Lightfuzz_try_get_as_post(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
@@ -4303,7 +4304,7 @@ class Test_Lightfuzz_sqli_escaped_reflection_fp(Test_Lightfuzz_sqli):
 
 # Verify that POST SQLi findings include additional_params in the description
 class Test_Lightfuzz_sqli_post_additional_params(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
@@ -4348,7 +4349,7 @@ class Test_Lightfuzz_sqli_post_additional_params(ModuleTestBase):
 
 # Verify that lightfuzz rejects WEB_PARAMETER events on static-asset URLs (.pdf, .xml, etc.)
 class Test_Lightfuzz_static_url_filter(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
@@ -4370,7 +4371,7 @@ class Test_Lightfuzz_static_url_filter(ModuleTestBase):
         # Inject a WEB_PARAMETER event on a .pdf URL
         seed_events = []
         parent_event = module_test.scan.make_event(
-            "http://127.0.0.1:8888/",
+            f"{HTTPSERVER_URL}/",
             "URL",
             module_test.scan.root_event,
             module="http",
@@ -4381,7 +4382,7 @@ class Test_Lightfuzz_static_url_filter(ModuleTestBase):
             "type": "GETPARAM",
             "name": "v",
             "original_value": "1",
-            "url": "http://127.0.0.1:8888/document.pdf?v=1",
+            "url": f"{HTTPSERVER_URL}/document.pdf?v=1",
             "description": "HTTP Extracted Parameter [v]",
         }
         seed_event = module_test.scan.make_event(data, "WEB_PARAMETER", parent_event, tags=["distance-0"])
@@ -4415,7 +4416,7 @@ class Test_Lightfuzz_static_url_filter(ModuleTestBase):
 # empty option, lightfuzz doesn't fire the baseline POST, the baseline response
 # isn't emitted, or excavate doesn't see it — the URL_UNVERIFIED never appears.
 class Test_Lightfuzz_baseline_to_excavate_chain(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
@@ -4474,7 +4475,7 @@ class Test_Lightfuzz_baseline_to_excavate_chain(ModuleTestBase):
         # server wouldn't have revealed it), lightfuzz fired a properly-formed
         # POST baseline, the response was emitted as HTTP_RESPONSE, and excavate
         # mined the new URL out of the body.
-        secret_url = "http://127.0.0.1:8888/secret-endpoint"
+        secret_url = f"{HTTPSERVER_URL}/secret-endpoint"
         secret_seen = any(
             e.type == "URL_UNVERIFIED" and str(getattr(e, "data", {}).get("url", "") or e.data) == secret_url
             for e in events
@@ -4532,7 +4533,7 @@ class Test_Lightfuzz_baseline_to_excavate_chain(ModuleTestBase):
 # via the new same_param_values field; lightfuzz crypto's keystream-reuse check
 # then pairwise-XORs them and emits a HIGH/CONFIRMED FINDING.
 class Test_Lightfuzz_keystream_reuse(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
@@ -4627,7 +4628,7 @@ class Test_Lightfuzz_keystream_reuse_url_path_fp(Test_Lightfuzz_keystream_reuse)
 # own connectivity GET issues token-2, which the merge logic substitutes in,
 # letting the baseline POST succeed.
 class Test_Lightfuzz_cookie_refresh(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
@@ -4700,7 +4701,7 @@ class Test_Lightfuzz_cookie_refresh(ModuleTestBase):
         # POST carries the current (post-refresh) token. If the stale spider-era
         # cookie had been used, the server would have returned "Session expired"
         # and excavate would have nothing to extract.
-        secret_url = "http://127.0.0.1:8888/secret-endpoint"
+        secret_url = f"{HTTPSERVER_URL}/secret-endpoint"
         secret_seen = any(
             e.type == "URL_UNVERIFIED" and str(getattr(e, "data", {}).get("url", "") or e.data) == secret_url
             for e in events
@@ -4723,7 +4724,7 @@ class Test_Lightfuzz_cookie_refresh(ModuleTestBase):
 # URL_UNVERIFIED. If baseline_probe fires a body-less request, the URL is
 # never revealed and the assertion fails.
 class Test_Lightfuzz_baseline_probe_form_submission(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
@@ -4771,7 +4772,7 @@ class Test_Lightfuzz_baseline_probe_form_submission(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        secret_url = "http://127.0.0.1:8888/crypto-baseline-secret"
+        secret_url = f"{HTTPSERVER_URL}/crypto-baseline-secret"
         secret_seen = any(
             e.type == "URL_UNVERIFIED" and str(getattr(e, "data", {}).get("url", "") or e.data) == secret_url
             for e in events
@@ -4796,7 +4797,7 @@ class Test_Lightfuzz_baseline_probe_form_submission(ModuleTestBase):
 # up a server that only reveals /none-bug-secret when the no-value-attr field
 # arrives as "" (browser-equivalent), and rejects literal "None".
 class Test_Lightfuzz_none_in_additional_params(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
@@ -4842,7 +4843,7 @@ class Test_Lightfuzz_none_in_additional_params(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        secret_url = "http://127.0.0.1:8888/none-bug-secret"
+        secret_url = f"{HTTPSERVER_URL}/none-bug-secret"
         secret_seen = any(
             e.type == "URL_UNVERIFIED" and str(getattr(e, "data", {}).get("url", "") or e.data) == secret_url
             for e in events
@@ -4858,7 +4859,7 @@ class Test_Lightfuzz_none_in_additional_params(ModuleTestBase):
 # useful content only renders for a non-empty query are invisible to Probe A
 # (which submits the field as empty) but mineable from Probe B's response.
 class Test_Lightfuzz_baseline_probe_dual_search_form(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
@@ -4890,7 +4891,7 @@ class Test_Lightfuzz_baseline_probe_dual_search_form(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        secret_url = "http://127.0.0.1:8888/dual-probe-secret"
+        secret_url = f"{HTTPSERVER_URL}/dual-probe-secret"
         secret_seen = any(
             e.type == "URL_UNVERIFIED" and str(getattr(e, "data", {}).get("url", "") or e.data) == secret_url
             for e in events
@@ -4906,7 +4907,7 @@ class Test_Lightfuzz_baseline_probe_dual_search_form(ModuleTestBase):
 # a meaningful default with an arbitrary value. Verify that the form-action
 # endpoint receives exactly one POST per scan (Probe A only).
 class Test_Lightfuzz_baseline_probe_no_dual_for_selected(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
@@ -4964,7 +4965,7 @@ class Test_Lightfuzz_baseline_probe_no_dual_for_selected(ModuleTestBase):
 # cookies. This server only reveals /host-cookie-secret when the POST carries
 # a cookie that's only set on the host page's GET response.
 class Test_Lightfuzz_host_url_priming(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888/host.html"]
+    targets = [f"{HTTPSERVER_URL}/host.html"]
     modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
@@ -5018,7 +5019,7 @@ class Test_Lightfuzz_host_url_priming(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        secret_url = "http://127.0.0.1:8888/host-cookie-secret"
+        secret_url = f"{HTTPSERVER_URL}/host-cookie-secret"
         secret_seen = any(
             e.type == "URL_UNVERIFIED" and str(getattr(e, "data", {}).get("url", "") or e.data) == secret_url
             for e in events
@@ -5287,7 +5288,7 @@ class Test_Lightfuzz_keystream_reuse_mongo_objectid_fp(Test_Lightfuzz_keystream_
 
 
 class Test_Lightfuzz_type_mutation_restored(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
@@ -5449,7 +5450,7 @@ class Test_Lightfuzz_cmdi_no_leading_zero_arith(Test_Lightfuzz_cmdi):
 
 
 class Test_Lightfuzz_connectivity_no_cache_none(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
@@ -5507,7 +5508,7 @@ class Test_Lightfuzz_connectivity_no_cache_none(ModuleTestBase):
 class TestLightfuzzWildcardSkip(ModuleTestBase):
     """When the host is an HTTP wildcard, lightfuzz should skip fuzzing entirely."""
 
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "lightfuzz", "excavate"]
     config_overrides = {
         "interactsh_disable": True,
