@@ -328,11 +328,14 @@ def create_server():
                 guidance["caveats"] = entry.capability.caveats
             if guidance:
                 payload["guidance"] = guidance
-        return fmt.truncate(
-            json.dumps(payload, indent=2, default=str),
-            fmt.MAX_RESULTS_CHARS,
-            "lower `limit` or page with `since`",
+        # Raw records are asked for by something parsing them, and indentation is
+        # a third of what a page of them spends against the reply limit.
+        rendered = (
+            json.dumps(payload, separators=(",", ":"), default=str)
+            if full_records
+            else json.dumps(payload, indent=2, default=str)
         )
+        return fmt.truncate(rendered, fmt.MAX_RESULTS_CHARS, "lower `limit` or page with `since`")
 
     @tool
     async def scan_stop(
