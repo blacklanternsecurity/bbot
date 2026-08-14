@@ -33,11 +33,15 @@ from bbot.mcp.derive import resolve_bundled_includes
 
 log = logging.getLogger("bbot.mcp.run")
 
-# Event types worth keeping past the returned-event cap. BBOT front-loads bulk
-# discovery and produces its conclusions late, so a cap reached in the first
-# minute would otherwise discard exactly the events the scan was run for.
+# Event types worth keeping past the returned-event cap, and worth carrying their
+# discovery chain. BBOT front-loads bulk discovery and produces its conclusions
+# late, so a cap reached in the first minute would otherwise discard exactly the
+# events the scan was run for. A URL is on this list twice over: it is a reached
+# thing rather than a guessed one, and how the scan got to it is what makes it
+# judgeable.
 HIGH_SIGNAL_TYPES = frozenset(
     {
+        "URL",
         "FINDING",
         "TECHNOLOGY",
         "STORAGE_BUCKET",
