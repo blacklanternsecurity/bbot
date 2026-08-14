@@ -14,10 +14,36 @@ from bbot.errors import ValidationError
 # Longer than the longest legal FQDN or any realistic URL. Anything past this is
 # not a target, and letting it reach the filesystem lookup raises OSError.
 MAX_TARGET_LENGTH = 2048
+# What DNS allows a name and one of its dot-separated pieces to be.
+MAX_HOSTNAME_LENGTH = 253
+MAX_LABEL_LENGTH = 63
 
 
 class ComposeError(Exception):
     """A request that cannot produce a usable scan."""
+
+
+def _check_host_shape(entry):
+    """Reject a bare token too long to be a hostname.
+
+    `BBOTTarget` is the check for whether a target is a host at all, but it reads
+    an unadorned word as a DNS name, and a word has no length it stops being one
+    at. DNS does: 253 characters for a name and 63 for a label. A URL may be
+    longer than either, so only unadorned targets are held to them.
+    """
+    if "://" in entry or "@" in entry:
+        return
+    host = entry.split("/", 1)[0]
+    if len(host) > MAX_HOSTNAME_LENGTH:
+        raise ComposeError(
+            f"Target is {len(host)} characters, and a hostname stops at {MAX_HOSTNAME_LENGTH}: {entry[:60]!r}..."
+        )
+    for label in host.split("."):
+        if len(label) > MAX_LABEL_LENGTH:
+            raise ComposeError(
+                f"Target has a {len(label)}-character piece between dots, and a hostname's stops at "
+                f"{MAX_LABEL_LENGTH}: {entry[:60]!r}..."
+            )
 
 
 def validate_targets(targets, blacklist=None):
@@ -57,6 +83,7 @@ def validate_targets(targets, blacklist=None):
                 f'Refusing to treat "{entry}" as a target because it resolves to a file on disk. '
                 f"Pass targets literally (hostnames, IPs, CIDRs, URLs)."
             )
+        _check_host_shape(entry)
 
     try:
         BBOTTarget(target=targets, blacklist=blacklist)
