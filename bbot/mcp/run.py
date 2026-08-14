@@ -33,11 +33,15 @@ from bbot.mcp.derive import resolve_bundled_includes
 
 log = logging.getLogger("bbot.mcp.run")
 
-# Event types worth keeping past the returned-event cap. BBOT front-loads bulk
-# discovery and produces its conclusions late, so a cap reached in the first
-# minute would otherwise discard exactly the events the scan was run for.
+# Event types worth keeping past the returned-event cap, and worth carrying their
+# discovery chain. BBOT front-loads bulk discovery and produces its conclusions
+# late, so a cap reached in the first minute would otherwise discard exactly the
+# events the scan was run for. A URL is on this list twice over: it is a reached
+# thing rather than a guessed one, and how the scan got to it is what makes it
+# judgeable.
 HIGH_SIGNAL_TYPES = frozenset(
     {
+        "URL",
         "FINDING",
         "TECHNOLOGY",
         "STORAGE_BUCKET",
@@ -62,7 +66,9 @@ UNFINISHED_STATUSES = frozenset({"STARTING", "RUNNING"})
 
 # A memory backstop far above any sane cap, not a result limit.
 ABSOLUTE_EVENT_CEILING = 25_000
-DEFAULT_MAX_EVENTS = 2000
+# Where bulk events stop accumulating. The gap to the ceiling is reserved, not
+# slack: it is checked first, so hostnames cannot crowd out a late finding.
+DEFAULT_MAX_EVENTS = 10_000
 # A runaway backstop, not a budget: a real scan on a large org runs for hours.
 # Hitting this returns everything found so far rather than discarding it.
 DEFAULT_TIMEOUT_SECONDS = 21600.0

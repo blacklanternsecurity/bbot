@@ -29,6 +29,9 @@ meta:
 
   yields:
     - DNS_NAME
+    # Same as the fast variant: it probes what it resolves, and a reached URL is
+    # the result something can actually be sent to.
+    - URL
 
   when_to_use: |
     Use this when coverage matters more than time: an engagement scoped to a whole organization, an attack-surface review meant to be defensible, or any situation where a missed subdomain is a missed finding.

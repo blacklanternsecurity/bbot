@@ -21,9 +21,11 @@ meta:
     - DNS_NAME
 
   yields:
-    # A subdomain scan's result is the hostname list. Everything else BBOT
-    # emits on the way there is scaffolding for that.
     - DNS_NAME
+    # The scan probes what it resolves, so a URL it reached costs nothing extra
+    # to report and is the one kind of result something can be sent to. Without
+    # it a caller gets hostnames and has to rediscover which of them answer.
+    - URL
 
   when_to_use: |
     Reach for this first whenever a target is a domain rather than a specific host. It answers "what does this organization expose?" in minutes rather than hours, and its output is what most other work depends on.
