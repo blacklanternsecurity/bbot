@@ -66,7 +66,9 @@ UNFINISHED_STATUSES = frozenset({"STARTING", "RUNNING"})
 
 # A memory backstop far above any sane cap, not a result limit.
 ABSOLUTE_EVENT_CEILING = 25_000
-DEFAULT_MAX_EVENTS = 2000
+# Where bulk events stop accumulating. The gap to the ceiling is reserved, not
+# slack: it is checked first, so hostnames cannot crowd out a late finding.
+DEFAULT_MAX_EVENTS = 10_000
 # A runaway backstop, not a budget: a real scan on a large org runs for hours.
 # Hitting this returns everything found so far rather than discarding it.
 DEFAULT_TIMEOUT_SECONDS = 21600.0
