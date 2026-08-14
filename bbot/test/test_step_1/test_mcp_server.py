@@ -11,7 +11,7 @@ from bbot.mcp.registry import get_registry  # noqa E402
 from bbot.mcp.server import INSTRUCTIONS, create_server  # noqa E402
 
 # The tools that are not generated from a preset file.
-FIXED_TOOLS = {"list_tools", "describe_tool", "scan_status", "scan_results", "scan_stop"}
+FIXED_TOOLS = {"list_tools", "describe_tool", "scan_status", "scan_results", "scan_stop", "scan_forget"}
 
 # Imperatives that current models over-trigger on. Tool descriptions should say
 # when to call something, not shout about it.

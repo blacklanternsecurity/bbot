@@ -20,6 +20,8 @@ The execution model, and why each part of it is the way it is:
 """
 
 import asyncio
+import ctypes
+import gc
 import logging
 import threading
 import time
@@ -68,6 +70,9 @@ TEARDOWN_TIMEOUT_SECONDS = 60.0
 PROGRESS_INTERVAL_SECONDS = 60.0
 # A bound on the queue depth, so nobody stacks up scans they will never read.
 MAX_ACTIVE_SCANS = 3
+# Finished scans kept for later reads. A caller that releases what it has read
+# never reaches this; one that does not is what it exists for.
+MAX_REMEMBERED_SCANS = 8
 
 SCANS = {}
 _SCAN_TASKS = {}
@@ -355,6 +360,9 @@ class ScanHandle:
     counts: dict = field(default_factory=dict)
     events: list = field(default_factory=list)
     scanner: object = None
+    # BBOT's own final word on the scan, kept because the Scanner it came from is
+    # released the moment the scan ends.
+    scan_status: str = ""
     last_event_at: float = 0.0
     state: str = "running"
     error: str = ""
@@ -388,8 +396,10 @@ class ScanHandle:
             "events_available": len(self.events),
             "counts_by_type": dict(sorted(self.counts.items())),
         }
-        if self.scanner is not None:
-            report["scan_status"] = str(getattr(self.scanner, "status", "") or "UNKNOWN")
+        # From the Scanner while it exists, from what was kept once it does not.
+        status = str(getattr(self.scanner, "status", "") or "") if self.scanner is not None else self.scan_status
+        if status or self.scanner is not None:
+            report["scan_status"] = status or "UNKNOWN"
         if self.state == "queued":
             report["waiting_seconds"] = round(time.monotonic() - (self.queued_at or self.started_at), 1)
             report["note"] = "waiting for the running scan to finish; BBOT runs one scan at a time"
@@ -526,6 +536,11 @@ async def run_scan(targets, scan_kwargs, max_events, event_types, timeout, handl
         done, _pending = await asyncio.wait({collector}, timeout=timeout)
     finally:
         progress.cancel()
+        # Awaited, not just cancelled: until the cancellation is actually
+        # delivered the coroutine is still suspended holding the Scanner it was
+        # given, which anchors the scan's whole object graph past its release.
+        with suppress(asyncio.CancelledError, Exception):
+            await progress
 
     if collector not in done:
         # Returning early would release the scan lock while BBOT is still running,
@@ -564,34 +579,157 @@ async def drive_scan(handle, scan_kwargs, max_events, event_types, timeout):
     """
     handle.task = asyncio.current_task()
     try:
-        async with scan_lock():
-            handle.state = "running"
-            # elapsed should measure the scan, not the time it spent waiting
-            handle.started_at = time.monotonic()
-            try:
-                result = await run_scan(handle.targets, scan_kwargs, max_events, event_types, timeout, handle=handle)
-            except asyncio.CancelledError:
-                # Cancelling the collector does not stop BBOT: the Scanner keeps
-                # its own tasks and threads. Releasing the lock here would let the
-                # next scan start alongside a live one, exactly what serialising
-                # is meant to prevent. Shielded, so the cancel that got us here
-                # does not also cancel the teardown.
-                handle.state = "stopping"
-                await asyncio.shield(settle_scanner(handle))
-                raise
-    except asyncio.CancelledError:
-        handle.state = "stopped"
+        try:
+            async with scan_lock():
+                handle.state = "running"
+                # elapsed should measure the scan, not the time it spent waiting
+                handle.started_at = time.monotonic()
+                try:
+                    result = await run_scan(
+                        handle.targets, scan_kwargs, max_events, event_types, timeout, handle=handle
+                    )
+                except asyncio.CancelledError:
+                    # Cancelling the collector does not stop BBOT: the Scanner keeps
+                    # its own tasks and threads. Releasing the lock here would let the
+                    # next scan start alongside a live one, exactly what serialising
+                    # is meant to prevent. Shielded, so the cancel that got us here
+                    # does not also cancel the teardown.
+                    handle.state = "stopping"
+                    await asyncio.shield(settle_scanner(handle))
+                    raise
+        except asyncio.CancelledError:
+            handle.state = "stopped"
+            handle.finished_at = time.monotonic()
+            raise
+        except Exception as e:  # a failed scan must not take the server with it
+            handle.state = "failed"
+            handle.error = f"{type(e).__name__}: {e}"
+            handle.finished_at = time.monotonic()
+            log.warning("scan %s failed: %s", handle.scan_id, handle.error)
+            return
+        handle.result = result
+        handle.state = "timed_out" if result.get("timed_out") else "finished"
         handle.finished_at = time.monotonic()
-        raise
-    except Exception as e:  # a failed scan must not take the server with it
-        handle.state = "failed"
-        handle.error = f"{type(e).__name__}: {e}"
-        handle.finished_at = time.monotonic()
-        log.warning("scan %s failed: %s", handle.scan_id, handle.error)
+    finally:
+        # What a stopped scan found is still worth keeping, and the summary needs
+        # the Scanner. Releasing it is left to the task's done callback: from in
+        # here this frame is still one of the things referencing it.
+        if handle.state == "stopped" and handle.result is None and handle.scanner is not None:
+            with suppress(Exception):
+                handle.result = scan_result(handle.targets, handle.scanner, handle.counts, handle.events)
+
+
+def drop_rust_runtimes(scanner):
+    """Shut the Rust extensions a Scanner holds, while the interpreter is alive.
+
+    blasthttp, blastdns and cloudcheck each own a tokio runtime whose worker
+    threads call back into Python through pyo3. A worker mid-call when the
+    interpreter starts finalizing is the panic at interpreter_lifecycle.rs, so
+    these are dropped deliberately rather than left to garbage collection.
+    """
+    helpers = getattr(scanner, "helpers", None)
+    if helpers is None:
         return
-    handle.result = result
-    handle.state = "timed_out" if result.get("timed_out") else "finished"
-    handle.finished_at = time.monotonic()
+    for attr in ("_blasthttp_client", "_cloudcheck", "_dns"):
+        with suppress(Exception):
+            obj = getattr(helpers, attr, None)
+            if obj is not None:
+                if hasattr(obj, "shutdown"):
+                    obj.shutdown()
+                setattr(helpers, attr, None)
+    with suppress(Exception):
+        pool = getattr(helpers, "process_pool", None)
+        if pool is not None:
+            pool.shutdown(wait=False, cancel_futures=True)
+
+
+def forget_scan(scan_id):
+    """Drop a finished scan entirely, once its caller has taken what it wants.
+
+    A handle is kept so `scan_results` can serve a scan after it ends, which
+    means the server holds every scan of a session unless something says
+    otherwise. The caller that has read a scan to its end is the only party that
+    knows the handle is spent, so it is the one that can say so.
+
+    Refuses while the scan is still running: ending a scan is `scan_stop`, and
+    doing that silently here would discard whatever it had not yet found.
+    """
+    handle = SCANS.get(scan_id)
+    if handle is None or handle.running:
+        return False
+    release_scanner(handle)
+    handle.events.clear()
+    handle.counts.clear()
+    handle.result = None
+    handle.task = None
+    SCANS.pop(scan_id, None)
+    _SCAN_TASKS.pop(scan_id, None)
+    log.debug("forgot scan %s", scan_id)
+    return True
+
+
+def trim_finished_scans(keep=MAX_REMEMBERED_SCANS):
+    """Forget the oldest finished scans past the cap.
+
+    The explicit release depends on a caller making it, and a server cannot be
+    left growing without bound by one that does not. Running scans are never
+    touched, and the most recent finished ones stay readable, which is what a
+    caller coming back for results is reaching for.
+    """
+    finished = [handle for handle in SCANS.values() if not handle.running]
+    if len(finished) <= keep:
+        return 0
+    finished.sort(key=lambda handle: handle.finished_at or handle.started_at)
+    dropped = sum(1 for handle in finished[: len(finished) - keep] if forget_scan(handle.scan_id))
+    if dropped:
+        log.info("forgot %d finished scan(s) past the %d this server keeps", dropped, keep)
+    return dropped
+
+
+def release_freed_arenas():
+    """Hand memory a scan has finished with back to the operating system.
+
+    Freeing an object returns it to the allocator, not to the kernel, and a scan
+    allocates in a pattern that leaves the heap fragmented enough that little of
+    it is returned on its own. In a process that only ever runs one scan that is
+    invisible; in one that runs them all day it is the whole growth curve.
+
+    glibc only, and best effort: everywhere else this is simply not available and
+    the memory comes back when the process does.
+    """
+    with suppress(Exception):
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+
+
+def release_scanner(handle):
+    """Let a finished scan's Scanner go.
+
+    A handle outlives its scan so `scan_results` can still serve it, and without
+    this it keeps the whole Scanner alive with it: every module instance, its
+    queues, the DNS cache, and the wordlists behind them. That is the bulk of
+    what a scan allocates, and in a server that runs scans back to back it
+    accumulates for the life of the process rather than for the life of a scan.
+
+    Nothing a caller can still ask for needs it: `event_record` materialises each
+    event into a plain dict as it arrives, and the summary is computed before
+    this runs.
+
+    Releasing here also leaves fewer live tokio runtimes for interpreter
+    finalization to race, which is the crash `shutdown_scan_loop` exists to stop.
+    """
+    scanner = handle.scanner
+    if scanner is None:
+        return
+    # progress() reports this, and it is about to become unreachable.
+    handle.scan_status = str(getattr(scanner, "status", "") or "") or handle.scan_status
+    drop_rust_runtimes(scanner)
+    handle.scanner = None
+    del scanner
+    # A Scanner and its modules reference each other, so dropping the last handle
+    # only makes it collectable. Between scans is the cheapest moment to collect.
+    gc.collect()
+    release_freed_arenas()
+    log.debug("released the scanner for scan %s", handle.scan_id)
 
 
 async def cancel_scan(handle):
@@ -631,12 +769,17 @@ def launch(targets, scan_kwargs, selection, max_events, event_types, timeout, co
         queued_behind=queued_behind,
     )
     SCANS[handle.scan_id] = handle
+    trim_finished_scans()
     task = asyncio.run_coroutine_threadsafe(
         drive_scan(handle, scan_kwargs, max(1, int(max_events)), event_types, max(1.0, float(timeout))),
         scan_event_loop(),
     )
     _BACKGROUND_TASKS.add(task)
     task.add_done_callback(_BACKGROUND_TASKS.discard)
+    # Released here rather than at the end of the scan itself: the coroutine that
+    # ran the scan holds the Scanner in its own frame, so nothing dropped from
+    # inside it can be collected while it is still the frame doing the dropping.
+    task.add_done_callback(lambda _done: release_scanner(handle))
     _SCAN_TASKS[handle.scan_id] = task
     return handle
 
@@ -689,26 +832,10 @@ def shutdown_scan_loop(timeout=10.0):
                 continue
             with suppress(Exception):
                 await cancel_scan(handle)
+        # Whatever is still holding a Scanner here is a scan that never reached
+        # the release on its own way out.
         for handle in list(SCANS.values()):
-            scanner = handle.scanner
-            if scanner is None:
-                continue
-            helpers = getattr(scanner, "helpers", None)
-            if helpers is None:
-                continue
-            # Drop references to Rust extensions so their tokio runtimes shut
-            # down while the interpreter is still alive.
-            for attr in ("_blasthttp_client", "_cloudcheck", "_dns"):
-                with suppress(Exception):
-                    obj = getattr(helpers, attr, None)
-                    if obj is not None:
-                        if hasattr(obj, "shutdown"):
-                            obj.shutdown()
-                        setattr(helpers, attr, None)
-            with suppress(Exception):
-                pool = getattr(helpers, "process_pool", None)
-                if pool is not None:
-                    pool.shutdown(wait=False, cancel_futures=True)
+            release_scanner(handle)
 
     try:
         future = asyncio.run_coroutine_threadsafe(_stop_all(), loop)

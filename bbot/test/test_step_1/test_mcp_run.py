@@ -527,3 +527,91 @@ async def test_scan_tool_rejects_bad_targets_before_launching():
     await call("describe_tool", name="find_subdomains_fast")
     assert "Could not start this scan" in await call("find_subdomains_fast", targets=["README.md"])
     assert not runner.SCANS, "a rejected request must not consume a queue slot"
+
+
+def test_a_finished_scan_lets_go_of_its_scanner():
+    """The handle outlives the scan so results stay readable; the Scanner it ran
+    on does not need to, and it is the bulk of what a scan allocates."""
+
+    class _Helpers:
+        def __init__(self):
+            self.process_pool = None
+
+    class _Scanner:
+        status = "FINISHED"
+
+        def __init__(self):
+            self.helpers = _Helpers()
+
+    handle = runner.ScanHandle(scan_id="abc", targets=["example.com"], selection="js_audit", started_at=0.0)
+    handle.scanner = _Scanner()
+
+    runner.release_scanner(handle)
+
+    assert handle.scanner is None
+    # the status has to survive it: progress() still reports it afterwards
+    assert handle.scan_status == "FINISHED"
+    assert handle.progress()["scan_status"] == "FINISHED"
+    # releasing twice is not an error
+    runner.release_scanner(handle)
+
+
+def test_forgetting_a_scan_drops_everything_it_was_holding():
+    handle = runner.ScanHandle(scan_id="gone", targets=["example.com"], selection="js_audit", started_at=0.0)
+    handle.state = "finished"
+    handle.events.extend([{"type": "URL"}, {"type": "FINDING"}])
+    handle.counts.update({"URL": 1, "FINDING": 1})
+    handle.result = {"summary": "x"}
+    runner.SCANS["gone"] = handle
+    runner._SCAN_TASKS["gone"] = object()
+    try:
+        assert runner.forget_scan("gone") is True
+        assert "gone" not in runner.SCANS
+        assert "gone" not in runner._SCAN_TASKS
+        assert handle.events == [] and handle.counts == {} and handle.result is None
+        # and an id nobody knows is simply not forgotten
+        assert runner.forget_scan("never-existed") is False
+    finally:
+        runner.SCANS.pop("gone", None)
+        runner._SCAN_TASKS.pop("gone", None)
+
+
+def test_a_running_scan_is_never_forgotten():
+    """Ending a scan is scan_stop; doing it here would discard what it had not
+    yet found."""
+    handle = runner.ScanHandle(scan_id="live", targets=["example.com"], selection="js_audit", started_at=0.0)
+    handle.state = "running"
+    runner.SCANS["live"] = handle
+    try:
+        assert runner.forget_scan("live") is False
+        assert "live" in runner.SCANS
+    finally:
+        runner.SCANS.pop("live", None)
+
+
+def test_the_oldest_finished_scans_are_forgotten_past_the_cap():
+    """A caller that releases what it reads never reaches this; one that does not
+    is what it is for."""
+    made = []
+    try:
+        for index in range(runner.MAX_REMEMBERED_SCANS + 3):
+            handle = runner.ScanHandle(
+                scan_id=f"s{index}", targets=["example.com"], selection="js_audit", started_at=float(index)
+            )
+            handle.state = "finished"
+            handle.finished_at = float(index)
+            runner.SCANS[handle.scan_id] = handle
+            made.append(handle.scan_id)
+        live = runner.ScanHandle(scan_id="busy", targets=["example.com"], selection="js_audit", started_at=99.0)
+        live.state = "running"
+        runner.SCANS["busy"] = live
+        made.append("busy")
+
+        assert runner.trim_finished_scans() == 3
+        # the oldest go, the newest stay readable, and a running scan is untouched
+        assert "s0" not in runner.SCANS and "s2" not in runner.SCANS
+        assert "s3" in runner.SCANS and f"s{runner.MAX_REMEMBERED_SCANS + 2}" in runner.SCANS
+        assert "busy" in runner.SCANS
+    finally:
+        for scan_id in made:
+            runner.SCANS.pop(scan_id, None)

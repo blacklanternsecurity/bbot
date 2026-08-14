@@ -343,6 +343,39 @@ def create_server():
         await runner.request_stop(handle)
         return json.dumps(handle.progress(), indent=2, default=str)
 
+    @tool
+    async def scan_forget(
+        scan_id: Annotated[str, Field(description="Finished scan whose results you are done with.")],
+    ) -> str:
+        """Release a finished scan's results, freeing what the server held for it.
+
+        A scan stays readable after it ends, so its events are kept until
+        something says they are no longer wanted. Call this once you have read a
+        scan and stored what you need: the scan_id stops resolving and the memory
+        goes back, which is what lets one server run scans all day.
+
+        This does not stop anything -- a running scan is refused, because ending
+        one is `scan_stop`. The server also forgets its oldest finished scans on
+        its own once enough pile up, so this is how to be prompt rather than how
+        to avoid running out.
+        """
+        if runner.forget_scan(scan_id):
+            return json.dumps({"scan_id": scan_id, "forgotten": True}, indent=2)
+        handle = runner.SCANS.get(scan_id)
+        if handle is not None and handle.running:
+            return json.dumps(
+                {
+                    "scan_id": scan_id,
+                    "forgotten": False,
+                    "reason": f"the scan is {handle.state}; end it with scan_stop first",
+                },
+                indent=2,
+            )
+        return json.dumps(
+            {"scan_id": scan_id, "forgotten": False, "reason": "no such scan; it may already be forgotten"},
+            indent=2,
+        )
+
     return mcp
 
 
