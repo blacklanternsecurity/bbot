@@ -1,4 +1,5 @@
 import re
+import time
 
 from blasthttp import HTTPStatusError
 
@@ -422,6 +423,16 @@ async def test_web_http_compare(blasthttp_mock, bbot_scanner):
     compare_helper.compare_body({"asdf": "fdsa"}, {"fdsa": "asdf"})
     for mode in ("getparam", "header", "cookie"):
         assert await compare_helper.canary_check("http://www.example.com", mode=mode) is True
+
+    assert compare_helper.compare_body(["a", "b", "c"], ["a", "b", "c"]) is True
+    assert compare_helper.compare_body(["a", "b", "c"], ["a", "b", "x"]) is False
+
+    compare_helper.max_differing_lines = 10
+    base = [f"line {i}" for i in range(2000)]
+    similar = [f"line {i} X" if i < 50 else f"line {i}" for i in range(2000)]
+    start = time.monotonic()
+    assert compare_helper.compare_body(base, similar) is False
+    assert (time.monotonic() - start) < 5
 
     await scan._cleanup()
 

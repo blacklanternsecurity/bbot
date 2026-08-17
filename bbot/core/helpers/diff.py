@@ -1,5 +1,6 @@
 import logging
 import xmltodict
+from collections import Counter
 from deepdiff import DeepDiff
 from contextlib import suppress
 from xml.parsers.expat import ExpatError
@@ -99,6 +100,7 @@ class HttpCompare:
         self.headers = headers
         self.cookies = cookies
         self.timeout = 10
+        self.max_differing_lines = self.parent_helper.web_config.get("http_compare_max_differing_lines", 500)
         # Optional async callback fired once with baseline_1 after the baseline is established.
         self.on_baseline_ready = on_baseline_ready
 
@@ -238,6 +240,14 @@ class HttpCompare:
     def compare_body(self, content_1, content_2):
         if content_1 == content_2:
             return True
+
+        if isinstance(content_1, list) and isinstance(content_2, list):
+            counts_1 = Counter(content_1)
+            counts_2 = Counter(content_2)
+            differing = counts_1 - counts_2
+            differing.update(counts_2 - counts_1)
+            if sum(differing.values()) > self.max_differing_lines:
+                return False
 
         ddiff = DeepDiff(
             content_1,
