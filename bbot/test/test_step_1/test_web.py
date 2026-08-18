@@ -426,13 +426,35 @@ async def test_web_http_compare(blasthttp_mock, bbot_scanner):
 
     assert compare_helper.compare_body(["a", "b", "c"], ["a", "b", "c"]) is True
     assert compare_helper.compare_body(["a", "b", "c"], ["a", "b", "x"]) is False
+    assert compare_helper.compare_body(["a", "b", "c"], ["c", "b", "a"]) is True
+    assert compare_helper.compare_body({"a": 1}, {"a": 2}) is False
+    assert compare_helper.compare_body({"a": 1}, {"a": 1}) is True
 
     compare_helper.max_differing_lines = 10
-    base = [f"line {i}" for i in range(2000)]
-    similar = [f"line {i} X" if i < 50 else f"line {i}" for i in range(2000)]
+    shared = [f"line {i}" for i in range(100)]
+    at_threshold = compare_helper.compare_body(
+        shared + [f"a{i}" for i in range(5)],
+        shared + [f"b{i}" for i in range(5)],
+    )
+    over_threshold = compare_helper.compare_body(
+        shared + [f"a{i}" for i in range(6)],
+        shared + [f"b{i}" for i in range(6)],
+    )
+    assert at_threshold is False
+    assert over_threshold is False
+
+    compare_helper.max_differing_lines = 500
+    base = [f"line {i}" for i in range(20000)]
+    similar = [f"line {i} X" if i < 5000 else f"line {i}" for i in range(20000)]
     start = time.monotonic()
     assert compare_helper.compare_body(base, similar) is False
     assert (time.monotonic() - start) < 5
+
+    config_scan = bbot_scanner(config={"web": {"http_compare_max_differing_lines": 42}})
+    await config_scan._prep()
+    config_helper = config_scan.helpers.http_compare("http://www.example.com")
+    assert config_helper.max_differing_lines == 42
+    await config_scan._cleanup()
 
     await scan._cleanup()
 
