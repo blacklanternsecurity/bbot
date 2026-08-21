@@ -673,11 +673,14 @@ async def test_web_decode_error(bbot_scanner, bbot_httpserver):
     assert j1["decode_error"] == r1.decode_error
     assert scan.helpers.response_to_json(r1)["decode_error"] == r1.decode_error
 
-    # and the event is tagged, so nothing hashes or matches the bytes as a body unknowingly
+    # those bytes are not content, so they are not offered as a body or a title
+    assert j1["body"] == ""
+    assert j1["title"] == ""
+    assert "not actually gzipped" not in str(j1)
     event1 = scan.make_event(j1, "HTTP_RESPONSE", parent=scan.root_event)
-    assert "decode-error" in event1.tags
+    assert not event1.body
 
-    # a body that does match its Content-Encoding is ordinary content: no reason, no tag
+    # a body that does match its Content-Encoding is ordinary content
     r2 = await scan.helpers.request(bbot_httpserver.url_for("/honest"))
     assert r2 is not None
     assert r2.decode_error is None
@@ -685,7 +688,6 @@ async def test_web_decode_error(bbot_scanner, bbot_httpserver):
     assert "decode_error" not in j2
     assert "decode_error" not in scan.helpers.response_to_json(r2)
     event2 = scan.make_event(j2, "HTTP_RESPONSE", parent=scan.root_event)
-    assert "decode-error" not in event2.tags
     assert event2.data["title"] == "real body"
 
     await scan._cleanup()
