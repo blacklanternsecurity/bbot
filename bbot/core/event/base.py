@@ -1706,6 +1706,11 @@ class HTTP_RESPONSE(URL_UNVERIFIED):
         if str(self.http_status).startswith("3"):
             self.num_redirects += 1
 
+        # blasthttp keeps a response whose body didn't decode rather than dropping
+        # it. Tag it so nothing hashes, matches or diffs those bytes as a body.
+        if isinstance(self._data, dict) and self._data.get("decode_error"):
+            self.add_tag("decode-error")
+
         # Spill body to disk if a per-scan store is available. The body
         # is removed from `_data` so JSON / human renderers don't see it;
         # readers use the `.body` property which lazy-loads from the store.
