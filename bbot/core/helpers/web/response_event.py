@@ -22,7 +22,8 @@ def response_to_event_dict(response, url_input, method="GET"):
     Returns:
         dict with keys url, input, status_code, method, path, host, raw_header,
         header, content_type, content_length, title, body, location, hash. Adds
-        cert_info when the response carried a TLS certificate.
+        cert_info when the response carried a TLS certificate, and decode_error
+        when the body did not decode (in which case body and title are empty).
     """
     parsed = urlparse(response.url)
     path = parsed.path or "/"
@@ -42,11 +43,16 @@ def response_to_event_dict(response, url_input, method="GET"):
     content_length = int(header_dict.get("content_length", len(response.body_bytes)))
     location = header_dict.get("location", "")
 
-    body = response.body
+    # A body that didn't decode isn't content, so don't present it as text or
+    # title it. blasthttp says why it failed; carry that reason instead.
+    decode_error = response.decode_error
+    body = ""
     title = ""
-    title_match = _TITLE_REGEX.search(body)
-    if title_match:
-        title = title_match.group(1).strip()
+    if not decode_error:
+        body = response.body
+        title_match = _TITLE_REGEX.search(body)
+        if title_match:
+            title = title_match.group(1).strip()
 
     j = {
         "url": response.url,
@@ -71,6 +77,9 @@ def response_to_event_dict(response, url_input, method="GET"):
             "header_sha256": response.hash.header_sha256,
         },
     }
+
+    if decode_error:
+        j["decode_error"] = decode_error
 
     ci = response.cert_info
     if ci is not None:
