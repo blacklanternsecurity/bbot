@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.7hf4c2zy.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.50duc_cb.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1060,16 +1060,17 @@
 <div class="highlight" style="background: #0d1117"><span class="filename">bbot/modules/whois.py</span><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">bbot.modules.base</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">BaseModule</span>
 <span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">bbot.core.config.models</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">BaseModuleConfig,</span> <span style="color: #E6EDF3">Field</span>
 
+
 <span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">whois</span><span style="color: #E6EDF3">(BaseModule):</span>
-    <span style="color: #E6EDF3">watched_events</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"DNS_NAME"</span><span style="color: #E6EDF3">]</span> <span style="color: #8B949E; font-style: italic"># watch for DNS_NAME events</span>
-    <span style="color: #E6EDF3">produced_events</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"DNS_NAME"</span><span style="color: #E6EDF3">]</span> <span style="color: #8B949E; font-style: italic"># we produce DNS_NAME events</span>
+    <span style="color: #E6EDF3">watched_events</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"DNS_NAME"</span><span style="color: #E6EDF3">]</span>  <span style="color: #8B949E; font-style: italic"># watch for DNS_NAME events</span>
+    <span style="color: #E6EDF3">produced_events</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"DNS_NAME"</span><span style="color: #E6EDF3">]</span>  <span style="color: #8B949E; font-style: italic"># we produce DNS_NAME events</span>
     <span style="color: #E6EDF3">flags</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"passive"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"safe"</span><span style="color: #E6EDF3">]</span>
     <span style="color: #E6EDF3">meta</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"description"</span><span style="color: #E6EDF3">:</span> <span style="color: #A5D6FF">"Query WhoisXMLAPI for related domains"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"created_date"</span><span style="color: #E6EDF3">:</span> <span style="color: #A5D6FF">"2024-01-01"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"author"</span><span style="color: #E6EDF3">:</span> <span style="color: #A5D6FF">"@you"</span><span style="color: #E6EDF3">}</span>
 
     <span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">Config</span><span style="color: #E6EDF3">(BaseModuleConfig):</span>
         <span style="color: #E6EDF3">api_key:</span> <span style="color: #E6EDF3">str</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">Field(</span><span style="color: #A5D6FF">""</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">description</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"WhoisXMLAPI Key"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">sensitive</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">mandatory</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">)</span>
 
-    <span style="color: #E6EDF3">per_domain_only</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">True</span> <span style="color: #8B949E; font-style: italic"># only run once per domain</span>
+    <span style="color: #E6EDF3">per_domain_only</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #79C0FF">True</span>  <span style="color: #8B949E; font-style: italic"># only run once per domain</span>
 
     <span style="color: #E6EDF3">base_url</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">"https://www.whoisxmlapi.com/whoisserver/WhoisService"</span>
 
@@ -1129,9 +1130,11 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
         <span style="color: #FF7B72">return</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"No API key specified"</span>
     <span style="color: #FF7B72">return</span> <span style="color: #79C0FF">True</span>
 
+
 <span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">setup_deps</span><span style="color: #E6EDF3">(self):</span>
     <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">wordlist</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">helpers</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">wordlist(</span><span style="color: #A5D6FF">"https://raw.githubusercontent.com/user/wordlist.txt"</span><span style="color: #E6EDF3">)</span>
     <span style="color: #FF7B72">return</span> <span style="color: #79C0FF">True</span>
+
 
 <span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">setup</span><span style="color: #E6EDF3">(self):</span>
     <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">timeout</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"timeout"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">5</span><span style="color: #E6EDF3">)</span>
@@ -1143,6 +1146,7 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <h2 id="module-config-options">Module Config Options</h2>
 <p>Each module can have its own set of config options. These are defined as a <code>Config</code> inner class that inherits from <code>BaseModuleConfig</code>, using pydantic <code>Field</code> for defaults and descriptions. Here is a typical example:</p>
 <div class="highlight" style="background: #0d1117"><span class="filename">bbot/modules/portscan.py</span><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">bbot.core.config.models</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">BaseModuleConfig,</span> <span style="color: #E6EDF3">Field</span>
+
 
 <span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">portscan</span><span style="color: #E6EDF3">(BaseModule):</span>
     <span style="color: #8B949E; font-style: italic"># ...</span>

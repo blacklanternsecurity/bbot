@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.7hf4c2zy.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.50duc_cb.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -952,7 +952,6 @@
 <p>In this section are various helper functions that are designed to make your life easier when devving on BBOT. Whether you're extending BBOT by writing a module or working on its core, these functions are designed to act as useful machine parts to perform essential tasks, such as making a web request or executing a DNS query.</p>
 <p>The vast majority of these helpers can be accessed directly from the <code>.helpers</code> attribute of a scan or module, like so:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">MyModule</span><span style="color: #E6EDF3">(BaseModule):</span>
-
     <span style="color: #FF7B72; font-weight: bold">...</span>
 
     <span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">handle_event</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">event):</span>
