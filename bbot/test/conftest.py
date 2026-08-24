@@ -11,16 +11,6 @@ from contextlib import suppress
 from pytest_httpserver import HTTPServer
 
 
-class FastShutdownHTTPServer(HTTPServer):
-    """socketserver polls every 0.5s for a shutdown request, so every teardown paid
-    half a second. The poll interval is the only thing standing between us and an
-    immediate stop, and thread_target is documented as the override point."""
-
-    SHUTDOWN_POLL_INTERVAL = 0.005
-
-    def thread_target(self) -> None:
-        self.server.serve_forever(poll_interval=self.SHUTDOWN_POLL_INTERVAL)
-
 from bbot.test.worker import (
     BBOT_TEST_DIR,
     HTTPSERVER_ALLINTERFACES_PORT,
@@ -31,6 +21,18 @@ from bbot.test.worker import (
 from bbot.core import CORE
 from bbot.core.helpers.misc import execute_sync_or_async
 from bbot.core.helpers.interactsh import server_list as interactsh_servers
+
+
+class FastShutdownHTTPServer(HTTPServer):
+    """socketserver polls every 0.5s for a shutdown request, so every teardown paid
+    half a second. The poll interval is the only thing standing between us and an
+    immediate stop, and thread_target is documented as the override point."""
+
+    SHUTDOWN_POLL_INTERVAL = 0.005
+
+    def thread_target(self) -> None:
+        self.server.serve_forever(poll_interval=self.SHUTDOWN_POLL_INTERVAL)
+
 
 # silence stdout + trace
 root_logger = logging.getLogger()
