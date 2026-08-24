@@ -100,7 +100,7 @@ class HttpCompare:
         self.headers = headers
         self.cookies = cookies
         self.timeout = 10
-        self.max_differing_lines = self.parent_helper.web_config.get("http_compare_max_differing_lines", 500)
+        self.max_differing_lines = self.parent_helper.web_config.get("http_compare_max_differing_lines", 500) or 500
         # Optional async callback fired once with baseline_1 after the baseline is established.
         self.on_baseline_ready = on_baseline_ready
 
