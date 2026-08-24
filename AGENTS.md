@@ -238,10 +238,9 @@ class TestMyModule(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        assert any(
-            e.data == "info@blacklanternsecurity.com" and e.type == "EMAIL_ADDRESS"
-            for e in events
-        ), "Failed to find email"
+        assert any(e.data == "info@blacklanternsecurity.com" and e.type == "EMAIL_ADDRESS" for e in events), (
+            "Failed to find email"
+        )
 ```
 
 ### Module Lifecycle
@@ -456,6 +455,7 @@ When > 1, events are collected into batches and passed to `handle_batch(*events)
 ```python
 # portscan.py - masscan is most efficient with all targets at once
 batch_size = 1000000
+
 
 async def handle_batch(self, *events):
     targets, correlator = await self.make_targets(events, self.syn_scanned)
@@ -750,9 +750,7 @@ async def setup(self):
 Async generator for paginated API results. URL can contain `{page}`, `{page_size}`, and `{offset}` placeholders.
 
 ```python
-async for page in self.api_page_iter(
-    "https://api.example.com/search?q=test&page={page}&limit={page_size}"
-):
+async for page in self.api_page_iter("https://api.example.com/search?q=test&page={page}&limit={page_size}"):
     if not page.get("results"):
         break
     for result in page["results"]:
@@ -779,12 +777,12 @@ async for line in self.run_process_live(["masscan", "-oJ", "-", ...]):
 ### Logging
 
 ```python
-self.debug("Low-level detail")        # only visible with -d flag
-self.verbose("Useful but not critical") # visible with -v flag
+self.debug("Low-level detail")  # only visible with -d flag
+self.verbose("Useful but not critical")  # visible with -v flag
 self.info("Standard info")
-self.success("Something good happened") # green
-self.warning("Something concerning")    # orange
-self.error("Something failed")          # red
+self.success("Something good happened")  # green
+self.warning("Something concerning")  # orange
+self.error("Something failed")  # red
 
 # "Huge" variants: entire line in bold color
 self.hugesuccess("Major discovery!")
@@ -850,6 +848,7 @@ Inherit from `BaseOutputModule`. Receive all events and write them somewhere.
 ```python
 from bbot.modules.output.base import BaseOutputModule
 
+
 class my_output(BaseOutputModule):
     watched_events = ["*"]
     meta = {"description": "Custom output"}
@@ -906,9 +905,11 @@ class TestMyModule(ModuleTestBase):
         )
 
         # Mock DNS
-        await module_test.mock_dns({
-            "blacklanternsecurity.com": {"A": ["127.0.0.88"]},
-        })
+        await module_test.mock_dns(
+            {
+                "blacklanternsecurity.com": {"A": ["127.0.0.88"]},
+            }
+        )
 
         # Mock an HTTP server response
         module_test.set_expect_requests(
@@ -918,10 +919,9 @@ class TestMyModule(ModuleTestBase):
 
     def check(self, module_test, events):
         """Verify the scan produced the expected events."""
-        assert any(
-            e.data == "sub.blacklanternsecurity.com" and e.type == "DNS_NAME"
-            for e in events
-        ), "Failed to find subdomain"
+        assert any(e.data == "sub.blacklanternsecurity.com" and e.type == "DNS_NAME" for e in events), (
+            "Failed to find subdomain"
+        )
 ```
 
 The test lifecycle runs:

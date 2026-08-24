@@ -15,7 +15,7 @@ class trufflehog(BaseModule):
     }
 
     class Config(BaseModuleConfig):
-        version: str = Field("3.95.9", description="trufflehog version")
+        version: str = Field("3.97.0", description="trufflehog version")
         config: str = Field("", description="File path or URL to YAML trufflehog config")
         only_verified: bool = Field(True, description="Only report credentials that have been verified")
         concurrency: int = Field(8, description="Number of concurrent workers")
@@ -37,6 +37,7 @@ class trufflehog(BaseModule):
     ]
 
     scope_distance_modifier = 2
+    _module_threads = 2
 
     async def setup_deps(self):
         self.config_file = self.config.get("config", "")
@@ -86,6 +87,8 @@ class trufflehog(BaseModule):
         if isinstance(event.data, dict):
             description = event.data.get("description", "")
 
+        path = None
+        stdin_data = None
         if event.type == "CODE_REPOSITORY":
             path = event.url
             module = "github-experimental"
@@ -100,12 +103,8 @@ class trufflehog(BaseModule):
             else:
                 module = "filesystem"
         elif event.type in ("HTTP_RESPONSE", "RAW_TEXT"):
-            module = "filesystem"
-            file_data = event.raw_response if event.type == "HTTP_RESPONSE" else event.data
-            # write the response to a tempfile
-            # this is necessary because trufflehog doesn't yet support reading from stdin
-            # https://github.com/trufflesecurity/trufflehog/issues/162
-            path = self.helpers.tempfile(file_data, pipe=False)
+            module = "stdin"
+            stdin_data = event.raw_response if event.type == "HTTP_RESPONSE" else event.data
 
         if event.type == "CODE_REPOSITORY":
             host = event.host
@@ -118,7 +117,7 @@ class trufflehog(BaseModule):
             rawv2_result,
             verified,
             source_metadata,
-        ) in self.execute_trufflehog(module, path):
+        ) in self.execute_trufflehog(module, path=path, stdin_data=stdin_data):
             verified_str = "Verified" if verified else "Possible"
             confidence = "CONFIRMED" if verified else "MEDIUM"
             data = {
@@ -127,6 +126,10 @@ class trufflehog(BaseModule):
             }
             if host:
                 data["host"] = host
+            if event.type == "HTTP_RESPONSE":
+                url = event.data.get("url", "")
+                if url:
+                    data["url"] = url
 
             data["severity"] = "HIGH"
             data["confidence"] = confidence
@@ -142,11 +145,7 @@ class trufflehog(BaseModule):
                 context=f'{{module}} searched {event.type} using "{module}" method and found {verified_str.lower()} secret ({{event.type}}): {raw_result}',
             )
 
-        # clean up the tempfile when we're done with it
-        if event.type in ("HTTP_RESPONSE", "RAW_TEXT"):
-            path.unlink(missing_ok=True)
-
-    async def execute_trufflehog(self, module, path=None, string=None):
+    async def execute_trufflehog(self, module, path=None, stdin_data=None):
         command = [
             "trufflehog",
             "--json",
@@ -169,6 +168,8 @@ class trufflehog(BaseModule):
         elif module == "filesystem":
             command.append("filesystem")
             command.append(path)
+        elif module == "stdin":
+            command.append("stdin")
         elif module == "github-experimental":
             command.append("github-experimental")
             command.append("--repo=" + path)
@@ -176,10 +177,14 @@ class trufflehog(BaseModule):
             command.append("--delete-cached-data")
             command.append("--token=" + self.github_token)
 
-        stats_file = self.helpers.tempfile_tail(callback=partial(self.log_trufflehog_status, path))
+        run_kwargs = {}
+        if stdin_data is not None:
+            run_kwargs["input"] = stdin_data
+
+        stats_file = self.helpers.tempfile_tail(callback=partial(self.log_trufflehog_status, path or module))
         try:
             with open(stats_file, "w") as stats_fh:
-                async for line in self.helpers.run_live(command, stderr=stats_fh):
+                async for line in self.run_process_live(command, stderr=stats_fh, **run_kwargs):
                     try:
                         j = json.loads(line)
                     except json.decoder.JSONDecodeError:
@@ -202,7 +207,7 @@ class trufflehog(BaseModule):
         finally:
             stats_file.unlink(missing_ok=True)
 
-    def log_trufflehog_status(self, path, line):
+    def log_trufflehog_status(self, target, line):
         try:
             line = json.loads(line)
         except Exception:
@@ -211,5 +216,5 @@ class trufflehog(BaseModule):
         message = line.get("msg", "")
         ts = line.get("ts", "")
         status = f"Message: {message} | Timestamp: {ts}"
-        self.verbose(f"Current scan target: {path}")
+        self.verbose(f"Current scan target: {target}")
         self.verbose(status)

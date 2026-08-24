@@ -56,10 +56,7 @@ class TestMyModule(ModuleTestBase):
         module_test.blasthttp_mock.add_response(
             url="https://api.com/subdomains?apikey=deadbeef&domain=blacklanternsecurity.com",
             json={
-                "subdomains": [
-                    "www.blacklanternsecurity.com",
-                    "dev.blacklanternsecurity.com"
-                ],
+                "subdomains": ["www.blacklanternsecurity.com", "dev.blacklanternsecurity.com"],
             },
         )
         # mock DNS
@@ -120,12 +117,14 @@ class TestMyModule(ModuleTestBase):
 Use `module_test.mock_dns()` to control DNS resolution. Supports A, AAAA, CNAME, MX, TXT, and other record types:
 
 ```python
-    async def setup_after_prep(self, module_test):
-        await module_test.mock_dns({
+async def setup_after_prep(self, module_test):
+    await module_test.mock_dns(
+        {
             "blacklanternsecurity.com": {"A": ["127.0.0.88"]},
             "www.blacklanternsecurity.com": {"CNAME": ["blacklanternsecurity.com"]},
             "mail.blacklanternsecurity.com": {"MX": ["mx.example.com"]},
-        })
+        }
+    )
 ```
 
 ### Debugging a test
@@ -133,12 +132,12 @@ Use `module_test.mock_dns()` to control DNS resolution. Supports A, AAAA, CNAME,
 You can debug from within a test using standard Python logging via `self.log`:
 
 ```python
-    def check(self, module_test, events):
-        for e in events:
-            self.log.critical(e.type)     # bright red
-            self.log.warning(e.tags)      # orange
-            self.log.info(e.data)         # blue
-            self.log.debug(e.parent)      # grey (requires -d)
+def check(self, module_test, events):
+    for e in events:
+        self.log.critical(e.type)  # bright red
+        self.log.warning(e.tags)  # orange
+        self.log.info(e.data)  # blue
+        self.log.debug(e.parent)  # grey (requires -d)
 ```
 
 ### Advanced test features
@@ -150,6 +149,7 @@ For dynamic HTTP responses, use `set_expect_requests_handler` with a custom hand
 ```python
 import re
 from werkzeug.wrappers import Response
+
 
 class TestMyModule(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
@@ -172,27 +172,29 @@ class TestMyModule(ModuleTestBase):
 For modules that use out-of-band interactions (interactsh):
 
 ```python
-    async def setup_before_prep(self, module_test):
-        self.interactsh_mock_instance = module_test.mock_interactsh("mymodule")
+async def setup_before_prep(self, module_test):
+    self.interactsh_mock_instance = module_test.mock_interactsh("mymodule")
 
-        from bbot.core.helpers.helper import ConfigAwareHelper
-        module_test.monkeypatch.setattr(
-            ConfigAwareHelper, "interactsh",
-            lambda *a, **kw: self.interactsh_mock_instance,
-        )
+    from bbot.core.helpers.helper import ConfigAwareHelper
+
+    module_test.monkeypatch.setattr(
+        ConfigAwareHelper,
+        "interactsh",
+        lambda *a, **kw: self.interactsh_mock_instance,
+    )
 ```
 
 #### Other class attributes
 
 ```python
 class TestMyModule(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]   # override default target
+    targets = ["http://127.0.0.1:8888"]  # override default target
     modules_overrides = ["http", "mymodule"]  # control which modules are enabled
-    module_name = "mymodule"               # if your class name doesn't match the module
+    module_name = "mymodule"  # if your class name doesn't match the module
     config_overrides = {"modules": {"mymodule": {"option": "value"}}}
-    blacklist = ["bad.example.com"]        # set a blacklist
-    seeds = ["seed.example.com"]           # set seeds separate from targets
-    skip_distro_tests = True               # skip when running in CI distro tests (e.g. docker-dependent tests)
+    blacklist = ["bad.example.com"]  # set a blacklist
+    seeds = ["seed.example.com"]  # set seeds separate from targets
+    skip_distro_tests = True  # skip when running in CI distro tests (e.g. docker-dependent tests)
 ```
 
 ### More examples
