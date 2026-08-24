@@ -237,17 +237,33 @@ class HttpCompare:
                 differing_headers.append(header_value)
         return differing_headers
 
+    def _leaf_counts(self, content):
+        counts = Counter()
+        stack = [("root", content)]
+        while stack:
+            path, node = stack.pop()
+            if path in self.ddiff_filters:
+                continue
+            if isinstance(node, dict):
+                for key, value in node.items():
+                    stack.append((f"{path}[{key!r}]", value))
+            elif isinstance(node, list):
+                for index, value in enumerate(node):
+                    stack.append((f"{path}[{index}]", value))
+            else:
+                counts[str(node)] += 1
+        return counts
+
     def compare_body(self, content_1, content_2):
         if content_1 == content_2:
             return True
 
-        if isinstance(content_1, list) and isinstance(content_2, list):
-            counts_1 = Counter(content_1)
-            counts_2 = Counter(content_2)
-            differing = counts_1 - counts_2
-            differing.update(counts_2 - counts_1)
-            if sum(differing.values()) > self.max_differing_lines:
-                return False
+        counts_1 = self._leaf_counts(content_1)
+        counts_2 = self._leaf_counts(content_2)
+        differing = counts_1 - counts_2
+        differing.update(counts_2 - counts_1)
+        if sum(differing.values()) > self.max_differing_lines:
+            return False
 
         ddiff = DeepDiff(
             content_1,
