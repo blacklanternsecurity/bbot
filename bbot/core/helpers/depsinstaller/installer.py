@@ -156,6 +156,7 @@ class DepsInstaller:
         await self.install_core_deps()
         succeeded = []
         failed = []
+        await self._batch_pip_install(modules)
         try:
             notified = False
             for m in modules:
@@ -471,6 +472,42 @@ class DepsInstaller:
                 ]
             )
         return bool(self.parent_helper.which(command))
+
+    async def _batch_pip_install(self, modules):
+        """Pre-install every module's pip deps in one resolver pass.
+
+        install_module() still runs per module afterward; by then the packages are
+        already present, so its own pip call is a no-op. Only modules using the
+        default constraints are batched, since custom constraints must be resolved
+        against their own set.
+        """
+        if self.deps_behavior == "disable":
+            return
+
+        packages = []
+        seen = set()
+        for m in modules:
+            preloaded = self.all_modules_preloaded.get(m)
+            if not preloaded:
+                continue
+            deps = preloaded.get("deps", {})
+            if deps.get("pip_constraints"):
+                continue
+            for dep in deps.get("pip", []):
+                if dep in seen:
+                    continue
+                seen.add(dep)
+                if self.deps_behavior != "force_install":
+                    satisfied, _ = self._pip_deps_satisfied([dep])
+                    if satisfied:
+                        continue
+                packages.append(dep)
+
+        if len(packages) < 2:
+            return
+
+        log.verbose(f"Batch-installing {len(packages):,} pip packages for {len(modules):,} modules")
+        await self.pip_install(packages)
 
     def _pip_deps_satisfied(self, deps_pip):
         """Check whether a module's pip dependencies are currently installed in this environment.

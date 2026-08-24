@@ -238,6 +238,10 @@ class Scanner:
             self.dispatcher = dispatcher
         self.dispatcher.set_scan(self)
 
+        # main loop polls fast when events are flowing, backs off when idle
+        self._main_loop_poll_min = 0.002
+        self._main_loop_poll_max = 0.1
+
         # scope distance
         self.scope_config = self.config.get("scope", {})
         self.scope_search_distance = max(0, int(self.scope_config.get("search_distance", 0)))
@@ -472,6 +476,7 @@ class Scanner:
             )
 
             # main scan loop
+            poll_interval = self._main_loop_poll_min
             while 1:
                 # abort if we're aborting
                 if self.aborting:
@@ -484,6 +489,7 @@ class Scanner:
                     for e in events:
                         yield e
                     if events:
+                        poll_interval = self._main_loop_poll_min
                         continue
 
                 # break if initialization finished and the scan is no longer active
@@ -492,8 +498,10 @@ class Scanner:
                     if not new_activity:
                         self._success = True
                         break
+                    poll_interval = self._main_loop_poll_min
 
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(poll_interval)
+                poll_interval = min(poll_interval * 2, self._main_loop_poll_max)
 
             self._success = True
 

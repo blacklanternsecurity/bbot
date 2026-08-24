@@ -1441,6 +1441,9 @@ def search_dict_by_key(key, d):
             yield from search_dict_by_key(key, v)
 
 
+_PLACEHOLDER_REGEX = re.compile(r"#\{(\w+)\}")
+
+
 def search_format_dict(d, **kwargs):
     """Recursively format string values in a dictionary or list using the provided keyword arguments.
 
@@ -1460,9 +1463,9 @@ def search_format_dict(d, **kwargs):
     elif isinstance(d, list):
         return [search_format_dict(v, **kwargs) for v in d]
     elif isinstance(d, str):
-        for find, replace in kwargs.items():
-            find = "#{" + str(find) + "}"
-            d = d.replace(find, replace)
+        if "#{" not in d:
+            return d
+        return _PLACEHOLDER_REGEX.sub(lambda m: kwargs.get(m.group(1), m.group(0)), d)
     return d
 
 

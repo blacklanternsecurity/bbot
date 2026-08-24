@@ -7,7 +7,7 @@ import asyncio
 import logging
 from pathlib import Path
 import multiprocessing as mp
-from functools import partial
+from functools import partial, lru_cache
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
 from . import misc
@@ -28,6 +28,13 @@ from bbot.scanner.target import BaseTarget
 log = logging.getLogger("bbot.core.helpers")
 
 _PR_SET_PDEATHSIG = 1
+
+
+@lru_cache(maxsize=2)
+def _shared_cloudcheck(ssl_verify):
+    from cloudcheck import CloudCheck
+
+    return CloudCheck(verify_ssl=ssl_verify)
 
 
 def _pool_worker_init():
@@ -153,10 +160,8 @@ class ConfigAwareHelper:
     @property
     def cloudcheck(self):
         if self._cloudcheck is None:
-            from cloudcheck import CloudCheck
-
             ssl_verify = self.web_config.get("ssl_verify_infrastructure", True)
-            self._cloudcheck = CloudCheck(verify_ssl=ssl_verify)
+            self._cloudcheck = _shared_cloudcheck(ssl_verify)
         return self._cloudcheck
 
     def bloom_filter(self, size):
