@@ -7,6 +7,19 @@ from bbot.modules.output.base import BaseOutputModule
 from bbot.modules.report.base import BaseReportModule
 from bbot.modules.internal.base import BaseInternalModule
 
+MODULE_SHARDS = 4
+
+
+def module_shard(modules, shard):
+    """Slice a module list so each shard loads its own subset.
+
+    These tests walk every module in a single body, which xdist cannot split.
+    Sharding the module list turns one long test into several short ones that
+    together still cover every module.
+    """
+    ordered = sorted(modules)
+    return [m for i, m in enumerate(ordered) if i % MODULE_SHARDS == shard]
+
 
 @pytest.mark.asyncio
 async def test_modules_basic_checks(events, blasthttp_mock):
@@ -337,10 +350,11 @@ async def test_modules_basic_perhostonly(bbot_scanner):
 
 
 @pytest.mark.asyncio
-async def test_modules_basic_perdomainonly(bbot_scanner, monkeypatch):
+@pytest.mark.parametrize("shard", range(MODULE_SHARDS))
+async def test_modules_basic_perdomainonly(bbot_scanner, monkeypatch, shard):
     per_domain_scan = bbot_scanner(
         "evilcorp.com",
-        modules=list(available_modules),
+        modules=module_shard(available_modules, shard),
         config={i: True for i in available_internal_modules if i != "dnsresolve"},
         force_start=True,
     )
@@ -517,10 +531,11 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, blasthttp_mock
 
 
 @pytest.mark.asyncio
-async def test_module_loading(bbot_scanner):
+@pytest.mark.parametrize("shard", range(MODULE_SHARDS))
+async def test_module_loading(bbot_scanner, shard):
     scan2 = bbot_scanner(
-        modules=list(available_modules),
-        output_modules=list(available_output_modules),
+        modules=module_shard(available_modules, shard),
+        output_modules=module_shard(available_output_modules, shard),
         config={i: True for i in available_internal_modules if i != "dnsresolve"},
         force_start=True,
     )
