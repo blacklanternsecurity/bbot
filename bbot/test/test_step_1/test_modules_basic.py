@@ -345,36 +345,49 @@ async def test_modules_basic_perdomainonly(bbot_scanner, monkeypatch):
         force_start=True,
     )
 
-    await per_domain_scan._prep()
-    await per_domain_scan.setup_modules()
+    # postcheck only reads dedup state off each module, so loading is enough.
+    # _prep() additionally runs setup() on every module, and the ones that dial a
+    # service (rabbitmq, postgres, mysql) each burn their full connect-retry budget.
+    await per_domain_scan.load_modules()
     await per_domain_scan._set_status("RUNNING")
 
-    # ensure that multiple events to the same "host" (schema + host) are blocked and check the per host tracker
-
+    # ensure that a second event under an already-seen domain is deduped away
+    per_domain_seen = []
     for module_name, module in sorted(per_domain_scan.modules.items()):
         monkeypatch.setattr(module, "filter_event", BaseModule(per_domain_scan).filter_event)
 
-        if "URL" in module.watched_events:
-            url_1 = per_domain_scan.make_event(
-                "http://www.evilcorp.com/1", event_type="URL", parent=per_domain_scan.root_event, tags=["status-200"]
-            )
-            url_1.scope_distance = 0
-            url_2 = per_domain_scan.make_event(
-                "http://mail.evilcorp.com/2", event_type="URL", parent=per_domain_scan.root_event, tags=["status-200"]
-            )
-            url_2.scope_distance = 0
-            valid_1, reason_1 = await module._event_postcheck(url_1)
-            valid_2, reason_2 = await module._event_postcheck(url_2)
+        # every per_domain_only module watches DNS_NAME, so probing URL-only never
+        # reached the branch below
+        if "DNS_NAME" in module.watched_events:
+            event_type, host_1, host_2 = "DNS_NAME", "www.evilcorp.com", "mail.evilcorp.com"
+        elif "URL" in module.watched_events:
+            event_type, host_1, host_2 = "URL", "http://www.evilcorp.com/1", "http://mail.evilcorp.com/2"
+        else:
+            continue
 
-            if module.per_domain_only is True:
-                assert valid_1 is True
-                assert valid_2 is False
-                assert hash("evilcorp.com") in module._per_host_tracker
-                assert reason_2 == "per_domain_only enabled and already seen domain"
+        event_1 = per_domain_scan.make_event(
+            host_1, event_type=event_type, parent=per_domain_scan.root_event, tags=["status-200"]
+        )
+        event_1.scope_distance = 0
+        event_2 = per_domain_scan.make_event(
+            host_2, event_type=event_type, parent=per_domain_scan.root_event, tags=["status-200"]
+        )
+        event_2.scope_distance = 0
+        valid_1, reason_1 = await module._event_postcheck(event_1)
+        valid_2, reason_2 = await module._event_postcheck(event_2)
 
-            else:
-                assert valid_1 is True
-                assert valid_2 is True
+        if module.per_domain_only is True:
+            per_domain_seen.append(module_name)
+            assert valid_1 is True, f"{module_name}: first event rejected ({reason_1})"
+            assert valid_2 is False, f"{module_name}: second event accepted"
+            assert hash("evilcorp.com") in module._incoming_dup_tracker
+            assert reason_2 == "module has already seen it (per_domain_only=True)", f"{module_name}: {reason_2}"
+
+        elif event_type == "URL":
+            assert valid_1 is True, f"{module_name}: {reason_1}"
+            assert valid_2 is True, f"{module_name}: {reason_2}"
+
+    assert per_domain_seen, "no per_domain_only modules were exercised"
 
     await per_domain_scan._cleanup()
 
