@@ -18,7 +18,6 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
-        shard: [0, 1, 2, 3]
     steps:
       - uses: actions/checkout@v7
       - name: Set up Python
@@ -38,15 +37,13 @@ jobs:
       - name: Run tests
         env:
           BBOT_IO_API_KEY: ${{ secrets.BBOT_IO_API_KEY }}
-          BBOT_TEST_SHARDS: "4"
-          BBOT_TEST_SHARD: ${{ matrix.shard }}
         run: |
           uv run pytest -vv -n $(python bbot/test/worker_count.py) --dist loadgroup --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO --cov-config=bbot/test/coverage.cfg --cov-report xml:cov.xml --cov=bbot .
       - name: Upload Debug Logs
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: pytest-debug-logs-${{ env.PYTHON_VERSION }}-${{ matrix.shard }}
+          name: pytest-debug-logs-${{ env.PYTHON_VERSION }}
           path: pytest_debug.log
       - name: Upload Code Coverage
         uses: codecov/codecov-action@v7
