@@ -50,8 +50,8 @@ with open(Path(__file__).parent / "test.conf") as _f:
 # and the sessionfinish cleanup below would delete a directory still in use.
 test_config["home"] = str(BBOT_TEST_DIR)
 
-# Deps install once into a shared dir instead of once per worker. The per-worker
-# home above still isolates scan output and temp files.
+# Deps install once into a shared dir instead of once per worker. Scan output stays
+# per-worker; the deps scratch dir does not, because it is baked into the module hash.
 os.environ.setdefault("BBOT_SHARED_DEPS_DIR", str(BBOT_TEST_SHARED_DIR))
 
 os.environ["BBOT_DEBUG"] = "True"

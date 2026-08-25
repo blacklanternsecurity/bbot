@@ -96,7 +96,7 @@ class ConfigAwareHelper:
         self.cache_dir = self.deps_home / "cache"
         self.tools_dir = self.deps_home / "tools"
         self.lib_dir = self.deps_home / "lib"
-        self.temp_dir = self.bbot_home / "temp"
+        self.temp_dir = self.deps_home / "temp"
         self.scans_dir = self.bbot_home / "scans"
         self.wordlist_dir = Path(__file__).parent.parent.parent / "wordlists"
         self.current_dir = Path.cwd()

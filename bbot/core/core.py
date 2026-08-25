@@ -86,7 +86,9 @@ class BBOTCore:
 
     @property
     def temp_dir(self):
-        return self.home / "temp"
+        # BBOT_TEMP is the scratch dir for dependency builds and is baked into the
+        # module hash, so it belongs with the other install-once dirs.
+        return self.deps_home / "temp"
 
     @property
     def lib_dir(self):
