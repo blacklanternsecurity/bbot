@@ -54,22 +54,6 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./cov.xml
           verbose: true
-  test_gate:
-    name: test (${{ matrix.python-version }})
-    needs: test
-    if: always()
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
-    steps:
-      - name: Check shard results
-        run: |
-          if [[ "${{ needs.test.result }}" != "success" ]]; then
-            echo "sharded test matrix result: ${{ needs.test.result }}"
-            exit 1
-          fi
   publish_code:
     needs: test
     runs-on: ubuntu-latest
