@@ -157,10 +157,60 @@ class DepsInstaller:
         # Concurrent scans (notably xdist workers) share the deps dir, so serialize
         # installs across processes: without this they race on the same files and
         # each pays the full install anyway.
+        # Taking the lock unconditionally serializes every scan behind whichever one
+        # is actually installing, so check first whether there is any work to do.
+        # That check only reads, so it is safe outside the lock.
+        self.setup_status = self.read_setup_status()
+        nothing_to_do = self._all_deps_satisfied(modules)
+        if nothing_to_do is not None:
+            return nothing_to_do
         with self._install_lock():
             # another process may have installed deps while we waited for the lock
             self.setup_status = self.read_setup_status()
             return await self._install(*modules)
+
+    def _all_deps_satisfied(self, modules):
+        """Return (succeeded, failed) if every module is already installed, else None.
+
+        Mirrors the accounting in _install() so the fast path and the locked path
+        agree on which modules count as succeeded.
+        """
+        if self.deps_behavior in ("force_install", "retry_failed"):
+            return None
+        if not self._core_deps_cached():
+            return None
+        succeeded = []
+        for m in modules:
+            if self.deps_behavior == "disable":
+                succeeded.append(m)
+                continue
+            preloaded = self.all_modules_preloaded.get(m)
+            if preloaded is None:
+                return None
+            if not list(chain(*preloaded["deps"].values())):
+                succeeded.append(m)
+                continue
+            if self.setup_status.get(self._module_hash(preloaded), None) is not True:
+                return None
+            satisfied, _ = self._pip_deps_satisfied(preloaded["deps"]["pip"])
+            if not satisfied:
+                return None
+            succeeded.append(m)
+        succeeded.sort()
+        return succeeded, []
+
+    def _core_deps_cached(self):
+        core_deps_hash = str(mmh3.hash(orjson.dumps(self.CORE_DEPS, option=orjson.OPT_SORT_KEYS)))
+        return (self.parent_helper.cache_dir / core_deps_hash).exists()
+
+    def _module_hash(self, preloaded):
+        return self.parent_helper.sha1(
+            json.dumps(preloaded["deps"], sort_keys=True)
+            + self.venv
+            + str(self.parent_helper.deps_home)
+            + os.uname()[1]
+            + str(__version__)
+        ).hexdigest()
 
     @contextmanager
     def _install_lock(self):
@@ -193,13 +243,7 @@ class DepsInstaller:
                 log.debug(f"Installing {m} - Preloaded Deps {preloaded['deps']}")
                 # make a hash of the dependencies and check if it's already been handled
                 # take into consideration whether the venv or the deps directory changes
-                module_hash = self.parent_helper.sha1(
-                    json.dumps(preloaded["deps"], sort_keys=True)
-                    + self.venv
-                    + str(self.parent_helper.deps_home)
-                    + os.uname()[1]
-                    + str(__version__)
-                ).hexdigest()
+                module_hash = self._module_hash(preloaded)
                 success = self.setup_status.get(module_hash, None)
                 dependencies = list(chain(*preloaded["deps"].values()))
                 if len(dependencies) <= 0:
@@ -441,8 +485,11 @@ class DepsInstaller:
         return setup_status
 
     def write_setup_status(self):
-        with open(self.setup_status_cache, "w") as f:
+        # readers take no lock, so swap the file in atomically to avoid a torn read
+        tmp = self.setup_status_cache.with_suffix(f".{os.getpid()}.tmp")
+        with open(tmp, "w") as f:
             json.dump(self.setup_status, f)
+        os.replace(tmp, self.setup_status_cache)
 
     def ensure_root(self, message=""):
         self._install_sudo_askpass()
