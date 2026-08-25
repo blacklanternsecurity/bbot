@@ -180,7 +180,10 @@ class DepsInstaller:
         Mirrors the accounting in _install() so the fast path and the locked path
         agree on which modules count as succeeded.
         """
-        if self.deps_behavior in ("force_install", "retry_failed"):
+        # retry_failed only revisits modules recorded as failed; the loop below already
+        # declines on any status that is not True, so it is safe on this path.
+        # force_install reinstalls regardless of status, so it can never skip the lock.
+        if self.deps_behavior == "force_install":
             return None
         if not self._core_deps_cached():
             return None
