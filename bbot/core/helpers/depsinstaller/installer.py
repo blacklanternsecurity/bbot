@@ -196,7 +196,7 @@ class DepsInstaller:
                 module_hash = self.parent_helper.sha1(
                     json.dumps(preloaded["deps"], sort_keys=True)
                     + self.venv
-                    + str(self.parent_helper.tools_dir.parent)
+                    + str(self.parent_helper.deps_home)
                     + os.uname()[1]
                     + str(__version__)
                 ).hexdigest()

@@ -90,15 +90,12 @@ class ConfigAwareHelper:
     def __init__(self, preset):
         self.preset = preset
         self.bbot_home = self.preset.bbot_home
-        # Dependency installs, downloaded tools and libs are keyed on these paths and
-        # are safe to share across concurrent scans. BBOT_SHARED_DEPS_DIR lets the test
-        # suite give every xdist worker its own home (for scan output) while still
-        # installing deps exactly once.
-        shared_home = os.environ.get("BBOT_SHARED_DEPS_DIR", "").strip()
-        deps_home = Path(shared_home) if shared_home else self.bbot_home
-        self.cache_dir = deps_home / "cache"
-        self.tools_dir = deps_home / "tools"
-        self.lib_dir = deps_home / "lib"
+        # deps_home is bbot_home unless BBOT_SHARED_DEPS_DIR redirects the install-once
+        # dirs elsewhere; see BBOTCore.deps_home.
+        self.deps_home = self.preset.deps_home
+        self.cache_dir = self.deps_home / "cache"
+        self.tools_dir = self.deps_home / "tools"
+        self.lib_dir = self.deps_home / "lib"
         self.temp_dir = self.bbot_home / "temp"
         self.scans_dir = self.bbot_home / "scans"
         self.wordlist_dir = Path(__file__).parent.parent.parent / "wordlists"

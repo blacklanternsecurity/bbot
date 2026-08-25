@@ -467,8 +467,17 @@ class ModuleLoader:
     def preload_cache(self, value):
         self._preload_cache = value
         mkdir(self.preload_cache_file.parent)
-        with open(self.preload_cache_file, "wb") as f:
-            pickle.dump(self._preload_cache, f)
+        # concurrent scans can share the cache dir, so write via a private temp file
+        # and rename: a reader either sees the old cache or the new one, never a
+        # half-written pickle
+        tmp_file = self.preload_cache_file.with_suffix(f".{os.getpid()}.tmp")
+        try:
+            with open(tmp_file, "wb") as f:
+                pickle.dump(self._preload_cache, f)
+            os.replace(tmp_file, self.preload_cache_file)
+        finally:
+            with suppress(OSError):
+                tmp_file.unlink()
 
     def save_preload_cache(self):
         self.preload_cache = self.__preloaded
