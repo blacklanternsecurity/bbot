@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from bbot.test.worker_count import RESERVE_MB, MB_PER_WORKER, cpu_count, worker_count
+from bbot.test.worker_count import OVERSUBSCRIBE, RESERVE_MB, MB_PER_WORKER, cpu_count, worker_count
 
 
 def _sysconf(total_mb):
@@ -44,11 +44,11 @@ def test_worker_count_is_capped_by_memory():
                 assert worker_count() == 2
 
 
-def test_worker_count_is_capped_by_cores():
+def test_worker_count_is_capped_by_oversubscribed_cores():
     with patch.dict("os.environ", {}, clear=True):
         with patch("bbot.test.worker_count.cpu_count", return_value=4):
             with patch("os.sysconf", _sysconf(RESERVE_MB + 64 * MB_PER_WORKER)):
-                assert worker_count() == 4
+                assert worker_count() == 4 * OVERSUBSCRIBE
 
 
 def test_worker_count_never_returns_zero_on_small_machines():
@@ -64,7 +64,7 @@ def test_worker_count_falls_back_to_cpus_when_memory_unknown():
         with patch.dict("os.environ", {}, clear=True):
             with patch("bbot.test.worker_count.cpu_count", return_value=6):
                 with patch("os.sysconf", side_effect=exc):
-                    assert worker_count() == 6
+                    assert worker_count() == 6 * OVERSUBSCRIBE
 
 
 def test_cpu_count_prefers_affinity():
