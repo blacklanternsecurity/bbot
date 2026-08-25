@@ -17,20 +17,13 @@ class TestKafka(ModuleTestBase):
 
     async def setup_before_prep(self, module_test):
         # Start Zookeeper
-        await asyncio.create_subprocess_exec(
-            "docker", "run", "-d", "--rm", "--name", "bbot-test-zookeeper", "-p", "2181:2181", "zookeeper:3.9"
-        )
+        await self.start_container("bbot-test-zookeeper", "-p", "2181:2181", "zookeeper:3.9")
 
         # Wait for Zookeeper to be ready
         await self.wait_for_port_open(2181)
 
         # Start Kafka using wurstmeister/kafka
-        await asyncio.create_subprocess_exec(
-            "docker",
-            "run",
-            "-d",
-            "--rm",
-            "--name",
+        await self.start_container(
             "bbot-test-kafka",
             "--link",
             "bbot-test-zookeeper:zookeeper",
@@ -61,9 +54,12 @@ class TestKafka(ModuleTestBase):
             group_id="test_group",
             auto_offset_reset="earliest",
         )
-        await self.consumer.start()
 
         try:
+            # inside the try: a failure here must still tear the containers down,
+            # otherwise they hold port 9092 and every retry fails to bind it
+            await self.consumer.start()
+
             events_json = [e.json() for e in events]
             events_json.sort(key=lambda x: x["timestamp"])
 
@@ -89,11 +85,5 @@ class TestKafka(ModuleTestBase):
             if hasattr(self, "consumer") and not self.consumer._closed:
                 await self.consumer.stop()
             # Stop Kafka and Zookeeper containers
-            p1 = await asyncio.create_subprocess_exec(
-                "docker", "stop", "bbot-test-kafka", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-            )
-            await p1.communicate()
-            p2 = await asyncio.create_subprocess_exec(
-                "docker", "stop", "bbot-test-zookeeper", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-            )
-            await p2.communicate()
+            await self.stop_container("bbot-test-kafka")
+            await self.stop_container("bbot-test-zookeeper")

@@ -1,3 +1,4 @@
+import time
 import pytest
 import asyncio
 import logging
@@ -7,6 +8,7 @@ from ...bbot_fixtures import *
 from bbot.scanner import Scanner
 from bbot.core.config.merge import deep_merge
 from bbot.core.helpers.misc import rand_string
+from bbot.test.worker import CONTAINER_READY_TIMEOUT, _OOM_HINT
 
 log = logging.getLogger("bbot.test.modules")
 
@@ -178,12 +180,63 @@ class ModuleTestBase:
     async def _mock_http_wildcard(*args, **kwargs):
         return False
 
-    async def wait_for_port_open(self, port):
+    async def wait_for_port_open(self, port, timeout=CONTAINER_READY_TIMEOUT):
+        deadline = time.time() + timeout
         while not await self.is_port_open("localhost", port):
+            if time.time() > deadline:
+                raise RuntimeError(
+                    f"Port {port} did not open within {timeout}s, so the container never came up. {_OOM_HINT}"
+                )
             self.log.verbose(f"Waiting for port {port} to be open...")
             await asyncio.sleep(0.5)
         # allow an extra second for things to settle
         await asyncio.sleep(1)
+
+    async def start_container(self, name, *args):
+        """Start a detached container, replacing any leftover of the same name.
+
+        A container the previous attempt failed to remove keeps its published
+        ports bound, so the retry's ``docker run`` fails and the test then waits
+        on a port nothing will ever listen on.
+        """
+        rm = await asyncio.create_subprocess_exec(
+            "docker",
+            "rm",
+            "-f",
+            name,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        await rm.communicate()
+
+        proc = await asyncio.create_subprocess_exec(
+            "docker",
+            "run",
+            "-d",
+            "--rm",
+            "--name",
+            name,
+            *args,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await proc.communicate()
+        if proc.returncode != 0:
+            raise RuntimeError(
+                f"Failed to start container {name} (exit {proc.returncode}): {stderr.decode(errors='replace').strip()}"
+            )
+        return stdout.decode(errors="replace").strip()
+
+    async def stop_container(self, name):
+        proc = await asyncio.create_subprocess_exec(
+            "docker",
+            "rm",
+            "-f",
+            name,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        await proc.communicate()
 
     async def is_port_open(self, host, port):
         try:
