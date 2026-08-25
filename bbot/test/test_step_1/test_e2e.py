@@ -106,6 +106,9 @@ def run_bbot(bbot_bin, *args, timeout=180):
     )
 
 
+# bbot_venv is module-scoped but xdist scopes fixtures per worker, so splitting
+# these across workers rebuilds the venv once per worker
+@pytest.mark.xdist_group("e2e_venv")
 class TestE2E:
     def test_install_and_help(self, bbot_venv):
         """bbot installs from local source and -h works."""
