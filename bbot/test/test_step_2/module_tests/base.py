@@ -3,6 +3,7 @@ import pytest
 import asyncio
 import logging
 import pytest_asyncio
+from contextlib import suppress
 
 from ...bbot_fixtures import *
 from bbot.scanner import Scanner
@@ -238,11 +239,26 @@ class ModuleTestBase:
         )
         await proc.communicate()
 
-    async def is_port_open(self, host, port):
+    async def is_port_open(self, host, port, settle=0.5):
+        """Return True only once something is really listening behind ``port``.
+
+        docker publishes a port by binding it on the host at container create
+        time, so a bare connect succeeds while the containerized service is
+        still booting. The proxy then immediately EOFs that connection. Treat an
+        instant EOF as not-yet-listening; a connection that stays open, or one
+        that sends a banner, means the service is up.
+        """
+        writer = None
         try:
             reader, writer = await asyncio.open_connection(host, port)
-            writer.close()
-            await writer.wait_closed()
-            return True
+            try:
+                return await asyncio.wait_for(reader.read(1), timeout=settle) != b""
+            except asyncio.TimeoutError:
+                return True
         except (ConnectionRefusedError, OSError):
             return False
+        finally:
+            if writer is not None:
+                writer.close()
+                with suppress(ConnectionResetError, OSError):
+                    await writer.wait_closed()
