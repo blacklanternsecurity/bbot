@@ -370,6 +370,24 @@ def proxy_server():
     server_thread.join()
 
 
+def _shard_items(items):
+    """Keep only this shard's slice of the collected tests.
+
+    xdist parallelises within one runner; this splits across runners so CI can
+    use more than one machine's worth of cores. Sharding on the sorted nodeid
+    keeps the slice stable across jobs, so every test lands in exactly one shard.
+    """
+    try:
+        shards = int(os.environ.get("BBOT_TEST_SHARDS", "") or 1)
+        shard = int(os.environ.get("BBOT_TEST_SHARD", "") or 0)
+    except ValueError:
+        return items
+    if shards <= 1 or not (0 <= shard < shards):
+        return items
+    ordered = sorted(items, key=lambda i: i.nodeid)
+    return [item for i, item in enumerate(ordered) if i % shards == shard]
+
+
 def pytest_collection_modifyitems(config, items):
     """Pin docker-backed tests to one xdist worker.
 
@@ -382,6 +400,11 @@ def pytest_collection_modifyitems(config, items):
         cls = getattr(item, "cls", None)
         if cls is not None and getattr(cls, "skip_distro_tests", False):
             item.add_marker(pytest.mark.xdist_group("docker"))
+
+    kept = _shard_items(items)
+    if len(kept) != len(items):
+        config.hook.pytest_deselected(items=[i for i in items if i not in set(kept)])
+        items[:] = kept
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):  # pragma: no cover
