@@ -41,17 +41,11 @@ jobs:
         sudo apt-get install -y libmagic1
 
     # Generate benchmark comparison report using our branch-based script
-    - name: Generate benchmark comparison report
-      env:
-        BASE_REF: ${{ github.base_ref }}
-        HEAD_REF: ${{ github.head_ref }}
+    - name: Generate benchmark report
       run: |
         uv run python bbot/scripts/benchmark_report.py \
-          --base "$BASE_REF" \
-          --current "$HEAD_REF" \
           --output benchmark_report.md \
           --keep-results
-      continue-on-error: true
 
     # Upload benchmark results as artifacts
     - name: Upload benchmark results
@@ -60,8 +54,7 @@ jobs:
         name: benchmark-results
         path: |
           benchmark_report.md
-          base_benchmark_results.json
-          current_benchmark_results.json
+          benchmark_results.json
         retention-days: 30
 
     # Comment on PR with benchmark results.
@@ -144,10 +137,9 @@ jobs:
             console.error('Failed to read benchmark report:', e.message);
             report = `## Performance Benchmark Report
 
-          > **Failed to generate detailed benchmark comparison**
+          > **Failed to generate benchmark report**
           >
-          > The benchmark comparison failed to run. This might be because:
-          > - Benchmark tests don't exist on the base branch yet
+          > This might be because:
           > - Dependencies are missing
           > - Test execution failed
           >
