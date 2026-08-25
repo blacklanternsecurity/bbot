@@ -206,14 +206,6 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     assert "[INFO]" in open(scan_log).read()
     shutil.rmtree(output_dir)
 
-
-@pytest.mark.asyncio
-async def test_cli_args_module_options(monkeypatch, caplog, capsys, clean_default_config):
-    caplog.set_level(logging.INFO)
-
-    monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
-    monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
-
     # list module options
     monkeypatch.setattr("sys.argv", ["bbot", "--list-module-options"])
     result = await cli._main()
@@ -331,14 +323,6 @@ async def test_cli_args_module_options(monkeypatch, caplog, capsys, clean_defaul
     assert "| dnsbrute " not in out
     assert "| http " in out
 
-
-@pytest.mark.asyncio
-async def test_cli_args_output_modules(monkeypatch, caplog, capsys, clean_default_config):
-    caplog.set_level(logging.INFO)
-
-    monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
-    monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
-
     # -om is additive (defaults stay)
     caplog.clear()
     assert not caplog.text
@@ -433,14 +417,6 @@ async def test_cli_args_output_modules(monkeypatch, caplog, capsys, clean_defaul
     monkeypatch.setattr("sys.argv", ["bbot", "-m", "dotnetnuke"])
     result = await cli._main()
     assert result is True, "-m dotnetnuke should run without any special flags"
-
-
-@pytest.mark.asyncio
-async def test_cli_args_install_all_deps(monkeypatch, caplog, capsys, clean_default_config):
-    caplog.set_level(logging.INFO)
-
-    monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
-    monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
 
     # install all deps
     monkeypatch.setattr("sys.argv", ["bbot", "--install-all-deps"])
