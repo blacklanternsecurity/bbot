@@ -101,7 +101,7 @@ class WebHelper:
         Translate request kwargs into blasthttp.request() kwargs.
 
         Handles: method, headers, body/data/json, timeout, follow_redirects,
-        max_redirects, proxy, retries, params, cookies, auth.
+        max_redirects, redirect_cookies, proxy, retries, params, cookies, auth.
 
         Returns (url, method, blast_kwargs) — url may be modified if params were appended.
         """
@@ -124,6 +124,7 @@ class WebHelper:
         timeout = kwargs.pop("timeout", self._http_timeout)
         follow_redirects = kwargs.pop("follow_redirects", None)
         max_redirects = kwargs.pop("max_redirects", None)
+        redirect_cookies = kwargs.pop("redirect_cookies", None)
         proxy = kwargs.pop("proxy", self._http_proxy)
         no_proxy = kwargs.pop("no_proxy", self._http_proxy_exclude)
         retries = kwargs.pop("retries", self._http_retries)
@@ -220,6 +221,8 @@ class WebHelper:
             blast_kwargs["follow_redirects"] = follow_redirects
         if max_redirects is not None:
             blast_kwargs["max_redirects"] = int(max_redirects)
+        if redirect_cookies is not None:
+            blast_kwargs["redirect_cookies"] = bool(redirect_cookies)
         if proxy:
             blast_kwargs["proxy"] = proxy
             # no_proxy lists hosts that bypass the proxy; it only has an effect
@@ -259,6 +262,8 @@ class WebHelper:
             timeout (float, optional): The maximum time to wait for the request to complete.
             proxy (str, optional): HTTP proxy URL.
             allow_redirects (bool, optional): Enables or disables redirection. Defaults to None.
+            redirect_cookies (bool, optional): Apply a cookie set by one redirect hop to the hops
+                that follow it, per RFC 6265 domain/path rules. Defaults to blasthttp's default (on).
             raise_error (bool, optional): Whether to raise exceptions for HTTP connect, timeout errors. Defaults to False.
             ssl_verify (bool, optional): Override SSL certificate verification for this request.
                 Defaults to ssl_verify_target for target traffic; pass ssl_verify_infrastructure for API/infra calls.
@@ -782,5 +787,11 @@ class WebHelper:
             "raw_header": raw_headers,
             "status_code": response.status_code,
         }
+
+        # blasthttp keeps a response whose body didn't decode and says why, rather
+        # than dropping it. Record that so nothing treats the bytes as content.
+        decode_error = response.decode_error
+        if decode_error:
+            j["decode_error"] = decode_error
 
         return j
