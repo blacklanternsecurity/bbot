@@ -2,6 +2,7 @@ import os
 import sys
 import stat
 import json
+import fcntl
 import mmh3
 import orjson
 import shutil
@@ -11,7 +12,7 @@ from time import sleep
 from pathlib import Path
 from threading import Lock
 from itertools import chain
-from contextlib import suppress
+from contextlib import contextmanager, suppress
 from secrets import token_bytes
 from ansible_runner.interface import run
 from subprocess import CalledProcessError
@@ -153,6 +154,25 @@ class DepsInstaller:
         self.ensure_root_lock = Lock()
 
     async def install(self, *modules):
+        # Concurrent scans (notably xdist workers) share the deps dir, so serialize
+        # installs across processes: without this they race on the same files and
+        # each pays the full install anyway.
+        with self._install_lock():
+            # another process may have installed deps while we waited for the lock
+            self.setup_status = self.read_setup_status()
+            return await self._install(*modules)
+
+    @contextmanager
+    def _install_lock(self):
+        lock_file = self.data_dir / "install.lock"
+        with open(lock_file, "w") as f:
+            fcntl.flock(f, fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(f, fcntl.LOCK_UN)
+
+    async def _install(self, *modules):
         await self.install_core_deps()
         succeeded = []
         failed = []
@@ -172,11 +192,11 @@ class DepsInstaller:
                 preloaded = self.all_modules_preloaded[m]
                 log.debug(f"Installing {m} - Preloaded Deps {preloaded['deps']}")
                 # make a hash of the dependencies and check if it's already been handled
-                # take into consideration whether the venv or bbot home directory changes
+                # take into consideration whether the venv or the deps directory changes
                 module_hash = self.parent_helper.sha1(
                     json.dumps(preloaded["deps"], sort_keys=True)
                     + self.venv
-                    + str(self.parent_helper.bbot_home)
+                    + str(self.parent_helper.tools_dir.parent)
                     + os.uname()[1]
                     + str(__version__)
                 ).hexdigest()

@@ -9,10 +9,9 @@ import logging
 from pathlib import Path
 from contextlib import suppress
 from pytest_httpserver import HTTPServer
-
-
 from bbot.test.worker import (
     BBOT_TEST_DIR,
+    BBOT_TEST_SHARED_DIR,
     HTTPSERVER_ALLINTERFACES_PORT,
     HTTPSERVER_PORT,
     HTTPSERVER_SSL_PORT,
@@ -50,6 +49,10 @@ with open(Path(__file__).parent / "test.conf") as _f:
 # under -n the workers would otherwise share caches, scan output and temp files,
 # and the sessionfinish cleanup below would delete a directory still in use.
 test_config["home"] = str(BBOT_TEST_DIR)
+
+# Deps install once into a shared dir instead of once per worker. The per-worker
+# home above still isolates scan output and temp files.
+os.environ.setdefault("BBOT_SHARED_DEPS_DIR", str(BBOT_TEST_SHARED_DIR))
 
 os.environ["BBOT_DEBUG"] = "True"
 CORE.logger.log_level = logging.DEBUG

@@ -48,6 +48,12 @@ def worker_dir(base=BASE_BBOT_TEST_DIR):
     return Path(f"{base}_{worker}") if worker else Path(base)
 
 
+# Dependency installs are keyed on bbot_home, so a per-worker home makes every
+# worker reinstall all ~126 modules' deps from scratch. Point the install-once
+# dirs at one shared location; scan output and temp files stay per-worker.
+BBOT_TEST_SHARED_DIR = Path(f"{BASE_BBOT_TEST_DIR}_shared")
+
+
 HTTPSERVER_PORT = worker_port(8888)
 HTTPSERVER_SSL_PORT = worker_port(9999)
 HTTPSERVER_ALLINTERFACES_PORT = worker_port(5556)
