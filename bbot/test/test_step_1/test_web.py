@@ -2,9 +2,10 @@ import re
 import time
 
 from blasthttp import HTTPStatusError
-from deepdiff import DeepDiff
 
 from ..bbot_fixtures import *
+
+from bbot.core.helpers.diff import _ordered_diff
 
 from bbot.test.worker import BBOT_TEST_DIR, HTTPSERVER_HOSTPORT
 
@@ -464,7 +465,7 @@ async def test_web_http_compare_filtered_lines_not_counted(blasthttp_mock, bbot_
     baseline_2 = dynamic_b + static
     subject = dynamic_c + static
 
-    ddiff = DeepDiff(baseline_1, baseline_2, ignore_order=True, view="tree", threshold_to_diff_deeper=0)
+    ddiff = _ordered_diff(baseline_1, baseline_2)
     compare_helper.ddiff_filters = [x.path() for k in ddiff.keys() for x in list(ddiff[k])]
     assert len(compare_helper.ddiff_filters) == 600
 
@@ -512,7 +513,7 @@ async def test_web_http_compare_threshold_boundary(blasthttp_mock, bbot_scanner)
     at_threshold_1 = [f"nonce {i} A" for i in range(5)] + static
     at_threshold_2 = [f"nonce {i} B" for i in range(5)] + static
 
-    ddiff = DeepDiff(at_threshold_1, at_threshold_2, ignore_order=True, view="tree", threshold_to_diff_deeper=0)
+    ddiff = _ordered_diff(at_threshold_1, at_threshold_2)
     compare_helper.ddiff_filters = [x.path() for k in ddiff.keys() for x in list(ddiff[k])]
 
     assert compare_helper.compare_body(at_threshold_1, at_threshold_2) is True

@@ -9,6 +9,24 @@ from bbot.errors import HttpCompareError
 log = logging.getLogger("bbot.core.helpers.diff")
 
 
+def _is_flat_str_sequence(content):
+    return isinstance(content, list) and all(isinstance(i, str) for i in content)
+
+
+def _ordered_diff(content_1, content_2, **kwargs):
+    """DeepDiff with ignore_order, skipping pair-matching for flat string lists.
+
+    Pair-matching is O(n*m) nested DeepDiffs over the differing items, which is
+    what a split("\\n") body of a dynamic page looks like. For sequences whose
+    items are all strings there is nothing to match deeper, and equal-index
+    add/remove pairs are folded back into values_changed by DeepDiff itself, so
+    the result is unchanged.
+    """
+    if _is_flat_str_sequence(content_1) and _is_flat_str_sequence(content_2):
+        kwargs["cutoff_intersection_for_pairs"] = 0
+    return DeepDiff(content_1, content_2, ignore_order=True, view="tree", threshold_to_diff_deeper=0, **kwargs)
+
+
 class _BaselineSnapshot:
     """Lightweight stand-in for a blasthttp Response held by HttpCompare.
 
@@ -173,9 +191,7 @@ class HttpCompare:
                 baseline_1_json = baseline_1.text.split("\n")
                 baseline_2_json = baseline_2.text.split("\n")
 
-            ddiff = DeepDiff(
-                baseline_1_json, baseline_2_json, ignore_order=True, view="tree", threshold_to_diff_deeper=0
-            )
+            ddiff = _ordered_diff(baseline_1_json, baseline_2_json)
             self.ddiff_filters = []
 
             for k in ddiff.keys():
@@ -265,13 +281,10 @@ class HttpCompare:
         if sum(differing.values()) > self.max_differing_lines:
             return False
 
-        ddiff = DeepDiff(
+        ddiff = _ordered_diff(
             content_1,
             content_2,
-            ignore_order=True,
-            view="tree",
             exclude_paths=self.ddiff_filters,
-            threshold_to_diff_deeper=0,
         )
 
         if len(ddiff.keys()) == 0:
