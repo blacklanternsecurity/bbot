@@ -631,17 +631,22 @@ class DepsInstaller:
         # install ansible community.general collection if needed
         overall_success = True
         if not self.setup_status.get("ansible:community.general", False):
-            log.info("Installing Ansible Community General Collection")
-            try:
-                command = ["ansible-galaxy", "collection", "install", "community.general"]
-                await self.parent_helper.run(command, check=True)
-                self.setup_status["ansible:community.general"] = True
-                log.info("Successfully installed Ansible Community General Collection")
-            except CalledProcessError as err:
-                log.warning(
-                    f"Failed to install Ansible Community.General Collection (return code {err.returncode}): {err.stderr}"
+            if self._local_pkg_mgrs_are_builtin():
+                log.debug(
+                    "Skipping Ansible Community General Collection (local package manager is built into ansible-core)"
                 )
-                overall_success = False
+            else:
+                log.info("Installing Ansible Community General Collection")
+                try:
+                    command = ["ansible-galaxy", "collection", "install", "community.general"]
+                    await self.parent_helper.run(command, check=True)
+                    self.setup_status["ansible:community.general"] = True
+                    log.info("Successfully installed Ansible Community General Collection")
+                except CalledProcessError as err:
+                    log.warning(
+                        f"Failed to install Ansible Community.General Collection (return code {err.returncode}): {err.stderr}"
+                    )
+                    overall_success = False
         # only run ansible if there's actually something to install
         if playbook:
             self._install_sudo_askpass()
@@ -657,6 +662,26 @@ class DepsInstaller:
         if overall_success:
             with suppress(Exception):
                 core_deps_cache_file.touch()
+
+    @staticmethod
+    def _local_pkg_mgrs_are_builtin():
+        """True if every package manager present on this host ships with ansible-core.
+
+        The only reason we install community.general is that the `package` action
+        dispatches to a per-manager module (pacman, apk, zypper...) that lives in
+        that collection. ansible-core bundles apt/dnf/dnf5, so on those hosts the
+        galaxy install is a pure no-op download.
+        """
+        try:
+            import ansible.modules
+            from ansible.module_utils.facts.system.pkg_mgr import PKG_MGRS
+        except Exception:
+            return False
+        bundled = Path(ansible.modules.__file__).resolve().parent
+        present = {p["name"] for p in PKG_MGRS if os.path.exists(p["path"])}
+        if not present:
+            return False
+        return all((bundled / f"{name}.py").is_file() for name in present)
 
     def _setup_sudo_cache(self):
         if not self._sudo_cache_setup:
