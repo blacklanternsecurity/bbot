@@ -8,6 +8,7 @@ import orjson
 import shutil
 import getpass
 import logging
+import uuid
 from time import sleep
 from pathlib import Path
 from threading import Lock
@@ -137,6 +138,10 @@ class DepsInstaller:
         self.setup_status_cache = self.data_dir / "setup_status.json"
         self.command_status = self.data_dir / "command_status"
         self.parent_helper.mkdir(self.command_status)
+        self.ansible_artifact_dir = self.data_dir / "ansible_artifacts"
+        self.parent_helper.mkdir(self.ansible_artifact_dir)
+        self.ansible_fact_cache = self.ansible_artifact_dir / "fact_cache"
+        self._discard_corrupt_fact_cache()
         self.setup_status = self.read_setup_status()
 
         # make sure we're using a minimal git config
@@ -423,6 +428,20 @@ class DepsInstaller:
             log.error(f"Failed to run Ansible tasks for {module}")
         return success
 
+    def _discard_corrupt_fact_cache(self):
+        # an unreadable entry makes every later playbook fail until it expires
+        if not self.ansible_fact_cache.is_dir():
+            return
+        for entry in self.ansible_fact_cache.iterdir():
+            if not entry.is_file():
+                continue
+            try:
+                json.loads(entry.read_text())
+            except Exception:
+                log.debug(f"Discarding corrupt ansible fact cache entry: {entry}")
+                with suppress(OSError):
+                    entry.unlink()
+
     def ansible_run(self, tasks=None, module=None, args=None, ansible_args=None):
         _ansible_args = {"ansible_connection": "local", "ansible_python_interpreter": sys.executable}
         if ansible_args is not None:
@@ -450,9 +469,17 @@ class DepsInstaller:
         shutil.rmtree(data_dir, ignore_errors=True)
         self.parent_helper.mkdir(data_dir)
 
+        # unique ident keeps each run's events isolated; fact_cache escapes it so
+        # facts are gathered once instead of on every playbook
+        ident = uuid.uuid4().hex
+
         res = run(
             playbook=playbook,
             private_data_dir=str(data_dir),
+            artifact_dir=str(self.ansible_artifact_dir),
+            ident=ident,
+            settings={"fact_cache": "../fact_cache", "fact_cache_type": "jsonfile"},
+            envvars={"ANSIBLE_GATHERING": "smart", "ANSIBLE_CACHE_PLUGIN_TIMEOUT": "86400"},
             host_pattern="localhost",
             inventory={
                 "all": {"hosts": {"localhost": _ansible_args}},
@@ -474,6 +501,8 @@ class DepsInstaller:
             if e["event"] == "runner_on_failed":
                 err = e["event_data"]["res"]["msg"]
                 break
+        # events are read lazily out of the artifact dir, so only discard it once they are consumed
+        shutil.rmtree(self.ansible_artifact_dir / ident, ignore_errors=True)
         return success, err
 
     def read_setup_status(self):
