@@ -52,6 +52,7 @@ def worker_dir(base=BASE_BBOT_TEST_DIR):
 # worker reinstall all ~126 modules' deps from scratch. Point the install-once
 # dirs at one shared location; scan output and temp files stay per-worker.
 BBOT_TEST_SHARED_DIR = Path(f"{BASE_BBOT_TEST_DIR}_shared")
+BBOT_TEST_TOOLS_DIR = BBOT_TEST_SHARED_DIR / "tools"
 
 
 HTTPSERVER_PORT = worker_port(8888)

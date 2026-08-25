@@ -1,6 +1,6 @@
 from ...bbot_fixtures import *
 from .base import ModuleTestBase
-from bbot.test.worker import HTTPSERVER_URL, BBOT_TEST_DIR
+from bbot.test.worker import HTTPSERVER_URL, BBOT_TEST_DIR, BBOT_TEST_TOOLS_DIR
 
 
 class TestNucleiManual(ModuleTestBase):
@@ -17,7 +17,7 @@ class TestNucleiManual(ModuleTestBase):
                 "mode": "manual",
                 "concurrency": 2,
                 "ratelimit": 10,
-                "templates": f"{BBOT_TEST_DIR}/tools/nuclei-state/templates/http/miscellaneous/",
+                "templates": f"{BBOT_TEST_TOOLS_DIR}/nuclei-state/templates/http/miscellaneous/",
                 "directory_only": False,
             }
         },
@@ -70,7 +70,7 @@ class TestNucleiSevere(TestNucleiManual):
             "nuclei": {
                 "mode": "severe",
                 "concurrency": 1,
-                "templates": f"{BBOT_TEST_DIR}/tools/nuclei-state/templates/http/vulnerabilities/generic/generic-env.yaml",
+                "templates": f"{BBOT_TEST_TOOLS_DIR}/nuclei-state/templates/http/vulnerabilities/generic/generic-env.yaml",
             }
         },
         "interactsh_disable": True,
@@ -116,7 +116,7 @@ class TestNucleiBudget(TestNucleiManual):
                 "mode": "budget",
                 "concurrency": 1,
                 "tags": "spiderfoot",
-                "templates": f"{BBOT_TEST_DIR}/tools/nuclei-state/templates/exposed-panels/spiderfoot.yaml",
+                "templates": f"{BBOT_TEST_TOOLS_DIR}/nuclei-state/templates/exposed-panels/spiderfoot.yaml",
             }
         },
     }
