@@ -1372,11 +1372,11 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         self.yara_preprocess_dict = {}
         self.custom_yara_imports = []
 
-        modules_WEB_PARAMETER = [
-            module_name
-            for module_name, module in self.scan.modules.items()
-            if "WEB_PARAMETER" in module.watched_events
-        ]
+        # snapshot: setup_modules() pops failed modules from scan.modules while
+        # these setups run concurrently, so iterating the live dict can raise
+        scan_modules = list(self.scan.modules.values())
+
+        modules_WEB_PARAMETER = [module.name for module in scan_modules if "WEB_PARAMETER" in module.watched_events]
 
         self.parameter_extraction = bool(modules_WEB_PARAMETER)
         self.speculate_params = self.config.get("speculate_params", False)
@@ -1385,7 +1385,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         # at each YARA form-opening match. Caps worst-case Python re work per form.
         self.max_form_bytes = int(self.config.get("max_form_bytes", 262144))
 
-        for module in self.scan.modules.values():
+        for module in scan_modules:
             if not str(module).startswith("_"):
                 ExcavateRules = find_subclasses(module, ExcavateRule)
                 for e in ExcavateRules:
