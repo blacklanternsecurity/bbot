@@ -309,6 +309,8 @@ class sqli(BaseLightfuzz):
                             ),
                         }
                     )
+                    # remaining templates only re-confirm the same injection point
+                    break
                 else:
                     self.verbose(
                         f"Stage 2 rejected {self.event.url}: d_high={d_high:.2f}s, "
