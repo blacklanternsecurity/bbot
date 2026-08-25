@@ -524,21 +524,24 @@ async def test_module_loading(bbot_scanner):
         config={i: True for i in available_internal_modules if i != "dnsresolve"},
         force_start=True,
     )
-    await scan2._prep()
-    await scan2._set_status("RUNNING")
+    # every assertion below reads class attributes off the instantiated modules, so
+    # loading them is enough. _prep() would additionally run setup() on all ~110,
+    # and the ones that talk to a service (rabbitmq, postgres, mysql) each burn
+    # their full connect-retry budget against a service that isn't there.
+    await scan2.load_modules()
 
     # attributes, descriptions, etc.
+    not_async = []
     for module_name, module in sorted(scan2.modules.items()):
         # flags
         assert module._type in ("internal", "output", "scan")
         # async stuff
-        not_async = []
         for func_name in ("setup", "ping", "filter_event", "handle_event", "finish", "report", "cleanup"):
             f = getattr(module, func_name)
             if not scan2.helpers.is_async_function(f):
                 log.error(f"{f.__qualname__}() is not async")
-                not_async.append(f)
-    assert not any(not_async)
+                not_async.append(f.__qualname__)
+    assert not not_async, f"non-async module methods: {not_async}"
 
     await scan2._cleanup()
 
