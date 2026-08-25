@@ -1,10 +1,12 @@
 import asyncio
+import fcntl
 import json
 import os
 import shutil
 import yaml
 from typing import Literal
 from itertools import islice
+from contextlib import suppress
 
 from bbot.modules.base import BaseModule
 from bbot.core.config.models import BaseModuleConfig, Field
@@ -351,6 +353,40 @@ class nuclei(BaseModule):
         return env
 
     async def _update_templates(self):
+        # 13k+ template files extract into one shared dir. Concurrent updaters
+        # (xdist workers, parallel scans) fight over the same tree and each
+        # re-does the other's work, so serialize on a lock beside it. A waiter
+        # that finds the tree already populated skips its own redundant update.
+        uncontended = await self.helpers.run_in_executor_io(self._acquire_template_lock)
+        try:
+            if not uncontended and self._templates_installed():
+                self.info("Nuclei templates already up-to-date")
+                return
+            await self._run_template_update()
+        finally:
+            self._release_template_lock()
+
+    def _acquire_template_lock(self):
+        lock_path = self.helpers.tools_dir / "nuclei-templates.lock"
+        self._template_lock_file = open(lock_path, "w")
+        try:
+            fcntl.flock(self._template_lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return True
+        except OSError:
+            fcntl.flock(self._template_lock_file, fcntl.LOCK_EX)
+            return False
+
+    def _release_template_lock(self):
+        lock_file = getattr(self, "_template_lock_file", None)
+        if lock_file is None:
+            return
+        self._template_lock_file = None
+        with suppress(OSError):
+            fcntl.flock(lock_file, fcntl.LOCK_UN)
+        with suppress(OSError):
+            lock_file.close()
+
+    async def _run_template_update(self):
         self.info("Updating Nuclei templates")
         # shield so an outer cancel can't kill the subprocess mid-extract and
         # corrupt the templates dir
