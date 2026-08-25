@@ -9,6 +9,12 @@ from itertools import islice
 from bbot.modules.base import BaseModule
 from bbot.core.config.models import BaseModuleConfig, Field
 
+try:
+    # libyaml-backed loader, ~7x faster over the full template set
+    from yaml import CSafeLoader as YamlLoader
+except ImportError:
+    from yaml import SafeLoader as YamlLoader
+
 
 class nuclei(BaseModule):
     watched_events = ["URL"]
@@ -486,7 +492,7 @@ class NucleiBudget:
         if yamlfile not in self._yaml_files:
             with open(yamlfile, "r") as stream:
                 try:
-                    y = yaml.safe_load(stream)
+                    y = yaml.load(stream, Loader=YamlLoader)
                     self._yaml_files[yamlfile] = y
                 except yaml.YAMLError as e:
                     self.parent.warning(f"failed to load yaml file: {e}")
