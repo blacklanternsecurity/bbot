@@ -172,7 +172,14 @@ rule akamai_bot_manager_url
 
         Any response counts as alive -- only connect failures and timeouts (after retries)
         mark a host dead. Verdicts are cached for the rest of the scan.
+
+        Probing is skipped entirely when a proxy is configured, since the proxy answers on the
+        target's behalf: an unreachable upstream comes back as a proxy 502, which is
+        indistinguishable from a real one. With no trustworthy verdict available we emit every
+        host's URLs rather than guess.
         """
+        if not self._liveness_probing:
+            return set(keys)
         live = set()
         probes = []
         probe_kwargs = {
@@ -235,6 +242,9 @@ rule akamai_bot_manager_url
         # 32M bits (~4MB) supports ~400K entries with negligible false-positive rate
         self._archive_bloom = self.helpers.bloom_filter(32000000)
         self._liveness_cache = LRUCache(maxsize=self._liveness_cache_size)
+        self._liveness_probing = not self.scan.config.get("web", {}).get("http_proxy")
+        if self.urls and not self._liveness_probing:
+            self.verbose("Emitting wayback URLs without liveness probing because an HTTP proxy is configured")
         self._junk_url_rules = self.helpers.yara.compile(source="\n".join(self._junk_url_yara_rules.values()))
         return await super().setup()
 
