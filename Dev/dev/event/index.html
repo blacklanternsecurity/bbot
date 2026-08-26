@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.imfrt0yc.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.2mhfg4_v.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1089,15 +1089,7 @@ If you need to modify an existing event, use <code>update_event()</code> instead
 </ul>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/event/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2306</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2307</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2308</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2309</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2310</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2311</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2312</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2313</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2314</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2314</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2315</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2316</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2317</span>
@@ -1191,7 +1183,15 @@ If you need to modify an existing event, use <code>update_event()</code> instead
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2405</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2406</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2407</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2408</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">make_event</span><span style="color: #E6EDF3">(</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2408</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2409</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2410</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2411</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2412</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2413</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2414</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2415</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2416</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">make_event</span><span style="color: #E6EDF3">(</span>
     <span style="color: #E6EDF3">data,</span>
     <span style="color: #E6EDF3">event_type</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
     <span style="color: #E6EDF3">parent</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
@@ -1347,15 +1347,7 @@ if required keys are missing. Make sure to validate the JSON input beforehand.</
 </details>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/event/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2411</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2412</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2413</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2414</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2415</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2416</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2417</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2418</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2419</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2419</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2420</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2421</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2422</span>
@@ -1414,7 +1406,15 @@ if required keys are missing. Make sure to validate the JSON input beforehand.</
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2475</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2476</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2477</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2478</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">event_from_json</span><span style="color: #E6EDF3">(j):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2478</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2479</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2480</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2481</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2482</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2483</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2484</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2485</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2486</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">event_from_json</span><span style="color: #E6EDF3">(j):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Creates an event object from a JSON dictionary.</span>
 
@@ -2773,7 +2773,11 @@ top of the base class.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1126</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1127</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1128</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1129</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">BaseEvent</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1129</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1130</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1131</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1132</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1133</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">BaseEvent</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Represents a piece of data discovered during a BBOT scan.</span>
 
@@ -3668,6 +3672,10 @@ top of the base class.</p>
         <span style="color: #E6EDF3">web_spider_distance</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">getattr(self,</span> <span style="color: #A5D6FF">"web_spider_distance"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">web_spider_distance</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
             <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"web_spider_distance"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">web_spider_distance</span>
+        <span style="color: #8B949E; font-style: italic"># kept out of `data` so the snapshot URL doesn't become part of the event's identity</span>
+        <span style="color: #E6EDF3">archive_url</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">archive_url</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">archive_url:</span>
+            <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"archive_url"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">archive_url</span>
         <span style="color: #8B949E; font-style: italic"># scope distance</span>
         <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"scope_distance"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">scope_distance</span>
         <span style="color: #8B949E; font-style: italic"># scan</span>
@@ -4341,7 +4349,11 @@ Additional specific attributes can be serialized based on the mode specified.</p
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1004</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1005</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1006</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1007</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">json</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">mode</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"json"</span><span style="color: #E6EDF3">):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1007</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1008</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1009</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1010</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1011</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">json</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">mode</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"json"</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Serializes the event object to a JSON-compatible dictionary.</span>
 
@@ -4383,6 +4395,10 @@ Additional specific attributes can be serialized based on the mode specified.</p
     <span style="color: #E6EDF3">web_spider_distance</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">getattr(self,</span> <span style="color: #A5D6FF">"web_spider_distance"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">)</span>
     <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">web_spider_distance</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
         <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"web_spider_distance"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">web_spider_distance</span>
+    <span style="color: #8B949E; font-style: italic"># kept out of `data` so the snapshot URL doesn't become part of the event's identity</span>
+    <span style="color: #E6EDF3">archive_url</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">archive_url</span>
+    <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">archive_url:</span>
+        <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"archive_url"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">archive_url</span>
     <span style="color: #8B949E; font-style: italic"># scope distance</span>
     <span style="color: #E6EDF3">j[</span><span style="color: #A5D6FF">"scope_distance"</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">scope_distance</span>
     <span style="color: #8B949E; font-style: italic"># scan</span>
@@ -4468,11 +4484,7 @@ Additional specific attributes can be serialized based on the mode specified.</p
 </ul>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/event/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1009</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1010</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1011</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1012</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1013</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1013</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1014</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1015</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1016</span>
@@ -4481,7 +4493,11 @@ Additional specific attributes can be serialized based on the mode specified.</p
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1019</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1020</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1021</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1022</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@staticmethod</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1022</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1023</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1024</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1025</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1026</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@staticmethod</span>
 <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">from_json</span><span style="color: #E6EDF3">(j):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Convenience shortcut to create an Event object from a JSON-compatible dictionary.</span>
