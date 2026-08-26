@@ -6,6 +6,11 @@ import struct
 from .base import BaseLightfuzz
 from bbot.errors import HttpCompareError
 
+# enough leading bytes to break every magic header we send (java `AC ED`, dotnet `00 01 00 00`,
+# pickle `80 04`) without disturbing the payload's length or trailing bytes
+MAGIC_HEADER_LENGTH = 4
+HEADER_SCRAMBLE_DELTA = 0x55
+
 
 class _PickleOOB:
     """Pickle-RCE canary: __reduce__ makes the deserializing process resolve
@@ -207,6 +212,27 @@ class serial(BaseLightfuzz):
         """Extract the language family from a payload name (e.g. 'java_base64_string_error' -> 'java')."""
         return payload_name.split("_")[0]
 
+    @staticmethod
+    def corrupt_payload(payload, encoding):
+        """Return a twin of ``payload``: same encoding, length and trailing bytes, scrambled magic
+        header. Parses like the original, deserializes under nothing. None if no twin can be built."""
+        if not payload:
+            return None
+        if encoding == "php_raw":
+            # PHP serialized data leads with a single type character
+            return f"z{payload[1:]}" if payload[0] != "z" else f"q{payload[1:]}"
+        try:
+            data = bytes.fromhex(payload) if encoding == "hex" else base64.b64decode(payload)
+        except ValueError:
+            return None
+        header_length = min(MAGIC_HEADER_LENGTH, len(data))
+        if not header_length:
+            return None
+        corrupted = bytes((b + HEADER_SCRAMBLE_DELTA) % 256 for b in data[:header_length]) + data[header_length:]
+        if encoding == "hex":
+            return corrupted.hex().upper() if payload.isupper() else corrupted.hex()
+        return base64.b64encode(corrupted).decode()
+
     async def confirm_baseline(self, control_payload, cookies):
         """Re-send the control payload to confirm the baseline error state is stable (not transient)."""
         confirmation = await self.standard_probe(self.event.data["type"], cookies, control_payload)
@@ -250,13 +276,13 @@ class serial(BaseLightfuzz):
 
         # Map each payload set to its control payload for baseline confirmation
         payload_sets = [
-            (base64_serialization_payloads, http_compare_base64, control_payload_base64),
-            (hex_serialization_payloads, http_compare_hex, control_payload_hex),
-            (php_raw_serialization_payloads, http_compare_php_raw, control_payload_php_raw),
+            (base64_serialization_payloads, http_compare_base64, control_payload_base64, "base64"),
+            (hex_serialization_payloads, http_compare_hex, control_payload_hex, "hex"),
+            (php_raw_serialization_payloads, http_compare_php_raw, control_payload_php_raw, "php_raw"),
         ]
 
         # Proceed with payload probes
-        for payload_set, payload_baseline, control_payload in payload_sets:
+        for payload_set, payload_baseline, control_payload, encoding in payload_sets:
             for payload_type, payload in payload_set.items():
                 try:
                     matches_baseline, diff_reasons, reflection, response = await self.compare_probe(
@@ -316,6 +342,21 @@ class serial(BaseLightfuzz):
                             f"Baseline confirmation returned 200 for {payload_type}, original error was transient, skipping"
                         )
                         continue
+
+                    # a same-shape twin with a scrambled header deserializes under nothing, so if it
+                    # resolves the error too, the value is only being parsed (e.g. as a URL/host)
+                    corrupted_payload = self.corrupt_payload(payload, encoding)
+                    if corrupted_payload is not None:
+                        corrupted_response = await self.standard_probe(
+                            self.event.data["type"], cookies, corrupted_payload
+                        )
+                        corrupted_status = getattr(corrupted_response, "status_code", None)
+                        if corrupted_status == status_code:
+                            self.debug(
+                                f"Corrupted twin of {payload_type} also returned {corrupted_status}, "
+                                "outcome is independent of payload content, skipping"
+                            )
+                            continue
 
                     def get_title(text):
                         soup = self.lightfuzz.helpers.beautifulsoup(text, "html.parser")

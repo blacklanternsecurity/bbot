@@ -97,9 +97,6 @@ class RegexHelper:
     def _finditer(self, compiled_regex, *args, **kwargs):
         return list(compiled_regex.finditer(*args, **kwargs))
 
-    async def extract_params_html(self, *args, **kwargs):
-        return await self.parent_helper.run_in_executor_cpu(misc.extract_params_html, *args, **kwargs)
-
     async def extract_emails(self, *args, **kwargs):
         return await self.parent_helper.run_in_executor_cpu(misc.extract_emails, *args, **kwargs)
 

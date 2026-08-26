@@ -1,11 +1,12 @@
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestGit(ModuleTestBase):
     targets = [
-        "http://127.0.0.1:8888/",
-        "http://127.0.0.1:8888/test/asdf",
-        "http://127.0.0.1:8888/test2",
+        f"{HTTPSERVER_URL}/",
+        f"{HTTPSERVER_URL}/test/asdf",
+        f"{HTTPSERVER_URL}/test2",
     ]
 
     modules_overrides = ["git", "http"]
@@ -29,16 +30,13 @@ class TestGit(ModuleTestBase):
         module_test.set_expect_requests(expect_args={"uri": "/test2/.git/config"}, respond_args={"response_data": ""})
 
     def check(self, module_test, events):
+        assert any(e.type == "FINDING" and f"{HTTPSERVER_URL}/.git/config" in e.data["description"] for e in events)
         assert any(
-            e.type == "FINDING" and "http://127.0.0.1:8888/.git/config" in e.data["description"] for e in events
+            e.type == "FINDING" and f"{HTTPSERVER_URL}/test/.git/config" in e.data["description"] for e in events
         )
         assert any(
-            e.type == "FINDING" and "http://127.0.0.1:8888/test/.git/config" in e.data["description"] for e in events
-        )
-        assert any(
-            e.type == "FINDING" and "http://127.0.0.1:8888/test/asdf/.git/config" in e.data["description"]
-            for e in events
+            e.type == "FINDING" and f"{HTTPSERVER_URL}/test/asdf/.git/config" in e.data["description"] for e in events
         )
         assert not any(
-            e.type == "FINDING" and "http://127.0.0.1:8888/test2/.git/config" in e.data["description"] for e in events
+            e.type == "FINDING" and f"{HTTPSERVER_URL}/test2/.git/config" in e.data["description"] for e in events
         )

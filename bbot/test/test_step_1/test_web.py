@@ -4,6 +4,8 @@ from blasthttp import HTTPStatusError
 
 from ..bbot_fixtures import *
 
+from bbot.test.worker import BBOT_TEST_DIR, HTTPSERVER_HOSTPORT
+
 
 @pytest.mark.asyncio
 async def test_web(bbot_scanner, bbot_httpserver, blasthttp_mock):
@@ -204,7 +206,7 @@ async def test_web_helpers(bbot_scanner, bbot_httpserver, blasthttp_mock):
     assert scan1.helpers.is_cached(url)
     with open(filename) as f:
         assert f.read() == download_content
-    filename = Path("/tmp/bbot_download_test_file")
+    filename = BBOT_TEST_DIR / "bbot_download_test_file"
     filename.unlink(missing_ok=True)
     filename2 = await scan1.helpers.download(url, filename=filename)
     assert filename2 == filename
@@ -585,6 +587,108 @@ async def test_web_cookies(bbot_scanner, bbot_httpserver):
     assert r4 is not None
     assert "foo=bar" in r4.text
     assert "baz=qux" in r4.text
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_web_redirect_cookies(bbot_scanner, bbot_httpserver):
+    from werkzeug.wrappers import Response
+
+    def login_handler(request):
+        resp = Response("redirecting", status=302)
+        resp.headers["Location"] = "/dashboard"
+        resp.set_cookie("session", "abc123", path="/")
+        return resp
+
+    def dashboard_handler(request):
+        cookie_str = "; ".join([f"{key}={value}" for key, value in request.cookies.items()])
+        return Response(f"Cookies: {cookie_str}")
+
+    bbot_httpserver.expect_request(uri="/login").respond_with_handler(login_handler)
+    bbot_httpserver.expect_request(uri="/dashboard").respond_with_handler(dashboard_handler)
+
+    scan = bbot_scanner("127.0.0.1")
+    await scan._prep()
+
+    # a cookie set by one redirect hop is sent on the hops that follow it
+    r1 = await scan.helpers.request(bbot_httpserver.url_for("/login"), follow_redirects=True)
+    assert r1 is not None
+    assert r1.status_code == 200
+    assert "session=abc123" in r1.text
+
+    # what the chain collects lives for that request only; it does not leak into the next one
+    r2 = await scan.helpers.request(bbot_httpserver.url_for("/dashboard"))
+    assert r2 is not None
+    assert "session=abc123" not in r2.text
+
+    # a cookie the caller set wins over a Set-Cookie of the same name from the chain
+    r3 = await scan.helpers.request(
+        bbot_httpserver.url_for("/login"), follow_redirects=True, cookies={"session": "mine"}
+    )
+    assert r3 is not None
+    assert "session=mine" in r3.text
+    assert "abc123" not in r3.text
+
+    # redirect_cookies=False reverts to not carrying them
+    r4 = await scan.helpers.request(bbot_httpserver.url_for("/login"), follow_redirects=True, redirect_cookies=False)
+    assert r4 is not None
+    assert "session=abc123" not in r4.text
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_web_decode_error(bbot_scanner, bbot_httpserver):
+    import gzip
+    from werkzeug.wrappers import Response
+
+    from bbot.core.helpers.web.response_event import response_to_event_dict
+
+    def lying_handler(request):
+        resp = Response(b"<title>not actually gzipped</title>")
+        resp.headers["Content-Encoding"] = "gzip"
+        return resp
+
+    def honest_handler(request):
+        resp = Response(gzip.compress(b"<title>real body</title>"))
+        resp.headers["Content-Encoding"] = "gzip"
+        return resp
+
+    bbot_httpserver.expect_request(uri="/lying").respond_with_handler(lying_handler)
+    bbot_httpserver.expect_request(uri="/honest").respond_with_handler(honest_handler)
+
+    scan = bbot_scanner("127.0.0.1")
+    await scan._prep()
+
+    # a body that doesn't match its declared Content-Encoding is kept, not dropped,
+    # and comes with a reason saying the bytes are not decoded content
+    r1 = await scan.helpers.request(bbot_httpserver.url_for("/lying"))
+    assert r1 is not None
+    assert r1.status_code == 200
+    assert r1.decode_error
+
+    # both HTTP_RESPONSE dict builders carry that reason forward
+    j1 = response_to_event_dict(r1, HTTPSERVER_HOSTPORT)
+    assert j1["decode_error"] == r1.decode_error
+    assert scan.helpers.response_to_json(r1)["decode_error"] == r1.decode_error
+
+    # those bytes are not content, so they are not offered as a body or a title
+    assert j1["body"] == ""
+    assert j1["title"] == ""
+    assert "not actually gzipped" not in str(j1)
+    event1 = scan.make_event(j1, "HTTP_RESPONSE", parent=scan.root_event)
+    assert not event1.body
+
+    # a body that does match its Content-Encoding is ordinary content
+    r2 = await scan.helpers.request(bbot_httpserver.url_for("/honest"))
+    assert r2 is not None
+    assert r2.decode_error is None
+    j2 = response_to_event_dict(r2, HTTPSERVER_HOSTPORT)
+    assert "decode_error" not in j2
+    assert "decode_error" not in scan.helpers.response_to_json(r2)
+    event2 = scan.make_event(j2, "HTTP_RESPONSE", parent=scan.root_event)
+    assert event2.data["title"] == "real body"
 
     await scan._cleanup()
 

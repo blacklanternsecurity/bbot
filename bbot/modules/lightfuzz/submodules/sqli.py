@@ -1,5 +1,12 @@
+import html
+from urllib.parse import quote
+
 from .base import BaseLightfuzz
 from bbot.errors import HttpCompareError
+
+# frameworks disagree on how they spell an escaped quote (Jinja/ASP.NET `&#39;`, Django `&#x27;`,
+# PHP `&#039;`, XHTML `&apos;`), and a reflected payload has to be removed in whichever it uses.
+HTML_QUOTE_ENTITIES = ("&#39;", "&#x27;", "&#039;", "&apos;")
 
 
 class sqli(BaseLightfuzz):
@@ -12,6 +19,10 @@ class sqli(BaseLightfuzz):
        - Injects single quotes and observes error responses
        - Tests quote escape sequence variations
        - Matches against known SQL error patterns
+
+    * Code-change Detection:
+       - Compares the status code of a single-quote probe against a doubled-quote probe
+       - Requires a positive boolean (TRUE/FALSE) content differential to confirm
 
     * Time-based Blind Detection:
        - Uses vendor-specific time delay payloads
@@ -40,6 +51,19 @@ class sqli(BaseLightfuzz):
         "SQL command not properly ended",
         "string not properly terminated",
     ]
+
+    # both halves are the same length and differ by one character, so a reflected copy strips
+    # cleanly and any surviving body difference comes from the query result set
+    BOOLEAN_PROBE_PAIRS = [
+        ("' AND '1'='1", "' AND '1'='2"),
+        (" AND 1=1", " AND 1=2"),
+    ]
+
+    # one vs. two benign characters, mirroring the `'`/`''` pair in length with no SQL meaning
+    BENIGN_CONTROL_SUFFIXES = ("a", "aa")
+
+    # a WAF block or a rate limit says nothing about the query behind the parameter
+    INCONCLUSIVE_STATUS_CODES = (403, 429)
 
     DELAY_PROBE_TEMPLATES = [
         "'||pg_sleep({d})--",
@@ -115,6 +139,102 @@ class sqli(BaseLightfuzz):
 
         return True
 
+    @staticmethod
+    def _strip_payload(text, payload):
+        """Remove reflected copies of a payload from a response body, raw, URL-encoded and HTML-escaped."""
+        escaped = html.escape(payload)
+        variants = [payload, quote(payload), payload.replace(" ", "+"), escaped]
+        variants += [escaped.replace("&#x27;", entity) for entity in HTML_QUOTE_ENTITIES]
+        for variant in variants:
+            text = text.replace(variant, "")
+        return text
+
+    async def _probe_body(self, http_compare, payload, cookies):
+        """Send ``payload`` and return its parsed body with reflections stripped, or None when the
+        probe fails or the status is inconclusive."""
+        try:
+            probe = await self.compare_probe(
+                http_compare,
+                self.event.data["type"],
+                payload,
+                cookies,
+                additional_params_populate_empty=True,
+            )
+        except HttpCompareError as e:
+            self.debug(f"Boolean probe [{payload}] failed: {e}")
+            return None
+        if not probe[3]:
+            return None
+        if probe[3].status_code in self.INCONCLUSIVE_STATUS_CODES:
+            self.debug(f"Boolean probe [{payload}] returned {probe[3].status_code}, cannot confirm")
+            return None
+        return http_compare.parse_body(self._strip_payload(probe[3].text, payload))
+
+    async def confirm_boolean_differential(self, http_compare, probe_value, cookies):
+        """Require positive SQL-logic evidence before asserting injection from a status change.
+
+        A WAF signature match or a repacked envelope both produce a bare status flip; only a
+        content differential shows the value reaching a query.
+
+        Returns the confirming ``(true_payload, false_payload)`` pair, or None.
+        """
+        for true_suffix, false_suffix in self.BOOLEAN_PROBE_PAIRS:
+            true_payload = f"{probe_value}{true_suffix}"
+            false_payload = f"{probe_value}{false_suffix}"
+
+            true_body = await self._probe_body(http_compare, true_payload, cookies)
+            if true_body is None:
+                continue
+            false_body = await self._probe_body(http_compare, false_payload, cookies)
+            if false_body is None:
+                continue
+
+            if http_compare.compare_body(true_body, false_body) is not False:
+                self.debug(f"No boolean differential for [{true_suffix}] / [{false_suffix}]")
+                continue
+
+            # an unstable page produces a differential on its own, so the TRUE body must reproduce
+            repeat_body = await self._probe_body(http_compare, true_payload, cookies)
+            if repeat_body is None:
+                continue
+            if http_compare.compare_body(true_body, repeat_body) is False:
+                self.debug("Response body is not deterministic, discarding boolean differential")
+                continue
+
+            self.verbose(f"Boolean differential confirmed for {self.event.url}: [{true_suffix}] vs [{false_suffix}]")
+            return true_payload, false_payload
+        return None
+
+    async def is_quote_specific(self, http_compare, probe_value, cookies, status_codes):
+        """Verify the status flip tracks the quote characters and not the payload's shape.
+
+        If the benign control pair reproduces the same status triplet, the flip tracks value
+        length or envelope validity rather than quoting.
+        """
+        control_codes = []
+        for suffix in self.BENIGN_CONTROL_SUFFIXES:
+            try:
+                control = await self.compare_probe(
+                    http_compare,
+                    self.event.data["type"],
+                    f"{probe_value}{suffix}",
+                    cookies,
+                    additional_params_populate_empty=True,
+                )
+            except HttpCompareError as e:
+                self.debug(f"Quote-specificity control probe failed: {e}")
+                return True
+            if not control[3]:
+                return True
+            control_codes.append(control[3].status_code)
+
+        if (status_codes[0], *control_codes) == status_codes:
+            self.debug(
+                f"Benign control pair reproduced the status triplet {status_codes}, the change is not quote-specific"
+            )
+            return False
+        return True
+
     async def fuzz(self):
         cookies = self.event.data.get("assigned_cookies", {})
         probe_value = self.incoming_probe_value(populate_empty=True)
@@ -187,14 +307,27 @@ class sqli(BaseLightfuzz):
                                 double_single_quote[3].status_code,
                             )
                             confirmed = await self._confirm_code_change(probe_value, cookies, initial_status_codes)
-                            if confirmed:
+                            quote_specific = confirmed and await self.is_quote_specific(
+                                http_compare, probe_value, cookies, initial_status_codes
+                            )
+                            boolean_pair = (
+                                await self.confirm_boolean_differential(http_compare, probe_value, cookies)
+                                if quote_specific
+                                else None
+                            )
+                            if boolean_pair:
                                 self.results.append(
                                     {
                                         "name": "Possible SQL Injection",
                                         "severity": "HIGH",
                                         "confidence": "MEDIUM",
-                                        "description": f"Possible SQL Injection. {self.metadata()} Detection Method: [Single Quote/Two Single Quote, Code Change ({initial_status_codes[0]}->{initial_status_codes[1]}->{initial_status_codes[2]})]",
+                                        "description": f"Possible SQL Injection. {self.metadata()} Detection Method: [Single Quote/Two Single Quote, Code Change ({initial_status_codes[0]}->{initial_status_codes[1]}->{initial_status_codes[2]})] Boolean Confirmation: [{boolean_pair[0]}] vs [{boolean_pair[1]}]",
                                     }
+                                )
+                            elif confirmed and quote_specific:
+                                self.verbose(
+                                    f"Discarding code change {initial_status_codes} for {self.event.url}: "
+                                    "no boolean differential, the value does not reach a query"
                                 )
             else:
                 self.debug("Failed to get responses for both single_quote and double_single_quote")
