@@ -326,12 +326,18 @@ class HttpCompare:
         else:
             return (False, diff_reasons, reflection, subject_response)
 
+    @staticmethod
+    def parse_body(text):
+        """Parse a response body into the structure compare_body() expects. Passing raw text works
+        but bypasses the ddiff_filters that mask dynamic content."""
+        try:
+            return xmltodict.parse(text)
+        except ExpatError:
+            return text.split("\n")
+
     def _compare_sync(self, subject_response, subject):
         """CPU-bound comparison work offloaded from the event loop."""
-        try:
-            subject_json = xmltodict.parse(subject_response.text)
-        except ExpatError:
-            subject_json = subject_response.text.split("\n")
+        subject_json = self.parse_body(subject_response.text)
 
         diff_reasons = []
 

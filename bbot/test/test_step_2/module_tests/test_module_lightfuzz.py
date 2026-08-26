@@ -1,6 +1,7 @@
 import json
 import re
 import base64
+import html
 from types import SimpleNamespace
 from urllib.parse import urlparse, parse_qs
 
@@ -21,6 +22,25 @@ def _make_base_lightfuzz(url):
     event = SimpleNamespace(url=url, data={"name": "p"})
     lightfuzz = SimpleNamespace(helpers=SimpleNamespace(add_get_params=add_get_params))
     return BaseLightfuzz(lightfuzz, event)
+
+
+def sqli_injectable_response(value, empty_block):
+    """Emulate a parameter whose value lands unquoted inside a SQL string literal.
+
+    Covers everything the sqli code-change branch must observe on a genuinely injectable
+    parameter: an unbalanced quote errors, a doubled quote recovers, and a TRUE/FALSE
+    boolean pair changes the result set. Benign suffixes behave like any other search term,
+    so the flip stays quote-specific.
+    """
+    if value is None:
+        return Response(empty_block, status=200)
+    if value.endswith("' AND '1'='1"):
+        return Response(f"<html><p>1 result for: {value}</p><p>Row Alpha</p></html>", status=200)
+    if value.endswith("' AND '1'='2"):
+        return Response(f"<html><p>0 results for: {value}</p></html>", status=200)
+    if value.endswith("'") and not value.endswith("''"):
+        return Response("<html><p>Found error in SQL query</p></html>", status=500)
+    return Response(f"<html><p>0 results for: {value}</p></html>", status=200)
 
 
 def test_lightfuzz_build_query_string_no_existing_qs():
@@ -1199,9 +1219,7 @@ class Test_Lightfuzz_sqli(ModuleTestBase):
         },
     }
 
-    def request_handler(self, request):
-        qs = str(request.query_string.decode())
-        parameter_block = """
+    parameter_block = """
         <section class=search>
             <form action=/ method=GET>
                 <input type=text placeholder='Search the blog...' name=search>
@@ -1209,30 +1227,9 @@ class Test_Lightfuzz_sqli(ModuleTestBase):
             </form>
         </section>
         """
-        if "search=" in qs:
-            value = qs.split("=")[1]
 
-            if "&" in value:
-                value = value.split("&")[0]
-
-            sql_block_normal = f"""
-        <section class=blog-header>
-            <h1>0 search results for '{unquote(value)}'</h1>
-            <hr>
-        </section>
-        """
-
-            sql_block_error = """
-        <section class=error>
-            <h1>Found error in SQL query</h1>
-            <hr>
-        </section>
-        """
-            if value.endswith("'"):
-                if value.endswith("''"):
-                    return Response(sql_block_normal, status=200)
-                return Response(sql_block_error, status=500)
-        return Response(parameter_block, status=200)
+    def request_handler(self, request):
+        return sqli_injectable_response(request.args.get("search"), self.parameter_block)
 
     async def setup_after_prep(self, module_test):
         module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
@@ -1272,8 +1269,7 @@ class Test_Lightfuzz_sqli_post(ModuleTestBase):
         },
     }
 
-    def request_handler(self, request):
-        parameter_block = """
+    parameter_block = """
         <section class=search>
             <form action=/ method=POST>
                 <input type=text placeholder='Search the blog...' name=search>
@@ -1282,27 +1278,8 @@ class Test_Lightfuzz_sqli_post(ModuleTestBase):
         </section>
         """
 
-        if "search" in request.form.keys():
-            value = request.form["search"]
-
-            sql_block_normal = f"""
-        <section class=blog-header>
-            <h1>0 search results for '{unquote(value)}'</h1>
-            <hr>
-        </section>
-        """
-
-            sql_block_error = """
-        <section class=error>
-            <h1>Found error in SQL query</h1>
-            <hr>
-        </section>
-        """
-            if value.endswith("'"):
-                if value.endswith("''"):
-                    return Response(sql_block_normal, status=200)
-                return Response(sql_block_error, status=500)
-        return Response(parameter_block, status=200)
+    def request_handler(self, request):
+        return sqli_injectable_response(request.form.get("search"), self.parameter_block)
 
     async def setup_after_prep(self, module_test):
         module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
@@ -1392,32 +1369,14 @@ class Test_Lightfuzz_sqli_headers(Test_Lightfuzz_sqli):
         for event in seed_events:
             await module_test.scan.ingress_module.incoming_event_queue.put(event)
 
-    def request_handler(self, request):
-        placeholder_block = """
+    placeholder_block = """
         <html>
         <p>placeholder</p>
         </html>
         """
 
-        if request.headers.get("testheader") is not None:
-            header_value = request.headers.get("testheader")
-
-            header_block_normal = f"""
-            <html>
-            <p>placeholder</p>
-            <p>test: {header_value}</p>
-            </html>
-            """
-            header_block_error = """
-            <html>
-            <p>placeholder</p>
-            <p>Error!</p>
-            </html>
-            """
-            if header_value.endswith("'") and not header_value.endswith("''"):
-                return Response(header_block_error, status=500)
-            return Response(header_block_normal, status=200)
-        return Response(placeholder_block, status=200)
+    def request_handler(self, request):
+        return sqli_injectable_response(request.headers.get("testheader"), self.placeholder_block)
 
     def check(self, module_test, events):
         sqli_finding_emitted = False
@@ -1462,33 +1421,14 @@ class Test_Lightfuzz_sqli_cookies(Test_Lightfuzz_sqli):
         for event in seed_events:
             await module_test.scan.ingress_module.incoming_event_queue.put(event)
 
-    def request_handler(self, request):
-        placeholder_block = """
+    placeholder_block = """
         <html>
         <p>placeholder</p>
         </html>
         """
 
-        if request.cookies.get("test") is not None:
-            header_value = request.cookies.get("test")
-
-            header_block_normal = f"""
-            <html>
-            <p>placeholder</p>
-            <p>test: {header_value}</p>
-            </html>
-            """
-
-            header_block_error = """
-            <html>
-            <p>placeholder</p>
-            <p>Error!</p>
-            </html>
-            """
-            if header_value.endswith("'") and not header_value.endswith("''"):
-                return Response(header_block_error, status=500)
-            return Response(header_block_normal, status=200)
-        return Response(placeholder_block, status=200)
+    def request_handler(self, request):
+        return sqli_injectable_response(request.cookies.get("test"), self.placeholder_block)
 
     def check(self, module_test, events):
         sqli_finding_emitted = False
@@ -1814,6 +1754,36 @@ class Test_Lightfuzz_serial_errorresolution_falsepositive(Test_Lightfuzz_serial_
                 no_finding_emitted = False
 
         assert no_finding_emitted, "False positive finding was emitted"
+
+
+# Serialization Module: the parameter is parsed as a URI, not deserialized. .NET's Uri reads
+# everything before the first "/" as the hostname, so the control payload (no "/", trailing "=")
+# throws and the dotnet payload (leading token "AAEAAAD") parses -- a 500->200 flip that has
+# nothing to do with deserialization. A structurally-corrupted twin parses just as well, which
+# is what proves the outcome is independent of the payload's content.
+class Test_Lightfuzz_serial_errorresolution_uri_parse_fp(Test_Lightfuzz_serial_errorresolution):
+    uri_parse_error = (
+        "<html><body>System.UriFormatException: Invalid URI: The hostname could not be parsed.</body></html>"
+    )
+
+    def request_handler(self, request):
+        post_params = request.form
+        if "TextBox1" not in post_params.keys():
+            return Response(self.dotnet_serial_html, status=200)
+        if post_params["__VIEWSTATE"] != "/wEPDwULLTE5MTI4MzkxNjVkZNt7ICM+GixNryV6ucx+srzhXlwP":
+            return Response(self.dotnet_serial_error, status=500)
+        host = post_params["TextBox1"].split("/")[0]
+        if not host or re.fullmatch(r"[A-Za-z0-9.-]+", host) is None:
+            return Response(self.uri_parse_error, status=500)
+        return Response("<html><body>Request accepted</body></html>", status=200)
+
+    def check(self, module_test, events):
+        findings = [
+            e.data["description"]
+            for e in events
+            if e.type == "FINDING" and "Unsafe Deserialization" in e.data.get("description", "")
+        ]
+        assert not findings, f"URI parsing was misreported as unsafe deserialization: {findings}"
 
 
 class Test_Lightfuzz_serial_errorresolution_existingvalue_valid(Test_Lightfuzz_serial_errorresolution):
@@ -3790,10 +3760,7 @@ class Test_Lightfuzz_try_post_as_get(ModuleTestBase):
         },
     }
 
-    def request_handler(self, request):
-        qs = str(request.query_string.decode())
-
-        parameter_block = """
+    parameter_block = """
         <section class=search>
             <form action=/ method=POST>
                 <input type=text placeholder='Search the blog...' name=search>
@@ -3802,29 +3769,9 @@ class Test_Lightfuzz_try_post_as_get(ModuleTestBase):
         </section>
         """
 
-        if "search=" in qs:
-            value = qs.split("=")[1]
-            if "&" in value:
-                value = value.split("&")[0]
-
-            sql_block_normal = f"""
-        <section class=blog-header>
-            <h1>0 search results for '{unquote(value)}'</h1>
-            <hr>
-        </section>
-        """
-
-            sql_block_error = """
-        <section class=error>
-            <h1>Found error in SQL query</h1>
-            <hr>
-        </section>
-        """
-            if value.endswith("'"):
-                if value.endswith("''"):
-                    return Response(sql_block_normal, status=200)
-                return Response(sql_block_error, status=500)
-        return Response(parameter_block, status=200)
+    def request_handler(self, request):
+        # only the converted GETPARAM pass reaches a query here; the POST pass is disabled
+        return sqli_injectable_response(request.args.get("search"), self.parameter_block)
 
     async def setup_after_prep(self, module_test):
         module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
@@ -3872,8 +3819,7 @@ class Test_Lightfuzz_try_get_as_post(ModuleTestBase):
         },
     }
 
-    def request_handler(self, request):
-        parameter_block = """
+    parameter_block = """
         <section class=search>
             <form action=/ method=GET>
                 <input type=text placeholder='Search the blog...' name=search>
@@ -3882,27 +3828,10 @@ class Test_Lightfuzz_try_get_as_post(ModuleTestBase):
         </section>
         """
 
-        if request.method == "POST" and "search" in request.form.keys():
-            value = request.form["search"]
-
-            sql_block_normal = f"""
-        <section class=blog-header>
-            <h1>0 search results for '{unquote(value)}'</h1>
-            <hr>
-        </section>
-        """
-
-            sql_block_error = """
-        <section class=error>
-            <h1>Found error in SQL query</h1>
-            <hr>
-        </section>
-        """
-            if value.endswith("'"):
-                if value.endswith("''"):
-                    return Response(sql_block_normal, status=200)
-                return Response(sql_block_error, status=500)
-        return Response(parameter_block, status=200)
+    def request_handler(self, request):
+        # only the converted POSTPARAM pass reaches a query here
+        value = request.form.get("search") if request.method == "POST" else None
+        return sqli_injectable_response(value, self.parameter_block)
 
     async def setup_after_prep(self, module_test):
         module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
@@ -4148,6 +4077,85 @@ class Test_Lightfuzz_sqli_flappy_baseline(Test_Lightfuzz_sqli):
         )
 
 
+def _sqli_code_change_findings(events):
+    return [
+        e.data["description"] for e in events if e.type == "FINDING" and "Code Change" in e.data.get("description", "")
+    ]
+
+
+# SQLi negative test: the textbook 200->500->200 status flip on a parameter that never reaches a
+# query. TRUE and FALSE boolean payloads come back byte-identical, so there is no SQL logic to
+# confirm. This is the shape an envelope-wrapped parameter produces when the injected quote
+# changes the envelope's structural validity rather than a query's.
+class Test_Lightfuzz_sqli_no_boolean_differential_fp(Test_Lightfuzz_sqli):
+    def request_handler(self, request):
+        value = request.args.get("search")
+        if value is None:
+            return Response(self.parameter_block, status=200)
+        if value.endswith("'") and not value.endswith("''"):
+            return Response("<html><p>Bad Request</p></html>", status=500)
+        return Response("<html><p>0 results</p></html>", status=200)
+
+    def check(self, module_test, events):
+        findings = _sqli_code_change_findings(events)
+        assert not findings, f"SQLi reported from a status flip with no boolean differential: {findings}"
+
+
+# SQLi negative test: the single-quote probe is blocked by an access-control layer whose block
+# page carries no recognizable WAF signature. The transition into 403 is what identifies it.
+class Test_Lightfuzz_sqli_unsigned_403_fp(Test_Lightfuzz_sqli):
+    def request_handler(self, request):
+        value = request.args.get("search")
+        if value is None:
+            return Response(self.parameter_block, status=200)
+        if value.endswith("'") and not value.endswith("''"):
+            return Response(
+                "<html><head><title>Forbidden</title></head><body><h1>Forbidden</h1>"
+                "<p>Reference: 0aB1cD2e</p></body></html>",
+                status=403,
+            )
+        return Response("<html><p>0 results</p></html>", status=200)
+
+    def check(self, module_test, events):
+        findings = _sqli_code_change_findings(events)
+        assert not findings, f"SQLi reported from a probe blocked with an unsigned 403: {findings}"
+
+
+# SQLi negative test: the status is keyed on the payload's length, not its quoting. A benign
+# one-vs-two-character pair reproduces the same status triplet, so the change isn't quote-specific.
+class Test_Lightfuzz_sqli_length_keyed_fp(Test_Lightfuzz_sqli):
+    def request_handler(self, request):
+        value = request.args.get("search")
+        if value is None:
+            return Response(self.parameter_block, status=200)
+        if len(value) == 11:
+            return Response("<html><p>Bad Request</p></html>", status=500)
+        return Response("<html><p>0 results</p></html>", status=200)
+
+    def check(self, module_test, events):
+        findings = _sqli_code_change_findings(events)
+        assert not findings, f"SQLi reported from a length-keyed status flip: {findings}"
+
+
+# SQLi negative test: the parameter never reaches a query, and the app reflects it HTML-escaped.
+# The escaped reflection differs between the TRUE and FALSE boolean payloads, so unless every
+# escape spelling is stripped, the reflection itself reads as a boolean differential.
+class Test_Lightfuzz_sqli_escaped_reflection_fp(Test_Lightfuzz_sqli):
+    def request_handler(self, request):
+        value = request.args.get("search")
+        if value is None:
+            return Response(self.parameter_block, status=200)
+        if value.endswith("'") and not value.endswith("''"):
+            return Response("<html><p>Bad Request</p></html>", status=500)
+        # the Jinja/ASP.NET spelling, deliberately not the one html.escape() produces
+        reflection = html.escape(value).replace("&#x27;", "&#39;")
+        return Response(f"<html><p>0 results for: {reflection}</p></html>", status=200)
+
+    def check(self, module_test, events):
+        findings = _sqli_code_change_findings(events)
+        assert not findings, f"SQLi reported from an HTML-escaped reflection: {findings}"
+
+
 # Verify that POST SQLi findings include additional_params in the description
 class Test_Lightfuzz_sqli_post_additional_params(ModuleTestBase):
     targets = [HTTPSERVER_URL]
@@ -4161,8 +4169,7 @@ class Test_Lightfuzz_sqli_post_additional_params(ModuleTestBase):
         },
     }
 
-    def request_handler(self, request):
-        parameter_block = """
+    parameter_block = """
         <section class=search>
             <form action=/ method=POST>
                 <input type=text name=search>
@@ -4171,14 +4178,9 @@ class Test_Lightfuzz_sqli_post_additional_params(ModuleTestBase):
             </form>
         </section>
         """
-        if "search" in request.form.keys():
-            value = request.form["search"]
-            if value.endswith("'"):
-                if value.endswith("''"):
-                    return Response("<p>normal</p>", status=200)
-                return Response("<p>error</p>", status=500)
-            return Response("<p>results</p>", status=200)
-        return Response(parameter_block, status=200)
+
+    def request_handler(self, request):
+        return sqli_injectable_response(request.form.get("search"), self.parameter_block)
 
     async def setup_after_prep(self, module_test):
         module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
