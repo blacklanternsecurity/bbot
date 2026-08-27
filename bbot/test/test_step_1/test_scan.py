@@ -520,3 +520,43 @@ async def test_memory_backpressure_drain_mode_bypass(bbot_scanner, monkeypatch):
         assert m.num_incoming_events == 0
     scan.modules_status(_log=False)
     assert scan._ingress_delay == 0.0, "throttle must clear in drain mode (no producers, ingress is the drain)"
+
+
+@pytest.mark.asyncio
+async def test_url_max_path_repeats():
+    """Servers that append a session id on every redirect, and spider traps, generate an
+    unbounded supply of URLs whose path repeats one key. Ingress drops them."""
+    from bbot.scanner import Scanner
+
+    def jsessionid_url(n):
+        return "http://evilcorp.com/" + "".join(f";JSESSIONID={i:08x}-2ab9-49eb" for i in range(n))
+
+    scan = Scanner("evilcorp.com", config={"url_max_path_repeats": 10})
+    await scan._prep()
+    ingress = scan.ingress_module
+
+    # handle_event returns None when it accepts, and (False, reason) when it rejects
+
+    # below the limit the URL is scanned normally
+    shallow = scan.make_event(jsessionid_url(9), "URL_UNVERIFIED", parent=scan.root_event)
+    assert await ingress.handle_event(shallow) is None
+    assert "blacklisted" not in shallow.tags
+
+    # at the limit it is rejected before reaching any module's queue
+    degenerate = scan.make_event(jsessionid_url(10), "URL_UNVERIFIED", parent=scan.root_event)
+    assert await ingress.handle_event(degenerate) == (False, "event is blacklisted")
+    assert "blacklisted" in degenerate.tags
+
+    # ordinary URLs are untouched
+    normal = scan.make_event("http://evilcorp.com/api/v1/users/1", "URL_UNVERIFIED", parent=scan.root_event)
+    assert await ingress.handle_event(normal) is None
+    assert "blacklisted" not in normal.tags
+    await scan._cleanup()
+
+    # the guard can be disabled outright
+    scan = Scanner("evilcorp.com", config={"url_max_path_repeats": 0})
+    await scan._prep()
+    off = scan.make_event(jsessionid_url(50), "URL_UNVERIFIED", parent=scan.root_event)
+    await scan.ingress_module.handle_event(off)
+    assert "blacklisted" not in off.tags
+    await scan._cleanup()
