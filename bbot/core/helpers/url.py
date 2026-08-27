@@ -1,5 +1,6 @@
 import uuid
 import logging
+from collections import Counter
 from contextlib import suppress
 from urllib.parse import urlparse, parse_qs, urlencode, ParseResult
 
@@ -209,6 +210,45 @@ def hash_url(url):
             hash_segment.append("")
         to_hash.append(tuple(hash_segment))
     return hash(tuple(to_hash))
+
+
+def max_path_repeats(url):
+    """
+    Count how many times the most-repeated key appears in a URL's path.
+
+    Path tokens are split on both "/" and ";" (matrix parameters) and keyed on the portion
+    before "=", so accumulating values like ";jsessionid=<uuid>" collapse onto one key.
+    Server-side loops -- session ids appended on every redirect, spider traps, rewrite
+    loops -- repeat a key many times over; ordinary URLs rarely repeat one at all.
+
+    Args:
+        url (Union[str, ParseResult]): The URL to inspect.
+
+    Returns:
+        int: The highest number of times any single key appears in the path.
+
+    Examples:
+        >>> max_path_repeats('https://www.evilcorp.com/foo/bar')
+        1
+
+        >>> max_path_repeats('https://www.evilcorp.com/;JSESSIONID=a;JSESSIONID=b')
+        2
+
+        >>> max_path_repeats('https://www.evilcorp.com/a/b/a/b/a')
+        3
+    """
+    parsed = url if hasattr(url, "path") else parse_url(url)
+    # urlparse peels the final segment's matrix parameters off into .params
+    path = parsed.path
+    trailing_params = getattr(parsed, "params", "")
+    if trailing_params:
+        path = f"{path};{trailing_params}"
+    counts = Counter()
+    for segment in path.split("/"):
+        for token in segment.split(";"):
+            if token:
+                counts[token.split("=", 1)[0].lower()] += 1
+    return max(counts.values(), default=0)
 
 
 def url_depth(url):

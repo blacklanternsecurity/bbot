@@ -49,6 +49,10 @@ class lightfuzz(BaseModule):
             True,
             description="Emit canonical baseline responses as HTTP_RESPONSE events so excavate can mine them for new params/URLs.",
         )
+        max_baseline_generations: int = Field(
+            10,
+            description="Stop emitting baseline responses once a parameter is this many lightfuzz generations deep, bounding excavate feedback loops.",
+        )
 
         @field_validator("avoid_wafs", mode="before")
         @classmethod
@@ -83,6 +87,8 @@ class lightfuzz(BaseModule):
             avoid_wafs = "always" if avoid_wafs else "never"
         self.avoid_wafs = avoid_wafs.strip().lower()
         self.emit_baseline_responses = self.config.get("emit_baseline_responses", True)
+        self.max_baseline_generations = self.config.get("max_baseline_generations", 10)
+        self._baseline_generation_cap_hit = False
         self.submodules = {}
         # Per-event baseline cache so submodules with identical request signatures share one HttpCompare.
         self._baseline_cache = {}
@@ -205,11 +211,39 @@ class lightfuzz(BaseModule):
         """Store an HttpCompare in the per-event baseline cache."""
         self._baseline_cache.setdefault(event.id, {})[signature] = http_compare
 
+    def baseline_generations(self, event):
+        """How many lightfuzz-emitted events are already in this event's ancestry.
+
+        Every baseline response we emit is mined by excavate, which hands the parameters it
+        finds back to us. Pages that vary their form on each load (rotating CSRF tokens,
+        honeypot fields) make each round look new, so the chain is bounded by counting it.
+        """
+        count = 0
+        e = event
+        while 1:
+            parent = e.parent
+            if parent is None or parent == e:
+                break
+            if getattr(parent.module, "name", "") == self.name:
+                count += 1
+                if count >= self.max_baseline_generations:
+                    break
+            e = parent
+        return count
+
     async def emit_baseline_response(self, response, event, method):
         """Emit a baseline blasthttp Response as an HTTP_RESPONSE event so excavate can mine post-submit pages."""
         if not self.emit_baseline_responses:
             return
         if response is None:
+            return
+        if self.baseline_generations(event) >= self.max_baseline_generations:
+            if not self._baseline_generation_cap_hit:
+                self._baseline_generation_cap_hit = True
+                self.verbose(
+                    f"Reached max_baseline_generations ({self.max_baseline_generations}) on {event.host}; "
+                    "no longer emitting baseline responses for parameters nested this deep"
+                )
             return
         try:
             parsed = urlparse(str(response.url))
