@@ -2,6 +2,7 @@ import asyncio
 from contextlib import suppress
 from radixtarget import host_size_key
 
+from bbot.core.helpers.url import max_path_param_repeats
 from bbot.modules.base import BaseInterceptModule
 
 
@@ -101,6 +102,17 @@ class ScanIngress(BaseInterceptModule):
             if url_extension in self.scan.url_extension_blacklist:
                 self.debug(
                     f"Blacklisting {event} because its extension (.{url_extension}) is blacklisted in the config"
+                )
+                event.add_tag("blacklisted")
+
+        # reject degenerate URL paths, which servers generate in unbounded numbers
+        parsed_url = getattr(event, "parsed_url", None)
+        if parsed_url is not None and self.scan.url_max_path_param_repeats > 0:
+            repeats = max_path_param_repeats(parsed_url)
+            if repeats >= self.scan.url_max_path_param_repeats:
+                self.debug(
+                    f"Blacklisting {event} because its path repeats a parameter {repeats:,} times "
+                    f"(url_max_path_param_repeats={self.scan.url_max_path_param_repeats:,})"
                 )
                 event.add_tag("blacklisted")
 
