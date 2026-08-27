@@ -88,7 +88,7 @@ dev = [
     "pytest-benchmark>=4,<6",
     "pytest-xdist>=3.6,<4",
     "baddns~=2.4.1",
-    "ruff==0.16.2",
+    "ruff==0.16.3",
     "maturin>=1.4,<2",
     "mcp>=1.2,<2",
 ]

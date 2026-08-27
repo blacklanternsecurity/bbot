@@ -9,6 +9,10 @@ from bbot.core.helpers.diff import parse_body
 # PHP `&#039;`, XHTML `&apos;`), and a reflected payload has to be removed in whichever it uses.
 HTML_QUOTE_ENTITIES = ("&#39;", "&#x27;", "&#039;", "&apos;")
 
+# frameworks disagree on how they spell an escaped quote (Jinja/ASP.NET `&#39;`, Django `&#x27;`,
+# PHP `&#039;`, XHTML `&apos;`), and a reflected payload has to be removed in whichever it uses.
+HTML_QUOTE_ENTITIES = ("&#39;", "&#x27;", "&#039;", "&apos;")
+
 
 class sqli(BaseLightfuzz):
     """
