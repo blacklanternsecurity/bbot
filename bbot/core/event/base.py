@@ -1636,9 +1636,22 @@ class WEB_PARAMETER(DictHostEvent):
                 log.verbose(f"Error detecting envelopes for {self}: {e}")
         return data
 
+    def _dedup_url(self, url):
+        """The page the parameter lives on. The query string of whichever request revealed it
+        is context rather than identity, so it is dropped; scans that opt into per-value
+        fuzzing with url_querystring_collapse=False keep it, normalized for ordering."""
+        base, sep, query = url.partition("?")
+        if not sep or self.scan is None:
+            return url
+        if self.scan.config.get("url_querystring_collapse", True):
+            return base
+        query_dict = parse_qs(query)
+        kept = "&".join(f"{k}={','.join(sorted(v))}" for k, v in sorted(query_dict.items()))
+        return f"{base}?{kept}"
+
     def _data_id(self):
         # dedupe by url:name:param_type
-        url = self.data.get("url", "")
+        url = self._dedup_url(self.data.get("url", ""))
         name = self.data.get("name", "")
         param_type = self.data.get("type", "")
         envelopes = getattr(self, "envelopes", "")
@@ -1650,7 +1663,7 @@ class WEB_PARAMETER(DictHostEvent):
         return hash(
             (
                 str(event.host),
-                event.data["url"],
+                event._dedup_url(event.data["url"]),
                 event.data.get("name", ""),
                 event.data.get("type", ""),
                 event.data.get("envelopes", ""),
