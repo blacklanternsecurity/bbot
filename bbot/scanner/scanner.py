@@ -285,8 +285,8 @@ class Scanner:
         # url querystring behavior
         self.url_querystring_remove = self.config.get("url_querystring_remove", True)
 
-        # reject URLs whose path repeats the same key this many times
-        self.url_max_path_repeats = self.config.get("url_max_path_repeats", 10)
+        # reject URLs whose path repeats the same path parameter this many times
+        self.url_max_path_param_repeats = self.config.get("url_max_path_param_repeats", 10)
 
         # blob inclusion
         self._file_blobs = self.config.get("file_blobs", False)

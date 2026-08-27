@@ -191,8 +191,8 @@ python: True
 url_querystring_remove: True
 # When query string is retained, by default collapse parameter values down to a single value per parameter
 url_querystring_collapse: True
-# Reject URLs whose path repeats the same key this many times (session ids appended on every redirect, spider traps)
-url_max_path_repeats: 10
+# Reject URLs whose path repeats the same path parameter this many times (e.g. a session id appended on every redirect)
+url_max_path_param_repeats: 10
 
 # Completely ignore URLs with these extensions
 url_extension_blacklist:

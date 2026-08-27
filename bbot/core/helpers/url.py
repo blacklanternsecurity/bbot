@@ -212,30 +212,30 @@ def hash_url(url):
     return hash(tuple(to_hash))
 
 
-def max_path_repeats(url):
+def max_path_param_repeats(url):
     """
-    Count how many times the most-repeated key appears in a URL's path.
+    Count how many times the most-repeated path parameter appears in a URL's path.
 
-    Path tokens are split on both "/" and ";" (matrix parameters) and keyed on the portion
-    before "=", so accumulating values like ";jsessionid=<uuid>" collapse onto one key.
-    Server-side loops -- session ids appended on every redirect, spider traps, rewrite
-    loops -- repeat a key many times over; ordinary URLs rarely repeat one at all.
+    Path (matrix) parameters are the ";key=value" pieces a server may append to a path
+    segment; some reissue one on every redirect, so the path grows without bound. Keys are
+    compared case-insensitively. Ordinary path segments are deliberately not counted: a deep
+    path that repeats a directory name is finite, and depth is bounded by web_spider_depth.
 
     Args:
         url (Union[str, ParseResult]): The URL to inspect.
 
     Returns:
-        int: The highest number of times any single key appears in the path.
+        int: The highest number of times any single path parameter appears.
 
     Examples:
-        >>> max_path_repeats('https://www.evilcorp.com/foo/bar')
-        1
+        >>> max_path_param_repeats('https://www.evilcorp.com/foo/bar')
+        0
 
-        >>> max_path_repeats('https://www.evilcorp.com/;JSESSIONID=a;JSESSIONID=b')
+        >>> max_path_param_repeats('https://www.evilcorp.com/;JSESSIONID=a;JSESSIONID=b')
         2
 
-        >>> max_path_repeats('https://www.evilcorp.com/a/b/a/b/a')
-        3
+        >>> max_path_param_repeats('https://www.evilcorp.com/app;a=1/b;c=2')
+        1
     """
     parsed = url if hasattr(url, "path") else parse_url(url)
     # urlparse peels the final segment's matrix parameters off into .params
@@ -245,7 +245,8 @@ def max_path_repeats(url):
         path = f"{path};{trailing_params}"
     counts = Counter()
     for segment in path.split("/"):
-        for token in segment.split(";"):
+        # the first ";"-delimited piece is the segment itself, not a parameter
+        for token in segment.split(";")[1:]:
             if token:
                 counts[token.split("=", 1)[0].lower()] += 1
     return max(counts.values(), default=0)

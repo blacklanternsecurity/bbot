@@ -395,7 +395,7 @@ class BBOTConfig(BaseModel):
     # URL handling
     url_querystring_remove: Optional[bool] = None
     url_querystring_collapse: Optional[bool] = None
-    url_max_path_repeats: Optional[int] = None
+    url_max_path_param_repeats: Optional[int] = None
     url_extension_blacklist: Optional[list[str]] = None
     url_extension_special: Optional[list[str]] = None
     url_extension_static: Optional[list[str]] = None
