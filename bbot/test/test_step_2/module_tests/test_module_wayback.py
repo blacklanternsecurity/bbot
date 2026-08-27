@@ -142,6 +142,80 @@ class TestWaybackDeadHostSkip(ModuleTestBase):
         }, f"Unexpected liveness cache contents: {dict(module_test.module._liveness_cache)}"
 
 
+class TestWaybackDeadHostInterestingFile(ModuleTestBase):
+    """Interesting-file FINDINGs are not gated on host liveness. The file is fetched from
+    archive.org, not the host, and a backup.zip that no longer exists on a dead host is
+    exactly what the archive is worth searching for."""
+
+    module_name = "wayback"
+    modules_overrides = ["wayback"]
+    targets = ["blacklanternsecurity.com"]
+    config_overrides = {"modules": {"wayback": {"urls": True}}}
+
+    async def setup_after_prep(self, module_test):
+        await module_test.mock_dns({"blacklanternsecurity.com": {"A": ["127.0.0.88"]}})
+        module_test.blasthttp_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
+            json=[["original"], ["http://blacklanternsecurity.com/backup/site.zip"]],
+        )
+        module_test.blasthttp_mock.add_response(
+            url="http://web.archive.org/web/http://blacklanternsecurity.com/backup/site.zip",
+            headers={"Content-Type": "application/zip", "Content-Length": "1048576"},
+        )
+        # no response registered for http://blacklanternsecurity.com/, so the host reads dead
+
+    def check(self, module_test, events):
+        assert not any(e.type == "URL_UNVERIFIED" for e in events), "Dead host should emit no URL_UNVERIFIED events"
+        assert module_test.module._liveness_cache == {("http", "blacklanternsecurity.com"): False}, (
+            f"Expected the host to be probed and marked dead: {dict(module_test.module._liveness_cache)}"
+        )
+        assert any(e.type == "FINDING" and "site.zip" in e.data["description"] for e in events), (
+            "Interesting-file FINDING should still be emitted for a dead host"
+        )
+
+
+class TestWaybackProxySkipsLivenessProbe(ModuleTestBase):
+    """A proxy answers on the target's behalf, so a response says nothing about the host.
+    With one configured, no probes are sent and every host's URLs are emitted."""
+
+    module_name = "wayback"
+    modules_overrides = ["wayback"]
+    targets = ["blacklanternsecurity.com"]
+    config_overrides = {
+        "modules": {"wayback": {"urls": True}},
+        "web": {"http_proxy": "http://127.0.0.1:9999"},
+    }
+
+    async def setup_after_prep(self, module_test):
+        await module_test.mock_dns(
+            {
+                "blacklanternsecurity.com": {"A": ["127.0.0.88"]},
+                "dead.blacklanternsecurity.com": {"A": ["127.0.0.88"]},
+            }
+        )
+        module_test.blasthttp_mock.add_response(
+            url="http://web.archive.org/cdx/search/cdx?url=blacklanternsecurity.com&matchType=domain&output=json&fl=original&collapse=original&limit=100000&filter=!statuscode:404&filter=!statuscode:301&filter=!statuscode:302&filter=!mimetype:image/.*&filter=!mimetype:text/css&filter=!mimetype:warc/revisit",
+            json=[["original"], ["https://dead.blacklanternsecurity.com/one"]],
+        )
+        self.probes = []
+
+        def record_probe(request):
+            self.probes.append(request.url)
+            return MockResponse(status_code=502, text="Bad Gateway")
+
+        module_test.blasthttp_mock.add_callback(record_probe, url="https://dead.blacklanternsecurity.com/")
+
+    def check(self, module_test, events):
+        assert self.probes == [], f"No liveness probe should be sent when a proxy is configured: {self.probes}"
+        assert not module_test.module._liveness_cache, (
+            f"Liveness cache should stay empty under a proxy: {dict(module_test.module._liveness_cache)}"
+        )
+        emitted = sorted(e.url for e in events if e.type == "URL_UNVERIFIED")
+        assert emitted == ["https://dead.blacklanternsecurity.com/one"], (
+            f"URLs should be emitted unfiltered under a proxy, got: {emitted}"
+        )
+
+
 class TestWaybackArchive(ModuleTestBase):
     module_name = "wayback"
     modules_overrides = ["wayback", "badsecrets", "excavate"]
