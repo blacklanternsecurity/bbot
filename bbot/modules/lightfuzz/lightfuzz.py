@@ -6,6 +6,8 @@ from bbot.modules.base import BaseModule
 from bbot.core.helpers.async_helpers import NamedLock
 
 from bbot.errors import InteractshError
+from pydantic import field_validator
+
 from bbot.core.config.models import BaseModuleConfig, Field
 from bbot.core.helpers.misc import get_waf_strings
 from bbot.core.helpers.web.response_event import response_to_event_dict
@@ -48,6 +50,14 @@ class lightfuzz(BaseModule):
             description="Emit canonical baseline responses as HTTP_RESPONSE events so excavate can mine them for new params/URLs.",
         )
 
+        @field_validator("avoid_wafs", mode="before")
+        @classmethod
+        def _normalize_avoid_wafs(cls, v):
+            # also accept the boolean form: True skipped WAF-tagged targets, False fuzzed them raw
+            if isinstance(v, bool):
+                return "always" if v else "never"
+            return v.strip().lower() if isinstance(v, str) else v
+
     meta = {
         "description": "BBOT's DAST module — lightly fuzz web parameters discovered during recon for common vulnerability classes",
         "author": "@liquidsec",
@@ -68,7 +78,10 @@ class lightfuzz(BaseModule):
         self.try_get_as_post = self.config.get("try_get_as_post", False)
         self.enabled_submodules = self.config.get("enabled_submodules")
         self.interactsh_disable = self.scan.config.get("interactsh_disable", False)
-        self.avoid_wafs = self.config.get("avoid_wafs", "try_bypasses")
+        avoid_wafs = self.config.get("avoid_wafs", "try_bypasses")
+        if isinstance(avoid_wafs, bool):
+            avoid_wafs = "always" if avoid_wafs else "never"
+        self.avoid_wafs = avoid_wafs.strip().lower()
         self.emit_baseline_responses = self.config.get("emit_baseline_responses", True)
         self.submodules = {}
         # Per-event baseline cache so submodules with identical request signatures share one HttpCompare.
