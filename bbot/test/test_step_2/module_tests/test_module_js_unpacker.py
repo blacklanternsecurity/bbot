@@ -123,9 +123,17 @@ class TestJsUnpacker(ModuleTestBase):
             "Source map: excavate didn't find /fallback/collect"
         )
 
-        # Dean Edwards: excavate should find the hidden URL after unpacking
-        assert any("/hidden/tracker" in str(u) for u in url_events), (
-            "Dean Edwards: excavate didn't find /hidden/tracker"
+        # Dean Edwards: the hidden URL should survive into the unpacked body.
+        # Asserted on the body rather than on excavate's output because .js URLs are emitted
+        # internal, and only reach output modules if they get promoted for graph-importance.
+        # excavate's consumption of dean-edwards output is covered by TestJsUnpackerBadsecretsChain.
+        dean_edwards_bodies = [
+            e.body
+            for e in events
+            if e.type == "HTTP_RESPONSE" and "js-unpacked" in e.tags and e.data["url"].endswith("/js/packed.js")
+        ]
+        assert any("/hidden/tracker.js" in b for b in dean_edwards_bodies), (
+            f"Dean Edwards: /hidden/tracker.js missing from unpacked body: {dean_edwards_bodies}"
         )
 
         # obfuscator.io: excavate should find the API endpoint after deobfuscation

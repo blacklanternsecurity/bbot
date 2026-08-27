@@ -1,5 +1,5 @@
-import re
 import json
+import regex as re
 from hashlib import md5, sha256
 from urllib.parse import urljoin
 
@@ -60,7 +60,7 @@ rule source_map
 
     async def unpack(self, event, match):
         body = event.body
-        m = self._url_regex.search(body)
+        m = await self.helpers.re.search(self._url_regex, body)
         if not m:
             return
         map_ref = m.group(1)
@@ -85,19 +85,10 @@ rule source_map
                 return
             map_json = r.text
 
-        try:
-            source_map = json.loads(map_json)
-        except (json.JSONDecodeError, ValueError):
+        parsed = await self.helpers.run_in_executor_cpu(self._parse_source_map, map_json)
+        if parsed is None:
             return
-
-        sources = source_map.get("sources", [])
-        contents = source_map.get("sourcesContent", [])
-        if not contents:
-            return
-
-        non_empty = [c for c in contents if c and c.strip()]
-        if not non_empty:
-            return
+        num_sources, num_files, combined = parsed
 
         url = event.data.get("url", "unknown")
         source_url = map_url if not map_ref.startswith("data:") else url
@@ -106,7 +97,7 @@ rule source_map
                 "host": str(event.host),
                 "url": source_url,
                 "name": "Exposed source map",
-                "description": f"Source map with {len(non_empty)} source files exposed ({len(sources)} total entries)",
+                "description": f"Source map with {num_files} source files exposed ({num_sources} total entries)",
                 "severity": "LOW",
                 "confidence": "CONFIRMED",
             },
@@ -114,9 +105,19 @@ rule source_map
             parent=event,
             context="{module} discovered an exposed source map at {event.data[url]}",
         )
-
-        combined = "\n".join(non_empty)
         await self.emit_unlocked(event, combined)
+
+    @staticmethod
+    def _parse_source_map(map_json):
+        """Parse the map and join its embedded sources. CPU-bound; runs off the event loop."""
+        try:
+            source_map = json.loads(map_json)
+        except (json.JSONDecodeError, ValueError):
+            return None
+        non_empty = [c for c in source_map.get("sourcesContent", []) if c and c.strip()]
+        if not non_empty:
+            return None
+        return len(source_map.get("sources", [])), len(non_empty), "\n".join(non_empty)
 
 
 class DeanEdwardsUnpacker(BaseUnpacker):
@@ -137,10 +138,16 @@ rule dean_edwards_packer
     )
 
     async def unpack(self, event, match):
-        body = event.body
-        m = self._extract_regex.search(body)
+        result = await self.helpers.run_in_executor_cpu(self._decode, event.body)
+        if result:
+            await self.emit_unlocked(event, result)
+
+    @classmethod
+    def _decode(cls, body):
+        """Reverse the packer's base-N keyword substitution. CPU-bound; runs off the event loop."""
+        m = cls._extract_regex.search(body)
         if not m:
-            return
+            return ""
 
         payload, radix, count, keywords_str = m.group(1), int(m.group(2)), int(m.group(3)), m.group(4)
         keywords = keywords_str.split("|")
@@ -163,9 +170,7 @@ rule dean_edwards_packer
 
         result = re.sub(r"\b\w+\b", replacer, payload)
         result = result.encode("utf-8").decode("unicode_escape", errors="replace")
-
-        if result.strip():
-            await self.emit_unlocked(event, result)
+        return result if result.strip() else ""
 
 
 class ObfuscatorIOUnpacker(BaseUnpacker):
@@ -182,10 +187,16 @@ rule obfuscator_io
     _array_regex = re.compile(r"var\s+(_0x[a-f0-9]+)\s*=\s*\[(.*?)\];", re.DOTALL)
 
     async def unpack(self, event, match):
-        body = event.body
-        arr_match = self._array_regex.search(body)
+        result = await self.helpers.run_in_executor_cpu(self._deobfuscate, event.body)
+        if result:
+            await self.emit_unlocked(event, result)
+
+    @classmethod
+    def _deobfuscate(cls, body):
+        """Inline the string-array lookups back into the source. CPU-bound; runs off the event loop."""
+        arr_match = cls._array_regex.search(body)
         if not arr_match:
-            return
+            return ""
 
         arr_name = arr_match.group(1)
         string_array = re.findall(r"'([^']*)'", arr_match.group(2))
@@ -210,7 +221,7 @@ rule obfuscator_io
         )
         accessor_match = re.search(accessor_pattern, body)
         if not accessor_match:
-            return
+            return ""
 
         accessor_name = accessor_match.group(1)
 
@@ -226,9 +237,7 @@ rule obfuscator_io
             replace_accessor,
             body,
         )
-
-        if result != body:
-            await self.emit_unlocked(event, result)
+        return result if result != body else ""
 
 
 class NextJSUnpacker(BaseUnpacker):
@@ -252,7 +261,7 @@ rule nextjs_manifest
         base_url = event.data.get("url", "")
 
         # __NEXT_DATA__ in HTML: extract buildId, emit _buildManifest.js URL
-        nd_match = self._nextdata_regex.search(body)
+        nd_match = await self.helpers.re.search(self._nextdata_regex, body)
         if nd_match:
             try:
                 next_data = json.loads(nd_match.group(1))
@@ -275,8 +284,8 @@ rule nextjs_manifest
         if "self.__BUILD_MANIFEST" not in body:
             return
 
-        routes = set(self._route_regex.findall(body))
-        chunks = set(self._chunk_regex.findall(body))
+        routes = set(await self.helpers.re.findall(self._route_regex, body))
+        chunks = set(await self.helpers.re.findall(self._chunk_regex, body))
 
         for route in routes:
             if route.startswith("/_") or route == "/":
@@ -318,18 +327,19 @@ rule webpack_bundle
     _noise = frozenset({"use strict", "object", "function", "undefined", "string", "number", "boolean"})
 
     async def unpack(self, event, match):
-        body = event.body
+        combined = await self.helpers.run_in_executor_cpu(self._extract_strings, event.body)
+        if combined:
+            await self.emit_unlocked(event, combined)
+
+    @classmethod
+    def _extract_strings(cls, body):
+        """Flatten the bundle's string literals. CPU-bound; runs off the event loop."""
         strings = []
-        for m in self._string_regex.finditer(body):
+        for m in cls._string_regex.finditer(body):
             s = m.group(1) or m.group(2)
-            if s and s not in self._noise and not s.startswith("__"):
+            if s and s not in cls._noise and not s.startswith("__"):
                 strings.append(s)
-
-        if not strings:
-            return
-
-        combined = "\n".join(strings)
-        await self.emit_unlocked(event, combined)
+        return "\n".join(strings)
 
 
 class js_unpacker(BaseModule):
