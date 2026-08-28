@@ -41,6 +41,16 @@ class BypassResult:
     def bypassed(self) -> bool:
         return self.status == self.STATUS_BYPASSED
 
+    @property
+    def summary(self) -> str:
+        """One-line verdict for logging, shared by every consumer of the probe."""
+        parts = [f"status={self.status}", f"provider={self.waf_provider or 'unknown'}"]
+        if self.error:
+            parts.append(f"error={self.error}")
+        if self.diff_reasons:
+            parts.append(f"diff_reasons={','.join(str(r) for r in self.diff_reasons)}")
+        return " ".join(parts)
+
 
 class NowafplsHelper:
     """
@@ -54,6 +64,9 @@ class NowafplsHelper:
       * unpadded matches baseline           -> nothing was gating the payload; no bypass to demonstrate
       * unpadded differs, padded matches    -> bypass works
       * both differ from baseline           -> gate held; padding did not help
+
+    A request the WAF kills outright (timeout / connection reset) counts as "differs",
+    not as a match, so a dropped connection reads as interference rather than acceptance.
 
     Results are memoized per host for the scan's lifetime. Concurrent callers hit
     the same in-flight `asyncio.Task`, so exactly one probe runs per host.
@@ -105,6 +118,7 @@ class NowafplsHelper:
     async def _probe(self, event, padding_size: int, payload: str) -> BypassResult:
         url = event.url
         provider = self._identify_provider(event)
+        log.debug(f"nowafpls: probing {url} with {padding_size} bytes of padding")
         encoded_payload = _urlquote(payload, safe="")
         benign_body = "q=hello"
         unpadded_body = f"q={encoded_payload}"
@@ -121,7 +135,7 @@ class NowafplsHelper:
 
         try:
             match_unpadded, reasons_unpadded, *_ = await compare.compare(
-                url, method="POST", data=unpadded_body, headers=headers
+                url, method="POST", data=unpadded_body, headers=headers, none_is_match=False
             )
         except HttpCompareError as e:
             return BypassResult(
@@ -142,7 +156,7 @@ class NowafplsHelper:
 
         try:
             match_padded, reasons_padded, *_ = await compare.compare(
-                url, method="POST", data=padded_body, headers=headers
+                url, method="POST", data=padded_body, headers=headers, none_is_match=False
             )
         except HttpCompareError as e:
             return BypassResult(

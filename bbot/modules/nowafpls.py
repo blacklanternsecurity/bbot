@@ -1,6 +1,6 @@
 from bbot.modules.base import BaseModule
 from bbot.core.config.models import BaseModuleConfig, Field
-from bbot.core.helpers.nowafpls import BypassResult, DEFAULT_PADDING_SIZE, DEFAULT_PAYLOAD
+from bbot.core.helpers.nowafpls import DEFAULT_PADDING_SIZE, DEFAULT_PAYLOAD
 
 
 class nowafpls(BaseModule):
@@ -40,10 +40,7 @@ class nowafpls(BaseModule):
             payload=self.config.get("payload") or DEFAULT_PAYLOAD,
         )
         if not result.bypassed:
-            self.debug(
-                f"No bypass finding for {event.url}: status={result.status} "
-                f"provider={result.waf_provider or 'unknown'}"
-            )
+            self.info(f"No bypass finding for {event.url}: {result.summary}")
             return
 
         provider = result.waf_provider or "WAF/inspection layer"
@@ -67,7 +64,3 @@ class nowafpls(BaseModule):
                 f"indicating the payload reached the application past the inspection layer."
             ),
         )
-
-    # expose the status constants for consumers/tests that want to reason about
-    # the helper's verdict without importing the helper module directly
-    RESULT = BypassResult
