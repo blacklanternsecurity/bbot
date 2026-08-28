@@ -515,36 +515,50 @@ class TestExcavateNonHttpScheme(TestExcavate):
 
 
 class TestExcavateAIApplicationPositive(TestExcavate):
-    # A realistic client-side bundle that wires up multiple LLM providers and leaks provider keys.
-    ai_app_html = (
-        """
+    # A realistic client-side bundle: SDK imports, provider endpoint URLs, and an SSE chat stream.
+    ai_app_html = """
         <html>
         <head><script src="https://cdn.example.com/app.js"></script></head>
         <body>
         <script>
         import { ChatOpenAI } from "@langchain/openai";
+        import { Document } from "llamaindex";
         import OpenAI from "openai";
-        const client = new OpenAI({ apiKey: "sk-"""
-        + ("A" * 48)
-        + """" });
-        async function ask(q) {
-            const r = await fetch("https://api.openai.com/v1/chat/completions", {
+        const client = new OpenAI({ apiKey: window.__CFG.key });
+        const ENDPOINTS = {
+            openai: "https://api.openai.com/v1/chat/completions",
+            anthropic: "https://api.anthropic.com/v1/messages",
+            gemini: "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent",
+            azure: "https://acme-prod.openai.azure.com/openai/deployments/gpt4o/chat/completions?api-version=2024-02-01",
+        };
+        async function stream(q) {
+            const r = await fetch("/api/v1/chat/completions", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Accept": "text/event-stream", "Content-Type": "application/json" },
             });
+            for await (const frame of sse(r)) {
+                // frames arrive as: data: {"id":"x","choices":[{"delta":{"content":"hi"}}]}
+                render(frame.choices[0].delta.content);
+            }
         }
-        const ANTHROPIC_KEY = "sk-ant-api03-"""
-        + ("Ab12_-" * 16)
-        + """";
-        const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=AIza"""
-        + ("Ab12-_Cd34" * 3 + "Ab123")
-        + """";
-        const ANTHROPIC_ENDPOINT = "https://api.anthropic.com/v1/messages";
         </script>
         </body>
         </html>
         """
-    )
+
+    # Every label AIApplicationExtractor can emit for this body. Compared as an exact set so a
+    # regression that drops one, or that adds an unexpected one, fails the test.
+    expected_technologies = {
+        "openai api",
+        "anthropic api",
+        "google generative ai (gemini) api",
+        "azure openai",
+        "llm chat-completion endpoint",
+        "llm sse chat-completion stream",
+        "langchain",
+        "llamaindex",
+        "openai sdk",
+    }
 
     async def setup_before_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/"}
@@ -552,34 +566,28 @@ class TestExcavateAIApplicationPositive(TestExcavate):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        # TECHNOLOGY events lowercase the technology field in core, so compare case-insensitively.
-        technologies = [e.data.get("technology", "").lower() for e in events if e.type == "TECHNOLOGY"]
-        for expected_tech in [
-            "OpenAI API",
-            "Anthropic API",
-            "Google Generative AI (Gemini) API",
-            "LLM chat-completion endpoint",
-            "LangChain",
-            "OpenAI SDK",
-        ]:
-            assert expected_tech.lower() in technologies, f"Did not emit TECHNOLOGY for {expected_tech}"
-
-        finding_descriptions = [e.data.get("description", "") for e in events if e.type == "FINDING"]
-        for provider in ["OpenAI", "Anthropic", "Google AI (Gemini)"]:
-            assert any(f"leaked {provider} API key" in d for d in finding_descriptions), (
-                f"Did not emit FINDING for leaked {provider} API key"
-            )
-        # ensure secrets are redacted, not echoed in full
-        assert not any(("A" * 48) in d for d in finding_descriptions), "Full secret leaked into FINDING description"
+        # TECHNOLOGY events lowercase the technology field in core.
+        technologies = {e.data["technology"].lower() for e in events if e.type == "TECHNOLOGY"}
+        assert technologies == self.expected_technologies, (
+            f"missing: {self.expected_technologies - technologies}, unexpected: {technologies - self.expected_technologies}"
+        )
 
 
 class TestExcavateAIApplicationNegative(TestExcavate):
-    # Benign content that mentions AI and contains a non-AI secret format; must not trigger the extractor.
+    # Content that collides with the detection surface but is not an AI application:
+    # a Google Maps embed (generic AIza key, published in page source by design), an image
+    # path containing a library name, prose naming providers, and a non-LLM SSE stream.
     benign_html = (
         "<html><body>"
-        "<p>We use artificial intelligence and machine learning to delight customers.</p>"
+        '<script src="https://maps.googleapis.com/maps/api/js?'
+        'key=AIzaSyBdVl-cTICSwYKrZ95SuvNw7dbMuDt1KG0&callback=initMap"></script>'
+        '<a href="/static/llama_index.png">our llama, indexed</a>'
+        "<p>We benchmarked api.openai.com against api.anthropic.com last quarter; "
+        "both speak /v1/chat/completions. LangChain and LlamaIndex are worth a look.</p>"
         "<p>Our payment provider key looks like sk_live_" + ("A" * 24) + " (Stripe, not an LLM key).</p>"
         "<p>The blockchain language model marketing page is over here.</p>"
+        '<script>const progress = new EventSource("/progress"); // text/event-stream'
+        ' // frames: data: {"percent": 42}</script>'
         "</body></html>"
     )
 
@@ -589,12 +597,10 @@ class TestExcavateAIApplicationNegative(TestExcavate):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert not any(e.type == "FINDING" and "API key" in e.data.get("description", "") for e in events), (
-            "False-positive AI provider key FINDING on benign content"
-        )
-        assert not any(e.type == "TECHNOLOGY" and "llm" in e.data.get("technology", "").lower() for e in events), (
-            "False-positive LLM TECHNOLOGY on benign content"
-        )
+        technologies = [e.data["technology"] for e in events if e.type == "TECHNOLOGY"]
+        assert technologies == [], f"False-positive TECHNOLOGY on benign content: {technologies}"
+        findings = [e.data.get("description", "") for e in events if e.type == "FINDING"]
+        assert not any("key" in d.lower() for d in findings), f"False-positive key FINDING: {findings}"
 
 
 class TestExcavateParameterExtraction(TestExcavate):

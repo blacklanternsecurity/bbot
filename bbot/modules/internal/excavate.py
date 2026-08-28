@@ -956,43 +956,37 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         }
 
     class AIApplicationExtractor(ExcavateRule):
-        description = (
-            "Detects AI/LLM application surface (provider endpoints, client SDKs) and leaked AI provider API keys."
-        )
+        description = "Detects AI/LLM application surface: provider API endpoints and embedded client SDKs."
 
         # Maps each YARA string identifier to the technology label reported as a TECHNOLOGY event.
         technology_signatures = {
-            "openai_host": "OpenAI API",
-            "anthropic_host": "Anthropic API",
-            "google_ai_host": "Google Generative AI (Gemini) API",
-            "azure_openai_host": "Azure OpenAI",
-            "chat_completions": "LLM chat-completion endpoint",
+            "openai_endpoint": "OpenAI API",
+            "anthropic_endpoint": "Anthropic API",
+            "google_ai_endpoint": "Google Generative AI (Gemini) API",
+            "azure_openai_endpoint": "Azure OpenAI",
+            "chat_completions_path": "LLM chat-completion endpoint",
             "sse_event_stream": "LLM SSE chat-completion stream",
             "langchain": "LangChain",
             "llamaindex": "LlamaIndex",
             "openai_sdk": "OpenAI SDK",
         }
 
-        # Maps each YARA key-format string identifier to the provider reported in the FINDING event.
-        apikey_signatures = {
-            "openai_key": "OpenAI",
-            "openai_project_key": "OpenAI",
-            "anthropic_key": "Anthropic",
-            "google_ai_key": "Google AI (Gemini)",
-        }
-
         yara_rules = {
+            # Provider hosts are matched as URLs (scheme + host + path), not as bare substrings, so
+            # prose that merely names a provider does not fingerprint the target as using it.
             "ai_provider_endpoint": r"""
                 rule ai_provider_endpoint {
                     meta:
                         tags = "ai-app, llm"
-                        description = "contains a reference to an AI/LLM provider API endpoint"
+                        description = "contains an AI/LLM provider API endpoint URL"
+                        severity = "INFO"
+                        confidence = "HIGH"
                     strings:
-                        $openai_host = "api.openai.com" nocase
-                        $anthropic_host = "api.anthropic.com" nocase
-                        $google_ai_host = "generativelanguage.googleapis.com" nocase
-                        $azure_openai_host = ".openai.azure.com" nocase
-                        $chat_completions = "/v1/chat/completions" nocase
+                        $openai_endpoint = /https?:\/\/api\.openai\.com\/[\w.~%\/-]+/ nocase
+                        $anthropic_endpoint = /https?:\/\/api\.anthropic\.com\/[\w.~%\/-]+/ nocase
+                        $google_ai_endpoint = /https?:\/\/generativelanguage\.googleapis\.com\/[\w.~%\/-]+/ nocase
+                        $azure_openai_endpoint = /https?:\/\/[\w-]{1,63}\.openai\.azure\.com\/[\w.~%\/-]+/ nocase
+                        $chat_completions_path = /["'][^"'\s]{0,128}\/v1\/chat\/completions\b/ nocase
                     condition:
                         any of them
                 }
@@ -1002,6 +996,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                     meta:
                         tags = "ai-app, llm"
                         description = "contains a server-sent-events LLM chat-completion stream"
+                        severity = "INFO"
+                        confidence = "HIGH"
                     strings:
                         $sse_event_stream = "text/event-stream" nocase
                         $sse_chat_delta = /data:\s?\{[^\r\n]{0,200}"(delta|choices)"/ nocase
@@ -1009,70 +1005,42 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                         all of them
                 }
             """,
+            # Every SDK marker requires import/require/instantiation syntax. A filename, an image
+            # path or a sentence that happens to contain a library name is not a dependency.
             "ai_client_library": r"""
                 rule ai_client_library {
                     meta:
                         tags = "ai-app, llm"
-                        description = "contains an embedded AI/LLM client library marker"
+                        description = "contains an embedded AI/LLM client library import"
+                        severity = "INFO"
+                        confidence = "HIGH"
                     strings:
-                        $langchain = /["'\/@]langchain(js|-core|\/)/ nocase
-                        $llamaindex = /llama[_-]?index/ nocase
+                        $langchain = /(from\s{1,4}["']@?langchain(js)?[\w\/-]*["']|require\(\s{0,4}["']@?langchain(js)?[\w\/-]*["']\s{0,4}\)|from\s{1,4}langchain[\w.]*\s{1,4}import\s|import\s{1,4}langchain\b)/ nocase
+                        $llamaindex = /(from\s{1,4}["']@?llamaindex[\w\/-]*["']|require\(\s{0,4}["']@?llamaindex[\w\/-]*["']\s{0,4}\)|from\s{1,4}llama_index[\w.]*\s{1,4}import\s|import\s{1,4}llama_index\b)/ nocase
                         $openai_sdk = /(from\s["']openai["']|require\(["']openai["']\)|new\sOpenAI\()/ nocase
-                    condition:
-                        any of them
-                }
-            """,
-            "ai_provider_apikey": r"""
-                rule ai_provider_apikey {
-                    meta:
-                        tags = "ai-app, llm, secret"
-                        description = "contains a leaked AI provider API key"
-                    strings:
-                        $openai_key = /\bsk-[A-Za-z0-9]{48}\b/
-                        $openai_project_key = /\bsk-proj-[A-Za-z0-9_-]{20,}\b/
-                        $anthropic_key = /\bsk-ant-(api03|admin01)-[A-Za-z0-9_-]{20,}\b/
-                        $google_ai_key = /\bAIza[0-9A-Za-z_-]{35}\b/
                     condition:
                         any of them
                 }
             """,
         }
 
-        @staticmethod
-        def redact_secret(secret):
-            # Avoid echoing a full credential into scan output; keep enough context to be actionable.
-            if len(secret) <= 12:
-                return f"{secret[:4]}..."
-            return f"{secret[:6]}...{secret[-4:]}"
-
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
+            # TECHNOLOGY events require a host; skip if the source event has none (e.g. RAW_TEXT).
+            if not event.host:
+                return
+            host = str(event.host)
             url = event.data.get("url", "") if isinstance(event.data, dict) else ""
-            host = str(event.host) if event.host else None
 
-            for identifier, results in yara_results.items():
-                if identifier in self.apikey_signatures:
-                    provider = self.apikey_signatures[identifier]
-                    for key_match in results:
-                        event_data = {
-                            "description": f"Possible leaked {provider} API key in HTTP response [{self.redact_secret(key_match)}]"
-                        }
-                        if host:
-                            event_data["host"] = host
-                        if url:
-                            event_data["url"] = url
-                        await self.report(
-                            event_data, event, yara_rule_settings, discovery_context, event_type="FINDING"
-                        )
-                elif identifier in self.technology_signatures:
-                    # TECHNOLOGY events require a host; skip if the source event has none (e.g. RAW_TEXT).
-                    if not host:
-                        continue
-                    technology_data = {"host": host, "technology": self.technology_signatures[identifier]}
-                    if url:
-                        technology_data["url"] = url
-                    await self.report(
-                        technology_data, event, yara_rule_settings, discovery_context, event_type="TECHNOLOGY"
-                    )
+            for identifier in yara_results.keys():
+                technology = self.technology_signatures.get(identifier)
+                if technology is None:
+                    continue
+                technology_data = {"host": host, "technology": technology}
+                if url:
+                    technology_data["url"] = url
+                await self.report(
+                    technology_data, event, yara_rule_settings, discovery_context, event_type="TECHNOLOGY"
+                )
 
     class NonHttpSchemeExtractor(ExcavateRule):
         description = "Detects URIs with non-HTTP schemes."
