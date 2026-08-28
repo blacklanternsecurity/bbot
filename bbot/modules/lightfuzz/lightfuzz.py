@@ -10,6 +10,7 @@ from pydantic import field_validator
 
 from bbot.core.config.models import BaseModuleConfig, Field
 from bbot.core.helpers.misc import get_waf_strings
+from bbot.core.helpers.nowafpls import BypassResult
 from bbot.core.helpers.web.response_event import response_to_event_dict
 from bbot.modules.lightfuzz.submodules.base import BaseLightfuzz
 from bbot.modules.lightfuzz.submodules.serial import serial as _serial_submodule
@@ -445,16 +446,18 @@ class lightfuzz(BaseModule):
                 self.debug(f"Skipping {event.type} (avoid_wafs=always). URL: {url}")
                 return False
             if self.avoid_wafs == "try_bypasses":
-                # Ask nowafpls if body padding gets us through. Only worth asking on events
-                # that can fire a POST probe — GET/COOKIE/HEADER can't be padded.
-                if not self._post_capable(event):
-                    return False, "WAF-tagged event has no POST-style probe to pad"
+                # The "waf" tag comes from the CDN/WAF provider's identity, not from observed
+                # blocking, so ask nowafpls what the host actually does with a payload.
                 result = await self.helpers.nowafpls.is_bypassable(event)
-                if not result.bypassed:
+                if result.status in (BypassResult.STATUS_BLOCKED, BypassResult.STATUS_ERROR):
                     parsed_url = getattr(event, "parsed_url", None)
                     url = parsed_url.geturl() if parsed_url else "unknown"
-                    self.debug(f"Skipping {event.type} because WAF is not bypassable. URL: {url}")
+                    self.debug(f"Skipping {event.type} ({result.summary}). URL: {url}")
                     return False
+                if result.status == BypassResult.STATUS_BYPASSED and not self._post_capable(event):
+                    # padding is body-only, so a GET/COOKIE/HEADER probe has no bypass to apply
+                    return False, "WAF is bypassable via body padding, but this event has no POST-style probe"
+                # STATUS_NO_INTERFERENCE: nothing is gating the payload, so fuzz normally
             # avoid_wafs == "never": fall through and fuzz raw
 
         # Skip WEB_PARAMETERs on static-asset URLs (pdf, doc, xml, etc.) — fuzzing them is pointless

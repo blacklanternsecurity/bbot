@@ -373,6 +373,7 @@ class HttpCompare:
         json=None,
         allow_redirects=False,
         timeout=None,
+        none_is_match=True,
     ):
         """
         Compares a URL with the baseline, with optional headers or cookies added
@@ -381,6 +382,8 @@ class HttpCompare:
             where "match" is whether the content matched against the baseline, and
                 "reason" is the location of the change ("code", "body", "header", or None), and
                 "reflection" is whether the value was reflected in the HTTP response
+
+        When the request fails outright, "match" is `none_is_match` and subject_response is None.
         """
 
         await self._baseline()
@@ -406,8 +409,10 @@ class HttpCompare:
         )
 
         if subject_response is None:
-            # this can be caused by a WAF not liking the header, so we really aren't interested in it
-            return (True, "403", reflection, subject_response)
+            # A dead request usually just means the probe wasn't interesting (a WAF not liking a
+            # fuzzed header, etc). Consumers that need to read it as interference, or as "unknown"
+            # rather than a verdict, pass none_is_match=False.
+            return (bool(none_is_match), ["request_failed"], reflection, None)
 
         if check_reflection:
             for arg in (headers, cookies):

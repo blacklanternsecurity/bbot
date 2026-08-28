@@ -1,5 +1,7 @@
 from blasthttp.mock import MockResponse
 
+from bbot.test.mock_blasthttp import TimeoutException
+
 from .base import ModuleTestBase
 from bbot.modules.base import BaseModule
 
@@ -105,3 +107,76 @@ class TestNowafplsSkipsRedirects(ModuleTestBase):
     def check(self, module_test, events):
         findings = [e for e in events if e.type == "FINDING" and str(e.module) == "nowafpls"]
         assert not findings, f"nowafpls should not fire on 3xx URLs, but produced: {[e.data for e in findings]}"
+
+
+class _NowafplsConnectionKilledBase(ModuleTestBase):
+    """A WAF that drops the connection instead of serving a block page still counts as
+    interference. Subclasses choose which of the two malicious requests gets killed."""
+
+    modules_overrides = ["nowafpls"]
+    kill_padded = False
+
+    class DummyModule(BaseModule):
+        watched_events = ["DNS_NAME"]
+        _name = "dummy_module"
+
+        async def handle_event(self, event):
+            if not event.data.endswith(".test"):
+                return
+            url_event = self.scan.make_event(
+                f"http://{event.data}/",
+                "URL",
+                parent=event,
+                tags=["waf", "cloudflare", "in-scope", "status-200"],
+            )
+            if url_event is not None:
+                await self.emit_event(url_event)
+
+    async def setup_after_prep(self, module_test):
+        await module_test.mock_dns({self.targets[0]: {"A": ["127.0.0.1"]}})
+        module_test.scan.modules["dummy_module"] = self.DummyModule(module_test.scan)
+        kill_padded = self.kill_padded
+
+        def waf_callback(request):
+            content = request.content or b""
+            if isinstance(content, str):
+                content = content.encode()
+            has_pad = content.startswith(b"__nowafpls_pad=")
+            has_malicious = b"%3Cscript" in content or b"<script" in content
+            if has_malicious and has_pad == kill_padded:
+                raise TimeoutException("connection reset by WAF")
+            if has_malicious and not has_pad:
+                # only reached when the padded request is the one being killed
+                return MockResponse(status_code=403, text="Attention Required! | Cloudflare\nRay ID: abcd")
+            return MockResponse(status_code=200, text="Welcome to the application")
+
+        module_test.blasthttp_mock.add_callback(callback=waf_callback)
+
+
+class TestNowafplsUnpaddedConnectionKilled(_NowafplsConnectionKilledBase):
+    """Unpadded malicious request is killed, padded one succeeds: that is a bypass, and treating
+    the dead request as a baseline match would silently report no interference instead."""
+
+    targets = ["nowafpls-killed-unpadded.test"]
+    kill_padded = False
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING" and str(e.module) == "nowafpls"]
+        assert findings, "Expected a bypass FINDING when the unpadded request is killed and the padded one succeeds"
+        assert any("WAF Bypass via Body Padding" == e.data.get("name") for e in findings), (
+            f"Unexpected findings: {[e.data for e in findings]}"
+        )
+
+
+class TestNowafplsPaddedConnectionKilled(_NowafplsConnectionKilledBase):
+    """Padded malicious request is killed while the unpadded one is blocked with a 403: padding
+    did not get through, so no bypass may be reported."""
+
+    targets = ["nowafpls-killed-padded.test"]
+    kill_padded = True
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING" and str(e.module) == "nowafpls"]
+        assert not findings, (
+            f"A killed padded request is not a bypass, but nowafpls reported: {[e.data for e in findings]}"
+        )

@@ -1,4 +1,5 @@
 import re
+from types import SimpleNamespace
 
 from blasthttp import HTTPStatusError
 
@@ -825,8 +826,11 @@ async def test_base_module_is_http_wildcard_host_per_url(bbot_scanner):
             self.calls.append(url)
             if self.behaviour == "raise":
                 raise HttpCompareError("boom")
+            if self.behaviour == "dead":
+                # compare() only hands back a None response when the request itself failed
+                return (False, ["request_failed"], False, None)
             match = self.behaviour == "match"
-            return (match, [], False, None)
+            return (match, [], False, SimpleNamespace(status_code=200))
 
     fake_compare = FakeCompare()
 
@@ -878,13 +882,19 @@ async def test_base_module_is_http_wildcard_host_per_url(bbot_scanner):
     assert result is False
     assert fake_compare.calls == ["https://wildcardhost.test/index.php"]
 
-    # 5) HttpCompareError from the compare -> None
+    # 5) probe request died: unknown, not a wildcard verdict
+    fake_compare.behaviour = "dead"
+    fake_compare.calls.clear()
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/dead.php"))
+    assert result is None
+
+    # 6) HttpCompareError from the compare -> None
     fake_compare.behaviour = "raise"
     fake_compare.calls.clear()
     result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/broken.php"))
     assert result is None
 
-    # 6) Scalar True from a test mock (no .compare attribute) -> True (backward-compat)
+    # 7) Scalar True from a test mock (no .compare attribute) -> True (backward-compat)
     async def wildcard_returns_true(scheme, host, port):
         return True
 
@@ -892,7 +902,7 @@ async def test_base_module_is_http_wildcard_host_per_url(bbot_scanner):
     result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/whatever"))
     assert result is True
 
-    # 7) False / None from the helper pass through unchanged
+    # 8) False / None from the helper pass through unchanged
     async def wildcard_returns_false(scheme, host, port):
         return False
 

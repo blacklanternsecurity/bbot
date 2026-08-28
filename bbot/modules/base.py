@@ -980,8 +980,11 @@ class BaseModule:
                     target_url, {name: value if value is not None else ""}
                 ).geturl()
         try:
-            match, _, _, _ = await result.compare(target_url)
+            match, _, _, subject_response = await result.compare(target_url, none_is_match=False)
         except HttpCompareError:
+            return None
+        if subject_response is None:
+            # a dead probe is unknown, not a wildcard verdict
             return None
         return match
 
