@@ -958,6 +958,10 @@ class BaseEvent:
         web_spider_distance = getattr(self, "web_spider_distance", None)
         if web_spider_distance is not None:
             j["web_spider_distance"] = web_spider_distance
+        # kept out of `data` so the snapshot URL doesn't become part of the event's identity
+        archive_url = self.archive_url
+        if archive_url:
+            j["archive_url"] = archive_url
         # scope distance
         j["scope_distance"] = self.scope_distance
         # scan
@@ -1966,7 +1970,8 @@ class FINDING(ClosestHostEvent):
             confidence_str = f"[\033[1m{confidence}\033[0m]"
         else:
             confidence_str = f"[{confidence}]"
-        return f"Severity: [{severity}] Confidence: {confidence_str} {description}"
+        archived_str = "[ARCHIVED] " if self.archive_url else ""
+        return f"{archived_str}Severity: [{severity}] Confidence: {confidence_str} {description}"
 
     def _data_human(self):
         parts = []
@@ -1979,6 +1984,9 @@ class FINDING(ClosestHostEvent):
         cves = self.data.get("cves", [])
         if cves:
             parts.append(f"[{', '.join(cves)}]")
+        archive_url = self.archive_url
+        if archive_url:
+            parts.append(f"(archived: {archive_url})")
         return " ".join(parts)
 
 
