@@ -9,7 +9,7 @@ from ...bbot_fixtures import *
 from bbot.scanner import Scanner
 from bbot.core.config.merge import deep_merge
 from bbot.core.helpers.misc import rand_string
-from bbot.test.worker import CONTAINER_READY_TIMEOUT, _OOM_HINT
+from bbot.test.worker import CONTAINER_READY_TIMEOUT, ORPHAN_CANCEL_TIMEOUT, _OOM_HINT
 
 log = logging.getLogger("bbot.test.modules")
 
@@ -129,7 +129,16 @@ class ModuleTestBase:
             self.log.debug(f"Cancelling {len(tasks)} orphaned tasks after {self.name}")
             for t in tasks:
                 t.cancel()
-            await asyncio.gather(*tasks, return_exceptions=True)
+            # Bounded: a task that absorbs its cancellation (an await shielded from
+            # it, whose resolver was itself cancelled) never completes, and an
+            # unbounded gather here then hangs the whole worker until the job
+            # limit. pytest-timeout cannot fire in fixture teardown.
+            _, pending = await asyncio.wait(tasks, timeout=ORPHAN_CANCEL_TIMEOUT)
+            if pending:
+                self.log.warning(
+                    f"{len(pending)} orphaned tasks did not exit within {ORPHAN_CANCEL_TIMEOUT}s "
+                    f"after {self.name}, abandoning them: {pending}"
+                )
 
     async def _execute_scan(self, module_test):
         """Execute the scan and collect events. Can be overridden by benchmark classes."""

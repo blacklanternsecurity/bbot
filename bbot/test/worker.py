@@ -90,6 +90,10 @@ CONTAINER_READY_TIMEOUT = int(os.environ.get("BBOT_TEST_CONTAINER_TIMEOUT", "180
 
 _OOM_HINT = "A container that exits with code 137 was OOM-killed; it competes with the other test workers for memory."
 
+# A cancelled task that never completes would otherwise block fixture teardown
+# forever, and pytest-timeout does not cover teardown under timeout_func_only.
+ORPHAN_CANCEL_TIMEOUT = int(os.environ.get("BBOT_TEST_ORPHAN_TIMEOUT", "60"))
+
 
 async def wait_for_container(name, connect, timeout=CONTAINER_READY_TIMEOUT):
     """Retry ``connect`` until it succeeds, or raise once ``timeout`` elapses.
