@@ -85,18 +85,8 @@ class nuclei(BaseModule):
         self.nuclei_templates_dir = self.nuclei_state_dir / "templates"
         self.nuclei_config_dir.mkdir(parents=True, exist_ok=True)
         self.nuclei_cache_dir.mkdir(parents=True, exist_ok=True)
-        await self._update_templates()
-        # nuclei writes its version marker before the tarball finishes extracting,
-        # so a killed update can leave the marker pointing at an empty dir and
-        # every subsequent run reports "up-to-date." Verify and repair once.
-        if not self._templates_installed():
-            self.warning("Nuclei templates appear incomplete; wiping isolated state and re-downloading")
-            shutil.rmtree(self.nuclei_state_dir, ignore_errors=True)
-            self.nuclei_config_dir.mkdir(parents=True, exist_ok=True)
-            self.nuclei_cache_dir.mkdir(parents=True, exist_ok=True)
-            await self._update_templates()
-            if not self._templates_installed():
-                return False, "Failed to install nuclei templates after retry"
+        if not await self._ensure_templates():
+            return False, "Failed to install nuclei templates after retry"
         self.proxy = self.scan.web_config.get("http_proxy", "")
         self.mode = self.config.get("mode")
         self.ratelimit = self.config.get("ratelimit")
@@ -367,17 +357,37 @@ class nuclei(BaseModule):
         env["XDG_CACHE_HOME"] = str(self.nuclei_cache_dir)
         return env
 
-    async def _update_templates(self):
+    async def _ensure_templates(self):
         # 13k+ template files extract into one shared dir. Concurrent updaters
         # (xdist workers, parallel scans) fight over the same tree and each
         # re-does the other's work, so serialize on a lock beside it. A waiter
         # that finds the tree already populated skips its own redundant update.
+        # The corruption repair below wipes the tree, so it has to run under the
+        # same lock: wiping while another worker is mid-extract destroys its
+        # output and makes it fail too.
         uncontended = await self.helpers.run_in_executor_io(self._acquire_template_lock)
         try:
             if not uncontended and self._templates_installed():
                 self.info("Nuclei templates already up-to-date")
-                return
+                return True
+            outcome = await self._run_template_update()
+            if self._templates_installed():
+                return True
+            # A download that never produced files is a fetch failure, not the
+            # stale-marker corruption the wipe exists to repair. Wiping and
+            # re-downloading just doubles the requests against a source that is
+            # already failing, so only repair when the update claimed success.
+            if outcome == "failure":
+                return False
+            # nuclei writes its version marker before the tarball finishes
+            # extracting, so a killed update can leave the marker pointing at an
+            # empty dir and every subsequent run reports "up-to-date."
+            self.warning("Nuclei templates appear incomplete; wiping isolated state and re-downloading")
+            shutil.rmtree(self.nuclei_state_dir, ignore_errors=True)
+            self.nuclei_config_dir.mkdir(parents=True, exist_ok=True)
+            self.nuclei_cache_dir.mkdir(parents=True, exist_ok=True)
             await self._run_template_update()
+            return self._templates_installed()
         finally:
             self._release_template_lock()
 
@@ -418,6 +428,7 @@ class nuclei(BaseModule):
             self.info("Nuclei templates already up-to-date")
         else:
             self.warning(f"Failure while updating nuclei templates: {update_results.stderr or '<no stderr>'}")
+        return outcome
 
     # nuclei's success messaging has drifted across releases (installed / updated /
     # downloaded). Match any of them so a future rename doesn't silently downgrade
