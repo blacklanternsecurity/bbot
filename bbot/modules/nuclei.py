@@ -46,6 +46,13 @@ class nuclei(BaseModule):
             ),
         )
         etags: str = Field("", description="tags to exclude from the scan")
+        etypes: str = Field(
+            "",
+            description=(
+                "protocol types to exclude from the scan, comma-separated "
+                "(dns, file, http, headless, tcp, workflow, ssl, websocket, whois, code, javascript)"
+            ),
+        )
         budget: int = Field(1, description="Used in budget mode to set the number of allowed requests per host")
         silent: bool = Field(False, description="Don't display nuclei's banner or status messages")
         directory_only: bool = Field(True, description="Filter out 'file' URL event (default True)")
@@ -105,6 +112,9 @@ class nuclei(BaseModule):
         self.etags = self.config.get("etags")
         if self.etags:
             self.info(f"Excluding the following nuclei tags: [{self.etags}]")
+        self.etypes = self.config.get("etypes")
+        if self.etypes:
+            self.info(f"Excluding the following nuclei protocol types: [{self.etypes}]")
         self.severity = self.config.get("severity")
         if self.mode != "severe" and self.severity != "":
             self.info(f"Limiting nuclei templates to the following severities: [{self.severity}]")
@@ -233,6 +243,8 @@ class nuclei(BaseModule):
             "-stats-json",
             "-retries",
             self.retries,
+            "-timeout",
+            self.scan.http_timeout,
         ]
 
         if self.helpers.system_resolvers:
@@ -247,6 +259,9 @@ class nuclei(BaseModule):
             if option:
                 command.append(f"-{cli_option}")
                 command.append(option)
+
+        if self.etypes:
+            command += ["-exclude-type", self.etypes]
 
         if self.scan.config.get("interactsh_disable") is True:
             self.info("Disabling interactsh in accordance with global settings")

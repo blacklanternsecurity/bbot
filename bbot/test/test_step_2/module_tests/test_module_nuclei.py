@@ -90,9 +90,13 @@ class TestNucleiSevere(TestNucleiManual):
 
 
 class TestNucleiTechnology(TestNucleiManual):
+    # etypes tcp: the fixture is a single HTTP port, so tcp-protocol templates
+    # (cassandra 9042, kafka 9092, ajp 8009) can only ever dial a closed port and
+    # wait out nuclei's fixed 5s read timeout. They match nothing here.
     config_overrides = {
+        "web": {"http_timeout": 7},
         "interactsh_disable": True,
-        "modules": {"nuclei": {"mode": "technology", "concurrency": 2, "tags": "apache"}},
+        "modules": {"nuclei": {"mode": "technology", "concurrency": 2, "tags": "apache", "etypes": "tcp"}},
     }
 
     async def setup_before_prep(self, module_test):
@@ -103,9 +107,30 @@ class TestNucleiTechnology(TestNucleiManual):
         }
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
+    async def setup_after_prep(self, module_test):
+        self.commands = []
+        module = module_test.scan.modules["nuclei"]
+        original = module.run_process_live
+
+        def capture(*args, **kwargs):
+            command = args[0] if args and isinstance(args[0], (list, tuple)) else args
+            self.commands.append([str(c) for c in command])
+            return original(*args, **kwargs)
+
+        module.run_process_live = capture
+
     def check(self, module_test, events):
         assert any(e.type == "TECHNOLOGY" and "apache" in e.data["technology"].lower() for e in events)
         assert "Using Interactsh Server" not in open(module_test.scan.home / "debug.log").read()
+
+        assert self.commands, "nuclei was never executed"
+        for command in self.commands:
+            assert "-exclude-type" in command, f"-exclude-type missing from {command}"
+            assert command[command.index("-exclude-type") + 1] == "tcp"
+            # nuclei silently defaults to its own 10s, so an unpassed -timeout
+            # means web.http_timeout is ignored by this module alone
+            assert "-timeout" in command, f"-timeout missing from {command}"
+            assert command[command.index("-timeout") + 1] == "7"
 
 
 class TestNucleiBudget(TestNucleiManual):
