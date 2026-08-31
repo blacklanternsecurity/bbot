@@ -1,8 +1,6 @@
 import json
 import asyncio
 
-from bbot.test.worker import wait_for_container
-
 from .base import ModuleTestBase
 
 
@@ -50,19 +48,12 @@ class TestKafka(ModuleTestBase):
             "apache/kafka-native:4.1.2",
         )
 
-        from aiokafka import AIOKafkaProducer
-
-        # an open port is not a usable broker; probe a real produce round-trip.
-        # separate topic so the one under assertion stays untouched.
-        async def connect():
-            producer = AIOKafkaProducer(bootstrap_servers="localhost:9092")
-            await producer.start()
-            try:
-                await producer.send_and_wait("bbot_readiness", b"probe")
-            finally:
-                await producer.stop()
-
-        await wait_for_container("Kafka", connect)
+        # this runs before _prep(), which is what pip-installs the module's
+        # deps, so nothing here may import aiokafka. The broker opens its own
+        # listener as the last step of boot, after "Enabling request
+        # processing", so a connection that survives is_port_open's settle
+        # window is a ready broker rather than the docker proxy.
+        await self.wait_for_port_open(9092)
 
     async def check(self, module_test, events):
         from aiokafka import AIOKafkaConsumer
