@@ -1,6 +1,8 @@
 import json
 import asyncio
 
+from bbot.test.worker import wait_for_container
+
 from .base import ModuleTestBase
 
 
@@ -16,34 +18,51 @@ class TestKafka(ModuleTestBase):
     skip_distro_tests = True
 
     async def setup_before_prep(self, module_test):
-        # Start Zookeeper
-        await self.start_container("bbot-test-zookeeper", "-p", "2181:2181", "zookeeper:3.9")
-
-        # Wait for Zookeeper to be ready
-        await self.wait_for_port_open(2181)
-
-        # Start Kafka using wurstmeister/kafka
+        # KRaft mode: one broker, no zookeeper. The native image is ~150MB
+        # against ~785MB for wurstmeister/kafka plus zookeeper, and CI pulls
+        # cold on every run.
         await self.start_container(
             "bbot-test-kafka",
-            "--link",
-            "bbot-test-zookeeper:zookeeper",
             "-e",
-            "KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181",
+            "KAFKA_NODE_ID=1",
             "-e",
-            "KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092",
+            "KAFKA_PROCESS_ROLES=broker,controller",
+            "-e",
+            "KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093",
             "-e",
             "KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092",
             "-e",
+            "KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER",
+            "-e",
+            "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT",
+            "-e",
+            "KAFKA_CONTROLLER_QUORUM_VOTERS=1@localhost:9093",
+            "-e",
             "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1",
+            "-e",
+            "KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1",
+            "-e",
+            "KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1",
+            "-e",
+            "KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0",
             "-p",
             "9092:9092",
-            "wurstmeister/kafka",
+            "apache/kafka-native:4.1.2",
         )
 
-        # Wait for Kafka to be ready
-        await self.wait_for_port_open(9092)
+        from aiokafka import AIOKafkaProducer
 
-        await asyncio.sleep(1)
+        # an open port is not a usable broker; probe a real produce round-trip.
+        # separate topic so the one under assertion stays untouched.
+        async def connect():
+            producer = AIOKafkaProducer(bootstrap_servers="localhost:9092")
+            await producer.start()
+            try:
+                await producer.send_and_wait("bbot_readiness", b"probe")
+            finally:
+                await producer.stop()
+
+        await wait_for_container("Kafka", connect)
 
     async def check(self, module_test, events):
         from aiokafka import AIOKafkaConsumer
@@ -84,6 +103,4 @@ class TestKafka(ModuleTestBase):
             # Clean up: Stop the Kafka consumer
             if hasattr(self, "consumer") and not self.consumer._closed:
                 await self.consumer.stop()
-            # Stop Kafka and Zookeeper containers
             await self.stop_container("bbot-test-kafka")
-            await self.stop_container("bbot-test-zookeeper")
