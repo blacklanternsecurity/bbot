@@ -1216,6 +1216,18 @@ class Scanner:
             self._dns_strings = dns_strings
         return self._dns_strings
 
+    def _generate_dns_regex_patterns(self, pattern):
+        """
+        Generates a list of DNS hostname regex source strings based on the provided pattern.
+
+        Args:
+            pattern (str):
+        Returns:
+            list[str]: A list of regex source strings.
+        """
+
+        return [f"{pattern}{re.escape(t)})" for t in self.dns_strings]
+
     def _generate_dns_regexes(self, pattern):
         """
         Generates a list of compiled DNS hostname regexes based on the provided pattern.
@@ -1228,10 +1240,9 @@ class Scanner:
         """
 
         dns_regexes = []
-        for t in self.dns_strings:
-            regex_pattern = re.compile(f"{pattern}{re.escape(t)})", re.I)
-            log.debug(f"Generated Regex [{regex_pattern.pattern}] for domain {t}")
-            dns_regexes.append(regex_pattern)
+        for regex_pattern in self._generate_dns_regex_patterns(pattern):
+            log.debug(f"Generated Regex [{regex_pattern}]")
+            dns_regexes.append(re.compile(regex_pattern, re.I))
         return dns_regexes
 
     @property
@@ -1253,10 +1264,10 @@ class Scanner:
     @property
     def dns_regexes_yara(self):
         """
-        Returns a list of DNS hostname regexes formatted specifically for compatibility with YARA rules.
+        Returns a list of DNS hostname regex source strings formatted specifically for compatibility with YARA rules.
         """
         if self._dns_regexes_yara is None:
-            self._dns_regexes_yara = self._generate_dns_regexes(r"(([a-z0-9-]+\.)*")
+            self._dns_regexes_yara = self._generate_dns_regex_patterns(r"(([a-z0-9-]+\.)*")
         return self._dns_regexes_yara
 
     @property
@@ -1264,7 +1275,7 @@ class Scanner:
         if self._dns_yara_rules_uncompiled is None:
             regexes_component_list = []
             for i, r in enumerate(self.dns_regexes_yara):
-                regexes_component_list.append(rf"$dns_name_{i} = /\b{r.pattern}/ nocase")
+                regexes_component_list.append(rf"$dns_name_{i} = /\b{r}/ nocase")
 
             # Chunk the regexes into groups of 10,000
             chunk_size = 10000
