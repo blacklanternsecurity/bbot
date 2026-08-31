@@ -3824,12 +3824,25 @@ class Test_Lightfuzz_filter_event_try_bypasses(ModuleTestBase):
                 f"{event.type} has no POST-style probe to pad and should be rejected, got {result}"
             )
 
-        # the gate held, or we never got a verdict: reject everything
-        for status in (BypassResult.STATUS_BLOCKED, BypassResult.STATUS_ERROR):
+        # the gate held, or we never got a verdict: reject everything, and report which of the two
+        # it was, since an inconclusive probe is an infrastructure problem, not a WAF that held
+        for status, expected_reason in (
+            (BypassResult.STATUS_BLOCKED, "WAF blocked the payload"),
+            (BypassResult.STATUS_ERROR, "WAF bypass probe was inconclusive"),
+        ):
             self._set_verdict(module_test, status)
             for event in all_events:
                 result = await module.filter_event(event)
                 assert not self._accepted(result), f"{event.type} should be rejected on status={status}, got {result}"
+                assert isinstance(result, tuple), (
+                    f"{event.type} rejection on status={status} must carry a reason, got {result}"
+                )
+                assert expected_reason in result[1], (
+                    f"{event.type} rejection on status={status} should say why, got {result}"
+                )
+                assert f"status={status}" in result[1], (
+                    f"{event.type} rejection reason should include the probe verdict, got {result}"
+                )
 
     def check(self, module_test, events):
         # assertions live in test_filter_event

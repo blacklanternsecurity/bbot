@@ -415,11 +415,12 @@ class lightfuzz(BaseModule):
                 # The "waf" tag comes from the CDN/WAF provider's identity, not from observed
                 # blocking, so ask nowafpls what the host actually does with a payload.
                 result = await self.helpers.nowafpls.is_bypassable(event)
-                if result.status in (BypassResult.STATUS_BLOCKED, BypassResult.STATUS_ERROR):
-                    parsed_url = getattr(event, "parsed_url", None)
-                    url = parsed_url.geturl() if parsed_url else "unknown"
-                    self.debug(f"Skipping {event.type} ({result.summary}). URL: {url}")
-                    return False
+                if result.status == BypassResult.STATUS_BLOCKED:
+                    return False, f"WAF blocked the payload and body padding did not help ({result.summary})"
+                if result.status == BypassResult.STATUS_ERROR:
+                    # no verdict, which is a different thing from a WAF that held; say so instead of
+                    # dropping the event with a generic reason
+                    return False, f"WAF bypass probe was inconclusive ({result.summary})"
                 if result.status == BypassResult.STATUS_BYPASSED and not self._post_capable(event):
                     # padding is body-only, so a GET/COOKIE/HEADER probe has no bypass to apply
                     return False, "WAF is bypassable via body padding, but this event has no POST-style probe"

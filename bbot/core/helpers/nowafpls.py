@@ -87,9 +87,14 @@ class NowafplsHelper:
         concurrent callers await the same Task and get the cached verdict.
         """
         host = str(event.host)
-        if host not in self._per_host:
+        new_probe = host not in self._per_host
+        if new_probe:
             self._per_host[host] = asyncio.create_task(self._probe(event, padding_size, payload))
-        return await self._per_host[host]
+        result = await self._per_host[host]
+        if new_probe:
+            # one line per host, so the verdict is on the record regardless of which module asked
+            log.verbose(f"nowafpls: {event.url}: {result.summary}")
+        return result
 
     async def pad_form_body(self, event, body: str) -> str:
         """Prepend a large junk field to a form-urlencoded POST body when the host's WAF is
