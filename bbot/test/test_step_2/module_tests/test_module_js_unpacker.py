@@ -1,6 +1,15 @@
 import json
 
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_PORT, HTTPSERVER_URL
+
+
+def _use_worker_port(js):
+    """Point a fixture's baked-in URLs at this xdist worker's mock server.
+
+    Dean Edwards carries its host as a packer keyword, so only the port is substituted there.
+    """
+    return js.replace("http://127.0.0.1:8888", HTTPSERVER_URL).replace(":8888", f":{HTTPSERVER_PORT}")
 
 
 # -- Realistic packed/obfuscated JS fixtures --
@@ -20,21 +29,28 @@ SOURCE_MAP_JSON = json.dumps(
         "mappings": "AAAA",
     }
 )
+SOURCE_MAP_JSON = _use_worker_port(SOURCE_MAP_JSON)
 
-# Dean Edwards packed JS. The payload "u://s:8888/p/o.j" decodes via keyword
-# substitution to "http://127.0.0.1:8888/hidden/tracker.js":
+# Dean Edwards packed JS. The payload "u://s:PORT/p/o.j" decodes via keyword
+# substitution to "http://127.0.0.1:PORT/hidden/tracker.js":
 #   u(pos30)=http, s(pos28)=127.0.0.1, p(pos25)=hidden, o(pos24)=tracker, j(pos19)=js
-# The ":8888/" and "." separators stay literal (not word chars).
-DEAN_EDWARDS_JS = r"""eval(function(p,a,c,k,e,d){e=function(c){return(c<a?'':e(parseInt(c/a)))+((c=c%a)>35?String.fromCharCode(c+29):c.toString(36))};if(!''.replace(/^/,String)){while(c--){d[e(c)]=k[c]||e(c)}k=[function(e){return d[e]}];e=function(){return'\\w+'};c=1};while(c--){if(k[c]){p=p.replace(new RegExp('\\b'+e(c)+'\\b','g'),k[c])}}return p}('v 9=["\\x6F\\x6E\\x6C\\x6F\\x61\\x64"];b[9[0]]=f(){v 3=h[9[1]]("r");3[9[2]]="";v 7=h[9[5]](9[4]);7[9[3]]="u://s:8888/p/o.j";h[9[6]][9[7]](7)};',32,32,'|||el|||||||_0x1a2b|||||function||document||js|analytics|cdn|static|loader|tracker|hidden|com|main|127.0.0.1|cdn2|http|var'.split('|'),0,{}))"""
+# The ":PORT/" and "." separators stay literal (not word chars), so the port is substituted in.
+DEAN_EDWARDS_JS = _use_worker_port(
+    r"""eval(function(p,a,c,k,e,d){e=function(c){return(c<a?'':e(parseInt(c/a)))+((c=c%a)>35?String.fromCharCode(c+29):c.toString(36))};if(!''.replace(/^/,String)){while(c--){d[e(c)]=k[c]||e(c)}k=[function(e){return d[e]}];e=function(){return'\\w+'};c=1};while(c--){if(k[c]){p=p.replace(new RegExp('\\b'+e(c)+'\\b','g'),k[c])}}return p}('v 9=["\\x6F\\x6E\\x6C\\x6F\\x61\\x64"];b[9[0]]=f(){v 3=h[9[1]]("r");3[9[2]]="";v 7=h[9[5]](9[4]);7[9[3]]="u://s:8888/p/o.j";h[9[6]][9[7]](7)};',32,32,'|||el|||||||_0x1a2b|||||function||document||js|analytics|cdn|static|loader|tracker|hidden|com|main|127.0.0.1|cdn2|http|var'.split('|'),0,{}))"""
+)
 
 # obfuscator.io sample with a hidden API URL in the string array
-OBFUSCATOR_IO_JS = r"""var _0x4e2f=['querySelector','addEventListener','click','getAttribute','data-target','getElementById','style','display','none','block','http://127.0.0.1:8888/tracker/events','POST','Content-Type','application/json','fetch','method','DOMContentLoaded','complete','readyState'];(function(_0x2a8c13,_0x4e2f6d){var _0x3b1c04=function(_0x5d6e2a){while(--_0x5d6e2a){_0x2a8c13['push'](_0x2a8c13['shift']());}};_0x3b1c04(++_0x4e2f6d);}(_0x4e2f,0x7b));var _0x3b1c=function(_0x2a8c13,_0x4e2f6d){_0x2a8c13=_0x2a8c13-0x0;var _0x3b1c04=_0x4e2f[_0x2a8c13];return _0x3b1c04;};(function(){document[_0x3b1c('0x0')]('.nav-toggle')[_0x3b1c('0x1')](_0x3b1c('0x2'),function(){var _0x2ce9=this[_0x3b1c('0x3')](_0x3b1c('0x4'));document[_0x3b1c('0x5')](_0x2ce9)[_0x3b1c('0x6')][_0x3b1c('0x7')]=_0x3b1c('0x9');_0x3b1c('0xe')(_0x3b1c('0xa'),{_0x3b1c('0xf'):_0x3b1c('0xb')});});})();"""
+OBFUSCATOR_IO_JS = _use_worker_port(
+    r"""var _0x4e2f=['querySelector','addEventListener','click','getAttribute','data-target','getElementById','style','display','none','block','http://127.0.0.1:8888/tracker/events','POST','Content-Type','application/json','fetch','method','DOMContentLoaded','complete','readyState'];(function(_0x2a8c13,_0x4e2f6d){var _0x3b1c04=function(_0x5d6e2a){while(--_0x5d6e2a){_0x2a8c13['push'](_0x2a8c13['shift']());}};_0x3b1c04(++_0x4e2f6d);}(_0x4e2f,0x7b));var _0x3b1c=function(_0x2a8c13,_0x4e2f6d){_0x2a8c13=_0x2a8c13-0x0;var _0x3b1c04=_0x4e2f[_0x2a8c13];return _0x3b1c04;};(function(){document[_0x3b1c('0x0')]('.nav-toggle')[_0x3b1c('0x1')](_0x3b1c('0x2'),function(){var _0x2ce9=this[_0x3b1c('0x3')](_0x3b1c('0x4'));document[_0x3b1c('0x5')](_0x2ce9)[_0x3b1c('0x6')][_0x3b1c('0x7')]=_0x3b1c('0x9');_0x3b1c('0xe')(_0x3b1c('0xa'),{_0x3b1c('0xf'):_0x3b1c('0xb')});});})();"""
+)
 
 NEXTJS_MANIFEST_JS = """self.__BUILD_MANIFEST=function(s,c,a,e,d,b,f,g){return{__rewrites:{afterFiles:[],beforeFiles:[],fallback:[]},"/":["static/chunks/pages/index-8a3b2c1d.js"],"/about":[s,"static/chunks/pages/about-f4e7d6a2.js"],"/blog":[s,c,"static/chunks/pages/blog-1b9e3c5a.js"],"/blog/[slug]":[s,c,a,"static/chunks/pages/blog/[slug]-7d2f4e8b.js"],"/contact":[s,"static/chunks/pages/contact-3a6c9d1e.js"],"/dashboard":[s,c,e,"static/chunks/pages/dashboard-5e8b2f7d.js"],"/dashboard/settings":[s,c,e,d,"static/chunks/pages/dashboard/settings-9c4a1e6f.js"],"/api/health":[],"/_error":["static/chunks/pages/_error-2b5d8f3a.js"],sortedPages:["/","/about","/api/health","/blog","/blog/[slug]","/contact","/dashboard","/dashboard/settings","/_error"]}}("static/chunks/438-a2c7e4d1b3f89056.js","static/chunks/291-d5f8a1c3e7b24690.js","static/chunks/834-b7e2d4f6a8c31095.js","static/chunks/612-c9a3e5d7f1b48062.js","static/chunks/157-e1d3f5a7c9b20648.js"),self.__BUILD_MANIFEST_CB&&self.__BUILD_MANIFEST_CB();"""
 
 NEXTJS_HTML = """<!DOCTYPE html><html><head><meta charSet="utf-8"/><title>Blog</title></head><body><div id="__next"><main><h1>Blog</h1></main></div><script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{"posts":[{"id":"a1b2c3","title":"Getting Started","slug":"getting-started"}],"totalPages":5,"currentPage":1},"__N_SSP":true},"page":"/blog","query":{},"buildId":"xK7rT2mN9pQ4wE6y","isFallback":false,"gssp":true,"scriptLoader":[]}</script></body></html>"""
 
-WEBPACK_JS = """(window.webpackJsonp=window.webpackJsonp||[]).push([[3],{147:function(e,t,n){"use strict";n.r(t);var r=n(0),o=n(1),i=n(12);var u=function(){function e(t){this.baseUrl=t.baseUrl||"http://127.0.0.1:8888/api/v1",this.headers={"Content-Type":"application/json",Accept:"application/json"},t.apiKey&&(this.headers["X-API-Key"]=t.apiKey)}var t;return t=e,(n=[{key:"request",value:function(e,t,n){var r=this;return fetch(this.baseUrl+t,Object.assign({},{method:e,headers:this.headers}))}}])&&l(t.prototype,n),e}();t.default=u},12:function(e,t,n){"use strict";n.d(t,"a",(function(){return r}));var r=function(e){return"string"==typeof e&&e.length>0}}}]);"""
+WEBPACK_JS = _use_worker_port(
+    """(window.webpackJsonp=window.webpackJsonp||[]).push([[3],{147:function(e,t,n){"use strict";n.r(t);var r=n(0),o=n(1),i=n(12);var u=function(){function e(t){this.baseUrl=t.baseUrl||"http://127.0.0.1:8888/api/v1",this.headers={"Content-Type":"application/json",Accept:"application/json"},t.apiKey&&(this.headers["X-API-Key"]=t.apiKey)}var t;return t=e,(n=[{key:"request",value:function(e,t,n){var r=this;return fetch(this.baseUrl+t,Object.assign({},{method:e,headers:this.headers}))}}])&&l(t.prototype,n),e}();t.default=u},12:function(e,t,n){"use strict";n.d(t,"a",(function(){return r}));var r=function(e){return"string"==typeof e&&e.length>0}}}]);"""
+)
 
 # Plain JS with no packing
 CLEAN_JS = """(function(){"use strict";var app={init:function(){document.addEventListener("DOMContentLoaded",function(){console.log("ready")})},render:function(el,data){el.innerHTML=data.map(function(item){return"<div>"+item.name+"</div>"}).join("")}};app.init()})();"""
@@ -42,7 +58,7 @@ CLEAN_JS = """(function(){"use strict";var app={init:function(){document.addEven
 
 class TestJsUnpacker(ModuleTestBase):
     module_name = "js_unpacker"
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "excavate", "js_unpacker"]
     config_overrides = {"web": {"spider_distance": 2, "spider_depth": 4, "spider_links_per_page": 25}}
 
@@ -112,7 +128,7 @@ class TestJsUnpacker(ModuleTestBase):
         assert any("_buildManifest.js" in u for u in nextjs_urls), "Next.js _buildManifest not detected"
 
         # -- End-to-end extraction assertions --
-        # All hidden URLs point to 127.0.0.1:8888 so they stay in-scope
+        # All hidden URLs point at the worker's mock server, so they stay in-scope
         url_events = {e.data.get("url", e.data) for e in events if e.type == "URL_UNVERIFIED"}
 
         # Source map: excavate should find URLs from the original source
@@ -160,7 +176,7 @@ class TestJsUnpackerBadsecretsChain(ModuleTestBase):
     """js_unpacker -> excavate -> badsecrets: a packed JWT with a weak secret should produce a HIGH finding."""
 
     module_name = "js_unpacker"
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "excavate", "js_unpacker", "badsecrets"]
 
     async def setup_after_prep(self, module_test):
