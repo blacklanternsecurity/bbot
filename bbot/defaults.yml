@@ -130,6 +130,7 @@ web:
   debug: false
   # Maximum number of HTTP redirects to follow
   http_max_redirects: 5
+  # Skip the body comparison when more than this many leaves differ (0 disables the guard's short-circuit)
   http_compare_max_differing_lines: 500
   # Whether to verify SSL certificates for target-directed traffic (probes, crawls, etc.)
   ssl_verify_target: false

@@ -5,6 +5,7 @@ from blasthttp import HTTPStatusError
 from deepdiff import DeepDiff
 
 from ..bbot_fixtures import *
+from bbot.test.mock_blasthttp import MockResponse
 
 from bbot.test.worker import BBOT_TEST_DIR
 
@@ -534,6 +535,48 @@ async def test_web_http_compare_null_threshold_config(blasthttp_mock, bbot_scann
     compare_helper.ddiff_filters = []
 
     assert compare_helper.compare_body(["a", "b", "c"], ["a", "b", "x"]) is False
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_web_http_compare_line_filters_match_deepdiff(blasthttp_mock, bbot_scanner):
+    scan = bbot_scanner()
+    await scan._prep()
+    blasthttp_mock.add_response(url=re.compile(r"http://www\.example\.com.*"), text="wat")
+    compare_helper = scan.helpers.http_compare("http://www.example.com")
+
+    static = [f"line {i}" for i in range(200)]
+    sample_1 = [f"nonce {i} A" for i in range(50)] + static
+    sample_2 = [f"nonce {i} B" for i in range(50)] + static
+
+    ddiff = DeepDiff(sample_1, sample_2, ignore_order=True, view="tree", threshold_to_diff_deeper=0)
+    expected = sorted({x.path() for k in ddiff.keys() for x in list(ddiff[k])})
+
+    assert compare_helper._unshared_line_paths(sample_1, sample_2) == expected
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_web_http_compare_baseline_bounded_on_dynamic_pages(blasthttp_mock, bbot_scanner):
+    scan = bbot_scanner()
+    await scan._prep()
+
+    static = "\n".join(f"line {i}" for i in range(3000))
+
+    def dynamic(request):
+        nonce = "\n".join(f"nonce {i} {rand_string(8)}" for i in range(1000))
+        return MockResponse(status_code=200, text=f"{nonce}\n{static}")
+
+    blasthttp_mock.add_callback(dynamic, url=re.compile(r"http://www\.example\.com.*"))
+    blasthttp_mock.add_callback(dynamic, url=re.compile(r"http://www\.example\.com.*"))
+    compare_helper = scan.helpers.http_compare("http://www.example.com")
+
+    start = time.monotonic()
+    await compare_helper._baseline()
+    assert (time.monotonic() - start) < 10
+    assert len(compare_helper.ddiff_filters) == 1000
 
     await scan._cleanup()
 

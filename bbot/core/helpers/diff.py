@@ -100,7 +100,8 @@ class HttpCompare:
         self.headers = headers
         self.cookies = cookies
         self.timeout = 10
-        self.max_differing_lines = self.parent_helper.web_config.get("http_compare_max_differing_lines", 500) or 500
+        configured_max_differing_lines = self.parent_helper.web_config.get("http_compare_max_differing_lines", 500)
+        self.max_differing_lines = 500 if configured_max_differing_lines is None else configured_max_differing_lines
         # Optional async callback fired once with baseline_1 after the baseline is established.
         self.on_baseline_ready = on_baseline_ready
 
@@ -173,14 +174,22 @@ class HttpCompare:
                 baseline_1_json = baseline_1.text.split("\n")
                 baseline_2_json = baseline_2.text.split("\n")
 
-            ddiff = DeepDiff(
-                baseline_1_json, baseline_2_json, ignore_order=True, view="tree", threshold_to_diff_deeper=0
-            )
-            self.ddiff_filters = []
+            if isinstance(baseline_1_json, list) and isinstance(baseline_2_json, list):
+                self.ddiff_filters = self._unshared_line_paths(baseline_1_json, baseline_2_json)
+            else:
+                ddiff = await self.parent_helper.run_in_executor_cpu(
+                    DeepDiff,
+                    baseline_1_json,
+                    baseline_2_json,
+                    ignore_order=True,
+                    view="tree",
+                    threshold_to_diff_deeper=0,
+                )
+                self.ddiff_filters = []
 
-            for k in ddiff.keys():
-                for x in list(ddiff[k]):
-                    self.ddiff_filters.append(x.path())
+                for k in ddiff.keys():
+                    for x in list(ddiff[k]):
+                        self.ddiff_filters.append(x.path())
 
             self.baseline_json = baseline_1_json
             self.baseline_ignore_headers = [
@@ -237,12 +246,19 @@ class HttpCompare:
                 differing_headers.append(header_value)
         return differing_headers
 
-    def _leaf_counts(self, content):
+    @staticmethod
+    def _unshared_line_paths(lines_1, lines_2):
+        set_1, set_2 = set(lines_1), set(lines_2)
+        paths = {f"root[{index}]" for index, line in enumerate(lines_1) if line not in set_2}
+        paths |= {f"root[{index}]" for index, line in enumerate(lines_2) if line not in set_1}
+        return sorted(paths)
+
+    def _leaf_counts(self, content, filters):
         counts = Counter()
         stack = [("root", content)]
         while stack:
             path, node = stack.pop()
-            if path in self.ddiff_filters:
+            if path in filters:
                 continue
             if isinstance(node, dict):
                 for key, value in node.items():
@@ -258,11 +274,12 @@ class HttpCompare:
         if content_1 == content_2:
             return True
 
-        counts_1 = self._leaf_counts(content_1)
-        counts_2 = self._leaf_counts(content_2)
+        filters = frozenset(self.ddiff_filters)
+        counts_1 = self._leaf_counts(content_1, filters)
+        counts_2 = self._leaf_counts(content_2, filters)
         differing = counts_1 - counts_2
-        differing.update(counts_2 - counts_1)
-        if sum(differing.values()) > self.max_differing_lines:
+        removed = counts_2 - counts_1
+        if max(sum(differing.values()), sum(removed.values())) > self.max_differing_lines:
             return False
 
         ddiff = DeepDiff(
