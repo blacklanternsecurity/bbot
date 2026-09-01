@@ -9,6 +9,7 @@ from itertools import islice
 from contextlib import suppress
 
 from bbot.modules.base import BaseModule
+from bbot.core.helpers.misc import sha1
 from bbot.core.config.models import BaseModuleConfig, Field
 
 try:
@@ -468,11 +469,47 @@ class NucleiBudget:
         self._yaml_files = {}
         self.templates_dir = nuclei_module.nuclei_templates_dir
         self.yaml_list = self.get_yaml_list()
-        self.budget_paths = self.find_budget_paths(nuclei_module.budget)
-        self.collapsible_templates, self.severity_stats = self.find_collapsible_templates()
+        cached = self._cache_load(nuclei_module.budget)
+        if cached is not None:
+            self.budget_paths, self.collapsible_templates, self.severity_stats = cached
+        else:
+            self.budget_paths = self.find_budget_paths(nuclei_module.budget)
+            self.collapsible_templates, self.severity_stats = self.find_collapsible_templates()
+            self._cache_store(nuclei_module.budget)
+        # the parsed documents are ~340MB and are dead once both passes are done
+        self._yaml_files = {}
 
     def get_yaml_list(self):
         return list(self.templates_dir.rglob("*.yaml"))
+
+    def _cache_key(self, budget):
+        """Identify the template set by (path, size, mtime) so a template update invalidates it."""
+        sig = []
+        for f in sorted(self.yaml_list):
+            st = f.stat()
+            sig.append((str(f), st.st_size, st.st_mtime_ns))
+        return f"nuclei_budget_{sha1(repr((budget, sig))).hexdigest()}"
+
+    def _cache_load(self, budget):
+        with suppress(Exception):
+            raw = self.parent.helpers.cache_get(self._cache_key(budget))
+            if raw:
+                d = json.loads(raw)
+                return d["budget_paths"], d["collapsible_templates"], d["severity_stats"]
+        return None
+
+    def _cache_store(self, budget):
+        with suppress(Exception):
+            self.parent.helpers.cache_put(
+                self._cache_key(budget),
+                json.dumps(
+                    {
+                        "budget_paths": self.budget_paths,
+                        "collapsible_templates": self.collapsible_templates,
+                        "severity_stats": self.severity_stats,
+                    }
+                ),
+            )
 
     # Given the current budget setting, scan all of the templates for paths, sort them by frequency and select the first N (budget) items
     def find_budget_paths(self, budget):
@@ -552,11 +589,16 @@ class NucleiBudget:
 
     def parse_yaml(self, yamlfile):
         if yamlfile not in self._yaml_files:
-            with open(yamlfile, "r") as stream:
-                try:
-                    y = yaml.load(stream, Loader=YamlLoader)
-                    self._yaml_files[yamlfile] = y
-                except yaml.YAMLError as e:
-                    self.parent.warning(f"failed to load yaml file: {e}")
-                    return {}
+            with open(yamlfile, "rb") as stream:
+                raw = stream.read()
+            # a template only contributes if it has an http block; skipping the rest
+            # avoids parsing ~5.3k of 13.6k templates that can never yield a path
+            if not (raw.startswith(b"http:") or b"\nhttp:" in raw):
+                self._yaml_files[yamlfile] = {}
+                return self._yaml_files[yamlfile]
+            try:
+                self._yaml_files[yamlfile] = yaml.load(raw, Loader=YamlLoader)
+            except yaml.YAMLError as e:
+                self.parent.warning(f"failed to load yaml file: {e}")
+                return {}
         return self._yaml_files[yamlfile]
