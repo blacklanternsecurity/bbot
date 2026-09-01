@@ -1444,6 +1444,20 @@ def search_dict_by_key(key, d):
 _PLACEHOLDER_REGEX = re.compile(r"#\{(\w+)\}")
 
 
+def _search_format_dict(d, replacements):
+    # replacements travels by reference; re-splatting it at each node rebuilds
+    # the whole mapping once per node, making the walk O(nodes * replacements).
+    if isinstance(d, dict):
+        return {k: _search_format_dict(v, replacements) for k, v in d.items()}
+    elif isinstance(d, list):
+        return [_search_format_dict(v, replacements) for v in d]
+    elif isinstance(d, str):
+        if "#{" not in d:
+            return d
+        return _PLACEHOLDER_REGEX.sub(lambda m: replacements.get(m.group(1), m.group(0)), d)
+    return d
+
+
 def search_format_dict(d, **kwargs):
     """Recursively format string values in a dictionary or list using the provided keyword arguments.
 
@@ -1458,15 +1472,7 @@ def search_format_dict(d, **kwargs):
         >>> search_format_dict({"test": "#{name} is awesome"}, name="keanu")
         {"test": "keanu is awesome"}
     """
-    if isinstance(d, dict):
-        return {k: search_format_dict(v, **kwargs) for k, v in d.items()}
-    elif isinstance(d, list):
-        return [search_format_dict(v, **kwargs) for v in d]
-    elif isinstance(d, str):
-        if "#{" not in d:
-            return d
-        return _PLACEHOLDER_REGEX.sub(lambda m: kwargs.get(m.group(1), m.group(0)), d)
-    return d
+    return _search_format_dict(d, kwargs)
 
 
 def search_dict_values(d, *regexes):
