@@ -162,6 +162,9 @@ class DepsInstaller:
 
         self.ensure_root_lock = Lock()
 
+        # pip specs already installed by _batch_pip_install() this session
+        self._batch_installed = set()
+
     async def install(self, *modules):
         # Concurrent scans (notably xdist workers) share the deps dir, so serialize
         # installs across processes: without this they race on the same files and
@@ -349,7 +352,13 @@ class DepsInstaller:
         deps_pip = preloaded["deps"]["pip"]
         deps_pip_constraints = preloaded["deps"]["pip_constraints"]
         if deps_pip:
-            success &= await self.pip_install(deps_pip, constraints=deps_pip_constraints)
+            # _batch_pip_install() just installed these in one resolver pass, so repeating
+            # them per module spawns a no-op pip subprocess costing seconds. Only skip specs
+            # the batch actually covered, so --upgrade still runs for everything else.
+            if all(dep in self._batch_installed for dep in deps_pip):
+                log.debug(f'Pip dependencies for module "{module}" were installed in the batch pass')
+            else:
+                success &= await self.pip_install(deps_pip, constraints=deps_pip_constraints)
 
         # shared/common
         deps_common = preloaded["deps"]["common"]
@@ -634,7 +643,8 @@ class DepsInstaller:
             return
 
         log.verbose(f"Batch-installing {len(packages):,} pip packages for {len(modules):,} modules")
-        await self.pip_install(packages)
+        if await self.pip_install(packages):
+            self._batch_installed.update(packages)
 
     def _pip_deps_satisfied(self, deps_pip):
         """Check whether a module's pip dependencies are currently installed in this environment.
