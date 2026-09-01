@@ -1,3 +1,5 @@
+import time
+import subprocess
 from importlib.metadata import version as installed_version
 
 from ..bbot_fixtures import *
@@ -155,4 +157,77 @@ async def test_depsinstaller_stale_pip_cache(monkeypatch, bbot_scanner):
     finally:
         for module_name in (missing_module, present_module):
             preloaded.pop(module_name, None)
+        await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_depsinstaller_waiter_does_not_block_on_unrelated_installs(monkeypatch, bbot_scanner):
+    """
+    A lock holder installs its whole module list under a single hold. A waiter whose own
+    deps land partway through that chain must return as soon as they land, rather than
+    blocking for the remainder of the holder's unrelated work.
+    """
+    scan = bbot_scanner("127.0.0.1")
+    await scan._prep()
+    installer = scan.helpers.depsinstaller
+
+    async def mock_install_core_deps():
+        return
+
+    status_cache = Path(scan.helpers.temp_filename())
+    monkeypatch.setattr(installer, "install_core_deps", mock_install_core_deps)
+    monkeypatch.setattr(installer, "setup_status_cache", status_cache)
+    monkeypatch.setattr(installer, "setup_status", {})
+    monkeypatch.setattr(installer, "_setup_status_stamp", None)
+    monkeypatch.setattr(installer, "_core_deps_cached", lambda: True)
+
+    mine = "deps_test_waiter_mine"
+    preloaded = scan.preset.module_loader._preloaded
+    preloaded[mine] = {
+        "sudo": False,
+        "deps": {
+            "apt": [],
+            "shell": [],
+            "pip": [],
+            "pip_constraints": [],
+            "common": [],
+            "ansible": [{"name": f"{mine} task"}],
+        },
+    }
+    mine_hash = installer._module_hash(preloaded[mine])
+
+    holder_chain_secs = 6
+    lock_path = str(installer.data_dir / "install.lock")
+    # a real second process, because the convoy this guards against is cross-process
+    holder_src = (
+        "import fcntl,json,sys,time\n"
+        "f=open(sys.argv[1],'w')\n"
+        "fcntl.flock(f,fcntl.LOCK_EX)\n"
+        "print('locked',flush=True)\n"
+        "time.sleep(0.5)\n"
+        "open(sys.argv[2],'w').write(json.dumps({sys.argv[3]:True}))\n"
+        f"time.sleep({holder_chain_secs})\n"
+    )
+    holder = subprocess.Popen(
+        [sys.executable, "-c", holder_src, lock_path, str(status_cache), mine_hash],
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        assert holder.stdout.readline().strip() == "locked"
+
+        start = time.time()
+        succeeded, failed = await installer.install(mine)
+        waited = time.time() - start
+
+        assert not failed
+        assert succeeded == [mine]
+        assert waited < holder_chain_secs, (
+            f"waiter blocked {waited:.2f}s on the holder's unrelated work; "
+            f"it should have returned once its own dep was published"
+        )
+    finally:
+        holder.kill()
+        holder.wait()
+        preloaded.pop(mine, None)
         await scan._cleanup()

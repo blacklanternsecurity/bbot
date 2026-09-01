@@ -9,11 +9,12 @@ import shutil
 import getpass
 import logging
 import uuid
+import asyncio
 from time import sleep
 from pathlib import Path
 from threading import Lock
 from itertools import chain
-from contextlib import contextmanager, suppress
+from contextlib import suppress
 from secrets import token_bytes
 from ansible_runner.interface import run
 from subprocess import CalledProcessError
@@ -27,6 +28,8 @@ log = logging.getLogger("bbot.core.helpers.depsinstaller")
 
 
 class DepsInstaller:
+    LOCK_POLL_INTERVAL = 0.25
+
     CORE_DEPS = {
         # core BBOT dependencies in the format of binary: package_name
         # each one will only be installed if the binary is not found
@@ -136,6 +139,7 @@ class DepsInstaller:
         self.data_dir = self.parent_helper.cache_dir / "depsinstaller"
         self.parent_helper.mkdir(self.data_dir)
         self.setup_status_cache = self.data_dir / "setup_status.json"
+        self._setup_status_stamp = None
         self.command_status = self.data_dir / "command_status"
         self.parent_helper.mkdir(self.command_status)
         self.ansible_artifact_dir = self.data_dir / "ansible_artifacts"
@@ -169,10 +173,25 @@ class DepsInstaller:
         nothing_to_do = self._all_deps_satisfied(modules)
         if nothing_to_do is not None:
             return nothing_to_do
-        with self._install_lock():
+        # A holder installs every module it needs under a single lock hold, so blocking
+        # on the lock costs the holder's whole chain rather than just the part this
+        # caller needs. Poll instead, rechecking after each publish whether our own deps
+        # have arrived; a caller that needs nothing more then never takes the lock.
+        lock = open(self.data_dir / "install.lock", "w")
+        try:
+            while not self._try_lock(lock):
+                await asyncio.sleep(self.LOCK_POLL_INTERVAL)
+                if not self._setup_status_changed():
+                    continue
+                self.setup_status = self.read_setup_status()
+                satisfied = self._all_deps_satisfied(modules)
+                if satisfied is not None:
+                    return satisfied
             # another process may have installed deps while we waited for the lock
             self.setup_status = self.read_setup_status()
             return await self._install(*modules)
+        finally:
+            lock.close()
 
     def _all_deps_satisfied(self, modules):
         """Return (succeeded, failed) if every module is already installed, else None.
@@ -220,15 +239,21 @@ class DepsInstaller:
             + str(__version__)
         ).hexdigest()
 
-    @contextmanager
-    def _install_lock(self):
-        lock_file = self.data_dir / "install.lock"
-        with open(lock_file, "w") as f:
-            fcntl.flock(f, fcntl.LOCK_EX)
-            try:
-                yield
-            finally:
-                fcntl.flock(f, fcntl.LOCK_UN)
+    def _try_lock(self, f):
+        try:
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            return False
+        return True
+
+    def _setup_status_changed(self):
+        try:
+            stamp = self.setup_status_cache.stat().st_mtime_ns
+        except OSError:
+            stamp = None
+        changed = stamp != self._setup_status_stamp
+        self._setup_status_stamp = stamp
+        return changed
 
     async def _install(self, *modules):
         await self.install_core_deps()
@@ -279,6 +304,9 @@ class DepsInstaller:
                         self.ensure_root(f'Module "{m}" needs root privileges to install its dependencies.')
                     success = await self.install_module(m)
                     self.setup_status[module_hash] = success
+                    # waiters poll this file to learn their own deps have landed, so
+                    # publish per module instead of once the whole chain is done
+                    self.write_setup_status()
                     if success or self.deps_behavior == "ignore_failed":
                         log.debug(f'Setup succeeded for module "{m}"')
                         succeeded.append(m)
