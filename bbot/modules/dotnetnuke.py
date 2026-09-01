@@ -210,7 +210,7 @@ class dotnetnuke(BaseModule):
                 self.warning(f"Interactsh failure: {e}")
 
     async def finish(self):
-        if self.interactsh_instance:
+        if self.interactsh_instance and self.interactsh_subdomain_tags:
             await self.helpers.sleep(5)
             try:
                 for r in await self.interactsh_instance.poll():
