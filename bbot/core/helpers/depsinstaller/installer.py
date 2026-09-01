@@ -258,6 +258,24 @@ class DepsInstaller:
         self._setup_status_stamp = stamp
         return changed
 
+    def _install_order(self, modules):
+        """Order modules cheapest-first so waiters unblock as early as possible.
+
+        The holder installs its whole set under one lock hold and publishes
+        setup_status per module. A pip-only module is already satisfied by
+        _batch_pip_install(), so processing it behind a module that compiles from
+        source strands every waiter on it for the length of that build.
+        """
+
+        def cost(m):
+            preloaded = self.all_modules_preloaded.get(m)
+            if preloaded is None:
+                return 0
+            deps = preloaded["deps"]
+            return 1 if (deps["apt"] or deps["shell"] or deps["ansible"] or deps["common"]) else 0
+
+        return sorted(modules, key=cost)
+
     async def _install(self, *modules):
         await self.install_core_deps()
         succeeded = []
@@ -265,7 +283,7 @@ class DepsInstaller:
         await self._batch_pip_install(modules)
         try:
             notified = False
-            for m in modules:
+            for m in self._install_order(modules):
                 # assume success if we're ignoring dependencies
                 if self.deps_behavior == "disable":
                     succeeded.append(m)
