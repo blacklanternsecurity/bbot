@@ -2,6 +2,7 @@ from ...bbot_fixtures import *
 from .base import ModuleTestBase
 from bbot.test.worker import HTTPSERVER_URL, BBOT_TEST_DIR, BBOT_TEST_TOOLS_DIR
 
+import copy
 import fcntl
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -20,7 +21,6 @@ class TestNucleiManual(ModuleTestBase):
             "nuclei": {
                 "mode": "manual",
                 "concurrency": 2,
-                "ratelimit": 10,
                 "templates": f"{BBOT_TEST_TOOLS_DIR}/nuclei-state/templates/http/miscellaneous/",
                 "directory_only": False,
             }
@@ -387,7 +387,9 @@ async def test_nuclei_failed_download_does_not_wipe_and_refetch(tmp_path):
 
 class TestNucleiCustomHeaders(TestNucleiManual):
     custom_headers = {"testheader1": "test1", "testheader2": "test2"}
-    config_overrides = TestNucleiManual.config_overrides
+    # deep copy: a shallow dict() still shares the nested "web" dict, so writing
+    # http_headers into it would reach TestNucleiManual and every sibling subclass.
+    config_overrides = copy.deepcopy(TestNucleiManual.config_overrides)
     config_overrides["web"]["http_headers"] = custom_headers
 
     async def setup_after_prep(self, module_test):
