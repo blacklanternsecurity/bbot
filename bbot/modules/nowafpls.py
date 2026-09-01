@@ -40,7 +40,7 @@ class nowafpls(BaseModule):
             payload=self.config.get("payload") or DEFAULT_PAYLOAD,
         )
         if not result.bypassed:
-            self.info(f"No bypass finding for {event.url}: {result.summary}")
+            self.verbose(f"No bypass finding for {event.url}: {result.summary}")
             return
 
         provider = result.waf_provider or "WAF/inspection layer"
