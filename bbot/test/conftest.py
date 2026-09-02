@@ -293,6 +293,10 @@ class Interactsh_mock:
             self.poll_task = asyncio.create_task(self.poll_loop(callback))
         return "fakedomain.fakeinteractsh.com"
 
+    async def settle(self):
+        # interactions are already queued in-process, so there is no propagation delay to wait out
+        return
+
     async def deregister(self, callback=None):
         await asyncio.sleep(1)
         self.stop = True
