@@ -34,20 +34,25 @@ class FastShutdownHTTPServer(HTTPServer):
         self.server.serve_forever(poll_interval=self.SHUTDOWN_POLL_INTERVAL)
 
     def respond_nohandler(self, request, extra_message=""):
-        """Serve a static 404 body instead of the upstream diagnostic dump.
+        """Serve an empty miss body instead of the upstream diagnostic dump.
 
         Upstream builds the body from repr(request) plus a rendering of every
         registered matcher, so the miss body is unique per URL and grows with the
         handler count. Brute-force modules diff each miss against a baseline miss,
         and a body that never repeats defeats that comparison: every response looks
-        like a difference and gets DeepDiffed in full. Real servers return a stable
-        404, so the dump was measurement error, not fidelity.
+        like a difference and gets DeepDiffed in full. The dump was measurement
+        error, not fidelity.
+
+        The body stays empty rather than carrying placeholder text. Modules dedup
+        HTTP_RESPONSEs on (host, port, body_sha256) and base.py exempts the
+        empty-body hash from that check, so an empty miss is the only constant that
+        does not make every miss URL collide as duplicate content.
 
         The accumulated assertion is dropped with it. bbot's httpserver fixtures
         call clear() before check_assertions(), so no-handler assertions were
         discarded unread and never failed a test.
         """
-        return Response("Not Found", self.no_handler_status_code)
+        return Response("", self.no_handler_status_code)
 
 
 # silence stdout + trace
