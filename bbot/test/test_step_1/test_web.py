@@ -345,7 +345,12 @@ async def test_web_interactsh(bbot_scanner, bbot_httpserver):
     assert response2.status_code == 200
     assert any(interactsh_domain2.endswith(f"{s}") for s in server_list)
 
-    await asyncio.sleep(10)
+    # poll until every asserted condition holds, capped at the old fixed budget
+    deadline = time.time() + 10
+    while time.time() < deadline:
+        if sync_correct_url and async_correct_url:
+            break
+        await asyncio.sleep(0.1)
 
     data_list = await interactsh_client.poll()
     data_list2 = await interactsh_client2.poll()
