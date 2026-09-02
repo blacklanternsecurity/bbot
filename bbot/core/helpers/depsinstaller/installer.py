@@ -162,7 +162,7 @@ class DepsInstaller:
 
         self.ensure_root_lock = Lock()
 
-        # pip specs already installed by _batch_pip_install() this session
+        # pip specs covered by the current batch pass; install_module() skips these
         self._batch_installed = set()
 
     async def install(self, *modules):
@@ -630,31 +630,35 @@ class DepsInstaller:
     async def _batch_pip_install(self, modules):
         """Pre-install every module's pip deps in one resolver pass.
 
-        install_module() still runs per module afterward; by then the packages are
-        already present, so its own pip call is a no-op. Only modules using the
-        default constraints are batched, since custom constraints must be resolved
-        against their own set.
+        install_module() still runs per module afterward, but skips any spec this pass
+        covered. Already-satisfied specs are batched rather than dropped so that
+        --upgrade still runs for them, in one resolver pass instead of one subprocess
+        per module. Only modules using the default constraints are batched, since
+        custom constraints must be resolved against their own set.
         """
+        # scoped to this pass: a later install() call may face a different environment,
+        # so stale coverage must never suppress its per-module installs
+        self._batch_installed = set()
         if self.deps_behavior == "disable":
             return
 
         packages = []
         seen = set()
+        constrained = set()
         for m in modules:
             preloaded = self.all_modules_preloaded.get(m)
             if not preloaded:
                 continue
+            if not self._needs_install(preloaded):
+                continue
             deps = preloaded.get("deps", {})
             if deps.get("pip_constraints"):
+                constrained.update(deps.get("pip", []))
                 continue
             for dep in deps.get("pip", []):
                 if dep in seen:
                     continue
                 seen.add(dep)
-                if self.deps_behavior != "force_install":
-                    satisfied, _ = self._pip_deps_satisfied([dep])
-                    if satisfied:
-                        continue
                 packages.append(dep)
 
         if len(packages) < 2:
@@ -662,7 +666,23 @@ class DepsInstaller:
 
         log.verbose(f"Batch-installing {len(packages):,} pip packages for {len(modules):,} modules")
         if await self.pip_install(packages):
-            self._batch_installed.update(packages)
+            # a spec shared with a module carrying custom constraints must still be
+            # resolved against those constraints, so it never counts as covered
+            self._batch_installed.update(set(packages) - constrained)
+
+    def _needs_install(self, preloaded):
+        """Whether _install() will actually reach install_module() for this module.
+
+        Batching deps for a module that is already recorded done would install
+        packages the locked path would never have touched.
+        """
+        if self.deps_behavior in ("disable", "force_install"):
+            return self.deps_behavior == "force_install"
+        success = self.setup_status.get(self._module_hash(preloaded), None)
+        if success is True:
+            satisfied, _ = self._pip_deps_satisfied(preloaded["deps"]["pip"])
+            return not satisfied
+        return success is None or self.deps_behavior == "retry_failed"
 
     def _pip_deps_satisfied(self, deps_pip):
         """Check whether a module's pip dependencies are currently installed in this environment.
