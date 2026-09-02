@@ -338,15 +338,10 @@ async def test_modules_basic_perhostonly(bbot_scanner):
 
 @pytest.mark.asyncio
 async def test_modules_basic_perdomainonly(bbot_scanner, monkeypatch):
-    config = {i: True for i in available_internal_modules if i != "dnsresolve"}
-    # loading reads class attributes only, so no tool needs to be on disk. Leaving
-    # deps enabled makes this block on the install lock for the whole of whichever
-    # worker is installing, which is the entire cost of this test under xdist.
-    config["deps"] = {"behavior": "disable"}
     per_domain_scan = bbot_scanner(
         "evilcorp.com",
         modules=list(available_modules),
-        config=config,
+        config={i: True for i in available_internal_modules if i != "dnsresolve"},
         force_start=True,
     )
 
@@ -536,14 +531,10 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, blasthttp_mock
 
 @pytest.mark.asyncio
 async def test_module_loading(bbot_scanner):
-    config = {i: True for i in available_internal_modules if i != "dnsresolve"}
-    # same reason as perdomainonly: this only reads class attributes, so waiting on
-    # the shared install lock is pure dead time under xdist.
-    config["deps"] = {"behavior": "disable"}
     scan2 = bbot_scanner(
         modules=list(available_modules),
         output_modules=list(available_output_modules),
-        config=config,
+        config={i: True for i in available_internal_modules if i != "dnsresolve"},
         force_start=True,
     )
     # every assertion below reads class attributes off the instantiated modules, so
