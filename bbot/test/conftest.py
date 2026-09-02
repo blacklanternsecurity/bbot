@@ -9,6 +9,7 @@ import logging
 from pathlib import Path
 from contextlib import suppress
 from pytest_httpserver import HTTPServer
+from werkzeug.wrappers import Response
 from bbot.test.worker import (
     BBOT_TEST_DIR,
     BBOT_TEST_SHARED_DIR,
@@ -31,6 +32,22 @@ class FastShutdownHTTPServer(HTTPServer):
 
     def thread_target(self) -> None:
         self.server.serve_forever(poll_interval=self.SHUTDOWN_POLL_INTERVAL)
+
+    def respond_nohandler(self, request, extra_message=""):
+        """Serve a static 404 body instead of the upstream diagnostic dump.
+
+        Upstream builds the body from repr(request) plus a rendering of every
+        registered matcher, so the miss body is unique per URL and grows with the
+        handler count. Brute-force modules diff each miss against a baseline miss,
+        and a body that never repeats defeats that comparison: every response looks
+        like a difference and gets DeepDiffed in full. Real servers return a stable
+        404, so the dump was measurement error, not fidelity.
+
+        The accumulated assertion is dropped with it. bbot's httpserver fixtures
+        call clear() before check_assertions(), so no-handler assertions were
+        discarded unread and never failed a test.
+        """
+        return Response("Not Found", self.no_handler_status_code)
 
 
 # silence stdout + trace
