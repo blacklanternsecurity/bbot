@@ -1750,7 +1750,14 @@ class HTTP_RESPONSE(URL_UNVERIFIED):
         return body_bytes.decode("utf-8", errors="replace")
 
     def _data_id(self):
-        return self.data["method"] + "|" + self.data["url"]
+        base = self.data["method"] + "|" + self.data["url"]
+        # Modules that re-emit an HTTP_RESPONSE for the same (method, url) but with a
+        # transformed body (e.g. js_unpacker's unpacked response) set data["_reemit_source"]
+        # so the two events don't collide on event.id and get dropped by per-module dedup.
+        reemit = self.data.get("_reemit_source")
+        if reemit:
+            return base + "|" + str(reemit)
+        return base
 
     def sanitize_data(self, data):
         url = data.get("url", "")
