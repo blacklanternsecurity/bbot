@@ -265,9 +265,11 @@ class serial(BaseLightfuzz):
                 return
 
         try:
-            http_compare_hex = self.compare_baseline(self.event.data["type"], control_payload_hex, cookies)
-            http_compare_base64 = self.compare_baseline(self.event.data["type"], control_payload_base64, cookies)
-            http_compare_php_raw = self.compare_baseline(self.event.data["type"], control_payload_php_raw, cookies)
+            http_compare_hex = await self.compare_baseline(self.event.data["type"], control_payload_hex, cookies)
+            http_compare_base64 = await self.compare_baseline(self.event.data["type"], control_payload_base64, cookies)
+            http_compare_php_raw = await self.compare_baseline(
+                self.event.data["type"], control_payload_php_raw, cookies
+            )
         except HttpCompareError as e:
             self.debug(f"HttpCompareError encountered: {e}")
             return

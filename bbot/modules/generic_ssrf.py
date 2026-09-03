@@ -64,7 +64,7 @@ class BaseSubmodule:
                 if r:
                     self.process(event, r.text, subdomain_tag)
 
-    def process(self, event, r, subdomain_tag):
+    def process(self, event, r, subdomain_tag, used_nowafpls=False):
         response_token = self.generic_ssrf.interactsh_domain.split(".")[0][::-1]
         if response_token in r:
             echoed_response = True
@@ -76,6 +76,7 @@ class BaseSubmodule:
             self.technique_description,
             self.severity,
             echoed_response,
+            used_nowafpls,
         )
 
 
@@ -125,9 +126,11 @@ class Generic_SSRF_POST(BaseSubmodule):
         for tag, pd in post_data_list:
             # Send raw body (not URL-encoded) so payload URLs like http://... reach the server literally.
             raw_body = "&".join(f"{k}={v}" for k, v in pd.items())
-            r = await self.generic_ssrf.helpers.request(url=test_url, method="POST", body=raw_body)
+            padded_body = await self.generic_ssrf.helpers.nowafpls.pad_form_body(event, raw_body)
+            used_nowafpls = padded_body is not raw_body
+            r = await self.generic_ssrf.helpers.request(url=test_url, method="POST", body=padded_body)
             if r:
-                self.process(event, r.text, tag)
+                self.process(event, r.text, tag, used_nowafpls=used_nowafpls)
 
 
 class Generic_XXE(BaseSubmodule):
@@ -213,6 +216,7 @@ class generic_ssrf(BaseModule):
                 matched_technique = match[1]
                 matched_severity = match[2]
                 matched_echoed_response = str(match[3])
+                matched_used_nowafpls = match[4]
 
                 triggering_param = self.parameter_subdomain_tags_map.get(subdomain_tag, None)
                 description = f"Out-of-band interaction: [{matched_technique}]"
@@ -236,6 +240,7 @@ class generic_ssrf(BaseModule):
                     event_data,
                     "FINDING",
                     matched_event,
+                    tags=["used-nowafpls"] if matched_used_nowafpls else None,
                     context=f"{{module}} scanned {matched_event.url} and detected {{event.type}}: {matched_technique}",
                 )
             else:

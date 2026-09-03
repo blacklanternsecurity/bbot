@@ -3,6 +3,8 @@ import base64
 import binascii
 from urllib.parse import quote
 
+from bbot.core.helpers.nowafpls import DEFAULT_PADDING_SIZE, PADDING_FIELD_NAME
+
 
 class BaseLightfuzz:
     friendly_name = ""
@@ -15,6 +17,9 @@ class BaseLightfuzz:
         self.event = event
         self.results = []
         self.parameter_name = self.event.data["name"]
+        # Flipped True when prepare_request pads a probe body via nowafpls. Downstream findings
+        # get tagged ``used-nowafpls`` so consumers can distinguish bypass-mediated results.
+        self.used_nowafpls = False
 
     def register_interactsh_tag(
         self, *, name, description, severity, confidence, severity_dns=None, confidence_dns=None
@@ -101,7 +106,7 @@ class BaseLightfuzz:
         params[parameter_name] = probe
         return self.lightfuzz.helpers.add_get_params(self.event.url, params, encode=False).geturl()
 
-    def prepare_request(
+    async def prepare_request(
         self,
         event_type,
         probe,
@@ -162,6 +167,12 @@ class BaseLightfuzz:
             data = {parameter_name: probe}
             if additional_params:
                 data.update(additional_params)
+            if "waf" in self.event.tags and self.lightfuzz.avoid_wafs != "always":
+                bypass = await self.lightfuzz.helpers.nowafpls.is_bypassable(self.event)
+                if bypass.bypassed:
+                    # Prepend the pad so the WAF's inspection buffer fills before it reaches the payload.
+                    data = {PADDING_FIELD_NAME: "A" * DEFAULT_PADDING_SIZE, **data}
+                    self.used_nowafpls = True
             if event_type == "BODYJSON":
                 request_params = {
                     "method": "POST",
@@ -188,7 +199,7 @@ class BaseLightfuzz:
 
         return request_params
 
-    def compare_baseline(
+    async def compare_baseline(
         self,
         event_type,
         probe,
@@ -211,7 +222,7 @@ class BaseLightfuzz:
                 f"{k}{parameter_name_suffix_additional_params}": v for k, v in additional_params.items()
             }
 
-        request_params = self.prepare_request(
+        request_params = await self.prepare_request(
             event_type,
             probe,
             cookies,
@@ -260,7 +271,7 @@ class BaseLightfuzz:
     async def _baseline_probe_once(self, probe_value, cookies, additional_params, emit_http_response):
         """Fire one baseline request with ``probe_value`` for the fuzzed parameter and
         the captured sibling values, emit the response (subject to caching)."""
-        request_params = self.prepare_request(
+        request_params = await self.prepare_request(
             self.event.data.get("type", "GETPARAM"),
             probe_value,
             cookies,
@@ -310,7 +321,7 @@ class BaseLightfuzz:
             }
 
         # Prepare request parameters
-        request_params = self.prepare_request(
+        request_params = await self.prepare_request(
             event_type,
             probe,
             cookies,
@@ -335,7 +346,7 @@ class BaseLightfuzz:
         allow_redirects=False,
         skip_urlencoding=False,
     ):
-        request_params = self.prepare_request(
+        request_params = await self.prepare_request(
             event_type,
             probe,
             cookies,

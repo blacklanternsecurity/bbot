@@ -1,5 +1,8 @@
+from urllib.parse import urlparse
+
 from .base import ModuleTestBase
 from bbot.test.worker import HTTPSERVER_URL
+from bbot.modules.base import BaseModule
 
 
 class TestAjaxpro(ModuleTestBase):
@@ -74,3 +77,87 @@ class TestAjaxpro_httpdetect(TestAjaxpro):
             if e.type == "TECHNOLOGY" and e.data["technology"] == "ajaxpro":
                 ajaxpro_httpresponse_detection = True
         assert ajaxpro_httpresponse_detection, "Ajaxpro HTTP_RESPONSE detection failed"
+
+
+class TestAjaxpro_nowafpls_bypass(ModuleTestBase):
+    """Ajaxpro should pad its exploit POST body via nowafpls when the URL is WAF-tagged and
+    the WAF is bypassable; the resulting FINDING should carry the ``used-nowafpls`` tag."""
+
+    targets = ["ajaxpro-bypass.test"]
+    modules_overrides = ["http", "ajaxpro"]
+
+    _exploit_response = (
+        'null; r.error = {"Message":"Constructor on type \'AjaxPro.Services.ICartService\' not found.",'
+        '"Type":"System.MissingMethodException"};'
+    )
+
+    class DummyModule(BaseModule):
+        watched_events = ["DNS_NAME"]
+        _name = "dummy_module"
+
+        async def handle_event(self, event):
+            if event.data != "ajaxpro-bypass.test":
+                return
+            url = self.scan.make_event(
+                "http://ajaxpro-bypass.test/",
+                "URL",
+                parent=event,
+                tags=["dir", "waf", "cloudflare", "in-scope", "status-200"],
+            )
+            if url is not None:
+                await self.emit_event(url)
+
+    async def setup_after_prep(self, module_test):
+        from blasthttp.mock import MockResponse
+
+        await module_test.mock_dns({"ajaxpro-bypass.test": {"A": ["127.0.0.1"]}})
+
+        self.exploit_bodies: list[bytes] = []
+        exploit_response = self._exploit_response
+
+        def cb(request):
+            method = request.method
+            path = urlparse(str(request.url)).path
+            body = request.content or b""
+            if isinstance(body, str):
+                body = body.encode()
+
+            if method == "GET":
+                if path.endswith("/ajaxpro/whatever.ashx"):
+                    return MockResponse(status_code=200, text="ok")
+                if path.endswith("/a/whatever.ashx"):
+                    return MockResponse(status_code=404, text="not found")
+                return MockResponse(status_code=200, text="ok")
+
+            has_pad = body.startswith(b"__nowafpls_pad=") or b'"__nowafpls_pad"' in body
+            has_malicious_script = b"%3Cscript" in body or b"<script" in body
+
+            # nowafpls's own probe: baseline OK, unpadded malicious blocked (403), padded OK.
+            if has_malicious_script and not has_pad:
+                return MockResponse(status_code=403, text="Attention Required! | Cloudflare")
+
+            if "ICartService" in path:
+                self.exploit_bodies.append(body)
+                return MockResponse(status_code=200, text=exploit_response)
+
+            return MockResponse(status_code=200, text="Welcome to the application")
+
+        module_test.blasthttp_mock.add_callback(callback=cb)
+        module_test.scan.modules["dummy_module"] = self.DummyModule(module_test.scan)
+
+    def check(self, module_test, events):
+        assert any(b'"__nowafpls_pad"' in b for b in self.exploit_bodies), (
+            f"Ajaxpro's exploit POST should carry the nowafpls JSON pad. Got exploit bodies: {self.exploit_bodies}"
+        )
+        finding = next(
+            (
+                e
+                for e in events
+                if e.type == "FINDING" and "Ajaxpro Deserialization RCE" in e.data.get("description", "")
+            ),
+            None,
+        )
+        assert finding is not None, "Ajaxpro RCE FINDING not emitted"
+        assert "used-nowafpls" in finding.tags, (
+            f"Ajaxpro finding should carry 'used-nowafpls' tag when the pad was applied. Tags: {list(finding.tags)}"
+        )
