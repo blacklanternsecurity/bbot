@@ -12,6 +12,7 @@ from urllib.parse import unquote, quote
 import xml.etree.ElementTree as ET
 
 from bbot.core.helpers.url import add_get_params
+from bbot.modules.lightfuzz.lightfuzz import lightfuzz
 from bbot.modules.lightfuzz.submodules.base import BaseLightfuzz
 
 from .test_module_paramminer_headers import helper
@@ -74,6 +75,82 @@ def test_lightfuzz_build_query_string_preserves_fragment():
     result = bl.build_query_string("PROBE", "p")
     assert result.count("?") == 1
     assert result.endswith("#frag")
+
+
+def _generation_chain(depth, host="example.com"):
+    """An event whose ancestry contains `depth` lightfuzz-emitted events."""
+    node = SimpleNamespace(module=SimpleNamespace(name="http"), parent=None, host=host)
+    for _ in range(depth):
+        node = SimpleNamespace(module=SimpleNamespace(name="excavate"), parent=node, host=host)
+        node = SimpleNamespace(module=SimpleNamespace(name="lightfuzz"), parent=node, host=host)
+    return SimpleNamespace(module=SimpleNamespace(name="excavate"), parent=node, host=host)
+
+
+def _fake_baseline_response(url):
+    return SimpleNamespace(
+        url=url,
+        status=200,
+        raw_headers="Content-Type: text/html",
+        headers={"Content-Type": "text/html", "Content-Length": "5"},
+        body_bytes=b"hello",
+        body="hello",
+        decode_error=None,
+        hash=SimpleNamespace(
+            body_md5="m", body_mmh3="m", body_sha256="s", header_md5="m", header_mmh3="m", header_sha256="s"
+        ),
+        cert_info=None,
+    )
+
+
+def test_lightfuzz_baseline_generations_counts_ancestry():
+    fake = SimpleNamespace(name="lightfuzz", max_baseline_generations=10)
+    count = lightfuzz.baseline_generations
+    assert count(fake, _generation_chain(0)) == 0
+    assert count(fake, _generation_chain(1)) == 1
+    assert count(fake, _generation_chain(7)) == 7
+    # counting stops at the cap instead of walking the rest of the chain
+    assert count(fake, _generation_chain(60)) == 10
+
+
+async def test_lightfuzz_baseline_generation_cap_stops_emitting():
+    """Baseline responses are what excavate mines to produce the next generation of
+    parameters, so past the cap they stop being emitted and the loop is starved."""
+    emitted = []
+
+    async def _emit_event(*args, **kwargs):
+        emitted.append(args)
+
+    def _fake_module(cap=3):
+        module = SimpleNamespace(
+            name="lightfuzz",
+            max_baseline_generations=cap,
+            emit_baseline_responses=True,
+            _baseline_generation_cap_hit=False,
+            emit_event=_emit_event,
+            verbose=lambda *a, **kw: None,
+            debug=lambda *a, **kw: None,
+        )
+        module.baseline_generations = lambda event: lightfuzz.baseline_generations(module, event)
+        return module
+
+    response = _fake_baseline_response("https://example.com/contact?csrf=abc")
+
+    # below the cap, the feedback edge stays open
+    module = _fake_module()
+    await lightfuzz.emit_baseline_response(module, response, _generation_chain(2), "GET")
+    assert len(emitted) == 1
+    assert module._baseline_generation_cap_hit is False
+
+    # at the cap, excavate gets nothing new to mine
+    emitted.clear()
+    module = _fake_module()
+    await lightfuzz.emit_baseline_response(module, response, _generation_chain(3), "GET")
+    assert emitted == []
+    assert module._baseline_generation_cap_hit is True
+
+    # deeper still stays capped
+    await lightfuzz.emit_baseline_response(module, response, _generation_chain(9), "GET")
+    assert emitted == []
 
 
 # Path Traversal single dot tolerance
