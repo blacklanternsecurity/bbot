@@ -1,11 +1,30 @@
 import logging
 import xmltodict
+from collections import Counter
 from deepdiff import DeepDiff
 from contextlib import suppress
 from xml.parsers.expat import ExpatError
 from bbot.errors import HttpCompareError
 
 log = logging.getLogger("bbot.core.helpers.diff")
+
+
+def _is_flat_str_sequence(content):
+    return isinstance(content, list) and all(isinstance(i, str) for i in content)
+
+
+def _ordered_diff(content_1, content_2, **kwargs):
+    """DeepDiff with ignore_order, skipping pair-matching for flat string lists.
+
+    Pair-matching is O(n*m) nested DeepDiffs over the differing items, which is
+    what a split("\\n") body of a dynamic page looks like. For sequences whose
+    items are all strings there is nothing to match deeper, and equal-index
+    add/remove pairs are folded back into values_changed by DeepDiff itself, so
+    the result is unchanged.
+    """
+    if _is_flat_str_sequence(content_1) and _is_flat_str_sequence(content_2):
+        kwargs["cutoff_intersection_for_pairs"] = 0
+    return DeepDiff(content_1, content_2, ignore_order=True, view="tree", threshold_to_diff_deeper=0, **kwargs)
 
 
 class _BaselineSnapshot:
@@ -99,6 +118,7 @@ class HttpCompare:
         self.headers = headers
         self.cookies = cookies
         self.timeout = 10
+        self.max_differing_lines = self.parent_helper.web_config.get("http_compare_max_differing_lines", 500) or 500
         # Optional async callback fired once with baseline_1 after the baseline is established.
         self.on_baseline_ready = on_baseline_ready
 
@@ -171,9 +191,7 @@ class HttpCompare:
                 baseline_1_json = baseline_1.text.split("\n")
                 baseline_2_json = baseline_2.text.split("\n")
 
-            ddiff = DeepDiff(
-                baseline_1_json, baseline_2_json, ignore_order=True, view="tree", threshold_to_diff_deeper=0
-            )
+            ddiff = _ordered_diff(baseline_1_json, baseline_2_json)
             self.ddiff_filters = []
 
             for k in ddiff.keys():
@@ -235,17 +253,38 @@ class HttpCompare:
                 differing_headers.append(header_value)
         return differing_headers
 
+    def _leaf_counts(self, content):
+        counts = Counter()
+        stack = [("root", content)]
+        while stack:
+            path, node = stack.pop()
+            if path in self.ddiff_filters:
+                continue
+            if isinstance(node, dict):
+                for key, value in node.items():
+                    stack.append((f"{path}[{key!r}]", value))
+            elif isinstance(node, list):
+                for index, value in enumerate(node):
+                    stack.append((f"{path}[{index}]", value))
+            else:
+                counts[str(node)] += 1
+        return counts
+
     def compare_body(self, content_1, content_2):
         if content_1 == content_2:
             return True
 
-        ddiff = DeepDiff(
+        counts_1 = self._leaf_counts(content_1)
+        counts_2 = self._leaf_counts(content_2)
+        differing = counts_1 - counts_2
+        differing.update(counts_2 - counts_1)
+        if sum(differing.values()) > self.max_differing_lines:
+            return False
+
+        ddiff = _ordered_diff(
             content_1,
             content_2,
-            ignore_order=True,
-            view="tree",
             exclude_paths=self.ddiff_filters,
-            threshold_to_diff_deeper=0,
         )
 
         if len(ddiff.keys()) == 0:

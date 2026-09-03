@@ -2,11 +2,14 @@ import os
 import sys
 import stat
 import json
+import fcntl
 import mmh3
 import orjson
 import shutil
 import getpass
 import logging
+import uuid
+import asyncio
 from time import sleep
 from pathlib import Path
 from threading import Lock
@@ -25,6 +28,8 @@ log = logging.getLogger("bbot.core.helpers.depsinstaller")
 
 
 class DepsInstaller:
+    LOCK_POLL_INTERVAL = 0.25
+
     CORE_DEPS = {
         # core BBOT dependencies in the format of binary: package_name
         # each one will only be installed if the binary is not found
@@ -134,8 +139,13 @@ class DepsInstaller:
         self.data_dir = self.parent_helper.cache_dir / "depsinstaller"
         self.parent_helper.mkdir(self.data_dir)
         self.setup_status_cache = self.data_dir / "setup_status.json"
+        self._setup_status_stamp = None
         self.command_status = self.data_dir / "command_status"
         self.parent_helper.mkdir(self.command_status)
+        self.ansible_artifact_dir = self.data_dir / "ansible_artifacts"
+        self.parent_helper.mkdir(self.ansible_artifact_dir)
+        self.ansible_fact_cache = self.ansible_artifact_dir / "fact_cache"
+        self._discard_corrupt_fact_cache()
         self.setup_status = self.read_setup_status()
 
         # make sure we're using a minimal git config
@@ -152,13 +162,128 @@ class DepsInstaller:
 
         self.ensure_root_lock = Lock()
 
+        # pip specs covered by the current batch pass; install_module() skips these
+        self._batch_installed = set()
+
     async def install(self, *modules):
+        # Concurrent scans (notably xdist workers) share the deps dir, so serialize
+        # installs across processes: without this they race on the same files and
+        # each pays the full install anyway.
+        # Taking the lock unconditionally serializes every scan behind whichever one
+        # is actually installing, so check first whether there is any work to do.
+        # That check only reads, so it is safe outside the lock.
+        self.setup_status = self.read_setup_status()
+        nothing_to_do = self._all_deps_satisfied(modules)
+        if nothing_to_do is not None:
+            return nothing_to_do
+        # A holder installs every module it needs under a single lock hold, so blocking
+        # on the lock costs the holder's whole chain rather than just the part this
+        # caller needs. Poll instead, rechecking after each publish whether our own deps
+        # have arrived; a caller that needs nothing more then never takes the lock.
+        lock = open(self.data_dir / "install.lock", "w")
+        try:
+            while not self._try_lock(lock):
+                await asyncio.sleep(self.LOCK_POLL_INTERVAL)
+                if not self._setup_status_changed():
+                    continue
+                self.setup_status = self.read_setup_status()
+                satisfied = self._all_deps_satisfied(modules)
+                if satisfied is not None:
+                    return satisfied
+            # another process may have installed deps while we waited for the lock
+            self.setup_status = self.read_setup_status()
+            return await self._install(*modules)
+        finally:
+            lock.close()
+
+    def _all_deps_satisfied(self, modules):
+        """Return (succeeded, failed) if every module is already installed, else None.
+
+        Mirrors the accounting in _install() so the fast path and the locked path
+        agree on which modules count as succeeded.
+        """
+        # retry_failed only revisits modules recorded as failed; the loop below already
+        # declines on any status that is not True, so it is safe on this path.
+        # force_install reinstalls regardless of status, so it can never skip the lock.
+        if self.deps_behavior == "force_install":
+            return None
+        if not self._core_deps_cached():
+            return None
+        succeeded = []
+        for m in modules:
+            if self.deps_behavior == "disable":
+                succeeded.append(m)
+                continue
+            preloaded = self.all_modules_preloaded.get(m)
+            if preloaded is None:
+                return None
+            if not list(chain(*preloaded["deps"].values())):
+                succeeded.append(m)
+                continue
+            if self.setup_status.get(self._module_hash(preloaded), None) is not True:
+                return None
+            satisfied, _ = self._pip_deps_satisfied(preloaded["deps"]["pip"])
+            if not satisfied:
+                return None
+            succeeded.append(m)
+        succeeded.sort()
+        return succeeded, []
+
+    def _core_deps_cached(self):
+        core_deps_hash = str(mmh3.hash(orjson.dumps(self.CORE_DEPS, option=orjson.OPT_SORT_KEYS)))
+        return (self.parent_helper.cache_dir / core_deps_hash).exists()
+
+    def _module_hash(self, preloaded):
+        return self.parent_helper.sha1(
+            json.dumps(preloaded["deps"], sort_keys=True)
+            + self.venv
+            + str(self.parent_helper.deps_home)
+            + os.uname()[1]
+            + str(__version__)
+        ).hexdigest()
+
+    def _try_lock(self, f):
+        try:
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            return False
+        return True
+
+    def _setup_status_changed(self):
+        try:
+            stamp = self.setup_status_cache.stat().st_mtime_ns
+        except OSError:
+            stamp = None
+        changed = stamp != self._setup_status_stamp
+        self._setup_status_stamp = stamp
+        return changed
+
+    def _install_order(self, modules):
+        """Order modules cheapest-first so waiters unblock as early as possible.
+
+        The holder installs its whole set under one lock hold and publishes
+        setup_status per module. A pip-only module is already satisfied by
+        _batch_pip_install(), so processing it behind a module that compiles from
+        source strands every waiter on it for the length of that build.
+        """
+
+        def cost(m):
+            preloaded = self.all_modules_preloaded.get(m)
+            if preloaded is None:
+                return 0
+            deps = preloaded["deps"]
+            return 1 if (deps["apt"] or deps["shell"] or deps["ansible"] or deps["common"]) else 0
+
+        return sorted(modules, key=cost)
+
+    async def _install(self, *modules):
         await self.install_core_deps()
         succeeded = []
         failed = []
+        await self._batch_pip_install(modules)
         try:
             notified = False
-            for m in modules:
+            for m in self._install_order(modules):
                 # assume success if we're ignoring dependencies
                 if self.deps_behavior == "disable":
                     succeeded.append(m)
@@ -171,14 +296,8 @@ class DepsInstaller:
                 preloaded = self.all_modules_preloaded[m]
                 log.debug(f"Installing {m} - Preloaded Deps {preloaded['deps']}")
                 # make a hash of the dependencies and check if it's already been handled
-                # take into consideration whether the venv or bbot home directory changes
-                module_hash = self.parent_helper.sha1(
-                    json.dumps(preloaded["deps"], sort_keys=True)
-                    + self.venv
-                    + str(self.parent_helper.bbot_home)
-                    + os.uname()[1]
-                    + str(__version__)
-                ).hexdigest()
+                # take into consideration whether the venv or the deps directory changes
+                module_hash = self._module_hash(preloaded)
                 success = self.setup_status.get(module_hash, None)
                 dependencies = list(chain(*preloaded["deps"].values()))
                 if len(dependencies) <= 0:
@@ -206,6 +325,9 @@ class DepsInstaller:
                         self.ensure_root(f'Module "{m}" needs root privileges to install its dependencies.')
                     success = await self.install_module(m)
                     self.setup_status[module_hash] = success
+                    # waiters poll this file to learn their own deps have landed, so
+                    # publish per module instead of once the whole chain is done
+                    self.write_setup_status()
                     if success or self.deps_behavior == "ignore_failed":
                         log.debug(f'Setup succeeded for module "{m}"')
                         succeeded.append(m)
@@ -248,7 +370,13 @@ class DepsInstaller:
         deps_pip = preloaded["deps"]["pip"]
         deps_pip_constraints = preloaded["deps"]["pip_constraints"]
         if deps_pip:
-            success &= await self.pip_install(deps_pip, constraints=deps_pip_constraints)
+            # _batch_pip_install() just installed these in one resolver pass, so repeating
+            # them per module spawns a no-op pip subprocess costing seconds. Only skip specs
+            # the batch actually covered, so --upgrade still runs for everything else.
+            if all(dep in self._batch_installed for dep in deps_pip):
+                log.debug(f'Pip dependencies for module "{module}" were installed in the batch pass')
+            else:
+                success &= await self.pip_install(deps_pip, constraints=deps_pip_constraints)
 
         # shared/common
         deps_common = preloaded["deps"]["common"]
@@ -358,6 +486,20 @@ class DepsInstaller:
             log.error(f"Failed to run Ansible tasks for {module}")
         return success
 
+    def _discard_corrupt_fact_cache(self):
+        # an unreadable entry makes every later playbook fail until it expires
+        if not self.ansible_fact_cache.is_dir():
+            return
+        for entry in self.ansible_fact_cache.iterdir():
+            if not entry.is_file():
+                continue
+            try:
+                json.loads(entry.read_text())
+            except Exception:
+                log.debug(f"Discarding corrupt ansible fact cache entry: {entry}")
+                with suppress(OSError):
+                    entry.unlink()
+
     def ansible_run(self, tasks=None, module=None, args=None, ansible_args=None):
         _ansible_args = {"ansible_connection": "local", "ansible_python_interpreter": sys.executable}
         if ansible_args is not None:
@@ -385,9 +527,17 @@ class DepsInstaller:
         shutil.rmtree(data_dir, ignore_errors=True)
         self.parent_helper.mkdir(data_dir)
 
+        # unique ident keeps each run's events isolated; fact_cache escapes it so
+        # facts are gathered once instead of on every playbook
+        ident = uuid.uuid4().hex
+
         res = run(
             playbook=playbook,
             private_data_dir=str(data_dir),
+            artifact_dir=str(self.ansible_artifact_dir),
+            ident=ident,
+            settings={"fact_cache": "../fact_cache", "fact_cache_type": "jsonfile"},
+            envvars={"ANSIBLE_GATHERING": "smart", "ANSIBLE_CACHE_PLUGIN_TIMEOUT": "86400"},
             host_pattern="localhost",
             inventory={
                 "all": {"hosts": {"localhost": _ansible_args}},
@@ -409,6 +559,8 @@ class DepsInstaller:
             if e["event"] == "runner_on_failed":
                 err = e["event_data"]["res"]["msg"]
                 break
+        # events are read lazily out of the artifact dir, so only discard it once they are consumed
+        shutil.rmtree(self.ansible_artifact_dir / ident, ignore_errors=True)
         return success, err
 
     def read_setup_status(self):
@@ -420,8 +572,11 @@ class DepsInstaller:
         return setup_status
 
     def write_setup_status(self):
-        with open(self.setup_status_cache, "w") as f:
+        # readers take no lock, so swap the file in atomically to avoid a torn read
+        tmp = self.setup_status_cache.with_suffix(f".{os.getpid()}.tmp")
+        with open(tmp, "w") as f:
             json.dump(self.setup_status, f)
+        os.replace(tmp, self.setup_status_cache)
 
     def ensure_root(self, message=""):
         self._install_sudo_askpass()
@@ -471,6 +626,63 @@ class DepsInstaller:
                 ]
             )
         return bool(self.parent_helper.which(command))
+
+    async def _batch_pip_install(self, modules):
+        """Pre-install every module's pip deps in one resolver pass.
+
+        install_module() still runs per module afterward, but skips any spec this pass
+        covered. Already-satisfied specs are batched rather than dropped so that
+        --upgrade still runs for them, in one resolver pass instead of one subprocess
+        per module. Only modules using the default constraints are batched, since
+        custom constraints must be resolved against their own set.
+        """
+        # scoped to this pass: a later install() call may face a different environment,
+        # so stale coverage must never suppress its per-module installs
+        self._batch_installed = set()
+        if self.deps_behavior == "disable":
+            return
+
+        packages = []
+        seen = set()
+        constrained = set()
+        for m in modules:
+            preloaded = self.all_modules_preloaded.get(m)
+            if not preloaded:
+                continue
+            if not self._needs_install(preloaded):
+                continue
+            deps = preloaded.get("deps", {})
+            if deps.get("pip_constraints"):
+                constrained.update(deps.get("pip", []))
+                continue
+            for dep in deps.get("pip", []):
+                if dep in seen:
+                    continue
+                seen.add(dep)
+                packages.append(dep)
+
+        if len(packages) < 2:
+            return
+
+        log.verbose(f"Batch-installing {len(packages):,} pip packages for {len(modules):,} modules")
+        if await self.pip_install(packages):
+            # a spec shared with a module carrying custom constraints must still be
+            # resolved against those constraints, so it never counts as covered
+            self._batch_installed.update(set(packages) - constrained)
+
+    def _needs_install(self, preloaded):
+        """Whether _install() will actually reach install_module() for this module.
+
+        Batching deps for a module that is already recorded done would install
+        packages the locked path would never have touched.
+        """
+        if self.deps_behavior in ("disable", "force_install"):
+            return self.deps_behavior == "force_install"
+        success = self.setup_status.get(self._module_hash(preloaded), None)
+        if success is True:
+            satisfied, _ = self._pip_deps_satisfied(preloaded["deps"]["pip"])
+            return not satisfied
+        return success is None or self.deps_behavior == "retry_failed"
 
     def _pip_deps_satisfied(self, deps_pip):
         """Check whether a module's pip dependencies are currently installed in this environment.
@@ -527,17 +739,22 @@ class DepsInstaller:
         # install ansible community.general collection if needed
         overall_success = True
         if not self.setup_status.get("ansible:community.general", False):
-            log.info("Installing Ansible Community General Collection")
-            try:
-                command = ["ansible-galaxy", "collection", "install", "community.general"]
-                await self.parent_helper.run(command, check=True)
-                self.setup_status["ansible:community.general"] = True
-                log.info("Successfully installed Ansible Community General Collection")
-            except CalledProcessError as err:
-                log.warning(
-                    f"Failed to install Ansible Community.General Collection (return code {err.returncode}): {err.stderr}"
+            if self._local_pkg_mgrs_are_builtin():
+                log.debug(
+                    "Skipping Ansible Community General Collection (local package manager is built into ansible-core)"
                 )
-                overall_success = False
+            else:
+                log.info("Installing Ansible Community General Collection")
+                try:
+                    command = ["ansible-galaxy", "collection", "install", "community.general"]
+                    await self.parent_helper.run(command, check=True)
+                    self.setup_status["ansible:community.general"] = True
+                    log.info("Successfully installed Ansible Community General Collection")
+                except CalledProcessError as err:
+                    log.warning(
+                        f"Failed to install Ansible Community.General Collection (return code {err.returncode}): {err.stderr}"
+                    )
+                    overall_success = False
         # only run ansible if there's actually something to install
         if playbook:
             self._install_sudo_askpass()
@@ -553,6 +770,26 @@ class DepsInstaller:
         if overall_success:
             with suppress(Exception):
                 core_deps_cache_file.touch()
+
+    @staticmethod
+    def _local_pkg_mgrs_are_builtin():
+        """True if every package manager present on this host ships with ansible-core.
+
+        The only reason we install community.general is that the `package` action
+        dispatches to a per-manager module (pacman, apk, zypper...) that lives in
+        that collection. ansible-core bundles apt/dnf/dnf5, so on those hosts the
+        galaxy install is a pure no-op download.
+        """
+        try:
+            import ansible.modules
+            from ansible.module_utils.facts.system.pkg_mgr import PKG_MGRS
+        except Exception:
+            return False
+        bundled = Path(ansible.modules.__file__).resolve().parent
+        present = {p["name"] for p in PKG_MGRS if os.path.exists(p["path"])}
+        if not present:
+            return False
+        return all((bundled / f"{name}.py").is_file() for name in present)
 
     def _setup_sudo_cache(self):
         if not self._sudo_cache_setup:

@@ -9,9 +9,10 @@ import logging
 from pathlib import Path
 from contextlib import suppress
 from pytest_httpserver import HTTPServer
-
+from werkzeug.wrappers import Response
 from bbot.test.worker import (
     BBOT_TEST_DIR,
+    BBOT_TEST_SHARED_DIR,
     HTTPSERVER_ALLINTERFACES_PORT,
     HTTPSERVER_PORT,
     HTTPSERVER_SSL_PORT,
@@ -20,6 +21,39 @@ from bbot.test.worker import (
 from bbot.core import CORE
 from bbot.core.helpers.misc import execute_sync_or_async
 from bbot.core.helpers.interactsh import server_list as interactsh_servers
+
+
+class FastShutdownHTTPServer(HTTPServer):
+    """socketserver polls every 0.5s for a shutdown request, so every teardown paid
+    half a second. The poll interval is the only thing standing between us and an
+    immediate stop, and thread_target is documented as the override point."""
+
+    SHUTDOWN_POLL_INTERVAL = 0.005
+
+    def thread_target(self) -> None:
+        self.server.serve_forever(poll_interval=self.SHUTDOWN_POLL_INTERVAL)
+
+    def respond_nohandler(self, request, extra_message=""):
+        """Serve an empty miss body instead of the upstream diagnostic dump.
+
+        Upstream builds the body from repr(request) plus a rendering of every
+        registered matcher, so the miss body is unique per URL and grows with the
+        handler count. Brute-force modules diff each miss against a baseline miss,
+        and a body that never repeats defeats that comparison: every response looks
+        like a difference and gets DeepDiffed in full. The dump was measurement
+        error, not fidelity.
+
+        The body stays empty rather than carrying placeholder text. Modules dedup
+        HTTP_RESPONSEs on (host, port, body_sha256) and base.py exempts the
+        empty-body hash from that check, so an empty miss is the only constant that
+        does not make every miss URL collide as duplicate content.
+
+        The accumulated assertion is dropped with it. bbot's httpserver fixtures
+        call clear() before check_assertions(), so no-handler assertions were
+        discarded unread and never failed a test.
+        """
+        return Response("", self.no_handler_status_code)
+
 
 # silence stdout + trace
 root_logger = logging.getLogger()
@@ -37,6 +71,10 @@ with open(Path(__file__).parent / "test.conf") as _f:
 # under -n the workers would otherwise share caches, scan output and temp files,
 # and the sessionfinish cleanup below would delete a directory still in use.
 test_config["home"] = str(BBOT_TEST_DIR)
+
+# Deps install once into a shared dir instead of once per worker. Scan output stays
+# per-worker; the deps scratch dir does not, because it is baked into the module hash.
+os.environ.setdefault("BBOT_SHARED_DEPS_DIR", str(BBOT_TEST_SHARED_DIR))
 
 os.environ["BBOT_DEBUG"] = "True"
 CORE.logger.log_level = logging.DEBUG
@@ -114,12 +152,12 @@ _patch_python_module_loader()
 def stop_server(server):
     server.stop()
     while server.is_running():
-        time.sleep(0.1)  # Wait a bit before checking again
+        time.sleep(0.005)
 
 
 @pytest.fixture
 def bbot_httpserver():
-    server = HTTPServer(host="127.0.0.1", port=HTTPSERVER_PORT, threaded=True)
+    server = FastShutdownHTTPServer(host="127.0.0.1", port=HTTPSERVER_PORT, threaded=True)
     server.start()
 
     yield server
@@ -138,7 +176,7 @@ def bbot_httpserver_ssl():
     keyfile = str(current_dir / "testsslkey.pem")
     certfile = str(current_dir / "testsslcert.pem")
     context.load_cert_chain(certfile, keyfile)
-    server = HTTPServer(host="127.0.0.1", port=HTTPSERVER_SSL_PORT, ssl_context=context, threaded=True)
+    server = FastShutdownHTTPServer(host="127.0.0.1", port=HTTPSERVER_SSL_PORT, ssl_context=context, threaded=True)
     server.start()
 
     yield server
@@ -245,7 +283,7 @@ def blasthttp_mock():
 
 @pytest.fixture
 def bbot_httpserver_allinterfaces():
-    server = HTTPServer(host="0.0.0.0", port=HTTPSERVER_ALLINTERFACES_PORT, threaded=True)
+    server = FastShutdownHTTPServer(host="0.0.0.0", port=HTTPSERVER_ALLINTERFACES_PORT, threaded=True)
     server.start()
 
     yield server
@@ -276,6 +314,10 @@ class Interactsh_mock:
         if callable(callback):
             self.poll_task = asyncio.create_task(self.poll_loop(callback))
         return "fakedomain.fakeinteractsh.com"
+
+    async def settle(self):
+        # interactions are already queued in-process, so there is no propagation delay to wait out
+        return
 
     async def deregister(self, callback=None):
         await asyncio.sleep(1)

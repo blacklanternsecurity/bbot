@@ -1,5 +1,4 @@
 import json
-import asyncio
 from contextlib import suppress
 
 from .base import ModuleTestBase
@@ -18,9 +17,7 @@ class TestNats(ModuleTestBase):
 
     async def setup_before_prep(self, module_test):
         # Start NATS server
-        await asyncio.create_subprocess_exec(
-            "docker", "run", "-d", "--rm", "--name", "bbot-test-nats", "-p", "4222:4222", "nats:latest"
-        )
+        await self.start_container("bbot-test-nats", "-p", "4222:4222", "nats:latest")
 
         # Wait for NATS to be ready by checking the port
         await self.wait_for_port_open(4222)
@@ -61,7 +58,4 @@ class TestNats(ModuleTestBase):
                     await self.nc.drain()
                 await self.nc.close()
             # Stop NATS server container
-            process = await asyncio.create_subprocess_exec(
-                "docker", "stop", "bbot-test-nats", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-            )
-            await process.communicate()
+            await self.stop_container("bbot-test-nats")
