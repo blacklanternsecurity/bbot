@@ -1,8 +1,11 @@
 import re
+import time
 
 from blasthttp import HTTPStatusError
+from deepdiff import DeepDiff
 
 from ..bbot_fixtures import *
+from bbot.test.mock_blasthttp import MockResponse
 
 from bbot.test.worker import BBOT_TEST_DIR, HTTPSERVER_HOSTPORT
 
@@ -422,6 +425,158 @@ async def test_web_http_compare(blasthttp_mock, bbot_scanner):
     compare_helper.compare_body({"asdf": "fdsa"}, {"fdsa": "asdf"})
     for mode in ("getparam", "header", "cookie"):
         assert await compare_helper.canary_check("http://www.example.com", mode=mode) is True
+
+    assert compare_helper.compare_body(["a", "b", "c"], ["a", "b", "c"]) is True
+    assert compare_helper.compare_body(["a", "b", "c"], ["a", "b", "x"]) is False
+    assert compare_helper.compare_body(["a", "b", "c"], ["c", "b", "a"]) is True
+    assert compare_helper.compare_body({"a": 1}, {"a": 2}) is False
+    assert compare_helper.compare_body({"a": 1}, {"a": 1}) is True
+
+    compare_helper.max_differing_lines = 500
+    base = [f"line {i}" for i in range(20000)]
+    similar = [f"line {i} X" if i < 5000 else f"line {i}" for i in range(20000)]
+    start = time.monotonic()
+    assert compare_helper.compare_body(base, similar) is False
+    assert (time.monotonic() - start) < 5
+
+    config_scan = bbot_scanner(config={"web": {"http_compare_max_differing_lines": 42}})
+    await config_scan._prep()
+    config_helper = config_scan.helpers.http_compare("http://www.example.com")
+    assert config_helper.max_differing_lines == 42
+    await config_scan._cleanup()
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_web_http_compare_filtered_lines_not_counted(blasthttp_mock, bbot_scanner):
+    scan = bbot_scanner()
+    await scan._prep()
+    blasthttp_mock.add_response(url=re.compile(r"http://www\.example\.com.*"), text="wat")
+    compare_helper = scan.helpers.http_compare("http://www.example.com")
+    compare_helper.max_differing_lines = 500
+
+    static = [f"line {i}" for i in range(400)]
+    dynamic_a = [f"nonce {i} A" for i in range(600)]
+    dynamic_b = [f"nonce {i} B" for i in range(600)]
+    dynamic_c = [f"nonce {i} C" for i in range(600)]
+
+    baseline_1 = dynamic_a + static
+    baseline_2 = dynamic_b + static
+    subject = dynamic_c + static
+
+    ddiff = DeepDiff(baseline_1, baseline_2, ignore_order=True, view="tree", threshold_to_diff_deeper=0)
+    compare_helper.ddiff_filters = [x.path() for k in ddiff.keys() for x in list(ddiff[k])]
+    assert len(compare_helper.ddiff_filters) == 600
+
+    assert compare_helper.compare_body(baseline_1, subject) is True
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_web_http_compare_bounds_dict_bodies(blasthttp_mock, bbot_scanner):
+    scan = bbot_scanner()
+    await scan._prep()
+    blasthttp_mock.add_response(url=re.compile(r"http://www\.example\.com.*"), text="wat")
+    compare_helper = scan.helpers.http_compare("http://www.example.com")
+    compare_helper.max_differing_lines = 500
+    compare_helper.ddiff_filters = []
+
+    def rows(salt):
+        return [
+            f'<div class="r{i}" tok="{salt}{i}">item {i}{salt}</div>'
+            if i < 1000
+            else f'<div class="r{i}">item {i}</div>'
+            for i in range(4000)
+        ]
+
+    content_1 = {"html": {"body": {"div": rows("a")}}}
+    content_2 = {"html": {"body": {"div": rows("b")}}}
+
+    start = time.monotonic()
+    assert compare_helper.compare_body(content_1, content_2) is False
+    assert (time.monotonic() - start) < 5
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_web_http_compare_threshold_boundary(blasthttp_mock, bbot_scanner):
+    scan = bbot_scanner()
+    await scan._prep()
+    blasthttp_mock.add_response(url=re.compile(r"http://www\.example\.com.*"), text="wat")
+    compare_helper = scan.helpers.http_compare("http://www.example.com")
+    compare_helper.max_differing_lines = 10
+
+    static = [f"line {i}" for i in range(100)]
+    at_threshold_1 = [f"nonce {i} A" for i in range(5)] + static
+    at_threshold_2 = [f"nonce {i} B" for i in range(5)] + static
+
+    ddiff = DeepDiff(at_threshold_1, at_threshold_2, ignore_order=True, view="tree", threshold_to_diff_deeper=0)
+    compare_helper.ddiff_filters = [x.path() for k in ddiff.keys() for x in list(ddiff[k])]
+
+    assert compare_helper.compare_body(at_threshold_1, at_threshold_2) is True
+
+    over_threshold_1 = [f"nonce {i} A" for i in range(6)] + static
+    over_threshold_2 = [f"nonce {i} B" for i in range(6)] + static
+    compare_helper.ddiff_filters = []
+    assert compare_helper.compare_body(over_threshold_1, over_threshold_2) is False
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_web_http_compare_null_threshold_config(blasthttp_mock, bbot_scanner):
+    scan = bbot_scanner(config={"web": {"http_compare_max_differing_lines": None}})
+    await scan._prep()
+    blasthttp_mock.add_response(url=re.compile(r"http://www\.example\.com.*"), text="wat")
+    compare_helper = scan.helpers.http_compare("http://www.example.com")
+    compare_helper.ddiff_filters = []
+
+    assert compare_helper.compare_body(["a", "b", "c"], ["a", "b", "x"]) is False
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_web_http_compare_line_filters_match_deepdiff(blasthttp_mock, bbot_scanner):
+    scan = bbot_scanner()
+    await scan._prep()
+    blasthttp_mock.add_response(url=re.compile(r"http://www\.example\.com.*"), text="wat")
+    compare_helper = scan.helpers.http_compare("http://www.example.com")
+
+    static = [f"line {i}" for i in range(200)]
+    sample_1 = [f"nonce {i} A" for i in range(50)] + static
+    sample_2 = [f"nonce {i} B" for i in range(50)] + static
+
+    ddiff = DeepDiff(sample_1, sample_2, ignore_order=True, view="tree", threshold_to_diff_deeper=0)
+    expected = sorted({x.path() for k in ddiff.keys() for x in list(ddiff[k])})
+
+    assert compare_helper._unshared_line_paths(sample_1, sample_2) == expected
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_web_http_compare_baseline_bounded_on_dynamic_pages(blasthttp_mock, bbot_scanner):
+    scan = bbot_scanner()
+    await scan._prep()
+
+    static = "\n".join(f"line {i}" for i in range(3000))
+
+    def dynamic(request):
+        nonce = "\n".join(f"nonce {i} {rand_string(8)}" for i in range(1000))
+        return MockResponse(status_code=200, text=f"{nonce}\n{static}")
+
+    blasthttp_mock.add_callback(dynamic, url=re.compile(r"http://www\.example\.com.*"))
+    blasthttp_mock.add_callback(dynamic, url=re.compile(r"http://www\.example\.com.*"))
+    compare_helper = scan.helpers.http_compare("http://www.example.com")
+
+    start = time.monotonic()
+    await compare_helper._baseline()
+    assert (time.monotonic() - start) < 10
+    assert len(compare_helper.ddiff_filters) == 1000
 
     await scan._cleanup()
 
