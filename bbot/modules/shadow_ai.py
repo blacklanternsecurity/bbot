@@ -181,22 +181,24 @@ class shadow_ai(BaseModule):
     # Descriptions are kept short (CVE lives in the FINDING's cves field); the detail is
     # one clause on impact. Detection is title-only; no exploit path is touched.
     #
-    # slug: (title pattern, display label, cves, one-line impact)
+    # slug: (title-text pattern, display label, cves, one-line impact)
+    # Patterns match against the parsed <title> text (via helpers.beautifulsoup), not the
+    # raw HTML -- so the same name appearing elsewhere in the body cannot trip a match.
     agent_gateways = {
         "openclaw": (
-            r"<title>[^<]*\b(?:OpenClaw|Clawdbot|Moltbot)\s+Control\b[^<]*</title>",
+            r"\b(?:OpenClaw|Clawdbot|Moltbot)\s+Control\b",
             "OpenClaw agent gateway",
             ["CVE-2026-25253"],
             "grants control of an AI agent's tools, browser and stored provider credentials",
         ),
         "mcp-inspector": (
-            r"<title>[^<]*MCP Inspector[^<]*</title>",
+            r"\bMCP Inspector\b",
             "MCP Inspector",
             ["CVE-2025-49596"],
             "MCP dev tool; pre-0.14.1 proxy allows unauthenticated browser-driven RCE",
         ),
         "langflow": (
-            r"<title>[^<]*Langflow[^<]*</title>",
+            r"\bLangflow\b",
             "Langflow",
             ["CVE-2025-3248"],
             "visual LLM-app builder; pre-1.3.0 /api/v1/validate/code allows unauthenticated RCE",
@@ -245,8 +247,14 @@ class shadow_ai(BaseModule):
         body = event.body or ""
         if not body:
             return
+        soup = self.helpers.beautifulsoup(body, "html.parser")
+        if not soup or not soup.title:
+            return
+        title = soup.title.get_text(strip=True)
+        if not title:
+            return
         for slug, (pattern, label, cves, detail) in self._gateway_patterns.items():
-            if not pattern.search(body):
+            if not pattern.search(title):
                 continue
             url = event.data.get("url", "")
             await self.emit_event(

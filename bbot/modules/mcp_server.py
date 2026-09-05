@@ -39,6 +39,10 @@ class mcp_server(BaseModule):
         "author": "@repins267",
     }
 
+    # One probe per host:port: many URLs surface per host, but the MCP endpoint set is
+    # host-wide, so re-probing per discovered path would only add noise.
+    per_hostport_only = True
+
     class Config(BaseModuleConfig):
         mcp_endpoint_paths: list[str] = Field(
             ["/mcp", "/sse", "/messages", "/api/mcp", "/v1/mcp", "/mcp/sse"],
@@ -96,11 +100,6 @@ class mcp_server(BaseModule):
             for name, (label, paths, pattern, severity, confidence, impact, cves) in self.rest_backends.items()
         }
         return True
-
-    async def filter_event(self, event):
-        # one probe per base URL, not per discovered path
-        base_url = event.parsed_url._replace(path="/", query="", fragment="").geturl()
-        return hash(base_url)
 
     def _rpc(self, method, params=None, msg_id=1, notification=False):
         payload = {"jsonrpc": "2.0", "method": method}
