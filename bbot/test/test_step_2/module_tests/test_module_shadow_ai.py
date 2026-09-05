@@ -27,12 +27,12 @@ class TestShadowAI(ModuleTestBase):
 
         # a subdomain of a catalog entry is attributed to its provider
         assert 1 == len(
-            [e for e in technologies if e.data["technology"] == "ai:openai" and e.data["host"] == "api.openai.com"]
+            [e for e in technologies if e.data["technology"] == "openai" and e.data["host"] == "api.openai.com"]
         ), "did not detect OpenAI usage via api.openai.com"
 
         # exact catalog entry (agent platform)
         assert 1 == len(
-            [e for e in technologies if e.data["technology"] == "ai:openhands" and e.data["host"] == "all-hands.dev"]
+            [e for e in technologies if e.data["technology"] == "openhands" and e.data["host"] == "all-hands.dev"]
         ), "did not detect OpenHands"
 
         # false-positive guard: a lookalike domain must never match
@@ -78,10 +78,10 @@ class TestShadowAIAgentGateway(ModuleTestBase):
         assert finding.data["severity"] == "HIGH"
         assert finding.data["confidence"] == "CONFIRMED"
         assert "CVE-2026-25253" in finding.data["cves"]
-        # the module must not claim to have verified the CVE
-        assert "does not test for it" in finding.data["description"]
+        # the module must not claim to have exploited it
+        assert "exploit path not touched" in finding.data["description"]
 
-        assert [e for e in events if e.type == "TECHNOLOGY" and "openclaw" in e.data["technology"]], (
+        assert [e for e in events if e.type == "TECHNOLOGY" and e.data["technology"] == "openclaw"], (
             "should have emitted a TECHNOLOGY event for the gateway"
         )
 
@@ -101,8 +101,25 @@ class TestShadowAIMCPInspector(TestShadowAIAgentGateway):
         finding = findings[0]
         assert finding.data["severity"] == "HIGH"
         assert "CVE-2025-49596" in finding.data["cves"]
-        assert "does not touch that endpoint" in finding.data["description"]
-        assert [e for e in events if e.type == "TECHNOLOGY" and e.data["technology"] == "ai:mcp-inspector"]
+        assert "exploit path not touched" in finding.data["description"]
+        assert [e for e in events if e.type == "TECHNOLOGY" and e.data["technology"] == "mcp-inspector"]
+
+
+class TestShadowAILangflow(TestShadowAIAgentGateway):
+    """An exposed Langflow instance is identified by its page title (CVE-2025-3248)."""
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"uri": "/"},
+            respond_args={"response_data": "<html><head><title>Langflow</title></head><body>ok</body></html>"},
+        )
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING" and "Langflow" in e.data["name"]]
+        assert 1 == len(findings), "did not detect exposed Langflow"
+        assert findings[0].data["severity"] == "HIGH"
+        assert "CVE-2025-3248" in findings[0].data["cves"]
+        assert [e for e in events if e.type == "TECHNOLOGY" and e.data["technology"] == "langflow"]
 
 
 class TestShadowAIAgentGatewayNegative(TestShadowAIAgentGateway):
@@ -128,11 +145,11 @@ class TestShadowAIFiltering(TestShadowAI):
         findings = [e for e in events if e.type == "FINDING"]
 
         # high-risk agent platform still reported
-        assert 1 == len([e for e in technologies if e.data["technology"] == "ai:openhands"]), (
+        assert 1 == len([e for e in technologies if e.data["technology"] == "openhands"]), (
             "high-risk entry should survive min_risk=high"
         )
         # medium-risk assistant filtered out
-        assert not [e for e in technologies if e.data["technology"] == "ai:openai"], (
+        assert not [e for e in technologies if e.data["technology"] == "openai"], (
             "medium-risk entry should be filtered by min_risk=high"
         )
         # port checking disabled

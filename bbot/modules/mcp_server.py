@@ -24,6 +24,10 @@ class mcp_server(BaseModule):
     do not speak the JSON-RPC protocol, so the handshake never matches them. These
     are fingerprinted from a read-only identity path only; their command and tool
     routes are never requested.
+
+    Passive/safe detection tier: complements the invasive Nuclei templates BBOT
+    already runs opt-in (exposed-mcp-sse-server, CVE-2025-49596). This surfaces the
+    exposure by protocol handshake in a default scan; nuclei confirms exploitability.
     """
 
     watched_events = ["URL"]
@@ -77,9 +81,7 @@ class mcp_server(BaseModule):
             r"Kali Linux Tools API Server",
             "CRITICAL",
             "CONFIRMED",
-            "This backend exposes unauthenticated command execution (/api/command) and offensive "
-            "tooling (/api/tools/nmap, sqlmap, metasploit, hydra, ...) over HTTP to any caller. An "
-            "exposed instance is effectively remote code execution as a service.",
+            "unauthenticated command execution via /api/command + offensive tooling -- RCE as a service",
             [],
         ),
     }
@@ -229,7 +231,7 @@ class mcp_server(BaseModule):
                 continue
 
             await self.emit_event(
-                {"host": str(event.host), "technology": "mcp-server:legacy-sse", "url": url},
+                {"host": str(event.host), "technology": "mcp-server", "url": url},
                 "TECHNOLOGY",
                 event,
                 context=f"{{module}} identified {{event.type}}: MCP server (legacy HTTP+SSE) at {url}",
@@ -240,11 +242,9 @@ class mcp_server(BaseModule):
                     "url": url,
                     "name": "Exposed MCP server (legacy HTTP+SSE)",
                     "description": (
-                        f"Model Context Protocol server on the deprecated HTTP+SSE transport at {url}. "
-                        f"A GET returned the MCP 'endpoint' handshake event with no authentication, "
-                        f"confirming an exposed MCP endpoint reachable from outside the host. MCP servers "
-                        f"act on behalf of AI agents with delegated permissions. Detected via the SSE "
-                        f"handshake only (bounded read); no tool was invoked."
+                        f"Exposed MCP server on the deprecated HTTP+SSE transport at {url} -- "
+                        f"unauthenticated GET returned the MCP 'endpoint' handshake event. "
+                        f"Bounded read; no tool invoked."
                     ),
                     "severity": "HIGH",
                     "confidence": "CONFIRMED",
@@ -267,7 +267,7 @@ class mcp_server(BaseModule):
                 if not pattern.search(body):
                     continue
                 await self.emit_event(
-                    {"host": str(event.host), "technology": f"mcp-backend:{name}", "url": url},
+                    {"host": str(event.host), "technology": name, "url": url},
                     "TECHNOLOGY",
                     event,
                     context=f"{{module}} identified {{event.type}}: {label} at {url}",
@@ -277,11 +277,8 @@ class mcp_server(BaseModule):
                     "url": url,
                     "name": f"Exposed MCP tool backend: {label}",
                     "description": (
-                        f"{label} REST interface reachable at {url}. This is an MCP tool backend -- "
-                        f"an HTTP service that exposes tools to AI agents but does not speak the MCP "
-                        f"protocol directly, so it is not caught by the protocol handshake. {impact} "
-                        f"Identified from its read-only identity endpoint; command and tool routes "
-                        f"were not requested."
+                        f"Exposed {label} REST tool backend at {url} ({impact}). "
+                        f"Identity endpoint only; command/tool routes not requested."
                     ),
                     "severity": severity,
                     "confidence": confidence,
@@ -326,30 +323,27 @@ class mcp_server(BaseModule):
     async def _report(self, event, url, name, version, negotiated, tools):
         label = f"{name} {version}".strip()
         await self.emit_event(
-            {"host": str(event.host), "technology": f"mcp-server:{name}", "url": url},
+            {"host": str(event.host), "technology": "mcp-server", "url": url},
             "TECHNOLOGY",
             event,
             context=f"{{module}} identified {{event.type}}: MCP server ({label}) at {url}",
         )
 
         # Reaching this point means the handshake completed with no credentials, from
-        # outside the host. Per the MCP spec that is three control failures at once:
-        # the server is not bound to localhost, it does not authenticate connections,
-        # and (over http://) it carries no transport security.
-        issues = ["reachable remotely", "no authentication required"]
+        # outside the host -- three MCP-spec control failures at once: not localhost-bound,
+        # no authentication, and (over http://) no transport security.
+        issues = ["remote", "unauthenticated"]
         if url.lower().startswith("http://"):
             issues.append("no TLS")
 
         description = (
-            f"Exposed Model Context Protocol server ({label}, protocol {negotiated}) at {url}. "
-            f"The initialize handshake completed unauthenticated ({', '.join(issues)}). "
-            f"MCP servers act on behalf of AI agents with delegated permissions, so an exposed "
-            f"instance may allow an attacker to enumerate and invoke its tools."
+            f"Exposed MCP server ({label}, protocol {negotiated}) at {url} -- "
+            f"initialize handshake completed {', '.join(issues)}. No tool invoked."
         )
         if tools:
             shown = ", ".join(tools[:15])
             more = f" (+{len(tools) - 15} more)" if len(tools) > 15 else ""
-            description += f" Exposed tools ({len(tools)}): {shown}{more}."
+            description += f" Tools ({len(tools)}): {shown}{more}."
 
         await self.emit_event(
             {

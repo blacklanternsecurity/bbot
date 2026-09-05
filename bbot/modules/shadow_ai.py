@@ -21,6 +21,11 @@ class shadow_ai(BaseModule):
          that another module has already fetched (emitted as FINDING). Port
          matching alone misses these -- a large share of exposed gateways sit
          behind 80/443, where the port number reveals nothing.
+
+    This is the passive/safe detection tier. It complements the invasive Nuclei
+    templates BBOT already ships (e.g. mcp-inspector-detect, ollama panels) which
+    the `nuclei` module runs opt-in: this module surfaces the exposure in a default
+    scan, nuclei confirms exploitability when explicitly enabled.
     """
 
     watched_events = ["DNS_NAME", "URL_UNVERIFIED", "OPEN_TCP_PORT", "HTTP_RESPONSE"]
@@ -152,19 +157,18 @@ class shadow_ai(BaseModule):
     # reflects how specific the port is to the runtime; none of these are confirmed
     # without an active check, which this module does not perform (it stays passive).
     #
-    # port: (runtime, kind, severity, confidence)
+    # port: (runtime, kind, severity, confidence, cves)
+    # Runtimes that have an HTTP title fingerprint below (OpenClaw, MCP Inspector, Langflow)
+    # are intentionally NOT here -- the title match is CONFIRMED and avoids a duplicate
+    # low-confidence port finding for the same host.
     ai_ports = {
-        11434: ("Ollama", "inference API", "HIGH", "MEDIUM"),
-        11435: ("Ollama", "inference API", "HIGH", "LOW"),
-        1234: ("LM Studio", "inference API", "HIGH", "LOW"),
-        1337: ("Jan", "inference API", "HIGH", "LOW"),
-        8188: ("ComfyUI", "web UI", "MEDIUM", "LOW"),
-        7860: ("Gradio AI UI (e.g. text-generation-webui, Automatic1111)", "web UI", "MEDIUM", "LOW"),
-        3001: ("AnythingLLM", "web UI", "MEDIUM", "LOW"),
-        18789: ("OpenClaw", "agent gateway", "HIGH", "MEDIUM"),
-        18791: ("OpenClaw", "browser automation interface", "HIGH", "LOW"),
-        6274: ("MCP Inspector", "MCP debugging UI", "HIGH", "LOW"),
-        6277: ("MCP Inspector", "MCP debugging proxy", "HIGH", "MEDIUM"),
+        11434: ("Ollama", "inference API", "HIGH", "MEDIUM", []),
+        11435: ("Ollama", "inference API", "HIGH", "LOW", []),
+        1234: ("LM Studio", "inference API", "HIGH", "LOW", []),
+        1337: ("Jan", "inference API", "HIGH", "LOW", []),
+        8188: ("ComfyUI", "media-generation UI", "MEDIUM", "LOW", []),
+        3001: ("AnythingLLM", "RAG/chat UI", "MEDIUM", "LOW", []),
+        8265: ("Ray", "AI compute dashboard", "HIGH", "MEDIUM", ["CVE-2023-48022"]),
     }
 
     # Control interfaces of self-hosted AI agent gateways, fingerprinted from a response
@@ -172,28 +176,30 @@ class shadow_ai(BaseModule):
     # half of exposed gateways listen on their documented port, the rest sit behind 80,
     # 443 or a reverse proxy where a port number tells you nothing.
     #
-    # slug: (title pattern, display label, cves, detail)
+    # Exposed AI control UIs, fingerprinted from a response body another module already
+    # fetched -- reliable across ports/proxies where a port number tells you nothing.
+    # Descriptions are kept short (CVE lives in the FINDING's cves field); the detail is
+    # one clause on impact. Detection is title-only; no exploit path is touched.
+    #
+    # slug: (title pattern, display label, cves, one-line impact)
     agent_gateways = {
         "openclaw": (
             r"<title>[^<]*\b(?:OpenClaw|Clawdbot|Moltbot)\s+Control\b[^<]*</title>",
             "OpenClaw agent gateway",
             ["CVE-2026-25253"],
-            "Agent gateways broker an AI agent's access to tools, browser automation and stored "
-            "provider credentials, so an exposed control interface is equivalent to handing over "
-            "the agent. CVE-2026-25253 additionally allows unauthenticated retrieval of stored API "
-            "keys (Anthropic, OpenAI, Google AI) from unpatched gateways; this module does not test "
-            "for it, because confirming it would mean retrieving those credentials.",
+            "grants control of an AI agent's tools, browser and stored provider credentials",
         ),
         "mcp-inspector": (
             r"<title>[^<]*MCP Inspector[^<]*</title>",
             "MCP Inspector",
             ["CVE-2025-49596"],
-            "MCP Inspector is a developer tool for driving MCP servers and should never be "
-            "internet-facing. Versions before 0.14.1 (CVE-2025-49596, CVSS 9.4) ship a proxy with "
-            "no authentication whose /sse endpoint accepts a command parameter, giving browser-"
-            "driven remote code execution; this module identifies it by page title only and does "
-            "not touch that endpoint. Version is not determined here, so treat any exposed instance "
-            "as suspect and confirm the version manually.",
+            "MCP dev tool; pre-0.14.1 proxy allows unauthenticated browser-driven RCE",
+        ),
+        "langflow": (
+            r"<title>[^<]*Langflow[^<]*</title>",
+            "Langflow",
+            ["CVE-2025-3248"],
+            "visual LLM-app builder; pre-1.3.0 /api/v1/validate/code allows unauthenticated RCE",
         ),
     }
 
@@ -244,7 +250,7 @@ class shadow_ai(BaseModule):
                 continue
             url = event.data.get("url", "")
             await self.emit_event(
-                {"host": str(event.host), "technology": f"ai:{slug}", "url": url},
+                {"host": str(event.host), "technology": slug, "url": url},
                 "TECHNOLOGY",
                 parent=event,
                 context=f"{{module}} identified {{event.type}}: {label} at {url}",
@@ -253,8 +259,8 @@ class shadow_ai(BaseModule):
                 {
                     "host": str(event.host),
                     "url": url,
-                    "name": f"Exposed AI agent interface: {label}",
-                    "description": f"{label} control interface reachable at {url}. {detail}",
+                    "name": f"Exposed AI interface: {label}",
+                    "description": f"Exposed {label} at {url} ({detail}). Title fingerprint; exploit path not touched.",
                     "severity": "HIGH",
                     "confidence": "CONFIRMED",
                     "cves": cves,
@@ -277,7 +283,7 @@ class shadow_ai(BaseModule):
         if not self._reportable(category, risk):
             return
 
-        data = {"host": host, "technology": f"ai:{provider}"}
+        data = {"host": host, "technology": provider.lower()}
         if event.type == "URL_UNVERIFIED":
             data["url"] = event.data
         await self.emit_event(
@@ -291,21 +297,21 @@ class shadow_ai(BaseModule):
         runtime = self.ai_ports.get(event.port)
         if runtime is None:
             return
-        name, kind, severity, confidence = runtime
-        description = (
-            f"Possible self-hosted AI runtime exposed: {name} {kind} on port {event.port} "
-            f"(inferred from the port number alone; not confirmed). These services commonly ship "
-            f"without authentication, allowing unauthenticated model access, resource abuse, or "
-            f"exposure of prompts and loaded data."
-        )
+        name, kind, severity, confidence, cves = runtime
+        data = {
+            "host": str(event.host),
+            "name": f"Exposed AI runtime: {name}",
+            "description": (
+                f"Possible {name} {kind} on port {event.port} (inferred from the port alone; "
+                f"not confirmed). These typically ship unauthenticated."
+            ),
+            "severity": severity,
+            "confidence": confidence,
+        }
+        if cves:
+            data["cves"] = cves
         await self.emit_event(
-            {
-                "host": str(event.host),
-                "name": f"Exposed AI runtime: {name}",
-                "description": description,
-                "severity": severity,
-                "confidence": confidence,
-            },
+            data,
             "FINDING",
             parent=event,
             context=f"{{module}} flagged {{event.type}}: possible {name} on port {event.port}",

@@ -59,15 +59,15 @@ class TestMCPServer(ModuleTestBase):
         assert finding.data["url"] == f"{HTTPSERVER_URL}/mcp"
         description = finding.data["description"]
         assert "test-mcp 1.2.3" in description
-        assert "no authentication" in description
+        assert "unauthenticated" in description
         assert "no TLS" in description, "plaintext http:// endpoint should be called out"
         # tools were enumerated
         assert "execute_command" in description
         assert "read_file" in description
-        assert "Exposed tools (2)" in description
+        assert "Tools (2)" in description
 
-        assert 1 == len([e for e in technologies if e.data["technology"] == "mcp-server:test-mcp"]), (
-            "should have identified the MCP server implementation"
+        assert 1 == len([e for e in technologies if e.data["technology"] == "mcp-server"]), (
+            "should have emitted an mcp-server TECHNOLOGY"
         )
 
 
@@ -105,7 +105,7 @@ class TestMCPServerNoTools(TestMCPServer):
         assert 1 == len(findings)
         description = findings[0].data["description"]
         assert "test-mcp 1.2.3" in description
-        assert "Exposed tools" not in description, "tools should not be enumerated when disabled"
+        assert "Tools (" not in description, "tools should not be enumerated when disabled"
 
 
 class TestMCPServerRESTBackend(ModuleTestBase):
@@ -136,8 +136,8 @@ class TestMCPServerRESTBackend(ModuleTestBase):
         assert finding.data["confidence"] == "CONFIRMED"
         assert "/api/command" in finding.data["description"]
         # the module must state it did not touch the command routes
-        assert "were not requested" in finding.data["description"]
-        assert [e for e in events if e.type == "TECHNOLOGY" and "mcp-backend:mcp-kali-server" in e.data["technology"]]
+        assert "not requested" in finding.data["description"]
+        assert [e for e in events if e.type == "TECHNOLOGY" and e.data["technology"] == "mcp-kali-server"]
 
 
 class TestMCPServerRESTBackendDisabled(TestMCPServerRESTBackend):
@@ -173,8 +173,8 @@ class TestMCPServerLegacySSE(ModuleTestBase):
         assert 1 == len(findings), "did not detect the legacy HTTP+SSE MCP server"
         assert findings[0].data["severity"] == "HIGH"
         assert findings[0].data["confidence"] == "CONFIRMED"
-        assert "no tool was invoked" in findings[0].data["description"]
-        assert [e for e in events if e.type == "TECHNOLOGY" and e.data["technology"] == "mcp-server:legacy-sse"]
+        assert "no tool invoked" in findings[0].data["description"]
+        assert [e for e in events if e.type == "TECHNOLOGY" and e.data["technology"] == "mcp-server"]
 
 
 class TestMCPServerNegative(ModuleTestBase):
