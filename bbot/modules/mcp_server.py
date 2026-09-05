@@ -1,4 +1,5 @@
 import json
+import re
 
 from bbot.core.config.models import BaseModuleConfig, Field
 from bbot.modules.base import BaseModule
@@ -17,6 +18,12 @@ class mcp_server(BaseModule):
     Detection is a real protocol handshake rather than a banner guess, so a hit
     is definitive. Only read-only methods are used: ``initialize`` and
     ``tools/list``. No tool is ever invoked.
+
+    When no spec-compliant server answers, the module falls back to fingerprinting
+    REST-style MCP *tool backends* -- HTTP services that expose tools to agents but
+    do not speak the JSON-RPC protocol, so the handshake never matches them. These
+    are fingerprinted from a read-only identity path only; their command and tool
+    routes are never requested.
     """
 
     watched_events = ["URL"]
@@ -37,15 +44,45 @@ class mcp_server(BaseModule):
             True,
             description="After a successful handshake, list the server's tools (read-only)",
         )
+        detect_rest_backends: bool = Field(
+            True,
+            description="Also fingerprint REST-style MCP tool backends that don't speak the protocol",
+        )
 
     # Advertised during the handshake. Servers negotiate down if they speak an older
     # revision, so this does not need to match the target exactly.
     protocol_version = "2025-03-26"
     http_timeout = 10
 
+    # REST-style MCP tool backends: HTTP services that expose tools/commands to AI agents
+    # but do NOT speak the JSON-RPC protocol, so the handshake above never matches them.
+    # Each is fingerprinted by GETting a read-only identity/health path and matching a
+    # stable string in the body. Command and tool-invocation routes are never touched --
+    # only the identity path is requested. Verified signatures only.
+    #
+    # name: (label, [identity paths], body pattern, severity, confidence, impact, cves)
+    rest_backends = {
+        "mcp-kali-server": (
+            "MCP Kali tools server",
+            ["/health"],
+            r"Kali Linux Tools API Server",
+            "CRITICAL",
+            "CONFIRMED",
+            "This backend exposes unauthenticated command execution (/api/command) and offensive "
+            "tooling (/api/tools/nmap, sqlmap, metasploit, hydra, ...) over HTTP to any caller. An "
+            "exposed instance is effectively remote code execution as a service.",
+            [],
+        ),
+    }
+
     async def setup(self):
         self.enumerate_tools = self.config.get("enumerate_tools", True)
         self.paths = self.config.get("mcp_endpoint_paths", [])
+        self.detect_rest_backends = self.config.get("detect_rest_backends", True)
+        self._rest_backends = {
+            name: (label, paths, re.compile(pattern, re.I), severity, confidence, impact, cves)
+            for name, (label, paths, pattern, severity, confidence, impact, cves) in self.rest_backends.items()
+        }
         return True
 
     async def filter_event(self, event):
@@ -141,6 +178,51 @@ class mcp_server(BaseModule):
             await self._report(event, url, name, version, negotiated, tools)
             # one MCP endpoint per host is enough
             return
+
+        # No spec-compliant MCP server answered. Fall back to fingerprinting REST-style
+        # tool backends that expose tools over plain HTTP without the protocol.
+        if self.detect_rest_backends:
+            await self._check_rest_backends(base_url, event)
+
+    async def _check_rest_backends(self, base_url, event):
+        for name, (label, paths, pattern, severity, confidence, impact, cves) in self._rest_backends.items():
+            for path in paths:
+                url = f"{base_url}{path}"
+                response = await self.helpers.request(url=url, method="GET", timeout=self.http_timeout)
+                if response is None:
+                    continue
+                body = getattr(response, "text", "") or ""
+                if not pattern.search(body):
+                    continue
+                await self.emit_event(
+                    {"host": str(event.host), "technology": f"mcp-backend:{name}", "url": url},
+                    "TECHNOLOGY",
+                    event,
+                    context=f"{{module}} identified {{event.type}}: {label} at {url}",
+                )
+                data = {
+                    "host": str(event.host),
+                    "url": url,
+                    "name": f"Exposed MCP tool backend: {label}",
+                    "description": (
+                        f"{label} REST interface reachable at {url}. This is an MCP tool backend -- "
+                        f"an HTTP service that exposes tools to AI agents but does not speak the MCP "
+                        f"protocol directly, so it is not caught by the protocol handshake. {impact} "
+                        f"Identified from its read-only identity endpoint; command and tool routes "
+                        f"were not requested."
+                    ),
+                    "severity": severity,
+                    "confidence": confidence,
+                }
+                if cves:
+                    data["cves"] = cves
+                await self.emit_event(
+                    data,
+                    "FINDING",
+                    event,
+                    context=f"{{module}} found {{event.type}}: exposed {label} at {url}",
+                )
+                return  # one backend per host is enough
 
     async def _list_tools(self, url, session_id):
         """Complete the lifecycle and read the tool list. Read-only; never invokes a tool."""

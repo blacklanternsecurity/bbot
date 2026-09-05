@@ -108,6 +108,47 @@ class TestMCPServerNoTools(TestMCPServer):
         assert "Exposed tools" not in description, "tools should not be enumerated when disabled"
 
 
+class TestMCPServerRESTBackend(ModuleTestBase):
+    """A REST tool backend (no MCP protocol) is fingerprinted from its identity endpoint."""
+
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["mcp_server"]
+
+    def request_handler(self, request):
+        # never speaks the JSON-RPC protocol; only the /health identity endpoint responds
+        if request.path == "/health":
+            return Response(
+                json.dumps({"status": "healthy", "message": "Kali Linux Tools API Server is running"}),
+                status=200,
+                content_type="application/json",
+            )
+        return Response("not found", status=404)
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests_handler(expect_args=re.compile("/"), request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING"]
+        assert 1 == len(findings), "should have fingerprinted the REST tool backend"
+        finding = findings[0]
+        assert "MCP tool backend" in finding.data["name"]
+        assert finding.data["severity"] == "CRITICAL"
+        assert finding.data["confidence"] == "CONFIRMED"
+        assert "/api/command" in finding.data["description"]
+        # the module must state it did not touch the command routes
+        assert "were not requested" in finding.data["description"]
+        assert [e for e in events if e.type == "TECHNOLOGY" and "mcp-backend:mcp-kali-server" in e.data["technology"]]
+
+
+class TestMCPServerRESTBackendDisabled(TestMCPServerRESTBackend):
+    """detect_rest_backends=false suppresses the REST fingerprint entirely."""
+
+    config_overrides = {"modules": {"mcp_server": {"detect_rest_backends": False}}}
+
+    def check(self, module_test, events):
+        assert not [e for e in events if e.type == "FINDING"], "REST backend detection should be disabled"
+
+
 class TestMCPServerNegative(ModuleTestBase):
     """An ordinary JSON web app must not be mistaken for an MCP server."""
 
