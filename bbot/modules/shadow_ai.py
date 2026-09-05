@@ -260,7 +260,7 @@ class shadow_ai(BaseModule):
                     "host": str(event.host),
                     "url": url,
                     "name": f"Exposed AI interface: {label}",
-                    "description": f"Exposed {label} at {url} ({detail}). Title fingerprint; exploit path not touched.",
+                    "description": f"Exposed {label} at {url} ({detail}). Identified by page-title fingerprint.",
                     "severity": "HIGH",
                     "confidence": "CONFIRMED",
                     "cves": cves,

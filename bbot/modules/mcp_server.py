@@ -244,7 +244,7 @@ class mcp_server(BaseModule):
                     "description": (
                         f"Exposed MCP server on the deprecated HTTP+SSE transport at {url} -- "
                         f"unauthenticated GET returned the MCP 'endpoint' handshake event. "
-                        f"Bounded read; no tool invoked."
+                        f"Detected via the SSE handshake event (bounded read)."
                     ),
                     "severity": "HIGH",
                     "confidence": "CONFIRMED",
@@ -278,7 +278,7 @@ class mcp_server(BaseModule):
                     "name": f"Exposed MCP tool backend: {label}",
                     "description": (
                         f"Exposed {label} REST tool backend at {url} ({impact}). "
-                        f"Identity endpoint only; command/tool routes not requested."
+                        f"Fingerprinted from its identity endpoint."
                     ),
                     "severity": severity,
                     "confidence": confidence,
@@ -338,7 +338,7 @@ class mcp_server(BaseModule):
 
         description = (
             f"Exposed MCP server ({label}, protocol {negotiated}) at {url} -- "
-            f"initialize handshake completed {', '.join(issues)}. No tool invoked."
+            f"initialize handshake completed {', '.join(issues)}."
         )
         if tools:
             shown = ", ".join(tools[:15])

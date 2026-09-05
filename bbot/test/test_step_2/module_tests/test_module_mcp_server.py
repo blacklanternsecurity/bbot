@@ -135,8 +135,8 @@ class TestMCPServerRESTBackend(ModuleTestBase):
         assert finding.data["severity"] == "CRITICAL"
         assert finding.data["confidence"] == "CONFIRMED"
         assert "/api/command" in finding.data["description"]
-        # the module must state it did not touch the command routes
-        assert "not requested" in finding.data["description"]
+        # detection method is stated (identity endpoint), and the command route is named as attack surface
+        assert "identity endpoint" in finding.data["description"]
         assert [e for e in events if e.type == "TECHNOLOGY" and e.data["technology"] == "mcp-kali-server"]
 
 
@@ -173,7 +173,7 @@ class TestMCPServerLegacySSE(ModuleTestBase):
         assert 1 == len(findings), "did not detect the legacy HTTP+SSE MCP server"
         assert findings[0].data["severity"] == "HIGH"
         assert findings[0].data["confidence"] == "CONFIRMED"
-        assert "no tool invoked" in findings[0].data["description"]
+        assert "bounded read" in findings[0].data["description"]
         assert [e for e in events if e.type == "TECHNOLOGY" and e.data["technology"] == "mcp-server"]
 
 

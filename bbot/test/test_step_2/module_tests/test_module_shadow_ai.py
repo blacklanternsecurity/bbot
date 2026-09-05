@@ -78,8 +78,8 @@ class TestShadowAIAgentGateway(ModuleTestBase):
         assert finding.data["severity"] == "HIGH"
         assert finding.data["confidence"] == "CONFIRMED"
         assert "CVE-2026-25253" in finding.data["cves"]
-        # the module must not claim to have exploited it
-        assert "exploit path not touched" in finding.data["description"]
+        # detection method is stated so the CONFIRMED verdict is auditable
+        assert "page-title fingerprint" in finding.data["description"]
 
         assert [e for e in events if e.type == "TECHNOLOGY" and e.data["technology"] == "openclaw"], (
             "should have emitted a TECHNOLOGY event for the gateway"
@@ -101,7 +101,7 @@ class TestShadowAIMCPInspector(TestShadowAIAgentGateway):
         finding = findings[0]
         assert finding.data["severity"] == "HIGH"
         assert "CVE-2025-49596" in finding.data["cves"]
-        assert "exploit path not touched" in finding.data["description"]
+        assert "page-title fingerprint" in finding.data["description"]
         assert [e for e in events if e.type == "TECHNOLOGY" and e.data["technology"] == "mcp-inspector"]
 
 
