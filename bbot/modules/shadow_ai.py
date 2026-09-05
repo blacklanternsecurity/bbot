@@ -1,3 +1,4 @@
+import re
 from typing import Literal
 
 from bbot.core.config.models import BaseModuleConfig, Field
@@ -15,9 +16,14 @@ class shadow_ai(BaseModule):
          ports (emitted as FINDING). An unauthenticated local inference server or
          agent gateway on the perimeter is a real exposure: most ship with no
          authentication by default.
+
+      3. AI agent gateway control interfaces, fingerprinted from HTTP responses
+         that another module has already fetched (emitted as FINDING). Port
+         matching alone misses these -- a large share of exposed gateways sit
+         behind 80/443, where the port number reveals nothing.
     """
 
-    watched_events = ["DNS_NAME", "URL_UNVERIFIED", "OPEN_TCP_PORT"]
+    watched_events = ["DNS_NAME", "URL_UNVERIFIED", "OPEN_TCP_PORT", "HTTP_RESPONSE"]
     produced_events = ["TECHNOLOGY", "FINDING"]
     flags = ["passive", "safe"]
     meta = {
@@ -155,6 +161,27 @@ class shadow_ai(BaseModule):
         8188: ("ComfyUI", "web UI", "MEDIUM", "LOW"),
         7860: ("Gradio AI UI (e.g. text-generation-webui, Automatic1111)", "web UI", "MEDIUM", "LOW"),
         3001: ("AnythingLLM", "web UI", "MEDIUM", "LOW"),
+        18789: ("OpenClaw", "agent gateway", "HIGH", "MEDIUM"),
+        18791: ("OpenClaw", "browser automation interface", "HIGH", "LOW"),
+    }
+
+    # Control interfaces of self-hosted AI agent gateways, fingerprinted from a response
+    # body that another module already fetched. This is the reliable signal: only about
+    # half of exposed gateways listen on their documented port, the rest sit behind 80,
+    # 443 or a reverse proxy where a port number tells you nothing.
+    #
+    # slug: (title pattern, display label, cves, detail)
+    agent_gateways = {
+        "openclaw": (
+            r"<title>[^<]*\b(?:OpenClaw|Clawdbot|Moltbot)\s+Control\b[^<]*</title>",
+            "OpenClaw agent gateway",
+            ["CVE-2026-25253"],
+            "Agent gateways broker an AI agent's access to tools, browser automation and stored "
+            "provider credentials, so an exposed control interface is equivalent to handing over "
+            "the agent. CVE-2026-25253 additionally allows unauthenticated retrieval of stored API "
+            "keys (Anthropic, OpenAI, Google AI) from unpatched gateways; this module does not test "
+            "for it, because confirming it would mean retrieving those credentials.",
+        ),
     }
 
     async def setup(self):
@@ -167,6 +194,10 @@ class shadow_ai(BaseModule):
             return False, f"Invalid categories: {','.join(sorted(invalid))}"
 
         self.check_ports = self.config.get("check_ports", True)
+        self._gateway_patterns = {
+            slug: (re.compile(pattern, re.I), label, cves, detail)
+            for slug, (pattern, label, cves, detail) in self.agent_gateways.items()
+        }
         return True
 
     def _reportable(self, category, risk):
@@ -186,8 +217,40 @@ class shadow_ai(BaseModule):
         if event.type == "OPEN_TCP_PORT":
             if self.check_ports:
                 await self._handle_port(event)
+        elif event.type == "HTTP_RESPONSE":
+            await self._handle_http_response(event)
         else:
             await self._handle_host(event)
+
+    async def _handle_http_response(self, event):
+        body = event.body or ""
+        if not body:
+            return
+        for slug, (pattern, label, cves, detail) in self._gateway_patterns.items():
+            if not pattern.search(body):
+                continue
+            url = event.data.get("url", "")
+            await self.emit_event(
+                {"host": str(event.host), "technology": f"ai:{slug}", "url": url},
+                "TECHNOLOGY",
+                parent=event,
+                context=f"{{module}} identified {{event.type}}: {label} at {url}",
+            )
+            await self.emit_event(
+                {
+                    "host": str(event.host),
+                    "url": url,
+                    "name": f"Exposed AI agent gateway: {label}",
+                    "description": f"{label} control interface reachable at {url}. {detail}",
+                    "severity": "HIGH",
+                    "confidence": "CONFIRMED",
+                    "cves": cves,
+                },
+                "FINDING",
+                parent=event,
+                context=f"{{module}} found {{event.type}}: exposed {label} at {url}",
+            )
+            return
 
     async def _handle_host(self, event):
         host = str(event.host or "").lower()
@@ -217,9 +280,10 @@ class shadow_ai(BaseModule):
             return
         name, kind, severity, confidence = runtime
         description = (
-            f"Possible self-hosted AI runtime exposed: {name} {kind} on port {event.port}. "
-            f"These services commonly ship without authentication, allowing unauthenticated "
-            f"model access, resource abuse, or exposure of prompts and loaded data."
+            f"Possible self-hosted AI runtime exposed: {name} {kind} on port {event.port} "
+            f"(inferred from the port number alone; not confirmed). These services commonly ship "
+            f"without authentication, allowing unauthenticated model access, resource abuse, or "
+            f"exposure of prompts and loaded data."
         )
         await self.emit_event(
             {

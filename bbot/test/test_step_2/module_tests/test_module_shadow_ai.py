@@ -1,4 +1,5 @@
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestShadowAI(ModuleTestBase):
@@ -50,6 +51,52 @@ class TestShadowAI(ModuleTestBase):
         assert not [e for e in findings if "9999" in e.data.get("description", "")], (
             "unrelated port 9999 incorrectly flagged"
         )
+
+
+class TestShadowAIAgentGateway(ModuleTestBase):
+    """An exposed agent-gateway control interface is identified from the response body.
+
+    Port matching alone would miss this: roughly half of exposed gateways sit behind
+    80/443 rather than their documented port.
+    """
+
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http", "shadow_ai"]
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"uri": "/"},
+            respond_args={
+                "response_data": ("<html><head><title>OpenClaw Control</title></head><body>gateway</body></html>")
+            },
+        )
+
+    def check(self, module_test, events):
+        gateways = [e for e in events if e.type == "FINDING" and "agent gateway" in e.data["name"]]
+        assert 1 == len(gateways), "did not detect the exposed agent gateway"
+        finding = gateways[0]
+        assert finding.data["severity"] == "HIGH"
+        assert finding.data["confidence"] == "CONFIRMED"
+        assert "CVE-2026-25253" in finding.data["cves"]
+        # the module must not claim to have verified the CVE
+        assert "does not test for it" in finding.data["description"]
+
+        assert [e for e in events if e.type == "TECHNOLOGY" and "openclaw" in e.data["technology"]], (
+            "should have emitted a TECHNOLOGY event for the gateway"
+        )
+
+
+class TestShadowAIAgentGatewayNegative(TestShadowAIAgentGateway):
+    """An ordinary web page must not be mistaken for an agent gateway."""
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"uri": "/"},
+            respond_args={"response_data": "<html><head><title>Acme Corp</title></head><body>hi</body></html>"},
+        )
+
+    def check(self, module_test, events):
+        assert not [e for e in events if e.type == "FINDING"], "ordinary page should not be flagged"
 
 
 class TestShadowAIFiltering(TestShadowAI):
