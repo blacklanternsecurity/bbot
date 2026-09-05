@@ -86,6 +86,25 @@ class TestShadowAIAgentGateway(ModuleTestBase):
         )
 
 
+class TestShadowAIMCPInspector(TestShadowAIAgentGateway):
+    """An exposed MCP Inspector dev tool is identified by its page title (CVE-2025-49596)."""
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"uri": "/"},
+            respond_args={"response_data": "<html><head><title>MCP Inspector</title></head><body>ok</body></html>"},
+        )
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING" and "MCP Inspector" in e.data["name"]]
+        assert 1 == len(findings), "did not detect exposed MCP Inspector"
+        finding = findings[0]
+        assert finding.data["severity"] == "HIGH"
+        assert "CVE-2025-49596" in finding.data["cves"]
+        assert "does not touch that endpoint" in finding.data["description"]
+        assert [e for e in events if e.type == "TECHNOLOGY" and e.data["technology"] == "ai:mcp-inspector"]
+
+
 class TestShadowAIAgentGatewayNegative(TestShadowAIAgentGateway):
     """An ordinary web page must not be mistaken for an agent gateway."""
 

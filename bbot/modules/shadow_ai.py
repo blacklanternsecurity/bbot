@@ -163,6 +163,8 @@ class shadow_ai(BaseModule):
         3001: ("AnythingLLM", "web UI", "MEDIUM", "LOW"),
         18789: ("OpenClaw", "agent gateway", "HIGH", "MEDIUM"),
         18791: ("OpenClaw", "browser automation interface", "HIGH", "LOW"),
+        6274: ("MCP Inspector", "MCP debugging UI", "HIGH", "LOW"),
+        6277: ("MCP Inspector", "MCP debugging proxy", "HIGH", "MEDIUM"),
     }
 
     # Control interfaces of self-hosted AI agent gateways, fingerprinted from a response
@@ -181,6 +183,17 @@ class shadow_ai(BaseModule):
             "the agent. CVE-2026-25253 additionally allows unauthenticated retrieval of stored API "
             "keys (Anthropic, OpenAI, Google AI) from unpatched gateways; this module does not test "
             "for it, because confirming it would mean retrieving those credentials.",
+        ),
+        "mcp-inspector": (
+            r"<title>[^<]*MCP Inspector[^<]*</title>",
+            "MCP Inspector",
+            ["CVE-2025-49596"],
+            "MCP Inspector is a developer tool for driving MCP servers and should never be "
+            "internet-facing. Versions before 0.14.1 (CVE-2025-49596, CVSS 9.4) ship a proxy with "
+            "no authentication whose /sse endpoint accepts a command parameter, giving browser-"
+            "driven remote code execution; this module identifies it by page title only and does "
+            "not touch that endpoint. Version is not determined here, so treat any exposed instance "
+            "as suspect and confirm the version manually.",
         ),
     }
 
@@ -240,7 +253,7 @@ class shadow_ai(BaseModule):
                 {
                     "host": str(event.host),
                     "url": url,
-                    "name": f"Exposed AI agent gateway: {label}",
+                    "name": f"Exposed AI agent interface: {label}",
                     "description": f"{label} control interface reachable at {url}. {detail}",
                     "severity": "HIGH",
                     "confidence": "CONFIRMED",
