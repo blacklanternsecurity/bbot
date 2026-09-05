@@ -48,11 +48,20 @@ class mcp_server(BaseModule):
             True,
             description="Also fingerprint REST-style MCP tool backends that don't speak the protocol",
         )
+        detect_legacy_sse: bool = Field(
+            True,
+            description="Also detect the deprecated HTTP+SSE transport (GET /sse endpoint event)",
+        )
 
     # Advertised during the handshake. Servers negotiate down if they speak an older
     # revision, so this does not need to match the target exactly.
     protocol_version = "2025-03-26"
     http_timeout = 10
+    # Bounded read for the streaming SSE probe: we only need the first event, so we cap
+    # both the time we wait and the bytes we read, then close. This is what keeps the
+    # legacy-transport check from ever hanging a scan on an open SSE stream.
+    sse_probe_timeout = 6
+    sse_probe_maxbytes = 2048
 
     # REST-style MCP tool backends: HTTP services that expose tools/commands to AI agents
     # but do NOT speak the JSON-RPC protocol, so the handshake above never matches them.
@@ -79,6 +88,7 @@ class mcp_server(BaseModule):
         self.enumerate_tools = self.config.get("enumerate_tools", True)
         self.paths = self.config.get("mcp_endpoint_paths", [])
         self.detect_rest_backends = self.config.get("detect_rest_backends", True)
+        self.detect_legacy_sse = self.config.get("detect_legacy_sse", True)
         self._rest_backends = {
             name: (label, paths, re.compile(pattern, re.I), severity, confidence, impact, cves)
             for name, (label, paths, pattern, severity, confidence, impact, cves) in self.rest_backends.items()
@@ -179,10 +189,72 @@ class mcp_server(BaseModule):
             # one MCP endpoint per host is enough
             return
 
-        # No spec-compliant MCP server answered. Fall back to fingerprinting REST-style
-        # tool backends that expose tools over plain HTTP without the protocol.
+        # No Streamable-HTTP server answered. Try the deprecated HTTP+SSE transport
+        # (still common on 2025-era servers), then the REST tool-backend fallback.
+        if self.detect_legacy_sse and await self._check_legacy_sse(base_url, event):
+            return
         if self.detect_rest_backends:
             await self._check_rest_backends(base_url, event)
+
+    async def _check_legacy_sse(self, base_url, event):
+        """Detect the deprecated HTTP+SSE MCP transport.
+
+        On that transport a GET to the SSE endpoint immediately emits an SSE
+        ``event: endpoint`` whose data is the POST message path -- an MCP-specific
+        handshake marker that a generic SSE endpoint does not send. We stream the
+        response but read only the first event (bounded by time and bytes) and then
+        close, so an always-open SSE stream can never hang the scan.
+        """
+        import httpx
+
+        for path in ("/sse", "/mcp/sse"):
+            url = f"{base_url}{path}"
+            try:
+                async with httpx.AsyncClient(verify=False, timeout=self.sse_probe_timeout) as client:
+                    async with client.stream("GET", url, headers={"Accept": "text/event-stream"}) as response:
+                        if "text/event-stream" not in response.headers.get("content-type", "").lower():
+                            continue
+                        chunk = b""
+                        async for piece in response.aiter_bytes():
+                            chunk += piece
+                            if b"event: endpoint" in chunk or len(chunk) >= self.sse_probe_maxbytes:
+                                break
+            except Exception as e:
+                self.debug(f"Legacy SSE probe failed for {url}: {e}")
+                continue
+
+            body = chunk.decode("utf-8", errors="replace")
+            # MCP-specific: an "endpoint" event pointing at the /messages POST path
+            if "event: endpoint" not in body or "/messages" not in body:
+                continue
+
+            await self.emit_event(
+                {"host": str(event.host), "technology": "mcp-server:legacy-sse", "url": url},
+                "TECHNOLOGY",
+                event,
+                context=f"{{module}} identified {{event.type}}: MCP server (legacy HTTP+SSE) at {url}",
+            )
+            await self.emit_event(
+                {
+                    "host": str(event.host),
+                    "url": url,
+                    "name": "Exposed MCP server (legacy HTTP+SSE)",
+                    "description": (
+                        f"Model Context Protocol server on the deprecated HTTP+SSE transport at {url}. "
+                        f"A GET returned the MCP 'endpoint' handshake event with no authentication, "
+                        f"confirming an exposed MCP endpoint reachable from outside the host. MCP servers "
+                        f"act on behalf of AI agents with delegated permissions. Detected via the SSE "
+                        f"handshake only (bounded read); no tool was invoked."
+                    ),
+                    "severity": "HIGH",
+                    "confidence": "CONFIRMED",
+                },
+                "FINDING",
+                event,
+                context=f"{{module}} found {{event.type}}: legacy HTTP+SSE MCP server at {url}",
+            )
+            return True
+        return False
 
     async def _check_rest_backends(self, base_url, event):
         for name, (label, paths, pattern, severity, confidence, impact, cves) in self._rest_backends.items():

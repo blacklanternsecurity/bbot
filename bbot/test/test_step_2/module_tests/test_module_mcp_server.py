@@ -149,6 +149,34 @@ class TestMCPServerRESTBackendDisabled(TestMCPServerRESTBackend):
         assert not [e for e in events if e.type == "FINDING"], "REST backend detection should be disabled"
 
 
+class TestMCPServerLegacySSE(ModuleTestBase):
+    """The deprecated HTTP+SSE transport: GET /sse emits an MCP 'endpoint' event."""
+
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["mcp_server"]
+
+    def request_handler(self, request):
+        if request.path == "/sse":
+            # legacy MCP handshake: an SSE stream whose first event is the message endpoint
+            return Response(
+                "event: endpoint\ndata: /messages/?session_id=abc123\n\n",
+                status=200,
+                content_type="text/event-stream",
+            )
+        return Response("not found", status=404)
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests_handler(expect_args=re.compile("/"), request_handler=self.request_handler)
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING" and "legacy HTTP+SSE" in e.data["name"]]
+        assert 1 == len(findings), "did not detect the legacy HTTP+SSE MCP server"
+        assert findings[0].data["severity"] == "HIGH"
+        assert findings[0].data["confidence"] == "CONFIRMED"
+        assert "no tool was invoked" in findings[0].data["description"]
+        assert [e for e in events if e.type == "TECHNOLOGY" and e.data["technology"] == "mcp-server:legacy-sse"]
+
+
 class TestMCPServerNegative(ModuleTestBase):
     """An ordinary JSON web app must not be mistaken for an MCP server."""
 
