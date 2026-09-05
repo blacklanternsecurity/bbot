@@ -324,27 +324,33 @@ meta = {"description": "Query API for subdomains", "auth_required": True}
 
 #### Options
 
-##### `options` / `options_desc` (dict)
-User-configurable settings. Access them via `self.config.get("option_name")`.
+##### `class Config(BaseModuleConfig)`
+User-configurable settings are declared as a nested `Config` class using pydantic fields. Access
+them via `self.config.get("option_name")`.
+
+> The legacy `options` / `options_desc` dicts are **no longer supported in BBOT 3.0+** -- a module
+> that declares them fails to load with a `CRITICAL` message.
 
 ```python
 # robots.py - configurable parsing options
-options = {"include_sitemap": False, "include_allow": True, "include_disallow": True}
-options_desc = {
-    "include_sitemap": "Include 'sitemap' entries",
-    "include_allow": "Include 'Allow' Entries",
-    "include_disallow": "Include 'Disallow' Entries",
-}
+from bbot.core.config.models import BaseModuleConfig, Field
 
-# In handle_event():
-if self.config.get("include_sitemap") is True:
-    ...
+
+class robots(BaseModule):
+    class Config(BaseModuleConfig):
+        include_sitemap: bool = Field(False, description="Include 'sitemap' entries")
+        include_allow: bool = Field(True, description="Include 'Allow' Entries")
+        include_disallow: bool = Field(True, description="Include 'Disallow' Entries")
+
+    # In handle_event():
+    #   if self.config.get("include_sitemap") is True:
+    #       ...
 ```
 
 ```python
-# sslcert.py - timeout and behavior options
-options = {"timeout": 5.0, "skip_non_ssl": True}
-options_desc = {"timeout": "Socket connect timeout in seconds", "skip_non_ssl": "Don't try common non-SSL ports"}
+# shodan_dns.py - an API key, marked sensitive and mandatory
+class Config(BaseModuleConfig):
+    api_key: str | list[str] = Field("", description="Shodan API key", sensitive=True, mandatory=True)
 ```
 
 ---
