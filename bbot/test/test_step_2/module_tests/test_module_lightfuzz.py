@@ -13,6 +13,7 @@ import xml.etree.ElementTree as ET
 
 from bbot.core.helpers.url import add_get_params
 from bbot.modules.lightfuzz.submodules.base import BaseLightfuzz
+from bbot.modules.lightfuzz.submodules.serial import serial as serial_submodule
 
 from .test_module_paramminer_headers import helper
 from bbot.test.worker import HTTPSERVER_URL
@@ -1969,7 +1970,8 @@ class Test_Lightfuzz_serial_errordifferential_falsepositive(Test_Lightfuzz_seria
 
         else:
             dotnet_serial_reflection = (
-                f"<html><body><p>invalid user</p><p>reflected input: {post_params['TextBox1']}</body></html>"
+                "<html><body><p>java.io.OptionalDataException</p>"
+                f"<p>reflected input: {post_params['TextBox1']}</body></html>"
             )
             return Response(dotnet_serial_reflection, status=500)
 
@@ -1982,8 +1984,8 @@ class Test_Lightfuzz_serial_errordifferential_falsepositive(Test_Lightfuzz_seria
 
 
 # Serialization Module (Error Resolution - Transient Baseline)
-# Simulates a server that returns 500 on the first request (baseline), then 200 for everything after.
-# The confirmation re-send of the control payload should catch this and suppress the finding.
+# A server whose error state does not survive the first request has no baseline to resolve,
+# so no finding may be reported.
 class Test_Lightfuzz_serial_errorresolution_transient_baseline(Test_Lightfuzz_serial_errorresolution):
     request_count = 0
 
@@ -2008,9 +2010,42 @@ class Test_Lightfuzz_serial_errorresolution_transient_baseline(Test_Lightfuzz_se
         assert no_finding_emitted, "False positive Error Resolution finding was emitted despite transient baseline"
 
 
+# Magic headers identifying a serialized object of each language family. A handler keyed on
+# these accepts every real payload while rejecting the controls and the scrambled-header twins.
+JAVA_SERIAL_HEADER = b"\xac\xed\x00\x05"
+DOTNET_SERIAL_HEADER = b"\x00\x01\x00\x00"
+SERIAL_MAGIC_HEADERS = (JAVA_SERIAL_HEADER, DOTNET_SERIAL_HEADER, b"\x80\x04", b"\x04\x08", b"a:")
+
+
+def carries_serialization_header(value):
+    """True if ``value`` decodes (raw, base64, or hex) to a recognized serialization header."""
+    candidates = [value.encode()]
+    for decoder in (base64.b64decode, bytes.fromhex):
+        try:
+            candidates.append(decoder(value))
+        except Exception:
+            pass
+    return any(c.startswith(SERIAL_MAGIC_HEADERS) for c in candidates)
+
+
+def error_resolution_languages(events):
+    """Language families named by the Error Resolution findings in ``events``."""
+    languages = set()
+    for e in events:
+        if e.type != "FINDING":
+            continue
+        description = e.data.get("description", "")
+        if "Error Resolution" not in description:
+            continue
+        match = re.search(r"Serialization Payload: \[([a-z0-9_]+)\]", description)
+        if match:
+            languages.add(match.group(1).split("_")[0])
+    return languages
+
+
 # Serialization Module (Error Resolution - Multi-Language Family False Positive)
-# Simulates a server where ALL serialization payloads resolve the error (500->200),
-# spanning multiple language families. The multi-family check should discard them all.
+# A host that resolves its error for several language families is not deserializing any one of
+# them, so none of its Error Resolution findings may be reported.
 class Test_Lightfuzz_serial_errorresolution_multi_language(Test_Lightfuzz_serial_errorresolution):
     def request_handler(self, request):
         post_params = request.form
@@ -2018,21 +2053,13 @@ class Test_Lightfuzz_serial_errorresolution_multi_language(Test_Lightfuzz_serial
         if "TextBox1" not in post_params.keys():
             return Response(self.dotnet_serial_html, status=200)
 
-        # __VIEWSTATE mismatch triggers the baseline path
-        if post_params["__VIEWSTATE"] != "/wEPDwULLTE5MTI4MzkxNjVkZNt7ICM+GixNryV6ucx+srzhXlwP":
-            return Response(self.dotnet_serial_error, status=500)
-
-        # ALL payloads "resolve" the error - this is the false positive scenario
-        return Response("<html><body>OK</body></html>", status=200)
+        if carries_serialization_header(post_params["TextBox1"]):
+            return Response("<html><body>OK</body></html>", status=200)
+        return Response(self.dotnet_serial_error, status=500)
 
     def check(self, module_test, events):
-        no_finding_emitted = True
-        for e in events:
-            if e.type == "FINDING" and "Error Resolution" in e.data.get("description", ""):
-                no_finding_emitted = False
-        assert no_finding_emitted, (
-            "False positive Error Resolution finding was emitted despite multiple language families triggering"
-        )
+        languages = error_resolution_languages(events)
+        assert not languages, f"Error Resolution findings emitted for multiple language families: {languages}"
 
 
 class Test_Lightfuzz_serial_errorresolution_nonstandard_status(Test_Lightfuzz_serial_errorresolution):
@@ -2065,6 +2092,141 @@ class Test_Lightfuzz_serial_errorresolution_nonstandard_status(Test_Lightfuzz_se
         assert no_finding_emitted, (
             "False positive Error Resolution finding was emitted for non-standard baseline status code (>511)"
         )
+
+
+# Serialization Module (Error Resolution - Non-Error Baseline)
+# Error Resolution infers a deserializer from an application-level failure to interpret the
+# payload. A baseline that is not such a failure cannot be resolved, whatever the probe returns.
+class _SerialNonErrorBaseline(Test_Lightfuzz_serial_errorresolution):
+    def request_handler(self, request):
+        post_params = request.form
+        if "TextBox1" not in post_params.keys():
+            return Response(self.dotnet_serial_html, status=200)
+        if post_params["TextBox1"] == "AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw==":
+            return Response("<html><body>Deserialization successful!</body></html>", status=200)
+        return Response(self.dotnet_serial_error, status=self.baseline_status)
+
+    def check(self, module_test, events):
+        findings = [
+            e.data["description"]
+            for e in events
+            if e.type == "FINDING" and "Error Resolution" in e.data.get("description", "")
+        ]
+        assert not findings, f"Error Resolution finding emitted for a [{self.baseline_status}] baseline: {findings}"
+
+
+class Test_Lightfuzz_serial_errorresolution_gateway_baseline(_SerialNonErrorBaseline):
+    baseline_status = 503
+
+
+class Test_Lightfuzz_serial_errorresolution_redirect_baseline(_SerialNonErrorBaseline):
+    baseline_status = 302
+
+
+class Test_Lightfuzz_serial_errorresolution_routing_baseline(_SerialNonErrorBaseline):
+    baseline_status = 404
+
+
+# Serialization Module (Error Resolution - Unstable Control)
+# The error state must hold for the control across the whole trial, not just while the baseline
+# is established, so a control that starts succeeding mid-trial withdraws the finding.
+class Test_Lightfuzz_serial_errorresolution_unstable_control(Test_Lightfuzz_serial_errorresolution):
+    control_request_count = 0
+
+    def request_handler(self, request):
+        post_params = request.form
+        if "TextBox1" not in post_params.keys():
+            return Response(self.dotnet_serial_html, status=200)
+
+        submitted = post_params["TextBox1"]
+        if submitted == serial_submodule.CONTROL_PAYLOAD_BASE64:
+            self.control_request_count += 1
+            # the baseline pair and the first trial round error, later control samples succeed
+            if self.control_request_count > 3:
+                return Response("<html><body>OK</body></html>", status=200)
+        elif submitted == "AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw==":
+            return Response("<html><body>Deserialization successful!</body></html>", status=200)
+        return Response(self.dotnet_serial_error, status=500)
+
+    def check(self, module_test, events):
+        findings = [
+            e.data["description"]
+            for e in events
+            if e.type == "FINDING" and "Error Resolution" in e.data.get("description", "")
+        ]
+        assert not findings, f"Error Resolution finding emitted despite an unstable control: {findings}"
+
+
+# Serialization Module (Error Resolution - Multi-Language Family Across Parameters)
+# The single-language-family invariant holds for the host, not for one parameter, so families
+# split across two parameters must still collapse to one.
+class Test_Lightfuzz_serial_errorresolution_multi_language_per_host(Test_Lightfuzz_serial_errorresolution):
+    dotnet_serial_html = """
+        <!DOCTYPE html>
+        <html>
+        <head><title>
+            Deserialization RCE Example
+        </title></head>
+        <body>
+            <form method="post" action="./deser.aspx" id="form1">
+                <div>
+                    <textarea name="TextBox1" rows="2" cols="20" id="TextBox1"></textarea><br />
+                    <textarea name="TextBox2" rows="2" cols="20" id="TextBox2"></textarea><br />
+                    <input type="submit" name="Button1" value="Submit" id="Button1" />
+                </div>
+            </form>
+        </body>
+        </html>
+        """
+
+    def request_handler(self, request):
+        post_params = request.form
+        if "TextBox1" not in post_params.keys() and "TextBox2" not in post_params.keys():
+            return Response(self.dotnet_serial_html, status=200)
+
+        # TextBox1 accepts only java, TextBox2 only dotnet
+        for field, header in (("TextBox1", JAVA_SERIAL_HEADER), ("TextBox2", DOTNET_SERIAL_HEADER)):
+            value = post_params.get(field, "")
+            if value:
+                try:
+                    decoded = base64.b64decode(value)
+                except Exception:
+                    decoded = b""
+                if decoded.startswith(header):
+                    return Response("<html><body>OK</body></html>", status=200)
+        return Response(self.dotnet_serial_error, status=500)
+
+    def check(self, module_test, events):
+        languages = error_resolution_languages(events)
+        assert languages, "No Error Resolution finding was emitted for either parameter"
+        assert len(languages) == 1, f"Error Resolution findings spanned multiple language families: {languages}"
+
+
+# Serialization Module (Differential Error Analysis - Non-Error Baseline)
+# Differential Error Analysis rests on a framework error string appearing in the probe and not
+# the baseline, so it stays available whatever status the baseline carries.
+class Test_Lightfuzz_serial_errordifferential_nonstandard_baseline(Test_Lightfuzz_serial_errorresolution):
+    java_cast_error = """
+        <html>
+            <p>java.lang.ClassCastException: Cannot cast java.lang.String to com.example.User</p>
+        </html>
+        """
+
+    def request_handler(self, request):
+        post_params = request.form
+        if "TextBox1" not in post_params.keys():
+            return Response(self.dotnet_serial_html, status=200)
+        if post_params["TextBox1"] == "rO0ABXQABHRlc3Q=":
+            return Response(self.java_cast_error, status=500)
+        return Response(self.dotnet_serial_error, status=512)
+
+    def check(self, module_test, events):
+        assert any(
+            e.type == "FINDING"
+            and "Technique: [Differential Error Analysis]" in e.data.get("description", "")
+            and "Error-String: [cannot cast java.lang.string]" in e.data.get("description", "")
+            for e in events
+        ), "Differential Error Analysis was not reported for a non-standard baseline status"
 
 
 # Python pickle Error Resolution — verifies the new python_pickle_base64
