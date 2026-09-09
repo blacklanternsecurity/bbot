@@ -5,7 +5,7 @@ These are helpers related to DNS resolution. They are used throughout BBOT and i
 Note that these helpers can be invoked directly from `self.helpers`, e.g.:
 
 ```python
-self.helpers.resolve("evilcorp.com")
+await self.helpers.resolve("evilcorp.com")
 ```
 
 ::: bbot.core.helpers.dns.DNSHelper
@@ -13,7 +13,8 @@ self.helpers.resolve("evilcorp.com")
     options:
       members:
         - resolve
-        - resolve_batch
-        - resolve_raw
+        - resolve_full
+        - resolve_multi_full
+        - resolve_batch_full
         - is_wildcard
         - is_wildcard_domain

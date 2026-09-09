@@ -1,10 +1,11 @@
 import re
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestTelerik(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888", "http://127.0.0.1:8888/telerik.aspx"]
-    modules_overrides = ["httpx", "telerik"]
+    targets = [HTTPSERVER_URL, f"{HTTPSERVER_URL}/telerik.aspx"]
+    modules_overrides = ["http", "telerik"]
     config_overrides = {"modules": {"telerik": {"exploit_RAU_crypto": True}}}
 
     async def setup_before_prep(self, module_test):
@@ -91,7 +92,7 @@ class TestTelerik(ModuleTestBase):
                 telerik_axd_detection = True
                 continue
 
-            if e.type == "VULNERABILITY" and "Confirmed Vulnerable Telerik (version: 2014.3.1024)":
+            if e.type == "FINDING" and "Confirmed Vulnerable Telerik (version: 2014.3.1024)" in e.data["description"]:
                 telerik_axd_vulnerable = True
                 continue
 
@@ -123,7 +124,7 @@ class TestTelerik(ModuleTestBase):
 
 
 class TestTelerikDialogHandler_includesubdirs(TestTelerik):
-    targets = ["http://127.0.0.1:8888/", "http://127.0.0.1:8888/temp/"]
+    targets = [f"{HTTPSERVER_URL}/", f"{HTTPSERVER_URL}/temp/"]
     config_overrides = {
         "modules": {
             "telerik": {
@@ -131,7 +132,7 @@ class TestTelerikDialogHandler_includesubdirs(TestTelerik):
             },
         }
     }
-    modules_overrides = ["httpx", "telerik"]
+    modules_overrides = ["http", "telerik"]
 
     async def setup_before_prep(self, module_test):
         # Simulate NO SpellCheckHandler detection (not testing for that with this test)

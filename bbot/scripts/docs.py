@@ -6,7 +6,7 @@ import json
 import yaml
 from pathlib import Path
 
-from bbot import Preset
+from bbot.scanner import Preset
 from bbot.core.modules import MODULE_LOADER
 
 
@@ -182,12 +182,12 @@ def update_docs():
     assert len(bbot_output_module_table.splitlines()) > 10
     update_md_files("BBOT OUTPUT MODULES", bbot_output_module_table)
 
-    # BBOT universal module options
-    from bbot.scanner.preset.args import universal_module_options
+    # BBOT universal module options (sourced from BaseModuleConfig)
+    from bbot.core.config.models import BaseModuleConfig
 
     universal_module_options_table = ""
-    for option, description in universal_module_options.items():
-        universal_module_options_table += f"**{option}**: {description}\n"
+    for name, field in BaseModuleConfig.model_fields.items():
+        universal_module_options_table += f"**{name}**: {field.description}\n"
     update_md_files("BBOT UNIVERSAL MODULE OPTIONS", universal_module_options_table)
 
     # BBOT module options

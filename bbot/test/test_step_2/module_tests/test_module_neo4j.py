@@ -4,13 +4,14 @@ from .base import ModuleTestBase
 class TestNeo4j(ModuleTestBase):
     config_overrides = {"modules": {"neo4j": {"uri": "bolt://127.0.0.1:11111"}}}
 
-    async def setup_before_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         # install neo4j
         deps_pip = module_test.preloaded["neo4j"]["deps"]["pip"]
         await module_test.scan.helpers.depsinstaller.pip_install(deps_pip)
 
         self.neo4j_used = False
 
+    async def setup_before_prep(self, module_test):
         class MockResult:
             async def data(s):
                 self.neo4j_used = True

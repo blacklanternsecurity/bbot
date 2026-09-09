@@ -1,18 +1,22 @@
-description: Discover web parameters and lightly fuzz them for vulnerabilities, with more intense discovery techniques, including POST parameters, which are more invasive. Uses all lightfuzz modules, and adds paramminer modules for parameter discovery. Avoids running against confirmed WAFs.
+description: "Aggressive fuzzing: everything in lightfuzz, plus paramminer brute-force parameter discovery (headers, GET params, cookies), POST request fuzzing enabled, try_get_as_post enabled (GET params retested as POST), and robots.txt parsing. Still skips confirmed WAFs."
 
 include:
-  - lightfuzz-medium
+  - lightfuzz
 
 flags:
   - web-paramminer
 
 modules:
   - robots
+  - wayback
 
 config:
   modules:
     lightfuzz:
-      enabled_submodules: [cmdi,crypto,path,serial,sqli,ssti,xss,esi]
+      enabled_submodules: [cmdi,crypto,path,serial,sqli,ssti,xss,esi,ssrf]
       disable_post: False
       try_post_as_get: True
       try_get_as_post: True
+    wayback:
+      urls: True
+      parameters: True

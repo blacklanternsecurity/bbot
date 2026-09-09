@@ -92,7 +92,7 @@ bbot -t evilcorp.com -p subdomain-enum -m portscan gowitness -n my_scan -o .
 
 ```bash
 # A basic web scan includes robots.txt, storage buckets, IIS shortnames, and other non-intrusive web modules
-bbot -t evilcorp.com -p subdomain-enum web-basic
+bbot -t evilcorp.com -p subdomain-enum web
 ```
 
 **Web spider:**
@@ -129,11 +129,11 @@ config:
       api_key: cafebabe
 ```
 
-...in BBOT's global YAML config (`~/.config/bbot/bbot.yml`):
+...in BBOT's global secrets file (`~/.config/bbot/secrets.yml`):
 
 Note: this will ensure the API keys are used in all scans, regardless of preset.
 
-```yaml title="~/.config/bbot/bbot.yml"
+```yaml title="~/.config/bbot/secrets.yml"
 modules:
   shodan_dns:
     api_key: deadbeef

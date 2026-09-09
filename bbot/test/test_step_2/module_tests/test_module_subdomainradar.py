@@ -5,6 +5,99 @@ class TestSubDomainRadar(ModuleTestBase):
     config_overrides = {"modules": {"subdomainradar": {"api_key": "asdf"}}}
 
     async def setup_before_prep(self, module_test):
+        module_test.blasthttp_mock.add_response(
+            url="https://api.subdomainradar.io/profile",
+            match_headers={"Authorization": "Bearer asdf"},
+        )
+        module_test.blasthttp_mock.add_response(
+            url="https://api.subdomainradar.io/enumerators/groups",
+            match_headers={"Authorization": "Bearer asdf"},
+            json=[
+                {
+                    "id": "1",
+                    "name": "Fast",
+                    "description": "Enumerators optimized for high-speed scanning and rapid data collection",
+                    "enumerators": [
+                        {"display_name": "Beta Enumerator"},
+                        {"display_name": "Chi Enumerator"},
+                        {"display_name": "Aquarius Enumerator"},
+                        {"display_name": "Eta Enumerator"},
+                    ],
+                },
+                {
+                    "id": "2",
+                    "name": "Medium",
+                    "description": "Enumerators balanced for moderate speed with a focus on thoroughness",
+                    "enumerators": [
+                        {"display_name": "Kappa Enumerator"},
+                        {"display_name": "Lambda Enumerator"},
+                        {"display_name": "Mu Enumerator"},
+                        {"display_name": "Pi Enumerator"},
+                        {"display_name": "Tau Enumerator"},
+                        {"display_name": "Beta Enumerator"},
+                        {"display_name": "Chi Enumerator"},
+                        {"display_name": "Psi Enumerator"},
+                        {"display_name": "Aquarius Enumerator"},
+                        {"display_name": "Zeta Enumerator"},
+                        {"display_name": "Eta Enumerator"},
+                    ],
+                },
+                {
+                    "id": "3",
+                    "name": "Deep",
+                    "description": "Enumerators designed for exhaustive searches and in-depth data analysis",
+                    "enumerators": [
+                        {"display_name": "Alpha Enumerator"},
+                        {"display_name": "Kappa Enumerator"},
+                        {"display_name": "Lambda Enumerator"},
+                        {"display_name": "Mu Enumerator"},
+                        {"display_name": "Nu Enumerator"},
+                        {"display_name": "Xi Enumerator"},
+                        {"display_name": "Pi Enumerator"},
+                        {"display_name": "Rho Enumerator"},
+                        {"display_name": "Sigma Enumerator"},
+                        {"display_name": "Tau Enumerator"},
+                        {"display_name": "Beta Enumerator"},
+                        {"display_name": "Chi Enumerator"},
+                        {"display_name": "Omega Enumerator"},
+                        {"display_name": "Psi Enumerator"},
+                        {"display_name": "Phi Enumerator"},
+                        {"display_name": "Axon Enumerator"},
+                        {"display_name": "Aquarius Enumerator"},
+                        {"display_name": "Pegasus Enumerator"},
+                        {"display_name": "Petra Enumerator"},
+                        {"display_name": "Oasis Enumerator"},
+                        {"display_name": "Mike Enumerator"},
+                        {"display_name": "Cat Enumerator"},
+                        {"display_name": "Brutus Enumerator"},
+                        {"display_name": "Dee Enumerator"},
+                        {"display_name": "Jul Enumerator"},
+                        {"display_name": "Eve Enumerator"},
+                        {"display_name": "Frank Enumerator"},
+                        {"display_name": "Gus Enumerator"},
+                        {"display_name": "Hank Enumerator"},
+                        {"display_name": "Delta Enumerator"},
+                        {"display_name": "Ivy Enumerator"},
+                        {"display_name": "Jack Enumerator"},
+                        {"display_name": "Karl Enumerator"},
+                        {"display_name": "Liam Enumerator"},
+                        {"display_name": "Nora Enumerator"},
+                        {"display_name": "Mars Enumerator"},
+                        {"display_name": "Neptune Enumerator"},
+                        {"display_name": "Orion Enumerator"},
+                        {"display_name": "Oedipus Enumerator"},
+                        {"display_name": "Pandora Enumerator"},
+                        {"display_name": "Epsilon Enumerator"},
+                        {"display_name": "Zeta Enumerator"},
+                        {"display_name": "Eta Enumerator"},
+                        {"display_name": "Theta Enumerator"},
+                        {"display_name": "Iota Enumerator"},
+                    ],
+                },
+            ],
+        )
+
+    async def setup_after_prep(self, module_test):
         await module_test.mock_dns(
             {
                 "blacklanternsecurity.com": {"A": ["127.0.0.88"]},
@@ -12,11 +105,7 @@ class TestSubDomainRadar(ModuleTestBase):
                 "asdf.blacklanternsecurity.com": {"A": ["127.0.0.88"]},
             }
         )
-        module_test.httpx_mock.add_response(
-            url="https://api.subdomainradar.io/profile",
-            match_headers={"Authorization": "Bearer asdf"},
-        )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.subdomainradar.io/enumerate",
             method="POST",
             json={
@@ -25,7 +114,7 @@ class TestSubDomainRadar(ModuleTestBase):
             },
             match_headers={"Authorization": "Bearer asdf"},
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.subdomainradar.io/tasks/86de4531-0a67-41fe-b5e4-8ce8207d6245",
             match_headers={"Authorization": "Bearer asdf"},
             json={
@@ -114,93 +203,6 @@ class TestSubDomainRadar(ModuleTestBase):
                 "user_id": 49,
                 "time_to_finish": 41,
             },
-        )
-        module_test.httpx_mock.add_response(
-            url="https://api.subdomainradar.io/enumerators/groups",
-            match_headers={"Authorization": "Bearer asdf"},
-            json=[
-                {
-                    "id": "1",
-                    "name": "Fast",
-                    "description": "Enumerators optimized for high-speed scanning and rapid data collection",
-                    "enumerators": [
-                        {"display_name": "Beta Enumerator"},
-                        {"display_name": "Chi Enumerator"},
-                        {"display_name": "Aquarius Enumerator"},
-                        {"display_name": "Eta Enumerator"},
-                    ],
-                },
-                {
-                    "id": "2",
-                    "name": "Medium",
-                    "description": "Enumerators balanced for moderate speed with a focus on thoroughness",
-                    "enumerators": [
-                        {"display_name": "Kappa Enumerator"},
-                        {"display_name": "Lambda Enumerator"},
-                        {"display_name": "Mu Enumerator"},
-                        {"display_name": "Pi Enumerator"},
-                        {"display_name": "Tau Enumerator"},
-                        {"display_name": "Beta Enumerator"},
-                        {"display_name": "Chi Enumerator"},
-                        {"display_name": "Psi Enumerator"},
-                        {"display_name": "Aquarius Enumerator"},
-                        {"display_name": "Zeta Enumerator"},
-                        {"display_name": "Eta Enumerator"},
-                    ],
-                },
-                {
-                    "id": "3",
-                    "name": "Deep",
-                    "description": "Enumerators designed for exhaustive searches and in-depth data analysis",
-                    "enumerators": [
-                        {"display_name": "Alpha Enumerator"},
-                        {"display_name": "Kappa Enumerator"},
-                        {"display_name": "Lambda Enumerator"},
-                        {"display_name": "Mu Enumerator"},
-                        {"display_name": "Nu Enumerator"},
-                        {"display_name": "Xi Enumerator"},
-                        {"display_name": "Pi Enumerator"},
-                        {"display_name": "Rho Enumerator"},
-                        {"display_name": "Sigma Enumerator"},
-                        {"display_name": "Tau Enumerator"},
-                        {"display_name": "Beta Enumerator"},
-                        {"display_name": "Chi Enumerator"},
-                        {"display_name": "Omega Enumerator"},
-                        {"display_name": "Psi Enumerator"},
-                        {"display_name": "Phi Enumerator"},
-                        {"display_name": "Axon Enumerator"},
-                        {"display_name": "Aquarius Enumerator"},
-                        {"display_name": "Pegasus Enumerator"},
-                        {"display_name": "Petra Enumerator"},
-                        {"display_name": "Oasis Enumerator"},
-                        {"display_name": "Mike Enumerator"},
-                        {"display_name": "Cat Enumerator"},
-                        {"display_name": "Brutus Enumerator"},
-                        {"display_name": "Dee Enumerator"},
-                        {"display_name": "Jul Enumerator"},
-                        {"display_name": "Eve Enumerator"},
-                        {"display_name": "Frank Enumerator"},
-                        {"display_name": "Gus Enumerator"},
-                        {"display_name": "Hank Enumerator"},
-                        {"display_name": "Delta Enumerator"},
-                        {"display_name": "Ivy Enumerator"},
-                        {"display_name": "Jack Enumerator"},
-                        {"display_name": "Karl Enumerator"},
-                        {"display_name": "Liam Enumerator"},
-                        {"display_name": "Nora Enumerator"},
-                        {"display_name": "Mars Enumerator"},
-                        {"display_name": "Neptune Enumerator"},
-                        {"display_name": "Orion Enumerator"},
-                        {"display_name": "Oedipus Enumerator"},
-                        {"display_name": "Pandora Enumerator"},
-                        {"display_name": "Epsilon Enumerator"},
-                        {"display_name": "Zeta Enumerator"},
-                        {"display_name": "Eta Enumerator"},
-                        {"display_name": "Theta Enumerator"},
-                        {"display_name": "Iota Enumerator"},
-                    ],
-                },
-            ],
         )
 
     def check(self, module_test, events):

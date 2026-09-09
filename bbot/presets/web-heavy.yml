@@ -1,0 +1,8 @@
+description: Aggressive web scan
+
+include:
+  # include the web preset
+  - web
+
+flags:
+  - web-heavy

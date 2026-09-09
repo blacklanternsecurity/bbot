@@ -2,13 +2,13 @@ from .base import ModuleTestBase
 
 
 class TestShodan_DNS(ModuleTestBase):
-    config_overrides = {"modules": {"shodan": {"api_key": "asdf"}}}
+    config_overrides = {"modules": {"shodan_dns": {"api_key": "asdf"}}}
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.shodan.io/api-info?key=asdf",
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.shodan.io/dns/domain/blacklanternsecurity.com?key=asdf&page=1",
             json={
                 "subdomains": [
@@ -16,7 +16,7 @@ class TestShodan_DNS(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.shodan.io/dns/domain/blacklanternsecurity.com?key=asdf&page=2",
             json={
                 "subdomains": [
@@ -24,6 +24,8 @@ class TestShodan_DNS(ModuleTestBase):
                 ],
             },
         )
+
+    async def setup_after_prep(self, module_test):
         await module_test.mock_dns(
             {
                 "blacklanternsecurity.com": {

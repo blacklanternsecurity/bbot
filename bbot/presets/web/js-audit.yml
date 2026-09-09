@@ -1,0 +1,20 @@
+description: Hunt for leaked credentials and vulnerable libraries in client-side JavaScript
+
+
+modules:
+  - http
+  - trufflehog
+  - badsecrets
+  - retirejs
+  - robots
+  - wayback
+
+config:
+  modules:
+    trufflehog:
+      only_verified: false
+    robots:
+      include_sitemap: true
+    wayback:
+      urls: true
+      archive: true

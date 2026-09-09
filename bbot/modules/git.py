@@ -6,7 +6,7 @@ from bbot.modules.base import BaseModule
 class git(BaseModule):
     watched_events = ["URL"]
     produced_events = ["FINDING", "CODE_REPOSITORY"]
-    flags = ["active", "safe", "web-basic", "code-enum"]
+    flags = ["safe", "active", "web", "code-enum"]
     meta = {
         "description": "Check for exposed .git repositories",
         "created_date": "2023-05-30",
@@ -18,13 +18,13 @@ class git(BaseModule):
     fp_regex = re.compile(r"<html|<body", re.I)
 
     async def handle_event(self, event):
-        base_url = event.data.rstrip("/")
+        base_url = event.url.rstrip("/")
         urls = {
             # look for git config in both
             self.helpers.urljoin(base_url, ".git/config"),
             self.helpers.urljoin(f"{base_url}/", ".git/config"),
         }
-        async for url, response in self.helpers.request_batch(urls):
+        async for url, response in self.helpers.request_batch_stream(urls):
             text = getattr(response, "text", "")
             if not text:
                 text = ""
@@ -32,7 +32,14 @@ class git(BaseModule):
                 if getattr(response, "status_code", 0) == 200 and "[core]" in text and not self.fp_regex.match(text):
                     description = f"Exposed .git config at {url}"
                     await self.emit_event(
-                        {"host": str(event.host), "url": url, "description": description},
+                        {
+                            "host": str(event.host),
+                            "url": url,
+                            "description": description,
+                            "name": "Exposed .git config",
+                            "severity": "MEDIUM",
+                            "confidence": "HIGH",
+                        },
                         "FINDING",
                         event,
                         context="{module} detected {event.type}: {description}",

@@ -1,6 +1,6 @@
-# version placeholder (replaced by poetry-dynamic-versioning)
-__version__ = "v0.0.0"
+from importlib.metadata import version, PackageNotFoundError
 
-from .scanner import Scanner, Preset
-
-__all__ = ["Scanner", "Preset"]
+try:
+    __version__ = version("bbot")
+except PackageNotFoundError:
+    __version__ = "0.0.0"

@@ -1,0 +1,11 @@
+description: Check for subdomain takeovers and other DNS issues.
+
+modules:
+  - baddns
+
+config:
+  modules:
+    baddns:
+      enabled_submodules: [CNAME, MX, TXT]
+      min_severity: LOW
+      min_confidence: MEDIUM

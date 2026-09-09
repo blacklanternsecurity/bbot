@@ -25,9 +25,17 @@ class TestNmap_XML(ModuleTestBase):
                     {"host": str(event.host), "port": event.port, "protocol": "https"}, "PROTOCOL", parent=event
                 )
 
-    async def setup_before_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         self.dummy_module = self.DummyModule(module_test.scan)
         module_test.scan.modules["dummy_module"] = self.dummy_module
+        await self.dummy_module.setup()
+
+        # Manually update speculate module's open_port_consumers setting
+        speculate_module = module_test.scan.modules.get("speculate")
+        if speculate_module:
+            speculate_module.open_port_consumers = True
+            speculate_module._always_emit_open_ports = True
+
         await module_test.mock_dns(
             {
                 "blacklanternsecurity.com": {"A": ["127.0.0.1", "127.0.0.2"]},

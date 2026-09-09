@@ -19,7 +19,6 @@ class postman(BaseModule):
         "Origin": "https://www.postman.com",
         "Referer": "https://www.postman.com/search?q=&scope=public&type=all",
     }
-    auth_required = True
 
     async def setup(self):
         await super().setup()

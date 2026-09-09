@@ -1,5 +1,6 @@
 from bbot.errors import WebError
 from bbot.modules.output.base import BaseOutputModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class Splunk(BaseOutputModule):
@@ -9,20 +10,13 @@ class Splunk(BaseOutputModule):
         "created_date": "2024-02-17",
         "author": "@w0Tx",
     }
-    options = {
-        "url": "",
-        "hectoken": "",
-        "index": "",
-        "source": "",
-        "timeout": 10,
-    }
-    options_desc = {
-        "url": "Web URL",
-        "hectoken": "HEC Token",
-        "index": "Index to send data to",
-        "source": "Source path to be added to the metadata",
-        "timeout": "HTTP timeout",
-    }
+
+    class Config(BaseModuleConfig):
+        url: str = Field("", description="Web URL", sensitive=True)
+        hectoken: str = Field("", description="HEC Token", sensitive=True)
+        index: str = Field("", description="Index to send data to")
+        source: str = Field("", description="Source path to be added to the metadata")
+        timeout: int = Field(10, description="HTTP timeout")
 
     async def setup(self):
         self.url = self.config.get("url", "")

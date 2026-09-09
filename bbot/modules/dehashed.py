@@ -1,20 +1,22 @@
 from contextlib import suppress
 
 from bbot.modules.templates.subdomain_enum import subdomain_enum
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class dehashed(subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["PASSWORD", "HASHED_PASSWORD", "USERNAME", "EMAIL_ADDRESS"]
-    flags = ["passive", "safe", "email-enum"]
+    flags = ["safe", "passive", "email-enum"]
     meta = {
         "description": "Execute queries against dehashed.com for exposed credentials",
         "created_date": "2023-10-12",
         "author": "@SpamFaux",
-        "auth_required": True,
     }
-    options = {"api_key": ""}
-    options_desc = {"api_key": "DeHashed API Key"}
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="DeHashed API Key", sensitive=True, mandatory=True)
+
     target_only = True
 
     base_url = "https://api.dehashed.com/v2/search"
@@ -60,7 +62,7 @@ class dehashed(subdomain_enum):
                     if email_event is not None:
                         await self.emit_event(
                             email_event,
-                            context=f'{{module}} searched API for "{query}" and found {{event.type}}: {{event.data}}',
+                            context=f'{{module}} searched API for "{query}" and found {{event.type}}: {{event.pretty_string}}',
                         )
                         for user in users:
                             await self.emit_event(
@@ -68,7 +70,7 @@ class dehashed(subdomain_enum):
                                 "USERNAME",
                                 parent=email_event,
                                 tags=tags,
-                                context=f"{{module}} found {email} with {{event.type}}: {{event.data}}",
+                                context=f"{{module}} found {email} with {{event.type}}: {{event.pretty_string}}",
                             )
                         for pw in pws:
                             await self.emit_event(
@@ -76,7 +78,7 @@ class dehashed(subdomain_enum):
                                 "PASSWORD",
                                 parent=email_event,
                                 tags=tags,
-                                context=f"{{module}} found {email} with {{event.type}}: {{event.data}}",
+                                context=f"{{module}} found {email} with {{event.type}}: {{event.pretty_string}}",
                             )
                         for h_pw in h_pws:
                             await self.emit_event(
@@ -84,7 +86,7 @@ class dehashed(subdomain_enum):
                                 "HASHED_PASSWORD",
                                 parent=email_event,
                                 tags=tags,
-                                context=f"{{module}} found {email} with {{event.type}}: {{event.data}}",
+                                context=f"{{module}} found {email} with {{event.type}}: {{event.pretty_string}}",
                             )
 
     async def query(self, domain):

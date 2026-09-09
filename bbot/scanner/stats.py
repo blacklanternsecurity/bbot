@@ -4,12 +4,29 @@ from collections import deque
 
 log = logging.getLogger("bbot.scanner.stats")
 
+_VERIFIED_TO_UNVERIFIED = {
+    "URL": "URL_UNVERIFIED",
+}
+
 
 def _increment(d, k):
     try:
         d[k] += 1
     except KeyError:
         d[k] = 1
+
+
+class EventTypeStats:
+    """Tracks count for an event type and formats it for the status line."""
+
+    def __init__(self):
+        self.count = 0
+
+    def increment(self, event):
+        self.count += 1
+
+    def format(self, event_type):
+        return f"{event_type}: {self.count}"
 
 
 class SpeedCounter:
@@ -41,11 +58,44 @@ class ScanStats:
         self.scan = scan
         self.module_stats = {}
         self.events_emitted_by_type = {}
+        self._type_stats = {}
         self.speedometer = SpeedCounter(scan.status_frequency)
+
+    def _get_type_stats(self, event):
+        event_type = event.type
+        try:
+            return self._type_stats[event_type]
+        except KeyError:
+            stats_class = getattr(event, "_stats_class", None) or EventTypeStats
+            self._type_stats[event_type] = stats_class()
+            return self._type_stats[event_type]
+
+    def event_type_summary(self):
+        """Return a formatted list of event type counts, sorted by count descending."""
+        entries = sorted(self._type_stats.items(), key=lambda x: x[1].count, reverse=True)
+        return [stats.format(event_type) for event_type, stats in entries if stats.count > 0]
+
+    def _get_attribution_module(self, event):
+        """Return the module that should get credit for producing this event.
+
+        For verified event types (e.g. URL verified from URL_UNVERIFIED), credit
+        goes to the module that originally discovered the unverified form,
+        unless the discovering module doesn't declare the unverified type in its produced_events.
+        """
+        unverified_type = _VERIFIED_TO_UNVERIFIED.get(event.type)
+        if unverified_type is not None:
+            parent = getattr(event, "parent", None)
+            if parent is not None and getattr(parent, "type", None) == unverified_type:
+                parent_module = getattr(parent, "module", None)
+                if parent_module is not None and unverified_type in getattr(parent_module, "produced_events", []):
+                    return parent_module
+        return event.module
 
     def event_produced(self, event):
         _increment(self.events_emitted_by_type, event.type)
-        module_stat = self.get(event.module)
+        self._get_type_stats(event).increment(event)
+        module = self._get_attribution_module(event)
+        module_stat = self.get(module)
         if module_stat is not None:
             module_stat.increment_produced(event)
 
@@ -72,7 +122,7 @@ class ScanStats:
         header = ["Module", "Produced", "Consumed"]
         table = []
         for mname, mstat in self.module_stats.items():
-            if mname == "TARGET" or mstat.module._stats_exclude:
+            if mname == "SEED" or mstat.module._stats_exclude:
                 continue
             table_row = []
             table_row.append(mname)

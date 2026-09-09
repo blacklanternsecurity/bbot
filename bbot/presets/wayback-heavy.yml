@@ -1,0 +1,15 @@
+description: Full Wayback Machine integration - URL discovery, parameter extraction, archived page retrieval, and interesting file detection
+
+include:
+  - subdomain-enum
+
+modules:
+  - wayback
+  - badsecrets
+
+config:
+  modules:
+    wayback:
+      urls: True
+      parameters: True
+      archive: True

@@ -1,0 +1,19 @@
+description: "Maximum fuzzing: everything in lightfuzz-heavy, plus the heavy paramminer variant (1-3 letter brute-force on GET params, case mutation on case-sensitive backends, recycle_words on all paramminer modules), WAF targets are no longer skipped, each unique parameter-value pair is fuzzed individually (no collapsing), common headers like X-Forwarded-For are fuzzed even if not observed, and potential parameters are speculated from JSON/XML response bodies. Significantly increases scan time."
+
+include:
+  - lightfuzz-heavy
+  - paramminer-heavy
+
+config:
+  url_querystring_collapse: False # in cases where the same parameter is observed multiple times, fuzz them individually instead of collapsing them into a single parameter
+  modules:
+    lightfuzz:
+      force_common_headers: True # Fuzz common headers like X-Forwarded-For even if they're not observed on the target
+      enabled_submodules: [cmdi,crypto,path,serial,sqli,ssti,xss,esi,ssrf]
+      avoid_wafs: False
+    excavate:
+      speculate_params: True # speculate potential parameters extracted from JSON/XML web responses
+    wayback:
+      urls: True
+      parameters: True
+      archive: True

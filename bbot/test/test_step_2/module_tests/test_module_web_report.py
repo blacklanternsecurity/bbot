@@ -1,15 +1,16 @@
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestWebReport(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "dotnetnuke", "badsecrets", "web_report", "trufflehog"]
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http", "dotnetnuke", "badsecrets", "web_report", "trufflehog"]
     config_overrides = {"modules": {"trufflehog": {"only_verified": False}}}
 
     async def setup_before_prep(self, module_test):
         # trufflehog --> FINDING
         # dotnetnuke --> TECHNOLOGY
-        # badsecrets --> VULNERABILITY
+        # badsecrets --> FINDING
         respond_args = {"response_data": web_body}
         module_test.set_expect_requests(respond_args=respond_args)
 
@@ -17,16 +18,18 @@ class TestWebReport(ModuleTestBase):
         report_file = module_test.scan.home / "web_report.html"
         with open(report_file) as f:
             report_content = f.read()
-        assert "<li>[CRITICAL] Known Secret Found" in report_content
+        assert "<li>Severity: [CRITICAL] Confidence: [" in report_content
+        assert "CONFIRMED" in report_content
+        assert "Known Secret Found" in report_content
         assert (
-            """<h3>URL</h3>
+            f"""<h3>URL</h3>
 <ul>
-<li><strong>http://127.0.0.1:8888/</strong>"""
+<li><strong>{HTTPSERVER_URL}/</strong>"""
             in report_content
         )
         assert """Possible Secret Found. Detector Type: [PrivateKey]""" in report_content
         assert "<h3>TECHNOLOGY</h3>" in report_content
-        assert "<li>DotNetNuke</li>" in report_content
+        assert "<li>dotnetnuke</li>" in report_content
 
 
 web_body = """

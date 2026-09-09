@@ -1,7 +1,7 @@
-description: Discover web parameters and lightly fuzz them, limited to just GET-based xss vulnerabilities. Avoids running against confirmed WAFs. This is an example of a custom lightfuzz preset, selectively enabling a single lightfuzz module.
+description: "XSS-only: enables only the xss submodule with paramminer_getparams and reflected_parameters. POST disabled, no query string collapsing. Example of a focused single-submodule preset."
 
 modules:
-  - httpx
+  - http
   - lightfuzz
   - paramminer_getparams
   - reflected_parameters
@@ -18,5 +18,5 @@ config:
 conditions:
   - |
     {% if config.web.spider_distance == 0 %}
-      {{ warn("The lightfuzz-xss preset works much better with spider enabled! Consider adding 'spider' or 'spider-intense' preset.") }}
+      {{ warn("The lightfuzz-xss preset works much better with spider enabled! Consider adding 'spider' or 'spider-heavy' preset.") }}
     {% endif %}

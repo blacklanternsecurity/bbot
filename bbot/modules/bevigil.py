@@ -1,4 +1,5 @@
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class bevigil(subdomain_enum_apikey):
@@ -8,15 +9,16 @@ class bevigil(subdomain_enum_apikey):
 
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME", "URL_UNVERIFIED"]
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["safe", "subdomain-enum", "passive"]
     meta = {
         "description": "Retrieve OSINT data from mobile applications using BeVigil",
         "created_date": "2022-10-26",
         "author": "@alt-glitch",
-        "auth_required": True,
     }
-    options = {"api_key": "", "urls": False}
-    options_desc = {"api_key": "BeVigil OSINT API Key", "urls": "Emit URLs in addition to DNS_NAMEs"}
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="BeVigil OSINT API Key", sensitive=True, mandatory=True)
+        urls: bool = Field(False, description="Emit URLs in addition to DNS_NAMEs")
 
     base_url = "https://osint.bevigil.com/api"
 
@@ -38,7 +40,7 @@ class bevigil(subdomain_enum_apikey):
                     subdomain,
                     "DNS_NAME",
                     parent=event,
-                    context=f'{{module}} queried BeVigil\'s API for "{query}" and discovered {{event.type}}: {{event.data}}',
+                    context=f'{{module}} queried BeVigil\'s API for "{query}" and discovered {{event.type}}: {{event.pretty_string}}',
                 )
 
         if self.urls:
@@ -49,7 +51,7 @@ class bevigil(subdomain_enum_apikey):
                         parsed_url.geturl(),
                         "URL_UNVERIFIED",
                         parent=event,
-                        context=f'{{module}} queried BeVigil\'s API for "{query}" and discovered {{event.type}}: {{event.data}}',
+                        context=f'{{module}} queried BeVigil\'s API for "{query}" and discovered {{event.type}}: {{event.pretty_string}}',
                     )
 
     async def request_subdomains(self, query):

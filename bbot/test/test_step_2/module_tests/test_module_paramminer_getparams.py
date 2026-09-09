@@ -1,8 +1,9 @@
 from .test_module_paramminer_headers import Paramminer_Headers, tempwordlist, helper
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestParamminer_Getparams(Paramminer_Headers):
-    modules_overrides = ["httpx", "paramminer_getparams"]
+    modules_overrides = ["http", "paramminer_getparams"]
     config_overrides = {"modules": {"paramminer_getparams": {"wordlist": tempwordlist(["canary", "id"])}}}
 
     getparam_body = """
@@ -116,12 +117,12 @@ class TestParamminer_Getparams_boring_on(TestParamminer_Getparams_boring_off):
 
 
 class TestParamminer_Getparams_finish(Paramminer_Headers):
-    modules_overrides = ["httpx", "excavate", "paramminer_getparams"]
+    modules_overrides = ["http", "excavate", "paramminer_getparams"]
     config_overrides = {
         "modules": {"paramminer_getparams": {"wordlist": tempwordlist(["canary", "canary2"]), "recycle_words": True}}
     }
 
-    targets = ["http://127.0.0.1:8888/test1.php", "http://127.0.0.1:8888/test2.php"]
+    targets = [f"{HTTPSERVER_URL}/test1.php", f"{HTTPSERVER_URL}/test2.php"]
 
     test_1_html = """
 <html><a href="/test2.php?abcd1234=foo">paramstest2</a></html>
@@ -165,20 +166,20 @@ class TestParamminer_Getparams_finish(Paramminer_Headers):
         for e in events:
             if e.type == "WEB_PARAMETER":
                 if (
-                    "http://127.0.0.1:8888/test2.php" in e.data["url"]
+                    f"{HTTPSERVER_URL}/test2.php" in e.data["url"]
                     and "HTTP Extracted Parameter [abcd1234] (HTML Tags Submodule)" in e.data["description"]
                 ):
                     excavate_extracted_web_parameter = True
 
                 if (
-                    "http://127.0.0.1:8888/test1.php" in e.data["url"]
+                    f"{HTTPSERVER_URL}/test1.php" in e.data["url"]
                     and "[Paramminer] Getparam: [abcd1234] Reasons: [body] Reflection: [False]"
                     in e.data["description"]
                 ):
                     found_hidden_getparam_recycled = True
 
                 if (
-                    "http://127.0.0.1:8888/test2.php" in e.data["url"]
+                    f"{HTTPSERVER_URL}/test2.php" in e.data["url"]
                     and "[Paramminer] Getparam: [abcd1234] Reasons: [body] Reflection: [False]"
                     in e.data["description"]
                 ):
@@ -191,8 +192,8 @@ class TestParamminer_Getparams_finish(Paramminer_Headers):
 
 
 class TestParamminer_Getparams_xmlspeculative(Paramminer_Headers):
-    targets = ["http://127.0.0.1:8888/"]
-    modules_overrides = ["httpx", "excavate", "paramminer_getparams"]
+    targets = [f"{HTTPSERVER_URL}/"]
+    modules_overrides = ["http", "excavate", "paramminer_getparams"]
     config_overrides = {
         "modules": {
             "excavate": {"speculate_params": True},
@@ -251,31 +252,39 @@ class TestParamminer_Getparams_xmlspeculative(Paramminer_Headers):
 
 
 class TestParamminer_Getparams_filter_static(TestParamminer_Getparams_finish):
-    targets = ["http://127.0.0.1:8888/test1.php", "http://127.0.0.1:8888/test2.pdf"]
+    targets = [f"{HTTPSERVER_URL}/test1.php", f"{HTTPSERVER_URL}/test2.pdf"]
 
     test_1_html = """
     <html><a href="/test2.pdf?abcd1234=foo">paramstest2</a></html>
     """
 
     def check(self, module_test, events):
-        found_hidden_getparam_recycled = False
-        emitted_excavate_paramminer_duplicate = False
+        excavate_extracted_param = False
+        paramminer_recycled_to_php = False
+        paramminer_bruted_pdf = False
 
         for e in events:
             if e.type == "WEB_PARAMETER":
                 if (
-                    "http://127.0.0.1:8888/test1.php" in e.data["url"]
-                    and "[Paramminer] Getparam: [abcd1234] Reasons: [body] Reflection: [False]"
-                    in e.data["description"]
+                    f"{HTTPSERVER_URL}/test2.pdf" in e.data["url"]
+                    and "HTTP Extracted Parameter [abcd1234]" in e.data["description"]
                 ):
-                    found_hidden_getparam_recycled = True
+                    excavate_extracted_param = True
 
                 if (
-                    "http://127.0.0.1:8888/test2.pdf" in e.data["url"]
-                    and "[Paramminer] Getparam: [abcd1234] Reasons: [body] Reflection: [False]"
-                    in e.data["description"]
+                    f"{HTTPSERVER_URL}/test1.php" in e.data["url"]
+                    and "[Paramminer] Getparam: [abcd1234]" in e.data["description"]
                 ):
-                    emitted_excavate_paramminer_duplicate = True
+                    paramminer_recycled_to_php = True
 
-        assert found_hidden_getparam_recycled, "Failed to find hidden GET parameter"
-        assert not emitted_excavate_paramminer_duplicate, "Paramminer emitted parameter for static URL"
+                if (
+                    f"{HTTPSERVER_URL}/test2.pdf" in e.data["url"]
+                    and "[Paramminer] Getparam:" in e.data["description"]
+                ):
+                    paramminer_bruted_pdf = True
+
+        # Excavate still extracts the param from the link, but paramminer's filter_event
+        # drops the WEB_PARAMETER because .pdf is in url_extension_static
+        assert excavate_extracted_param, "Excavate should still extract the parameter from the HTML link"
+        assert not paramminer_recycled_to_php, "Paramminer should not recycle words from static-URL WEB_PARAMETERs"
+        assert not paramminer_bruted_pdf, "Paramminer should not brute-force parameters on static URLs"

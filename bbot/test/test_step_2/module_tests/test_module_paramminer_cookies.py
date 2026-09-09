@@ -2,7 +2,7 @@ from .test_module_paramminer_headers import Paramminer_Headers, tempwordlist, he
 
 
 class TestParamminer_Cookies(Paramminer_Headers):
-    modules_overrides = ["httpx", "paramminer_cookies"]
+    modules_overrides = ["http", "paramminer_cookies"]
     config_overrides = {"modules": {"paramminer_cookies": {"wordlist": tempwordlist(["junkcookie", "admincookie"])}}}
 
     cookies_body = """

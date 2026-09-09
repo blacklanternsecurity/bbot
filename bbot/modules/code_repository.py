@@ -10,7 +10,7 @@ class code_repository(BaseModule):
         "created_date": "2024-05-15",
         "author": "@domwhewell-sage",
     }
-    flags = ["passive", "safe", "code-enum"]
+    flags = ["safe", "passive", "code-enum"]
 
     # platform name : (regex, case_sensitive)
     code_repositories = {
@@ -39,7 +39,7 @@ class code_repository(BaseModule):
             if not isinstance(regexes, list):
                 regexes = [regexes]
             for regex, case_sensitive in regexes:
-                for match in regex.finditer(event.data):
+                for match in regex.finditer(event.url):
                     url = match.group()
                     if not case_sensitive:
                         url = url.lower()

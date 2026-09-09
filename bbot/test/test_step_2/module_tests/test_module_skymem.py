@@ -5,15 +5,15 @@ class TestSkymem(ModuleTestBase):
     targets = ["blacklanternsecurity.com"]
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://www.skymem.info/srch?q=blacklanternsecurity.com",
             text=page_1_body,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://www.skymem.info/domain/5679236812ad5b3f748a413d?p=2",
             text=page_2_body,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://www.skymem.info/domain/5679236812ad5b3f748a413d?p=3",
             text=page_3_body,
         )

@@ -4,13 +4,14 @@ from contextlib import suppress
 from radixtarget import RadixTarget, host_size_key
 
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 # TODO: this module is getting big. It should probably be two modules: one for ping and one for SYN.
 
 
 class portscan(BaseModule):
-    flags = ["active", "portscan", "safe"]
+    flags = ["loud", "active", "portscan"]
     watched_events = ["IP_ADDRESS", "IP_RANGE", "DNS_NAME"]
     produced_events = ["OPEN_TCP_PORT"]
     meta = {
@@ -18,33 +19,35 @@ class portscan(BaseModule):
         "created_date": "2024-05-15",
         "author": "@TheTechromancer",
     }
-    options = {
-        "top_ports": 100,
-        "ports": "",
-        # ping scan at 600 packets/s ~= private IP space in 8 hours
-        "rate": 300,
-        "wait": 5,
-        "ping_first": False,
-        "ping_only": False,
-        "adapter": "",
-        "adapter_ip": "",
-        "adapter_mac": "",
-        "router_mac": "",
-        "module_timeout": 259200,  # 3 days
-    }
-    options_desc = {
-        "top_ports": "Top ports to scan (default 100) (to override, specify 'ports')",
-        "ports": "Ports to scan",
-        "rate": "Rate in packets per second",
-        "wait": "Seconds to wait for replies after scan is complete",
-        "ping_first": "Only portscan hosts that reply to pings",
-        "ping_only": "Ping sweep only, no portscan",
-        "adapter": 'Manually specify a network interface, such as "eth0" or "tun0". If not specified, the first network interface found with a default gateway will be used.',
-        "adapter_ip": "Send packets using this IP address. Not needed unless masscan's autodetection fails",
-        "adapter_mac": "Send packets using this as the source MAC address. Not needed unless masscan's autodetection fails",
-        "router_mac": "Send packets to this MAC address as the destination. Not needed unless masscan's autodetection fails",
-        "module_timeout": "Max time in seconds to spend handling each batch of events",
-    }
+
+    class Config(BaseModuleConfig):
+        top_ports: int = Field(100, description="Top ports to scan (default 100) (to override, specify 'ports')")
+        ports: str = Field("", description="Ports to scan")
+        rate: int = Field(300, description="Rate in packets per second")
+        wait: int = Field(5, description="Seconds to wait for replies after scan is complete")
+        ping_first: bool = Field(False, description="Only portscan hosts that reply to pings")
+        ping_only: bool = Field(False, description="Ping sweep only, no portscan")
+        adapter: str = Field(
+            "",
+            description='Manually specify a network interface, such as "eth0" or "tun0". If not specified, the first network interface found with a default gateway will be used.',
+        )
+        adapter_ip: str = Field(
+            "", description="Send packets using this IP address. Not needed unless masscan's autodetection fails"
+        )
+        adapter_mac: str = Field(
+            "",
+            description="Send packets using this as the source MAC address. Not needed unless masscan's autodetection fails",
+        )
+        router_mac: str = Field(
+            "",
+            description="Send packets to this MAC address as the destination. Not needed unless masscan's autodetection fails",
+        )
+        skip_tags: str = Field(
+            "",
+            description="Comma-separated event tags that will be excluded from scanning (e.g. 'cdn,waf'). speculate will emit assumed-open ports for these instead.",
+        )
+        module_timeout: int = Field(259200, description="Max time in seconds to spend handling each batch of events")
+
     deps_common = ["masscan"]
     batch_size = 1000000
     _shuffle_incoming_queue = False
@@ -66,6 +69,7 @@ class portscan(BaseModule):
                 self.helpers.parse_port_string(self.ports)
             except ValueError as e:
                 return False, f"Error parsing ports '{self.ports}': {e}"
+        self.skip_tags = {t.strip() for t in self.config.get("skip_tags", "").split(",") if t.strip()}
 
         # keeps track of individual scanned IPs and their open ports
         # this is necessary because we may encounter more hosts with the same IP
@@ -90,6 +94,16 @@ class portscan(BaseModule):
         if returncode and "failed to detect IPv6 address" in ipv6_result.stderr:
             self.warning("It looks like you are not set up for IPv6. IPv6 targets will not be scanned.")
             self.ipv6_support = False
+        return True
+
+    def would_skip(self, event):
+        if not self.skip_tags:
+            return False
+        return bool(self.skip_tags & set(event.tags or ()))
+
+    async def filter_event(self, event):
+        if self.would_skip(event):
+            return False, f"event has tag(s) {self.skip_tags & set(event.tags)}, skipping portscan"
         return True
 
     async def handle_batch(self, *events):
@@ -126,7 +140,7 @@ class portscan(BaseModule):
             with open(stats_file, "w") as stats_fh:
                 async for line in self.run_process_live(command, sudo=True, stderr=stats_fh):
                     for ip, port in self.parse_json_line(line):
-                        parent_events = correlator.search(ip)
+                        parent_events = correlator.search(str(ip))
                         # masscan gets the occasional junk result. this is harmless and
                         # seems to be a side effect of it having its own TCP stack
                         # see https://github.com/robertdavidgraham/masscan/issues/397
@@ -152,7 +166,7 @@ class portscan(BaseModule):
         """
         correlator = RadixTarget()
         targets = set()
-        for event in sorted(events, key=lambda e: host_size_key(e.host)):
+        for event in sorted(events, key=lambda e: host_size_key(str(e.host))):
             # skip events without host
             if not event.host:
                 continue
@@ -184,16 +198,17 @@ class portscan(BaseModule):
                             await self.emit_open_port(event.host, port, event)
 
                 # build a correlation from the IP back to its original parent event
-                events_set = correlator.search(ip)
+                ip_str = str(ip)
+                events_set = correlator.search(ip_str)
                 if events_set is None:
-                    correlator.insert(ip, {event})
+                    correlator.insert(ip_str, {event})
                 else:
                     events_set.add(event)
 
                 # has this IP already been scanned?
-                if not scanned_tracker.get(ip):
+                if not scanned_tracker.get(ip_str):
                     # if not, add it to targets!
-                    scanned_tracker.add(ip)
+                    scanned_tracker.add(ip_str)
                     targets.add(ip)
                 else:
                     self.debug(f"Skipping {ip} because it's already been scanned")
@@ -220,8 +235,15 @@ class portscan(BaseModule):
             event_data,
             event_type,
             parent=parent_event,
-            context=f"{{module}} executed a {scan_type} scan against {parent_event.data} and found: {{event.type}}: {{event.data}}",
+            context=f"{{module}} executed a {scan_type} scan against {parent_event.data} and found: {{event.type}}: {{event.pretty_string}}",
         )
+
+        # In ping_first mode, this event gets reused immediately in the SYN
+        # make_targets() call — before dnsresolve has populated it. Seed
+        # resolved_hosts from the parent so hostnames still correlate to IPs.
+        if parent_is_dns_name and parent_event._resolved_hosts:
+            # share the parent's frozenset by reference — it's immutable
+            event._resolved_hosts = parent_event._resolved_hosts
 
         await self.emit_event(event)
         return event

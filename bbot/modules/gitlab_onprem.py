@@ -1,4 +1,5 @@
 from bbot.modules.templates.gitlab import GitLabBaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class gitlab_onprem(GitLabBaseModule):
@@ -9,7 +10,7 @@ class gitlab_onprem(GitLabBaseModule):
         "CODE_REPOSITORY",
         "FINDING",
     ]
-    flags = ["active", "safe", "code-enum"]
+    flags = ["safe", "active", "code-enum"]
     meta = {
         "description": "Detect self-hosted GitLab instances and query them for repositories",
         "created_date": "2024-03-11",
@@ -18,8 +19,10 @@ class gitlab_onprem(GitLabBaseModule):
 
     # Optional GitLab access token (only required for gitlab.com, but still
     # supported for on-prem installations that expose private projects).
-    options = {"api_key": ""}
-    options_desc = {"api_key": "GitLab access token (for self-hosted instances only)"}
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field(
+            "", description="GitLab access token (for self-hosted instances only)", sensitive=True
+        )
 
     # Allow accepting events slightly beyond configured max distance so we can
     # discover repos on neighbouring infrastructure.

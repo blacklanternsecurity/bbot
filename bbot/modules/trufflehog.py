@@ -1,32 +1,29 @@
 import json
 from functools import partial
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class trufflehog(BaseModule):
     watched_events = ["CODE_REPOSITORY", "FILESYSTEM", "HTTP_RESPONSE", "RAW_TEXT"]
-    produced_events = ["FINDING", "VULNERABILITY"]
-    flags = ["passive", "safe", "code-enum"]
+    produced_events = ["FINDING"]
+    flags = ["safe", "passive", "code-enum"]
     meta = {
         "description": "TruffleHog is a tool for finding credentials",
         "created_date": "2024-03-12",
         "author": "@domwhewell-sage",
     }
 
-    options = {
-        "version": "3.90.8",
-        "config": "",
-        "only_verified": True,
-        "concurrency": 8,
-        "deleted_forks": False,
-    }
-    options_desc = {
-        "version": "trufflehog version",
-        "config": "File path or URL to YAML trufflehog config",
-        "only_verified": "Only report credentials that have been verified",
-        "concurrency": "Number of concurrent workers",
-        "deleted_forks": "Scan for deleted github forks. WARNING: This is SLOW. For a smaller repository, this process can take 20 minutes. For a larger repository, it could take hours.",
-    }
+    class Config(BaseModuleConfig):
+        version: str = Field("3.97.2", description="trufflehog version")
+        config: str = Field("", description="File path or URL to YAML trufflehog config")
+        only_verified: bool = Field(True, description="Only report credentials that have been verified")
+        concurrency: int = Field(8, description="Number of concurrent workers")
+        deleted_forks: bool = Field(
+            False,
+            description="Scan for deleted github forks. WARNING: This is SLOW. For a smaller repository, this process can take 20 minutes. For a larger repository, it could take hours.",
+        )
+
     deps_ansible = [
         {
             "name": "Download trufflehog",
@@ -40,6 +37,7 @@ class trufflehog(BaseModule):
     ]
 
     scope_distance_modifier = 2
+    _module_threads = 2
 
     async def setup_deps(self):
         self.config_file = self.config.get("config", "")
@@ -49,7 +47,7 @@ class trufflehog(BaseModule):
 
     async def setup(self):
         self.verified = self.config.get("only_verified", True)
-        self.concurrency = int(self.config.get("concurrency", 8))
+        self.concurrency = self.config.get("concurrency", 8)
 
         self.deleted_forks = self.config.get("deleted_forks", False)
         self.github_token = ""
@@ -75,7 +73,7 @@ class trufflehog(BaseModule):
             if self.deleted_forks:
                 if "git" not in event.tags:
                     return False, "Module only accepts git CODE_REPOSITORY events"
-                if "github" not in event.data["url"]:
+                if "github" not in event.url:
                     return False, "Module only accepts github CODE_REPOSITORY events"
             else:
                 return False, "Deleted forks is not enabled"
@@ -89,8 +87,10 @@ class trufflehog(BaseModule):
         if isinstance(event.data, dict):
             description = event.data.get("description", "")
 
+        path = None
+        stdin_data = None
         if event.type == "CODE_REPOSITORY":
-            path = event.data["url"]
+            path = event.url
             module = "github-experimental"
         elif event.type == "FILESYSTEM":
             path = event.data["path"]
@@ -103,12 +103,8 @@ class trufflehog(BaseModule):
             else:
                 module = "filesystem"
         elif event.type in ("HTTP_RESPONSE", "RAW_TEXT"):
-            module = "filesystem"
-            file_data = event.raw_response if event.type == "HTTP_RESPONSE" else event.data
-            # write the response to a tempfile
-            # this is necessary because trufflehog doesn't yet support reading from stdin
-            # https://github.com/trufflesecurity/trufflehog/issues/162
-            path = self.helpers.tempfile(file_data, pipe=False)
+            module = "stdin"
+            stdin_data = event.raw_response if event.type == "HTTP_RESPONSE" else event.data
 
         if event.type == "CODE_REPOSITORY":
             host = event.host
@@ -121,16 +117,22 @@ class trufflehog(BaseModule):
             rawv2_result,
             verified,
             source_metadata,
-        ) in self.execute_trufflehog(module, path):
+        ) in self.execute_trufflehog(module, path=path, stdin_data=stdin_data):
             verified_str = "Verified" if verified else "Possible"
-            finding_type = "VULNERABILITY" if verified else "FINDING"
+            confidence = "CONFIRMED" if verified else "MEDIUM"
             data = {
+                "name": f"TruffleHog - {detector_name}",
                 "description": f"{verified_str} Secret Found. Detector Type: [{detector_name}] Decoder Type: [{decoder_name}] Details: [{source_metadata}]",
             }
             if host:
                 data["host"] = host
-            if finding_type == "VULNERABILITY":
-                data["severity"] = "High"
+            if event.type == "HTTP_RESPONSE":
+                url = event.data.get("url", "")
+                if url:
+                    data["url"] = url
+
+            data["severity"] = "HIGH"
+            data["confidence"] = confidence
             if description:
                 data["description"] += f" Description: [{description}]"
             data["description"] += f" Raw result: [{raw_result}]"
@@ -138,16 +140,12 @@ class trufflehog(BaseModule):
                 data["description"] += f" RawV2 result: [{rawv2_result}]"
             await self.emit_event(
                 data,
-                finding_type,
+                "FINDING",
                 event,
                 context=f'{{module}} searched {event.type} using "{module}" method and found {verified_str.lower()} secret ({{event.type}}): {raw_result}',
             )
 
-        # clean up the tempfile when we're done with it
-        if event.type in ("HTTP_RESPONSE", "RAW_TEXT"):
-            path.unlink(missing_ok=True)
-
-    async def execute_trufflehog(self, module, path=None, string=None):
+    async def execute_trufflehog(self, module, path=None, stdin_data=None):
         command = [
             "trufflehog",
             "--json",
@@ -170,6 +168,8 @@ class trufflehog(BaseModule):
         elif module == "filesystem":
             command.append("filesystem")
             command.append(path)
+        elif module == "stdin":
+            command.append("stdin")
         elif module == "github-experimental":
             command.append("github-experimental")
             command.append("--repo=" + path)
@@ -177,10 +177,14 @@ class trufflehog(BaseModule):
             command.append("--delete-cached-data")
             command.append("--token=" + self.github_token)
 
-        stats_file = self.helpers.tempfile_tail(callback=partial(self.log_trufflehog_status, path))
+        run_kwargs = {}
+        if stdin_data is not None:
+            run_kwargs["input"] = stdin_data
+
+        stats_file = self.helpers.tempfile_tail(callback=partial(self.log_trufflehog_status, path or module))
         try:
             with open(stats_file, "w") as stats_fh:
-                async for line in self.helpers.run_live(command, stderr=stats_fh):
+                async for line in self.run_process_live(command, stderr=stats_fh, **run_kwargs):
                     try:
                         j = json.loads(line)
                     except json.decoder.JSONDecodeError:
@@ -203,7 +207,7 @@ class trufflehog(BaseModule):
         finally:
             stats_file.unlink(missing_ok=True)
 
-    def log_trufflehog_status(self, path, line):
+    def log_trufflehog_status(self, target, line):
         try:
             line = json.loads(line)
         except Exception:
@@ -212,5 +216,5 @@ class trufflehog(BaseModule):
         message = line.get("msg", "")
         ts = line.get("ts", "")
         status = f"Message: {message} | Timestamp: {ts}"
-        self.verbose(f"Current scan target: {path}")
+        self.verbose(f"Current scan target: {target}")
         self.verbose(status)

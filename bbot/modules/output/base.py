@@ -46,6 +46,9 @@ class BaseOutputModule(BaseModule):
             else:
                 return False, "its type is omitted in the config"
 
+        if event.always_emit:
+            return True, "event is always emitted"
+
         # internal events like those from speculate, ipneighbor
         # or events that are over our report distance
         if event._internal:

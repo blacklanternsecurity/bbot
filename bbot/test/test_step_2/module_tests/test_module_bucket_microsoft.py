@@ -22,7 +22,7 @@ class TestBucket_Microsoft_NoDup(ModuleTestBase):
     config_overrides = {"cloudcheck": True}
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://tesla.blob.core.windows.net/tesla?restype=container",
             text="",
         )
@@ -40,7 +40,7 @@ class TestBucket_Microsoft_NoDup(ModuleTestBase):
         assert bucket_event.data["url"] == "https://tesla.blob.core.windows.net/"
         assert (
             bucket_event.discovery_context
-            == f"bucket_azure tried  bucket variations of {event.data} and found {{event.type}} at {url}"
+            == "bucket_azure tried 3 bucket variations of tesla.com and found STORAGE_BUCKET at https://tesla.blob.core.windows.net/tesla?restype=container"
         )
 
 
@@ -50,6 +50,9 @@ class TestBucket_Microsoft_NoDup(TestBucket_Microsoft_NoDup):
     """
 
     async def setup_after_prep(self, module_test):
+        # Call parent setup first
+        await super().setup_after_prep(module_test)
+
         from bbot.core.event.base import STORAGE_BUCKET
 
         module_test.monkeypatch.setattr(STORAGE_BUCKET, "_suppress_chain_dupes", False)

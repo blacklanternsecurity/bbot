@@ -1,19 +1,21 @@
 from bbot.modules.templates.github import github
 from bbot.modules.templates.subdomain_enum import subdomain_enum
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class github_codesearch(github, subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["CODE_REPOSITORY", "URL_UNVERIFIED"]
-    flags = ["passive", "subdomain-enum", "safe", "code-enum"]
+    flags = ["safe", "passive", "subdomain-enum", "code-enum"]
     meta = {
         "description": "Query Github's API for code containing the target domain name",
         "created_date": "2023-12-14",
         "author": "@domwhewell-sage",
-        "auth_required": True,
     }
-    options = {"api_key": "", "limit": 100}
-    options_desc = {"api_key": "Github token", "limit": "Limit code search to this many results"}
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="Github token", sensitive=True, mandatory=True)
+        limit: int = Field(100, description="Limit code search to this many results")
 
     github_raw_url = "https://raw.githubusercontent.com/"
 
@@ -32,7 +34,7 @@ class github_codesearch(github, subdomain_enum):
                 context=f'{{module}} searched github.com for "{query}" and found {{event.type}} with matching content at {repo_url}',
             )
             for raw_url in raw_urls:
-                url_event = self.make_event(raw_url, "URL_UNVERIFIED", parent=repo_event, tags=["httpx-safe"])
+                url_event = self.make_event(raw_url, "URL_UNVERIFIED", parent=repo_event, tags=["blasthttp-safe"])
                 if not url_event:
                     continue
                 await self.emit_event(

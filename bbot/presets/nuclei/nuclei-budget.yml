@@ -1,7 +1,7 @@
 description: Run nuclei scans against all discovered targets, using budget mode to look for low hanging fruit with greatly reduced number of requests
 
 modules:
-  - httpx
+  - http
   - nuclei
   - portfilter
 

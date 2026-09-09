@@ -1,7 +1,7 @@
 description: Recursive web spider
 
 modules:
-  - httpx
+  - http
 
 blacklist:
   # Prevent spider from invalidating sessions by logging out

@@ -1,4 +1,4 @@
-import httpx
+from bbot.test.mock_blasthttp import TimeoutException
 
 from .base import ModuleTestBase
 
@@ -10,7 +10,7 @@ class TestRapidDNS(ModuleTestBase):
 
     async def setup_after_prep(self, module_test):
         module_test.module.abort_if = lambda e: False
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://rapiddns.io/subdomain/blacklanternsecurity.com?full=1#result", text=self.web_body
         )
 
@@ -30,9 +30,9 @@ class TestRapidDNSAbortThreshold1(TestRapidDNS):
                 self.url_count[url] += 1
             except KeyError:
                 self.url_count[url] = 1
-            raise httpx.TimeoutException("timeout")
+            raise TimeoutException("timeout")
 
-        module_test.httpx_mock.add_callback(custom_callback)
+        module_test.blasthttp_mock.add_callback(custom_callback)
 
         await module_test.mock_dns(
             {

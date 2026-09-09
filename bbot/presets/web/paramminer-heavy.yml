@@ -1,0 +1,15 @@
+description: "Aggressive paramminer brute-force: enables 1-3 letter combination brute-force on GET parameters and case mutation (camelCase / Title-case variants) on case-sensitive backends. Significantly increases scan time."
+
+include:
+  - paramminer
+
+config:
+  modules:
+    paramminer_getparams:
+      brute_short: True
+      mutate_case: True
+      recycle_words: True
+    paramminer_headers:
+      recycle_words: True
+    paramminer_cookies:
+      recycle_words: True

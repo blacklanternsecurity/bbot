@@ -1,4 +1,4 @@
-import httpx
+from bbot.test.mock_blasthttp import TimeoutException
 
 from .base import ModuleTestBase
 
@@ -8,11 +8,11 @@ class TestC99(ModuleTestBase):
     config_overrides = {"modules": {"c99": {"api_key": "asdf"}}}
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.c99.nl/randomnumber?key=asdf&between=1,100&json",
             json={"success": True, "output": 65},
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.c99.nl/subdomainfinder?key=asdf&domain=blacklanternsecurity.com&json",
             json={
                 "success": True,
@@ -32,7 +32,7 @@ class TestC99AbortThreshold1(TestC99):
     config_overrides = {"modules": {"c99": {"api_key": ["6789", "fdsa", "1234", "4321"]}}}
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.c99.nl/randomnumber?key=fdsa&between=1,100&json",
             json={"success": True, "output": 65},
         )
@@ -45,9 +45,9 @@ class TestC99AbortThreshold1(TestC99):
                 self.url_count[url] += 1
             except KeyError:
                 self.url_count[url] = 1
-            raise httpx.TimeoutException("timeout")
+            raise TimeoutException("timeout")
 
-        module_test.httpx_mock.add_callback(custom_callback)
+        module_test.blasthttp_mock.add_callback(custom_callback)
 
     def check(self, module_test, events):
         assert module_test.module.api_failure_abort_threshold == 13
@@ -69,8 +69,8 @@ class TestC99AbortThreshold1(TestC99):
 class TestC99AbortThreshold2(TestC99AbortThreshold1):
     targets = ["blacklanternsecurity.com", "evilcorp.com"]
 
-    async def setup_before_prep(self, module_test):
-        await super().setup_before_prep(module_test)
+    async def setup_after_prep(self, module_test):
+        await super().setup_after_prep(module_test)
         await module_test.mock_dns(
             {
                 "blacklanternsecurity.com": {"A": ["127.0.0.88"]},

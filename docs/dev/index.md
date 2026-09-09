@@ -6,14 +6,14 @@ Documented in this section are commonly-used classes and functions within BBOT, 
 
 ## Adding BBOT to Your Python Project
 
-If you are using Poetry, you can add BBOT to your python environment like this:
+If you are using uv, you can add BBOT to your python environment like this:
 
 ```bash
 # stable
-poetry add bbot
+uv add bbot
 
 # bleeding-edge (dev branch)
-poetry add bbot --allow-prereleases
+uv add bbot --prerelease=allow
 ```
 
 ## Running a BBOT Scan from Python
@@ -32,13 +32,16 @@ if __name__ == "__main__":
 ```python
 from bbot.scanner import Scanner
 
+
 async def main():
     scan = Scanner("evilcorp.com", presets=["subdomain-enum"])
     async for event in scan.async_start():
         print(event.json())
 
+
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())
 ```
 
@@ -49,18 +52,10 @@ For a full listing of `Scanner` attributes and functions, see the [`Scanner` Cod
 You can specify any number of targets:
 
 ```python
-# create a scan against multiple targets
-scan = Scanner(
-    "evilcorp.com",
-    "evilcorp.org",
-    "evilcorp.ce",
-    "4.3.2.1",
-    "1.2.3.4/24",
-    presets=["subdomain-enum"]
-)
+scan = Scanner("evilcorp.com", "evilcorp.org", "4.3.2.1", "1.2.3.4/24", presets=["subdomain-enum"])
 
 # this is the same as:
-targets = ["evilcorp.com", "evilcorp.org", "evilcorp.ce", "4.3.2.1", "1.2.3.4/24"]
+targets = ["evilcorp.com", "evilcorp.org", "4.3.2.1", "1.2.3.4/24"]
 scan = Scanner(*targets, presets=["subdomain-enum"])
 ```
 
@@ -68,18 +63,18 @@ For more details, including which types of targets are valid, see [Targets](../s
 
 #### Other Custom Options
 
-In many cases, using a [Preset](../scanning/presets.md) like `subdomain-enum` is sufficient. However, the `Scanner` is flexible and accepts many other arguments that can override the default functionality. You can specify [`flags`](../scanning/index.md#flags-f), [`modules`](../scanning/index.md#modules-m), [`output_modules`](../output.md), a [`whitelist` or `blacklist`](../scanning/index.md#whitelists-and-blacklists), and custom [`config` options](../scanning/configuration.md):
+In many cases, using a [Preset](../scanning/presets.md) like `subdomain-enum` is sufficient. However, the `Scanner` is flexible and accepts many other arguments. You can specify [`flags`](../scanning/index.md#flags-f), [`modules`](../scanning/index.md#modules-m), [`output_modules`](../scanning/output.md) (additive on top of defaults), a [target list / `seeds` / `blacklist`](../scanning/index.md#targets-t-seeds-s-and-blacklists-b), and custom [`config` options](../scanning/configuration.md):
 
 ```python
-# create a scan against multiple targets
 scan = Scanner(
-    # targets
+    # targets (positional args define scope)
     "evilcorp.com",
+    "evilcorp.org",
     "4.3.2.1",
     # enable these presets
     presets=["subdomain-enum"],
-    # whitelist these hosts
-    whitelist=["evilcorp.com", "evilcorp.org"],
+    # seeds drive passive modules without affecting scope
+    seeds=["1.2.3.4/24"],
     # blacklist these hosts
     blacklist=["prod.evilcorp.com"],
     # also enable these individual modules
@@ -87,13 +82,7 @@ scan = Scanner(
     # exclude modules with these flags
     exclude_flags=["slow"],
     # custom config options
-    config={
-        "modules": {
-            "nuclei": {
-                "tags": "apache,nginx"
-            }
-        }
-    }
+    config={"modules": {"nuclei": {"tags": "apache,nginx"}}},
 )
 ```
 

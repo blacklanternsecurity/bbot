@@ -2,27 +2,30 @@ from .test_module_excavate import TestExcavateParameterExtraction
 
 
 class TestWebParameters(TestExcavateParameterExtraction):
-    modules_overrides = ["excavate", "httpx", "web_parameters"]
+    modules_overrides = ["excavate", "http", "web_parameters"]
 
     def check(self, module_test, events):
         parameters_file = module_test.scan.home / "web_parameters.txt"
         with open(parameters_file) as f:
             data = f.read()
 
-            assert "age" in data
-            assert "fit" in data
-            assert "id" in data
-            assert "jqueryget" in data
-            assert "jquerypost" in data
-            assert "size" in data
-
-            # after lightfuzz is merged uncomment these additional parameters
-            # assert "blog-post-author-display" in data
-            # assert "csrf" in data
-            # assert "q1" in data
-            # assert "q2" in data
-            # assert "q3" in data
-            # assert "test" in data
+        for name in (
+            "age",
+            "blog-post-author-display",
+            "csrf",
+            "fit",
+            "id",
+            "jqueryget",
+            "jquerypost",
+            "q1",
+            "q2",
+            "q3",
+            "q4",
+            "q5",
+            "size",
+            "test",
+        ):
+            assert name in data, f"missing parameter: {name}"
 
 
 class TestWebParameters_include_count(TestWebParameters):
@@ -35,25 +38,24 @@ class TestWebParameters_include_count(TestWebParameters):
         parameters_file = module_test.scan.home / "web_parameters.txt"
         with open(parameters_file) as f:
             data = f.read()
-            assert "2\tq" in data
-            assert "1\tage" in data
-            assert "1\tfit" in data
-            assert "1\tid" in data
-            assert "1\tjqueryget" in data
-            assert "1\tjquerypost" in data
-            assert "1\tsize" in data
 
-            # after lightfuzz is merged, these will be the correct parameters to check
-
-            # assert "3\ttest" in data
-            # assert "2\tblog-post-author-display" in data
-            # assert "2\tcsrf" in data
-            # assert "2\tq2" in data
-            # assert "1\tage" in data
-            # assert "1\tfit" in data
-            # assert "1\tid" in data
-            # assert "1\tjqueryget" in data
-            # assert "1\tjquerypost" in data
-            # assert "1\tq1" in data
-            # assert "1\tq3" in data
-            # assert "1\tsize" in data
+        # "test" is the custom http_headers value the test scan injects; each
+        # HTTP_RESPONSE re-emits it as a HEADER WEB_PARAMETER, so it shows 3.
+        # Every other param is extracted once per unique (type, name, url).
+        for expected in (
+            "3\ttest",
+            "1\tage",
+            "1\tblog-post-author-display",
+            "1\tcsrf",
+            "1\tfit",
+            "1\tid",
+            "1\tjqueryget",
+            "1\tjquerypost",
+            "1\tq1",
+            "1\tq2",
+            "1\tq3",
+            "1\tq4",
+            "1\tq5",
+            "1\tsize",
+        ):
+            assert expected in data, f"missing line: {expected!r}"

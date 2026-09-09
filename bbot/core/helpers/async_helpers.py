@@ -51,17 +51,10 @@ class NamedLock:
 class TaskCounter:
     def __init__(self):
         self.tasks = {}
-        self._lock = None
 
     @property
     def value(self):
         return sum([t.n for t in self.tasks.values()])
-
-    @property
-    def lock(self):
-        if self._lock is None:
-            self._lock = asyncio.Lock()
-        return self._lock
 
     def count(self, task_name, n=1, asyncio_task=None, _log=True):
         if callable(task_name):
@@ -69,6 +62,9 @@ class TaskCounter:
         return self.Task(self, task_name, n=n, _log=_log, asyncio_task=asyncio_task)
 
     class Task:
+        # asyncio is single-threaded, so the dict mutations below are safe without a lock.
+        # Keeping __aenter__/__aexit__ free of awaits means `async with counter.count(...)` resolves
+        # without yielding to the event loop — cheap enough for hot paths like precheck/postcheck.
         def __init__(self, manager, task_name, n=1, _log=True, asyncio_task=None):
             self.manager = manager
             self.task_name = task_name
@@ -80,18 +76,12 @@ class TaskCounter:
 
         async def __aenter__(self):
             self.task_id = uuid.uuid4()
-            # if self.log:
-            #     log.trace(f"Starting task {self.task_name} ({self.task_id})")
-            async with self.manager.lock:
-                self.start_time = time.time()
-                self.manager.tasks[self.task_id] = self
+            self.start_time = time.time()
+            self.manager.tasks[self.task_id] = self
             return self
 
         async def __aexit__(self, exc_type, exc_val, exc_tb):
-            async with self.manager.lock:
-                self.manager.tasks.pop(self.task_id, None)
-            # if self.log:
-            #     log.trace(f"Finished task {self.task_name} ({self.task_id})")
+            self.manager.tasks.pop(self.task_id, None)
 
         @property
         def asyncio_task(self):
@@ -133,6 +123,25 @@ def async_to_sync_gen(async_gen):
             yield loop.run_until_complete(async_gen.__anext__())
     except StopAsyncIteration:
         pass
+    finally:
+        # Explicitly close the async generator so its finally block
+        # (e.g. Scanner.async_start's cleanup) runs while the loop
+        # is still alive, not deferred to interpreter shutdown.
+        with suppress(BaseException):
+            loop.run_until_complete(async_gen.aclose())
+        # Cancel any remaining pending tasks to prevent
+        # "Task was destroyed but it is pending!" warnings
+        pending = [t for t in asyncio.all_tasks(loop) if not t.done()]
+        for t in pending:
+            t.cancel()
+        if pending:
+            with suppress(BaseException):
+                loop.run_until_complete(
+                    asyncio.wait_for(
+                        asyncio.gather(*pending, return_exceptions=True),
+                        timeout=5,
+                    )
+                )
 
 
 def async_cachedmethod(cache, key=keys.hashkey):

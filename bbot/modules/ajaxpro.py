@@ -10,8 +10,8 @@ class ajaxpro(BaseModule):
 
     ajaxpro_regex = re.compile(r'<script.+src="([\/a-zA-Z0-9\._]+,[a-zA-Z0-9\._]+\.ashx)"')
     watched_events = ["HTTP_RESPONSE", "URL"]
-    produced_events = ["VULNERABILITY", "FINDING"]
-    flags = ["active", "safe", "web-thorough"]
+    produced_events = ["FINDING", "TECHNOLOGY"]
+    flags = ["safe", "active", "web-heavy"]
     meta = {
         "description": "Check for potentially vulnerable Ajaxpro instances",
         "created_date": "2024-01-18",
@@ -26,26 +26,26 @@ class ajaxpro(BaseModule):
 
     async def check_url_event(self, event):
         for stem in ["ajax", "ajaxpro"]:
-            probe_url = f"{event.data}{stem}/whatever.ashx"
+            probe_url = f"{event.url}{stem}/whatever.ashx"
             probe = await self.helpers.request(probe_url)
             if probe and probe.status_code == 200:
-                confirm_url = f"{event.data}a/whatever.ashx"
+                confirm_url = f"{event.url}a/whatever.ashx"
                 confirm_probe = await self.helpers.request(confirm_url)
                 if confirm_probe and confirm_probe.status_code != 200:
                     await self.emit_technology(event, probe_url)
                     await self.confirm_exploitability(probe_url, event)
 
     async def check_http_response_event(self, event):
-        resp_body = event.data.get("body")
+        resp_body = event.body
         if resp_body:
             match = await self.helpers.re.search(self.ajaxpro_regex, resp_body)
             if match:
-                ajaxpro_path = match.group(0)
+                ajaxpro_path = match.group(1)
                 await self.emit_technology(event, ajaxpro_path)
                 await self.confirm_exploitability(ajaxpro_path, event)
 
     async def emit_technology(self, event, detection_url):
-        url = event.data if event.type == "URL" else event.data["url"]
+        url = event.url
         await self.emit_event(
             {
                 "host": str(event.host),
@@ -71,15 +71,21 @@ class ajaxpro(BaseModule):
 
         probe_response = await self.helpers.request(full_url, method="POST", headers=headers, json=payload)
         if probe_response:
-            if "AjaxPro.Services.ICartService" and "MissingMethodException" in probe_response.text:
+            if (
+                "AjaxPro.Services.ICartService" in probe_response.text
+                and "MissingMethodException" in probe_response.text
+            ):
                 await self.emit_event(
                     {
                         "host": str(event.host),
+                        "name": "Ajaxpro Deserialization RCE (CVE-2021-23758)",
+                        "cves": ["CVE-2021-23758"],
                         "severity": "CRITICAL",
-                        "url": event.data if event.type == "URL" else event.data["url"],
+                        "confidence": "HIGH",
+                        "url": event.url,
                         "description": f"Ajaxpro Deserialization RCE (CVE-2021-23758) Trigger: [{full_url}]",
                     },
-                    "VULNERABILITY",
+                    "FINDING",
                     event,
                     context=f"{self.meta['description']} discovered Ajaxpro instance ({event.type}) at {detection_url}",
                 )

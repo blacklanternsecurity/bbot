@@ -3,7 +3,7 @@ from .base import ModuleTestBase
 
 class TestViewDNS(ModuleTestBase):
     async def setup_after_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://viewdns.info/reversewhois/?q=blacklanternsecurity.com",
             text=web_body,
         )

@@ -2,13 +2,15 @@ import csv
 from contextlib import suppress
 
 from bbot.modules.output.base import BaseOutputModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class CSV(BaseOutputModule):
     watched_events = ["*"]
     meta = {"description": "Output to CSV", "created_date": "2022-04-07", "author": "@TheTechromancer"}
-    options = {"output_file": ""}
-    options_desc = {"output_file": "Output to CSV file"}
+
+    class Config(BaseModuleConfig):
+        output_file: str = Field("", description="Output to CSV file")
 
     header_row = [
         "Event type",
@@ -60,7 +62,7 @@ class CSV(BaseOutputModule):
                 "Event type": getattr(event, "type", ""),
                 "Event data": getattr(event, "data", ""),
                 "IP Address": ",".join(
-                    str(x) for x in getattr(event, "resolved_hosts", set()) if self.helpers.is_ip(x)
+                    str(x) for x in getattr(event, "resolved_hosts", frozenset()) if self.helpers.is_ip(x)
                 ),
                 "Source Module": str(getattr(event, "module_sequence", "")),
                 "Scope Distance": str(getattr(event, "scope_distance", "")),

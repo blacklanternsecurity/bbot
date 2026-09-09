@@ -33,13 +33,25 @@ def get_current_branch() -> str:
 
 
 def checkout_branch(branch: str, repo_path: Path = None):
-    """Checkout a git branch."""
+    """Checkout a git branch, cleaning up generated and modified files first."""
+    # Reset modified tracked files (e.g. uv.lock changed by `uv sync`)
+    print("Resetting modified tracked files before checkout")
+    run_command(["git", "checkout", "--", "."], cwd=repo_path)
+    # Remove untracked files before checkout. Without this, files generated
+    # by one branch's toolchain (e.g. uv.lock from `uv run` on a Poetry
+    # branch) block checkout to a branch that tracks those same files.
+    print("Cleaning untracked files before checkout")
+    run_command(["git", "clean", "-fd"], cwd=repo_path)
     print(f"Checking out branch: {branch}")
     run_command(["git", "checkout", branch], cwd=repo_path)
 
 
 def run_benchmarks(output_file: Path, repo_path: Path = None) -> bool:
-    """Run benchmarks and save results to JSON file."""
+    """Run benchmarks and save results to JSON file.
+
+    Returns True if benchmark JSON was written (even if some tests failed),
+    False only if benchmarks truly didn't produce any data.
+    """
     print(f"Running benchmarks, saving to {output_file}")
 
     # Check if benchmarks directory exists
@@ -49,23 +61,35 @@ def run_benchmarks(output_file: Path, repo_path: Path = None) -> bool:
         print("This branch likely doesn't have benchmark tests yet.")
         return False
 
-    try:
-        cmd = [
-            "poetry",
-            "run",
-            "python",
-            "-m",
-            "pytest",
-            "bbot/test/benchmarks/",
-            "--benchmark-only",
-            f"--benchmark-json={output_file}",
-            "-q",
-        ]
-        run_command(cmd, cwd=repo_path, capture_output=False)
+    cmd = [
+        "uv",
+        "run",
+        "python",
+        "-m",
+        "pytest",
+        "bbot/test/benchmarks/",
+        "--benchmark-only",
+        f"--benchmark-json={output_file}",
+        "-q",
+    ]
+    result = subprocess.run(cmd, cwd=repo_path, capture_output=True, text=True)
+
+    # Print pytest output so failures are visible in CI logs
+    if result.stdout:
+        print(result.stdout)
+    if result.stderr:
+        print(result.stderr)
+
+    if result.returncode != 0:
+        print(f"Pytest exited with code {result.returncode}")
+
+    # pytest-benchmark writes JSON regardless of test failures;
+    # treat the run as successful if the output file has data
+    if output_file.exists() and output_file.stat().st_size > 0:
         return True
-    except subprocess.CalledProcessError:
-        print("Benchmarks failed for current state")
-        return False
+
+    print("Benchmark output file was not written")
+    return False
 
 
 def load_benchmark_data(filepath: Path) -> Dict[str, Any]:
@@ -175,6 +199,7 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
 |--------------|---------|------------|-----------|-----------|"""
 
     significant_changes = []
+    new_tests = []
     performance_summary = []
 
     for current_bench in current_benchmarks:
@@ -183,6 +208,7 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
         test_name = name.replace("test_", "").replace("_", " ").title()
 
         current_stats = current_bench.get("stats", {})
+        current_extra = current_bench.get("extra_info", {})
         current_mean = current_stats.get("mean", 0)
         # For multi-item benchmarks, calculate correct ops/sec
         if "excavate" in name:
@@ -195,6 +221,10 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
             current_ops = 100 / current_mean  # 100 items per test
         elif "make_event" in name and "large" in name:
             current_ops = 1000 / current_mean  # 1000 items per test
+        elif "event_memory" in name and "medium" in name:
+            current_ops = 10000 / current_mean  # 10K events per test
+        elif "event_memory" in name and "large" in name:
+            current_ops = 50000 / current_mean  # 50K events per test
         elif "ip" in name:
             current_ops = 1000 / current_mean  # 1000 IPs per test
         elif "bloom_filter" in name:
@@ -208,6 +238,7 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
         base_bench = base_lookup.get(name)
         if base_bench:
             base_stats = base_bench.get("stats", {})
+            base_extra = base_bench.get("extra_info", {})
             base_mean = base_stats.get("mean", 0)
             # For multi-item benchmarks, calculate correct ops/sec
             if "excavate" in name:
@@ -220,6 +251,10 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
                 base_ops = 100 / base_mean  # 100 items per test
             elif "make_event" in name and "large" in name:
                 base_ops = 1000 / base_mean  # 1000 items per test
+            elif "event_memory" in name and "medium" in name:
+                base_ops = 10000 / base_mean  # 10K events per test
+            elif "event_memory" in name and "large" in name:
+                base_ops = 50000 / base_mean  # 50K events per test
             elif "ip" in name:
                 base_ops = 1000 / base_mean  # 1000 IPs per test
             elif "bloom_filter" in name:
@@ -230,7 +265,23 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
             else:
                 base_ops = 1 / base_mean  # Default: single operation
 
-            change_percent, emoji = calculate_change_percentage(base_mean, current_mean)
+            # Use memory metrics if available, otherwise use time
+            current_mb = current_extra.get("total_memory_mb")
+            base_mb = base_extra.get("total_memory_mb")
+            current_peb = current_extra.get("per_event_bytes")
+            base_peb = base_extra.get("per_event_bytes")
+            if current_mb is not None and base_mb is not None and current_peb is None:
+                change_percent, emoji = calculate_change_percentage(base_mb, current_mb)
+                base_label = f"{base_mb:.1f} MB"
+                current_label = f"{current_mb:.1f} MB"
+            elif current_peb is not None and base_peb is not None:
+                change_percent, emoji = calculate_change_percentage(base_peb, current_peb)
+                base_label = f"{base_peb:.0f} B/event"
+                current_label = f"{current_peb:.0f} B/event"
+            else:
+                change_percent, emoji = calculate_change_percentage(base_mean, current_mean)
+                base_label = format_time(base_mean)
+                current_label = format_time(current_mean)
 
             # Create visual change indicator
             if abs(change_percent) > 20:
@@ -240,11 +291,18 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
             else:
                 change_bar = "⚪"
 
-            table += f"\n| **{test_name}** | `{format_time(base_mean)}` | `{format_time(current_mean)}` | **{change_percent:+.1f}%** {change_bar} | {emoji} |"
+            table += f"\n| **{test_name}** | `{base_label}` | `{current_label}` | **{change_percent:+.1f}%** {change_bar} | {emoji} |"
 
             # Track significant changes
             if abs(change_percent) > 10:
-                direction = "🐌 slower" if change_percent > 0 else "🚀 faster"
+                is_memory = (
+                    current_extra.get("per_event_bytes") is not None
+                    or current_extra.get("total_memory_mb") is not None
+                )
+                if is_memory:
+                    direction = "🐌 more memory" if change_percent > 0 else "🚀 less memory"
+                else:
+                    direction = "🐌 slower" if change_percent > 0 else "🚀 faster"
                 significant_changes.append(f"- **{test_name}**: {abs(change_percent):.1f}% {direction}")
                 if change_percent > 0:
                     regressions += 1
@@ -263,11 +321,10 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
                     "current_ops": current_ops,
                 }
             )
+
         else:
             table += f"\n| **{test_name}** | `-` | `{format_time(current_mean)}` | **New** 🆕 | 🆕 |"
-            significant_changes.append(
-                f"- **{test_name}**: New test 🆕 ({format_time(current_mean)}, {format_ops(current_ops)})"
-            )
+            new_tests.append(f"- **{test_name}**: {format_time(current_mean)}, {format_ops(current_ops)}")
 
     table += "\n\n</details>\n\n"
 
@@ -291,6 +348,13 @@ def generate_comparison_table(current_data: Dict, base_data: Dict, current_branc
         table += "### 🔍 Significant Changes (>10%)\n\n"
         for change in significant_changes:
             table += f"{change}\n"
+        table += "\n"
+
+    # Add new tests section
+    if new_tests:
+        table += "### 🆕 New Tests\n\n"
+        for new_test in new_tests:
+            table += f"{new_test}\n"
         table += "\n"
 
     return table
@@ -376,9 +440,6 @@ def main():
         temp_path = Path(temp_dir)
         base_results_file = temp_path / "base_results.json"
         current_results_file = temp_path / "current_results.json"
-
-        base_data = {}
-        current_data = {}
 
         base_data = {}
         current_data = {}

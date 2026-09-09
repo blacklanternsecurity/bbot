@@ -6,7 +6,7 @@ Here is a basic overview of BBOT's internal architecture.
 
 Being both ***recursive*** and ***event-driven***, BBOT makes heavy use of queues. These enable smooth communication between the modules, and ensure that large numbers of events can be produced without slowing down or clogging up the scan.
 
-Every module in BBOT has both an ***incoming*** and ***outgoing*** queue. Event types matching the module's `WATCHED_EVENTS` (e.g. `DNS_NAME`) are queued in its incoming queue, and processed by the module's `handle_event()` (or `handle_batch()` in the case of batched modules). If the module finds anything interesting, it creates an event and places it in its outgoing queue, to be processed by the scan and redistributed to other modules.
+Every module in BBOT has both an ***incoming*** and ***outgoing*** queue. Event types matching the module's `watched_events` (e.g. `DNS_NAME`) are queued in its incoming queue, and processed by the module's `handle_event()` (or `handle_batch()` in the case of batched modules). If the module finds anything interesting, it creates an event and places it in its outgoing queue, to be processed by the scan and redistributed to other modules.
 
 ## Event Flow
 

@@ -10,7 +10,7 @@ class viewdns(BaseModule):
 
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["affiliates", "passive", "safe"]
+    flags = ["safe", "affiliates", "passive"]
     meta = {
         "description": "Query viewdns.info's reverse whois for related domains",
         "created_date": "2022-07-04",
@@ -33,7 +33,7 @@ class viewdns(BaseModule):
                 "DNS_NAME",
                 parent=event,
                 tags=["affiliate"],
-                context=f'{{module}} searched viewdns.info for "{query}" and found {{event.type}}: {{event.data}}',
+                context=f'{{module}} searched viewdns.info for "{query}" and found {{event.type}}: {{event.pretty_string}}',
             )
 
     async def query(self, query):

@@ -81,7 +81,7 @@ def test_event_seeds():
     # URL (DNS_NAME)
     url_dns_seed = EventSeed("http://evilcOrp.com./index.html?a=b#c")
     assert url_dns_seed.type == "URL_UNVERIFIED"
-    assert url_dns_seed.data == "http://evilcorp.com/index.html?a=b"
+    assert url_dns_seed.url == "http://evilcorp.com/index.html?a=b"
     assert url_dns_seed.host == "evilcorp.com"
     assert url_dns_seed.port == 80
     assert url_dns_seed.input == "http://evilcorp.com/index.html?a=b"
@@ -89,7 +89,7 @@ def test_event_seeds():
     # URL (IPv4)
     url_ipv4_seed = EventSeed("https://192.168.1.1/index.html?a=b#c")
     assert url_ipv4_seed.type == "URL_UNVERIFIED"
-    assert url_ipv4_seed.data == "https://192.168.1.1/index.html?a=b"
+    assert url_ipv4_seed.url == "https://192.168.1.1/index.html?a=b"
     assert url_ipv4_seed.host == ipaddress.ip_address("192.168.1.1")
     assert url_ipv4_seed.port == 443
     assert url_ipv4_seed.input == "https://192.168.1.1/index.html?a=b"
@@ -97,7 +97,7 @@ def test_event_seeds():
     # URL (IPv6)
     url_ipv6_seed = EventSeed("https://[2001:db8::42]:8080/index.html?a=b#c")
     assert url_ipv6_seed.type == "URL_UNVERIFIED"
-    assert url_ipv6_seed.data == "https://[2001:db8::42]:8080/index.html?a=b"
+    assert url_ipv6_seed.url == "https://[2001:db8::42]:8080/index.html?a=b"
     assert url_ipv6_seed.host == ipaddress.ip_address("2001:db8::42")
     assert url_ipv6_seed.port == 8080
     assert url_ipv6_seed.input == "https://[2001:db8::42]:8080/index.html?a=b"

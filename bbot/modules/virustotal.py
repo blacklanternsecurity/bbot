@@ -1,18 +1,19 @@
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class virustotal(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["safe", "subdomain-enum", "passive"]
     meta = {
         "description": "Query VirusTotal's API for subdomains",
         "created_date": "2022-08-25",
         "author": "@TheTechromancer",
-        "auth_required": True,
     }
-    options = {"api_key": ""}
-    options_desc = {"api_key": "VirusTotal API Key"}
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="VirusTotal API Key", sensitive=True, mandatory=True)
 
     base_url = "https://www.virustotal.com/api/v3"
     api_page_iter_kwargs = {"json": False, "next_key": lambda r: r.json().get("links", {}).get("next", "")}

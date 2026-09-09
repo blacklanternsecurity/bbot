@@ -34,8 +34,25 @@ class path(BaseLightfuzz):
             )
             return
 
-        # Single dot traversal tolerance test
+        # Single dot traversal tolerance test.
+        # The `a/../` variants require the intermediate dummy path component to
+        # exist during OS path walking (works for frameworks that string-normalize
+        # before open(), like PHP include). The `simple` variants omit the dummy
+        # component so they also trigger against stacks that pass paths raw to
+        # the kernel (Python open(), Go os.Open, Rust File::open, etc.).
         path_techniques = {
+            "single-dot traversal tolerance (simple, no-encoding)": {
+                "singledot_payload": f"./{probe_value}",
+                "doubledot_payload": f"../{probe_value}",
+            },
+            "single-dot traversal tolerance (simple, leading slash)": {
+                "singledot_payload": f"/./{probe_value}",
+                "doubledot_payload": f"/../{probe_value}",
+            },
+            "single-dot traversal tolerance (simple, url-encoding)": {
+                "singledot_payload": quote(f"./{probe_value}".encode(), safe=""),
+                "doubledot_payload": quote(f"../{probe_value}".encode(), safe=""),
+            },
             "single-dot traversal tolerance (no-encoding)": {
                 "singledot_payload": f"./a/../{probe_value}",
                 "doubledot_payload": f"../a/../{probe_value}",
@@ -60,6 +77,16 @@ class path(BaseLightfuzz):
                 "singledot_payload": f"/...//a/....//{probe_value}",
                 "doubledot_payload": f"/....//a/....//{probe_value}",
             },
+            # Simple (no-`a/`-intermediate) variants for servers that
+            # reject paths whose intermediate components don't exist.
+            "single-dot traversal tolerance (non-recursive stripping, simple)": {
+                "singledot_payload": f"...//{probe_value}",
+                "doubledot_payload": f"....//{probe_value}",
+            },
+            "single-dot traversal tolerance (non-recursive stripping, simple, leading slash)": {
+                "singledot_payload": f"/...//{probe_value}",
+                "doubledot_payload": f"/....//{probe_value}",
+            },
             "single-dot traversal tolerance (double url-encoding)": {
                 "singledot_payload": f".%252fa%252f..%252f{probe_value}",
                 "doubledot_payload": f"..%252fa%252f..%252f{probe_value}",
@@ -67,6 +94,15 @@ class path(BaseLightfuzz):
             "single-dot traversal tolerance (double url-encoding, leading slash)": {
                 "singledot_payload": f"%252f.%252fa%252f..%252f{probe_value}",
                 "doubledot_payload": f"%252f..%252fa%252f..%252f{probe_value}",
+            },
+            # Simple (no-`a/`-intermediate) variants for strict path resolvers.
+            "single-dot traversal tolerance (double url-encoding, simple)": {
+                "singledot_payload": f".%252f{probe_value}",
+                "doubledot_payload": f"..%252f{probe_value}",
+            },
+            "single-dot traversal tolerance (double url-encoding, simple, leading slash)": {
+                "singledot_payload": f"%252f.%252f{probe_value}",
+                "doubledot_payload": f"%252f..%252f{probe_value}",
             },
         }
 
@@ -107,21 +143,60 @@ class path(BaseLightfuzz):
                     # next, if doubledot_probe[0] is false, the response is different from the baseline. This further indicates that a real path is being manipulated
                     # if doubledot_probe[3] is not None, the response is not empty.
                     # if doubledot_probe[1] is not ["header"], the response is not JUST a header change.
+                    # The doubledot response must look like a successful fetch of a different
+                    # resource (2xx with body) — a 4xx/5xx is the server *rejecting* the `..`,
+                    # which is the opposite of a vulnerability and was previously flagged because
+                    # any non-baseline response satisfied `[0] is False`.
                     # "The requested URL was rejected" is a very common WAF error message which appears on 200 OK response, confusing detections
+                    doubledot_response = doubledot_probe[3]
+                    doubledot_is_success = (
+                        doubledot_response is not None
+                        and 200 <= doubledot_response.status_code < 300
+                        and bool(doubledot_response.text)
+                    )
                     if (
                         singledot_probe[0] is True
                         and doubledot_probe[0] is False
-                        and doubledot_probe[3] is not None
+                        and doubledot_is_success
                         and doubledot_probe[1] != ["header"]
-                        and "The requested URL was rejected" not in doubledot_probe[3].text
+                        and not await self.lightfuzz.helpers.yara.match(
+                            self.lightfuzz.waf_yara_rules, doubledot_response.text
+                        )
                     ):
+                        # Canary check: a real path traversal would 404/500 on a random non-existent
+                        # filename, but a search/filter field returns 200 with an empty results page
+                        # for any input. If the canary also returns 200 with a body, it's a search
+                        # field, not a file path handler — break to avoid an FP.
+                        canary_name = self.lightfuzz.helpers.rand_string(10, digits=False)
+                        canary_payload = payloads["doubledot_payload"].replace(probe_value, canary_name)
+                        canary_probe = await self.compare_probe(
+                            http_compare,
+                            self.event.data["type"],
+                            canary_payload,
+                            cookies,
+                            skip_urlencoding=True,
+                        )
+                        canary_response = canary_probe[3]
+                        canary_is_success = (
+                            canary_response is not None
+                            and 200 <= canary_response.status_code < 300
+                            and bool(canary_response.text)
+                        )
+                        if canary_is_success:
+                            self.debug(
+                                f"Path Traversal canary check failed: random filename also returned "
+                                f"{canary_response.status_code} (likely a search/filter field, not a file path)"
+                            )
+                            break
                         confirmations += 1
                         self.verbose(f"Got possible Path Traversal detection: [{str(confirmations)}] Confirmations")
                         # only report if we have 3 confirmations
                         if confirmations > 3:
                             self.results.append(
                                 {
-                                    "type": "FINDING",
+                                    "name": "Possible Path Traversal",
+                                    "severity": "HIGH",
+                                    "confidence": "LOW",
                                     "description": f"POSSIBLE Path Traversal. {self.metadata()} Detection Method: [{path_technique}]",
                                 }
                             )
@@ -148,7 +223,9 @@ class path(BaseLightfuzz):
             if r and trigger in r.text:
                 self.results.append(
                     {
-                        "type": "FINDING",
+                        "name": "Possible Path Traversal",
+                        "severity": "HIGH",
+                        "confidence": "MEDIUM",
                         "description": f"POSSIBLE Path Traversal. {self.metadata()} Detection Method: [Absolute Path: {path}]",
                     }
                 )

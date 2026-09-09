@@ -1,18 +1,26 @@
 from pathlib import Path
 
 from .base import ModuleTestBase
+from bbot.test.worker import (
+    worker_dir,
+    HTTPSERVER_HOSTPORT,
+    HTTPSERVER_PORT,
+    HTTPSERVER_SSL_PORT,
+    HTTPSERVER_SSL_URL,
+    HTTPSERVER_URL,
+)
 
 
 class TestGowitness(ModuleTestBase):
-    targets = ["127.0.0.1:8888"]
-    modules_overrides = ["gowitness", "httpx", "social", "excavate"]
+    targets = [HTTPSERVER_HOSTPORT]
+    modules_overrides = ["gowitness", "http", "social", "excavate"]
     import shutil
     from pathlib import Path
 
-    home_dir = Path("/tmp/.bbot_gowitness_test")
+    home_dir = worker_dir("/tmp/.bbot_gowitness_test")
     shutil.rmtree(home_dir, ignore_errors=True)
     config_overrides = {
-        "force_deps": True,
+        "deps": {"behavior": "force_install"},
         "home": str(home_dir),
         "scope": {"report_distance": 2},
         "omit_event_types": [],
@@ -38,7 +46,8 @@ class TestGowitness(ModuleTestBase):
 
         async def new_emit_event(event, **kwargs):
             if event.data["url"] == "https://github.com/blacklanternsecurity":
-                event.data["url"] = event.data["url"].replace("https://github.com", "http://127.0.0.1:8888")
+                event.data["url"] = event.data["url"].replace("https://github.com", HTTPSERVER_URL)
+                event.parsed_url = module_test.scan.helpers.urlparse(event.data["url"])
             await old_emit_event(event, **kwargs)
 
         module_test.monkeypatch.setattr(module_test.scan.modules["social"], "emit_event", new_emit_event)
@@ -55,16 +64,14 @@ class TestGowitness(ModuleTestBase):
         assert len(screenshots) == 1, (
             f"{len(screenshots):,} .jpeg files found at {screenshots_path}, should have been 1"
         )
-        assert 1 == len([e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/"])
+        assert 1 == len([e for e in events if e.type == "URL" and e.url == f"{HTTPSERVER_URL}/"])
+        assert 1 == len([e for e in events if e.type == "URL_UNVERIFIED" and e.url == "https://fonts.googleapis.com/"])
+        assert 0 == len([e for e in events if e.type == "URL" and e.url == "https://fonts.googleapis.com/"])
         assert 1 == len(
-            [e for e in events if e.type == "URL_UNVERIFIED" and e.data == "https://fonts.googleapis.com/"]
-        )
-        assert 0 == len([e for e in events if e.type == "URL" and e.data == "https://fonts.googleapis.com/"])
-        assert 1 == len(
-            [e for e in events if e.type == "SOCIAL" and e.data["url"] == "http://127.0.0.1:8888/blacklanternsecurity"]
+            [e for e in events if e.type == "SOCIAL" and e.data["url"] == f"{HTTPSERVER_URL}/blacklanternsecurity"]
         )
         assert 1 == len([e for e in events if e.type == "WEBSCREENSHOT"])
-        assert 1 == len([e for e in events if e.type == "WEBSCREENSHOT" and e.data["url"] == "http://127.0.0.1:8888/"])
+        assert 1 == len([e for e in events if e.type == "WEBSCREENSHOT" and e.data["url"] == f"{HTTPSERVER_URL}/"])
         assert len([e for e in events if e.type == "TECHNOLOGY"])
 
 
@@ -83,7 +90,7 @@ class TestGowitness_Social(TestGowitness):
             [
                 e
                 for e in events
-                if e.type == "WEBSCREENSHOT" and e.data["url"] == "http://127.0.0.1:8888/blacklanternsecurity"
+                if e.type == "WEBSCREENSHOT" and e.data["url"] == f"{HTTPSERVER_URL}/blacklanternsecurity"
             ]
         )
         assert len(
@@ -91,7 +98,7 @@ class TestGowitness_Social(TestGowitness):
                 e
                 for e in events
                 if e.type == "TECHNOLOGY"
-                and e.data["url"] == "http://127.0.0.1:8888/blacklanternsecurity"
+                and e.data["url"] == f"{HTTPSERVER_URL}/blacklanternsecurity"
                 and e.parent.type == "SOCIAL"
             ]
         )
@@ -112,7 +119,7 @@ class TestGoWitnessLongFilename(TestGowitness):
     """
 
     targets = [
-        "http://127.0.0.1:8888/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity"
+        f"{HTTPSERVER_URL}/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity/blacklanternsecurity"
     ]
     config_overrides = {"file_blobs": True}
 
@@ -134,3 +141,60 @@ class TestGoWitnessLongFilename(TestGowitness):
         filename = Path(webscreenshot.data["path"])
         # sadly this file doesn't exist because gowitness doesn't truncate properly
         assert not filename.exists()
+
+
+class TestGowitness_MultiPort(ModuleTestBase):
+    """
+    Integration test: two URLs on the same host with different ports
+    (one HTTP, one HTTPS) both get correctly correlated screenshots.
+    Exercises the real gowitness binary and _resolve_parent tiered lookup.
+    """
+
+    targets = [HTTPSERVER_URL, HTTPSERVER_SSL_URL]
+    modules_overrides = ["gowitness", "http"]
+
+    import shutil
+
+    home_dir = worker_dir("/tmp/.bbot_gowitness_multiport_test")
+    shutil.rmtree(home_dir, ignore_errors=True)
+    config_overrides = {
+        "deps": {"behavior": "force_install"},
+        "home": str(home_dir),
+        "omit_event_types": [],
+    }
+
+    async def setup_after_prep(self, module_test):
+        # plain HTTP server
+        module_test.set_expect_requests(
+            respond_args={
+                "response_data": f"<html><head><title>Port {HTTPSERVER_PORT}</title></head><body>Port {HTTPSERVER_PORT}</body></html>",
+                "headers": {"Server": "Apache/2.4.41"},
+            },
+        )
+        # TLS server
+        module_test.httpserver_ssl.expect_request("/").respond_with_data(
+            f"<html><head><title>Port {HTTPSERVER_SSL_PORT}</title></head><body>Port {HTTPSERVER_SSL_PORT}</body></html>",
+            headers={"Server": "nginx/1.18.0"},
+        )
+
+    def check(self, module_test, events):
+        webscreenshots = [e for e in events if e.type == "WEBSCREENSHOT"]
+        assert len(webscreenshots) >= 2, f"Expected at least 2 WEBSCREENSHOT events, got {len(webscreenshots)}"
+
+        screenshot_urls = {e.data["url"] for e in webscreenshots}
+        http_port, ssl_port = str(HTTPSERVER_PORT), str(HTTPSERVER_SSL_PORT)
+        assert any(http_port in url for url in screenshot_urls), (
+            f"No screenshot for port {http_port}. URLs: {screenshot_urls}"
+        )
+        assert any(ssl_port in url for url in screenshot_urls), (
+            f"No screenshot for port {ssl_port}. URLs: {screenshot_urls}"
+        )
+
+        # Verify parent events reference the correct port
+        for ws in webscreenshots:
+            url = ws.data["url"]
+            parent = ws.parent
+            if http_port in url:
+                assert http_port in str(parent.data), f"Screenshot for :{http_port} has wrong parent: {parent.data}"
+            elif ssl_port in url:
+                assert ssl_port in str(parent.data), f"Screenshot for :{ssl_port} has wrong parent: {parent.data}"

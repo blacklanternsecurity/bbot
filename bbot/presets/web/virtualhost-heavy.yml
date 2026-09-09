@@ -1,0 +1,11 @@
+description: "Aggressive virtual host discovery: everything in virtualhost, plus special-host probing, certificate SAN extraction, and wordcloud-driven candidate testing."
+
+include:
+  - virtualhost
+
+config:
+  modules:
+    virtualhost:
+      special_hosts: True
+      certificate_sans: True
+      wordcloud_check: True

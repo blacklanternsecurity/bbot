@@ -1,18 +1,17 @@
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class robots(BaseModule):
     watched_events = ["URL"]
     produced_events = ["URL_UNVERIFIED"]
-    flags = ["active", "safe", "web-basic"]
+    flags = ["safe", "active", "web"]
     meta = {"description": "Look for and parse robots.txt", "created_date": "2023-02-01", "author": "@liquidsec"}
 
-    options = {"include_sitemap": False, "include_allow": True, "include_disallow": True}
-    options_desc = {
-        "include_sitemap": "Include 'sitemap' entries",
-        "include_allow": "Include 'Allow' Entries",
-        "include_disallow": "Include 'Disallow' Entries",
-    }
+    class Config(BaseModuleConfig):
+        include_sitemap: bool = Field(False, description="Include 'sitemap' entries")
+        include_allow: bool = Field(True, description="Include 'Allow' Entries")
+        include_disallow: bool = Field(True, description="Include 'Disallow' Entries")
 
     in_scope_only = True
     per_hostport_only = True
@@ -49,5 +48,5 @@ class robots(BaseModule):
                             "URL_UNVERIFIED",
                             parent=event,
                             tags=["spider-danger"],
-                            context=f"{{module}} found robots.txt at {url} and extracted {{event.type}}: {{event.data}}",
+                            context=f"{{module}} found robots.txt at {url} and extracted {{event.type}}: {{event.pretty_string}}",
                         )

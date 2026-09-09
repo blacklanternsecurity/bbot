@@ -1,5 +1,6 @@
 from bbot.errors import NTLMError
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 ntlm_discovery_endpoints = [
     "",
@@ -68,14 +69,15 @@ class ntlm(BaseModule):
 
     watched_events = ["URL", "HTTP_RESPONSE"]
     produced_events = ["FINDING", "DNS_NAME"]
-    flags = ["active", "safe", "web-basic"]
+    flags = ["safe", "active", "web"]
     meta = {
         "description": "Watch for HTTP endpoints that support NTLM authentication",
         "created_date": "2022-07-25",
         "author": "@liquidsec",
     }
-    options = {"try_all": False}
-    options_desc = {"try_all": "Try every NTLM endpoint"}
+
+    class Config(BaseModuleConfig):
+        try_all: bool = Field(False, description="Try every NTLM endpoint")
 
     in_scope_only = True
 
@@ -86,10 +88,7 @@ class ntlm(BaseModule):
 
     async def handle_event(self, event):
         found_hash = hash(f"{event.host}:{event.port}")
-        if event.type == "URL":
-            url = event.data
-        else:
-            url = event.data["url"]
+        url = event.url
         if found_hash in self.found:
             return
 
@@ -99,10 +98,9 @@ class ntlm(BaseModule):
                 urls.add(f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/{endpoint}")
 
         num_urls = len(urls)
-        agen = self.helpers.request_batch(
+        async for url, response in self.helpers.request_batch_stream(
             urls, headers=NTLM_test_header, allow_redirects=False, timeout=self.http_timeout
-        )
-        async for url, response in agen:
+        ):
             ntlm_resp = response.headers.get("WWW-Authenticate", "")
             if not ntlm_resp:
                 continue
@@ -112,7 +110,6 @@ class ntlm(BaseModule):
                 if not ntlm_resp_decoded:
                     continue
 
-                await agen.aclose()
                 self.found.add(found_hash)
                 fqdn = ntlm_resp_decoded.get("FQDN", "")
                 await self.emit_event(
@@ -120,6 +117,9 @@ class ntlm(BaseModule):
                         "host": str(event.host),
                         "url": url,
                         "description": f"NTLM AUTH: {ntlm_resp_decoded}",
+                        "name": "NTLM Authentication",
+                        "severity": "INFO",
+                        "confidence": "HIGH",
                     },
                     "FINDING",
                     parent=event,

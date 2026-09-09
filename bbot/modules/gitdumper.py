@@ -2,27 +2,28 @@ import asyncio
 from pathlib import Path
 from subprocess import CalledProcessError
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class gitdumper(BaseModule):
     watched_events = ["CODE_REPOSITORY"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "safe", "slow", "code-enum", "download"]
+    flags = ["safe", "passive", "slow", "code-enum", "download"]
     meta = {
         "description": "Download a leaked .git folder recursively or by fuzzing common names",
         "created_date": "2025-02-11",
         "author": "@domwhewell-sage",
     }
-    options = {
-        "output_folder": "",
-        "fuzz_tags": False,
-        "max_semanic_version": 10,
-    }
-    options_desc = {
-        "output_folder": "Folder to download repositories to. If not specified, downloaded repositories will be deleted when the scan completes, to minimize disk usage.",
-        "fuzz_tags": "Fuzz for common git tag names (v0.0.1, 0.0.2, etc.) up to the max_semanic_version",
-        "max_semanic_version": "Maximum version number to fuzz for (default < v10.10.10)",
-    }
+
+    class Config(BaseModuleConfig):
+        output_folder: str = Field(
+            "",
+            description="Folder to download repositories to. If not specified, downloaded repositories will be deleted when the scan completes, to minimize disk usage.",
+        )
+        fuzz_tags: bool = Field(
+            False, description="Fuzz for common git tag names (v0.0.1, 0.0.2, etc.) up to the max_semanic_version"
+        )
+        max_semanic_version: int = Field(10, description="Maximum version number to fuzz for (default < v10.10.10)")
 
     scope_distance_modifier = 2
 
@@ -114,7 +115,7 @@ class gitdumper(BaseModule):
         return True
 
     async def handle_event(self, event):
-        repo_url = event.data.get("url")
+        repo_url = event.url
         self.info(f"Processing leaked .git directory at {repo_url}")
         repo_folder = self.output_dir / self.helpers.tagify(repo_url)
         self.helpers.mkdir(repo_folder)
@@ -201,46 +202,79 @@ class gitdumper(BaseModule):
         if url_list:
             await self.download_files(url_list, folder)
 
-    async def regex_files(self, regex, folder=Path(), file=Path(), files=[]):
+    # Skip regex scan for files larger than this — real git ref/object/info
+    # files are small; oversized is almost always a webserver returning HTML.
+    _regex_file_max_bytes = 10 * 1024 * 1024
+    # Cap download size per file. Real git files are tiny (refs/HEAD <1KB,
+    # index a few KB) or pack files (10s of MB legit). Anything bigger is
+    # a misconfigured / malicious server returning an error page.
+    _download_max_size = "10MB"
+    # Cap how deep ``download_object`` recursion can go. Real git object
+    # graphs are shallow (commit → tree → blob, depth 10-20 in practice).
+    _download_object_max_depth = 100
+
+    async def regex_files(self, regex, folder=None, file=None, files=()):
         results = []
-        if folder:
-            if folder.is_dir():
-                for file_path in folder.rglob("*"):
-                    if file_path.is_file():
-                        results.extend(await self.regex_file(regex, file_path))
+        if folder is not None and folder.is_dir():
+            for file_path in folder.rglob("*"):
+                if file_path.is_file():
+                    results.extend(await self.regex_file(regex, file_path))
         if files:
-            for file in files:
-                results.extend(await self.regex_file(regex, file))
-        if file:
+            for f in files:
+                results.extend(await self.regex_file(regex, f))
+        if file is not None:
             results.extend(await self.regex_file(regex, file))
         return results
 
-    async def regex_file(self, regex, file=Path()):
-        if file.exists() and file.is_file():
-            with file.open("r", encoding="utf-8", errors="ignore") as file:
-                content = file.read()
-                matches = await self.helpers.re.findall(regex, content)
-                if matches:
-                    return matches
+    async def regex_file(self, regex, file=None):
+        if file is None or not (file.exists() and file.is_file()):
+            return []
+        try:
+            size = file.stat().st_size
+        except OSError:
+            return []
+        if size > self._regex_file_max_bytes:
+            self.debug(f"Skipping regex scan of {file} ({size} bytes)")
+            return []
+        with file.open("r", encoding="utf-8", errors="ignore") as fh:
+            content = fh.read()
+            matches = await self.helpers.re.findall(regex, content)
+            if matches:
+                return matches
         return []
 
-    async def download_object(self, object, repo_url, repo_folder):
+    async def download_object(self, object, repo_url, repo_folder, _seen=None, _depth=0):
+        if _seen is None:
+            _seen = set()
+        # cycle detection — git tree objects can reference each other in
+        # malformed/malicious repos
+        if object in _seen:
+            return
+        _seen.add(object)
+        # depth cap — even without cycles, an unbounded tree would burn
+        # stack frames + memory per frame
+        if _depth >= self._download_object_max_depth:
+            self.debug(f"download_object: hit max recursion depth at {object}")
+            return
         await self.download_files(
             [self.helpers.urlparse(self.helpers.urljoin(repo_url, f"objects/{object[:2]}/{object[2:]}"))], repo_folder
         )
         output = await self.git_catfile(object, option="-p", folder=repo_folder)
         for obj in await self.helpers.re.findall(self.obj_regex, output):
-            await self.download_object(obj, repo_url, repo_folder)
+            await self.download_object(obj, repo_url, repo_folder, _seen=_seen, _depth=_depth + 1)
 
     async def download_files(self, urls, folder):
         for url in urls:
             git_index = url.path.find(".git")
             file_url = url.geturl()
-            filename = folder / url.path[git_index:]
+            filename = (folder / url.path[git_index:]).resolve()
+            if not filename.is_relative_to(folder.resolve()):
+                self.warning(f"Path traversal detected, skipping: {url.path}")
+                continue
             self.helpers.mkdir(filename.parent)
             if hash(str(file_url)) not in self.urls_downloaded:
                 self.verbose(f"Downloading {file_url} to {filename}")
-                await self.helpers.download(file_url, filename=filename, warn=False)
+                await self.helpers.download(file_url, filename=filename, warn=False, max_size=self._download_max_size)
                 self.urls_downloaded.add(hash(str(file_url)))
         if any(folder.rglob("*")):
             return True
@@ -248,8 +282,19 @@ class gitdumper(BaseModule):
             self.debug(f"Unable to download git files to {folder}")
             return False
 
+    _safe_git_flags = [
+        "-c",
+        "core.fsmonitor=false",
+        "-c",
+        "core.sshCommand=echo",
+        "-c",
+        "core.symlinks=false",
+        "-c",
+        "transfer.fsckObjects=true",
+    ]
+
     async def git_catfile(self, hash, option="-t", folder=Path()):
-        command = ["git", "cat-file", option, hash]
+        command = ["git"] + self._safe_git_flags + ["cat-file", option, hash]
         try:
             output = await self.run_process(command, env={"GIT_TERMINAL_PROMPT": "0"}, cwd=folder, check=True)
         except CalledProcessError:
@@ -260,10 +305,21 @@ class gitdumper(BaseModule):
     async def git_checkout(self, folder):
         self.helpers.sanitize_git_repo(folder)
         self.verbose(f"Running git checkout to reconstruct the git repository at {folder}")
-        # we do "checkout head -- ." because the sanitization deletes the index file, and it needs to be reconstructed
-        command = ["git", "checkout", "HEAD", "--", "."]
+        command = ["git"] + self._safe_git_flags + ["checkout", "HEAD", "--", "."]
         try:
             await self.run_process(command, env={"GIT_TERMINAL_PROMPT": "0"}, cwd=folder, check=True)
         except CalledProcessError as e:
-            # Still emit the event even if the checkout fails
             self.debug(f"Error running git checkout in {folder}. STDERR: {repr(e.stderr)}")
+            self._write_empty_index(folder)
+
+    @staticmethod
+    def _write_empty_index(folder):
+        """Replace the index with a valid empty one so downstream tools
+        never read attacker-controlled index entries (CVE-2025-10283)."""
+        import hashlib
+        import struct
+
+        header = b"DIRC" + struct.pack(">II", 2, 0)
+        index_path = folder / ".git" / "index"
+        if index_path.exists():
+            index_path.write_bytes(header + hashlib.sha1(header).digest())

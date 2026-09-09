@@ -1,10 +1,11 @@
 import re
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_PORT, HTTPSERVER_URL
 
 
 class TestRobots(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "robots"]
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http", "robots"]
     config_overrides = {"modules": {"robots": {"include_sitemap": True}}}
 
     async def setup_after_prep(self, module_test):
@@ -22,18 +23,18 @@ class TestRobots(ModuleTestBase):
 
         for e in events:
             if e.type == "URL_UNVERIFIED":
-                if str(e.module) != "TARGET":
+                if str(e.module) != "SEED":
                     assert "spider-danger" in e.tags, f"{e} doesn't have spider-danger tag"
-                if e.data == "http://127.0.0.1:8888/allow/":
+                if e.url == f"{HTTPSERVER_URL}/allow/":
                     allow_bool = True
 
-                if e.data == "http://127.0.0.1:8888/disallow/":
+                if e.url == f"{HTTPSERVER_URL}/disallow/":
                     disallow_bool = True
 
-                if e.data == "http://127.0.0.1:8888/sitemap.txt":
+                if e.url == f"{HTTPSERVER_URL}/sitemap.txt":
                     sitemap_bool = True
 
-                if re.match(r"http://127\.0\.0\.1:8888/\w+/wildcard\.txt", e.data):
+                if re.match(rf"http://127\.0\.0\.1:{HTTPSERVER_PORT}/\w+/wildcard\.txt", e.url):
                     wildcard_bool = True
 
         assert allow_bool

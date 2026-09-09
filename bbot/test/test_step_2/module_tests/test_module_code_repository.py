@@ -1,9 +1,10 @@
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestCodeRepository(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "excavate", "code_repository"]
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http", "excavate", "code_repository"]
 
     async def setup_after_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/"}

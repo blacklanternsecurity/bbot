@@ -10,7 +10,7 @@ class social(BaseModule):
         "created_date": "2023-03-28",
         "author": "@TheTechromancer",
     }
-    flags = ["passive", "safe", "social-enum"]
+    flags = ["safe", "passive", "social-enum"]
 
     # platform name : (regex, case_sensitive)
     social_media_platforms = {
@@ -26,6 +26,8 @@ class social(BaseModule):
         "docker": (r"hub.docker.com/[ru]/([a-zA-Z0-9_-]+)", False),
         "huggingface": (r"huggingface.co/([a-zA-Z0-9_-]+)", False),
         "postman": (r"www.postman.com/([a-zA-Z0-9_-]+)", False),
+        # Linktree usernames are 3–30 chars of [a-z0-9._] (case-insensitive in URLs).
+        "linktree": (r"linktr\.ee/([a-zA-Z0-9._]{3,30})", False),
     }
 
     scope_distance_modifier = 1
@@ -36,7 +38,7 @@ class social(BaseModule):
 
     async def handle_event(self, event):
         for platform, (regex, case_sensitive) in self.compiled_regexes.items():
-            for match in regex.finditer(event.data):
+            for match in regex.finditer(event.url):
                 url = match.group()
                 profile_name = match.groups()[0]
                 if not case_sensitive:

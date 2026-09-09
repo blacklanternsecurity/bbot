@@ -4,7 +4,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum
 class hackertarget(subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["safe", "subdomain-enum", "passive"]
     meta = {
         "description": "Query the hackertarget.com API for subdomains",
         "created_date": "2022-07-28",

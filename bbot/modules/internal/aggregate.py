@@ -3,7 +3,7 @@ from bbot.modules.report.base import BaseReportModule
 
 class aggregate(BaseReportModule):
     watched_events = []
-    flags = ["passive", "safe"]
+    flags = ["safe", "passive"]
     meta = {
         "description": "Summarize statistics at the end of a scan",
         "created_date": "2022-07-25",

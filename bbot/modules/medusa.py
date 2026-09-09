@@ -1,11 +1,14 @@
 import re
+from typing import Union
+
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class medusa(BaseModule):
     watched_events = ["PROTOCOL"]
-    produced_events = ["VULNERABILITY"]
-    flags = ["active", "aggressive", "deadly"]
+    produced_events = ["FINDING"]
+    flags = ["active", "loud", "invasive"]
     per_host_only = True
     meta = {
         "description": "Medusa SNMP bruteforcing with v1, v2c and R/W check.",
@@ -14,21 +17,22 @@ class medusa(BaseModule):
     }
     scope_distance_modifier = None
 
-    options = {
-        "snmp_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/SNMP/common-snmp-community-strings.txt",
-        "snmp_versions": ["1", "2C"],  # Only 1 and 2C are available with medusa 2.3.
-        "wait_microseconds": 200,
-        "timeout_s": 5,
-        "threads": 5,
-    }
-
-    options_desc = {
-        "snmp_wordlist": "Wordlist url for SNMP community strings, newline separated (default https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/SNMP/snmp.txt)",
-        "snmp_versions": "List of SNMP versions to attempt against the SNMP server (default ['1', '2C'])",
-        "wait_microseconds": "Wait time after every SNMP request in microseconds (default 200)",
-        "timeout_s": "Wait time for the SNMP response(s) once at the end of all attempts (default 5)",
-        "threads": "Number of communities to be tested concurrently (default 5)",
-    }
+    class Config(BaseModuleConfig):
+        snmp_wordlist: Union[str, list[str]] = Field(
+            "https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/SNMP/common-snmp-community-strings.txt",
+            description="Wordlist url for SNMP community strings, newline separated (default https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/SNMP/snmp.txt). Accepts a list of URLs/paths to merge multiple wordlists (duplicates are removed).",
+        )
+        # Only 1 and 2C are available with medusa 2.3.
+        snmp_versions: list[str] = Field(
+            ["1", "2C"], description="List of SNMP versions to attempt against the SNMP server (default ['1', '2C'])"
+        )
+        wait_microseconds: int = Field(
+            200, description="Wait time after every SNMP request in microseconds (default 200)"
+        )
+        timeout_s: int = Field(
+            5, description="Wait time for the SNMP response(s) once at the end of all attempts (default 5)"
+        )
+        threads: int = Field(5, description="Number of communities to be tested concurrently (default 5)")
 
     deps_ansible = [
         {
@@ -140,8 +144,18 @@ class medusa(BaseModule):
                     self.info(f"Medusa stderr: {result.stderr}")
 
                 async for message in self.parse_output(result.stdout, snmp_version):
-                    vuln_event = self.create_vuln_event("CRITICAL", message, event)
-                    await self.emit_event(vuln_event)
+                    await self.emit_event(
+                        {
+                            "name": f"Valid SNMPV{snmp_version} Credentials Found!",
+                            "severity": "CRITICAL",
+                            "confidence": "CONFIRMED",
+                            "host": str(event.host),
+                            "port": str(event.port),
+                            "description": message,
+                        },
+                        "FINDING",
+                        parent=event,
+                    )
 
         # else: Medusa supports various protocols which could in theory be implemented later on.
 
@@ -215,18 +229,3 @@ class medusa(BaseModule):
         ]
 
         return cmd
-
-    def create_vuln_event(self, severity, description, source_event):
-        host = str(source_event.host)
-        port = str(source_event.port)
-
-        return self.make_event(
-            {
-                "severity": severity,
-                "host": host,
-                "port": port,
-                "description": description,
-            },
-            "VULNERABILITY",
-            source_event,
-        )

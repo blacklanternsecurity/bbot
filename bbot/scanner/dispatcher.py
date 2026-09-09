@@ -1,7 +1,6 @@
 import logging
 import traceback
-
-log = logging.getLogger("bbot.scanner.dispatcher")
+import contextlib
 
 
 class Dispatcher:
@@ -11,6 +10,7 @@ class Dispatcher:
 
     def set_scan(self, scan):
         self.scan = scan
+        self.log = logging.getLogger("bbot.scanner.dispatcher")
 
     async def on_start(self, scan):
         return
@@ -24,9 +24,10 @@ class Dispatcher:
         """
         self.scan.debug(f"Setting scan status to {status}")
 
-    async def catch(self, callback, *args, **kwargs):
+    @contextlib.contextmanager
+    def catch(self):
         try:
-            return await callback(*args, **kwargs)
+            yield
         except Exception as e:
-            log.error(f"Error in {callback.__qualname__}(): {e}")
-            log.trace(traceback.format_exc())
+            self.log.error(f"Error in dispatcher: {e}")
+            self.log.trace(traceback.format_exc())

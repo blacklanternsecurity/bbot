@@ -11,12 +11,10 @@ class TestEventValidationBenchmarks:
         # Set deterministic random seed for reproducible benchmarks
         random.seed(42)
 
-        # Create a minimal scanner with no modules to isolate event validation performance
+        # Create a minimal scanner config to isolate event validation performance
         self.scanner_config = {
-            "modules": None,  # No modules to avoid overhead
-            "output_modules": None,  # No output modules
-            "dns": {"disable": True},  # Disable DNS to avoid network calls
-            "web": {"http_timeout": 1},  # Minimal timeouts
+            "dns": {"disable": True},
+            "web": {"http_timeout": 1},
         }
 
     def _generate_diverse_targets(self, count=1000):

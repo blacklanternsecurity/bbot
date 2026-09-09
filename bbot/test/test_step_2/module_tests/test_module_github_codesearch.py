@@ -1,4 +1,5 @@
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestGithub_Codesearch(ModuleTestBase):
@@ -10,12 +11,12 @@ class TestGithub_Codesearch(ModuleTestBase):
         "omit_event_types": [],
         "scope": {"report_distance": 2},
     }
-    modules_overrides = ["github_codesearch", "httpx", "trufflehog"]
+    modules_overrides = ["github_codesearch", "http", "trufflehog"]
 
     github_file_endpoint = (
         "/projectdiscovery/nuclei/06f242e5fce3439b7418877676810cbf57934875/v2/cmd/cve-annotate/main.go"
     )
-    github_file_url = f"http://127.0.0.1:8888{github_file_endpoint}"
+    github_file_url = f"{HTTPSERVER_URL}{github_file_endpoint}"
     github_file_content = """-----BEGIN PRIVATE KEY-----
 MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBAOBY2pd9PSQvuxqu
 WXFNVgILTWuUc721Wc2sFNvp4beowhUe1lfxaq5ZfCJcz7z4QsqFhOeks69O9UIb
@@ -38,8 +39,8 @@ Gnl54dJHT+EhlfY=
         respond_args = {"response_data": self.github_file_content}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
-        module_test.httpx_mock.add_response(url="https://api.github.com/zen")
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(url="https://api.github.com/zen")
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/search/code?per_page=100&type=Code&q=blacklanternsecurity.com&page=1",
             json={
                 "total_count": 214,
@@ -68,7 +69,7 @@ Gnl54dJHT+EhlfY=
         )
 
     async def setup_after_prep(self, module_test):
-        module_test.module.github_raw_url = "http://127.0.0.1:8888/"
+        module_test.module.github_raw_url = f"{HTTPSERVER_URL}/"
 
     def check(self, module_test, events):
         assert 1 == len([e for e in events if e.type == "URL_UNVERIFIED"])
@@ -76,7 +77,7 @@ Gnl54dJHT+EhlfY=
             [
                 e
                 for e in events
-                if e.type == "URL_UNVERIFIED" and e.data == self.github_file_url and e.scope_distance == 2
+                if e.type == "URL_UNVERIFIED" and e.url == self.github_file_url and e.scope_distance == 2
             ]
         ), "Failed to emit URL_UNVERIFIED"
         assert 1 == len(
@@ -90,7 +91,7 @@ Gnl54dJHT+EhlfY=
             ]
         ), "Failed to emit CODE_REPOSITORY"
         assert 1 == len(
-            [e for e in events if e.type == "URL" and e.data == self.github_file_url and e.scope_distance == 2]
+            [e for e in events if e.type == "URL" and e.url == self.github_file_url and e.scope_distance == 2]
         ), "Failed to visit URL"
         assert 1 == len(
             [

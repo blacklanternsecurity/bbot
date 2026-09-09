@@ -1,11 +1,26 @@
 ### BASIC OPTIONS ###
 
+# NOTE: If used in a preset, these options must be nested underneath "config:" like so:
+# config:
+#   home: ~/.bbot
+#   keep_scans: 20
+#   scope:
+#     strict: true
+#   dns:
+#     minimal: true
+
 # BBOT working directory
 home: ~/.bbot
 # How many scan results to keep before cleaning up the older ones
 keep_scans: 20
 # Interval for displaying status messages
 status_frequency: 15
+# When system memory exceeds this percentage, ingress is throttled with a per-event sleep
+# that scales linearly from 0s at the threshold up to 5s at threshold+5 (capped at 95%).
+# Last-ditch effort to give the pipeline a chance to drain before OOM.
+max_mem_percent: 90
+# Redact secrets (API keys, tokens, etc.) in the saved preset.yml
+redact_secrets: true
 # Include the raw data of files (i.e. PDFs, web screenshots) as base64 in the event
 file_blobs: false
 # Include the raw data of directories (i.e. git repos) as tar.gz base64 in the event
@@ -15,7 +30,7 @@ folder_blobs: false
 
 scope:
   # strict scope means only exact DNS names are considered in-scope
-  # subdomains are not included unless they are explicitly provided in the target list
+  # their subdomains are not included unless explicitly added to the target
   strict: false
   # Filter by scope distance which events are displayed in the output
   # 0 == show only in-scope events (affiliates are always shown)
@@ -28,12 +43,14 @@ scope:
 ### DNS ###
 
 dns:
-  # Completely disable DNS resolution (careful if you have IP whitelists/blacklists, consider using minimal=true instead)
+  # Completely disable DNS resolution (careful if you have IP targets/blacklists, consider using minimal=true instead)
   disable: false
   # Speed up scan by not creating any new DNS events, and only resolving A and AAAA records
   minimal: false
-  # How many instances of the dns module to run concurrently
-  threads: 25
+  # How many threads to use per resolver (best way to increase speed is to put more resolvers in /etc/resolv.conf)
+  threads: 10
+  # How many DNS records to cache
+  cache_size: 100000
   # How many concurrent DNS resolvers to use when brute-forcing
   # (under the hood this is passed through directly to massdns -s)
   brute_threads: 1000
@@ -58,8 +75,10 @@ dns:
   wildcard_tests: 10
   # Skip DNS requests for a certain domain and rdtype after encountering this many timeouts or SERVFAILs
   # This helps prevent faulty DNS servers from hanging up the scan
-  abort_threshold: 50
-  # Don't show PTR records containing IP addresses
+  abort_threshold: 10
+  # Treat hostnames discovered via PTR records as affiliates instead of in-scope
+  # This prevents rDNS results (e.g. 1-2-3-4.ptr.example.com) from triggering
+  # subdomain enumeration against unrelated domains when scanning IP ranges
   filter_ptrs: true
   # Enable/disable debug messages for DNS queries
   debug: false
@@ -75,18 +94,23 @@ dns:
 web:
   # HTTP proxy
   http_proxy:
+  # Hosts/CIDRs to exclude from HTTP proxy (NO_PROXY equivalent)
+  # Examples: ["localhost", "*.internal.corp", "10.0.0.0/8", "elastic.mycompany.com"]
+  http_proxy_exclude: []
   # Web user-agent
   user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.2151.97
+  # Suffix to append to user-agent (e.g. for tracking or identification)
+  user_agent_suffix:
   # Set the maximum number of HTTP links that can be followed in a row (0 == no spidering allowed)
   spider_distance: 0
   # Set the maximum directory depth for the web spider
   spider_depth: 1
   # Set the maximum number of links that can be followed per page
   spider_links_per_page: 25
-  # HTTP timeout (for Python requests; API calls, etc.)
+  # HTTP timeout for target-directed traffic (probes, crawls, etc.)
   http_timeout: 10
-  # HTTP timeout (for httpx)
-  httpx_timeout: 5
+  # HTTP timeout for non-target traffic (APIs, wordlist downloads, etc.)
+  http_timeout_infrastructure: 10
   # Custom HTTP headers (e.g. cookies, etc.)
   # in the format { "Header-Key": "header_value" }
   # These are attached to all in-scope HTTP requests
@@ -98,8 +122,6 @@ web:
   api_retries: 2
   # HTTP retries - try again if the raw connection fails
   http_retries: 1
-  # HTTP retries (for httpx)
-  httpx_retries: 1
   # Default sleep interval when rate limited by 429 (and retry-after isn't provided)
   429_sleep_interval: 30
   # Maximum sleep interval when rate limited by 429 (and an excessive retry-after is provided)
@@ -108,8 +130,23 @@ web:
   debug: false
   # Maximum number of HTTP redirects to follow
   http_max_redirects: 5
-  # Whether to verify SSL certificates
-  ssl_verify: false
+  # Whether to verify SSL certificates for target-directed traffic (probes, crawls, etc.)
+  ssl_verify_target: false
+  # Whether to verify SSL certificates for non-target traffic (APIs, wordlist downloads, etc.)
+  ssl_verify_infrastructure: true
+  # Maximum HTTP requests per second (0 = unlimited)
+  # Applies globally across all blasthttp consumers (http probing, web brute, etc.)
+  http_rate_limit: 0
+  # HTTP_RESPONSE body disk-spill — keeps body bytes off the Python heap.
+  # Bodies are written to ${scan_home}/temp/bodies/{uuid}.body.zst and served
+  # from a bounded LRU cache; only cache misses touch disk.
+  body_spill:
+    # Master switch
+    enabled: true
+    # In-memory LRU cache budget for hot bodies, in MB
+    cache_mb: 512
+    # zstd level-1 compression on the way to disk
+    compress: true
 
 ### ENGINE ###
 
@@ -118,8 +155,6 @@ engine:
 
 # Tool dependencies
 deps:
-  ffuf:
-    version: "2.1.0"
   # How to handle installation of module dependencies
   # Choices are:
   #  - abort_on_failure (default) - if a module dependency fails to install, abort the scan
@@ -149,6 +184,8 @@ aggregate: True
 dnsresolve: True
 # Cloud provider tagging
 cloudcheck: True
+# Python API event bridge
+python: True
 
 # Strip querystring from URLs by default
 url_querystring_remove: True
@@ -246,20 +283,61 @@ parameter_blacklist:
   - __SCROLLPOSITIONY
   - __SCROLLPOSITIONX
   - ASP.NET_SessionId
+  - .AspNetCore.Session
   - PHPSESSID
+  - sessionid
+  - csrftoken
+  - XSRF-TOKEN
   - __cf_bm
+  - _cfuvid
+  - cf_clearance
+  - _abck
+  - bm_sz
+  - bm_sv
+  - ak_bmsc
   - f5_cspm
+  # CSRF / Anti-Forgery tokens
+  - authenticity_token
+  - csrfmiddlewaretoken
+  - __RequestVerificationToken
+  - antiforgerytoken
+  - __csrf_magic
+  - _wpnonce
+  # ASP.NET session/identity cookies
+  - .ASPXANONYMOUS
+  - .ASPXAUTH
+  # PKCE (Proof Key for Code Exchange)
+  - code_verifier
+  - code_challenge
+  # Analytics
+  - _ga
+  - _gid
+  - _gat
+  - _gcl_au
+  - _fbp
+  - _fbc
+  - __utma
+  - __utmb
+  - __utmc
+  - __utmz
+  - _hjid
 
 parameter_blacklist_prefixes:
   - TS01
   - BIGipServer
+  - f5avr
   - incap_
   - visid_incap_
+  - nlbi_
   - AWSALB
   - utm_
   - ApplicationGatewayAffinity
   - JSESSIONID
   - ARRAffinity
+  - _hjSession
+  - _gat_
+  - intercom-
+  - OAMRequestContext_
 
 # Don't output these types of events (they are still distributed to modules)
 omit_event_types:
@@ -276,3 +354,7 @@ omit_event_types:
 interactsh_server: null
 interactsh_token: null
 interactsh_disable: false
+
+# API key for bbot.io services (currently used by ASN lookups via the asndb library)
+# Can also be set via the BBOT_IO_API_KEY environment variable, which takes precedence.
+bbot_io_api_key: null

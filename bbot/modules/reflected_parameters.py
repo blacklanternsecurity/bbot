@@ -4,7 +4,7 @@ from bbot.modules.base import BaseModule
 class reflected_parameters(BaseModule):
     watched_events = ["WEB_PARAMETER"]
     produced_events = ["FINDING"]
-    flags = ["active", "safe", "web-thorough"]
+    flags = ["safe", "active", "web-heavy"]
     meta = {
         "description": "Highlight parameters that reflect their contents in response body",
         "author": "@liquidsec",
@@ -12,7 +12,7 @@ class reflected_parameters(BaseModule):
     }
 
     async def handle_event(self, event):
-        url = event.data.get("url")
+        url = event.url
         reflection_detected = await self.detect_reflection(event, url)
 
         if reflection_detected:
@@ -25,7 +25,14 @@ class reflected_parameters(BaseModule):
                 description += (
                     f" Original Value: [{self.helpers.truncate_string(str(event.data['original_value']), 200)}]"
                 )
-            data = {"host": str(event.host), "description": description, "url": url}
+            data = {
+                "host": str(event.host),
+                "description": description,
+                "url": url,
+                "name": "Reflected Parameter",
+                "severity": "INFO",
+                "confidence": "HIGH",
+            }
             await self.emit_event(data, "FINDING", event)
 
     async def detect_reflection(self, event, url):
@@ -51,22 +58,27 @@ class reflected_parameters(BaseModule):
 
     async def send_probe_with_canary(self, event, parameter_name, parameter_value, canary_value, cookies, timeout=10):
         method = "GET"
-        url = event.data["url"]
+        url = event.url
         headers = {}
         data = None
         json_data = None
         params = {parameter_name: parameter_value, "c4n4ry": canary_value}
+        param_type = event.data["type"]
 
-        if event.data["type"] == "GETPARAM":
-            url = f"{url}?{parameter_name}={parameter_value}&c4n4ry={canary_value}"
-        elif event.data["type"] == "COOKIE":
+        if param_type == "GETPARAM":
+            url = self.helpers.add_get_params(
+                url,
+                {parameter_name: parameter_value, "c4n4ry": canary_value},
+                encode=False,
+            ).geturl()
+        elif param_type == "COOKIE":
             cookies.update(params)
-        elif event.data["type"] == "HEADER":
+        elif param_type == "HEADER":
             headers.update(params)
-        elif event.data["type"] == "POSTPARAM":
+        elif param_type == "POSTPARAM":
             method = "POST"
             data = params
-        elif event.data["type"] == "BODYJSON":
+        elif param_type == "BODYJSON":
             method = "POST"
             json_data = params
 

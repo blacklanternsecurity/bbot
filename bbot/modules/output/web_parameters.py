@@ -2,6 +2,7 @@ from contextlib import suppress
 from collections import defaultdict
 
 from bbot.modules.output.base import BaseOutputModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class Web_parameters(BaseOutputModule):
@@ -11,11 +12,10 @@ class Web_parameters(BaseOutputModule):
         "created_date": "2025-01-25",
         "author": "@liquidsec",
     }
-    options = {"output_file": "", "include_count": False}
-    options_desc = {
-        "output_file": "Output to file",
-        "include_count": "Include the count of each parameter in the output",
-    }
+
+    class Config(BaseModuleConfig):
+        output_file: str = Field("", description="Output to file")
+        include_count: bool = Field(False, description="Include the count of each parameter in the output")
 
     output_filename = "web_parameters.txt"
 

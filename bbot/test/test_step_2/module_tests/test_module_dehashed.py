@@ -9,7 +9,7 @@ class TestDehashed(ModuleTestBase):
     }
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.dehashed.com/v2/search",
             method="POST",
             json={
@@ -40,6 +40,8 @@ class TestDehashed(ModuleTestBase):
                 "total": 2,
             },
         )
+
+    async def setup_after_prep(self, module_test):
         await module_test.mock_dns(
             {
                 "bob.com": {"A": ["127.0.0.1"]},
@@ -96,7 +98,7 @@ class TestDehashed(ModuleTestBase):
 
 class TestDehashedBadEmail(TestDehashed):
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.dehashed.com/v2/search",
             method="POST",
             json={
@@ -120,7 +122,7 @@ class TestDehashedBadEmail(TestDehashed):
 
 class TestDehashedHTTPError(TestDehashed):
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.dehashed.com/v2/search",
             method="POST",
             json={"error": "issue with request body"},
@@ -130,14 +132,14 @@ class TestDehashedHTTPError(TestDehashed):
     def check(self, module_test, events):
         scan_log_content = open(module_test.scan.home / "scan.log").read()
         assert (
-            'Error retrieving results from dehashed.com (status code 400): {"error":"issue with request body"}'
+            'Error retrieving results from dehashed.com (status code 400): {"error": "issue with request body"}'
             in scan_log_content
         )
 
 
 class TestDehashedTooManyResults(TestDehashed):
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.dehashed.com/v2/search",
             method="POST",
             json={

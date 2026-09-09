@@ -1,14 +1,21 @@
 import os
 import ssl
 import time
+import yaml
 import pytest
 import shutil
 import asyncio
 import logging
 from pathlib import Path
 from contextlib import suppress
-from omegaconf import OmegaConf
 from pytest_httpserver import HTTPServer
+
+from bbot.test.worker import (
+    BBOT_TEST_DIR,
+    HTTPSERVER_ALLINTERFACES_PORT,
+    HTTPSERVER_PORT,
+    HTTPSERVER_SSL_PORT,
+)
 
 from bbot.core import CORE
 from bbot.core.helpers.misc import execute_sync_or_async
@@ -23,7 +30,13 @@ debug_format = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s %(filenam
 debug_handler.setFormatter(debug_format)
 root_logger.addHandler(debug_handler)
 
-test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
+with open(Path(__file__).parent / "test.conf") as _f:
+    test_config = yaml.safe_load(_f) or {}
+
+# Give each xdist worker its own BBOT home. test.conf carries the serial default;
+# under -n the workers would otherwise share caches, scan output and temp files,
+# and the sessionfinish cleanup below would delete a directory still in use.
+test_config["home"] = str(BBOT_TEST_DIR)
 
 os.environ["BBOT_DEBUG"] = "True"
 CORE.logger.log_level = logging.DEBUG
@@ -31,6 +44,17 @@ CORE.logger.log_level = logging.DEBUG
 # silence all stderr output:
 stderr_handler = CORE.logger.log_handlers["stderr"]
 stderr_handler.setLevel(logging.CRITICAL)
+# worker.py clears _BBOT_LOGGING_SETUP for xdist workers, so every process that
+# reaches here (serial or worker) owns a real QueueListener. If it is missing,
+# logging never got set up and debug.log would silently stay empty, so fail
+# loudly instead of continuing with logging quietly broken.
+if CORE.logger.listener is None:
+    raise RuntimeError(
+        "BBOT logging was not initialized in this process "
+        f"(PYTEST_XDIST_WORKER={os.environ.get('PYTEST_XDIST_WORKER', '')!r}). "
+        "debug.log would be empty and log-reading tests would fail with "
+        "confusing assertion errors."
+    )
 handlers = list(CORE.logger.listener.handlers)
 handlers.remove(stderr_handler)
 CORE.logger.listener.handlers = tuple(handlers)
@@ -42,16 +66,49 @@ for h in root_logger.handlers:
 CORE.merge_default(test_config)
 
 
-@pytest.fixture
-def assert_all_responses_were_requested() -> bool:
-    return False
-
-
 @pytest.fixture(autouse=True)
 def silence_live_logging():
     for handler in logging.getLogger().handlers:
         if type(handler).__name__ == "_LiveLoggingStreamHandler":
             handler.setLevel(logging.CRITICAL)
+
+
+def _patch_python_module_loader():
+    """Restore the standard ``_module_consumers`` bump on the ``python`` output
+    module for every test scan.
+
+    In production, ``python._increment_consumer_count`` is a no-op (its
+    ``_worker`` is also no-op — see ``bbot/modules/output/python.py``),
+    so events flowing through ``async_start`` don't pin themselves and
+    ``_minimize()`` correctly strips heavy fields when their pipeline
+    finishes. But module + integration tests routinely do
+    ``events = [e async for e in scan.async_start()]`` and assert on
+    ``event.tags`` / ``event.resolved_hosts`` / ``event.body`` / etc.
+    *after* the scan completes — so for tests we want the standard
+    increment to fire, which keeps events pinned through assertion time.
+
+    BBOT's ``ModuleLoader.load_module`` exec's a fresh module spec each
+    call, so each Scanner gets a brand-new ``python`` *class object*,
+    not the one we'd see by importing ``bbot.modules.output.python``
+    statically. Patching the imported class therefore has no effect.
+    Instead we wrap the loader: every time a fresh ``python`` class is
+    materialized, restore the increment on it.
+    """
+    from bbot.core.modules import ModuleLoader
+    from bbot.modules.base import BaseModule
+
+    orig = ModuleLoader.load_module
+
+    def patched(self, module_name):
+        cls = orig(self, module_name)
+        if module_name == "python":
+            cls._increment_consumer_count = BaseModule._increment_consumer_count
+        return cls
+
+    ModuleLoader.load_module = patched
+
+
+_patch_python_module_loader()
 
 
 def stop_server(server):
@@ -62,7 +119,7 @@ def stop_server(server):
 
 @pytest.fixture
 def bbot_httpserver():
-    server = HTTPServer(host="127.0.0.1", port=8888, threaded=True)
+    server = HTTPServer(host="127.0.0.1", port=HTTPSERVER_PORT, threaded=True)
     server.start()
 
     yield server
@@ -81,7 +138,7 @@ def bbot_httpserver_ssl():
     keyfile = str(current_dir / "testsslkey.pem")
     certfile = str(current_dir / "testsslcert.pem")
     context.load_cert_chain(certfile, keyfile)
-    server = HTTPServer(host="127.0.0.1", port=9999, ssl_context=context, threaded=True)
+    server = HTTPServer(host="127.0.0.1", port=HTTPSERVER_SSL_PORT, ssl_context=context, threaded=True)
     server.start()
 
     yield server
@@ -93,26 +150,102 @@ def bbot_httpserver_ssl():
     server.clear()
 
 
-def should_mock(request):
-    return request.url.host not in ["127.0.0.1", "localhost", "raw.githubusercontent.com"] + interactsh_servers
+def _should_mock(host):
+    """Check if a request to this host should be mocked (True = mock, False = pass through)."""
+    return host not in ["127.0.0.1", "localhost", "raw.githubusercontent.com"] + interactsh_servers
 
 
-def pytest_collection_modifyitems(config, items):
-    # make sure all tests have the httpx_mock marker
-    for item in items:
-        item.add_marker(
-            pytest.mark.httpx_mock(
-                should_mock=should_mock,
-                assert_all_requests_were_expected=False,
-                assert_all_responses_were_requested=False,
-                can_send_already_matched_responses=True,
-            )
-        )
+@pytest.fixture
+def blasthttp_mock():
+    """
+    Mock fixture for blasthttp engine requests.
+
+    Patches HTTPEngine.request() to intercept external requests and return
+    mock responses. Requests to localhost/127.0.0.1 pass through to real blasthttp.
+    """
+    from bbot.core.helpers.web.web import WebHelper
+    from bbot.test.mock_blasthttp import BlasthttpMock
+
+    mock = BlasthttpMock(should_mock_fn=_should_mock)
+    original_request = WebHelper.request
+
+    async def patched_request(self, *args, **kwargs):
+        # Peek at URL without modifying kwargs
+        url = kwargs.get("url", "")
+        if not url and args:
+            url = str(args[0])
+        # If resolve_ip points to localhost, pass through to real blasthttp
+        resolve_ip = kwargs.get("resolve_ip", "")
+        if resolve_ip and resolve_ip in ("127.0.0.1", "::1"):
+            return await original_request(self, *args, **kwargs)
+        if url and mock.should_intercept(url):
+            # Read raise_error before the mock pops it
+            raise_error = kwargs.get("raise_error", False)
+            result = await mock.handle_engine_request(self, *args, **kwargs)
+            # Convert engine-style error dicts to WebError exceptions
+            if isinstance(result, dict) and "_request_error" in result:
+                if raise_error:
+                    from bbot.errors import WebError
+
+                    error = WebError(result["_request_error"])
+                    error.response = result.get("_response")
+                    raise error
+                return None
+            return result
+        return await original_request(self, *args, **kwargs)
+
+    original_request_batch_stream = WebHelper.request_batch_stream
+
+    async def patched_request_batch_stream(self, urls, threads=10, **kwargs):
+        import blasthttp
+        from collections import deque
+
+        # Run the real entry-parsing and config-building logic unmodified
+        entries = []
+        has_tracker = False
+        for entry in urls:
+            if isinstance(entry, str):
+                entries.append((entry, kwargs, None))
+            elif isinstance(entry, tuple):
+                url = entry[0]
+                req_kwargs = entry[1] if len(entry) > 1 and isinstance(entry[1], dict) else kwargs
+                tracker = entry[2] if len(entry) > 2 else None
+                if tracker is not None:
+                    has_tracker = True
+                entries.append((url, req_kwargs, tracker))
+            else:
+                entries.append((str(entry), kwargs, None))
+
+        if not entries:
+            return
+
+        configs = []
+        trackers_by_url = {}
+        for url, req_kwargs, tracker in entries:
+            url, method, blast_kwargs = self._build_blasthttp_kwargs(url, **req_kwargs)
+            config = blasthttp.BatchConfig(url, **blast_kwargs)
+            configs.append(config)
+            trackers_by_url.setdefault(config.url, deque()).append(tracker)
+
+        async for br in mock.handle_batch_stream(self.client, configs, concurrency=threads):
+            response = br.response  # blasthttp.Response or None
+            if has_tracker:
+                queue = trackers_by_url.get(br.url)
+                tracker = queue.popleft() if queue else None
+                yield br.url, response, tracker
+            else:
+                yield br.url, response
+
+    WebHelper.request = patched_request
+    WebHelper.request_batch_stream = patched_request_batch_stream
+    yield mock
+    WebHelper.request = original_request
+    WebHelper.request_batch_stream = original_request_batch_stream
 
 
 @pytest.fixture
 def bbot_httpserver_allinterfaces():
-    server = HTTPServer(host="0.0.0.0", port=5556, threaded=True)
+    server = HTTPServer(host="0.0.0.0", port=HTTPSERVER_ALLINTERFACES_PORT, threaded=True)
     server.start()
 
     yield server
@@ -222,6 +355,20 @@ def proxy_server():
     # Stop the server.
     server.shutdown()
     server_thread.join()
+
+
+def pytest_collection_modifyitems(config, items):
+    """Pin docker-backed tests to one xdist worker.
+
+    They start real containers with fixed names and fixed host port bindings
+    (kafka, elastic, mongo, mysql, nats, postgres, rabbitmq), so two workers
+    running them at once fight over both. They already mark themselves with
+    ``skip_distro_tests``, so reuse that as the signal.
+    """
+    for item in items:
+        cls = getattr(item, "cls", None)
+        if cls is not None and getattr(cls, "skip_distro_tests", False):
+            item.add_marker(pytest.mark.xdist_group("docker"))
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):  # pragma: no cover
@@ -340,8 +487,39 @@ def pytest_sessionfinish(session, exitstatus):
         for handler in handlers:
             logger.removeHandler(handler)
 
-    # Wipe out BBOT home dir
-    shutil.rmtree("/tmp/.bbot_test", ignore_errors=True)
+    # Kill any orphaned ProcessPoolExecutor workers that could block exit
+    import multiprocessing
+
+    for child in multiprocessing.active_children():
+        if child.is_alive():
+            child.terminate()
+            child.join(timeout=5)
+            if child.is_alive():
+                child.kill()
+
+    # Wipe out BBOT home dir. Scoped to this worker: under xdist the first
+    # worker to finish would otherwise delete the directory out from under
+    # every worker still running.
+    shutil.rmtree(BBOT_TEST_DIR, ignore_errors=True)
+
+    # Ensure stdout/stderr are blocking before pytest writes summaries
+    try:
+        import sys
+        import fcntl
+        import os
+        import io
+
+        fds = []
+        for stream in (sys.stdout, sys.stderr):
+            try:
+                fds.append(stream.fileno())
+            except io.UnsupportedOperation:
+                pass
+        for fd in fds:
+            flags = fcntl.fcntl(fd, fcntl.F_GETFL)
+            fcntl.fcntl(fd, fcntl.F_SETFL, flags & ~os.O_NONBLOCK)
+    except Exception:
+        pass
 
     yield
 

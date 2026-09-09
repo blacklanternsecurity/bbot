@@ -1,0 +1,4 @@
+description: "Virtual host discovery: subdomain brute-force and mutations against the target host's Host header / SNI."
+
+modules:
+  - virtualhost

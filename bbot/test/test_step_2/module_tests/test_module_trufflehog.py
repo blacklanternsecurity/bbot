@@ -1,19 +1,50 @@
 import io
+import json
 import shutil
 import zipfile
 import tarfile
 import subprocess
-from copy import copy
 from pathlib import Path
+
+from werkzeug.wrappers import Response
 
 from .base import ModuleTestBase
 from bbot.test.bbot_fixtures import bbot_test_dir
+from bbot.test.worker import HTTPSERVER_URL, BBOT_TEST_DIR, BBOT_TEST_DIR_NAME
+
+
+# Custom trufflehog detector that verifies against module_test.httpserver,
+# so the test doesn't depend on external network reachability.
+TRUFFLEHOG_VERIFY_PATH = "/trufflehog-verify"
+TRUFFLEHOG_VERIFIED_TOKEN = "aaaaaaaaaaaaaaaa"
+TRUFFLEHOG_UNVERIFIED_TOKEN = "bbbbbbbbbbbbbbbb"
+TRUFFLEHOG_CUSTOM_CONFIG = f"""detectors:
+  - name: BBOTTestSecret
+    keywords:
+      - BBOTTEST
+    regex:
+      key: 'BBOTTEST-([A-Za-z0-9]{{16}})'
+    verify:
+      - endpoint: {HTTPSERVER_URL}{TRUFFLEHOG_VERIFY_PATH}
+        unsafe: true
+"""
+
+
+def _trufflehog_verify_handler(request):
+    payload = json.loads(request.get_data() or b"{}")
+    # trufflehog posts {"<DetectorName>": {"<group>": ["<full match>", "<group capture>"]}}
+    captures = payload.get("BBOTTestSecret", {}).get("key", [])
+    if len(captures) >= 2 and captures[1] == TRUFFLEHOG_VERIFIED_TOKEN:
+        return Response("ok", status=200)
+    return Response("no", status=401)
 
 
 class TestTrufflehog(ModuleTestBase):
     download_dir = bbot_test_dir / "test_trufflehog"
+    trufflehog_config_path = bbot_test_dir / "trufflehog_custom_config.yaml"
     config_overrides = {
         "modules": {
+            "trufflehog": {"config": str(trufflehog_config_path)},
             "postman_download": {"api_key": "asdf", "output_folder": str(download_dir)},
             "docker_pull": {"output_folder": str(download_dir)},
             "github_org": {"api_key": "asdf"},
@@ -32,13 +63,17 @@ class TestTrufflehog(ModuleTestBase):
         "trufflehog",
     ]
 
-    file_content = "Verifiable Secret:\nhttps://admin:admin@the-internet.herokuapp.com/basic_auth\n\nUnverifiable Secret:\nhttps://admin:admin@internal.host.com"
+    file_content = (
+        f"Verifiable Secret:\nBBOTTEST-{TRUFFLEHOG_VERIFIED_TOKEN}\n\n"
+        f"Unverifiable Secret:\nBBOTTEST-{TRUFFLEHOG_UNVERIFIED_TOKEN}"
+    )
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        self.trufflehog_config_path.write_text(TRUFFLEHOG_CUSTOM_CONFIG)
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/zen", match_headers={"Authorization": "token asdf"}
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.getpostman.com/me",
             json={
                 "user": {
@@ -69,7 +104,7 @@ class TestTrufflehog(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/orgs/blacklanternsecurity",
             match_headers={"Authorization": "token asdf"},
             json={
@@ -105,7 +140,7 @@ class TestTrufflehog(ModuleTestBase):
                 "type": "Organization",
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/orgs/blacklanternsecurity/repos?per_page=100&page=1",
             match_headers={"Authorization": "token asdf"},
             json=[
@@ -313,7 +348,7 @@ class TestTrufflehog(ModuleTestBase):
                 },
             ],
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/workflows?per_page=100&page=1",
             match_headers={"Authorization": "token asdf"},
             json={
@@ -334,7 +369,7 @@ class TestTrufflehog(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/workflows/22452226/runs?status=success&per_page=1",
             match_headers={"Authorization": "token asdf"},
             json={
@@ -581,7 +616,7 @@ class TestTrufflehog(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/runs/8839360698/logs",
             match_headers={"Authorization": "token asdf"},
             headers={
@@ -595,11 +630,11 @@ class TestTrufflehog(ModuleTestBase):
             z.writestr("folder/test2.txt", self.file_content)
         data.seek(0)
         zip_content = data.getvalue()
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://productionresultssa10.blob.core.windows.net/actions-results/7beb304e-f42c-4830-a027-4f5dec53107d/workflow-job-run-3a559e2a-952e-58d2-b8db-2e604a9266d7/logs/steps/step-logs-0e34a19a-18b0-4208-b27a-f8c031db2d17.txt?rsct=text%2Fplain&se=2024-04-26T16%3A25%3A39Z&sig=a%2FiN8dOw0e3tiBQZAfr80veI8OYChb9edJ1eFY136B4%3D&sp=r&spr=https&sr=b&st=2024-04-26T16%3A15%3A34Z&sv=2021-12-02",
             content=zip_content,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://hub.docker.com/v2/users/blacklanternsecurity",
             json={
                 "id": "f90895d9cf484d9182c6dbbef2632329",
@@ -615,7 +650,7 @@ class TestTrufflehog(ModuleTestBase):
                 "type": "User",
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://hub.docker.com/v2/repositories/blacklanternsecurity?page_size=25&page=1",
             json={
                 "count": 2,
@@ -642,7 +677,7 @@ class TestTrufflehog(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/helloworld/tags/list",
             json={
                 "name": "blacklanternsecurity/helloworld",
@@ -652,7 +687,7 @@ class TestTrufflehog(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/helloworld/manifests/latest",
             json={
                 "schemaVersion": 2,
@@ -671,7 +706,7 @@ class TestTrufflehog(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/helloworld/blobs/sha256:a9910947b74a4f0606cfc8669ae8808d2c328beaee9e79f489dc17df14cd50b1",
             json={
                 "architecture": "amd64",
@@ -846,7 +881,7 @@ class TestTrufflehog(ModuleTestBase):
                 },
             },
         )
-        temp_path = Path("/tmp/.bbot_test")
+        temp_path = Path(f"{BBOT_TEST_DIR}")
         tar_path = temp_path / "docker_pull_test.tar.gz"
         shutil.rmtree(tar_path, ignore_errors=True)
         with tarfile.open(tar_path, "w:gz") as tar:
@@ -857,13 +892,16 @@ class TestTrufflehog(ModuleTestBase):
             tar.addfile(file_info, file_io)
         with open(tar_path, "rb") as file:
             layer_file = file.read()
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/helloworld/blobs/sha256:8a1e25ce7c4f75e372e9884f8f7b1bedcfe4a7a7d452eb4b0a1c7477c9a90345",
             content=layer_file,
         )
 
     async def setup_after_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.httpserver.expect_request(uri=TRUFFLEHOG_VERIFY_PATH, method="POST").respond_with_handler(
+            _trufflehog_verify_handler
+        )
+        module_test.blasthttp_mock.add_response(
             url="https://www.postman.com/_api/ws/proxy",
             match_json={
                 "service": "search",
@@ -959,7 +997,7 @@ class TestTrufflehog(ModuleTestBase):
                 },
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://www.postman.com/_api/ws/proxy",
             match_json={
                 "service": "workspaces",
@@ -993,7 +1031,7 @@ class TestTrufflehog(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.getpostman.com/workspaces/3a7e4bdc-7ff7-4dd4-8eaa-61ddce1c3d1b",
             json={
                 "workspace": {
@@ -1024,7 +1062,7 @@ class TestTrufflehog(ModuleTestBase):
                 }
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://www.postman.com/_api/workspace/3a7e4bdc-7ff7-4dd4-8eaa-61ddce1c3d1b/globals",
             json={
                 "model_id": "8be7574b-219f-49e0-8d25-da447a882e4e",
@@ -1046,7 +1084,7 @@ class TestTrufflehog(ModuleTestBase):
                 },
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.getpostman.com/environments/10197090-f770f816-9c6a-40f7-bde3-c0855d2a1089",
             json={
                 "environment": {
@@ -1066,7 +1104,7 @@ class TestTrufflehog(ModuleTestBase):
                 }
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.getpostman.com/collections/10197090-2aab9fd0-3715-4abe-8bb0-8cb0264d023f",
             json={
                 "collection": {
@@ -1089,12 +1127,9 @@ class TestTrufflehog(ModuleTestBase):
                                 "header": [{"key": "Content-Type", "value": "application/json"}],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": '{"username": "test", "password": "Test"}',
+                                    "raw": f"verifiable: BBOTTEST-{TRUFFLEHOG_VERIFIED_TOKEN}",
                                 },
-                                "url": {
-                                    "raw": "https://admin:admin@the-internet.herokuapp.com/basic_auth",
-                                    "host": ["https://admin:admin@the-internet.herokuapp.com/basic_auth"],
-                                },
+                                "url": {"raw": "https://example.com/", "host": ["https://example.com/"]},
                                 "description": "",
                             },
                             "response": [],
@@ -1109,12 +1144,9 @@ class TestTrufflehog(ModuleTestBase):
                                 "header": [{"key": "Content-Type", "value": "application/json"}],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": '{"username": "test", "password": "Test"}',
+                                    "raw": f"unverifiable: BBOTTEST-{TRUFFLEHOG_UNVERIFIED_TOKEN}",
                                 },
-                                "url": {
-                                    "raw": "https://admin:admin@internal.host.com",
-                                    "host": ["https://admin:admin@internal.host.com"],
-                                },
+                                "url": {"raw": "https://example.com/", "host": ["https://example.com/"]},
                                 "description": "",
                             },
                             "response": [],
@@ -1124,7 +1156,7 @@ class TestTrufflehog(ModuleTestBase):
                 }
             },
         )
-        temp_path = Path("/tmp/.bbot_test")
+        temp_path = Path(f"{BBOT_TEST_DIR}")
         temp_repo_path = temp_path / "test_keys"
         shutil.rmtree(temp_repo_path, ignore_errors=True)
         subprocess.run(["git", "init", "test_keys"], cwd=temp_path)
@@ -1147,33 +1179,26 @@ class TestTrufflehog(ModuleTestBase):
         )
 
         # we need this test to work offline, so we patch git_clone to pull from a local file:// path
-        old_handle_event = module_test.scan.modules["git_clone"].handle_event
+        old_clone = module_test.scan.modules["git_clone"].clone_git_repository
 
-        async def new_handle_event(event):
-            if event.type == "CODE_REPOSITORY":
-                event = copy(event)
-                data = dict(event.data)
-                data["url"] = event.data["url"].replace(
-                    "https://github.com/blacklanternsecurity", f"file://{temp_path}"
-                )
-                event.data = data
-            return await old_handle_event(event)
+        async def new_clone(repository_url):
+            repository_url = repository_url.replace("https://github.com/blacklanternsecurity", f"file://{temp_path}")
+            return await old_clone(repository_url)
 
-        module_test.monkeypatch.setattr(module_test.scan.modules["git_clone"], "handle_event", new_handle_event)
+        module_test.monkeypatch.setattr(module_test.scan.modules["git_clone"], "clone_git_repository", new_clone)
 
     def check(self, module_test, events):
         vuln_events = [
             e
             for e in events
-            if e.type == "VULNERABILITY"
+            if e.type == "FINDING"
             and (
                 e.data["host"] == "hub.docker.com"
                 or e.data["host"] == "github.com"
                 or e.data["host"] == "www.postman.com"
             )
             and "Verified Secret Found." in e.data["description"]
-            and "Raw result: [https://admin:admin@the-internet.herokuapp.com]" in e.data["description"]
-            and "RawV2 result: [https://admin:admin@the-internet.herokuapp.com/basic_auth]" in e.data["description"]
+            and f"Raw result: [{TRUFFLEHOG_VERIFIED_TOKEN}]" in e.data["description"]
         ]
 
         # Trufflehog should find 4 verifiable secrets, 1 from the github, 1 from the workflow log, 1 from the docker image and 1 from the postman.
@@ -1191,7 +1216,8 @@ class TestTrufflehog(ModuleTestBase):
             [
                 e
                 for e in filesystem_events
-                if e.data["path"].endswith("/git_repos/.bbot_test/test_keys") and Path(e.data["path"]).is_dir()
+                if e.data["path"].endswith(f"/git_repos/{BBOT_TEST_DIR_NAME}/test_keys")
+                and Path(e.data["path"]).is_dir()
             ]
         ), "Test keys repo dir does not exist"
         assert 1 == len(
@@ -1215,7 +1241,7 @@ class TestTrufflehog(ModuleTestBase):
                 e
                 for e in filesystem_events
                 if e.data["path"].endswith(
-                    "/postman_workspaces/BlackLanternSecurity BBOT [Public]/3a7e4bdc-7ff7-4dd4-8eaa-61ddce1c3d1b.zip"
+                    "/postman_workspaces/blacklanternsecurity-bbot-public/3a7e4bdc-7ff7-4dd4-8eaa-61ddce1c3d1b.zip"
                 )
                 and Path(e.data["path"]).is_file()
             ]
@@ -1226,7 +1252,7 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
     download_dir = bbot_test_dir / "test_trufflehog_nonverified"
     config_overrides = {
         "modules": {
-            "trufflehog": {"only_verified": False},
+            "trufflehog": {"only_verified": False, "config": str(TestTrufflehog.trufflehog_config_path)},
             "docker_pull": {"output_folder": str(download_dir)},
             "postman_download": {"api_key": "asdf", "output_folder": str(download_dir)},
             "github_org": {"api_key": "asdf"},
@@ -1238,14 +1264,14 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
         finding_events = [
             e
             for e in events
-            if e.type == e.type == "FINDING"
+            if e.type == "FINDING"
             and (
                 e.data["host"] == "hub.docker.com"
                 or e.data["host"] == "github.com"
                 or e.data["host"] == "www.postman.com"
             )
             and "Possible Secret Found." in e.data["description"]
-            and "Raw result: [https://admin:admin@internal.host.com]" in e.data["description"]
+            and f"Raw result: [{TRUFFLEHOG_UNVERIFIED_TOKEN}]" in e.data["description"]
         ]
         # Trufflehog should find 4 unverifiable secrets, 1 from the github, 1 from the workflow log, 1 from the docker image and 1 from the postman.
         assert 4 == len(finding_events), "Failed to find secret in events"
@@ -1262,7 +1288,8 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
             [
                 e
                 for e in filesystem_events
-                if e.data["path"].endswith("/git_repos/.bbot_test/test_keys") and Path(e.data["path"]).is_dir()
+                if e.data["path"].endswith(f"/git_repos/{BBOT_TEST_DIR_NAME}/test_keys")
+                and Path(e.data["path"]).is_dir()
             ]
         ), "Test keys repo dir does not exist"
         assert 1 == len(
@@ -1286,7 +1313,7 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
                 e
                 for e in filesystem_events
                 if e.data["path"].endswith(
-                    "/postman_workspaces/BlackLanternSecurity BBOT [Public]/3a7e4bdc-7ff7-4dd4-8eaa-61ddce1c3d1b.zip"
+                    "/postman_workspaces/blacklanternsecurity-bbot-public/3a7e4bdc-7ff7-4dd4-8eaa-61ddce1c3d1b.zip"
                 )
                 and Path(e.data["path"]).is_file()
             ]
@@ -1294,8 +1321,8 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
 
 
 class TestTrufflehog_HTTPResponse(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
-    modules_overrides = ["httpx", "trufflehog"]
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http", "trufflehog"]
     config_overrides = {"modules": {"trufflehog": {"only_verified": False}}}
 
     async def setup_before_prep(self, module_test):
@@ -1304,12 +1331,16 @@ class TestTrufflehog_HTTPResponse(ModuleTestBase):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert any(e.type == "FINDING" for e in events)
+        findings = [e for e in events if e.type == "FINDING"]
+        assert findings, "trufflehog produced no FINDING for HTTP_RESPONSE with a secret"
+        assert all(f.data.get("url", "").startswith(HTTPSERVER_URL) for f in findings), (
+            "FINDING must carry the source URL of the HTTP_RESPONSE, not a tempfile path"
+        )
 
 
 class TestTrufflehog_RAWText(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888/test.pdf"]
-    modules_overrides = ["httpx", "trufflehog", "filedownload", "extractous"]
+    targets = [f"{HTTPSERVER_URL}/test.pdf"]
+    modules_overrides = ["http", "trufflehog", "filedownload", "kreuzberg"]
 
     download_dir = bbot_test_dir / "test_trufflehog_rawtext"
     config_overrides = {
@@ -1330,3 +1361,38 @@ class TestTrufflehog_RAWText(ModuleTestBase):
         finding_events = [e for e in events if e.type == "FINDING"]
         assert len(finding_events) == 1
         assert "Possible Secret Found" in finding_events[0].data["description"]
+        # Trufflehog emits HIGH severity and MEDIUM confidence for possible secrets
+        assert finding_events[0].data["severity"] == "HIGH"
+        assert finding_events[0].data["confidence"] == "MEDIUM"
+
+
+class TestTrufflehog_JSSecretURL(ModuleTestBase):
+    # A secret in a linked JS bundle must produce a FINDING whose url is the JS URL,
+    # not the HTML URL and not a tempfile path.
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http", "excavate", "trufflehog"]
+    config_overrides = {
+        "modules": {"trufflehog": {"only_verified": False}},
+        "web": {"spider_distance": 1, "spider_depth": 1},
+    }
+
+    # Split the webhook literal so the source doesn't match GitHub's push-protection
+    # secret-scanning regex; assembled at runtime, trufflehog still detects it.
+    _slack_webhook = "https://hooks.slack.com/services/T7KJ4NLXR/B8QZ" + "2MP3V/xJ9vNqLpZ4dKcYm2XwRfBg7T"
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"},
+            respond_args={"response_data": '<html><script src="/app.js"></script></html>'},
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/app.js"},
+            respond_args={"response_data": f'const w = "{self._slack_webhook}";'},
+        )
+
+    def check(self, module_test, events):
+        js_findings = [e for e in events if e.type == "FINDING" and "SlackWebhook" in e.data.get("description", "")]
+        assert js_findings, "trufflehog produced no SlackWebhook FINDING from linked JS"
+        assert all(f.data.get("url", "") == f"{HTTPSERVER_URL}/app.js" for f in js_findings), (
+            f"FINDING must carry the JS URL, got: {[f.data.get('url') for f in js_findings]}"
+        )

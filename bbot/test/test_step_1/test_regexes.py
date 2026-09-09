@@ -351,9 +351,10 @@ def test_url_regexes():
 
 @pytest.mark.asyncio
 async def test_regex_helper():
-    from bbot import Scanner
+    from bbot.scanner import Scanner
 
     scan = Scanner("evilcorp.com", "evilcorp.org", "evilcorp.net", "evilcorp.co.uk")
+    await scan._prep()
 
     dns_name_regexes = regexes.event_type_regexes["DNS_NAME"]
 
@@ -399,6 +400,7 @@ async def test_regex_helper():
 
     # test yara hostname extractor helper
     scan = Scanner("evilcorp.com", "www.evilcorp.net", "evilcorp.co.uk")
+    await scan._prep()
     host_blob = """
     https://evilcorp.com/
     https://asdf.evilcorp.com/
@@ -424,5 +426,6 @@ async def test_regex_helper():
     }
 
     scan = Scanner()
+    await scan._prep()
     extracted = await scan.extract_in_scope_hostnames(host_blob)
     assert extracted == set()

@@ -3,6 +3,7 @@ from wafw00f import main as wafw00f_main
 
 # disable wafw00f logging
 import logging
+from bbot.core.config.models import BaseModuleConfig, Field
 
 wafw00f_logger = logging.getLogger("wafw00f")
 wafw00f_logger.setLevel(logging.CRITICAL + 100)
@@ -15,7 +16,7 @@ class wafw00f(BaseModule):
 
     watched_events = ["URL"]
     produced_events = ["WAF"]
-    flags = ["active", "aggressive"]
+    flags = ["active", "loud"]
     meta = {
         "description": "Web Application Firewall Fingerprinting Tool",
         "created_date": "2023-02-15",
@@ -24,8 +25,10 @@ class wafw00f(BaseModule):
 
     deps_pip = ["wafw00f~=2.3.1"]
 
-    options = {"generic_detect": True}
-    options_desc = {"generic_detect": "When no specific WAF detections are made, try to perform a generic detect"}
+    class Config(BaseModuleConfig):
+        generic_detect: bool = Field(
+            True, description="When no specific WAF detections are made, try to perform a generic detect"
+        )
 
     in_scope_only = True
     per_hostport_only = True
@@ -41,8 +44,8 @@ class wafw00f(BaseModule):
 
     async def handle_event(self, event):
         url = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/"
-        WW = await self.helpers.run_in_executor(wafw00f_main.WAFW00F, url, followredirect=False)
-        waf_detections, url = await self.helpers.run_in_executor(WW.identwaf)
+        WW = await self.helpers.run_in_executor_io(wafw00f_main.WAFW00F, url, followredirect=False)
+        waf_detections, url = await self.helpers.run_in_executor_io(WW.identwaf)
         if waf_detections:
             for waf in waf_detections:
                 await self.emit_event(
@@ -53,7 +56,7 @@ class wafw00f(BaseModule):
                 )
         else:
             if self.config.get("generic_detect") is True:
-                generic = await self.helpers.run_in_executor(WW.genericdetect)
+                generic = await self.helpers.run_in_executor_io(WW.genericdetect)
                 if generic:
                     waf = "generic detection"
                     await self.emit_event(

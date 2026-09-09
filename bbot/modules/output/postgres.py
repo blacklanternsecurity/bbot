@@ -1,4 +1,5 @@
 from bbot.modules.templates.sql import SQLTemplate
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class Postgres(SQLTemplate):
@@ -8,20 +9,17 @@ class Postgres(SQLTemplate):
         "created_date": "2024-11-08",
         "author": "@TheTechromancer",
     }
-    options = {
-        "username": "postgres",
-        "password": "bbotislife",
-        "host": "localhost",
-        "port": 5432,
-        "database": "bbot",
-    }
-    options_desc = {
-        "username": "The username to connect to Postgres",
-        "password": "The password to connect to Postgres",
-        "host": "The server running Postgres",
-        "port": "The port to connect to Postgres",
-        "database": "The database name to connect to",
-    }
+
+    class Config(BaseModuleConfig):
+        username: str = Field("postgres", description="The username to connect to Postgres", sensitive=True)
+        password: str = Field("bbotislife", description="The password to connect to Postgres", sensitive=True)
+        host: str = Field("localhost", description="The server running Postgres")
+        port: int = Field(5432, description="The port to connect to Postgres")
+        database: str = Field("bbot", description="The database name to connect to")
+        retries: int = Field(
+            10, description="Number of times to retry connecting to the database (1 second between retries)"
+        )
+
     deps_pip = ["sqlmodel", "asyncpg"]
     protocol = "postgresql+asyncpg"
 

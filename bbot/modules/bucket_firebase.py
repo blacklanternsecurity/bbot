@@ -1,19 +1,19 @@
 from bbot.modules.templates.bucket import bucket_template
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class bucket_firebase(bucket_template):
     watched_events = ["DNS_NAME", "STORAGE_BUCKET"]
     produced_events = ["STORAGE_BUCKET", "FINDING"]
-    flags = ["active", "safe", "cloud-enum", "web-basic"]
+    flags = ["safe", "active", "cloud-enum", "web"]
     meta = {
         "description": "Check for open Firebase databases related to target",
         "created_date": "2023-03-20",
         "author": "@TheTechromancer",
     }
-    options = {"permutations": False}
-    options_desc = {
-        "permutations": "Whether to try permutations",
-    }
+
+    class Config(BaseModuleConfig):
+        permutations: bool = Field(False, description="Whether to try permutations")
 
     cloudcheck_provider_name = "Google"
     delimiters = ("", "-")

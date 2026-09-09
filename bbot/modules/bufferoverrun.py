@@ -1,18 +1,20 @@
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class BufferOverrun(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["safe", "subdomain-enum", "passive"]
     meta = {
         "description": "Query BufferOverrun's TLS API for subdomains",
         "created_date": "2024-10-23",
         "author": "@TheTechromancer",
-        "auth_required": True,
     }
-    options = {"api_key": "", "commercial": False}
-    options_desc = {"api_key": "BufferOverrun API key", "commercial": "Use commercial API"}
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="BufferOverrun API key", sensitive=True, mandatory=True)
+        commercial: bool = Field(False, description="Use commercial API")
 
     base_url = "https://tls.bufferover.run/dns"
     commercial_base_url = "https://bufferover-run-tls.p.rapidapi.com/ipv4/dns"

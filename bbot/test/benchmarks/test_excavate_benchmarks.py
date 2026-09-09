@@ -1,6 +1,10 @@
+import importlib.util
+
 import pytest
 import asyncio
 from bbot.scanner import Scanner
+
+HTTP_MODULE = "httpx" if importlib.util.find_spec("bbot.modules.httpx") else "http"
 
 
 class TestExcavateDirectBenchmarks:
@@ -99,7 +103,7 @@ class TestExcavateDirectBenchmarks:
     async def _run_excavate_single_thread(self, text_segments):
         """Run excavate processing in single thread"""
         # Create scanner and initialize excavate
-        scan = Scanner("example.com", modules=["httpx"], config={"excavate": True})
+        scan = Scanner("example.com", modules=[HTTP_MODULE], config={"excavate": True})
         await scan._prep()
         excavate_module = scan.modules.get("excavate")
 
@@ -140,7 +144,7 @@ class TestExcavateDirectBenchmarks:
     async def _run_excavate_parallel_tasks(self, text_segments):
         """Run excavate processing with parallel asyncio tasks"""
         # Create scanner and initialize excavate
-        scan = Scanner("example.com", modules=["httpx"], config={"excavate": True})
+        scan = Scanner("example.com", modules=[HTTP_MODULE], config={"excavate": True})
         await scan._prep()
         excavate_module = scan.modules.get("excavate")
 

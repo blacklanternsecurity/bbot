@@ -1,18 +1,19 @@
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class securitytrails(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["safe", "subdomain-enum", "passive"]
     meta = {
         "description": "Query the SecurityTrails API for subdomains",
         "created_date": "2022-07-03",
         "author": "@TheTechromancer",
-        "auth_required": True,
     }
-    options = {"api_key": ""}
-    options_desc = {"api_key": "SecurityTrails API key"}
+
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="SecurityTrails API key", sensitive=True, mandatory=True)
 
     base_url = "https://api.securitytrails.com/v1"
     ping_url = f"{base_url}/ping?apikey={{api_key}}"

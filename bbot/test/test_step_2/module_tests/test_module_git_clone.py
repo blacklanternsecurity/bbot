@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 
 from .base import ModuleTestBase
+from bbot.test.worker import BBOT_TEST_DIR, BBOT_TEST_DIR_NAME
 from bbot.test.bbot_fixtures import bbot_test_dir
 
 
@@ -18,8 +19,8 @@ class TestGit_Clone(ModuleTestBase):
     file_content = "https://admin:admin@the-internet.herokuapp.com/basic_auth"
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(url="https://api.github.com/zen")
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(url="https://api.github.com/zen")
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/orgs/blacklanternsecurity",
             json={
                 "login": "blacklanternsecurity",
@@ -54,7 +55,7 @@ class TestGit_Clone(ModuleTestBase):
                 "type": "Organization",
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://api.github.com/orgs/blacklanternsecurity/repos?per_page=100&page=1",
             json=[
                 {
@@ -162,7 +163,7 @@ class TestGit_Clone(ModuleTestBase):
         )
 
     async def setup_after_prep(self, module_test):
-        temp_path = Path("/tmp/.bbot_test")
+        temp_path = Path(BBOT_TEST_DIR)
         shutil.rmtree(temp_path / "test_keys", ignore_errors=True)
         subprocess.run(["git", "init", "test_keys"], cwd=temp_path)
         temp_repo_path = temp_path / "test_keys"
@@ -190,6 +191,7 @@ class TestGit_Clone(ModuleTestBase):
             event.data["url"] = event.data["url"].replace(
                 "https://github.com/blacklanternsecurity", f"file://{temp_path}"
             )
+            event.parsed_url = module_test.scan.helpers.urlparse(event.data["url"])
             return old_filter_event(event)
 
         module_test.monkeypatch.setattr(module_test.scan.modules["git_clone"], "filter_event", new_filter_event)
@@ -199,7 +201,7 @@ class TestGit_Clone(ModuleTestBase):
             e
             for e in events
             if e.type == "FILESYSTEM"
-            and "git_repos/.bbot_test/test_keys" in e.data["path"]
+            and f"git_repos/{BBOT_TEST_DIR_NAME}/test_keys" in e.data["path"]
             and "git" in e.tags
             and e.scope_distance == 1
         ]

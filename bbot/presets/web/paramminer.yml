@@ -4,12 +4,12 @@ flags:
   - web-paramminer
 
 modules:
-  - httpx
+  - http
   - reflected_parameters
   - hunt
 
 conditions:
   - |
     {% if config.web.spider_distance == 0 %}
-      {{ warn("The paramminer preset works much better with spider enabled! Consider adding 'spider' or 'spider-intense' preset.") }}
+      {{ warn("The paramminer preset works much better with spider enabled! Consider adding 'spider' or 'spider-heavy' preset.") }}
     {% endif %}

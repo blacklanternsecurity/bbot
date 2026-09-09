@@ -1,20 +1,24 @@
 from bbot.modules.output.base import BaseOutputModule
 import markdown
 import html
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class web_report(BaseOutputModule):
-    watched_events = ["URL", "TECHNOLOGY", "FINDING", "VULNERABILITY", "VHOST"]
+    watched_events = ["URL", "TECHNOLOGY", "FINDING"]
     meta = {
         "description": "Create a markdown report with web assets",
         "created_date": "2023-02-08",
         "author": "@liquidsec",
     }
-    options = {
-        "output_file": "",
-        "css_theme_file": "https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown.min.css",
-    }
-    options_desc = {"output_file": "Output to file", "css_theme_file": "CSS theme URL for HTML output"}
+
+    class Config(BaseModuleConfig):
+        output_file: str = Field("", description="Output to file")
+        css_theme_file: str = Field(
+            "https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown.min.css",
+            description="CSS theme URL for HTML output",
+        )
+
     deps_pip = ["markdown~=3.4.3"]
 
     async def setup(self):
@@ -57,7 +61,7 @@ class web_report(BaseOutputModule):
                 + f" ({event.module})---> "
                 + f"[{event.type}]:{html.escape(event.pretty_string)}"
             )
-            self.web_assets[host]["URL"].append(f"**{html.escape(event.data)}**: {parent_chain_text}")
+            self.web_assets[host]["URL"].append(f"**{html.escape(event.pretty_string)}**: {parent_chain_text}")
 
         else:
             current_parent = event.parent
@@ -89,7 +93,7 @@ class web_report(BaseOutputModule):
                     if e in dedupe:
                         continue
                     dedupe.append(e)
-                    self.markdown += f"\n* {e}\n"
+                    self.markdown += f"* {e}\n"
                 self.markdown += "\n"
 
         if self.file is not None:

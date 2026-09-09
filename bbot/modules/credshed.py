@@ -1,24 +1,24 @@
 from contextlib import suppress
 
 from bbot.modules.templates.subdomain_enum import subdomain_enum
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class credshed(subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["PASSWORD", "HASHED_PASSWORD", "USERNAME", "EMAIL_ADDRESS"]
-    flags = ["passive", "safe"]
+    flags = ["safe", "passive"]
     meta = {
         "description": "Send queries to your own credshed server to check for known credentials of your targets",
         "created_date": "2023-10-12",
         "author": "@SpamFaux",
-        "auth_required": True,
     }
-    options = {"username": "", "password": "", "credshed_url": ""}
-    options_desc = {
-        "username": "Credshed username",
-        "password": "Credshed password",
-        "credshed_url": "URL of credshed server",
-    }
+
+    class Config(BaseModuleConfig):
+        username: str = Field("", description="Credshed username", sensitive=True, mandatory=True)
+        password: str = Field("", description="Credshed password", sensitive=True, mandatory=True)
+        credshed_url: str = Field("", description="URL of credshed server", mandatory=True)
+
     target_only = True
 
     async def setup(self):
@@ -80,7 +80,8 @@ class credshed(subdomain_enum):
             email_event = self.make_event(email, "EMAIL_ADDRESS", parent=event, tags=tags)
             if email_event is not None:
                 await self.emit_event(
-                    email_event, context=f'{{module}} searched for "{query}" and found {{event.type}}: {{event.data}}'
+                    email_event,
+                    context=f'{{module}} searched for "{query}" and found {{event.type}}: {{event.pretty_string}}',
                 )
                 if user:
                     await self.emit_event(
@@ -88,7 +89,7 @@ class credshed(subdomain_enum):
                         "USERNAME",
                         parent=email_event,
                         tags=tags,
-                        context=f"{{module}} found {email} with {{event.type}}: {{event.data}}",
+                        context=f"{{module}} found {email} with {{event.type}}: {{event.pretty_string}}",
                     )
                 if pw:
                     await self.emit_event(
@@ -96,7 +97,7 @@ class credshed(subdomain_enum):
                         "PASSWORD",
                         parent=email_event,
                         tags=tags,
-                        context=f"{{module}} found {email} with {{event.type}}: {{event.data}}",
+                        context=f"{{module}} found {email} with {{event.type}}: {{event.pretty_string}}",
                     )
                 for h_pw in hashes:
                     if h_pw:
@@ -105,5 +106,5 @@ class credshed(subdomain_enum):
                             "HASHED_PASSWORD",
                             parent=email_event,
                             tags=tags,
-                            context=f"{{module}} found {email} with {{event.type}}: {{event.data}}",
+                            context=f"{{module}} found {email} with {{event.type}}: {{event.pretty_string}}",
                         )

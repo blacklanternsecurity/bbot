@@ -53,6 +53,9 @@ _ip_range_regexes = (
 )
 ip_range_regexes = [re.compile(r, re.I) for r in _ip_range_regexes]
 
+# SPF qualifier + ip4:/ip6: mechanism prefix, e.g. the "ip4:" in "ip4:1.2.3.0/24" (RFC 7208)
+spf_ip_mechanism_regex = re.compile(r"^[+\-~?]?ip[46]:", re.I)
+
 # all dns names including IP addresses and bare hostnames (e.g. "localhost")
 _dns_name_regex = r"(?:\w(?:[\w-]{0,100}\w)?\.?)+(?:[xX][nN]--)?[^\W_]{1,63}\.?"
 # dns names with periods (e.g. "www.example.com")
@@ -157,7 +160,14 @@ post_form_regex2 = re.compile(
     re.DOTALL,
 )
 post_form_regex_noaction = re.compile(
-    r"<form[^>]*(?:\baction=[\"']?([^\s\"'<>]+)[\"']?)?[^>]*\bmethod=[\"']?[pP][oO][sS][tT][\"']?[^>]*>([\s\S]*?)<\/form>",
+    # Negative lookahead rejects forms that already carry action= (those are
+    # handled by post_form_regex / post_form_regex2 with the real action URL).
+    # Without it, the action group's `?` makes this regex over-eagerly match
+    # forms with action, capturing '' and emitting a phantom WEB_PARAMETER
+    # whose url falls back to event.url — racing the legitimate emission.
+    # The empty `()` keeps findall's tuple shape (form_action, form_content)
+    # consistent with the other form regexes consumed by GetForm.extract().
+    r"<form(?![^>]*\baction=)()[^>]*\bmethod=[\"']?[pP][oO][sS][tT][\"']?[^>]*>([\s\S]*?)<\/form>",
     re.DOTALL,
 )
 generic_form_regex = re.compile(
@@ -166,9 +176,15 @@ generic_form_regex = re.compile(
 )
 
 select_tag_regex = re.compile(
-    r"<select[^>]+?name=[\"\']?([_\-\.\w]+)[\"\']?[^>]*>(?:\s*<option[^>]*?value=[\"\']?([_\.\-\w]*)[\"\']?[^>]*>)?",
+    r"<select[^>]+?\bname=[\"\']?([_\-\.\w]+)[\"\']?[^>]*>((?:\s*<option\b[^>]*>(?:[^<]*(?:</option>)?)?\s*)*)",
     re.IGNORECASE | re.DOTALL,
 )
+option_tag_regex = re.compile(r"<option\b([^>]*)>", re.IGNORECASE)
+option_value_regex = re.compile(
+    r"""\bvalue\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>'"]+))""",
+    re.IGNORECASE,
+)
+option_selected_regex = re.compile(r"(?<![\-\w])selected(?![\-\w])", re.IGNORECASE)
 
 textarea_tag_regex = re.compile(
     r"<textarea[^>]*?\sname=[\"\']?([\-\._=+\/\w]+)[\"\']?[^>]*?\svalue=[\"\']?([:%\-\._=+\/\w]*)[\"\']?[^>]*?>"

@@ -1,23 +1,22 @@
 from pathlib import Path
 from subprocess import CalledProcessError
 from bbot.modules.internal.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class jadx(BaseModule):
     watched_events = ["FILESYSTEM"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "safe", "code-enum"]
+    flags = ["safe", "passive", "code-enum"]
     meta = {
         "description": "Decompile APKs and XAPKs using JADX",
         "created_date": "2024-11-04",
         "author": "@domwhewell-sage",
     }
-    options = {
-        "threads": 4,
-    }
-    options_desc = {
-        "threads": "Maximum jadx threads for extracting apk's, default: 4",
-    }
+
+    class Config(BaseModuleConfig):
+        threads: int = Field(4, description="Maximum jadx threads for extracting apk's, default: 4")
+
     deps_common = ["java"]
     deps_ansible = [
         {

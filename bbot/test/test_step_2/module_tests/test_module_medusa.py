@@ -44,7 +44,9 @@ class TestMedusa(ModuleTestBase):
         await module_test.module.emit_event(protocol_event)
 
     def check(self, module_test, events):
-        vuln_events = [e for e in events if e.type == "VULNERABILITY"]
+        vuln_events = [e for e in events if e.type == "FINDING"]
 
         assert len(vuln_events) == 1
         assert "VALID [SNMPV2C] CREDENTIALS FOUND: public [READ]" in vuln_events[0].data["description"]
+        assert vuln_events[0].data["severity"] == "CRITICAL"
+        assert vuln_events[0].data["confidence"] == "CONFIRMED"

@@ -2,10 +2,10 @@ import pytest
 import asyncio
 import logging
 import pytest_asyncio
-from omegaconf import OmegaConf
 
 from ...bbot_fixtures import *
 from bbot.scanner import Scanner
+from bbot.core.config.merge import deep_merge
 from bbot.core.helpers.misc import rand_string
 
 log = logging.getLogger("bbot.test.modules")
@@ -15,7 +15,7 @@ class ModuleTestBase:
     targets = ["blacklanternsecurity.com"]
     scan_name = None
     blacklist = None
-    whitelist = None
+    seeds = None
     module_name = None
     config_overrides = {}
     modules_overrides = None
@@ -25,15 +25,15 @@ class ModuleTestBase:
 
     class ModuleTest:
         def __init__(
-            self, module_test_base, httpx_mock, httpserver, httpserver_ssl, monkeypatch, request, caplog, capsys
+            self, module_test_base, blasthttp_mock, httpserver, httpserver_ssl, monkeypatch, request, caplog, capsys
         ):
             self.name = module_test_base.name
-            self.config = OmegaConf.merge(CORE.config, OmegaConf.create(module_test_base.config_overrides))
+            self.config = deep_merge(dict(CORE.custom_config), dict(module_test_base.config_overrides))
 
             self.caplog = caplog
             self.capsys = capsys
 
-            self.httpx_mock = httpx_mock
+            self.blasthttp_mock = blasthttp_mock
             self.httpserver = httpserver
             self.httpserver_ssl = httpserver_ssl
             self.monkeypatch = monkeypatch
@@ -41,9 +41,8 @@ class ModuleTestBase:
             self.preloaded = DEFAULT_PRESET.module_loader.preloaded()
 
             # handle output, internal module types
-            output_modules = None
+            output_modules = []
             modules = list(module_test_base.modules)
-            output_modules = ["python"]
             for module in list(modules):
                 module_type = self.preloaded[module]["type"]
                 if module_type in ("internal", "output"):
@@ -51,15 +50,20 @@ class ModuleTestBase:
                     if module_type == "output":
                         output_modules.append(module)
                     elif module_type == "internal" and not module == "dnsresolve":
-                        self.config = OmegaConf.merge(self.config, {module: True})
+                        self.config = deep_merge(self.config, {module: True})
+
+            seeds = module_test_base.seeds or None
+
+            default_output_modules = [m for m in ("csv", "json", "txt") if m not in output_modules]
 
             self.scan = Scanner(
                 *module_test_base.targets,
                 modules=modules,
                 output_modules=output_modules,
+                exclude_output_modules=default_output_modules,
                 scan_name=module_test_base._scan_name,
                 config=self.config,
-                whitelist=module_test_base.whitelist,
+                seeds=seeds,
                 blacklist=module_test_base.blacklist,
                 force_start=getattr(module_test_base, "force_start", False),
             )
@@ -74,10 +78,10 @@ class ModuleTestBase:
         def set_expect_requests_handler(self, expect_args=None, request_handler=None):
             self.httpserver.expect_request(expect_args).respond_with_handler(request_handler)
 
-        async def mock_dns(self, mock_data, custom_lookup_fn=None, scan=None):
+        async def mock_dns(self, mock_data, scan=None):
             if scan is None:
                 scan = self.scan
-            await scan.helpers.dns._mock_dns(mock_data, custom_lookup_fn=custom_lookup_fn)
+            await scan.helpers.dns._mock_dns(mock_data)
 
         def mock_interactsh(self, name):
             from ...conftest import Interactsh_mock
@@ -90,7 +94,7 @@ class ModuleTestBase:
 
     @pytest_asyncio.fixture
     async def module_test(
-        self, httpx_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request, caplog, capsys
+        self, blasthttp_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request, caplog, capsys
     ):
         # If a test uses docker, we can't run it in the distro tests
         if os.getenv("BBOT_DISTRO_TESTS") and self.skip_distro_tests:
@@ -98,20 +102,31 @@ class ModuleTestBase:
 
         self.log.info(f"Starting {self.name} module test")
         module_test = self.ModuleTest(
-            self, httpx_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request, caplog, capsys
+            self, blasthttp_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request, caplog, capsys
         )
-        self.log.debug("Mocking DNS")
-        await module_test.mock_dns({"blacklanternsecurity.com": {"A": ["127.0.0.88"]}})
         self.log.debug("Executing setup_before_prep()")
         await self.setup_before_prep(module_test)
         self.log.debug("Executing scan._prep()")
         await module_test.scan._prep()
+        self.log.debug("Mocking DNS")
+        await module_test.mock_dns({"blacklanternsecurity.com": {"A": ["127.0.0.88"]}})
+        self.log.debug("Disabling HTTP wildcard detection for test")
+        module_test.scan.helpers.web.is_http_wildcard_host = self._mock_http_wildcard
         self.log.debug("Executing setup_after_prep()")
         await self.setup_after_prep(module_test)
         self.log.debug("Starting scan")
         await self._execute_scan(module_test)
         self.log.debug(f"Finished {module_test.name} module test")
         yield module_test
+        # Cancel any orphaned async tasks left by the test (e.g. pymongo, aio_pika background threads).
+        # These persist on the session-scoped event loop and can block subsequent test fixtures.
+        current_task = asyncio.current_task()
+        tasks = [t for t in asyncio.all_tasks() if t != current_task and not t.done()]
+        if tasks:
+            self.log.debug(f"Cancelling {len(tasks)} orphaned tasks after {self.name}")
+            for t in tasks:
+                t.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
 
     async def _execute_scan(self, module_test):
         """Execute the scan and collect events. Can be overridden by benchmark classes."""
@@ -158,3 +173,23 @@ class ModuleTestBase:
 
     async def setup_after_prep(self, module_test):
         pass
+
+    @staticmethod
+    async def _mock_http_wildcard(*args, **kwargs):
+        return False
+
+    async def wait_for_port_open(self, port):
+        while not await self.is_port_open("localhost", port):
+            self.log.verbose(f"Waiting for port {port} to be open...")
+            await asyncio.sleep(0.5)
+        # allow an extra second for things to settle
+        await asyncio.sleep(1)
+
+    async def is_port_open(self, host, port):
+        try:
+            reader, writer = await asyncio.open_connection(host, port)
+            writer.close()
+            await writer.wait_closed()
+            return True
+        except (ConnectionRefusedError, OSError):
+            return False

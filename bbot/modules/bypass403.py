@@ -1,5 +1,6 @@
 from bbot.errors import HttpCompareError
 from bbot.modules.base import BaseModule
+from bbot.core.helpers.misc import get_waf_strings
 
 """
 Port of https://github.com/iamj0ker/bypass-403/ and https://portswigger.net/bappstore/444407b96d9c4de0adb7aed89e826122
@@ -63,8 +64,6 @@ header_payloads = {
     "X-Host": "127.0.0.1",
 }
 
-# This is planned to be replaced in the future: https://github.com/blacklanternsecurity/bbot/issues/1068
-waf_strings = ["The requested URL was rejected"]
 
 for qp in query_payloads:
     signatures.append(("GET", "{scheme}://{netloc}/{path}%s" % qp, None, True))
@@ -78,9 +77,13 @@ for hp_key in header_payloads.keys():
 class bypass403(BaseModule):
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["active", "aggressive", "web-thorough"]
+    flags = ["active", "loud", "web-heavy"]
     meta = {"description": "Check 403 pages for common bypasses", "created_date": "2022-07-05", "author": "@liquidsec"}
     in_scope_only = True
+
+    async def setup(self):
+        self.waf_yara_rules = self.helpers.yara.compile_strings(get_waf_strings(), nocase=True)
+        return True
 
     async def do_checks(self, compare_helper, event, collapse_threshold):
         results = set()
@@ -88,7 +91,7 @@ class bypass403(BaseModule):
 
         for sig in signatures:
             if error_count > 3:
-                self.warning(f"Received too many errors for URL {event.data} aborting bypass403")
+                self.warning(f"Received too many errors for URL {event.url} aborting bypass403")
                 return None
 
             sig = self.format_signature(sig, event)
@@ -107,10 +110,10 @@ class bypass403(BaseModule):
 
             # In some cases WAFs will respond with a 200 code which causes a false positive
             if subject_response is not None:
-                for ws in waf_strings:
-                    if ws in subject_response.text:
-                        self.debug("Rejecting result based on presence of WAF string")
-                        return
+                waf_matches = await self.helpers.yara.match(self.waf_yara_rules, subject_response.text)
+                if waf_matches:
+                    self.debug("Rejecting result based on presence of WAF string")
+                    return
 
             if match is False:
                 if str(subject_response.status_code)[0] != "4":
@@ -129,7 +132,7 @@ class bypass403(BaseModule):
 
     async def handle_event(self, event):
         try:
-            compare_helper = self.helpers.http_compare(event.data, allow_redirects=True)
+            compare_helper = self.helpers.http_compare(event.url, allow_redirects=True)
         except HttpCompareError as e:
             self.debug(e)
             return
@@ -141,21 +144,31 @@ class bypass403(BaseModule):
         if len(results) > collapse_threshold:
             await self.emit_event(
                 {
+                    "name": "Possible 403 Bypass",
                     "description": f"403 Bypass MULTIPLE SIGNATURES (exceeded threshold {str(collapse_threshold)})",
                     "host": str(event.host),
-                    "url": event.data,
+                    "url": event.url,
+                    "severity": "INFO",
+                    "confidence": "LOW",
                 },
                 "FINDING",
                 parent=event,
-                context=f"{{module}} discovered multiple potential 403 bypasses ({{event.type}}) for {event.data}",
+                context=f"{{module}} discovered multiple potential 403 bypasses ({{event.type}}) for {event.url}",
             )
         else:
             for description in results:
                 await self.emit_event(
-                    {"description": description, "host": str(event.host), "url": event.data},
+                    {
+                        "name": "Possible 403 Bypass",
+                        "description": description,
+                        "host": str(event.host),
+                        "url": event.url,
+                        "severity": "MEDIUM",
+                        "confidence": "LOW",
+                    },
                     "FINDING",
                     parent=event,
-                    context=f"{{module}} discovered potential 403 bypass ({{event.type}}) for {event.data}",
+                    context=f"{{module}} discovered potential 403 bypass ({{event.type}}) for {event.url}",
                 )
 
     # When a WAF-check helper is available in the future, we will convert to HTTP_RESPONSE and check for the WAF string here.

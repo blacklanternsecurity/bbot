@@ -11,5 +11,5 @@ class TestCSV(ModuleTestBase):
 
         with open(csv_file) as f:
             data = f.read()
-            assert "blacklanternsecurity.com,127.0.0.5,TARGET" in data
+            assert "blacklanternsecurity.com,127.0.0.5,SEED" in data
             assert context_data in data

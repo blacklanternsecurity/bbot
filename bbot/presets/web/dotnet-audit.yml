@@ -5,10 +5,10 @@ include:
   - iis-shortnames
 
 modules:
-  - httpx
+  - http
   - badsecrets
-  - ffuf_shortnames
-  - ffuf
+  - webbrute_shortnames
+  - webbrute
   - telerik
   - ajaxpro
   - dotnetnuke
@@ -16,10 +16,10 @@ modules:
 
 config:
   modules:
-    ffuf:
+    webbrute:
       extensions: asp,aspx,ashx,asmx,ascx
-      extensions_ignore_case: True
-    ffuf_shortnames:
+      ignore_case: True
+    webbrute_shortnames:
       find_subwords: True
     telerik:
       exploit_RAU_crypto: True

@@ -3,22 +3,25 @@ import json
 import tarfile
 from pathlib import Path
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class docker_pull(BaseModule):
     watched_events = ["CODE_REPOSITORY"]
     produced_events = ["FILESYSTEM"]
-    flags = ["passive", "safe", "slow", "code-enum", "download"]
+    flags = ["safe", "passive", "slow", "code-enum", "download"]
     meta = {
         "description": "Download images from a docker repository",
         "created_date": "2024-03-24",
         "author": "@domwhewell-sage",
     }
-    options = {"all_tags": False, "output_folder": ""}
-    options_desc = {
-        "all_tags": "Download all tags from each registry (Default False)",
-        "output_folder": "Folder to download docker repositories to. If not specified, downloaded docker images will be deleted when the scan completes, to minimize disk usage.",
-    }
+
+    class Config(BaseModuleConfig):
+        all_tags: bool = Field(False, description="Download all tags from each registry (Default False)")
+        output_folder: str = Field(
+            "",
+            description="Folder to download docker repositories to. If not specified, downloaded docker images will be deleted when the scan completes, to minimize disk usage.",
+        )
 
     scope_distance_modifier = 2
 
@@ -49,7 +52,7 @@ class docker_pull(BaseModule):
         return True
 
     async def handle_event(self, event):
-        repo_url = event.data.get("url")
+        repo_url = event.url
         repo_path = await self.download_docker_repo(repo_url)
         if repo_path:
             self.verbose(f"Downloaded docker repository {repo_url} to {repo_path}")
@@ -78,15 +81,17 @@ class docker_pull(BaseModule):
         """Make a request to the URL if that fails try to obtain an authentication token and try again."""
         for _ in range(2):
             response = await self.helpers.request(url, headers=self.headers, follow_redirects=True)
-            if response is not None and response.status_code != 401:
+            if response is None:
+                self.log.warning(f"Request to {url} failed")
+                break
+            if response.status_code != 401:
                 return response
-            try:
-                www_authenticate_headers = response.headers.get("www-authenticate", "")
-                realm = www_authenticate_headers.split('realm="')[1].split('"')[0]
-                service = www_authenticate_headers.split('service="')[1].split('"')[0]
-                scope = www_authenticate_headers.split('scope="')[1].split('"')[0]
-            except (KeyError, IndexError):
+            www_auth = response.headers.get("www-authenticate", "")
+            realm, service, scope = self._parse_www_authenticate(www_auth)
+            if not all([realm, service, scope]):
                 self.log.warning(f"Could not obtain realm, service or scope from {url}")
+                break
+            if not self._validate_realm(url, realm):
                 break
             auth_url = f"{realm}?service={service}&scope={scope}"
             auth_response = await self.helpers.request(auth_url)
@@ -97,6 +102,29 @@ class docker_pull(BaseModule):
             token = auth_json["token"]
             self.headers.update({"Authorization": f"Bearer {token}"})
         return None
+
+    @staticmethod
+    def _parse_www_authenticate(header):
+        value = header
+        if value.lower().startswith("bearer "):
+            value = value[7:]
+        params = {}
+        for part in value.split(","):
+            part = part.strip()
+            if "=" in part:
+                key, _, val = part.partition("=")
+                params[key.strip()] = val.strip('"')
+        return params.get("realm", ""), params.get("service", ""), params.get("scope", "")
+
+    def _validate_realm(self, registry_url, realm):
+        registry_host = self.helpers.urlparse(registry_url).hostname or ""
+        realm_host = self.helpers.urlparse(realm).hostname or ""
+        _, registry_domain = self.helpers.split_domain(registry_host)
+        _, realm_domain = self.helpers.split_domain(realm_host)
+        if not realm_domain or realm_domain != registry_domain:
+            self.warning(f"Auth realm TLD ({realm_domain}) does not match registry TLD ({registry_domain}), skipping")
+            return False
+        return True
 
     async def get_tags(self, registry, repository):
         url = f"{registry}/v2/{repository}/tags/list"
@@ -181,6 +209,11 @@ class docker_pull(BaseModule):
 
     async def download_and_write_to_tar(self, registry, repository, tag):
         output_tar = self.output_dir / f"{repository.replace('/', '_')}_{tag}.tar"
+        # tag comes from the registry API; resolve() collapses ".." so a malicious
+        # tag can't write the tarball outside the output directory
+        if not output_tar.resolve().is_relative_to(self.output_dir.resolve()):
+            self.warning(f"Refusing to write outside output directory: {output_tar}")
+            return None
         with tarfile.open(output_tar, mode="w") as tar:
             manifest = await self.get_manifest(registry, repository, tag)
             config_file, config_filename = await self.download_and_get_filename(

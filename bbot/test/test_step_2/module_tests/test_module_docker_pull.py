@@ -3,6 +3,7 @@ import tarfile
 from pathlib import Path
 
 from .base import ModuleTestBase
+from bbot.test.worker import BBOT_TEST_DIR
 from bbot.test.bbot_fixtures import bbot_test_dir
 
 
@@ -11,7 +12,7 @@ class TestDockerPull(ModuleTestBase):
     config_overrides = {"modules": {"docker_pull": {"output_folder": str(bbot_test_dir / "test_docker_files")}}}
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://hub.docker.com/v2/users/blacklanternsecurity",
             json={
                 "id": "f90895d9cf484d9182c6dbbef2632329",
@@ -27,7 +28,7 @@ class TestDockerPull(ModuleTestBase):
                 "type": "User",
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://hub.docker.com/v2/repositories/blacklanternsecurity?page_size=25&page=1",
             json={
                 "count": 2,
@@ -71,7 +72,7 @@ class TestDockerPull(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/helloworld/tags/list",
             json={
                 "errors": [
@@ -94,7 +95,7 @@ class TestDockerPull(ModuleTestBase):
             },
             status_code=401,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/testimage/tags/list",
             json={
                 "errors": [
@@ -117,19 +118,19 @@ class TestDockerPull(ModuleTestBase):
             },
             status_code=401,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://auth.docker.io/token?service=registry.docker.io&scope=blacklanternsecurity/helloworld:pull",
             json={
                 "token": "QWERTYUIOPASDFGHJKLZXCBNM",
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://auth.docker.io/token?service=registry.docker.io&scope=blacklanternsecurity/testimage:pull",
             json={
                 "token": "QWERTYUIOPASDFGHJKLZXCBNM",
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/helloworld/tags/list",
             json={
                 "name": "blacklanternsecurity/helloworld",
@@ -139,7 +140,7 @@ class TestDockerPull(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/testimage/tags/list",
             json={
                 "name": "blacklanternsecurity/testimage",
@@ -149,7 +150,7 @@ class TestDockerPull(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/helloworld/manifests/latest",
             json={
                 "schemaVersion": 2,
@@ -168,7 +169,7 @@ class TestDockerPull(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/testimage/manifests/latest",
             json={
                 "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
@@ -201,7 +202,7 @@ class TestDockerPull(ModuleTestBase):
                 ],
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/helloworld/blobs/sha256:a9910947b74a4f0606cfc8669ae8808d2c328beaee9e79f489dc17df14cd50b1",
             json={
                 "architecture": "amd64",
@@ -376,7 +377,7 @@ class TestDockerPull(ModuleTestBase):
                 },
             },
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/testimage/manifests/sha256:7c75331408141f1e3ef37eac7c45938fbfb0d421a86201ad45d2ab8b70ddd527",
             json={
                 "name": "testimage",
@@ -412,7 +413,7 @@ class TestDockerPull(ModuleTestBase):
                 ],
             },
         )
-        temp_path = Path("/tmp/.bbot_test")
+        temp_path = Path(f"{BBOT_TEST_DIR}")
         tar_path = temp_path / "docker_pull_test.tar.gz"
         with tarfile.open(tar_path, "w:gz") as tar:
             file_io = io.BytesIO("This is a test file".encode())
@@ -422,11 +423,11 @@ class TestDockerPull(ModuleTestBase):
             tar.addfile(file_info, file_io)
         with open(tar_path, "rb") as file:
             layer_file = file.read()
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/helloworld/blobs/sha256:8a1e25ce7c4f75e372e9884f8f7b1bedcfe4a7a7d452eb4b0a1c7477c9a90345",
             content=layer_file,
         )
-        module_test.httpx_mock.add_response(
+        module_test.blasthttp_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/testimage/blobs/sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
             content=layer_file,
         )
@@ -447,3 +448,160 @@ class TestDockerPull(ModuleTestBase):
         filesystem_event = filesystem_events[0]
         folder = Path(filesystem_event.data["path"])
         assert folder.is_file(), "Destination tar doesn't exist"
+
+
+class TestDockerPullParsing(ModuleTestBase):
+    modules_overrides = ["docker_pull"]
+
+    async def setup_after_prep(self, module_test):
+        self.docker_pull = module_test.scan.modules["docker_pull"]
+
+    def check(self, module_test, events):
+        m = self.docker_pull
+
+        # standard Docker Hub header
+        realm, service, scope = m._parse_www_authenticate(
+            'Bearer realm="https://auth.docker.io/token",service="registry.docker.io",scope="repository:library/nginx:pull"'
+        )
+        assert realm == "https://auth.docker.io/token"
+        assert service == "registry.docker.io"
+        assert scope == "repository:library/nginx:pull"
+
+        # whitespace between fields
+        realm, service, scope = m._parse_www_authenticate(
+            'Bearer realm="https://auth.docker.io/token", service="registry.docker.io", scope="repository:lib/nginx:pull"'
+        )
+        assert realm == "https://auth.docker.io/token"
+        assert service == "registry.docker.io"
+
+        # different field ordering
+        realm, service, scope = m._parse_www_authenticate(
+            'Bearer service="registry.docker.io",realm="https://auth.docker.io/token",scope="repo:pull"'
+        )
+        assert realm == "https://auth.docker.io/token"
+
+        # missing fields return empty strings
+        realm, service, scope = m._parse_www_authenticate('Bearer realm="https://auth.docker.io/token"')
+        assert realm == "https://auth.docker.io/token"
+        assert service == ""
+        assert scope == ""
+
+        # empty/garbage header
+        realm, service, scope = m._parse_www_authenticate("")
+        assert realm == ""
+
+        # injection attempt: extra quotes in value
+        realm, service, scope = m._parse_www_authenticate(
+            'Bearer realm="https://evil.com",junk="x",service="registry.docker.io",scope="repo:pull"'
+        )
+        assert realm == "https://evil.com"
+
+        # injection attempt: realm value containing comma
+        realm, service, scope = m._parse_www_authenticate(
+            'Bearer realm="https://evil.com?a=1,b=2",service="registry.docker.io",scope="repo:pull"'
+        )
+        # the comma inside the value will split wrong, but the result is still safe
+        # because _validate_realm catches it
+        assert not m._validate_realm("https://registry-1.docker.io/v2/foo", realm)
+
+        # realm validation: same TLD passes
+        assert m._validate_realm("https://registry-1.docker.io/v2/foo/tags/list", "https://auth.docker.io/token")
+
+        # realm validation: different TLD rejected
+        assert not m._validate_realm("https://registry-1.docker.io/v2/foo/tags/list", "http://169.254.169.254/foo")
+        assert not m._validate_realm("https://registry-1.docker.io/v2/foo/tags/list", "https://evil.com/token")
+
+        # realm validation: empty realm rejected
+        assert not m._validate_realm("https://registry-1.docker.io/v2/foo/tags/list", "")
+
+
+class TestDockerPullRealmValidation(ModuleTestBase):
+    modules_overrides = ["speculate", "dockerhub", "docker_pull"]
+
+    async def setup_before_prep(self, module_test):
+        module_test.blasthttp_mock.add_response(
+            url="https://hub.docker.com/v2/users/blacklanternsecurity",
+            json={"id": "test", "uuid": "test", "username": "blacklanternsecurity", "type": "User"},
+        )
+        module_test.blasthttp_mock.add_response(
+            url="https://hub.docker.com/v2/repositories/blacklanternsecurity?page_size=25&page=1",
+            json={
+                "count": 1,
+                "next": None,
+                "previous": None,
+                "results": [
+                    {
+                        "name": "testimage",
+                        "namespace": "blacklanternsecurity",
+                        "repository_type": "image",
+                        "status": 1,
+                    }
+                ],
+            },
+        )
+        # realm points to a non-HTTPS internal address
+        module_test.blasthttp_mock.add_response(
+            url="https://registry-1.docker.io/v2/blacklanternsecurity/testimage/tags/list",
+            json={"errors": [{"code": "UNAUTHORIZED", "message": "authentication required"}]},
+            headers={
+                "www-authenticate": 'Bearer realm="http://169.254.169.254/latest/meta-data",service="registry.docker.io",scope="blacklanternsecurity/testimage:pull"'
+            },
+            status_code=401,
+        )
+        module_test.blasthttp_mock.add_response(
+            url="http://169.254.169.254/latest/meta-data?service=registry.docker.io&scope=blacklanternsecurity/testimage:pull",
+            json={"token": "test_token_value"},
+        )
+
+    def check(self, module_test, events):
+        docker_pull_module = module_test.scan.modules["docker_pull"]
+        auth_header = docker_pull_module.headers.get("Authorization", "")
+        assert "test_token_value" not in auth_header, "Module followed a non-HTTPS realm"
+
+
+class TestDockerPullRequestFailure(ModuleTestBase):
+    modules_overrides = ["docker_pull"]
+
+    async def setup_after_prep(self, module_test):
+        m = module_test.scan.modules["docker_pull"]
+        # no mock is registered for this URL, so the request fails and returns None
+        try:
+            self.result = await m.docker_api_request("https://registry-1.docker.io/v2/nonexistent/tags/list")
+        except Exception as e:
+            self.result = f"error: {e}"
+        # a failed request must not prevent the higher-level helpers from returning sane defaults
+        self.tags = await m.get_tags("https://registry-1.docker.io", "nonexistent")
+        self.manifest = await m.get_manifest("https://registry-1.docker.io", "nonexistent", "latest")
+        self.blob = await m.download_blob("https://registry-1.docker.io", "nonexistent", "sha256:deadbeef")
+
+    def check(self, module_test, events):
+        assert self.result is None, f"expected None when the request fails, got {self.result!r}"
+        assert self.tags == ["latest"]
+        assert self.manifest == {}
+        assert self.blob is None
+
+
+class TestDockerPullPathTraversal(ModuleTestBase):
+    modules_overrides = ["docker_pull"]
+    config_overrides = {"modules": {"docker_pull": {"output_folder": str(bbot_test_dir / "test_docker_traversal")}}}
+
+    async def setup_after_prep(self, module_test):
+        m = module_test.scan.modules["docker_pull"]
+        self.output_dir = m.output_dir
+        repository = "blacklanternsecurity/testimage"
+        # a tag returned by the registry that tries to escape the output directory
+        evil_tag = "../../../docker_pull_pwn"
+        self.evil_target = (m.output_dir / f"{repository.replace('/', '_')}_{evil_tag}.tar").resolve()
+        if self.evil_target.exists():
+            self.evil_target.unlink()
+        try:
+            self.result = await m.download_and_write_to_tar("https://registry-1.docker.io", repository, evil_tag)
+        except Exception as e:
+            self.result = f"error: {e}"
+
+    def check(self, module_test, events):
+        # sanity: the crafted target really is outside the output directory
+        assert not self.evil_target.is_relative_to(self.output_dir.resolve()), "test target not outside output_dir"
+        # the traversing tag must be refused: nothing written outside output_dir, and None returned
+        assert not self.evil_target.exists(), f"path traversal: tar written outside output_dir at {self.evil_target}"
+        assert self.result is None, f"expected None for a traversing tag, got {self.result!r}"

@@ -1,25 +1,25 @@
 import json
 import subprocess
 from bbot.modules.base import BaseModule
+from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class fingerprintx(BaseModule):
     watched_events = ["OPEN_TCP_PORT"]
-    produced_events = ["PROTOCOL"]
-    flags = ["active", "safe", "service-enum", "slow"]
+    produced_events = ["PROTOCOL", "URL_UNVERIFIED"]
+    flags = ["safe", "active", "service-enum", "slow"]
     meta = {
         "description": "Fingerprint exposed services like RDP, SSH, MySQL, etc.",
         "created_date": "2023-01-30",
         "author": "@TheTechromancer",
     }
-    options = {"version": "1.1.4"}
-    options_desc = {"version": "fingerprintx version"}
     _batch_size = 10
     _module_threads = 2
     _priority = 2
 
-    options = {"skip_common_web": True}
-    options_desc = {"skip_common_web": "Skip common web ports such as 80, 443, 8080, 8443, etc."}
+    class Config(BaseModuleConfig):
+        version: str = Field("1.1.4", description="fingerprintx version")
+        skip_common_web: bool = Field(True, description="Skip common web ports such as 80, 443, 8080, 8443, etc.")
 
     deps_ansible = [
         {
@@ -78,10 +78,8 @@ class fingerprintx(BaseModule):
             if not host and port and protocol:
                 continue
             banner = j.get("metadata", {}).get("banner", "").strip()
-            port_data = f"{host}:{port}"
+            port_data = self.helpers.make_netloc(host, port)
             tags = set()
-            if host and ip:
-                tags.add(f"ip-{ip}")
             parent_event = _input.get(port_data)
             protocol_data = {"host": host, "protocol": protocol}
             if port:
@@ -95,3 +93,15 @@ class fingerprintx(BaseModule):
                 tags=tags,
                 context=f"{{module}} probed {port_data} and detected {{event.type}}: {protocol}",
             )
+            if protocol in ("HTTP", "HTTPS"):
+                port_int = int(port) if port else None
+                is_default_port = (protocol == "HTTP" and port_int == 80) or (protocol == "HTTPS" and port_int == 443)
+                netloc = self.helpers.make_netloc(host, None if is_default_port else port_int)
+                url = f"{protocol.lower()}://{netloc}"
+                await self.emit_event(
+                    url,
+                    "URL_UNVERIFIED",
+                    parent=parent_event,
+                    tags=tags,
+                    context=f"{{module}} probed {port_data} and detected a {protocol} web service",
+                )
