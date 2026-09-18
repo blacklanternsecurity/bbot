@@ -60,7 +60,7 @@ class shodan_enterprise(BaseModule):
     flags = ["safe", "passive"]
     meta = {
         "created_date": "2026-01-27",
-        "author": "@Control-Punk-Delete",
+        "author": "@Control-Punk-Delete, @Tsybon",
         "description": "Shodan Enterprise API integration module.",
     }
 
