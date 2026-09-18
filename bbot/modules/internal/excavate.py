@@ -1146,9 +1146,16 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                         confidence = "HIGH"
                     strings:
                         $sse_event_stream = "text/event-stream" nocase
-                        $sse_chat_delta = /data:\s?\{[^\r\n]{0,200}"(delta|choices)"/ nocase
+                        // A bare top-level "delta" or "choices" key is not LLM-shaped -- both are
+                        // ordinary field names in unrelated streams. Each marker below pins the
+                        // structure a chat-completion frame actually has: OpenAI nests delta inside
+                        // the choices array and labels the frame chat.completion.chunk, Anthropic
+                        // labels it content_block_delta / message_delta.
+                        $sse_chat_openai_choices = /data:\s?\{[^\r\n]{0,400}"choices"\s{0,4}:\s{0,4}\[\s{0,4}\{[^\r\n]{0,200}"delta"\s{0,4}:/ nocase
+                        $sse_chat_openai_chunk = /data:\s?\{[^\r\n]{0,400}"object"\s{0,4}:\s{0,4}"chat\.completion\.chunk"/ nocase
+                        $sse_chat_anthropic_delta = /data:\s?\{[^\r\n]{0,400}"type"\s{0,4}:\s{0,4}"(content_block_delta|message_delta)"/ nocase
                     condition:
-                        all of them
+                        $sse_event_stream and any of ($sse_chat_*)
                 }
             """,
             # Every SDK marker requires import/require/instantiation syntax. A filename, an image

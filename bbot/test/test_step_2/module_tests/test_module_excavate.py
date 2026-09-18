@@ -562,7 +562,8 @@ class TestExcavateAIApplicationPositive(TestExcavate):
 class TestExcavateAIApplicationNegative(TestExcavate):
     # Content that collides with the detection surface but is not an AI application:
     # a Google Maps embed (generic AIza key, published in page source by design), an image
-    # path containing a library name, prose naming providers, and a non-LLM SSE stream.
+    # path containing a library name, prose naming providers, and non-LLM SSE streams whose
+    # frames carry a bare top-level "delta" and a bare top-level "choices".
     benign_html = (
         "<html><body>"
         '<script src="https://maps.googleapis.com/maps/api/js?'
@@ -572,8 +573,13 @@ class TestExcavateAIApplicationNegative(TestExcavate):
         "both speak /v1/chat/completions. LangChain and LlamaIndex are worth a look.</p>"
         "<p>Our payment provider key looks like sk_live_" + ("A" * 24) + " (Stripe, not an LLM key).</p>"
         "<p>The blockchain language model marketing page is over here.</p>"
-        '<script>const progress = new EventSource("/progress"); // text/event-stream'
-        ' // frames: data: {"percent": 42}</script>'
+        '<script>const progress = new EventSource("/progress"); // text/event-stream\n'
+        ' // frames: data: {"percent": 42}\n'
+        # Both keys the rule keys on, at the top level of a non-LLM frame: a price ticker
+        # publishing a "delta" move, and a poll publishing a flat "choices" list.
+        ' // ticker: data: {"symbol": "ACME", "delta": -0.42, "ts": 1717171717}\n'
+        ' // poll:   data: {"question": "best color", "choices": ["red", "blue"]}\n'
+        "</script>"
         "</body></html>"
     )
 
