@@ -43,7 +43,20 @@ def checkout_branch(branch: str, repo_path: Path = None):
     print("Cleaning untracked files before checkout")
     run_command(["git", "clean", "-fd"], cwd=repo_path)
     print(f"Checking out branch: {branch}")
-    run_command(["git", "checkout", branch], cwd=repo_path)
+    # In pull_request CI, actions/checkout leaves a detached HEAD at the merge
+    # ref and never creates a local branch named after github.head_ref, so a
+    # bare `git checkout <branch>` fails with "pathspec did not match". Fall
+    # back to the remote-tracking ref (origin/<branch>), which fetch-depth: 0
+    # makes available, and detach onto it so the comparison still works.
+    result = subprocess.run(
+        ["git", "checkout", branch],
+        cwd=repo_path,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print(f"Local branch '{branch}' not found, trying origin/{branch}")
+        run_command(["git", "checkout", "--detach", f"origin/{branch}"], cwd=repo_path)
 
 
 def run_benchmarks(output_file: Path, repo_path: Path = None) -> bool:

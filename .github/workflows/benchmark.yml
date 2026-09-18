@@ -14,9 +14,11 @@ concurrency:
 permissions:
   contents: read
   pull-requests: write
+  issues: write
 
 jobs:
   benchmark:
+    name: compare performance against the base branch
     runs-on: ubuntu-latest
 
     steps:
