@@ -1,0 +1,21 @@
+description: Run domino with a minimal set of rules to only alert on confirmed vulnerabilities
+
+
+modules:
+  - http
+  - domino
+
+config:
+  modules:
+    domino:
+      rules:
+        - xss-basic
+        - xss-onclick-getparam
+        - xss-onclick-hash
+        - xss-referer
+        - xss-windowname
+        - xss-interaction
+        - xss-postmessage
+        - xss-js
+        - prototype-pollution
+        - remote-include
