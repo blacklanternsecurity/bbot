@@ -1452,3 +1452,56 @@ async def test_web_parameter_minimize_sentinel():
     assert "original_value" in event.data, "original_value stripped during distribution -- sentinel missing"
 
     await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_web_parameter_querystring_dedup():
+    """A parameter is identified by its name and type on a page, not by the query string of
+    the request that revealed it. url_querystring_collapse=False opts back in to treating
+    sibling parameter values as significant, so those scans fuzz each variant separately."""
+
+    def make_param(scan, url, name="message", param_type="POSTPARAM"):
+        return scan.make_event(
+            {
+                "host": "example.com",
+                "type": param_type,
+                "name": name,
+                "original_value": "",
+                "url": url,
+                "description": f"{param_type} [{name}]",
+            },
+            "WEB_PARAMETER",
+            parent=scan.root_event,
+        )
+
+    base = "https://example.com/contact"
+    rotating_value = f"{base}?csrf=a08157098935259&id=6"
+    rotating_name = f"{base}?csrf=c19ae748d80ed939&id=6&aYBNT794ROfpo=0978126345"
+
+    # collapse=True (the default, and what lightfuzz/lightfuzz-light inherit): pages that
+    # reissue a token or a honeypot field on every load are still one work item
+    scan = Scanner("example.com", config={"url_querystring_remove": False, "url_querystring_collapse": True})
+    await scan._prep()
+    a = make_param(scan, f"{base}?csrf=7f01d97aec3100c7&id=6")
+    for other in (rotating_value, rotating_name, base):
+        e = make_param(scan, other)
+        assert a.data_id == e.data_id, f"query string leaked into dedup key: {other}"
+        assert hash(a) == hash(e)
+        assert a._outgoing_dedup_hash(a) == e._outgoing_dedup_hash(e)
+
+    # a different parameter, page, or parameter type is still its own work item
+    assert make_param(scan, base, name="subject").data_id != a.data_id
+    assert make_param(scan, "https://example.com/other").data_id != a.data_id
+    assert make_param(scan, base, param_type="GETPARAM").data_id != a.data_id
+    await scan._cleanup()
+
+    # collapse=False (lightfuzz-max, lightfuzz-xss): sibling values are significant again
+    scan = Scanner("example.com", config={"url_querystring_remove": False, "url_querystring_collapse": False})
+    await scan._prep()
+    c = make_param(scan, f"{base}?csrf=7f01d97aec3100c7&id=6")
+    assert make_param(scan, rotating_value).data_id != c.data_id
+    assert make_param(scan, rotating_name).data_id != c.data_id
+    assert make_param(scan, base).data_id != c.data_id
+    # ...but the key still does not depend on parameter ordering
+    assert make_param(scan, f"{base}?id=6&csrf=7f01d97aec3100c7").data_id == c.data_id
+    await scan._cleanup()

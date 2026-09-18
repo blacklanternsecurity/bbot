@@ -1,5 +1,6 @@
 import uuid
 import logging
+from collections import Counter
 from contextlib import suppress
 from urllib.parse import urlparse, parse_qs, urlencode, ParseResult
 
@@ -209,6 +210,46 @@ def hash_url(url):
             hash_segment.append("")
         to_hash.append(tuple(hash_segment))
     return hash(tuple(to_hash))
+
+
+def max_path_param_repeats(url):
+    """
+    Count how many times the most-repeated path parameter appears in a URL's path.
+
+    Path (matrix) parameters are the ";key=value" pieces a server may append to a path
+    segment; some reissue one on every redirect, so the path grows without bound. Keys are
+    compared case-insensitively. Ordinary path segments are deliberately not counted: a deep
+    path that repeats a directory name is finite, and depth is bounded by web_spider_depth.
+
+    Args:
+        url (Union[str, ParseResult]): The URL to inspect.
+
+    Returns:
+        int: The highest number of times any single path parameter appears.
+
+    Examples:
+        >>> max_path_param_repeats('https://www.evilcorp.com/foo/bar')
+        0
+
+        >>> max_path_param_repeats('https://www.evilcorp.com/;JSESSIONID=a;JSESSIONID=b')
+        2
+
+        >>> max_path_param_repeats('https://www.evilcorp.com/app;a=1/b;c=2')
+        1
+    """
+    parsed = url if hasattr(url, "path") else parse_url(url)
+    # urlparse peels the final segment's matrix parameters off into .params
+    path = parsed.path
+    trailing_params = getattr(parsed, "params", "")
+    if trailing_params:
+        path = f"{path};{trailing_params}"
+    counts = Counter()
+    for segment in path.split("/"):
+        # the first ";"-delimited piece is the segment itself, not a parameter
+        for token in segment.split(";")[1:]:
+            if token:
+                counts[token.split("=", 1)[0].lower()] += 1
+    return max(counts.values(), default=0)
 
 
 def url_depth(url):
