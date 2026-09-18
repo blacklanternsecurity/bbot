@@ -34,11 +34,38 @@ def find_subclasses(obj, base_class):
     >>> find_subclasses(locals(), A)
     [<class '__main__.B'>, <class '__main__.C'>]
     """
-    subclasses = []
-    for name, member in inspect.getmembers(obj):
-        if inspect.isclass(member) and issubclass(member, base_class) and member is not base_class:
-            subclasses.append(member)
-    return subclasses
+    subclasses = {}
+    for namespace in _member_namespaces(obj):
+        for name, member in namespace.items():
+            if inspect.isclass(member) and issubclass(member, base_class) and member is not base_class:
+                subclasses.setdefault(name, member)
+    return [subclasses[name] for name in sorted(subclasses)]
+
+
+def _snapshot(mapping):
+    # a live module's setup() may be assigning attributes while we read it
+    while True:
+        try:
+            return dict(mapping)
+        except RuntimeError:
+            continue
+
+
+def _member_namespaces(obj):
+    """Yield the namespaces of ``obj`` without invoking attribute descriptors.
+
+    ``inspect.getmembers`` getattrs every name, which fires properties such as
+    ``BaseModule.memory_usage``. That walks the module's ``__dict__`` and blows
+    up with "dictionary changed size during iteration" when the module it is
+    reading is concurrently running its own ``setup()``.
+    """
+    if not isinstance(obj, type):
+        instance_dict = getattr(obj, "__dict__", None)
+        if isinstance(instance_dict, dict):
+            yield _snapshot(instance_dict)
+    classes = obj.__mro__ if isinstance(obj, type) else type(obj).__mro__
+    for cls in classes:
+        yield _snapshot(vars(cls))
 
 
 def _pick_select_value(options_html):
@@ -1372,11 +1399,11 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         self.yara_preprocess_dict = {}
         self.custom_yara_imports = []
 
-        modules_WEB_PARAMETER = [
-            module_name
-            for module_name, module in self.scan.modules.items()
-            if "WEB_PARAMETER" in module.watched_events
-        ]
+        # snapshot: setup_modules() pops failed modules from scan.modules while
+        # these setups run concurrently, so iterating the live dict can raise
+        scan_modules = list(self.scan.modules.values())
+
+        modules_WEB_PARAMETER = [module.name for module in scan_modules if "WEB_PARAMETER" in module.watched_events]
 
         self.parameter_extraction = bool(modules_WEB_PARAMETER)
         self.speculate_params = self.config.get("speculate_params", False)
@@ -1385,7 +1412,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         # at each YARA form-opening match. Caps worst-case Python re work per form.
         self.max_form_bytes = int(self.config.get("max_form_bytes", 262144))
 
-        for module in self.scan.modules.values():
+        for module in scan_modules:
             if not str(module).startswith("_"):
                 ExcavateRules = find_subclasses(module, ExcavateRule)
                 for e in ExcavateRules:

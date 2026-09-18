@@ -294,6 +294,7 @@ class WebConfig(BaseModel):
     max_sleep_interval_429: Optional[int] = Field(default=None, alias="429_max_sleep_interval")
     debug: Optional[bool] = None
     http_max_redirects: Optional[int] = None
+    http_compare_max_differing_lines: Optional[int] = None
     ssl_verify_target: Optional[bool] = None
     ssl_verify_infrastructure: Optional[bool] = None
 

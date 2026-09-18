@@ -567,6 +567,9 @@ class crypto(BaseLightfuzz):
                     if char_diffs <= 5:
                         continue
                 differ_count += 1
+                # verdict is already fixed above this threshold; further probes cannot change it
+                if differ_count > block_size:
+                    break
         self.debug(f"padding_oracle_execute: finished loop. differ_count={differ_count}")
         # A padding oracle vulnerability can produce a small number of different responses.
         # The correct \x01 padding byte always differs, but also, multi-byte padding values (\x02\x02, \x03\x03\x03, etc.) can also produce valid padding if the intermediate state randomly aligns. At most 'block_size' of such values are possible.
@@ -648,6 +651,7 @@ class crypto(BaseLightfuzz):
                         "context": context,
                     }
                 )
+                return  # Report first matching block size only
 
     async def error_string_search(self, text_dict, baseline_text):
         """

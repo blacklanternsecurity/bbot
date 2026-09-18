@@ -815,17 +815,81 @@ async def test_async_helpers():
     import random
     from bbot.core.helpers.misc import as_completed
 
+    # sleeps are scaled down; wall time here is sum(sleeps)/max_concurrent,
+    # so full-second sleeps buy nothing but 25s of idling
     async def do_stuff(r):
-        await asyncio.sleep(r)
+        await asyncio.sleep(r / 100)
         return r
 
     random_ints = [random.random() for _ in range(1000)]
     tasks = [do_stuff(r) for r in random_ints]
     results = set()
+    completion_order = []
     async for t in as_completed(tasks):
-        results.add(await t)
+        r = await t
+        results.add(r)
+        completion_order.append(r)
     assert len(results) == 1000
     assert sorted(random_ints) == sorted(results)
+    # results must arrive as they finish, not in submission order
+    assert completion_order != random_ints
+
+    # max_concurrent is an upper bound that actually gets saturated
+    for limit in (1, 5, 20, 50):
+        live = 0
+        peak = 0
+
+        async def probe(r):
+            nonlocal live, peak
+            live += 1
+            peak = max(peak, live)
+            try:
+                await asyncio.sleep(r / 100)
+                return r
+            finally:
+                live -= 1
+
+        vals = [random.random() for _ in range(200)]
+        completed = 0
+        async for t in as_completed([probe(r) for r in vals], max_concurrent=limit):
+            await t
+            completed += 1
+        assert completed == 200
+        assert peak == limit
+
+    # unlimited concurrency schedules everything at once
+    live = 0
+    peak = 0
+
+    async def unlimited(i):
+        nonlocal live, peak
+        live += 1
+        peak = max(peak, live)
+        try:
+            await asyncio.sleep(0)
+            return i
+        finally:
+            live -= 1
+
+    completed = 0
+    async for t in as_completed([unlimited(i) for i in range(200)], max_concurrent=None):
+        await t
+        completed += 1
+    assert completed == 200
+    assert peak == 200
+
+    # a raising coroutine is still yielded, and does not abort the rest
+    async def boom():
+        raise ValueError("boom")
+
+    async def fine(i):
+        await asyncio.sleep(0)
+        return i
+
+    yielded = [t async for t in as_completed([boom(), fine(1), boom(), fine(2)])]
+    assert len(yielded) == 4
+    assert sum(1 for t in yielded if isinstance(t.exception(), ValueError)) == 2
+    assert sorted(t.result() for t in yielded if t.exception() is None) == [1, 2]
 
 
 def test_portparse(helpers):

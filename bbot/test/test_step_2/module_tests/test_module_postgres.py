@@ -1,5 +1,3 @@
-import asyncio
-
 from .base import ModuleTestBase
 
 
@@ -8,27 +6,19 @@ class TestPostgres(ModuleTestBase):
     skip_distro_tests = True
 
     async def setup_before_prep(self, module_test):
-        process = await asyncio.create_subprocess_exec(
-            "docker",
-            "run",
-            "--name",
+        await self.start_container(
             "bbot-test-postgres",
-            "--rm",
             "-e",
             "POSTGRES_PASSWORD=bbotislife",
             "-e",
             "POSTGRES_USER=postgres",
             "-p",
             "5432:5432",
-            "-d",
             "postgres",
         )
 
         # wait for the container to start
         await self.wait_for_port_open(5432)
-
-        if process.returncode != 0:
-            self.log.error("Failed to start PostgreSQL server")
 
     async def check(self, module_test, events):
         import asyncpg
@@ -45,10 +35,4 @@ class TestPostgres(ModuleTestBase):
             assert len(targets) == 1, "No targets found in PostgreSQL database"
         finally:
             await conn.close()
-            process = await asyncio.create_subprocess_exec(
-                "docker", "stop", "bbot-test-postgres", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-            )
-            stdout, stderr = await process.communicate()
-
-            if process.returncode != 0:
-                raise Exception(f"Failed to stop PostgreSQL server: {stderr.decode()}")
+            await self.stop_container("bbot-test-postgres")

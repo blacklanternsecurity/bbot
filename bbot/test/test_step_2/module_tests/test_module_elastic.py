@@ -1,5 +1,4 @@
 import json
-import asyncio
 import ssl
 from urllib.request import urlopen, Request
 from urllib.error import URLError
@@ -37,12 +36,8 @@ class TestElastic(ModuleTestBase):
 
     async def setup_before_prep(self, module_test):
         # Start Elasticsearch container
-        await asyncio.create_subprocess_exec(
-            "docker",
-            "run",
-            "--name",
+        await self.start_container(
             "bbot-test-elastic",
-            "--rm",
             "-e",
             "ELASTIC_PASSWORD=bbotislife",
             "-e",
@@ -53,7 +48,6 @@ class TestElastic(ModuleTestBase):
             "cluster.routing.allocation.disk.watermark.flood_stage=98%",
             "-p",
             "9200:9200",
-            "-d",
             "docker.elastic.co/elasticsearch/elasticsearch:8.16.0",
         )
 
@@ -123,7 +117,4 @@ class TestElastic(ModuleTestBase):
             except URLError:
                 pass
             self.log.verbose("Deleted documents from index")
-            process = await asyncio.create_subprocess_exec(
-                "docker", "stop", "bbot-test-elastic", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-            )
-            await process.communicate()
+            await self.stop_container("bbot-test-elastic")

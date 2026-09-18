@@ -1,3 +1,6 @@
+import time
+import subprocess
+from itertools import chain
 from importlib.metadata import version as installed_version
 
 from ..bbot_fixtures import *
@@ -139,11 +142,13 @@ async def test_depsinstaller_stale_pip_cache(monkeypatch, bbot_scanner):
         }
 
     try:
-        # first run: nothing is cached yet, so both modules install their deps
+        # first run: nothing is cached yet, so both modules install their deps.
+        # the batch pass covers them in one resolver call, so assert on the set of
+        # specs that reached pip rather than on how many subprocesses carried them
         succeeded, failed = await installer.install(missing_module, present_module)
         assert not failed
         assert succeeded == sorted([missing_module, present_module])
-        assert sorted(pip_installs) == [["bbot-nonexistent-package"], ["pydantic"]]
+        assert sorted(chain(*pip_installs)) == ["bbot-nonexistent-package", "pydantic"]
 
         # second run: the cache is warm, but only pydantic is actually installed.
         # the missing package must be reinstalled instead of silently assumed present
@@ -151,8 +156,163 @@ async def test_depsinstaller_stale_pip_cache(monkeypatch, bbot_scanner):
         succeeded, failed = await installer.install(missing_module, present_module)
         assert not failed
         assert succeeded == sorted([missing_module, present_module])
-        assert pip_installs == [["bbot-nonexistent-package"]]
+        assert sorted(chain(*pip_installs)) == ["bbot-nonexistent-package"]
     finally:
         for module_name in (missing_module, present_module):
             preloaded.pop(module_name, None)
+        await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_depsinstaller_batch_covers_satisfied_deps(monkeypatch, bbot_scanner):
+    """
+    The batch pass must cover every spec it installs, including ones already present in
+    the environment. Leaving those uncovered made each owning module spawn its own no-op
+    pip subprocess, which dominated `bbot --install-all-deps`.
+    """
+    scan = bbot_scanner("127.0.0.1")
+    await scan._prep()
+    installer = scan.helpers.depsinstaller
+
+    pip_installs = []
+
+    async def mock_pip_install(packages, constraints=None):
+        pip_installs.append(list(packages))
+        return True
+
+    async def mock_install_core_deps():
+        return
+
+    monkeypatch.setattr(installer, "pip_install", mock_pip_install)
+    monkeypatch.setattr(installer, "install_core_deps", mock_install_core_deps)
+    monkeypatch.setattr(installer, "setup_status_cache", scan.helpers.temp_filename())
+    monkeypatch.setattr(installer, "setup_status", {})
+
+    preloaded = scan.preset.module_loader._preloaded
+    # pydantic is installed in every test environment, so these are the "satisfied" case
+    # distinct specs so the two modules hash differently; both are already installed,
+    # which is precisely the case the batch pass used to leave uncovered
+    shared_modules = ["deps_batch_a", "deps_batch_b"]
+    shared_specs = {"deps_batch_a": "pydantic", "deps_batch_b": "orjson"}
+    constrained_module = "deps_batch_constrained"
+    for module_name in shared_modules:
+        preloaded[module_name] = {
+            "sudo": False,
+            "deps": {
+                "apt": [],
+                "shell": [],
+                "pip": [shared_specs[module_name]],
+                "pip_constraints": [],
+                "common": [],
+                "ansible": [],
+            },
+        }
+    preloaded[constrained_module] = {
+        "sudo": False,
+        "deps": {
+            "apt": [],
+            "shell": [],
+            "pip": ["pydantic"],
+            "pip_constraints": ["pydantic>=1.0"],
+            "common": [],
+            "ansible": [],
+        },
+    }
+
+    try:
+        succeeded, failed = await installer.install(*shared_modules)
+        assert not failed
+        assert succeeded == sorted(shared_modules)
+        # one resolver pass covers both modules; neither may add a subprocess of its own
+        assert pip_installs == [["pydantic", "orjson"]]
+
+        # a spec shared with a module carrying custom constraints must still be resolved
+        # against those constraints, so the batch may not claim it
+        pip_installs.clear()
+        # install() re-reads the status cache under the lock, so a fresh file is what
+        # actually makes this a cold run
+        monkeypatch.setattr(installer, "setup_status_cache", scan.helpers.temp_filename())
+        monkeypatch.setattr(installer, "setup_status", {})
+        succeeded, failed = await installer.install(*shared_modules, constrained_module)
+        assert not failed
+        assert succeeded == sorted([*shared_modules, constrained_module])
+        # pydantic is claimed by the constrained module, so only orjson may be covered
+        assert installer._batch_installed == {"orjson"}
+        assert ["pydantic"] in pip_installs
+    finally:
+        for module_name in (*shared_modules, constrained_module):
+            preloaded.pop(module_name, None)
+        await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_depsinstaller_waiter_does_not_block_on_unrelated_installs(monkeypatch, bbot_scanner):
+    """
+    A lock holder installs its whole module list under a single hold. A waiter whose own
+    deps land partway through that chain must return as soon as they land, rather than
+    blocking for the remainder of the holder's unrelated work.
+    """
+    scan = bbot_scanner("127.0.0.1")
+    await scan._prep()
+    installer = scan.helpers.depsinstaller
+
+    async def mock_install_core_deps():
+        return
+
+    status_cache = Path(scan.helpers.temp_filename())
+    monkeypatch.setattr(installer, "install_core_deps", mock_install_core_deps)
+    monkeypatch.setattr(installer, "setup_status_cache", status_cache)
+    monkeypatch.setattr(installer, "setup_status", {})
+    monkeypatch.setattr(installer, "_setup_status_stamp", None)
+    monkeypatch.setattr(installer, "_core_deps_cached", lambda: True)
+
+    mine = "deps_test_waiter_mine"
+    preloaded = scan.preset.module_loader._preloaded
+    preloaded[mine] = {
+        "sudo": False,
+        "deps": {
+            "apt": [],
+            "shell": [],
+            "pip": [],
+            "pip_constraints": [],
+            "common": [],
+            "ansible": [{"name": f"{mine} task"}],
+        },
+    }
+    mine_hash = installer._module_hash(preloaded[mine])
+
+    holder_chain_secs = 6
+    lock_path = str(installer.data_dir / "install.lock")
+    # a real second process, because the convoy this guards against is cross-process
+    holder_src = (
+        "import fcntl,json,sys,time\n"
+        "f=open(sys.argv[1],'w')\n"
+        "fcntl.flock(f,fcntl.LOCK_EX)\n"
+        "print('locked',flush=True)\n"
+        "time.sleep(0.5)\n"
+        "open(sys.argv[2],'w').write(json.dumps({sys.argv[3]:True}))\n"
+        f"time.sleep({holder_chain_secs})\n"
+    )
+    holder = subprocess.Popen(
+        [sys.executable, "-c", holder_src, lock_path, str(status_cache), mine_hash],
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        assert holder.stdout.readline().strip() == "locked"
+
+        start = time.time()
+        succeeded, failed = await installer.install(mine)
+        waited = time.time() - start
+
+        assert not failed
+        assert succeeded == [mine]
+        assert waited < holder_chain_secs, (
+            f"waiter blocked {waited:.2f}s on the holder's unrelated work; "
+            f"it should have returned once its own dep was published"
+        )
+    finally:
+        holder.kill()
+        holder.wait()
+        preloaded.pop(mine, None)
         await scan._cleanup()

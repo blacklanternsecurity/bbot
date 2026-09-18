@@ -16,41 +16,44 @@ class TestKafka(ModuleTestBase):
     skip_distro_tests = True
 
     async def setup_before_prep(self, module_test):
-        # Start Zookeeper
-        await asyncio.create_subprocess_exec(
-            "docker", "run", "-d", "--rm", "--name", "bbot-test-zookeeper", "-p", "2181:2181", "zookeeper:3.9"
-        )
-
-        # Wait for Zookeeper to be ready
-        await self.wait_for_port_open(2181)
-
-        # Start Kafka using wurstmeister/kafka
-        await asyncio.create_subprocess_exec(
-            "docker",
-            "run",
-            "-d",
-            "--rm",
-            "--name",
+        # KRaft mode: one broker, no zookeeper. The native image is ~150MB
+        # against ~785MB for wurstmeister/kafka plus zookeeper, and CI pulls
+        # cold on every run.
+        await self.start_container(
             "bbot-test-kafka",
-            "--link",
-            "bbot-test-zookeeper:zookeeper",
             "-e",
-            "KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181",
+            "KAFKA_NODE_ID=1",
             "-e",
-            "KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092",
+            "KAFKA_PROCESS_ROLES=broker,controller",
+            "-e",
+            "KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093",
             "-e",
             "KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092",
             "-e",
+            "KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER",
+            "-e",
+            "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT",
+            "-e",
+            "KAFKA_CONTROLLER_QUORUM_VOTERS=1@localhost:9093",
+            "-e",
             "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1",
+            "-e",
+            "KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1",
+            "-e",
+            "KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1",
+            "-e",
+            "KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0",
             "-p",
             "9092:9092",
-            "wurstmeister/kafka",
+            "apache/kafka-native:4.1.2",
         )
 
-        # Wait for Kafka to be ready
+        # this runs before _prep(), which is what pip-installs the module's
+        # deps, so nothing here may import aiokafka. The broker opens its own
+        # listener as the last step of boot, after "Enabling request
+        # processing", so a connection that survives is_port_open's settle
+        # window is a ready broker rather than the docker proxy.
         await self.wait_for_port_open(9092)
-
-        await asyncio.sleep(1)
 
     async def check(self, module_test, events):
         from aiokafka import AIOKafkaConsumer
@@ -61,9 +64,12 @@ class TestKafka(ModuleTestBase):
             group_id="test_group",
             auto_offset_reset="earliest",
         )
-        await self.consumer.start()
 
         try:
+            # inside the try: a failure here must still tear the containers down,
+            # otherwise they hold port 9092 and every retry fails to bind it
+            await self.consumer.start()
+
             events_json = [e.json() for e in events]
             events_json.sort(key=lambda x: x["timestamp"])
 
@@ -88,12 +94,4 @@ class TestKafka(ModuleTestBase):
             # Clean up: Stop the Kafka consumer
             if hasattr(self, "consumer") and not self.consumer._closed:
                 await self.consumer.stop()
-            # Stop Kafka and Zookeeper containers
-            p1 = await asyncio.create_subprocess_exec(
-                "docker", "stop", "bbot-test-kafka", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-            )
-            await p1.communicate()
-            p2 = await asyncio.create_subprocess_exec(
-                "docker", "stop", "bbot-test-zookeeper", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-            )
-            await p2.communicate()
+            await self.stop_container("bbot-test-kafka")

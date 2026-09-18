@@ -1,5 +1,4 @@
 import json
-import asyncio
 
 from .base import ModuleTestBase
 
@@ -16,21 +15,8 @@ class TestRabbitMQ(ModuleTestBase):
     skip_distro_tests = True
 
     async def setup_before_prep(self, module_test):
-        # Remove any leftover container from a previous failed run
-        proc = await asyncio.create_subprocess_exec(
-            "docker",
-            "rm",
-            "-f",
-            "bbot-test-rabbitmq",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        await proc.wait()
-
         # Start RabbitMQ
-        await asyncio.create_subprocess_exec(
-            "docker", "run", "-d", "--rm", "--name", "bbot-test-rabbitmq", "-p", "5672:5672", "rabbitmq:3-management"
-        )
+        await self.start_container("bbot-test-rabbitmq", "-p", "5672:5672", "rabbitmq:3-management")
 
         # Wait for RabbitMQ to be ready by checking the port
         await self.wait_for_port_open(5672)
@@ -65,7 +51,4 @@ class TestRabbitMQ(ModuleTestBase):
             # Clean up: Close the RabbitMQ connection
             await connection.close()
             # Stop RabbitMQ container
-            process = await asyncio.create_subprocess_exec(
-                "docker", "stop", "bbot-test-rabbitmq", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-            )
-            await process.communicate()
+            await self.stop_container("bbot-test-rabbitmq")

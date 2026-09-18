@@ -7,7 +7,7 @@ import asyncio
 import logging
 from pathlib import Path
 import multiprocessing as mp
-from functools import partial
+from functools import partial, lru_cache
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
 from . import misc
@@ -28,6 +28,13 @@ from bbot.scanner.target import BaseTarget
 log = logging.getLogger("bbot.core.helpers")
 
 _PR_SET_PDEATHSIG = 1
+
+
+@lru_cache(maxsize=2)
+def _shared_cloudcheck(ssl_verify):
+    from cloudcheck import CloudCheck
+
+    return CloudCheck(verify_ssl=ssl_verify)
 
 
 def _pool_worker_init():
@@ -83,10 +90,13 @@ class ConfigAwareHelper:
     def __init__(self, preset):
         self.preset = preset
         self.bbot_home = self.preset.bbot_home
-        self.cache_dir = self.bbot_home / "cache"
-        self.temp_dir = self.bbot_home / "temp"
-        self.tools_dir = self.bbot_home / "tools"
-        self.lib_dir = self.bbot_home / "lib"
+        # deps_home is bbot_home unless BBOT_SHARED_DEPS_DIR redirects the install-once
+        # dirs elsewhere; see BBOTCore.deps_home.
+        self.deps_home = self.preset.deps_home
+        self.cache_dir = self.deps_home / "cache"
+        self.tools_dir = self.deps_home / "tools"
+        self.lib_dir = self.deps_home / "lib"
+        self.temp_dir = self.deps_home / "temp"
         self.scans_dir = self.bbot_home / "scans"
         self.wordlist_dir = Path(__file__).parent.parent.parent / "wordlists"
         self.current_dir = Path.cwd()
@@ -153,10 +163,8 @@ class ConfigAwareHelper:
     @property
     def cloudcheck(self):
         if self._cloudcheck is None:
-            from cloudcheck import CloudCheck
-
             ssl_verify = self.web_config.get("ssl_verify_infrastructure", True)
-            self._cloudcheck = CloudCheck(verify_ssl=ssl_verify)
+            self._cloudcheck = _shared_cloudcheck(ssl_verify)
         return self._cloudcheck
 
     def bloom_filter(self, size):

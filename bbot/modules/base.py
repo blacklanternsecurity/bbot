@@ -720,6 +720,9 @@ class BaseModule:
                     break
             self.debug(f"Finished setting up module {self.name}")
         except Exception as e:
+            # a raising setup() must hard-fail, otherwise setup_modules() reads the
+            # last successful status and leaves an errored module in the scan
+            status = False
             self.set_error_state(f"Unexpected error during module setup: {e}", critical=True)
             msg = f"{e}"
             self.trace()

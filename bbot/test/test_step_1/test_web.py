@@ -1,8 +1,11 @@
 import re
+import time
 
 from blasthttp import HTTPStatusError
 
 from ..bbot_fixtures import *
+
+from bbot.core.helpers.diff import _ordered_diff
 
 from bbot.test.worker import BBOT_TEST_DIR, HTTPSERVER_HOSTPORT
 
@@ -342,7 +345,12 @@ async def test_web_interactsh(bbot_scanner, bbot_httpserver):
     assert response2.status_code == 200
     assert any(interactsh_domain2.endswith(f"{s}") for s in server_list)
 
-    await asyncio.sleep(10)
+    # poll until every asserted condition holds, capped at the old fixed budget
+    deadline = time.time() + 10
+    while time.time() < deadline:
+        if sync_correct_url and async_correct_url:
+            break
+        await asyncio.sleep(0.1)
 
     data_list = await interactsh_client.poll()
     data_list2 = await interactsh_client2.poll()
@@ -422,6 +430,116 @@ async def test_web_http_compare(blasthttp_mock, bbot_scanner):
     compare_helper.compare_body({"asdf": "fdsa"}, {"fdsa": "asdf"})
     for mode in ("getparam", "header", "cookie"):
         assert await compare_helper.canary_check("http://www.example.com", mode=mode) is True
+
+    assert compare_helper.compare_body(["a", "b", "c"], ["a", "b", "c"]) is True
+    assert compare_helper.compare_body(["a", "b", "c"], ["a", "b", "x"]) is False
+    assert compare_helper.compare_body(["a", "b", "c"], ["c", "b", "a"]) is True
+    assert compare_helper.compare_body({"a": 1}, {"a": 2}) is False
+    assert compare_helper.compare_body({"a": 1}, {"a": 1}) is True
+
+    compare_helper.max_differing_lines = 500
+    base = [f"line {i}" for i in range(20000)]
+    similar = [f"line {i} X" if i < 5000 else f"line {i}" for i in range(20000)]
+    start = time.monotonic()
+    assert compare_helper.compare_body(base, similar) is False
+    assert (time.monotonic() - start) < 5
+
+    config_scan = bbot_scanner(config={"web": {"http_compare_max_differing_lines": 42}})
+    await config_scan._prep()
+    config_helper = config_scan.helpers.http_compare("http://www.example.com")
+    assert config_helper.max_differing_lines == 42
+    await config_scan._cleanup()
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_web_http_compare_filtered_lines_not_counted(blasthttp_mock, bbot_scanner):
+    scan = bbot_scanner()
+    await scan._prep()
+    blasthttp_mock.add_response(url=re.compile(r"http://www\.example\.com.*"), text="wat")
+    compare_helper = scan.helpers.http_compare("http://www.example.com")
+    compare_helper.max_differing_lines = 500
+
+    static = [f"line {i}" for i in range(400)]
+    dynamic_a = [f"nonce {i} A" for i in range(600)]
+    dynamic_b = [f"nonce {i} B" for i in range(600)]
+    dynamic_c = [f"nonce {i} C" for i in range(600)]
+
+    baseline_1 = dynamic_a + static
+    baseline_2 = dynamic_b + static
+    subject = dynamic_c + static
+
+    ddiff = _ordered_diff(baseline_1, baseline_2)
+    compare_helper.ddiff_filters = [x.path() for k in ddiff.keys() for x in list(ddiff[k])]
+    assert len(compare_helper.ddiff_filters) == 600
+
+    assert compare_helper.compare_body(baseline_1, subject) is True
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_web_http_compare_bounds_dict_bodies(blasthttp_mock, bbot_scanner):
+    scan = bbot_scanner()
+    await scan._prep()
+    blasthttp_mock.add_response(url=re.compile(r"http://www\.example\.com.*"), text="wat")
+    compare_helper = scan.helpers.http_compare("http://www.example.com")
+    compare_helper.max_differing_lines = 500
+    compare_helper.ddiff_filters = []
+
+    def rows(salt):
+        return [
+            f'<div class="r{i}" tok="{salt}{i}">item {i}{salt}</div>'
+            if i < 1000
+            else f'<div class="r{i}">item {i}</div>'
+            for i in range(4000)
+        ]
+
+    content_1 = {"html": {"body": {"div": rows("a")}}}
+    content_2 = {"html": {"body": {"div": rows("b")}}}
+
+    start = time.monotonic()
+    assert compare_helper.compare_body(content_1, content_2) is False
+    assert (time.monotonic() - start) < 5
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_web_http_compare_threshold_boundary(blasthttp_mock, bbot_scanner):
+    scan = bbot_scanner()
+    await scan._prep()
+    blasthttp_mock.add_response(url=re.compile(r"http://www\.example\.com.*"), text="wat")
+    compare_helper = scan.helpers.http_compare("http://www.example.com")
+    compare_helper.max_differing_lines = 10
+
+    static = [f"line {i}" for i in range(100)]
+    at_threshold_1 = [f"nonce {i} A" for i in range(5)] + static
+    at_threshold_2 = [f"nonce {i} B" for i in range(5)] + static
+
+    ddiff = _ordered_diff(at_threshold_1, at_threshold_2)
+    compare_helper.ddiff_filters = [x.path() for k in ddiff.keys() for x in list(ddiff[k])]
+
+    assert compare_helper.compare_body(at_threshold_1, at_threshold_2) is True
+
+    over_threshold_1 = [f"nonce {i} A" for i in range(6)] + static
+    over_threshold_2 = [f"nonce {i} B" for i in range(6)] + static
+    compare_helper.ddiff_filters = []
+    assert compare_helper.compare_body(over_threshold_1, over_threshold_2) is False
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_web_http_compare_null_threshold_config(blasthttp_mock, bbot_scanner):
+    scan = bbot_scanner(config={"web": {"http_compare_max_differing_lines": None}})
+    await scan._prep()
+    blasthttp_mock.add_response(url=re.compile(r"http://www\.example\.com.*"), text="wat")
+    compare_helper = scan.helpers.http_compare("http://www.example.com")
+    compare_helper.ddiff_filters = []
+
+    assert compare_helper.compare_body(["a", "b", "c"], ["a", "b", "x"]) is False
 
     await scan._cleanup()
 

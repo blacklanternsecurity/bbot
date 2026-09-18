@@ -562,12 +562,16 @@ rule akamai_bot_manager_url
         skip_extensions.update(e.lower() for e in self.scan.config.get("url_extension_special", []))
 
         # build URL list and mapping back to metadata
+        # entries are consumed here: emitting events re-triggers the finish phase, and
+        # anything left in the cache would be fetched again on every re-entry
         url_metadata = {}
         for cleaned_url, value in list(self._archive_cache.items()):
             if not isinstance(value, tuple):
+                # unpaired entries stay put; a later parent event can still pair them
                 self.debug(f"Skipping unpaired archive entry: {cleaned_url}")
                 continue
             raw_url, parent_event = value
+            del self._archive_cache[cleaned_url]
             ext = get_file_extension(cleaned_url)
             if ext and ext in skip_extensions:
                 self.debug(f"Skipping archive fetch for {raw_url} (extension: .{ext})")

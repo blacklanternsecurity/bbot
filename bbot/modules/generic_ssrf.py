@@ -253,8 +253,8 @@ class generic_ssrf(BaseModule):
                 self.warning(f"Interactsh failure: {e}")
 
     async def finish(self):
-        if self.scan.config.get("interactsh_disable", False) is False:
-            await self.helpers.sleep(5)
+        if self.scan.config.get("interactsh_disable", False) is False and self.interactsh_subdomain_tags:
+            await self.interactsh_instance.settle()
             try:
                 for r in await self.interactsh_instance.poll():
                     await self.interactsh_callback(r)

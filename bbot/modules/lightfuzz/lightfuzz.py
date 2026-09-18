@@ -351,9 +351,9 @@ class lightfuzz(BaseModule):
                 self.warning(f"Interactsh failure: {e}")
 
     async def finish(self):
-        if self.interactsh_instance:
-            self.debug("finish(): sleeping 5s before final interactsh poll")
-            await self.helpers.sleep(5)
+        if self.interactsh_instance and self.interactsh_subdomain_tags:
+            self.debug("finish(): settling before final interactsh poll")
+            await self.interactsh_instance.settle()
             try:
                 results = await self.interactsh_instance.poll()
                 self.debug(f"finish(): interactsh poll returned {len(results)} interaction(s)")
