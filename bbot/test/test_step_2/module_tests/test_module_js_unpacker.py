@@ -160,6 +160,14 @@ class TestJsUnpacker(ModuleTestBase):
         # Webpack: excavate should find the API base URL
         assert any("/api/v1" in str(u) for u in url_events), "Webpack: excavate didn't find /api/v1"
 
+        # the re-emit marker rides on the event, not inside the response data
+        unpacked = [e for e in events if e.type == "HTTP_RESPONSE" and "js-unpacked" in e.tags]
+        assert unpacked, "no unpacked HTTP_RESPONSE events were emitted"
+        assert all(e.reemit_source == "js_unpacker" for e in unpacked), (
+            f"unpacked responses missing reemit_source: {[e.reemit_source for e in unpacked]}"
+        )
+        assert not any("_reemit_source" in e.data for e in unpacked), "reemit marker leaked back into the event's data"
+
         # Next.js: should emit route URLs
         assert any("/about" in str(u) for u in url_events), "Next.js: didn't emit /about route"
         assert any("/contact" in str(u) for u in url_events), "Next.js: didn't emit /contact route"

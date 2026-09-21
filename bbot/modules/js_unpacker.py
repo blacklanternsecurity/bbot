@@ -24,8 +24,6 @@ class BaseUnpacker:
         """Re-emit an HTTP_RESPONSE with unpacked body so excavate can extract from it."""
         data = dict(event.data)
         data["body"] = body
-        # Distinct id from the original response so per-module dedup doesn't drop this.
-        data["_reemit_source"] = "js_unpacker"
         # recompute body hashes so downstream content-dedup doesn't collapse this
         # against the original response
         body_bytes = body.encode("utf-8", errors="replace") if isinstance(body, str) else body
@@ -36,13 +34,18 @@ class BaseUnpacker:
             "body_mmh3": mmh3.hash(body_bytes),
             "body_sha256": sha256(body_bytes).hexdigest(),
         }
-        await self.module.emit_event(
+        unpacked = self.module.make_event(
             data,
             "HTTP_RESPONSE",
             parent=event.parent,
             tags=["js-unpacked"],
             context=f"{{module}} unpacked {self.name} JavaScript from {{event.type}}",
         )
+        if unpacked is None:
+            return
+        # distinct id from the original response so per-module dedup doesn't drop this
+        unpacked.reemit_source = "js_unpacker"
+        await self.module.emit_event(unpacked)
 
 
 class SourceMapUnpacker(BaseUnpacker):
