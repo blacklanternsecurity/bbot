@@ -3,7 +3,7 @@ import re
 
 from werkzeug.wrappers import Response
 
-from .base import ModuleTestBase
+from .base import ModuleTestBase, tempwordlist
 from bbot.test.worker import HTTPSERVER_URL
 
 INITIALIZE_RESULT = {
@@ -193,3 +193,43 @@ class TestMCPServerNegative(ModuleTestBase):
     def check(self, module_test, events):
         assert all(e.type != "FINDING" for e in events), "non-MCP JSON endpoint should not be flagged"
         assert all(e.type != "TECHNOLOGY" for e in events), "non-MCP JSON endpoint should not be flagged"
+
+
+class TestMCPServerSignatureFile(TestMCPServerRESTBackend):
+    """Signatures come from a file: a custom row is loaded and used, a malformed row is skipped."""
+
+    signature_file = tempwordlist(
+        [
+            "# name,label,path,body_regex,severity,confidence,impact,cves",
+            "too-few-columns,only,three",
+            "bad-regex,Bad,/health,unbalanced(paren,HIGH,MEDIUM,never loads,",
+            "custom-backend,Custom tool backend,/health,Tools API Server is running,MEDIUM,HIGH,custom impact text,CVE-2000-0001;CVE-2000-0002",
+        ]
+    )
+    config_overrides = {"modules": {"mcp_server": {"signatures": str(signature_file)}}}
+
+    def check(self, module_test, events):
+        module = module_test.scan.modules["mcp_server"]
+        assert [s["name"] for s in module.signatures] == ["custom-backend"], "only the well-formed row should load"
+
+        findings = [e for e in events if e.type == "FINDING"]
+        assert 1 == len(findings), "the custom signature should have matched /health"
+        finding = findings[0]
+        assert "Custom tool backend" in finding.data["name"]
+        assert finding.data["severity"] == "MEDIUM"
+        assert finding.data["confidence"] == "HIGH"
+        assert "custom impact text" in finding.data["description"]
+        assert finding.data["cves"] == ["CVE-2000-0001", "CVE-2000-0002"]
+        assert [e for e in events if e.type == "TECHNOLOGY" and e.data["technology"] == "custom-backend"]
+
+
+class TestMCPServerPathsFromFile(TestMCPServer):
+    """mcp_endpoint_paths given as a wordlist file instead of a literal list."""
+
+    paths_file = tempwordlist(["# one endpoint path per line", "", "/nothing-here", "/mcp"])
+    config_overrides = {"modules": {"mcp_server": {"mcp_endpoint_paths": str(paths_file)}}}
+
+    def check(self, module_test, events):
+        module = module_test.scan.modules["mcp_server"]
+        assert module.paths == ["/nothing-here", "/mcp"], "comments and blank lines are dropped, order is kept"
+        super().check(module_test, events)
