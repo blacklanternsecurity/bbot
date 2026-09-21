@@ -76,13 +76,13 @@ dev = [
     "pytest-httpserver>=1.0.11,<2",
     "pytest>=8.3.1,<10",
     "pytest-asyncio==1.4.0",
-    "uvicorn>=0.32,<0.53",
+    "uvicorn>=0.32,<0.54",
     "fastapi>=0.115.5,<0.142.0",
     "pytest-httpx>=0.35",
     "pytest-benchmark>=4,<6",
     "pytest-xdist>=3.6,<4",
     "baddns~=2.4.1",
-    "ruff==0.16.4",
+    "ruff==0.16.6",
     "maturin>=1.4,<2",
 ]
 docs = [
