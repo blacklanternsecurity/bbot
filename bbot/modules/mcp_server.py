@@ -1,34 +1,15 @@
+import csv
 import json
 import re
+from typing import Union
 
+from bbot import __version__
 from bbot.core.config.models import BaseModuleConfig, Field
 from bbot.modules.base import BaseModule
 
 
 class mcp_server(BaseModule):
-    """Find Model Context Protocol (MCP) servers exposed on the web.
-
-    MCP servers bridge AI agents to real tools and data. The specification is
-    explicit that they SHOULD bind to localhost, SHOULD authenticate every
-    connection, and MUST validate the Origin header. An MCP endpoint that
-    completes an unauthenticated ``initialize`` handshake from the outside has
-    failed all of those at once, and its tools can be enumerated -- and
-    potentially invoked -- with whatever permissions the server was delegated.
-
-    Detection is a real protocol handshake rather than a banner guess, so a hit
-    is definitive. Only read-only methods are used: ``initialize`` and
-    ``tools/list``. No tool is ever invoked.
-
-    When no spec-compliant server answers, the module falls back to fingerprinting
-    REST-style MCP *tool backends* -- HTTP services that expose tools to agents but
-    do not speak the JSON-RPC protocol, so the handshake never matches them. These
-    are fingerprinted from a read-only identity path only; their command and tool
-    routes are never requested.
-
-    Passive/safe detection tier: complements the invasive Nuclei templates BBOT
-    already runs opt-in (exposed-mcp-sse-server, CVE-2025-49596). This surfaces the
-    exposure by protocol handshake in a default scan; nuclei confirms exploitability.
-    """
+    """Find exposed Model Context Protocol (MCP) servers by completing the initialize handshake."""
 
     watched_events = ["URL"]
     produced_events = ["FINDING", "TECHNOLOGY"]
@@ -39,14 +20,16 @@ class mcp_server(BaseModule):
         "author": "@repins267",
     }
 
-    # One probe per host:port: many URLs surface per host, but the MCP endpoint set is
-    # host-wide, so re-probing per discovered path would only add noise.
     per_hostport_only = True
 
     class Config(BaseModuleConfig):
-        mcp_endpoint_paths: list[str] = Field(
+        mcp_endpoint_paths: Union[str, list[str]] = Field(
             ["/mcp", "/sse", "/messages", "/api/mcp", "/v1/mcp", "/mcp/sse"],
-            description="Paths to probe for an MCP endpoint",
+            description="Paths to probe for an MCP endpoint. Accepts a list, or a wordlist file path / URL (one path per line)",
+        )
+        signatures: Union[str, list[str]] = Field(
+            "",
+            description="REST tool-backend signature file path or URL (CSV, see docs/modules/mcp_server.md). Empty = bundled default. Accepts a list of paths/URLs to merge",
         )
         enumerate_tools: bool = Field(
             True,
@@ -58,48 +41,60 @@ class mcp_server(BaseModule):
         )
         detect_legacy_sse: bool = Field(
             True,
-            description="Also detect the deprecated HTTP+SSE transport (GET /sse endpoint event)",
+            description="Also detect the deprecated HTTP+SSE transport (GET endpoint event)",
         )
 
-    # Advertised during the handshake. Servers negotiate down if they speak an older
-    # revision, so this does not need to match the target exactly.
     protocol_version = "2025-03-26"
-    http_timeout = 10
-    # Bounded read for the streaming SSE probe: we only need the first event, so we cap
-    # both the time we wait and the bytes we read, then close. This is what keeps the
-    # legacy-transport check from ever hanging a scan on an open SSE stream.
-    sse_probe_timeout = 6
-    sse_probe_maxbytes = 2048
+    default_signatures = "mcp_server_signatures.txt"
+    sse_probe_max_bytes = 64
+    max_tools_listed = 15
+    signature_columns = ("name", "label", "path", "body_regex", "severity", "confidence", "impact", "cves")
 
-    # REST-style MCP tool backends: HTTP services that expose tools/commands to AI agents
-    # but do NOT speak the JSON-RPC protocol, so the handshake above never matches them.
-    # Each is fingerprinted by GETting a read-only identity/health path and matching a
-    # stable string in the body. Command and tool-invocation routes are never touched --
-    # only the identity path is requested. Verified signatures only.
-    #
-    # name: (label, [identity paths], body pattern, severity, confidence, impact, cves)
-    rest_backends = {
-        "mcp-kali-server": (
-            "MCP Kali tools server",
-            ["/health"],
-            r"Kali Linux Tools API Server",
-            "CRITICAL",
-            "CONFIRMED",
-            "unauthenticated command execution via /api/command + offensive tooling -- RCE as a service",
-            [],
-        ),
-    }
+    async def setup_deps(self):
+        paths = self.config.get("mcp_endpoint_paths")
+        self.paths_file = await self.helpers.wordlist(paths) if isinstance(paths, str) else None
+        signatures = self.config.get("signatures") or f"{self.helpers.wordlist_dir}/{self.default_signatures}"
+        self.signatures_file = await self.helpers.wordlist(signatures)
+        return True
 
     async def setup(self):
-        self.enumerate_tools = self.config.get("enumerate_tools", True)
-        self.paths = self.config.get("mcp_endpoint_paths", [])
-        self.detect_rest_backends = self.config.get("detect_rest_backends", True)
-        self.detect_legacy_sse = self.config.get("detect_legacy_sse", True)
-        self._rest_backends = {
-            name: (label, paths, re.compile(pattern, re.I), severity, confidence, impact, cves)
-            for name, (label, paths, pattern, severity, confidence, impact, cves) in self.rest_backends.items()
-        }
+        if self.paths_file is None:
+            self.paths = list(self.config.get("mcp_endpoint_paths"))
+        else:
+            self.paths = [line.strip() for line in self.helpers.read_file(self.paths_file) if self._is_row(line)]
+        self.enumerate_tools = self.config.get("enumerate_tools")
+        self.detect_rest_backends = self.config.get("detect_rest_backends")
+        self.detect_legacy_sse = self.config.get("detect_legacy_sse")
+        self.signatures = self._load_signatures(self.signatures_file)
         return True
+
+    @staticmethod
+    def _is_row(line):
+        line = line.strip()
+        return bool(line) and not line.startswith("#")
+
+    def _load_signatures(self, filename):
+        rows = [line for line in self.helpers.read_file(filename) if self._is_row(line)]
+        signatures = []
+        for fields in csv.reader(rows):
+            if len(fields) != len(self.signature_columns):
+                self.warning(
+                    f"Skipping signature row with {len(fields)} columns (expected {len(self.signature_columns)}): {fields}"
+                )
+                continue
+            sig = dict(zip(self.signature_columns, (f.strip() for f in fields)))
+            try:
+                sig["body_regex"] = re.compile(sig["body_regex"], re.I)
+            except re.error as e:
+                self.warning(f"Skipping signature {sig['name']}: invalid regex ({e})")
+                continue
+            sig["severity"] = sig["severity"].upper()
+            sig["confidence"] = sig["confidence"].upper()
+            sig["cves"] = [c.strip() for c in sig["cves"].split(";") if c.strip()]
+            signatures.append(sig)
+        if rows and not signatures:
+            self.warning(f"No valid signatures loaded from {filename}")
+        return signatures
 
     def _rpc(self, method, params=None, msg_id=1, notification=False):
         payload = {"jsonrpc": "2.0", "method": method}
@@ -112,7 +107,6 @@ class mcp_server(BaseModule):
     def _headers(self, session_id=None):
         headers = {
             "Content-Type": "application/json",
-            # the spec requires clients to accept both response shapes
             "Accept": "application/json, text/event-stream",
         }
         if session_id:
@@ -120,18 +114,16 @@ class mcp_server(BaseModule):
         return headers
 
     def _parse_rpc(self, response):
-        """Return the JSON-RPC payload from a response body, JSON or SSE-wrapped."""
         if response is None:
             return None
         text = getattr(response, "text", "") or ""
         content_type = response.headers.get("content-type", "").lower()
         if "text/event-stream" in content_type:
-            # an SSE frame carries the JSON-RPC message on its "data:" line
             for line in text.splitlines():
                 line = line.strip()
                 if line.startswith("data:"):
                     try:
-                        return json.loads(line[5:].strip())
+                        return json.loads(line.removeprefix("data:").strip())
                     except json.JSONDecodeError:
                         continue
             return None
@@ -142,13 +134,11 @@ class mcp_server(BaseModule):
 
     @staticmethod
     def _is_initialize_result(payload):
-        """A genuine InitializeResult, not just any JSON that happens to be served."""
         if not isinstance(payload, dict) or payload.get("jsonrpc") != "2.0":
             return False
         result = payload.get("result")
         if not isinstance(result, dict):
             return False
-        # protocolVersion is mandatory in InitializeResult; serverInfo is near-universal
         return "protocolVersion" in result or "serverInfo" in result
 
     async def handle_event(self, event):
@@ -164,7 +154,7 @@ class mcp_server(BaseModule):
                     {
                         "protocolVersion": self.protocol_version,
                         "capabilities": {},
-                        "clientInfo": {"name": "bbot", "version": "1.0"},
+                        "clientInfo": {"name": "bbot", "version": str(__version__)},
                     },
                 ),
                 timeout=self.http_timeout,
@@ -187,45 +177,28 @@ class mcp_server(BaseModule):
                 tools = await self._list_tools(url, session_id)
 
             await self._report(event, url, name, version, negotiated, tools)
-            # one MCP endpoint per host is enough
             return
 
-        # No Streamable-HTTP server answered. Try the deprecated HTTP+SSE transport
-        # (still common on 2025-era servers), then the REST tool-backend fallback.
         if self.detect_legacy_sse and await self._check_legacy_sse(base_url, event):
             return
         if self.detect_rest_backends:
             await self._check_rest_backends(base_url, event)
 
     async def _check_legacy_sse(self, base_url, event):
-        """Detect the deprecated HTTP+SSE MCP transport.
-
-        On that transport a GET to the SSE endpoint immediately emits an SSE
-        ``event: endpoint`` whose data is the POST message path -- an MCP-specific
-        handshake marker that a generic SSE endpoint does not send. We stream the
-        response but read only the first event (bounded by time and bytes) and then
-        close, so an always-open SSE stream can never hang the scan.
-        """
-        import httpx
-
-        for path in ("/sse", "/mcp/sse"):
+        for path in self.paths:
             url = f"{base_url}{path}"
-            try:
-                async with httpx.AsyncClient(verify=False, timeout=self.sse_probe_timeout) as client:
-                    async with client.stream("GET", url, headers={"Accept": "text/event-stream"}) as response:
-                        if "text/event-stream" not in response.headers.get("content-type", "").lower():
-                            continue
-                        chunk = b""
-                        async for piece in response.aiter_bytes():
-                            chunk += piece
-                            if b"event: endpoint" in chunk or len(chunk) >= self.sse_probe_maxbytes:
-                                break
-            except Exception as e:
-                self.debug(f"Legacy SSE probe failed for {url}: {e}")
+            response = await self.helpers.request(
+                url=url,
+                method="GET",
+                headers={"Accept": "text/event-stream"},
+                max_body_size=self.sse_probe_max_bytes,
+                timeout=self.http_timeout,
+            )
+            if response is None:
                 continue
-
-            body = chunk.decode("utf-8", errors="replace")
-            # MCP-specific: an "endpoint" event pointing at the /messages POST path
+            if "text/event-stream" not in response.headers.get("content-type", "").lower():
+                continue
+            body = getattr(response, "text", "") or ""
             if "event: endpoint" not in body or "/messages" not in body:
                 continue
 
@@ -256,46 +229,41 @@ class mcp_server(BaseModule):
         return False
 
     async def _check_rest_backends(self, base_url, event):
-        for name, (label, paths, pattern, severity, confidence, impact, cves) in self._rest_backends.items():
-            for path in paths:
-                url = f"{base_url}{path}"
-                response = await self.helpers.request(url=url, method="GET", timeout=self.http_timeout)
-                if response is None:
-                    continue
-                body = getattr(response, "text", "") or ""
-                if not pattern.search(body):
-                    continue
-                await self.emit_event(
-                    {"host": str(event.host), "technology": name, "url": url},
-                    "TECHNOLOGY",
-                    event,
-                    context=f"{{module}} identified {{event.type}}: {label} at {url}",
-                )
-                data = {
-                    "host": str(event.host),
-                    "url": url,
-                    "name": f"Exposed MCP tool backend: {label}",
-                    "description": (
-                        f"Exposed {label} REST tool backend at {url} ({impact}). "
-                        f"Fingerprinted from its identity endpoint."
-                    ),
-                    "severity": severity,
-                    "confidence": confidence,
-                }
-                if cves:
-                    data["cves"] = cves
-                await self.emit_event(
-                    data,
-                    "FINDING",
-                    event,
-                    context=f"{{module}} found {{event.type}}: exposed {label} at {url}",
-                )
-                return  # one backend per host is enough
+        for sig in self.signatures:
+            url = f"{base_url}{sig['path']}"
+            response = await self.helpers.request(url=url, method="GET", timeout=self.http_timeout)
+            if response is None:
+                continue
+            body = getattr(response, "text", "") or ""
+            if not sig["body_regex"].search(body):
+                continue
+            label = sig["label"]
+            await self.emit_event(
+                {"host": str(event.host), "technology": sig["name"], "url": url},
+                "TECHNOLOGY",
+                event,
+                context=f"{{module}} identified {{event.type}}: {label} at {url}",
+            )
+            data = {
+                "host": str(event.host),
+                "url": url,
+                "name": f"Exposed MCP tool backend: {label}",
+                "description": f"Exposed {label} REST tool backend at {url} ({sig['impact']}). Fingerprinted from its identity endpoint.",
+                "severity": sig["severity"],
+                "confidence": sig["confidence"],
+            }
+            if sig["cves"]:
+                data["cves"] = sig["cves"]
+            await self.emit_event(
+                data,
+                "FINDING",
+                event,
+                context=f"{{module}} found {{event.type}}: exposed {label} at {url}",
+            )
+            return
 
     async def _list_tools(self, url, session_id):
-        """Complete the lifecycle and read the tool list. Read-only; never invokes a tool."""
         try:
-            # the spec requires this notification before normal operations
             await self.helpers.request(
                 url=url,
                 method="POST",
@@ -328,9 +296,6 @@ class mcp_server(BaseModule):
             context=f"{{module}} identified {{event.type}}: MCP server ({label}) at {url}",
         )
 
-        # Reaching this point means the handshake completed with no credentials, from
-        # outside the host -- three MCP-spec control failures at once: not localhost-bound,
-        # no authentication, and (over http://) no transport security.
         issues = ["remote", "unauthenticated"]
         if url.lower().startswith("http://"):
             issues.append("no TLS")
@@ -340,8 +305,9 @@ class mcp_server(BaseModule):
             f"initialize handshake completed {', '.join(issues)}."
         )
         if tools:
-            shown = ", ".join(tools[:15])
-            more = f" (+{len(tools) - 15} more)" if len(tools) > 15 else ""
+            shown = ", ".join(tools[: self.max_tools_listed])
+            hidden = len(tools) - self.max_tools_listed
+            more = f" (+{hidden} more)" if hidden > 0 else ""
             description += f" Tools ({len(tools)}): {shown}{more}."
 
         await self.emit_event(
