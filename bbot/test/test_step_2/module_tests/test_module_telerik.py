@@ -3,12 +3,40 @@ from .base import ModuleTestBase
 from bbot.test.worker import HTTPSERVER_URL
 
 
+_rau_call_count = [0]
+
+
+def _rau_two_stage_handler(request):
+    """
+    Mock a vulnerable RAU endpoint. The safe fake-version probe (POST #1) gets 'Could not
+    load file or assembly'; subsequent POSTs (version iteration) get the fileInfo upload
+    blob. The version string is encrypted so we distinguish stages by call ordering.
+    """
+    from werkzeug.wrappers import Response
+
+    _rau_call_count[0] += 1
+    if _rau_call_count[0] == 1:
+        return Response(
+            "Exception Details: System.IO.FileLoadException: Could not load file or assembly "
+            "'Telerik.Web.UI, Version=9999.9.999, Culture=neutral, PublicKeyToken=121fae78165ba3d4'",
+            status=200,
+        )
+    return Response(
+        '{"fileInfo":{"FileName":"RAU_crypto.bypass","ContentType":"text/html","ContentLength":5,'
+        '"DateJson":"2019-01-02T03:04:05.067Z","Index":0}, "metaData":"stub"}',
+        status=200,
+    )
+
+
 class TestTelerik(ModuleTestBase):
     targets = [HTTPSERVER_URL, f"{HTTPSERVER_URL}/telerik.aspx"]
     modules_overrides = ["http", "telerik"]
-    config_overrides = {"modules": {"telerik": {"exploit_RAU_crypto": True}}}
+    config_overrides = {"modules": {"telerik": {"rau_confirm_version": True}}}
 
     async def setup_before_prep(self, module_test):
+        # Reset the RAU handler call counter for test isolation.
+        _rau_call_count[0] = 0
+
         # Simulate Telerik.Web.UI.WebResource.axd?type=rau detection
         expect_args = {"method": "GET", "uri": "/Telerik.Web.UI.WebResource.axd", "query_string": "type=rau"}
         respond_args = {
@@ -16,18 +44,13 @@ class TestTelerik(ModuleTestBase):
         }
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
-        # Simulate Vulnerable Telerik.Web.UI.WebResource.axd
-        vuln_data = "ATTu5i4R+ViNFYO6kst0jC11wM/1iqH+W/isjhaDjNuCI7eJ/BY5d1E9eqZK27CJCMuon9u8/hgRIM/cTlgLlv4qOYjPBjs81Y3dAZAdtIr3TXiCmZi9M09a1BYMxjvGKfVky3b7PoOppeWS/3rglTwL1e8oyqLGx2NKUH5y8Cd+kLKV2f31J1sV4I5HTDKgDmvziJp3zlDrCb0Fi9ilKH+O1cbVx6SdBop/U30FxLaB/QIbt2N1rQHREJ5Skpgo7dilPxzBaTObdBhCVyB/FiJhenS/0u3h0Mpi6+A40SylICcyyxQha7+Uh7lEJ8Ne+2eTs4WqcaaQbvIhy7oHc+D0soxRKMZRjo7Up+UWHQJJh6KtWSCxUESNSdNcxjPQZE9HqsPlldVlkeC+ehSGce5bR0Ylots6Iz1OoCgMEWwxByeG3VzgxF6XpitL61A1hFcNo9euSTnCfOWh0vrQHON7DN5LpM9xr7SoD0Dnu01hZ9NS1PHhPLyN5WS87u5qdZp/z3Sxwc3wawIdo62RNf4Iz2gAKJZnPfxrE1mRn5kBe7f6O44rcuv6lcdao/DGlwbERKwRI6/n+FxGmc7H5iEKyihIwS2XUoOgsYTx5CWCDM8CuOXTk+H5fPYp9APRPbkD1IS9I/vRmvNPwWsgv8/7DzttqdBsGxiZJfCw1uZ7KSVmbItgXPAcscNxGEMaHXyJzkAl/mlM5/t/YSejwYoSW6jFfQcLdaVx2dpIpl5UmmQjFedzKeiNqpZDCk4yzXFHX24XUODYMJDtIJK2Hz1KTZmFG+LAOJjB9QOI58hFAnytcKay+JWFrzah/IvoNZxJUtlYdxw0YEyKs/ExET7AXgYQN0S+8j2PfaMMpzDSctTqpp5XBFV4Mt718GiqVnQJtWQv2p9Xl8XXOerBthbzzAciVcB8AV2WfZ51W3e4aX4kcyT/sCJhm7NR5WrNG5mX/ns0TTnGnzlPYhJcbu8uMFjMGDpXuhVyroJ7wmZucaIvesg0h5Y9cMEFviqsdy15vjMzFh+v9uO9Vicf6n9Z9JGSpWKE8wer2JU5b53Zw0cTfulAAffLWXnzOnfu&6R/cGaqQeHVAzdJ9wTFOyCsrMSTtqcjLe8AHwiPckPDUwecnJyNlkDYwDQpxGYQ9hs6YxhupK310sbCbtXB4H6Dz5rGNL40nkkyo4j2clmRr08jtFsPQ0RpE5BGsulPT3l0MxyAvPFMs8bMybUyAP+9RB9LoHE3Xo8BqDadX3HQakpPfGtiDMp+wxkWRgaNpCnXeY1QewWTF6z/duLzbu6CT6s+H4HgBHrOLTpemC2PvP2bDm0ySPHLdpapLYxU8nIYjLKIyYJgwv9S9jNckIVpcGVTWVul7CauCKxAB2mMnM9jJi8zfFwKajT5d2d9XfpkiVMrdlmikSB/ehyX1wQ=="
-        expect_args = {
-            "method": "POST",
-            "uri": "/Telerik.Web.UI.WebResource.axd",
-            "query_string": "type=rau",
-            "data": vuln_data,
-        }
-        respond_args = {
-            "response_data": '{"fileInfo":{"FileName":"RAU_crypto.bypass","ContentType":"text/html","ContentLength":5,"DateJson":"2019-01-02T03:04:05.067Z","Index":0}, "metaData":"CS8S/Z0J/b2982DRxDin0BBslA7fI0cWMuWlPu4W3FkE4tKaVoIEiAOtVlJ6D+0RQsfu8ox6gvMYxceQ0LtWyTkQBaIUa8LgLQg05DMaQuufHNx0YQ2ACi5neqDBvduj2MGiSGC0hNKzSWsHystZGUfFPLTZuJXYnff+WXurecuRzSI7d4Q1aj0bcTKKvfyQtH+fsTEafWRRZ99X/xgi4ON2OsRZ738uQHw7pQT2e1v7AtN46mxO/BmhEuZQr6m6HEvxK0pJRNkBhFUiQ+poeu8j3JzicOjvPDwFE4Rjqf3RVILt83XZrju2VpRIJqAEtf//znhH8BhT5BWvhnRo+J3ML5qoZLa2joE/QK8Ctf3UPvAFkHIUMdOH2mLNgZ+U87tdVE6fYfzvphZsLxmJRG45H8ZTZuYhJbOfei2LQ4fqHmr7p8KpJNVqoz/ev1dnBclAf5ayb40qJKEVsGXIbWEbIZwg7TTsLFc29aP7DPg=" }'
-        }
-        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+        # Vulnerable RAU endpoint: first POST is the safe fake-version probe (Could not load
+        # file or assembly response); every POST after that is the version-iteration path
+        # (fileInfo upload success). Distinguish by call order because the assembly version
+        # is inside the encrypted rauPostData blob.
+        module_test.httpserver.expect_request(
+            "/Telerik.Web.UI.WebResource.axd", method="POST", query_string="type=rau"
+        ).respond_with_handler(_rau_two_stage_handler)
 
         # Simulate SpellCheckHandler detection
         expect_args = {"method": "GET", "uri": "/Telerik.Web.UI.SpellCheckHandler.axd"}
@@ -71,8 +94,8 @@ class TestTelerik(ModuleTestBase):
 
     async def setup_after_prep(self, module_test):
         module_test.scan.modules["telerik"].helpers.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
-        module_test.scan.modules["telerik"].telerikVersions = ["2014.2.724", "2014.3.1024", "2015.1.204"]
-        module_test.scan.modules["telerik"].DialogHandlerUrls = [
+        module_test.scan.modules["telerik"].telerik_versions = ["2014.2.724", "2014.3.1024", "2015.1.204"]
+        module_test.scan.modules["telerik"].dialoghandler_urls = [
             "Admin/ServerSide/Telerik.Web.UI.DialogHandler.aspx",
             "App_Master/Telerik.Web.UI.DialogHandler.aspx",
             "AsiCommon/Controls/ContentManagement/ContentDesigner/Telerik.Web.UI.DialogHandler.aspx",
@@ -80,6 +103,7 @@ class TestTelerik(ModuleTestBase):
 
     def check(self, module_test, events):
         telerik_axd_detection = False
+        telerik_axd_keys_accepted = False
         telerik_axd_vulnerable = False
         telerik_spellcheck_detection = False
         telerik_dialoghandler_detection = False
@@ -87,40 +111,321 @@ class TestTelerik(ModuleTestBase):
         telerik_http_response_parameters_detection = False
 
         for e in events:
-            if e.type == "FINDING" and "Telerik RAU AXD Handler detected" in e.data["description"]:
-                e.data["description"]
+            if e.type == "FINDING" and e.data.get("name") == "Telerik RAU Handler":
                 telerik_axd_detection = True
                 continue
 
-            if e.type == "FINDING" and "Confirmed Vulnerable Telerik (version: 2014.3.1024)" in e.data["description"]:
+            if e.type == "FINDING" and e.data.get("name") == "Telerik RAU Default Keys Accepted (CVE-2017-11317)":
+                telerik_axd_keys_accepted = True
+                continue
+
+            if e.type == "FINDING" and e.data.get("name") == "Telerik RAU RCE (CVE-2017-11317)":
                 telerik_axd_vulnerable = True
                 continue
 
-            if e.type == "FINDING" and "Telerik DialogHandler detected" in e.data["description"]:
-                telerik_dialoghandler_detection = True
+            if e.type == "FINDING" and e.data.get("name") == "Telerik DialogHandler":
+                if "SerializedParameters" in e.data.get("description", ""):
+                    telerik_http_response_parameters_detection = True
+                else:
+                    telerik_dialoghandler_detection = True
                 continue
 
-            if e.type == "FINDING" and "Telerik SpellCheckHandler detected" in e.data["description"]:
+            if e.type == "FINDING" and e.data.get("name") == "Telerik SpellCheckHandler":
                 telerik_spellcheck_detection = True
                 continue
 
-            if e.type == "FINDING" and "Telerik ChartImage AXD Handler Detected" in e.data["description"]:
+            if e.type == "FINDING" and e.data.get("name") == "Telerik ChartImage Handler":
                 telerik_chartimage_detection = True
                 continue
 
-            if (
-                e.type == "FINDING"
-                and "Telerik DialogHandler [SerializedParameters] Detected in HTTP Response" in e.data["description"]
-            ):
-                telerik_http_response_parameters_detection = True
-                continue
-
         assert telerik_axd_detection, "Telerik AXD detection failed"
+        assert not telerik_axd_keys_accepted, (
+            "HIGH RAU Keys Accepted should be suppressed when the CRITICAL RCE also fires"
+        )
         assert telerik_axd_vulnerable, "Telerik vulnerable AXD detection failed"
         assert telerik_spellcheck_detection, "Telerik spellcheck detection failed"
         assert telerik_dialoghandler_detection, "Telerik dialoghandler detection failed"
         assert telerik_chartimage_detection, "Telerik chartimage detection failed"
         assert telerik_http_response_parameters_detection, "Telerik SerializedParameters detection failed"
+
+
+class TestTelerikRAUDefaultKeys(ModuleTestBase):
+    """
+    RAU default-keys probe (safe, no upload): fake-version payload triggers
+    'Could not load file or assembly' when default keys are still accepted.
+    """
+
+    targets = ["http://127.0.0.1:8888"]
+    module_name = "telerik"
+    modules_overrides = ["http", "telerik"]
+    config_overrides = {
+        "modules": {
+            "telerik": {
+                "rau_confirm_version": False,
+                "try_known_keys": False,
+                "probe_dialoghandler_oracle": False,
+            }
+        }
+    }
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/Telerik.Web.UI.WebResource.axd", "query_string": "type=rau"},
+            respond_args={
+                "response_data": '{ "message" : "RadAsyncUpload handler is registered succesfully, however, it may not be accessed directly." }'
+            },
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "POST", "uri": "/Telerik.Web.UI.WebResource.axd", "query_string": "type=rau"},
+            respond_args={
+                "response_data": (
+                    "Exception Details: System.IO.FileLoadException: Could not load file or assembly "
+                    "'Telerik.Web.UI, Version=9999.9.999, Culture=neutral, PublicKeyToken=121fae78165ba3d4'"
+                )
+            },
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/Telerik.Web.UI.SpellCheckHandler.axd"},
+            respond_args={"status": 404},
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/ChartImage.axd"},
+            respond_args={"status": 404},
+        )
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["telerik"].dialoghandler_urls = []
+
+    def check(self, module_test, events):
+        handler_detected = any(e.type == "FINDING" and e.data.get("name") == "Telerik RAU Handler" for e in events)
+        keys_accepted = any(
+            e.type == "FINDING" and e.data.get("name") == "Telerik RAU Default Keys Accepted (CVE-2017-11317)"
+            for e in events
+        )
+        rce_confirmed = any(
+            e.type == "FINDING" and e.data.get("name") == "Telerik RAU RCE (CVE-2017-11317)" for e in events
+        )
+        assert handler_detected, "Expected Telerik RAU Handler INFO finding"
+        assert keys_accepted, "Expected Telerik RAU Default Keys Accepted HIGH finding"
+        assert not rce_confirmed, "Should NOT emit RCE finding without rau_confirm_version=True"
+
+
+class TestTelerikDialogHandlerOracle(ModuleTestBase):
+    """CVE-2017-9248 quick_check: PBKDF1_MS 'Length cannot be less than zero' oracle → HIGH finding."""
+
+    targets = ["http://127.0.0.1:8888"]
+    module_name = "telerik"
+    modules_overrides = ["http", "telerik"]
+    config_overrides = {
+        "modules": {
+            "telerik": {
+                "probe_dialoghandler_oracle": True,
+                "try_known_keys": False,
+                "rau_confirm_version": False,
+            }
+        }
+    }
+
+    async def setup_before_prep(self, module_test):
+        # RAU handler: not present
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/Telerik.Web.UI.WebResource.axd", "query_string": "type=rau"},
+            respond_args={"status": 404},
+        )
+        # DialogHandler discovery: default path hits with the deserialize-error banner
+        module_test.set_expect_requests(
+            expect_args={
+                "method": "GET",
+                "uri": "/Telerik.Web.UI.DialogHandler.aspx",
+                "query_string": "dp=1",
+            },
+            respond_args={
+                "response_data": "<div>Cannot deserialize dialog parameters. Please refresh the editor page.</div>",
+            },
+        )
+        # KDF-mode probe (POST dialogParametersHolder=AAAA) returns pre-patch PBKDF1_MS banner
+        # so the oracle-probe gate lets us proceed past known-key skip (try_known_keys=False)
+        module_test.set_expect_requests(
+            expect_args={"method": "POST", "uri": "/Telerik.Web.UI.DialogHandler.aspx"},
+            respond_args={"response_data": "Server Error: Length cannot be less than zero. Parameter name: length."},
+        )
+        # find_baseline probe: GET ?dp=<base64(4 test bytes)> should leak an oracle error string
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/Telerik.Web.UI.DialogHandler.aspx"},
+            respond_args={"response_data": "Server Error: Index was outside the bounds of the array."},
+        )
+        # SpellCheck/ChartImage: not present
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/Telerik.Web.UI.SpellCheckHandler.axd"},
+            respond_args={"status": 404},
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/ChartImage.axd"},
+            respond_args={"status": 404},
+        )
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["telerik"].dialoghandler_urls = [
+            "Telerik.Web.UI.DialogHandler.aspx",
+        ]
+
+    def check(self, module_test, events):
+        oracle_found = any(
+            e.type == "FINDING" and e.data.get("name") == "Telerik DialogHandler Oracle (CVE-2017-9248)"
+            for e in events
+        )
+        assert oracle_found, "Expected Telerik DialogHandler Oracle finding (CVE-2017-9248)"
+
+
+class TestTelerikDialogHandlerKnownKey(ModuleTestBase):
+    """PBKDF1_MS mode: hash key + enc key each solvable via distinct oracle strings → CRITICAL finding."""
+
+    targets = ["http://127.0.0.1:8888"]
+    module_name = "telerik"
+    modules_overrides = ["http", "telerik"]
+    config_overrides = {
+        "modules": {
+            "telerik": {
+                "probe_dialoghandler_oracle": False,
+                "try_known_keys": True,
+                "rau_confirm_version": False,
+            }
+        }
+    }
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/Telerik.Web.UI.WebResource.axd", "query_string": "type=rau"},
+            respond_args={"status": 404},
+        )
+        module_test.set_expect_requests(
+            expect_args={
+                "method": "GET",
+                "uri": "/App_Master/Telerik.Web.UI.DialogHandler.aspx",
+                "query_string": "dp=1",
+            },
+            respond_args={
+                "response_data": "<div>Cannot deserialize dialog parameters. Please refresh the editor page.</div>",
+            },
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/Telerik.Web.UI.SpellCheckHandler.axd"},
+            respond_args={"status": 404},
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/ChartImage.axd"},
+            respond_args={"status": 404},
+        )
+
+        # Rig a keyed responder: KDF probe returns PBKDF1_MS banner, hash-key probes 500 until we
+        # see the matching one, enc-key probes 500 until we see the matching one.
+        module_test.httpserver.expect_request(
+            "/App_Master/Telerik.Web.UI.DialogHandler.aspx", method="POST"
+        ).respond_with_handler(_dh_knownkey_handler)
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["telerik"].dialoghandler_urls = [
+            "App_Master/Telerik.Web.UI.DialogHandler.aspx",
+        ]
+
+    def check(self, module_test, events):
+        matches = [
+            e
+            for e in events
+            if e.type == "FINDING" and e.data.get("name") == "Telerik DialogHandler Known Key (CVE-2017-9248)"
+        ]
+        assert matches, "Expected Telerik DialogHandler Known Key finding (CVE-2017-9248)"
+        # Mock returns a distinct-size body for Version=2014.3.1024, so version detection
+        # should succeed and the finding should be CRITICAL/CONFIRMED with the version noted.
+        assert any(
+            e.data.get("severity") == "CRITICAL" and "Version: [2014.3.1024]" in e.data.get("description", "")
+            for e in matches
+        ), "Expected CRITICAL finding with confirmed Version=2014.3.1024"
+
+
+def _dh_knownkey_handler(request):
+    """
+    Model a PBKDF1_MS target with the first badsecrets hash key and encryption key.
+    Distinguishes probe types by body length and by whether the payload passes
+    the HMAC-SHA256 test carried by badsecrets' hashkey_probe_generator.
+    """
+    from werkzeug.wrappers import Response
+    import hmac
+    import hashlib
+    import base64
+    from urllib.parse import parse_qs
+    from badsecrets import modules_loaded
+
+    body = request.get_data().decode(errors="replace")
+    params = parse_qs(body)
+    probe = params.get("dialogParametersHolder", [""])[0]
+
+    # KDF-mode probe: bare "AAAA" → PBKDF1_MS banner
+    if probe == "AAAA":
+        return Response(
+            "Server Error: Length cannot be less than zero. Parameter name: length.",
+            status=200,
+        )
+
+    hash_cls = modules_loaded["telerik_hashkey"]
+    enc_cls = modules_loaded["telerik_encryptionkey"]
+    hash_helper = hash_cls()
+    enc_helper = enc_cls()
+
+    hash_keys = list(hash_helper.prepare_keylist(include_machinekeys=False))
+    enc_keys = list(enc_helper.prepare_keylist(include_machinekeys=False))
+    target_hash_key = hash_keys[0]
+    target_enc_key = enc_keys[0]
+
+    # HMAC-verify the probe against target_hash_key. If it verifies AND the ciphertext prefix
+    # is exactly base64(known 20-byte test string) that's the hashkey_probe_generator; otherwise
+    # it's the encryptionkey probe (ciphertext = telerik_encrypt(b64("AAAAAAAAAAAAAAAAAAAA"))).
+    if len(probe) < 44:
+        return Response("", status=500)
+    dp_enc = probe[:-44].encode()
+    dp_hash = probe[-44:].encode()
+    try:
+        h = hmac.new(target_hash_key.encode(), dp_enc, hashlib.sha256)
+        if base64.b64encode(h.digest()) != dp_hash:
+            return Response("", status=500)
+    except Exception:
+        return Response("", status=500)
+
+    # Hashkey verified. Is this the hashkey probe (unencrypted long dialog-params b64)?
+    hashkey_test = b"EnableAsyncUpload,False,3,True;"
+    try:
+        decoded = base64.b64decode(dp_enc)
+    except Exception:
+        decoded = b""
+    if decoded.startswith(hashkey_test):
+        return Response(
+            "The input data is not a complete block.",
+            status=200,
+        )
+
+    # Otherwise this is the enckey probe OR a version-detection probe. Both are HMAC-signed
+    # with target_hash_key and encrypted with target_enc_key. Decrypt to distinguish.
+    try:
+        ct_bytes = base64.b64decode(dp_enc)
+    except Exception:
+        return Response("", status=500)
+    derived_key, derived_iv = enc_helper.telerik_derivekeys_PBKDF1_MS(target_enc_key)
+    plaintext = enc_helper.telerik_decrypt(derived_key, derived_iv, ct_bytes)
+    if plaintext is None:
+        return Response("", status=500)
+    # Version-detection probes carry a DialogTypeName section (base64-encoded assembly type
+    # string). The enckey probe carries a short base64 blob. When the DialogTypeName decodes
+    # to our "installed" version, return a noticeably longer body so the size-delta test
+    # trips; other versions return baseline.
+    if "DialogTypeName" in plaintext:
+        installed_b64 = base64.b64encode(
+            b"Telerik.Web.UI.Editor.DialogControls.DocumentManagerDialog, Telerik.Web.UI, "
+            b"Version=2014.3.1024, Culture=neutral, PublicKeyToken=121fae78165ba3d4"
+        ).decode()
+        if installed_b64 in plaintext:
+            return Response("<html><body>" + "A" * 500 + "</body></html>", status=200)
+        return Response("<html><body>baseline</body></html>", status=200)
+    return Response("Index was outside the bounds of the array.", status=200)
 
 
 class TestTelerikDialogHandler_includesubdirs(TestTelerik):
@@ -165,8 +470,8 @@ class TestTelerikDialogHandler_includesubdirs(TestTelerik):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     async def setup_after_prep(self, module_test):
-        module_test.scan.modules["telerik"].telerikVersions = ["2014.2.724", "2014.3.1024", "2015.1.204"]
-        module_test.scan.modules["telerik"].DialogHandlerUrls = [
+        module_test.scan.modules["telerik"].telerik_versions = ["2014.2.724", "2014.3.1024", "2015.1.204"]
+        module_test.scan.modules["telerik"].dialoghandler_urls = [
             "App_Master/Telerik.Web.UI.DialogHandler.aspx",
         ]
 
@@ -175,4 +480,4 @@ class TestTelerikDialogHandler_includesubdirs(TestTelerik):
         finding_count = sum(
             1 for e in events if e.type == "FINDING" and "Telerik DialogHandler detected" in e.data["description"]
         )
-        assert finding_count == 2, "Expected 2 FINDING events (root and /temp), got {finding_count}"
+        assert finding_count == 2, f"Expected 2 FINDING events (root and /temp), got {finding_count}"
