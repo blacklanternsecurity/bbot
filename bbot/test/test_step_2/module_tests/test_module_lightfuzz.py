@@ -3899,10 +3899,13 @@ class _NowafplsFuzzTestBase(ModuleTestBase):
     def modules_overrides(self):
         return ["http", "lightfuzz", "excavate"]
 
+    padding_size = 1024
+
     @property
     def config_overrides(self):
         return {
             "interactsh_disable": True,
+            "web": {"nowafpls_padding_sizes": [self.padding_size]},
             "modules": {
                 "lightfuzz": {
                     "enabled_submodules": ["xss"],
@@ -3957,6 +3960,11 @@ class Test_Nowafpls_try_bypasses_bypassable(_NowafplsFuzzTestBase):
             if not b.startswith(b"__nowafpls_pad=") and (b"%3Cscript" in b or b"<script" in b)
         ]
         assert padded_malicious, f"Expected padded fuzz probes. Bodies: {self.post_bodies[:5]}"
+        # fuzz probes must pad with the size the probe validated, not a compiled-in default
+        pad_sizes = {len(b[len(b"__nowafpls_pad=") :].split(b"&", 1)[0]) for b in padded_malicious}
+        assert pad_sizes == {self.padding_size}, (
+            f"Fuzz pads must match the configured padding size {self.padding_size}. Got: {pad_sizes}"
+        )
         # nowafpls's own probe fires exactly one unpadded malicious body; any additional unpadded
         # malicious would mean lightfuzz's fuzz probes are missing the pad.
         assert len(unpadded_malicious) <= 1, (

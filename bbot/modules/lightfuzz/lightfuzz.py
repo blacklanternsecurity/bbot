@@ -417,6 +417,9 @@ class lightfuzz(BaseModule):
                 result = await self.helpers.nowafpls.is_bypassable(event)
                 if result.status == BypassResult.STATUS_BLOCKED:
                     return False, f"WAF blocked the payload and body padding did not help ({result.summary})"
+                if result.status == BypassResult.STATUS_TOO_LARGE:
+                    # the WAF held and the origin caps body size, so padding is not available here
+                    return False, f"WAF blocked the payload and the origin rejected every pad size ({result.summary})"
                 if result.status == BypassResult.STATUS_ERROR:
                     # no verdict, which is a different thing from a WAF that held; say so instead of
                     # dropping the event with a generic reason
