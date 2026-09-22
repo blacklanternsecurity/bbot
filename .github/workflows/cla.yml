@@ -11,5 +11,5 @@ permissions:
 
 jobs:
   cla:
-    uses: blacklanternsecurity/CLA/.github/workflows/cla-reusable.yml@main
+    uses: blacklanternsecurity/CLA/.github/workflows/cla-reusable.yml@c2df6cfbbc363ce53873ed7e0d3cbb56551a5231 # main
     secrets: inherit
