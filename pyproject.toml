@@ -96,6 +96,10 @@ docs = [
     "pymdown-extensions>=10.20.1,<12",
 ]
 
+[tool.uv]
+# baddns still declares blastdns<1.10; override until it ships a 2.x-compatible release
+override-dependencies = ["blastdns>=2.0.0,<3"]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
