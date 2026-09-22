@@ -1,15 +1,65 @@
+import json
+
 from .base import ModuleTestBase
 
 
+def page(hosts, pad_to=0):
+    """A response page. `pad_to` inflates the record count so the module keeps paging."""
+    records = [{"host": h, "ips": []} for h in hosts]
+    records += [{"host": f"filler{i}.example.com", "ips": []} for i in range(pad_to - len(records))]
+    return json.dumps({"a": records, "cname": [], "mx": [], "ns": [], "txt": []}).encode()
+
+
 class TestDNSDumpster(ModuleTestBase):
+    config_overrides = {"modules": {"dnsdumpster": {"api_key": "asdf"}}}
+
     async def setup_after_prep(self, module_test):
+        # a full first page forces a second request; the short second page ends it
         module_test.blasthttp_mock.add_response(
-            url="https://dnsdumpster.com",
-            content=b"""<form data-form-id="mainform" class="mb-6" hx-post="https://api.dnsdumpster.com/htmld/" hx-target="#results" hx-headers='{"Authorization": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjAsImlhdCI6MTc1OTAxODczOCwiZXhwIjoxNzU5MDE5NjM4LCJkYXRhIjoiZmMxMDcwOTVjYmRjN2Y5YjU1ZWJiM2ZlZGViNWQ5Y2M5MWU1NmEzNGEwYzliNzM5ZjRlYzg2Mjk4MmM0ZDI5YSIsIm1lbWJlcl9zdGF0dXMiOiJmcmVlIn0.7NWBC6TFSaDZH-_VKqDoXqv3nH4a1k30NUxrijg1KqI"}'><div class="form-group">""",
+            url="https://api.dnsdumpster.com/domain/blacklanternsecurity.com",
+            content=page(["asdf.blacklanternsecurity.com"], pad_to=200),
         )
         module_test.blasthttp_mock.add_response(
-            url="https://api.dnsdumpster.com/htmld/",
-            content=b"asdf.blacklanternsecurity.com",
+            url="https://api.dnsdumpster.com/domain/blacklanternsecurity.com?page=2",
+            content=page(["qwerty.blacklanternsecurity.com"]),
+        )
+
+    def check(self, module_test, events):
+        assert any(e.data == "asdf.blacklanternsecurity.com" for e in events), "Failed to detect subdomain"
+        assert any(e.data == "qwerty.blacklanternsecurity.com" for e in events), "Failed to paginate"
+
+
+class TestDNSDumpsterSinglePage(ModuleTestBase):
+    """A short first page must not trigger a second request."""
+
+    modules_overrides = ["dnsdumpster"]
+    config_overrides = {"modules": {"dnsdumpster": {"api_key": "asdf"}}}
+
+    async def setup_after_prep(self, module_test):
+        module_test.blasthttp_mock.add_response(
+            url="https://api.dnsdumpster.com/domain/blacklanternsecurity.com",
+            content=page(["asdf.blacklanternsecurity.com"]),
+        )
+
+    def check(self, module_test, events):
+        assert any(e.data == "asdf.blacklanternsecurity.com" for e in events), "Failed to detect subdomain"
+
+
+class TestDNSDumpsterFreeTier(ModuleTestBase):
+    """A free key gets 403 when it asks for page 2; results so far are still kept."""
+
+    modules_overrides = ["dnsdumpster"]
+    config_overrides = {"modules": {"dnsdumpster": {"api_key": "asdf"}}}
+
+    async def setup_after_prep(self, module_test):
+        module_test.blasthttp_mock.add_response(
+            url="https://api.dnsdumpster.com/domain/blacklanternsecurity.com",
+            content=page(["asdf.blacklanternsecurity.com"], pad_to=200),
+        )
+        module_test.blasthttp_mock.add_response(
+            url="https://api.dnsdumpster.com/domain/blacklanternsecurity.com?page=2",
+            status_code=403,
+            content=b'{"error": "Plus membership required"}',
         )
 
     def check(self, module_test, events):
