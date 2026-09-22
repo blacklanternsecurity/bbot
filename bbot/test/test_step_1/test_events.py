@@ -191,11 +191,10 @@ async def test_events(events, helpers):
     assert getattr(hr_no_ext, "url_extension", "NOT_SET") == "NOT_SET"
 
     # special extensions (.js) must still reach modules that don't opt in to special URLs,
-    # since the response body has already been retrieved
+    # since the response body has already been retrieved. the distribution behavior
+    # itself is pinned in test_modules_basic.py
     hr_js = _http_response("https://evilcorp.com/app.js")
     assert getattr(hr_js, "url_extension", "") == "js"
-    assert hr_js._url_special_filterable is False
-    assert scan.make_event("https://evilcorp.com/app.js", dummy=True)._url_special_filterable is True
 
     # http response
     assert events.http_response.host == "example.com"
