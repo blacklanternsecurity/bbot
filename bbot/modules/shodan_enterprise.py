@@ -4,11 +4,6 @@ import time
 from bbot.modules.base import BaseModule
 from bbot.core.config.models import BaseModuleConfig, Field
 
-try:
-    import httpx
-except ImportError:  # pragma: no cover - httpx is not a BBOT dependency
-    httpx = None
-
 
 class shodan_enterprise(BaseModule):
     """Shodan Enterprise API integration, batched.
@@ -44,15 +39,12 @@ class shodan_enterprise(BaseModule):
     That is slower but does not spend query credits, which matters on a plan
     where credits are metered.
 
-    One wrinkle forced a split transport. ``/shodan/host/search`` sits behind
-    Cloudflare, which challenges BBOT's HTTP engine (blasthttp) and answers 403
-    with an interstitial page -- while ``/shodan/host/{ip}`` through the very same
-    engine returns 200. A full browser header set does not help, so the trigger is
-    the TLS fingerprint rather than anything in the request. Phase 1 therefore goes
-    out over httpx, which Cloudflare accepts; phase 2 keeps using BBOT's engine so
-    it still honours scan-wide proxy and SSL settings. httpx is not a BBOT
-    dependency, so if it is missing the module says so and disables the prefilter
-    instead of failing.
+    Both phases go through ``helpers.request()``, so the module honours the
+    scan's proxy, SSL and timeout settings throughout, and sends a plain
+    User-Agent rather than the scan's -- see ``_api_user_agent`` for why that one
+    header decides whether Cloudflare lets the search endpoint through. Should a
+    wall appear anyway, ``_search_known_ips`` turns the prefilter off after two
+    failed chunks and the scan continues on direct lookups: slower, never wrong.
     """
 
     watched_events = ["IP_ADDRESS"]
@@ -90,15 +82,6 @@ class shodan_enterprise(BaseModule):
 
     in_scope_only = True
 
-    # No deps_pip for httpx, deliberately. Phase 1 needs it (see the class
-    # docstring), but declaring it makes BBOT run `pip install --upgrade httpx`
-    # into its venv at every scan start, as the scan account -- which cannot
-    # write there. The install fails, and a module whose setup fails is not
-    # loaded at all: one unwritable directory turned "no prefilter, slower" into
-    # "no Shodan findings", 1,036 events to zero, silently. setup() already
-    # degrades gracefully when httpx is absent, so the dependency belongs in the
-    # deployment that builds the venv, not in a per-scan install.
-
     # Collect IPs before querying so phase 1 has something worth batching.
     # BaseModule._events_waiting() drains whatever is queued rather than waiting
     # for a full batch, so small batches still arrive -- hence the buffer below.
@@ -106,12 +89,28 @@ class shodan_enterprise(BaseModule):
 
     base_url = "https://api.shodan.io"
 
-    # Shodan answers 429 with "Retry-After: 0", which would turn a retry loop into
-    # a hot spin. BaseModule.api_request() has exactly that bug (base.py:1368 passes
-    # the header straight into asyncio.sleep), which is one reason this module
-    # issues its own requests. Never sleep less than this on a 429.
+    # Shodan answers 429 with "Retry-After: 0". BaseModule._get_retry_after()
+    # already floors that at 1s; these constants give the module's own retry loop,
+    # which does not go through api_request(), the same floor and a ceiling.
     _min_429_sleep = 1.0
     _max_429_sleep = 60.0
+
+    # API requests carry a plain User-Agent instead of the scan's. web.user_agent
+    # exists to shape how *targets* see the scan; sent to an authenticated vendor
+    # API it buys nothing and costs correctness. api.shodan.io sits behind
+    # Cloudflare, which challenges a request that calls itself a browser while the
+    # TLS handshake underneath is not one -- so a scan configured with a Chrome or
+    # Edge User-Agent gets 403 "Just a moment..." on /shodan/host/search, while
+    # /shodan/host/{ip} is let through. Measured against the live API from the
+    # same host: Chrome/Edge UA -> 403, "BBOT" or Python-urllib -> 200.
+    #
+    # An earlier revision routed the search endpoint over httpx to get around
+    # this. httpx worked only because it never applied the scan's User-Agent; the
+    # header, not the HTTP client, was the whole difference.
+    _api_user_agent = "BBOT"
+
+    # Consecutive failed search chunks before phase 1 gives up for this scan.
+    _max_search_failures = 2
 
     # NIST CVSS score -> severity
     severity_map = {"NONE": 0.0, "LOW": 0.1, "MEDIUM": 4.0, "HIGH": 7.0, "CRITICAL": 9.0}
@@ -138,22 +137,10 @@ class shodan_enterprise(BaseModule):
         self._seen = set()
         self._parents = {}
 
-        # Phase 1 needs httpx; see the class docstring for why BBOT's own engine
-        # cannot reach the search endpoint. Losing the prefilter costs speed,
-        # never correctness, so a missing httpx is a warning rather than a failure.
-        self._httpx_client = None
-        if self.search_prefilter:
-            if httpx is None:
-                self.warning(
-                    "httpx is not installed; disabling search_prefilter and querying every IP directly. "
-                    "This is correct but much slower."
-                )
-                self.search_prefilter = False
-            else:
-                self._httpx_client = httpx.AsyncClient(
-                    timeout=self.http_timeout_infrastructure,
-                    follow_redirects=True,
-                )
+        # Chunks whose search failed in a row. A wall in front of the search
+        # endpoint -- a gateway, exhausted query credits -- should cost one or two
+        # failed requests, not one per chunk for the rest of the scan.
+        self._search_failures = 0
 
         if not self.config.get("in_scope_only", True):
             self.in_scope_only = False
@@ -181,45 +168,43 @@ class shodan_enterprise(BaseModule):
                 await asyncio.sleep(delay)
             self._last_request = time.monotonic()
 
-    async def _send_via_bbot(self, url):
-        """BBOT's HTTP engine: honours scan-wide proxy, SSL and timeout settings."""
+    async def _send(self, url):
+        """BBOT's HTTP engine, for both phases.
+
+        Going through helpers.request() is what makes the module honour the
+        scan's proxy, SSL and timeout settings, so neither phase gets a private
+        route out.
+        """
         return await self.helpers.request(
             url=url,
             timeout=self.http_timeout_infrastructure,
             ssl_verify=self.helpers.web.ssl_verify_infrastructure,
+            headers={"User-Agent": self._api_user_agent},
         )
 
-    async def _send_via_httpx(self, url):
-        """httpx: the only transport Cloudflare lets through to /shodan/host/search."""
-        try:
-            return await self._httpx_client.get(url)
-        except Exception as e:
-            self.debug(f"httpx request failed: {type(e).__name__}: {e}")
-            return None
-
-    async def _request(self, url, description, sender=None):
+    async def _request(self, url, description):
         """One API call, with throttling, 429 backoff and API key cycling.
 
-        Deliberately not BaseModule.api_request(): that method sleeps for the
-        literal Retry-After value (0, from Shodan) and counts every 429 toward
-        api_failure_abort_threshold, which would disable the module after ten
-        rate-limit responses -- and a long scan produces far more than ten.
+        Deliberately not BaseModule.api_request(): it counts every 429 toward
+        api_failure_abort_threshold and disables the module once that is reached.
+        A 417-IP scan against Shodan produced 89 rate-limit responses -- normal
+        operation for this API, not failure. If that is changed upstream, most of
+        this method can go away.
 
-        ``sender`` selects the transport; both phases share this retry logic and
-        the module-wide throttle, since Shodan's rate limit is per API key and
-        does not care which client sent the request.
+        Both phases share this retry logic and the module-wide throttle, since
+        Shodan's rate limit is per API key and does not care which endpoint is
+        being hit.
 
         Returns the parsed JSON body, or None if the request could not be
         completed. A 404 means Shodan has no data for that host, which is a
         normal answer rather than a failure.
         """
-        sender = sender or self._send_via_bbot
         backoff = self.retry_backoff
 
         for attempt in range(self.max_retries + 1):
             async with self._semaphore:
                 await self._throttle()
-                r = await sender(url)
+                r = await self._send(url.format(api_key=self.api_key))
 
             if r is None:
                 self.debug(f"No response from Shodan for {description}")
@@ -275,15 +260,18 @@ class shodan_enterprise(BaseModule):
         body = (getattr(response, "text", "") or "").strip().replace("\n", " ")
         return body[:200] if body else "<empty body>"
 
+    # Both builders leave "{api_key}" in place, the way BaseModule.api_request()
+    # does: _request() substitutes the current key on every attempt, so cycling
+    # after a 429 reaches the wire instead of rotating a list nobody re-reads.
     def _host_url(self, ip):
-        return f"{self.base_url}/shodan/host/{self.helpers.quote(ip)}?key={self.api_key}"
+        return f"{self.base_url}/shodan/host/{self.helpers.quote(ip)}?key={{api_key}}"
 
     def _search_url(self, query, page):
         # minify defaults to true server-side and strips the very fields this
         # module emits (cpe, http.components, vulns), so it is always disabled.
         return (
             f"{self.base_url}/shodan/host/search"
-            f"?key={self.api_key}&minify=false&page={page}&query={self.helpers.quote(query)}"
+            f"?key={{api_key}}&minify=false&page={page}&query={self.helpers.quote(query)}"
         )
 
     # ------------------------------------------------------------------
@@ -316,16 +304,18 @@ class shodan_enterprise(BaseModule):
         """
         await self._drain()
 
-    async def cleanup(self):
-        """Close the phase 1 transport. Runs once, after the scan."""
-        if self._httpx_client is not None:
-            await self._httpx_client.aclose()
-            self._httpx_client = None
-
     async def _drain(self):
         batch, self._pending = self._pending, []
-        if batch:
+        if not batch:
+            return
+        try:
             await self._process(batch)
+        finally:
+            # _parents holds one event per IP, and through its parent chain the
+            # whole graph above it. Nothing needs them once the batch is emitted,
+            # and a scan that expands netblocks sees a lot of IPs.
+            for ip in batch:
+                self._parents.pop(ip, None)
 
     async def _process(self, ips):
         """Two-phase query: cheap batched search, then full per-IP lookups."""
@@ -356,6 +346,11 @@ class shodan_enterprise(BaseModule):
         One request per search_chunk_size IPs. Only the ip_str of each match is
         used -- the banners themselves are re-fetched per host in phase 2, since
         the search copy is incomplete.
+
+        A chunk whose search fails is returned whole, so a failure costs speed and
+        never findings. After _max_search_failures chunks fail in a row the
+        prefilter turns itself off for the rest of the scan: a wall in front of
+        this endpoint should cost two requests, not one per chunk.
         """
         known = []
         for start in range(0, len(ips), self.search_chunk_size):
@@ -363,19 +358,17 @@ class shodan_enterprise(BaseModule):
             query = "ip:" + ",".join(chunk)
             chunk_set = set(chunk)
             found = set()
+            failed = False
             page = 1
 
             while True:
-                body = await self._request(
-                    self._search_url(query, page),
-                    f"search of {len(chunk)} IPs",
-                    sender=self._send_via_httpx,
-                )
+                body = await self._request(self._search_url(query, page), f"search of {len(chunk)} IPs")
                 if body is None:
                     # A failed search must not silently drop these IPs; fall back
                     # to looking the whole chunk up directly.
                     self.verbose(f"Search failed for a chunk of {len(chunk)} IPs; falling back to direct lookups")
                     found = chunk_set
+                    failed = True
                     break
 
                 matches = body.get("matches") or []
@@ -384,12 +377,34 @@ class shodan_enterprise(BaseModule):
                     if ip in chunk_set:
                         found.add(ip)
 
+                # Every IP in the chunk is accounted for. Search bills a query
+                # credit per page and returns one match per banner, not per host,
+                # so a chunk of busy hosts runs to many pages -- and every page
+                # past this one is a credit spent to re-learn what we know.
+                if found == chunk_set:
+                    break
+
                 total = body.get("total")
                 if len(matches) < 100 or (isinstance(total, int) and page * 100 >= total):
                     break
                 page += 1
 
             known.extend(ip for ip in chunk if ip in found)
+
+            if not failed:
+                self._search_failures = 0
+                continue
+
+            self._search_failures += 1
+            if self._search_failures >= self._max_search_failures:
+                self.warning(
+                    f"Search failed {self._search_failures} times in a row; disabling search_prefilter for the "
+                    "rest of the scan and querying every IP directly. Slower, same results."
+                )
+                self.search_prefilter = False
+                # whatever is left in this batch skips phase 1 too
+                known.extend(ips[start + self.search_chunk_size :])
+                break
 
         return known
 
@@ -412,21 +427,36 @@ class shodan_enterprise(BaseModule):
         if event is None:
             return
 
+        # TECHNOLOGY carries no port (see _emit_technology), so the same technology
+        # on two banners is the same event -- and letting BBOT dedup them means
+        # whichever copy happens to arrive first decides the parent. Emit each one
+        # once, from the first banner that reports it, so the parent is stable.
+        emitted_technologies = set()
         for data in host["data"]:
             # The port goes first so everything found in that banner can hang off
             # it. Shodan attaches vulns and technologies to the individual banner,
             # not to the host -- across 5 hosts with up to 5 open ports each, 157
-            # CVEs each appeared exactly once -- and BBOT expresses "this CVE is on
-            # this service" through the event tree rather than through extra fields
-            # in event data. Falls back to the IP when the banner has no usable
-            # port, so a finding is never dropped for lack of a parent.
+            # CVEs each appeared exactly once. The port event is the structural
+            # record of that association; the finding also names the service in
+            # its own data (see _emit_findings). Falls back to the IP when the
+            # banner has no usable port, so a finding is never dropped for lack
+            # of a parent.
             port_event = await self._emit_ports(ip, data, event)
             parent = port_event or event
-            await self._emit_technologies(ip, data, parent)
+            await self._emit_technologies(ip, data, parent, emitted_technologies)
             await self._emit_findings(ip, data, parent)
 
-    async def _emit_technology(self, ip, technology, data, event, tags):
-        tech = {"technology": technology, "host": data.get("ip_str"), "port": data.get("port")}
+    async def _emit_technology(self, ip, technology, data, event, tags, emitted):
+        # No port here: TECHNOLOGY's validator takes host/technology/url and drops
+        # anything else, so passing one only looked like it worked. The affected
+        # port is recoverable from the parent event alone -- see UPSTREAM.md.
+        # The validator also lowercases, so dedup on the form BBOT will store.
+        key = str(technology).lower()
+        if key in emitted:
+            return
+        emitted.add(key)
+
+        tech = {"technology": technology, "host": data.get("ip_str")}
         await self.emit_event(
             tech,
             "TECHNOLOGY",
@@ -435,21 +465,21 @@ class shodan_enterprise(BaseModule):
             context=f"{{module}} queried Shodan API for {ip} and found TECHNOLOGY: {technology}",
         )
 
-    async def _emit_technologies(self, ip, data, event):
+    async def _emit_technologies(self, ip, data, event, emitted):
         tags = data.get("tags") or []
 
         for key in ("cpe", "cpe23"):
             for technology in data.get(key, []):
-                await self._emit_technology(ip, technology, data, event, tags)
+                await self._emit_technology(ip, technology, data, event, tags, emitted)
 
         if "product" in data:
-            await self._emit_technology(ip, data["product"], data, event, tags)
+            await self._emit_technology(ip, data["product"], data, event, tags, emitted)
 
         components = (data.get("http") or {}).get("components") or {}
         for technology, details in components.items():
             component_tags = list((details or {}).get("categories", []))
             component_tags.append("web-technology")
-            await self._emit_technology(ip, technology, data, event, component_tags)
+            await self._emit_technology(ip, technology, data, event, component_tags, emitted)
 
     async def _emit_ports(self, ip, data, event):
         """Emit the banner's open port, and return it so it can parent the rest."""
@@ -471,6 +501,16 @@ class shodan_enterprise(BaseModule):
         )
 
     async def _emit_findings(self, ip, data, event):
+        # Name the affected service in the finding itself. Shodan attaches a vuln
+        # to one banner, so a host running the same product on 80 and 443 reports
+        # the CVE twice -- and with the port recorded only in the parent chain the
+        # two findings are byte-identical, so BBOT dedups them and the second
+        # service vanishes from the report. FINDING's validator takes a fixed
+        # field set with no port in it, so the service goes in "description".
+        port = data.get("port")
+        transport = data.get("transport")
+        service = f" on {port}/{transport}" if port is not None and transport else ""
+
         for cve, vuln_data in (data.get("vulns") or {}).items():
             cvss = vuln_data.get("cvss", 0)
             severity = max(
@@ -481,7 +521,7 @@ class shodan_enterprise(BaseModule):
                 "name": "Shodan - Possible Vulnerabilities",
                 "host": data.get("ip_str"),
                 "severity": severity,
-                "description": cve,
+                "description": f"{cve}{service}",
                 "confidence": "LOW",
                 # FINDING's validator accepts a fixed set of fields and silently
                 # drops the rest, so the CVE goes in "cves", the field meant for
@@ -489,20 +529,18 @@ class shodan_enterprise(BaseModule):
                 # shodan_idb reports the same kind of finding.
                 "cves": [cve],
             }
-            # The affected port lives in the parent chain (this finding's parent
-            # is the OPEN_TCP_PORT/OPEN_UDP_PORT event for the banner it came
-            # from), not in the event itself: FINDING's validator accepts a fixed
-            # set of fields and drops the rest, and there is no supported way to
-            # set a port on an event -- neither make_event() nor BaseEvent take
-            # one. ClosestHostEvent is meant to inherit host+port from the closest
-            # parent, but only for events that declare no host, and it loses the
-            # port anyway (the hash refresh right after the assignment re-derives
-            # everything from data). Measured: parent.port 53, finding.port None.
-            # Reported upstream rather than worked around with a private attribute.
+            # event.port stays None on a FINDING: neither make_event() nor
+            # BaseEvent takes a port, and ClosestHostEvent -- which is documented
+            # to inherit host+port from the closest parent -- only runs for events
+            # that declare no host of their own, and loses the port anyway (the
+            # hash refresh right after the assignment re-derives everything from
+            # data). Measured: parent.port 53, finding.port None. Reported
+            # upstream rather than worked around with a private attribute, so the
+            # service is carried in description and in the parent chain instead.
             await self.emit_event(
                 vuln,
                 "FINDING",
                 parent=event,
                 tags=[],
-                context=f"{{module}} queried Shodan API for {ip} and found FINDING {cve}",
+                context=f"{{module}} queried Shodan API for {ip} and found FINDING {cve}{service}",
             )
