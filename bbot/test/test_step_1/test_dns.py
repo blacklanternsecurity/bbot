@@ -993,8 +993,17 @@ async def test_dns_brute_client_config(bbot_scanner, monkeypatch):
     assert captured["config"].persistent_socket is False
 
     # An unusable nameserver fails loudly instead of being silently ignored.
-    # Validation is blastdns's, so it happens when the client is built on first
-    # DNS use rather than at config-parse time.
+    # Validation is blastdns's, so it happens when the client is built.
     scan = bbot_scanner(config={"dns": {"nameservers": ["not-an-ip"]}})
     with pytest.raises(ValidationError, match="dns.nameservers"):
         _ = scan.helpers.dns.resolvers
+
+    # _prep() builds the client up front, so a bad nameserver aborts the scan there
+    # instead of surfacing once per event inside dnsresolve
+    scan = bbot_scanner(config={"dns": {"nameservers": ["not-an-ip"]}})
+    with pytest.raises(ValidationError, match="dns.nameservers"):
+        await scan._prep()
+
+    # a DNS-disabled scan never resolves, so it must not be blocked by that check
+    scan = bbot_scanner(config={"dns": {"nameservers": ["not-an-ip"], "disable": True}})
+    await scan._prep()
