@@ -1,6 +1,7 @@
 import json
 
 from .base import ModuleTestBase
+from bbot.modules.js_unpacker import DeanEdwardsUnpacker, ObfuscatorIOUnpacker
 from bbot.test.worker import HTTPSERVER_PORT, HTTPSERVER_URL
 
 
@@ -208,3 +209,71 @@ class TestJsUnpackerBadsecretsChain(ModuleTestBase):
             for e in events
         )
         assert excavate_jwt, "excavate should extract JWT from unpacked response"
+
+
+def _cdn_map(marker):
+    return json.dumps({"version": 3, "sources": ["src/app.js"], "sourcesContent": [f"const marker = '{marker}';"]})
+
+
+class TestJsUnpackerSourceMapBlacklist(ModuleTestBase):
+    """Off-scope source maps are fetched, but blacklisted ones never are."""
+
+    module_name = "js_unpacker"
+    targets = [HTTPSERVER_URL]
+    blacklist = ["blocked-cdn.test"]
+    modules_overrides = ["http", "excavate", "js_unpacker"]
+    config_overrides = {"web": {"spider_distance": 1, "spider_depth": 2}}
+    allowed_map = "https://allowed-cdn.test/app.min.js.map"
+    blocked_map = "https://blocked-cdn.test/app.min.js.map"
+
+    async def setup_after_prep(self, module_test):
+        index_html = (
+            '<html><head><script src="/js/allowed.js"></script><script src="/js/blocked.js"></script></head></html>'
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"},
+            respond_args={"response_data": index_html},
+        )
+        for name, map_url in (("allowed", self.allowed_map), ("blocked", self.blocked_map)):
+            module_test.set_expect_requests(
+                expect_args={"method": "GET", "uri": f"/js/{name}.js"},
+                respond_args={
+                    "response_data": f"var a=1;\n//# sourceMappingURL={map_url}",
+                    "content_type": "application/javascript",
+                },
+            )
+            module_test.blasthttp_mock.add_response(url=map_url, text=_cdn_map(f"{name}-map-marker"))
+
+    def check(self, module_test, events):
+        finding_urls = {e.data["url"] for e in events if e.type == "FINDING"}
+        assert self.allowed_map in finding_urls, "off-scope (non-blacklisted) source map should still be fetched"
+        assert self.blocked_map not in finding_urls, "blacklisted source map should never be fetched"
+        unpacked_bodies = [e.body for e in events if e.type == "HTTP_RESPONSE" and "js-unpacked" in e.tags]
+        assert any("allowed-map-marker" in b for b in unpacked_bodies)
+        assert not any("blocked-map-marker" in b for b in unpacked_bodies)
+
+
+def test_dean_edwards_ignores_inflated_keyword_count():
+    """A page-supplied keyword count far beyond the keyword list must not change or stall decoding."""
+    inflated = DEAN_EDWARDS_JS.replace("',32,32,'", "',32,99999999999999,'")
+    assert inflated != DEAN_EDWARDS_JS
+    expected = DeanEdwardsUnpacker._decode(DEAN_EDWARDS_JS)
+    assert "/hidden/tracker.js" in expected
+    assert DeanEdwardsUnpacker._decode(inflated) == expected
+
+
+def test_obfuscator_io_reduces_rotation_amount():
+    """A huge page-supplied rotation amount is applied modulo the array length."""
+    amount = 3 * 10**15 + 1
+
+    def body(rotation):
+        return (
+            "var _0xabcd=['aaa','bbb','ccc'];"
+            "(function(_0x1,_0x2){var f=function(n){while(--n){_0x1['push'](_0x1['shift']());}};f(++_0x2);}"
+            f"(_0xabcd,{hex(rotation)}));"
+            "var _0xacc=function(_0x1,_0x2){_0x1=_0x1-0x0;var r=_0xabcd[_0x1];return r;};"
+            "x(_0xacc('0x0'));"
+        )
+
+    assert "x('bbb')" in ObfuscatorIOUnpacker._deobfuscate(body(amount))
+    assert "x('aaa')" in ObfuscatorIOUnpacker._deobfuscate(body(3 * 10**15))
