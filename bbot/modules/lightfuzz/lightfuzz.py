@@ -203,7 +203,9 @@ class lightfuzz(BaseModule):
         e = event
         while 1:
             parent = e.parent
-            if parent is None or parent == e:
+            # `is`, not `==`: Event equality is hash-of-id, so two distinct events carrying
+            # equal data would end the walk and undercount everything above them
+            if parent is None or parent is e:
                 break
             if getattr(parent.module, "name", "") == self.name:
                 count += 1

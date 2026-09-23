@@ -11,6 +11,7 @@ from urllib.parse import unquote, quote
 
 import xml.etree.ElementTree as ET
 
+from bbot.scanner import Scanner
 from bbot.core.helpers.url import add_get_params
 from bbot.modules.lightfuzz.lightfuzz import lightfuzz
 from bbot.modules.lightfuzz.submodules.base import BaseLightfuzz
@@ -77,13 +78,22 @@ def test_lightfuzz_build_query_string_preserves_fragment():
     assert result.endswith("#frag")
 
 
-def _generation_chain(depth, host="example.com"):
-    """An event whose ancestry contains `depth` lightfuzz-emitted events."""
-    node = SimpleNamespace(module=SimpleNamespace(name="http"), parent=None, host=host)
-    for _ in range(depth):
-        node = SimpleNamespace(module=SimpleNamespace(name="excavate"), parent=node, host=host)
-        node = SimpleNamespace(module=SimpleNamespace(name="lightfuzz"), parent=node, host=host)
-    return SimpleNamespace(module=SimpleNamespace(name="excavate"), parent=node, host=host)
+def _generation_chain(scan, depth, host="example.com", duplicate_at=None):
+    """An event whose ancestry contains `depth` lightfuzz-emitted events.
+
+    Built from real events, so the walk meets real parent links and real equality, which is
+    hash-of-id and therefore data equality. `duplicate_at` gives one generation's excavate and
+    lightfuzz events the same URL, making a parent and child equal without being the same
+    object, which is the shape that truncates a walk keyed on `==`.
+    """
+    modules = {name: scan._make_dummy_module(name) for name in ("http", "excavate", "lightfuzz")}
+    node = scan.make_event(f"https://{host}/", "URL_UNVERIFIED", parent=scan.root_event, module=modules["http"])
+    for i in range(depth):
+        excavate_url = f"https://{host}/g{i}"
+        lightfuzz_url = excavate_url if i == duplicate_at else f"{excavate_url}/probe"
+        node = scan.make_event(excavate_url, "URL_UNVERIFIED", parent=node, module=modules["excavate"])
+        node = scan.make_event(lightfuzz_url, "URL_UNVERIFIED", parent=node, module=modules["lightfuzz"])
+    return scan.make_event(f"https://{host}/leaf", "URL_UNVERIFIED", parent=node, module=modules["excavate"])
 
 
 def _fake_baseline_response(url):
@@ -102,14 +112,20 @@ def _fake_baseline_response(url):
     )
 
 
-def test_lightfuzz_baseline_generations_counts_ancestry():
+async def test_lightfuzz_baseline_generations_counts_ancestry():
     fake = SimpleNamespace(name="lightfuzz", max_baseline_generations=10)
     count = lightfuzz.baseline_generations
-    assert count(fake, _generation_chain(0)) == 0
-    assert count(fake, _generation_chain(1)) == 1
-    assert count(fake, _generation_chain(7)) == 7
+    scan = Scanner("example.com")
+    await scan._prep()
+    assert count(fake, _generation_chain(scan, 0)) == 0
+    assert count(fake, _generation_chain(scan, 1)) == 1
+    assert count(fake, _generation_chain(scan, 7)) == 7
     # counting stops at the cap instead of walking the rest of the chain
-    assert count(fake, _generation_chain(60)) == 10
+    assert count(fake, _generation_chain(scan, 60)) == 10
+    # an ancestor that merely carries the same data as its parent must not end the walk,
+    # or every generation above it stops being counted and the cap never fires
+    assert count(fake, _generation_chain(scan, 7, duplicate_at=5)) == 7
+    await scan._cleanup()
 
 
 async def test_lightfuzz_baseline_generation_cap_stops_emitting():
@@ -134,23 +150,26 @@ async def test_lightfuzz_baseline_generation_cap_stops_emitting():
         return module
 
     response = _fake_baseline_response("https://example.com/contact?csrf=abc")
+    scan = Scanner("example.com")
+    await scan._prep()
 
     # below the cap, the feedback edge stays open
     module = _fake_module()
-    await lightfuzz.emit_baseline_response(module, response, _generation_chain(2), "GET")
+    await lightfuzz.emit_baseline_response(module, response, _generation_chain(scan, 2), "GET")
     assert len(emitted) == 1
     assert module._baseline_generation_cap_hit is False
 
     # at the cap, excavate gets nothing new to mine
     emitted.clear()
     module = _fake_module()
-    await lightfuzz.emit_baseline_response(module, response, _generation_chain(3), "GET")
+    await lightfuzz.emit_baseline_response(module, response, _generation_chain(scan, 3), "GET")
     assert emitted == []
     assert module._baseline_generation_cap_hit is True
 
     # deeper still stays capped
-    await lightfuzz.emit_baseline_response(module, response, _generation_chain(9), "GET")
+    await lightfuzz.emit_baseline_response(module, response, _generation_chain(scan, 9), "GET")
     assert emitted == []
+    await scan._cleanup()
 
 
 # Path Traversal single dot tolerance
