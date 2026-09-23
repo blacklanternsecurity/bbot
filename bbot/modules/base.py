@@ -5,7 +5,7 @@ from sys import exc_info
 from contextlib import suppress
 
 from ..core.helpers.misc import get_size  # noqa
-from ..errors import ValidationError, WebError
+from ..errors import HttpCompareError, ValidationError, WebError
 from ..core.helpers.async_helpers import TaskCounter, ShuffleQueue
 from ..core.event import is_event
 
@@ -944,9 +944,10 @@ class BaseModule:
     async def _is_http_wildcard_host(self, event):
         """Check whether the event's host is an HTTP wildcard responder.
 
-        Extracts scheme/host/port from the event's parsed_url when available,
-        otherwise falls back to ``event.host`` with https/443.  Returns True
-        (wildcard), False (not wildcard), or None (probe failed / no host).
+        When the host is flagged wildcard, probe this URL against the
+        wildcard baseline. If it diverges, the URL is a real endpoint and
+        should NOT be skipped. Returns True (wildcard) / False (not
+        wildcard) / None (probe failed / no host).
         """
         p = getattr(event, "parsed_url", None)
         if p is not None and p.hostname:
@@ -963,7 +964,29 @@ class BaseModule:
         result = await self.helpers.is_http_wildcard_host(scheme, host, port)
         if result in (False, None):
             return result
-        return True
+        # Underlying helper returns an HttpCompare with the baseline preloaded
+        # on a real wildcard hit; probe this URL against that baseline. Fall
+        # back to plain-bool truthiness when a test mock returned a scalar.
+        if not hasattr(result, "compare"):
+            return bool(result)
+        # For WEB_PARAMETER GETPARAMs, probe the URL with the parameter baked
+        # in — the bare URL may be a catchall while `?name=value` is real.
+        target_url = p.geturl() if p is not None else f"{scheme}://{host}:{port}/"
+        if event.type == "WEB_PARAMETER" and isinstance(event.data, dict) and event.data.get("type") == "GETPARAM":
+            name = event.data.get("name")
+            value = event.data.get("original_value")
+            if name:
+                target_url = self.helpers.add_get_params(
+                    target_url, {name: value if value is not None else ""}
+                ).geturl()
+        try:
+            match, _, _, subject_response = await result.compare(target_url, none_is_match=False)
+        except HttpCompareError:
+            return None
+        if subject_response is None:
+            # a dead probe is unknown, not a wildcard verdict
+            return None
+        return match
 
     def _scope_distance_check(self, event):
         # Seeds bypass scope distance checks
