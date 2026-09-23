@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.s1xm5p3o.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.reogx1er.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1527,6 +1527,7 @@
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">badsecrets</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">hunt</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">nowafpls</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">reflected_parameters</span>
 
 <span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
@@ -1534,6 +1535,7 @@
 <span style="color: #6E7681">    </span><span style="color: #7EE787">lightfuzz</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">enabled_submodules</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #79C0FF">cmdi</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">crypto</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">path</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">serial</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">sqli</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">ssti</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">xss</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">esi</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">ssrf</span><span style="color: #E6EDF3">]</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">try_post_as_get</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">avoid_wafs</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">try_bypasses</span>
 </code></pre></div>
 </details>
 <p>Category: web</p>
@@ -1586,7 +1588,7 @@
 <span style="color: #6E7681">    </span><span style="color: #7EE787">lightfuzz</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">enabled_submodules</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #79C0FF">path</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">sqli</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">xss</span><span style="color: #E6EDF3">]</span><span style="color: #6E7681"> </span><span style="color: #8B949E; font-style: italic"># only look for the most common vulnerabilities</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">disable_post</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span><span style="color: #6E7681"> </span><span style="color: #8B949E; font-style: italic"># don't send POST requests (less aggressive)</span>
-<span style="color: #6E7681">      </span><span style="color: #7EE787">avoid_wafs</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">avoid_wafs</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">always</span>
 
 <span style="color: #7EE787">conditions</span><span style="color: #E6EDF3">:</span>
 <span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">|</span>
@@ -1613,7 +1615,7 @@
 <span style="color: #6E7681">    </span><span style="color: #7EE787">lightfuzz</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">force_common_headers</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span><span style="color: #6E7681"> </span><span style="color: #8B949E; font-style: italic"># Fuzz common headers like X-Forwarded-For even if they're not observed on the target</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">enabled_submodules</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #79C0FF">cmdi</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">crypto</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">path</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">serial</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">sqli</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">ssti</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">xss</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">esi</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">ssrf</span><span style="color: #E6EDF3">]</span>
-<span style="color: #6E7681">      </span><span style="color: #7EE787">avoid_wafs</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">False</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">avoid_wafs</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">never</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">excavate</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">speculate_params</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span><span style="color: #6E7681"> </span><span style="color: #8B949E; font-style: italic"># speculate potential parameters extracted from JSON/XML web responses</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">wayback</span><span style="color: #E6EDF3">:</span>
@@ -1625,14 +1627,15 @@
 <p>Category: web</p>
 <p>Modules: <a href="" title="">0</a></p>
 <h2 id="lightfuzz-xss"><strong>lightfuzz-xss</strong></h2>
-<p>XSS-only: enables only the xss submodule with paramminer_getparams and reflected_parameters. POST disabled, no query string collapsing. Example of a focused single-submodule preset.</p>
+<p>XSS-only: enables only the xss submodule with paramminer_getparams and reflected_parameters. POST fuzzing enabled and try_get_as_post retests every discovered GET parameter as POST, so the nowafpls body-padding bypass gets a chance on WAF-tagged targets (a padded-POST XSS is triggerable from an attacker-controlled form).</p>
 <details class="note">
 <summary><code>lightfuzz-xss.yml</code></summary>
-<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/lightfuzz-xss.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"XSS-only:</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">enables</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">only</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">the</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">xss</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">submodule</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">with</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">paramminer_getparams</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">and</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">reflected_parameters.</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">POST</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">disabled,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">no</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">query</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">string</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">collapsing.</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">Example</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">of</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">a</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">focused</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">single-submodule</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">preset."</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/lightfuzz-xss.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"XSS-only:</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">enables</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">only</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">the</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">xss</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">submodule</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">with</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">paramminer_getparams</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">and</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">reflected_parameters.</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">POST</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">fuzzing</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">enabled</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">and</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">try_get_as_post</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">retests</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">every</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">discovered</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">GET</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">parameter</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">as</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">POST,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">so</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">the</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">nowafpls</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">body-padding</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">bypass</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">gets</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">a</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">chance</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">on</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">WAF-tagged</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">targets</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">(a</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">padded-POST</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">XSS</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">is</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">triggerable</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">from</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">an</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">attacker-controlled</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">form)."</span>
 
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">lightfuzz</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">nowafpls</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">paramminer_getparams</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">reflected_parameters</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">portfilter</span>
@@ -1643,7 +1646,8 @@
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">lightfuzz</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">enabled_submodules</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #79C0FF">xss</span><span style="color: #E6EDF3">]</span>
-<span style="color: #6E7681">      </span><span style="color: #7EE787">disable_post</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">try_get_as_post</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">avoid_wafs</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">try_bypasses</span>
 
 <span style="color: #7EE787">conditions</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">|</span>
@@ -2228,15 +2232,15 @@
 <td>lightfuzz</td>
 <td>web</td>
 <td>Default fuzzing: all 9 submodules (cmdi, crypto, path, serial, sqli, ssti, xss, esi, ssrf) plus companion modules (badsecrets, hunt, reflected_parameters). POST fuzzing disabled but try_post_as_get enabled, so POST params are retested as GET. Skips confirmed WAFs.</td>
-<td>6</td>
-<td>badsecrets, http, hunt, lightfuzz, portfilter, reflected_parameters</td>
+<td>7</td>
+<td>badsecrets, http, hunt, lightfuzz, nowafpls, portfilter, reflected_parameters</td>
 </tr>
 <tr>
 <td>lightfuzz-heavy</td>
 <td>web</td>
 <td>Aggressive fuzzing: everything in lightfuzz, plus paramminer brute-force parameter discovery (headers, GET params, cookies), POST request fuzzing enabled, try_get_as_post enabled (GET params retested as POST), and robots.txt parsing. Still skips confirmed WAFs.</td>
-<td>8</td>
-<td>badsecrets, http, hunt, lightfuzz, portfilter, reflected_parameters, robots, wayback</td>
+<td>9</td>
+<td>badsecrets, http, hunt, lightfuzz, nowafpls, portfilter, reflected_parameters, robots, wayback</td>
 </tr>
 <tr>
 <td>lightfuzz-light</td>
@@ -2249,15 +2253,15 @@
 <td>lightfuzz-max</td>
 <td>web</td>
 <td>Maximum fuzzing: everything in lightfuzz-heavy, plus the heavy paramminer variant (1-3 letter brute-force on GET params, case mutation on case-sensitive backends, recycle_words on all paramminer modules), WAF targets are no longer skipped, each unique parameter-value pair is fuzzed individually (no collapsing), common headers like X-Forwarded-For are fuzzed even if not observed, and potential parameters are speculated from JSON/XML response bodies. Significantly increases scan time.</td>
-<td>8</td>
-<td>badsecrets, http, hunt, lightfuzz, portfilter, reflected_parameters, robots, wayback</td>
+<td>9</td>
+<td>badsecrets, http, hunt, lightfuzz, nowafpls, portfilter, reflected_parameters, robots, wayback</td>
 </tr>
 <tr>
 <td>lightfuzz-xss</td>
 <td>web</td>
-<td>XSS-only: enables only the xss submodule with paramminer_getparams and reflected_parameters. POST disabled, no query string collapsing. Example of a focused single-submodule preset.</td>
-<td>5</td>
-<td>http, lightfuzz, paramminer_getparams, portfilter, reflected_parameters</td>
+<td>XSS-only: enables only the xss submodule with paramminer_getparams and reflected_parameters. POST fuzzing enabled and try_get_as_post retests every discovered GET parameter as POST, so the nowafpls body-padding bypass gets a chance on WAF-tagged targets (a padded-POST XSS is triggerable from an attacker-controlled form).</td>
+<td>6</td>
+<td>http, lightfuzz, nowafpls, paramminer_getparams, portfilter, reflected_parameters</td>
 </tr>
 <tr>
 <td>nuclei</td>

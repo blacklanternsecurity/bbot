@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../assets/stylesheets/extra-style.s1xm5p3o.min.css" rel="stylesheet"/></head>
+<link href="../assets/stylesheets/extra-style.reogx1er.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1309,9 +1309,9 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 </tr>
 <tr>
 <td>active</td>
-<td>52</td>
+<td>53</td>
 <td>Makes active connections to target systems</td>
-<td>ajaxpro, aspnet_bin_exposure, baddns, baddns_direct, baddns_zone, badsecrets, bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_hetzner, bucket_microsoft, bypass403, dnsbrute, dnsbrute_mutations, dnscommonsrv, dotnetnuke, filedownload, fingerprintx, generic_ssrf, git, gitlab_com, gitlab_onprem, gowitness, graphql_introspection, host_header, http, hunt, iis_shortnames, legba, lightfuzz, medusa, newsletters, ntlm, nuclei, oauth, paramminer_cookies, paramminer_getparams, paramminer_headers, portscan, reflected_parameters, retirejs, robots, securitytxt, sslcert, telerik, url_manipulation, virtualhost, waf_bypass, wafw00f, webbrute, webbrute_shortnames</td>
+<td>ajaxpro, aspnet_bin_exposure, baddns, baddns_direct, baddns_zone, badsecrets, bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_hetzner, bucket_microsoft, bypass403, dnsbrute, dnsbrute_mutations, dnscommonsrv, dotnetnuke, filedownload, fingerprintx, generic_ssrf, git, gitlab_com, gitlab_onprem, gowitness, graphql_introspection, host_header, http, hunt, iis_shortnames, legba, lightfuzz, medusa, newsletters, nowafpls, ntlm, nuclei, oauth, paramminer_cookies, paramminer_getparams, paramminer_headers, portscan, reflected_parameters, retirejs, robots, securitytxt, sslcert, telerik, url_manipulation, virtualhost, waf_bypass, wafw00f, webbrute, webbrute_shortnames</td>
 </tr>
 <tr>
 <td>subdomain-enum</td>
@@ -1332,6 +1332,12 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <td>apkpure, code_repository, docker_pull, dockerhub, git, git_clone, gitdumper, github_codesearch, github_org, github_usersearch, github_workflows, gitlab_com, gitlab_onprem, google_playstore, jadx, postman, postman_download, trajan, trufflehog</td>
 </tr>
 <tr>
+<td>web-heavy</td>
+<td>17</td>
+<td>More advanced web scanning functionality</td>
+<td>ajaxpro, aspnet_bin_exposure, bucket_digitalocean, bucket_hetzner, bypass403, dotnetnuke, generic_ssrf, host_header, hunt, lightfuzz, nowafpls, reflected_parameters, retirejs, telerik, url_manipulation, waf_bypass, webbrute_shortnames</td>
+</tr>
+<tr>
 <td>cloud-enum</td>
 <td>16</td>
 <td>Enumerates cloud resources</td>
@@ -1342,12 +1348,6 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <td>16</td>
 <td>Non-intrusive web scan functionality</td>
 <td>baddns, badsecrets, bucket_amazon, bucket_firebase, bucket_google, bucket_microsoft, filedownload, git, graphql_introspection, http, iis_shortnames, ntlm, oauth, robots, securitytxt, sslcert</td>
-</tr>
-<tr>
-<td>web-heavy</td>
-<td>16</td>
-<td>More advanced web scanning functionality</td>
-<td>ajaxpro, aspnet_bin_exposure, bucket_digitalocean, bucket_hetzner, bypass403, dotnetnuke, generic_ssrf, host_header, hunt, lightfuzz, reflected_parameters, retirejs, telerik, url_manipulation, waf_bypass, webbrute_shortnames</td>
 </tr>
 <tr>
 <td>slow</td>
@@ -1362,6 +1362,12 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <td>dehashed, dnscaa, dnstlsrpt, emailformat, emails, hunterio, pgp, skymem, sslcert</td>
 </tr>
 <tr>
+<td>invasive</td>
+<td>8</td>
+<td>Intrusive or potentially destructive</td>
+<td>dotnetnuke, generic_ssrf, legba, lightfuzz, medusa, nowafpls, nuclei, telerik</td>
+</tr>
+<tr>
 <td>affiliates</td>
 <td>7</td>
 <td>Discovers affiliated hostnames/domains</td>
@@ -1372,12 +1378,6 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <td>7</td>
 <td>Modules that download files, apps, or repositories</td>
 <td>apkpure, docker_pull, filedownload, git_clone, gitdumper, github_workflows, postman_download</td>
-</tr>
-<tr>
-<td>invasive</td>
-<td>7</td>
-<td>Intrusive or potentially destructive</td>
-<td>dotnetnuke, generic_ssrf, legba, lightfuzz, medusa, nuclei, telerik</td>
 </tr>
 <tr>
 <td>baddns</td>

@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.s1xm5p3o.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.reogx1er.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1200,6 +1200,12 @@ Is the same as:
 <span style="color: #6E7681">  </span><span style="color: #7EE787">ssl_verify_target</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">false</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Whether to verify SSL certificates for non-target traffic (APIs, wordlist downloads, etc.)</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">ssl_verify_infrastructure</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># nowafpls WAF-bypass body padding sizes, tried largest first.</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># The probe steps down a rung only when the origin explicitly rejects the size with a 413;</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># 1 MiB is exactly nginx's default client_max_body_size, hence the 128 KiB fallback.</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">nowafpls_padding_sizes</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #79C0FF">1048576</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">131072</span><span style="color: #E6EDF3">]</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Payload the nowafpls probe uses to detect whether the WAF is interfering at all</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">nowafpls_payload</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"&lt;script&gt;alert(1)&lt;/script&gt;"</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Maximum HTTP requests per second (0 = unlimited)</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Applies globally across all blasthttp consumers (http probing, web brute, etc.)</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">http_rate_limit</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">0</span>
@@ -1803,9 +1809,9 @@ Is the same as:
 </tr>
 <tr>
 <td>modules.lightfuzz.avoid_wafs</td>
-<td>bool</td>
-<td>Avoid running against confirmed WAFs, which are likely to block lightfuzz requests</td>
-<td>True</td>
+<td>Literal['always', 'never', 'try_bypasses']</td>
+<td>How to handle WAF-tagged targets. 'always' skips them entirely; 'never' fuzzes them raw; 'try_bypasses' (default) asks nowafpls whether body padding gets through, and fuzzes with padding when it does.</td>
+<td>try_bypasses</td>
 </tr>
 <tr>
 <td>modules.lightfuzz.disable_post</td>
