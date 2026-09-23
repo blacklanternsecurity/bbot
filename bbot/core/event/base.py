@@ -1637,16 +1637,18 @@ class WEB_PARAMETER(DictHostEvent):
         return data
 
     def _dedup_url(self, url):
-        """The page the parameter lives on. The query string of whichever request revealed it
-        is context rather than identity, so it is dropped; scans that opt into per-value
-        fuzzing with url_querystring_collapse=False keep it, normalized for ordering."""
+        """The page the parameter lives on, with the query string reduced the way URL events
+        reduce theirs: parameter names are identity, their values are not unless
+        url_querystring_collapse is False. Ordering never is."""
         base, sep, query = url.partition("?")
         if not sep or self.scan is None:
             return url
+        # keep_blank_values, or "?debug=" silently stops being a parameter
+        query_dict = parse_qs(query, keep_blank_values=True)
         if self.scan.config.get("url_querystring_collapse", True):
-            return base
-        query_dict = parse_qs(query)
-        kept = "&".join(f"{k}={','.join(sorted(v))}" for k, v in sorted(query_dict.items()))
+            kept = "|".join(sorted(query_dict.keys()))
+        else:
+            kept = "&".join(f"{k}={','.join(sorted(v))}" for k, v in sorted(query_dict.items()))
         return f"{base}?{kept}"
 
     def _data_id(self):
