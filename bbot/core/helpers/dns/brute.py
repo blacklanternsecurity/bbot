@@ -28,7 +28,7 @@ class DNSBrute:
         self.log = logging.getLogger("bbot.helper.dns.brute")
         self.dns_config = self.parent_helper.config.get("dns", {})
         self.num_canaries = 100
-        self.concurrency = self.dns_config.get("brute_concurrency", 1000)
+        self.concurrency = self.dns_config.get("brute_threads", 1000)
         self.inflight_per_resolver = self.dns_config.get("brute_inflight_per_resolver", 2)
         self.rate_limit = self.dns_config.get("brute_rate_limit", 0)
         self.retries = self.dns_config.get("brute_retries", 20)

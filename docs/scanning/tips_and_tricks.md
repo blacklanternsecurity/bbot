@@ -42,7 +42,7 @@ If you have a fast internet connection or are running BBOT from a cloud VM, you 
 
 ```bash
 # about 5MB/s
-bbot -t evilcorp.com -f subdomain-enum -c dns.brute_concurrency=5000
+bbot -t evilcorp.com -f subdomain-enum -c dns.brute_threads=5000
 ```
 
 Brute-forcing backs off on its own when resolvers start dropping queries, so raising this sets how fast BBOT will go when the resolvers can keep up, not how hard it will push regardless. If you need a firm ceiling as well, set `dns.brute_rate_limit` (queries per second, `0` for unlimited).

@@ -953,7 +953,7 @@ async def test_dns_brute_client_config(bbot_scanner, monkeypatch):
         config={
             "dns": {
                 "brute_nameservers": brute_nameservers,
-                "brute_concurrency": 123,
+                "brute_threads": 123,
                 "brute_inflight_per_resolver": 7,
                 "brute_rate_limit": 456,
                 "brute_retries": 9,

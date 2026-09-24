@@ -53,8 +53,8 @@ dns:
   threads: 10
   # How many DNS records to cache
   cache_size: 100000
-  # How many queries to keep in flight in total when brute-forcing
-  brute_concurrency: 1000
+  # How many brute-force DNS queries to keep in flight at once
+  brute_threads: 1000
   # How many brute-force queries to keep in flight per resolver (the politeness bound)
   brute_inflight_per_resolver: 2
   # Hard ceiling on brute-force DNS queries per second (0 = unlimited; backoff is automatic regardless)
