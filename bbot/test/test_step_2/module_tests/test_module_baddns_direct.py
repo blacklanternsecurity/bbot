@@ -1,5 +1,6 @@
 from .base import ModuleTestBase
 from bbot.modules.base import BaseModule
+from bbot.test.worker import HTTPSERVER_HOSTPORT, HTTPSERVER_PORT
 
 
 class BaseTestBaddns(ModuleTestBase):
@@ -9,7 +10,7 @@ class BaseTestBaddns(ModuleTestBase):
 
 
 class TestBaddns_direct_cloudflare(BaseTestBaddns):
-    targets = ["bad.dns:8888"]
+    targets = [f"bad.dns:{HTTPSERVER_PORT}"]
     modules_overrides = ["baddns_direct"]
 
     async def dispatchWHOIS(self):
@@ -24,7 +25,7 @@ class TestBaddns_direct_cloudflare(BaseTestBaddns):
             if event.data == "bad.dns":
                 await self.helpers.sleep(0.5)
                 self.events_seen.append(event.data)
-                url = "http://bad.dns:8888/"
+                url = f"http://bad.dns:{HTTPSERVER_PORT}/"
                 url_event = self.scan.make_event(
                     url, "URL", parent=self.scan.root_event, tags=["cloudflare", "in-scope", "status-401"]
                 )
@@ -36,7 +37,7 @@ class TestBaddns_direct_cloudflare(BaseTestBaddns):
         from baddns.lib.whoismanager import WhoisManager
 
         def set_target(self, target):
-            return "127.0.0.1:8888"
+            return HTTPSERVER_HOSTPORT
 
         self.module_test = module_test
 

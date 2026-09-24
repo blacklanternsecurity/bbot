@@ -1,4 +1,5 @@
 from ..bbot_fixtures import *  # noqa: F401
+from bbot.test.worker import HTTPSERVER_URL
 
 
 @pytest.mark.asyncio
@@ -665,26 +666,26 @@ async def test_blacklist_regex(bbot_scanner, bbot_httpserver):
     assert "http://test.com/asdf/123456.aspx" in blacklist
 
     bbot_httpserver.expect_request(uri="/").respond_with_data(
-        """
-        <a href='http://127.0.0.1:8888/asdfevil333asdf'/>
-        <a href='http://127.0.0.1:8888/logout.aspx'/>
+        f"""
+        <a href='{HTTPSERVER_URL}/asdfevil333asdf'/>
+        <a href='{HTTPSERVER_URL}/logout.aspx'/>
     """
     )
     bbot_httpserver.expect_request(uri="/asdfevilasdf").respond_with_data("")
     bbot_httpserver.expect_request(uri="/logout.aspx").respond_with_data("")
 
     # make sure URL is detected normally
-    scan = bbot_scanner("http://127.0.0.1:8888/", presets=["spider"], config={"excavate": True}, debug=True)
+    scan = bbot_scanner(f"{HTTPSERVER_URL}/", presets=["spider"], config={"excavate": True}, debug=True)
     await scan._prep()
     assert {r.pattern for r in scan.target.blacklist.blacklist_regexes} == {r"/.*(sign|log)[_-]?out"}
     events = [e async for e in scan.async_start()]
     urls = [e.url for e in events if e.type == "URL"]
     assert len(urls) == 2
-    assert set(urls) == {"http://127.0.0.1:8888/", "http://127.0.0.1:8888/asdfevil333asdf"}
+    assert set(urls) == {f"{HTTPSERVER_URL}/", f"{HTTPSERVER_URL}/asdfevil333asdf"}
 
     # same scan again but with blacklist regex
     scan = bbot_scanner(
-        "http://127.0.0.1:8888/",
+        f"{HTTPSERVER_URL}/",
         blacklist=[r"RE:evil[0-9]{3}"],
         presets=["spider"],
         config={"excavate": True},
@@ -700,7 +701,7 @@ async def test_blacklist_regex(bbot_scanner, bbot_httpserver):
     events = [e async for e in scan.async_start()]
     urls = [e.url for e in events if e.type == "URL"]
     assert len(urls) == 1
-    assert set(urls) == {"http://127.0.0.1:8888/"}
+    assert set(urls) == {f"{HTTPSERVER_URL}/"}
 
 
 def test_blacklist_get_invalid_host():
@@ -722,6 +723,32 @@ def test_blacklist_get_invalid_host():
     # Verify actual blacklisted hosts still work
     result = blacklist.get("bad.com")
     assert result is not None
+
+
+def test_target_add_hostless_with_single_address():
+    """Hostless entries (e.g. BLACKLIST_REGEX) must sort against any host form without a type error.
+
+    host_size_key() returns a (size, str) tuple, so the hostless sentinel must also carry a str
+    in its second position. Explicitly-masked single addresses (/32, /128) share size 0 with the
+    sentinel, which forces the second elements to be compared.
+    """
+    from bbot.scanner.target import ScanBlacklist
+
+    # a hostless entry batched with an explicitly-masked single address
+    for single_address in ["1.2.3.4/32", "dead::beef/128"]:
+        blacklist = ScanBlacklist("RE:test", single_address)
+        assert "REGEX:test" in blacklist.inputs
+        assert blacklist.get(single_address.split("/")[0]) is not None
+
+    # a mixed batch of every host form alongside multiple hostless entries
+    blacklist = ScanBlacklist(
+        "RE:evil", "RE:test", "1.2.3.4/32", "1.2.3.0/24", "dead::beef/128", "5.6.7.8", "evilcorp.com"
+    )
+    assert {r.pattern for r in blacklist.blacklist_regexes} == {"evil", "test"}
+    for host in ["1.2.3.4", "1.2.3.5", "dead::beef", "5.6.7.8", "www.evilcorp.com"]:
+        assert blacklist.get(host) is not None
+    assert "test.com" in blacklist
+    assert "9.9.9.9" not in blacklist
 
 
 def test_no_double_parsing():

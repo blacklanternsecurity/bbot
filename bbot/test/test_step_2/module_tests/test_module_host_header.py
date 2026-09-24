@@ -2,6 +2,7 @@ import re
 from werkzeug.wrappers import Response
 
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_URL
 
 
 def extract_subdomain_tag(data):
@@ -12,7 +13,7 @@ def extract_subdomain_tag(data):
 
 
 class TestHost_Header(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "host_header"]
 
     fake_host = "fakedomain.fakeinteractsh.com"

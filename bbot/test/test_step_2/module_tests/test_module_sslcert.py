@@ -1,8 +1,9 @@
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_SSL_HOSTPORT
 
 
 class TestSSLCert(ModuleTestBase):
-    targets = ["127.0.0.1:9999", "bbottest.notreal"]
+    targets = [HTTPSERVER_SSL_HOSTPORT, "bbottest.notreal"]
     config_overrides = {"scope": {"report_distance": 1}}
 
     def check(self, module_test, events):

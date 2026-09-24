@@ -1,11 +1,12 @@
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_URL
 
 # import logging
 
 
 class TestNewsletters(ModuleTestBase):
-    found_tgt = "http://127.0.0.1:8888/found"
-    missing_tgt = "http://127.0.0.1:8888/missing"
+    found_tgt = f"{HTTPSERVER_URL}/found"
+    missing_tgt = f"{HTTPSERVER_URL}/missing"
     targets = [found_tgt, missing_tgt]
     modules_overrides = ["speculate", "http", "newsletters"]
 

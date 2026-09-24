@@ -10,6 +10,13 @@ from pathlib import Path
 from contextlib import suppress
 from pytest_httpserver import HTTPServer
 
+from bbot.test.worker import (
+    BBOT_TEST_DIR,
+    HTTPSERVER_ALLINTERFACES_PORT,
+    HTTPSERVER_PORT,
+    HTTPSERVER_SSL_PORT,
+)
+
 from bbot.core import CORE
 from bbot.core.helpers.misc import execute_sync_or_async
 from bbot.core.helpers.interactsh import server_list as interactsh_servers
@@ -26,12 +33,28 @@ root_logger.addHandler(debug_handler)
 with open(Path(__file__).parent / "test.conf") as _f:
     test_config = yaml.safe_load(_f) or {}
 
+# Give each xdist worker its own BBOT home. test.conf carries the serial default;
+# under -n the workers would otherwise share caches, scan output and temp files,
+# and the sessionfinish cleanup below would delete a directory still in use.
+test_config["home"] = str(BBOT_TEST_DIR)
+
 os.environ["BBOT_DEBUG"] = "True"
 CORE.logger.log_level = logging.DEBUG
 
 # silence all stderr output:
 stderr_handler = CORE.logger.log_handlers["stderr"]
 stderr_handler.setLevel(logging.CRITICAL)
+# worker.py clears _BBOT_LOGGING_SETUP for xdist workers, so every process that
+# reaches here (serial or worker) owns a real QueueListener. If it is missing,
+# logging never got set up and debug.log would silently stay empty, so fail
+# loudly instead of continuing with logging quietly broken.
+if CORE.logger.listener is None:
+    raise RuntimeError(
+        "BBOT logging was not initialized in this process "
+        f"(PYTEST_XDIST_WORKER={os.environ.get('PYTEST_XDIST_WORKER', '')!r}). "
+        "debug.log would be empty and log-reading tests would fail with "
+        "confusing assertion errors."
+    )
 handlers = list(CORE.logger.listener.handlers)
 handlers.remove(stderr_handler)
 CORE.logger.listener.handlers = tuple(handlers)
@@ -96,7 +119,7 @@ def stop_server(server):
 
 @pytest.fixture
 def bbot_httpserver():
-    server = HTTPServer(host="127.0.0.1", port=8888, threaded=True)
+    server = HTTPServer(host="127.0.0.1", port=HTTPSERVER_PORT, threaded=True)
     server.start()
 
     yield server
@@ -115,7 +138,7 @@ def bbot_httpserver_ssl():
     keyfile = str(current_dir / "testsslkey.pem")
     certfile = str(current_dir / "testsslcert.pem")
     context.load_cert_chain(certfile, keyfile)
-    server = HTTPServer(host="127.0.0.1", port=9999, ssl_context=context, threaded=True)
+    server = HTTPServer(host="127.0.0.1", port=HTTPSERVER_SSL_PORT, ssl_context=context, threaded=True)
     server.start()
 
     yield server
@@ -222,7 +245,7 @@ def blasthttp_mock():
 
 @pytest.fixture
 def bbot_httpserver_allinterfaces():
-    server = HTTPServer(host="0.0.0.0", port=5556, threaded=True)
+    server = HTTPServer(host="0.0.0.0", port=HTTPSERVER_ALLINTERFACES_PORT, threaded=True)
     server.start()
 
     yield server
@@ -332,6 +355,20 @@ def proxy_server():
     # Stop the server.
     server.shutdown()
     server_thread.join()
+
+
+def pytest_collection_modifyitems(config, items):
+    """Pin docker-backed tests to one xdist worker.
+
+    They start real containers with fixed names and fixed host port bindings
+    (kafka, elastic, mongo, mysql, nats, postgres, rabbitmq), so two workers
+    running them at once fight over both. They already mark themselves with
+    ``skip_distro_tests``, so reuse that as the signal.
+    """
+    for item in items:
+        cls = getattr(item, "cls", None)
+        if cls is not None and getattr(cls, "skip_distro_tests", False):
+            item.add_marker(pytest.mark.xdist_group("docker"))
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):  # pragma: no cover
@@ -460,8 +497,10 @@ def pytest_sessionfinish(session, exitstatus):
             if child.is_alive():
                 child.kill()
 
-    # Wipe out BBOT home dir
-    shutil.rmtree("/tmp/.bbot_test", ignore_errors=True)
+    # Wipe out BBOT home dir. Scoped to this worker: under xdist the first
+    # worker to finish would otherwise delete the directory out from under
+    # every worker still running.
+    shutil.rmtree(BBOT_TEST_DIR, ignore_errors=True)
 
     # Ensure stdout/stderr are blocking before pytest writes summaries
     try:

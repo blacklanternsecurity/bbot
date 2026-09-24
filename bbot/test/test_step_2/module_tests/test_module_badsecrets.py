@@ -1,13 +1,14 @@
 from .base import ModuleTestBase, tempwordlist
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestBadSecrets(ModuleTestBase):
     targets = [
-        "http://127.0.0.1:8888/",
-        "http://127.0.0.1:8888/test.aspx",
-        "http://127.0.0.1:8888/cookie.aspx",
-        "http://127.0.0.1:8888/cookie2.aspx",
-        "http://127.0.0.1:8888/cookie3.aspx",
+        f"{HTTPSERVER_URL}/",
+        f"{HTTPSERVER_URL}/test.aspx",
+        f"{HTTPSERVER_URL}/cookie.aspx",
+        f"{HTTPSERVER_URL}/cookie2.aspx",
+        f"{HTTPSERVER_URL}/cookie3.aspx",
     ]
 
     sample_viewstate = """
@@ -137,9 +138,9 @@ class TestBadSecrets_JWTIdentifyOnly(ModuleTestBase):
     while still emitting SecretFound findings for vulnerable JWTs."""
 
     targets = [
-        "http://127.0.0.1:8888/",
-        "http://127.0.0.1:8888/vuln_jwt.aspx",
-        "http://127.0.0.1:8888/safe_jwt.aspx",
+        f"{HTTPSERVER_URL}/",
+        f"{HTTPSERVER_URL}/vuln_jwt.aspx",
+        f"{HTTPSERVER_URL}/safe_jwt.aspx",
     ]
     modules_overrides = ["badsecrets", "http"]
 

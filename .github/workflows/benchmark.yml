@@ -25,7 +25,7 @@ jobs:
         fetch-depth: 0  # Need full history for branch comparison
 
     - name: Set up Python
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: "3.11"
 
@@ -42,10 +42,13 @@ jobs:
 
     # Generate benchmark comparison report using our branch-based script
     - name: Generate benchmark comparison report
+      env:
+        BASE_REF: ${{ github.base_ref }}
+        HEAD_REF: ${{ github.head_ref }}
       run: |
         uv run python bbot/scripts/benchmark_report.py \
-          --base ${{ github.base_ref }} \
-          --current ${{ github.head_ref }} \
+          --base "$BASE_REF" \
+          --current "$HEAD_REF" \
           --output benchmark_report.md \
           --keep-results
       continue-on-error: true
@@ -61,8 +64,13 @@ jobs:
           current_benchmark_results.json
         retention-days: 30
 
-    # Comment on PR with benchmark results
+    # Comment on PR with benchmark results.
+    # A pull_request run from a fork gets a read-only GITHUB_TOKEN no matter what
+    # the permissions block above says, so commenting is impossible there and the
+    # attempt fails the whole job with a 403. The report is still in the uploaded
+    # artifact either way.
     - name: Comment benchmark results on PR
+      if: github.event.pull_request.head.repo.full_name == github.repository
       uses: actions/github-script@v9
       with:
         script: |

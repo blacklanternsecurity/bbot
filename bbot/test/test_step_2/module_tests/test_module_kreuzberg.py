@@ -3,10 +3,11 @@ from pathlib import Path
 from .base import ModuleTestBase
 
 from ...bbot_fixtures import *
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestKreuzberg(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["kreuzberg", "filedownload", "http", "excavate", "speculate"]
     config_overrides = {
         "web": {

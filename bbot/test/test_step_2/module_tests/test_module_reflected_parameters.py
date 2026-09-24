@@ -12,6 +12,7 @@ from bbot.modules.reflected_parameters import reflected_parameters as reflected_
 
 from .test_module_paramminer_getparams import TestParamminer_Getparams
 from .test_module_paramminer_headers import helper
+from bbot.test.worker import HTTPSERVER_URL
 
 
 @pytest.mark.asyncio
@@ -36,7 +37,7 @@ async def test_reflected_parameters_send_probe_with_canary_merges_querystring():
 
 
 class TestReflected_parameters_fromexcavate(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "reflected_parameters", "excavate"]
 
     def request_handler(self, request):

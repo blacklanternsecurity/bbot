@@ -111,7 +111,7 @@ class waf_bypass(BaseModule):
                 return
 
             # Store a "simhash" (fuzzy hash) of the response data for later comparison
-            simhash = await self.helpers.run_in_executor_mp(compute_simhash, response.text)
+            simhash = await self.helpers.run_in_executor_cpu(compute_simhash, response.text)
 
             self.content_fingerprints[url] = {
                 "simhash": simhash,
@@ -157,7 +157,7 @@ class waf_bypass(BaseModule):
             self.debug(f"Failed to get content through IP {ip} for URL {matching_url}")
             return None
 
-        bypass_simhash = await self.helpers.run_in_executor_mp(compute_simhash, bypass_response.text or "")
+        bypass_simhash = await self.helpers.run_in_executor_cpu(compute_simhash, bypass_response.text or "")
 
         if original_response["http_code"] != bypass_response.status_code:
             self.debug(f"Ignoring code difference {original_response['http_code']} != {bypass_response.status_code}")

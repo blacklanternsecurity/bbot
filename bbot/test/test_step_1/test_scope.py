@@ -1,9 +1,10 @@
 from ..bbot_fixtures import *  # noqa: F401
 from ..test_step_2.module_tests.base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_PORT, HTTPSERVER_URL
 
 
 class TestScopeBaseline(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http"]
     config_overrides = {"omit_event_types": []}
 
@@ -42,7 +43,7 @@ class TestScopeBaseline(ModuleTestBase):
                 for e in events
                 if e.type == "HTTP_RESPONSE"
                 and str(e.host) == "127.0.0.1"
-                and e.port == 8888
+                and e.port == HTTPSERVER_PORT
                 and e.scope_distance == 0
             ]
         )
@@ -50,7 +51,10 @@ class TestScopeBaseline(ModuleTestBase):
             [
                 e
                 for e in events
-                if e.type == "URL" and str(e.host) == "127.0.0.1" and e.port == 8888 and e.scope_distance == 0
+                if e.type == "URL"
+                and str(e.host) == "127.0.0.1"
+                and e.port == HTTPSERVER_PORT
+                and e.scope_distance == 0
             ]
         )
 

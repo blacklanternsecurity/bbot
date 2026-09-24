@@ -4,6 +4,7 @@ import tempfile
 from ..bbot_fixtures import *  # noqa F401
 
 from bbot.scanner import Scanner, Preset
+from bbot.test.worker import worker_dir
 
 
 # FUTURE TODO:
@@ -819,7 +820,7 @@ def test_preset_include():
     custom_preset_dir_1 = bbot_test_dir / "custom_preset_dir"
     custom_preset_dir_2 = custom_preset_dir_1 / "preset_subdir"
     custom_preset_dir_3 = custom_preset_dir_2 / "subsubdir"
-    custom_preset_dir_4 = Path("/tmp/.bbot_preset_test")
+    custom_preset_dir_4 = worker_dir("/tmp/.bbot_preset_test")
     custom_preset_dir_5 = custom_preset_dir_4 / "subdir"
     mkdir(custom_preset_dir_1)
     mkdir(custom_preset_dir_2)
