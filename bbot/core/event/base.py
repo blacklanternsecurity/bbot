@@ -142,6 +142,9 @@ class BaseEvent:
     _discovery_context_regex = re.compile(r"\{(?:event|module)[^}]*\}")
     # Stats class for the status line — override in subclasses for custom formatting
     _stats_class = None
+    # Whether this event is subject to `url_extension_special` distribution filtering.
+    # False for events representing already-retrieved content, whose consumers analyze the body.
+    _url_special_filterable = True
 
     # using __slots__ dramatically reduces memory usage in large scans
     __slots__ = [
@@ -962,6 +965,10 @@ class BaseEvent:
         archive_url = self.archive_url
         if archive_url:
             j["archive_url"] = archive_url
+        # also kept out of `data`, though unlike archive_url this one does feed the event's identity
+        reemit_source = getattr(self, "reemit_source", None)
+        if reemit_source:
+            j["reemit_source"] = reemit_source
         # scope distance
         j["scope_distance"] = self.scope_distance
         # scan
@@ -1164,18 +1171,24 @@ class DefaultEvent(BaseEvent):
 class DictEvent(BaseEvent):
     __slots__ = ["url_extension"]
 
+    def _set_url_extension(self):
+        """Extract the file extension from self.parsed_url and record it as an attribute and a tag."""
+        parsed_url = getattr(self, "parsed_url", None)
+        if parsed_url is None:
+            return
+        url_path = parsed_url.path
+        if not url_path:
+            return
+        extension = get_file_extension(str(url_path).lower())
+        if extension:
+            self.url_extension = extension
+            self.add_tag(f"extension-{extension}")
+
     def sanitize_data(self, data):
         url = data.get("url", "")
         if url:
             self.parsed_url = self.validators.validate_url_parsed(url)
-            # extract url_extension from any dict event with a URL
-            url_path = self.parsed_url.path
-            if url_path:
-                parsed_path_lower = str(url_path).lower()
-                extension = get_file_extension(parsed_path_lower)
-                if extension:
-                    self.url_extension = extension
-                    self.add_tag(f"extension-{extension}")
+            self._set_url_extension()
         return data
 
     def _data_load(self, data):
@@ -1446,15 +1459,7 @@ class URL_UNVERIFIED(DictHostEvent):
         self.parsed_url = self.validators.validate_url_parsed(url)
         data["url"] = self.parsed_url.geturl()
 
-        # special handling of URL extensions
-        if self.parsed_url is not None:
-            url_path = self.parsed_url.path
-            if url_path:
-                parsed_path_lower = str(url_path).lower()
-                extension = get_file_extension(parsed_path_lower)
-                if extension:
-                    self.url_extension = extension
-                    self.add_tag(f"extension-{extension}")
+        self._set_url_extension()
 
         # tag as dir or endpoint
         if str(self.parsed_url.path).endswith("/"):
@@ -1703,6 +1708,10 @@ class EMAIL_ADDRESS(BaseEvent):
 
 
 class HTTP_RESPONSE(URL_UNVERIFIED):
+    # the response body has already been retrieved, so content-analysis modules
+    # should still receive it even for special extensions like .js
+    _url_special_filterable = False
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # count number of consecutive redirects
@@ -1749,13 +1758,37 @@ class HTTP_RESPONSE(URL_UNVERIFIED):
             return ""
         return body_bytes.decode("utf-8", errors="replace")
 
+    @property
+    def reemit_source(self):
+        """Name of the module that re-emitted this response with a transformed body.
+
+        Kept off ``data`` so the marker isn't part of the event's public body. ``json()``
+        surfaces it top-level and ``event_from_json()`` restores it.
+        """
+        return getattr(self, "_reemit_source", None)
+
+    @reemit_source.setter
+    def reemit_source(self, value):
+        self._reemit_source = value
+        # the marker feeds _data_id, so any already-cached identity is stale
+        self._id = None
+        self._data_hash = None
+        self._hash = None
+
     def _data_id(self):
-        return self.data["method"] + "|" + self.data["url"]
+        base = self.data["method"] + "|" + self.data["url"]
+        # a module re-emitting the same (method, url) with a transformed body sets
+        # reemit_source, so the two events don't collide on event.id and get deduped away
+        reemit_source = self.reemit_source
+        if reemit_source:
+            return base + "|" + str(reemit_source)
+        return base
 
     def sanitize_data(self, data):
         url = data.get("url", "")
         self.parsed_url = self.validators.validate_url_parsed(url)
         data["url"] = self.parsed_url.geturl()
+        self._set_url_extension()
 
         if not "raw_header" in data:
             raise ValueError("raw_header is required for HTTP_RESPONSE events")
@@ -2465,6 +2498,15 @@ def event_from_json(j):
         if http_title:
             try:
                 event.http_title = http_title
+            except AttributeError:
+                pass
+
+        # must be restored, not recomputed: it feeds _data_id, so dropping it here
+        # would give the rebuilt event a different id than the one that was serialized
+        reemit_source = j.get("reemit_source", "")
+        if reemit_source:
+            try:
+                event.reemit_source = reemit_source
             except AttributeError:
                 pass
 
