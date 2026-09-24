@@ -1,9 +1,10 @@
 from ...bbot_fixtures import *
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_URL, BBOT_TEST_DIR
 
 
 class TestNucleiManual(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "excavate", "nuclei"]
     config_overrides = {
         "web": {
@@ -16,13 +17,13 @@ class TestNucleiManual(ModuleTestBase):
                 "mode": "manual",
                 "concurrency": 2,
                 "ratelimit": 10,
-                "templates": "/tmp/.bbot_test/tools/nuclei-state/templates/http/miscellaneous/",
+                "templates": f"{BBOT_TEST_DIR}/tools/nuclei-state/templates/http/miscellaneous/",
                 "directory_only": False,
             }
         },
     }
 
-    test_html = """
+    test_html = f"""
     html>
  <head>
   <title>Index of /test</title>
@@ -34,7 +35,7 @@ class TestNucleiManual(ModuleTestBase):
    <tr><th colspan="3"><hr></th></tr>
 <tr><td><a href="/">Parent Directory</a></td><td>&nbsp;</td><td align="right">  - </td></tr>
 </table>
-<address>Apache/2.4.38 (Debian) Server at http://127.0.0.1:8888/testmultipleruns.html</address>
+<address>Apache/2.4.38 (Debian) Server at {HTTPSERVER_URL}/testmultipleruns.html</address>
 </body></html>
 """
 
@@ -69,7 +70,7 @@ class TestNucleiSevere(TestNucleiManual):
             "nuclei": {
                 "mode": "severe",
                 "concurrency": 1,
-                "templates": "/tmp/.bbot_test/tools/nuclei-state/templates/http/vulnerabilities/generic/generic-env.yaml",
+                "templates": f"{BBOT_TEST_DIR}/tools/nuclei-state/templates/http/vulnerabilities/generic/generic-env.yaml",
             }
         },
         "interactsh_disable": True,
@@ -115,7 +116,7 @@ class TestNucleiBudget(TestNucleiManual):
                 "mode": "budget",
                 "concurrency": 1,
                 "tags": "spiderfoot",
-                "templates": "/tmp/.bbot_test/tools/nuclei-state/templates/exposed-panels/spiderfoot.yaml",
+                "templates": f"{BBOT_TEST_DIR}/tools/nuclei-state/templates/exposed-panels/spiderfoot.yaml",
             }
         },
     }
@@ -167,8 +168,8 @@ class TestNucleiEnvIsolation(TestNucleiManual):
     leaky_env = {
         "PDCP_API_KEY": "user-pdcp-key-must-not-leak",
         "PDCP_TEAM_ID": "user-team",
-        "XDG_CONFIG_HOME": "/tmp/.bbot_test/xdg-leak-config",
-        "XDG_CACHE_HOME": "/tmp/.bbot_test/xdg-leak-cache",
+        "XDG_CONFIG_HOME": f"{BBOT_TEST_DIR}/xdg-leak-config",
+        "XDG_CACHE_HOME": f"{BBOT_TEST_DIR}/xdg-leak-cache",
         "GITHUB_TOKEN": "ghp_usertoken",
         "GITHUB_TEMPLATE_REPO": "attacker/private-templates",
         "GITLAB_TOKEN": "glpat-usertoken",

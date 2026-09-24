@@ -1,10 +1,11 @@
 from pathlib import Path
 from .base import ModuleTestBase
 from bbot.test.bbot_fixtures import bbot_test_dir
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestFileDownload(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["filedownload", "http", "excavate", "speculate"]
     config_overrides = {
         "web": {"spider_distance": 2, "spider_depth": 2},

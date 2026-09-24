@@ -148,6 +148,12 @@ web:
   ssl_verify_target: false
   # Whether to verify SSL certificates for non-target traffic (APIs, wordlist downloads, etc.)
   ssl_verify_infrastructure: true
+  # nowafpls WAF-bypass body padding sizes, tried largest first.
+  # The probe steps down a rung only when the origin explicitly rejects the size with a 413;
+  # 1 MiB is exactly nginx's default client_max_body_size, hence the 128 KiB fallback.
+  nowafpls_padding_sizes: [1048576, 131072]
+  # Payload the nowafpls probe uses to detect whether the WAF is interfering at all
+  nowafpls_payload: "<script>alert(1)</script>"
   # Maximum HTTP requests per second (0 = unlimited)
   # Applies globally across all blasthttp consumers (http probing, web brute, etc.)
   http_rate_limit: 0

@@ -1,16 +1,17 @@
 import json
 
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_HOSTPORT, HTTPSERVER_PORT
 
 
 class TestFingerprintx(ModuleTestBase):
-    targets = ["127.0.0.1:8888"]
+    targets = [HTTPSERVER_HOSTPORT]
 
     def check(self, module_test, events):
         assert any(
             event.type == "PROTOCOL"
             and event.host == module_test.scan.helpers.make_ip_type("127.0.0.1")
-            and event.port == 8888
+            and event.port == HTTPSERVER_PORT
             and event.data["protocol"] == "HTTP"
             for event in events
         ), "HTTP protocol not detected"

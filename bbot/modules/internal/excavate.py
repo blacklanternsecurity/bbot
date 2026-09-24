@@ -138,6 +138,156 @@ def extract_params_location(location_header_value, original_parsed_url):
         yield "GET", parsed_url, p, p_value, "location_header", _exclude_key(flat_params, p)
 
 
+_yara_identifier_regex = re.compile(r"[A-Za-z_]\w*")
+_yara_rule_modifiers = ("private", "global")
+
+
+def _skip_yara_noncode(source, i):
+    """
+    If a comment, string literal, or regex literal starts at index i, return the index just past it.
+
+    Returns None if index i is ordinary code. YARA uses a backslash for division, so a bare
+    "/" is unambiguously either a comment or a regex literal.
+    """
+    c = source[i]
+    if c == "/":
+        following = source[i + 1 : i + 2]
+        if following == "/":
+            newline = source.find("\n", i)
+            return len(source) if newline == -1 else newline + 1
+        if following == "*":
+            end = source.find("*/", i + 2)
+            if end == -1:
+                raise ExcavateError("unterminated block comment")
+            return end + 2
+        j = i + 1
+        in_character_class = False
+        while j < len(source):
+            char = source[j]
+            if char == "\\":
+                j += 2
+                continue
+            if char == "\n":
+                break
+            if in_character_class:
+                if char == "]":
+                    in_character_class = False
+            elif char == "[":
+                in_character_class = True
+            elif char == "/":
+                # consume any trailing regex modifiers
+                j += 1
+                while j < len(source) and source[j] in "is":
+                    j += 1
+                return j
+            j += 1
+        raise ExcavateError("unterminated regular expression")
+    if c == '"':
+        j = i + 1
+        while j < len(source):
+            char = source[j]
+            if char == "\\":
+                j += 2
+                continue
+            if char == '"':
+                return j + 1
+            j += 1
+        raise ExcavateError("unterminated string literal")
+    return None
+
+
+def split_yara_rules(source):
+    """
+    Split YARA source into its individual rules.
+
+    Returns (imports, rules), where imports is a list of import statements and rules is a
+    list of (rule_name, rule_text) tuples in source order.
+
+    Rule boundaries are found by brace depth, skipping over comments, string literals, and
+    regex literals so that a brace inside any of them cannot end a rule early. Hex strings
+    are brace-balanced, so depth counting covers them for free. Raises ExcavateError on
+    anything it cannot parse, rather than silently dropping a rule.
+    """
+    imports = []
+    rules = []
+    i = 0
+    length = len(source)
+    # start offset of any private/global modifiers preceding the "rule" keyword
+    modifier_start = None
+
+    while i < length:
+        skipped = _skip_yara_noncode(source, i)
+        if skipped is not None:
+            i = skipped
+            continue
+        if source[i].isspace():
+            i += 1
+            continue
+
+        keyword_match = _yara_identifier_regex.match(source, i)
+        if not keyword_match:
+            raise ExcavateError(f"unexpected character [{source[i]}] outside of any rule")
+        keyword = keyword_match.group()
+
+        if keyword == "include":
+            raise ExcavateError("include statements are not supported; inline the included rules instead")
+        if keyword == "import":
+            quote = source.find('"', keyword_match.end())
+            if quote == -1 or source[keyword_match.end() : quote].strip():
+                raise ExcavateError("malformed import statement")
+            end_of_import = _skip_yara_noncode(source, quote)
+            imports.append(source[i:end_of_import])
+            i = end_of_import
+            modifier_start = None
+            continue
+        if keyword in _yara_rule_modifiers:
+            if modifier_start is None:
+                modifier_start = i
+            i = keyword_match.end()
+            continue
+        if keyword != "rule":
+            raise ExcavateError(f"expected 'rule' but found [{keyword}]")
+
+        rule_start = i if modifier_start is None else modifier_start
+        modifier_start = None
+
+        name_start = keyword_match.end()
+        while name_start < length and source[name_start].isspace():
+            name_start += 1
+        name_match = _yara_identifier_regex.match(source, name_start)
+        if not name_match or name_start == keyword_match.end():
+            raise ExcavateError("could not find rule name")
+        rule_name = name_match.group()
+
+        # walk to the closing brace that matches the rule's opening brace
+        j = name_match.end()
+        depth = 0
+        rule_end = None
+        while j < length:
+            skipped = _skip_yara_noncode(source, j)
+            if skipped is not None:
+                j = skipped
+                continue
+            char = source[j]
+            if char == "{":
+                depth += 1
+            elif char == "}":
+                if depth == 0:
+                    raise ExcavateError(f"unexpected closing brace in rule [{rule_name}]")
+                depth -= 1
+                if depth == 0:
+                    rule_end = j + 1
+                    break
+            j += 1
+        if rule_end is None:
+            raise ExcavateError(f"unterminated rule [{rule_name}]")
+
+        rules.append((rule_name, source[rule_start:rule_end]))
+        i = rule_end
+
+    return imports, rules
+
+
 class YaraRuleSettings:
     def __init__(self, description, tags, emit_match, severity, confidence):
         self.description = description
@@ -346,9 +496,8 @@ class CustomExtractor(ExcavateRule):
                 )
                 if yara_rule_settings.emit_match:
                     event_data["description"] += f" and extracted [{result}]"
-                event_data["severity"] = yara_rule_settings.get("severity", "LOW")
-                event_data["confidence"] = yara_rule_settings.get("confidence", "UNKNOWN")
 
+                # severity and confidence are filled in from the rule's meta by report()
                 await self.report(event_data, event, yara_rule_settings, discovery_context)
 
 
@@ -390,9 +539,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     accept_dupes = False
 
     _module_threads = 6
-
-    yara_rule_name_regex = re.compile(r"rule\s(\w+)\s{")
-    yara_rule_regex = re.compile(r"(?s)((?:rule\s+\w+\s*{[^{}]*(?:{[^{}]*}[^{}]*)*[^{}]*(?:/\S*?}[^/]*?/)*)*})")
 
     def in_bl(self, value):
         # Check if the value is in the blacklist or starts with a blacklisted prefix.
@@ -1190,10 +1336,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         self.yara_rules_dict[rule_name] = rule_content
         self.yara_preprocess_dict[rule_name] = rule_instance.preprocess
 
-    async def extract_yara_rules(self, rules_content):
-        for r in await self.helpers.re.findall(self.yara_rule_regex, rules_content):
-            yield r
-
     async def emit_web_parameter(
         self, host, param_type, name, original_value, url, description, additional_params, event, context
     ):
@@ -1228,6 +1370,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     async def setup(self):
         self.yara_rules_dict = {}
         self.yara_preprocess_dict = {}
+        self.custom_yara_imports = []
 
         modules_WEB_PARAMETER = [
             module_name
@@ -1268,7 +1411,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
         self.custom_yara_rules = self.config.get("custom_yara_rules", "")
         if self.custom_yara_rules:
-            custom_rules_count = 0
             if Path(self.custom_yara_rules).is_file():
                 with open(self.custom_yara_rules) as f:
                     rules_content = f.read()
@@ -1278,28 +1420,28 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 rules_content = self.custom_yara_rules
 
             self.debug(f"Final combined yara rule contents: {rules_content}")
-            custom_yara_rule_processed = self.extract_yara_rules(rules_content)
-            async for rule_content in custom_yara_rule_processed:
+            try:
+                self.custom_yara_imports, custom_rules = split_yara_rules(rules_content)
+            except ExcavateError as e:
+                return False, f"Custom Yara rules are formatted incorrectly: {e}"
+            if not custom_rules:
+                return False, "Custom Yara rules contain no rules"
+
+            import_prefix = "".join(f"{i}\n" for i in self.custom_yara_imports)
+            for rule_name, rule_content in custom_rules:
+                if rule_name in self.yara_rules_dict:
+                    return False, f"Custom Yara rule [{rule_name}] collides with the name of an existing rule"
                 try:
-                    yara.compile(source=rule_content)
+                    yara.compile(source=f"{import_prefix}{rule_content}")
                 except yara.SyntaxError as e:
-                    return False, f"Custom Yara rule failed to compile: {e}"
-
-                rule_match = await self.helpers.re.search(self.yara_rule_name_regex, rule_content)
-                if not rule_match:
-                    return False, "Custom Yara formatted incorrectly: could not find rule name"
-
-                rule_name = rule_match.groups(1)[0]
-                c = CustomExtractor(self)
-                self.add_yara_rule(rule_name, rule_content, c)
-                custom_rules_count += 1
-            if custom_rules_count > 0:
-                self.hugeinfo(f"Successfully added {str(custom_rules_count)} custom Yara rule(s)")
+                    return False, f"Custom Yara rule [{rule_name}] failed to compile: {e}"
+                self.add_yara_rule(rule_name, rule_content, CustomExtractor(self))
+            self.hugeinfo(f"Successfully added {len(custom_rules):,} custom Yara rule(s)")
 
         yara_max_match_data = self.config.get("yara_max_match_data", 2000)
 
         yara.set_config(max_match_data=yara_max_match_data)
-        yara_rules_combined = "\n".join(self.yara_rules_dict.values())
+        yara_rules_combined = "\n".join([*self.custom_yara_imports, *self.yara_rules_dict.values()])
         try:
             start = time.time()
             self.verbose(f"Compiling {len(self.yara_rules_dict):,} YARA rules")

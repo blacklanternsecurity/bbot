@@ -19,16 +19,17 @@ Here is an example of a simple module that performs whois lookups:
 from bbot.modules.base import BaseModule
 from bbot.core.config.models import BaseModuleConfig, Field
 
+
 class whois(BaseModule):
-    watched_events = ["DNS_NAME"] # watch for DNS_NAME events
-    produced_events = ["DNS_NAME"] # we produce DNS_NAME events
+    watched_events = ["DNS_NAME"]  # watch for DNS_NAME events
+    produced_events = ["DNS_NAME"]  # we produce DNS_NAME events
     flags = ["passive", "safe"]
     meta = {"description": "Query WhoisXMLAPI for related domains", "created_date": "2024-01-01", "author": "@you"}
 
     class Config(BaseModuleConfig):
         api_key: str = Field("", description="WhoisXMLAPI Key", sensitive=True, mandatory=True)
 
-    per_domain_only = True # only run once per domain
+    per_domain_only = True  # only run once per domain
 
     base_url = "https://www.whoisxmlapi.com/whoisserver/WhoisService"
 
@@ -105,9 +106,11 @@ async def setup(self):
         return None, "No API key specified"
     return True
 
+
 async def setup_deps(self):
     self.wordlist = self.helpers.wordlist("https://raw.githubusercontent.com/user/wordlist.txt")
     return True
+
 
 async def setup(self):
     self.timeout = self.config.get("timeout", 5)
@@ -123,6 +126,7 @@ Each module can have its own set of config options. These are defined as a `Conf
 
 ```python title="bbot/modules/portscan.py"
 from bbot.core.config.models import BaseModuleConfig, Field
+
 
 class portscan(BaseModule):
     # ...

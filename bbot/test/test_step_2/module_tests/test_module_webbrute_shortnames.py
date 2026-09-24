@@ -1,8 +1,9 @@
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestWebBruteShortnames(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     module_name = "webbrute_shortnames"
     config_overrides = {
         "modules": {
@@ -20,7 +21,7 @@ class TestWebBruteShortnames(ModuleTestBase):
 
         seed_events = []
         parent_event = module_test.scan.make_event(
-            "http://127.0.0.1:8888/",
+            f"{HTTPSERVER_URL}/",
             "URL",
             module_test.scan.root_event,
             module="http",
@@ -28,7 +29,7 @@ class TestWebBruteShortnames(ModuleTestBase):
         )
         seed_events.append(
             module_test.scan.make_event(
-                "http://127.0.0.1:8888/ADMINI~1.ASP",
+                f"{HTTPSERVER_URL}/ADMINI~1.ASP",
                 "URL_HINT",
                 parent_event,
                 module="iis_shortnames",
@@ -37,7 +38,7 @@ class TestWebBruteShortnames(ModuleTestBase):
         )
         seed_events.append(
             module_test.scan.make_event(
-                "http://127.0.0.1:8888/ADM_PO~1.ASP",
+                f"{HTTPSERVER_URL}/ADM_PO~1.ASP",
                 "URL_HINT",
                 parent_event,
                 module="iis_shortnames",
@@ -46,7 +47,7 @@ class TestWebBruteShortnames(ModuleTestBase):
         )
         seed_events.append(
             module_test.scan.make_event(
-                "http://127.0.0.1:8888/ABCZZZ~1.ASP",
+                f"{HTTPSERVER_URL}/ABCZZZ~1.ASP",
                 "URL_HINT",
                 parent_event,
                 module="iis_shortnames",
@@ -55,7 +56,7 @@ class TestWebBruteShortnames(ModuleTestBase):
         )
         seed_events.append(
             module_test.scan.make_event(
-                "http://127.0.0.1:8888/ABCXXX~1.ASP",
+                f"{HTTPSERVER_URL}/ABCXXX~1.ASP",
                 "URL_HINT",
                 parent_event,
                 module="iis_shortnames",
@@ -64,7 +65,7 @@ class TestWebBruteShortnames(ModuleTestBase):
         )
         seed_events.append(
             module_test.scan.make_event(
-                "http://127.0.0.1:8888/ABCYYY~1.ASP",
+                f"{HTTPSERVER_URL}/ABCYYY~1.ASP",
                 "URL_HINT",
                 parent_event,
                 module="iis_shortnames",
@@ -73,7 +74,7 @@ class TestWebBruteShortnames(ModuleTestBase):
         )
         seed_events.append(
             module_test.scan.make_event(
-                "http://127.0.0.1:8888/ABCCON~1.ASP",
+                f"{HTTPSERVER_URL}/ABCCON~1.ASP",
                 "URL_HINT",
                 parent_event,
                 module="iis_shortnames",
@@ -82,7 +83,7 @@ class TestWebBruteShortnames(ModuleTestBase):
         )
         seed_events.append(
             module_test.scan.make_event(
-                "http://127.0.0.1:8888/DIRECT~1",
+                f"{HTTPSERVER_URL}/DIRECT~1",
                 "URL_HINT",
                 parent_event,
                 module="iis_shortnames",
@@ -91,7 +92,7 @@ class TestWebBruteShortnames(ModuleTestBase):
         )
         seed_events.append(
             module_test.scan.make_event(
-                "http://127.0.0.1:8888/ADM_DI~1",
+                f"{HTTPSERVER_URL}/ADM_DI~1",
                 "URL_HINT",
                 parent_event,
                 module="iis_shortnames",
@@ -100,7 +101,7 @@ class TestWebBruteShortnames(ModuleTestBase):
         )
         seed_events.append(
             module_test.scan.make_event(
-                "http://127.0.0.1:8888/XYZDIR~1",
+                f"{HTTPSERVER_URL}/XYZDIR~1",
                 "URL_HINT",
                 parent_event,
                 module="iis_shortnames",
@@ -109,7 +110,7 @@ class TestWebBruteShortnames(ModuleTestBase):
         )
         seed_events.append(
             module_test.scan.make_event(
-                "http://127.0.0.1:8888/XYZAAA~1",
+                f"{HTTPSERVER_URL}/XYZAAA~1",
                 "URL_HINT",
                 parent_event,
                 module="iis_shortnames",
@@ -118,7 +119,7 @@ class TestWebBruteShortnames(ModuleTestBase):
         )
         seed_events.append(
             module_test.scan.make_event(
-                "http://127.0.0.1:8888/XYZBBB~1",
+                f"{HTTPSERVER_URL}/XYZBBB~1",
                 "URL_HINT",
                 parent_event,
                 module="iis_shortnames",
@@ -127,7 +128,7 @@ class TestWebBruteShortnames(ModuleTestBase):
         )
         seed_events.append(
             module_test.scan.make_event(
-                "http://127.0.0.1:8888/XYZCCC~1",
+                f"{HTTPSERVER_URL}/XYZCCC~1",
                 "URL_HINT",
                 parent_event,
                 module="iis_shortnames",
@@ -136,7 +137,7 @@ class TestWebBruteShortnames(ModuleTestBase):
         )
         seed_events.append(
             module_test.scan.make_event(
-                "http://127.0.0.1:8888/SHORT~1.PL",
+                f"{HTTPSERVER_URL}/SHORT~1.PL",
                 "URL_HINT",
                 parent_event,
                 module="iis_shortnames",
@@ -146,7 +147,7 @@ class TestWebBruteShortnames(ModuleTestBase):
 
         seed_events.append(
             module_test.scan.make_event(
-                "http://127.0.0.1:8888/newpro~1.asp",
+                f"{HTTPSERVER_URL}/newpro~1.asp",
                 "URL_HINT",
                 parent_event,
                 module="iis_shortnames",
@@ -200,21 +201,21 @@ class TestWebBruteShortnames(ModuleTestBase):
 
         for e in events:
             if e.type == "URL_UNVERIFIED":
-                if e.url == "http://127.0.0.1:8888/administrator.aspx":
+                if e.url == f"{HTTPSERVER_URL}/administrator.aspx":
                     basic_detection = True
-                if e.url == "http://127.0.0.1:8888/directory/":
+                if e.url == f"{HTTPSERVER_URL}/directory/":
                     directory_detection = True
-                if e.url == "http://127.0.0.1:8888/adm_portal.aspx":
+                if e.url == f"{HTTPSERVER_URL}/adm_portal.aspx":
                     prefix_detection = True
-                if e.url == "http://127.0.0.1:8888/abcconsole.aspx":
+                if e.url == f"{HTTPSERVER_URL}/abcconsole.aspx":
                     delimiter_detection = True
-                if e.url == "http://127.0.0.1:8888/adm_directory/":
+                if e.url == f"{HTTPSERVER_URL}/adm_directory/":
                     directory_delimiter_detection = True
-                if e.url == "http://127.0.0.1:8888/xyzdirectory/":
+                if e.url == f"{HTTPSERVER_URL}/xyzdirectory/":
                     prefix_delimiter_detection = True
-                if e.url == "http://127.0.0.1:8888/short.pl":
+                if e.url == f"{HTTPSERVER_URL}/short.pl":
                     short_extensions_detection = True
-                if e.url == "http://127.0.0.1:8888/newproxy.aspx":
+                if e.url == f"{HTTPSERVER_URL}/newproxy.aspx":
                     subword_detection = True
 
         assert basic_detection

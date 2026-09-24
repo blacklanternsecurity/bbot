@@ -264,6 +264,7 @@ class HttpCompare:
         json=None,
         allow_redirects=False,
         timeout=None,
+        none_is_match=True,
     ):
         """
         Compares a URL with the baseline, with optional headers or cookies added
@@ -272,6 +273,8 @@ class HttpCompare:
             where "match" is whether the content matched against the baseline, and
                 "reason" is the location of the change ("code", "body", "header", or None), and
                 "reflection" is whether the value was reflected in the HTTP response
+
+        When the request fails outright, "match" is `none_is_match` and subject_response is None.
         """
 
         await self._baseline()
@@ -297,8 +300,10 @@ class HttpCompare:
         )
 
         if subject_response is None:
-            # this can be caused by a WAF not liking the header, so we really aren't interested in it
-            return (True, "403", reflection, subject_response)
+            # A dead request usually just means the probe wasn't interesting (a WAF not liking a
+            # fuzzed header, etc). Consumers that need to read it as interference, or as "unknown"
+            # rather than a verdict, pass none_is_match=False.
+            return (bool(none_is_match), ["request_failed"], reflection, None)
 
         if check_reflection:
             for arg in (headers, cookies):
@@ -326,12 +331,18 @@ class HttpCompare:
         else:
             return (False, diff_reasons, reflection, subject_response)
 
+    @staticmethod
+    def parse_body(text):
+        """Parse a response body into the structure compare_body() expects. Passing raw text works
+        but bypasses the ddiff_filters that mask dynamic content."""
+        try:
+            return xmltodict.parse(text)
+        except ExpatError:
+            return text.split("\n")
+
     def _compare_sync(self, subject_response, subject):
         """CPU-bound comparison work offloaded from the event loop."""
-        try:
-            subject_json = xmltodict.parse(subject_response.text)
-        except ExpatError:
-            subject_json = subject_response.text.split("\n")
+        subject_json = self.parse_body(subject_response.text)
 
         diff_reasons = []
 

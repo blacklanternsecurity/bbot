@@ -1,8 +1,9 @@
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestSpeculate_Subdirectories(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888/subdir1/subdir2/"]
+    targets = [f"{HTTPSERVER_URL}/subdir1/subdir2/"]
     modules_overrides = ["http", "speculate"]
 
     async def setup_before_prep(self, module_test):
@@ -19,7 +20,7 @@ class TestSpeculate_Subdirectories(ModuleTestBase):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert any(e.type == "URL_UNVERIFIED" and e.url == "http://127.0.0.1:8888/subdir1/" for e in events)
+        assert any(e.type == "URL_UNVERIFIED" and e.url == f"{HTTPSERVER_URL}/subdir1/" for e in events)
 
 
 class TestSpeculate_OpenPorts(ModuleTestBase):
