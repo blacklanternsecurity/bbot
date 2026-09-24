@@ -965,6 +965,10 @@ class BaseEvent:
         archive_url = self.archive_url
         if archive_url:
             j["archive_url"] = archive_url
+        # also kept out of `data`, though unlike archive_url this one does feed the event's identity
+        reemit_source = getattr(self, "reemit_source", None)
+        if reemit_source:
+            j["reemit_source"] = reemit_source
         # scope distance
         j["scope_distance"] = self.scope_distance
         # scan
@@ -1754,8 +1758,31 @@ class HTTP_RESPONSE(URL_UNVERIFIED):
             return ""
         return body_bytes.decode("utf-8", errors="replace")
 
+    @property
+    def reemit_source(self):
+        """Name of the module that re-emitted this response with a transformed body.
+
+        Kept off ``data`` so the marker isn't part of the event's public body. ``json()``
+        surfaces it top-level and ``event_from_json()`` restores it.
+        """
+        return getattr(self, "_reemit_source", None)
+
+    @reemit_source.setter
+    def reemit_source(self, value):
+        self._reemit_source = value
+        # the marker feeds _data_id, so any already-cached identity is stale
+        self._id = None
+        self._data_hash = None
+        self._hash = None
+
     def _data_id(self):
-        return self.data["method"] + "|" + self.data["url"]
+        base = self.data["method"] + "|" + self.data["url"]
+        # a module re-emitting the same (method, url) with a transformed body sets
+        # reemit_source, so the two events don't collide on event.id and get deduped away
+        reemit_source = self.reemit_source
+        if reemit_source:
+            return base + "|" + str(reemit_source)
+        return base
 
     def sanitize_data(self, data):
         url = data.get("url", "")
@@ -2471,6 +2498,15 @@ def event_from_json(j):
         if http_title:
             try:
                 event.http_title = http_title
+            except AttributeError:
+                pass
+
+        # must be restored, not recomputed: it feeds _data_id, so dropping it here
+        # would give the rebuilt event a different id than the one that was serialized
+        reemit_source = j.get("reemit_source", "")
+        if reemit_source:
+            try:
+                event.reemit_source = reemit_source
             except AttributeError:
                 pass
 
