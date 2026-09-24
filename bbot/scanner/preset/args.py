@@ -207,8 +207,8 @@ class BBOTArgs:
         if self.parsed.no_proxy:
             args_preset.core.merge_custom({"web": {"http_proxy_exclude": self.parsed.no_proxy}})
 
-        if self.parsed.custom_nameserver:
-            args_preset.core.merge_custom({"dns": {"nameservers": self.parsed.custom_nameserver}})
+        if self.parsed.custom_nameservers:
+            args_preset.core.merge_custom({"dns": {"nameservers": self.parsed.custom_nameservers}})
 
         if self.parsed.custom_headers:
             args_preset.core.merge_custom({"web": {"http_headers": self.parsed.custom_headers}})
@@ -433,7 +433,7 @@ class BBOTArgs:
             metavar="HOST",
         )
         misc.add_argument(
-            "--custom-nameserver",
+            "--custom-nameservers",
             nargs="+",
             default=[],
             help="Use these nameservers instead of the system ones (e.g. 1.1.1.1 8.8.8.8:53)",
