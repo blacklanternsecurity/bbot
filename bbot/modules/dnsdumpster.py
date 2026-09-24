@@ -18,11 +18,6 @@ class dnsdumpster(subdomain_enum_apikey):
 
     base_url = "https://api.dnsdumpster.com"
 
-    # a page holding this many host records may have another after it. free keys cap out at 50
-    # and can't page at all; paid keys get 200 and may request subsequent pages
-    full_page_record_count = 200
-    host_record_keys = ("a", "cname", "mx", "ns")
-
     async def setup(self):
         self.max_pages = self.config.get("max_pages", 10)
         return await super().setup()
@@ -33,6 +28,7 @@ class dnsdumpster(subdomain_enum_apikey):
 
     async def query(self, query):
         results = set()
+        a_records = 0
         for page in range(1, self.max_pages + 1):
             # page 1 is the bare URL; the API only accepts an explicit page number from 2 on
             url = f"{self.base_url}/domain/{query}"
@@ -54,10 +50,10 @@ class dnsdumpster(subdomain_enum_apikey):
                 self.verbose(f'Unexpected response for "{query}" (HTTP {r.status_code}): {r.text[:200]}')
                 break
             results.update(await self.scan.extract_in_scope_hostnames(r.text))
-            # a short page is the last one
-            if self.record_count(data) < self.full_page_record_count:
+            # the response reports how many A records exist in total; stop once they have all been seen
+            page_a_records = len(data.get("a") or [])
+            a_records += page_a_records
+            total = data.get("total_a_recs")
+            if not isinstance(total, int) or not page_a_records or a_records >= total:
                 break
         return results
-
-    def record_count(self, data):
-        return sum(len(data.get(k) or []) for k in self.host_record_keys)
