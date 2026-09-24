@@ -11,9 +11,6 @@ class crt(subdomain_enum):
         "author": "@TheTechromancer",
     }
 
-    # Trailing "/": blasthttp sends the URL as given, and "https://crt.sh?q=..."
-    # has an empty path, which becomes the request line `GET ?q=...` -- crt.sh's
-    # nginx answers that with 400 Bad Request.
     base_url = "https://crt.sh/"
     reject_wildcards = False
 
