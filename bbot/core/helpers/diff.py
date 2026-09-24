@@ -47,6 +47,9 @@ class _LineBody:
     moves is not a difference. Positions that varied between the two baseline
     samples are filtered out, which is how volatile content (CSRF tokens,
     timestamps, the echoed request path) is ignored.
+
+    Only the first occurrence of each differing line counts, so a volatile line
+    repeated down the page filters one position rather than every copy of it.
     """
 
     __slots__ = ("lines", "line_set")
@@ -55,14 +58,22 @@ class _LineBody:
         self.lines = lines
         self.line_set = set(lines)
 
+    def _novel_lines(self, other_set):
+        """(position, line) for the first occurrence of each line absent from `other_set`."""
+        seen = set()
+        for i, line in enumerate(self.lines):
+            if line not in other_set and line not in seen:
+                seen.add(line)
+                yield i, line
+
     def volatile_paths(self, other):
-        """Line positions whose content isn't present anywhere in `other`."""
-        return {i for i, line in enumerate(self.lines) if line not in other.line_set}
+        """Positions of the first occurrence of each line not present anywhere in `other`."""
+        return {i for i, _ in self._novel_lines(other.line_set)}
 
     def matches(self, other, filtered):
         for body, other_set in ((self, other.line_set), (other, self.line_set)):
-            for i, line in enumerate(body.lines):
-                if line not in other_set and i not in filtered:
+            for i, _ in body._novel_lines(other_set):
+                if i not in filtered:
                     return False
         return True
 

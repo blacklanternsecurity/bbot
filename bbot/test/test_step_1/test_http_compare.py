@@ -108,6 +108,23 @@ class TestLineBodyComparison:
         assert compare_bodies("", "", "") is True
         assert compare_bodies("", "", "something") is False
 
+    @staticmethod
+    def repeated(nonce, changed=None):
+        """A page repeating one identical volatile line, optionally with one copy replaced."""
+        rows = [f'<script nonce="{nonce}">track()</script>' for _ in range(20)]
+        if changed is not None:
+            rows[changed] = "<div>admin panel</div>"
+        return "\n".join(["<html>", *(f"<p>static {i}</p>" for i in range(10)), *rows, "</html>"])
+
+    def test_repeated_volatile_line_filters_one_position(self):
+        """A volatile line repeated down the page must not hide a real change to one of its copies."""
+        assert compare_bodies(self.repeated("a"), self.repeated("b"), self.repeated("c")) is True
+        assert compare_bodies(self.repeated("a"), self.repeated("b"), self.repeated("c", changed=7)) is False
+
+    def test_change_to_first_copy_of_repeated_line_is_detected(self):
+        """Replacing the first copy moves the volatile line's first occurrence off the filtered position."""
+        assert compare_bodies(self.repeated("a"), self.repeated("b"), self.repeated("c", changed=0)) is False
+
 
 class TestRawTextComparison:
     """``compare_body`` also takes raw response text, which is compared verbatim.
