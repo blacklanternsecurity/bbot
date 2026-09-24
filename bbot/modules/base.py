@@ -871,7 +871,7 @@ class BaseModule:
             return False, "it did not meet target_only filter criteria"
 
         # limit events with special URL extensions (e.g. .js) to modules that opt in
-        if not self.accept_url_special:
+        if not self.accept_url_special and event._url_special_filterable:
             extension = getattr(event, "url_extension", "")
             if extension in self.scan.url_extension_special:
                 return (

@@ -175,6 +175,27 @@ async def test_events(events, helpers):
     )
     assert getattr(wp_no_ext, "url_extension", "NOT_SET") == "NOT_SET"
 
+    # url_extension: HTTP_RESPONSE events
+    # modules that filter on url_extension (e.g. paramminer, lightfuzz) rely on this being set
+    def _http_response(url):
+        return scan.make_event(
+            {"url": url, "raw_header": "HTTP/1.1 200 OK\r\n\r\n"},
+            "HTTP_RESPONSE",
+            dummy=True,
+        )
+
+    hr_pdf = _http_response("https://evilcorp.com/files/document.pdf?foo=bar")
+    assert getattr(hr_pdf, "url_extension", "") == "pdf"
+    assert "extension-pdf" in hr_pdf.tags
+    hr_no_ext = _http_response("https://evilcorp.com/search")
+    assert getattr(hr_no_ext, "url_extension", "NOT_SET") == "NOT_SET"
+
+    # special extensions (.js) must still reach modules that don't opt in to special URLs,
+    # since the response body has already been retrieved. the distribution behavior
+    # itself is pinned in test_modules_basic.py
+    hr_js = _http_response("https://evilcorp.com/app.js")
+    assert getattr(hr_js, "url_extension", "") == "js"
+
     # http response
     assert events.http_response.host == "example.com"
     assert events.http_response.port == 80
