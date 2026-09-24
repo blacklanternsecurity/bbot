@@ -39,7 +39,7 @@ class waf_bypass(BaseModule):
             description="Maximum number of concurrent bypass-attempt HTTP checks in finish()",
         )
         scan_targets_only: bool = Field(
-            False,
+            True,
             description="Only attempt bypasses against WAF-protected hosts that were explicitly specified as scan targets",
         )
 
@@ -58,10 +58,10 @@ class waf_bypass(BaseModule):
         self.search_ip_neighbors = self.config.get("search_ip_neighbors", True)
         self.neighbor_cidr = int(self.config.get("neighbor_cidr", 24))
 
-        # When scan_targets_only is enabled, only hosts named verbatim in the scan's targets/seeds are
+        # When scan_targets_only is enabled (the default), only hosts named verbatim in the scan's targets/seeds are
         # attempted. Strict scope means a target of "evilcorp.com" won't match "www.evilcorp.com".
         self.explicit_targets = None
-        if self.config.get("scan_targets_only", False):
+        if self.config.get("scan_targets_only", True):
             self.explicit_targets = self.helpers.make_target(
                 *self.scan.target.target.event_seeds,
                 *self.scan.target.seeds.event_seeds,
@@ -142,7 +142,7 @@ class waf_bypass(BaseModule):
             self.debug(f"Stored simhash of response from {url} (content length: {len(response.text)})")
 
     def bypass_eligible(self, host):
-        """Whether a WAF-protected host is allowed to be attempted (all of them unless scan_targets_only is set)"""
+        """Whether a WAF-protected host is allowed to be attempted (all of them if scan_targets_only is disabled)"""
         return self.explicit_targets is None or host in self.explicit_targets
 
     async def get_url_content(self, url, ip=None):

@@ -139,21 +139,8 @@ class TestWAFBypass(ModuleTestBase):
         assert correct_description, "Incorrect description"
 
 
-class TestWAFBypassScanTargetsOnly(TestWAFBypass):
-    """With scan_targets_only, a protected host that is itself a scan target is still attempted"""
-
-    config_overrides = {
-        "scope": {"report_distance": 2},
-        "modules": {
-            "waf_bypass": {"search_ip_neighbors": True, "neighbor_cidr": 30, "scan_targets_only": True},
-        },
-    }
-
-
 class TestWAFBypassScanTargetsOnlySkip(TestWAFBypass):
-    """With scan_targets_only, a protected host that isn't a scan target is discovered but never attempted"""
-
-    config_overrides = TestWAFBypassScanTargetsOnly.config_overrides
+    """By default, a protected host that isn't a scan target is discovered but never attempted"""
 
     PROTECTED_HOST = "sub.protected.test"
 
@@ -174,6 +161,25 @@ class TestWAFBypassScanTargetsOnlySkip(TestWAFBypass):
         assert not module.content_fingerprints, "Non-target protected host should not be fingerprinted"
         assert not module.attempted_bypass_pairs, "No bypasses should have been attempted"
         assert not [e for e in events if e.type == "FINDING"], "FINDING produced for a non-target host"
+
+
+class TestWAFBypassAllHosts(TestWAFBypassScanTargetsOnlySkip):
+    """With scan_targets_only disabled, a protected host that isn't a scan target is still attempted"""
+
+    config_overrides = {
+        "scope": {"report_distance": 2},
+        "modules": {
+            "waf_bypass": {"search_ip_neighbors": True, "neighbor_cidr": 30, "scan_targets_only": False},
+        },
+    }
+
+    def check(self, module_test, events):
+        assert any(
+            e.type == "FINDING"
+            and f"WAF Bypass Confirmed - Direct IPs: 127.0.0.1 for http://{self.PROTECTED_HOST}:{HTTPSERVER_PORT}/"
+            in e.data["description"]
+            for e in events
+        ), "No bypass FINDING for the non-target protected host"
 
 
 class TestWAFBypassTagRecognition(ModuleTestBase):
