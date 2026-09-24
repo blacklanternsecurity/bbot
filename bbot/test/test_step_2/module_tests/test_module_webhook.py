@@ -52,3 +52,57 @@ class TestWebhook(ModuleTestBase):
         assert self.headers_correct is True
         assert self.method_correct is True
         assert self.url_correct is True
+
+
+class TestWebhookGivesUp(TestWebhook):
+    """A webhook endpoint that always fails must not hang the scan; the module errors out instead."""
+
+    module_name = "webhook"
+    # enough events to reach the failure threshold
+    targets = ["blacklanternsecurity.com", "evilcorp.com", "evilcorp.net", "evilcorp.org"]
+
+    async def setup_after_prep(self, module_test):
+        module_test.module._api_retry_backoff = 0.01
+        self.requests = 0
+
+        async def custom_callback(request):
+            self.requests += 1
+            return MockResponse(status_code=500)
+
+        module_test.blasthttp_mock.add_callback(custom_callback)
+
+    def check(self, module_test, events):
+        assert self.requests == module_test.module.api_failure_abort_threshold
+        assert module_test.module.errored is True
+
+
+class TestWebhookSSLVerify(TestWebhook):
+    """By default the webhook follows web.ssl_verify_infrastructure, like other API calls."""
+
+    module_name = "webhook"
+    expected_ssl_verify = True
+
+    async def setup_after_prep(self, module_test):
+        await super().setup_after_prep(module_test)
+        self.ssl_verify = []
+        web = module_test.scan.helpers.web
+        original_request = web.request
+
+        async def recording_request(*args, **kwargs):
+            self.ssl_verify.append(kwargs.get("ssl_verify"))
+            return await original_request(*args, **kwargs)
+
+        web.request = recording_request
+
+    def check(self, module_test, events):
+        super().check(module_test, events)
+        assert self.ssl_verify and all(v is self.expected_ssl_verify for v in self.ssl_verify)
+
+
+class TestWebhookSSLVerifyOverride(TestWebhookSSLVerify):
+    """The module's ssl_verify option overrides the global setting."""
+
+    config_overrides = {
+        "modules": {"webhook": {**TestWebhook.config_overrides["modules"]["webhook"], "ssl_verify": False}}
+    }
+    expected_ssl_verify = False
