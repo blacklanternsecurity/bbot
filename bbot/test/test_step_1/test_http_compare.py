@@ -20,7 +20,15 @@ from urllib.parse import urlparse
 
 import pytest
 
-from bbot.core.helpers.diff import MAX_STRUCTURED_BODY_SIZE, HttpCompare, _LineBody, _StructuredBody, parse_body
+from bbot.core.helpers.diff import (
+    MAX_STRUCTURED_BODY_SIZE,
+    MAX_STRUCTURED_LEAVES,
+    MAX_STRUCTURED_LINES,
+    HttpCompare,
+    _LineBody,
+    _StructuredBody,
+    parse_body,
+)
 from bbot.test.mock_blasthttp import MockResponse
 
 from ..bbot_fixtures import *  # noqa: F401, F403
@@ -166,6 +174,13 @@ class TestXmlBodyComparison:
     def test_xml_versus_non_xml_is_a_difference(self):
         assert compare_bodies(self.xml(token="a"), self.xml(token="b"), render()) is False
 
+    def test_multiline_xhtml_is_compared_as_lines(self):
+        """Well-formed XHTML parses as XML, but a many-line page compares fine as lines and costs far less to hold."""
+        xhtml = "\n".join(
+            ["<html><body>", *(f"<p>row {i}</p>" for i in range(MAX_STRUCTURED_LINES)), "</body></html>"]
+        )
+        assert isinstance(parse_body(xhtml), _LineBody)
+
     def test_samples_disagreeing_on_representation_fall_back_to_lines(self):
         """If only one sample parses as XML, both are compared as lines rather than by structure."""
         baseline_body, _ = HttpCompare._baseline_bodies(self.xml(), render())
@@ -240,6 +255,22 @@ class TestJsonBodyComparison:
         oversized = json.dumps({"padding": "x" * MAX_STRUCTURED_BODY_SIZE})
         assert len(oversized) > MAX_STRUCTURED_BODY_SIZE
         assert isinstance(parse_body(oversized), _LineBody)
+
+    def test_body_with_too_many_leaves_is_compared_as_lines(self):
+        """The leaf map is bounded by leaf count, not just text size, since dense JSON packs many leaves per byte."""
+        dense = json.dumps(list(range(MAX_STRUCTURED_LEAVES + 1)))
+        assert len(dense) <= MAX_STRUCTURED_BODY_SIZE
+        assert isinstance(parse_body(dense), _LineBody)
+        assert isinstance(parse_body(json.dumps(list(range(MAX_STRUCTURED_LEAVES)))), _StructuredBody)
+
+    def test_pretty_printed_json_is_compared_as_lines(self):
+        """One leaf per line already gives line comparison the granularity it needs."""
+        pretty = json.loads(self.api())
+        assert isinstance(parse_body(json.dumps(pretty, indent=2)), _LineBody)
+        baseline_1, baseline_2 = (json.dumps(json.loads(self.api(token=t)), indent=2) for t in "ab")
+        assert compare_bodies(baseline_1, baseline_2, json.dumps(json.loads(self.api(token="c")), indent=2)) is True
+        changed = json.dumps(json.loads(self.api(token="c", changed=True)), indent=2)
+        assert compare_bodies(baseline_1, baseline_2, changed) is False
 
     def test_malformed_json_is_compared_as_lines(self):
         assert isinstance(parse_body('{"a": 1,,}'), _LineBody)
