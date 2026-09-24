@@ -196,7 +196,11 @@ class MyModule(BaseModule):
         },
         {
             "name": "Build masscan",
-            "command": {"chdir": "#{BBOT_TEMP}/masscan", "cmd": "make -j", "creates": "#{BBOT_TEMP}/masscan/bin/masscan"},
+            "command": {
+                "chdir": "#{BBOT_TEMP}/masscan",
+                "cmd": "make -j",
+                "creates": "#{BBOT_TEMP}/masscan/bin/masscan",
+            },
         },
         {
             "name": "Install masscan",
