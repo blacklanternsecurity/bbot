@@ -10,7 +10,6 @@ class dnsdumpster(subdomain_enum_apikey):
         "description": "Query dnsdumpster for subdomains",
         "created_date": "2022-03-12",
         "author": "@TheTechromancer",
-        "auth_required": True,
     }
 
     class Config(BaseModuleConfig):
@@ -19,13 +18,10 @@ class dnsdumpster(subdomain_enum_apikey):
 
     base_url = "https://api.dnsdumpster.com"
 
-    # host records returned per page. free keys cap out at 50 and can't page at all;
-    # paid keys get 200 and may request subsequent pages
-    page_size = 200
-    # the API permits one request every two seconds
-    request_interval = 2
-    # response keys whose entries carry a "host"
-    record_keys = ("a", "cname", "mx", "ns")
+    # a page holding this many host records may have another after it. free keys cap out at 50
+    # and can't page at all; paid keys get 200 and may request subsequent pages
+    full_page_record_count = 200
+    host_record_keys = ("a", "cname", "mx", "ns")
 
     async def setup(self):
         self.max_pages = self.config.get("max_pages", 10)
@@ -42,9 +38,9 @@ class dnsdumpster(subdomain_enum_apikey):
             url = f"{self.base_url}/domain/{query}"
             if page > 1:
                 url = f"{url}?page={page}"
-                await self.helpers.sleep(self.request_interval)
             r = await self.api_request(url)
             if r is None:
+                self.verbose(f'No response for "{query}" (page {page})')
                 break
             if page > 1 and r.status_code in (401, 403):
                 self.verbose(f"Paging past the first page requires a paid membership (HTTP {r.status_code})")
@@ -55,25 +51,13 @@ class dnsdumpster(subdomain_enum_apikey):
                 self.verbose(f'Error parsing JSON for "{query}" (HTTP {r.status_code})')
                 break
             if not isinstance(data, dict):
+                self.verbose(f'Unexpected response for "{query}" (HTTP {r.status_code}): {r.text[:200]}')
                 break
-            results.update(await self.parse_results(r, query))
+            results.update(await self.scan.extract_in_scope_hostnames(r.text))
             # a short page is the last one
-            if self.record_count(data) < self.page_size:
+            if self.record_count(data) < self.full_page_record_count:
                 break
         return results
 
     def record_count(self, data):
-        return sum(len(data.get(k) or []) for k in self.record_keys)
-
-    async def parse_results(self, r, query):
-        results = set()
-        data = r.json()
-        if not isinstance(data, dict):
-            return results
-        for key in self.record_keys:
-            for record in data.get(key) or []:
-                if isinstance(record, dict):
-                    host = record.get("host")
-                    if host:
-                        results.add(host.lower())
-        return results
+        return sum(len(data.get(k) or []) for k in self.host_record_keys)
