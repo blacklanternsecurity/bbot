@@ -14,3 +14,16 @@ class TestDNSDumpster(ModuleTestBase):
 
     def check(self, module_test, events):
         assert any(e.data == "asdf.blacklanternsecurity.com" for e in events), "Failed to detect subdomain"
+
+
+class TestDNSDumpsterNoJWT(ModuleTestBase):
+    module_name = "dnsdumpster"
+
+    async def setup_after_prep(self, module_test):
+        module_test.blasthttp_mock.add_response(
+            url="https://dnsdumpster.com",
+            content=b"<html><body>no token here</body></html>",
+        )
+
+    def check(self, module_test, events):
+        assert module_test.scan.modules["dnsdumpster"].errored, "module must shut down when JWT token is missing"

@@ -38,13 +38,12 @@ class dnsdumpster(subdomain_enum):
                 headers_data = json.loads(headers_json)
                 jwt_token = headers_data.get("Authorization")
         except (AttributeError, json.JSONDecodeError, KeyError):
-            self.log.warning("Error obtaining JWT token")
+            self.set_error_state("Error obtaining JWT token")
             return ret
 
         # Abort if we didn't get the JWT token
         if not jwt_token:
-            self.verbose("Error obtaining JWT token")
-            self.errorState = True
+            self.set_error_state("Error obtaining JWT token")
             return ret
         else:
             self.debug("Successfully obtained JWT token")
