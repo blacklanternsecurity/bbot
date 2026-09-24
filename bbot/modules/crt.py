@@ -11,7 +11,7 @@ class crt(subdomain_enum):
         "author": "@TheTechromancer",
     }
 
-    base_url = "https://crt.sh"
+    base_url = "https://crt.sh/"
     reject_wildcards = False
 
     async def setup(self):
