@@ -85,7 +85,7 @@ class sqli(BaseLightfuzz):
         """
         for i in range(rounds):
             try:
-                fresh_compare = self.compare_baseline(
+                fresh_compare = await self.compare_baseline(
                     self.event.data["type"],
                     probe_value,
                     cookies,
@@ -238,7 +238,7 @@ class sqli(BaseLightfuzz):
     async def fuzz(self):
         cookies = self.event.data.get("assigned_cookies", {})
         probe_value = self.incoming_probe_value(populate_empty=True)
-        http_compare = self.compare_baseline(
+        http_compare = await self.compare_baseline(
             self.event.data["type"], probe_value, cookies, additional_params_populate_empty=True
         )
 
