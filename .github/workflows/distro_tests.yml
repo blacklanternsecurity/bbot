@@ -8,7 +8,7 @@ concurrency:
 
 jobs:
   test-distros:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container:
       image: ${{ matrix.os }}
     strategy:
@@ -16,7 +16,7 @@ jobs:
       matrix:
         os: ["ubuntu:22.04", "ubuntu:24.04", "debian", "archlinux", "fedora", "kalilinux/kali-rolling"]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Install Python and uv
         run: |
           if [ -f /etc/os-release ]; then
@@ -54,7 +54,7 @@ jobs:
           uv run pytest --reruns 2 --exitfirst -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO .
       - name: Upload Debug Logs
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: pytest-debug-logs-${{ env.OS_NAME }}
           path: pytest_debug.log
