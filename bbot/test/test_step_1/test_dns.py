@@ -902,11 +902,108 @@ async def test_dns_helpers(bbot_scanner):
     # all_rdtypes is the canonical list -- make sure it's not empty and contains the basics
     assert "A" in all_rdtypes and "AAAA" in all_rdtypes and "CNAME" in all_rdtypes
 
-    # make sure system nameservers are excluded from use by DNS brute force
+    # make sure the resolvers used for normal resolution are excluded from brute-forcing
     brute_nameservers = tempwordlist(["1.2.3.4", "8.8.4.4", "4.3.2.1", "8.8.8.8"])
     scan = bbot_scanner(config={"dns": {"brute_nameservers": brute_nameservers}})
     await scan._prep()
-    scan.helpers.dns.system_resolvers = ["8.8.8.8", "8.8.4.4"]
+    scan.helpers.dns.resolvers = ["8.8.8.8", "8.8.4.4"]
     resolver_file = await scan.helpers.dns.brute.resolver_file()
     resolvers = set(scan.helpers.read_file(resolver_file))
     assert resolvers == {"1.2.3.4", "4.3.2.1"}
+
+    # custom nameservers replace the system ones, and are likewise kept out of
+    # the brute-force pool so brute traffic can't rate-limit our own queries
+    scan = bbot_scanner(
+        config={"dns": {"nameservers": ["8.8.8.8", "8.8.4.4"], "brute_nameservers": brute_nameservers}}
+    )
+    await scan._prep()
+    assert scan.helpers.dns.resolvers == ["8.8.8.8", "8.8.4.4"]
+    assert scan.helpers.dns.blastdns.resolvers == ["8.8.8.8:53", "8.8.4.4:53"]
+    # resolver_file is what external tools (e.g. nuclei) are pointed at
+    assert set(scan.helpers.read_file(scan.helpers.dns.resolver_file)) == {"8.8.8.8", "8.8.4.4"}
+    resolver_file = await scan.helpers.dns.brute.resolver_file()
+    assert set(scan.helpers.read_file(resolver_file)) == {"1.2.3.4", "4.3.2.1"}
+
+    # with no custom nameservers, the system ones are used
+    scan = bbot_scanner()
+    await scan._prep()
+    assert scan.helpers.dns.resolvers == list(scan.helpers.dns.system_resolvers)
+
+
+@pytest.mark.asyncio
+async def test_dns_brute_client_config(bbot_scanner, monkeypatch):
+    """Every dns.brute_* option has to reach the blastdns client.
+
+    blastdns rejects unknown ClientConfig keys, but a value BBOT never passes
+    fails silently as a default, which is invisible in scan output.
+    """
+    from bbot.core.helpers.dns import brute as brute_module
+
+    captured = {}
+
+    class FakeClient:
+        def __init__(self, resolvers, config):
+            captured["resolvers"] = resolvers
+            captured["config"] = config
+
+    monkeypatch.setattr(brute_module, "Client", FakeClient)
+
+    brute_nameservers = tempwordlist(["1.2.3.4", "4.3.2.1"])
+    scan = bbot_scanner(
+        config={
+            "dns": {
+                "brute_nameservers": brute_nameservers,
+                "brute_threads": 123,
+                "brute_inflight_per_resolver": 7,
+                "brute_rate_limit": 456,
+                "brute_retries": 9,
+                "brute_timeout": 0.25,
+                "brute_persistent_socket": True,
+            }
+        }
+    )
+    await scan._prep()
+    await scan.helpers.dns.brute.client()
+
+    config = captured["config"]
+    assert config.max_concurrency == 123
+    assert config.max_inflight_per_resolver == 7
+    assert config.rate_limit == 456
+    assert config.max_retries == 9
+    assert config.request_timeout_ms == 250
+    assert config.persistent_socket is True
+    # brute-force names are unique by construction, so a cache is pure overhead
+    assert config.cache_capacity == 0
+
+    # a rate limit of 0 means unlimited, which blastdns spells as None
+    scan = bbot_scanner(config={"dns": {"brute_nameservers": brute_nameservers, "brute_rate_limit": 0}})
+    await scan._prep()
+    await scan.helpers.dns.brute.client()
+    assert captured["config"].rate_limit is None
+    # the shipped default must not silently drift back to a slow tail
+    assert captured["config"].request_timeout_ms == 500
+    # one socket per resolver keeps NAT state bounded by the resolver count instead
+    # of growing with query volume, so it has to stay on by default
+    assert captured["config"].persistent_socket is True
+
+    # and it stays overridable, for anywhere the extra sockets are the tighter bound
+    scan = bbot_scanner(config={"dns": {"brute_nameservers": brute_nameservers, "brute_persistent_socket": False}})
+    await scan._prep()
+    await scan.helpers.dns.brute.client()
+    assert captured["config"].persistent_socket is False
+
+    # An unusable nameserver fails loudly instead of being silently ignored.
+    # Validation is blastdns's, so it happens when the client is built.
+    scan = bbot_scanner(config={"dns": {"nameservers": ["not-an-ip"]}})
+    with pytest.raises(ValidationError, match="dns.nameservers"):
+        _ = scan.helpers.dns.resolvers
+
+    # _prep() builds the client up front, so a bad nameserver aborts the scan there
+    # instead of surfacing once per event inside dnsresolve
+    scan = bbot_scanner(config={"dns": {"nameservers": ["not-an-ip"]}})
+    with pytest.raises(ValidationError, match="dns.nameservers"):
+        await scan._prep()
+
+    # a DNS-disabled scan never resolves, so it must not be blocked by that check
+    scan = bbot_scanner(config={"dns": {"nameservers": ["not-an-ip"], "disable": True}})
+    await scan._prep()
