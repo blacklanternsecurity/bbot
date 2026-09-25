@@ -88,6 +88,9 @@ class lightfuzz(BaseModule):
         # Per-event baseline cache so submodules with identical request signatures share one HttpCompare.
         self._baseline_cache = {}
 
+        # Scratch space for submodules needing state that outlives a single WEB_PARAMETER, keyed by submodule name.
+        self.submodule_state = {}
+
         # Cross-event baseline_probe response cache: sibling fields of the same form produce identical requests.
         self._baseline_probe_response_cache = {}
         self._baseline_probe_response_cache_max = 200
