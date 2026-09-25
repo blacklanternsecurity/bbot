@@ -30,6 +30,8 @@ class TestElastic(ModuleTestBase):
                 "url": "https://localhost:9200/bbot_test_events/_doc",
                 "username": "elastic",
                 "password": "bbotislife",
+                # the Elasticsearch container serves a self-signed certificate
+                "ssl_verify": False,
             }
         }
     }

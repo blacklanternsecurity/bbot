@@ -23,9 +23,12 @@ class Elastic(webhook):
         username: str = Field("elastic", description="Elastic username", sensitive=True)
         password: str = Field("bbotislife", description="Elastic password", sensitive=True)
         timeout: int = Field(10, description="HTTP timeout")
+        ssl_verify: bool | None = Field(
+            None, description="Verify SSL certificates (defaults to the global web.ssl_verify_infrastructure setting)"
+        )
 
     async def cleanup(self):
         # refresh the index
         doc_regex = self.helpers.re.compile(r"/[^/]+$")
         refresh_url = doc_regex.sub("/_refresh", self.url)
-        await self.helpers.request(refresh_url, auth=self.auth)
+        await self.helpers.request(refresh_url, auth=self.auth, ssl_verify=self.ssl_verify)

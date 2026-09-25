@@ -14,11 +14,6 @@ class WebhookOutputModule(BaseOutputModule):
     severities = ["INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
     confidences = ["UNKNOWN", "LOW", "MEDIUM", "HIGH", "CONFIRMED"]
 
-    # abort module after 10 failed requests (not including retries)
-    _api_failure_abort_threshold = 10
-    # retry each request up to 10 times, respecting the Retry-After header
-    _default_api_retries = 10
-
     async def setup(self):
         self.webhook_url = self.config.get("webhook_url", "")
         self.min_severity = self.config.get("min_severity", "LOW").strip().upper()
@@ -30,10 +25,6 @@ class WebhookOutputModule(BaseOutputModule):
             self.warning("Must set Webhook URL")
             return False
         return await super().setup()
-
-    @property
-    def api_retries(self):
-        return self.config.get("retries", self._default_api_retries)
 
     async def handle_event(self, event):
         message = self.format_message(event)

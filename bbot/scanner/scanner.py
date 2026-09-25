@@ -17,6 +17,7 @@ from .manager import ScanIngress, ScanEgress
 from bbot.core.helpers.misc import sha1, rand_string
 from bbot.core.helpers.names_generator import random_name
 from bbot.core.config.logger import GzipRotatingFileHandler
+from bbot.core.config.models import find_deprecated_config
 from bbot.core.multiprocess import SHARED_INTERPRETER_STATE
 from bbot.core.helpers.async_helpers import async_to_sync_gen
 from bbot.logger import log_to_stderr
@@ -371,6 +372,12 @@ class Scanner:
                     f.write("# Secrets (API keys, tokens, etc.) have been redacted.\n")
                     f.write('# To include secrets, set "redact_secrets: false" in your preset or BBOT config.\n\n')
                 f.write(self.preset.to_yaml(redact_secrets=redact_secrets))
+
+            # deprecated options are accepted but ignored, so make sure the user knows
+            for path in find_deprecated_config(
+                self.preset.core.custom_config, self.preset.module_loader.config_schema
+            ):
+                self.hugewarning(f'Config option "{path}" is deprecated and will be ignored', trace=False)
 
             # log scan overview
             start_msg = f"Scan seeded with {len(self.seeds.event_seeds):,} seed(s)"

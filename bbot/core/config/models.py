@@ -39,9 +39,16 @@ ConfidenceLiteral = Annotated[
 ]
 
 
-def Field(default=PydanticUndefined, *, sensitive: bool = False, mandatory: bool = False, **kwargs):
+def Field(
+    default=PydanticUndefined,
+    *,
+    sensitive: bool = False,
+    mandatory: bool = False,
+    deprecated: bool = False,
+    **kwargs,
+):
     """
-    Drop-in replacement for `pydantic.Field` that records two BBOT-specific
+    Drop-in replacement for `pydantic.Field` that records BBOT-specific
     flags as field metadata:
 
     - `sensitive=True`: value should be redacted when serializing configs
@@ -49,8 +56,11 @@ def Field(default=PydanticUndefined, *, sensitive: bool = False, mandatory: bool
     - `mandatory=True`: option must be supplied for the module to function;
       drives the "Needs API Key" column in `bbot -l` and the
       `BaseModule.auth_required` property.
+    - `deprecated=True`: option is no longer used. It is still accepted so
+      existing presets keep working, but it is ignored, left out of defaults
+      and docs, and setting it logs a warning at scan startup.
 
-    Both flags are stashed under `json_schema_extra` so pydantic preserves
+    The flags are stashed under `json_schema_extra` so pydantic preserves
     them on `FieldInfo.json_schema_extra` (and in any generated JSON schema)
     without affecting validation. All other arguments pass through unchanged.
     """
@@ -59,6 +69,8 @@ def Field(default=PydanticUndefined, *, sensitive: bool = False, mandatory: bool
         extra["sensitive"] = True
     if mandatory:
         extra["mandatory"] = True
+    if deprecated:
+        extra["deprecated"] = True
     if extra:
         kwargs["json_schema_extra"] = extra
     return _PydanticField(default, **kwargs)
@@ -76,6 +88,10 @@ def is_sensitive(field) -> bool:
 
 def is_mandatory(field) -> bool:
     return bool(field_flags(field).get("mandatory"))
+
+
+def is_deprecated(field) -> bool:
+    return bool(field_flags(field).get("deprecated"))
 
 
 def _unwrap_optional(annotation):
@@ -229,6 +245,28 @@ def partition_sensitive_config(config, model, *, keep_sensitive: bool):
             if not sensitive:
                 out[key] = _copy.deepcopy(val)
     return out
+
+
+def find_deprecated_config(config, model, prefix=""):
+    """
+    Walk `config` (a dict) alongside the pydantic `model` and return the dotted
+    paths of every `deprecated=True` option that is set, e.g. `["modules.slack.retries"]`.
+    """
+    found = []
+    if not isinstance(config, dict) or model is None:
+        return found
+    for key, val in config.items():
+        field = _resolve_field(model, key)
+        if field is None:
+            continue
+        dotted = f"{prefix}.{key}" if prefix else str(key)
+        if is_deprecated(field):
+            found.append(dotted)
+            continue
+        sub_model = _field_submodel(field)
+        if sub_model is not None:
+            found.extend(find_deprecated_config(val, sub_model, dotted))
+    return found
 
 
 class ScopeConfig(BaseModel):
@@ -484,6 +522,8 @@ __all__ = [
     "coerce_config",
     "coerce_value",
     "field_flags",
+    "find_deprecated_config",
+    "is_deprecated",
     "is_mandatory",
     "is_sensitive",
     "partition_sensitive_config",
