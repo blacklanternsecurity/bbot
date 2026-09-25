@@ -1208,7 +1208,7 @@ class DictHostEvent(DictEvent):
 
 
 class ClosestHostEvent(DictHostEvent):
-    # if a host/path/url isn't specified, this event type grabs it from the closest parent
+    # if a host isn't specified, this event type grabs host, port, url and path from the closest parent
     # inherited by FINDING
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1227,9 +1227,9 @@ class ClosestHostEvent(DictHostEvent):
                 # inherit closest host+port
                 if parent.host:
                     self.data["host"] = str(parent.host)
-                    self._port = parent.port
-                    # we do this to refresh the hash
+                    # we do this to refresh the hash (this also clears _port, so it must come first)
                     self.data = self.data
+                    self._port = parent.port
                     break
         # die if we still haven't found a host
         if not self.host and not self.data.get("path", ""):
@@ -2493,6 +2493,11 @@ def event_from_json(j):
 
         resolved_hosts = j.get("resolved_hosts", [])
         event._resolved_hosts = frozenset(resolved_hosts) if resolved_hosts else None
+
+        # some events (e.g. FINDING) carry a port that isn't derivable from their data
+        port = j.get("port", None)
+        if port is not None:
+            event._port = port
 
         http_title = j.get("http_title", "")
         if http_title:
