@@ -7,6 +7,7 @@ on:
 
 jobs:
   update-nuclei-version:
+    name: open a PR when a new nuclei is released
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -59,6 +60,7 @@ jobs:
           author: blsaccess <info@blacklanternsecurity.com>
           assignees: "TheTechromancer"
   update-trufflehog-version:
+    name: open a PR when a new trufflehog is released
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
