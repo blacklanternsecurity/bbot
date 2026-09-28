@@ -242,7 +242,7 @@ rule akamai_bot_manager_url
         # 32M bits (~4MB) supports ~400K entries with negligible false-positive rate
         self._archive_bloom = self.helpers.bloom_filter(32000000)
         self._liveness_cache = LRUCache(maxsize=self._liveness_cache_size)
-        self._liveness_probing = not self.scan.config.get("web", {}).get("http_proxy")
+        self._liveness_probing = not self.scan.http_proxy
         if self.urls and not self._liveness_probing:
             self.verbose("Emitting wayback URLs without liveness probing because an HTTP proxy is configured")
         self._junk_url_rules = self.helpers.yara.compile(source="\n".join(self._junk_url_yara_rules.values()))
