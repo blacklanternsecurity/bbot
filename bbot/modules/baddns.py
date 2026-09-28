@@ -60,7 +60,8 @@ class baddns(BaseModule):
         )
 
     module_threads = 8
-    deps_pip = ["baddns~=2.4.0"]
+    # --no-deps: baddns pins blastdns<1.10, which pip cannot reconcile with the 2.x bbot runs on
+    deps_pip = ["--no-deps", "baddns~=2.4.0"]
 
     def select_modules(self):
         selected_submodules = []

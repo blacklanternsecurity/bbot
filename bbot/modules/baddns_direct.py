@@ -22,7 +22,8 @@ class baddns_direct(baddns_module):
         )
 
     module_threads = 8
-    deps_pip = ["baddns~=2.4.0"]
+    # --no-deps: baddns pins blastdns<1.10, which pip cannot reconcile with the 2.x bbot runs on
+    deps_pip = ["--no-deps", "baddns~=2.4.0"]
 
     scope_distance_modifier = 1
 
