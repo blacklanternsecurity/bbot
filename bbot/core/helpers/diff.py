@@ -2,6 +2,7 @@ import json
 import logging
 import xmltodict
 from time import monotonic
+from itertools import islice
 from deepdiff import DeepDiff
 from contextlib import suppress
 from xml.parsers.expat import ExpatError
@@ -14,9 +15,14 @@ log = logging.getLogger("bbot.core.helpers.diff")
 SLOW_COMPARE_THRESHOLD = 2.0
 
 # Flattening a structured body costs memory proportional to its leaf count, and a
-# baseline is held for the lifetime of the HttpCompare. Past this size, compare as
+# baseline is held for the lifetime of the HttpCompare. Past these limits, compare as
 # lines instead -- a body this big doesn't need leaf-level precision.
 MAX_STRUCTURED_BODY_SIZE = 2_000_000
+MAX_STRUCTURED_LEAVES = 10_000
+
+# Bodies with at least this many lines compare fine as lines; structure is only
+# needed for the few-line shape (a minified JSON or XML API response).
+MAX_STRUCTURED_LINES = 20
 
 _MISSING = object()
 
@@ -41,6 +47,9 @@ class _LineBody:
     moves is not a difference. Positions that varied between the two baseline
     samples are filtered out, which is how volatile content (CSRF tokens,
     timestamps, the echoed request path) is ignored.
+
+    Only the first occurrence of each differing line counts, so a volatile line
+    repeated down the page filters one position rather than every copy of it.
     """
 
     __slots__ = ("lines", "line_set")
@@ -49,14 +58,22 @@ class _LineBody:
         self.lines = lines
         self.line_set = set(lines)
 
+    def _novel_lines(self, other_set):
+        """(position, line) for the first occurrence of each line absent from `other_set`."""
+        seen = set()
+        for i, line in enumerate(self.lines):
+            if line not in other_set and line not in seen:
+                seen.add(line)
+                yield i, line
+
     def volatile_paths(self, other):
-        """Line positions whose content isn't present anywhere in `other`."""
-        return {i for i, line in enumerate(self.lines) if line not in other.line_set}
+        """Positions of the first occurrence of each line not present anywhere in `other`."""
+        return {i for i, _ in self._novel_lines(other.line_set)}
 
     def matches(self, other, filtered):
         for body, other_set in ((self, other.line_set), (other, self.line_set)):
-            for i, line in enumerate(body.lines):
-                if line not in other_set and i not in filtered:
+            for i, _ in body._novel_lines(other_set):
+                if i not in filtered:
                     return False
         return True
 
@@ -72,8 +89,8 @@ class _StructuredBody:
 
     __slots__ = ("leaves",)
 
-    def __init__(self, tree):
-        self.leaves = dict(_tree_leaves(tree))
+    def __init__(self, leaves):
+        self.leaves = leaves
 
     def volatile_paths(self, other):
         """Element paths whose leaf value differs from `other`, or is missing on either side."""
@@ -90,21 +107,31 @@ class _StructuredBody:
         return True
 
 
+def _structured(tree):
+    """A `_StructuredBody` for `tree`, or None if it has too many leaves to hold."""
+    leaves = dict(islice(_tree_leaves(tree), MAX_STRUCTURED_LEAVES + 1))
+    if len(leaves) > MAX_STRUCTURED_LEAVES:
+        return None
+    return _StructuredBody(leaves)
+
+
 def parse_body(text):
     """Parse a response body into its comparable form.
 
-    JSON and XML are compared leaf-by-leaf; everything else as a list of lines.
-    Malformed or pathologically nested input falls back to lines.
+    Few-line JSON and XML are compared leaf-by-leaf; everything else as a list of lines.
+    Malformed, oversized, or pathologically nested input falls back to lines.
     """
-    if len(text) <= MAX_STRUCTURED_BODY_SIZE:
+    lines = text.split("\n")
+    if len(lines) < MAX_STRUCTURED_LINES and len(text) <= MAX_STRUCTURED_BODY_SIZE:
         with suppress(ExpatError, RecursionError):
-            return _StructuredBody(xmltodict.parse(text))
+            if (body := _structured(xmltodict.parse(text))) is not None:
+                return body
         with suppress(ValueError, RecursionError):
             tree = json.loads(text)
             # a bare scalar gives one leaf, which is no better than one line
-            if isinstance(tree, (dict, list)):
-                return _StructuredBody(tree)
-    return _LineBody(text.split("\n"))
+            if isinstance(tree, (dict, list)) and (body := _structured(tree)) is not None:
+                return body
+    return _LineBody(lines)
 
 
 def _as_body(content):
@@ -112,7 +139,7 @@ def _as_body(content):
     if isinstance(content, (_LineBody, _StructuredBody)):
         return content
     if isinstance(content, dict):
-        return _StructuredBody(content)
+        return _StructuredBody(dict(_tree_leaves(content)))
     return _LineBody(list(content))
 
 
@@ -341,6 +368,11 @@ class HttpCompare:
                     continue
                 differing_headers.append(header_value)
         return differing_headers
+
+    @staticmethod
+    def parse_body(text):
+        """Parse a response body into the form compare_body() expects."""
+        return parse_body(text)
 
     def compare_body(self, content_1, content_2):
         """Whether two bodies match, ignoring the parts observed to be volatile.
