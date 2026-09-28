@@ -3,8 +3,6 @@ import base64
 import binascii
 from urllib.parse import quote
 
-from bbot.core.helpers.nowafpls import DEFAULT_PADDING_SIZE, PADDING_FIELD_NAME
-
 
 class BaseLightfuzz:
     friendly_name = ""
@@ -168,10 +166,11 @@ class BaseLightfuzz:
             if additional_params:
                 data.update(additional_params)
             if "waf" in self.event.tags and self.lightfuzz.avoid_wafs != "always":
-                bypass = await self.lightfuzz.helpers.nowafpls.is_bypassable(self.event)
-                if bypass.bypassed:
-                    # Prepend the pad so the WAF's inspection buffer fills before it reaches the payload.
-                    data = {PADDING_FIELD_NAME: "A" * DEFAULT_PADDING_SIZE, **data}
+                # pad_json prepends the junk field so the WAF's inspection buffer fills
+                # before it reaches the payload, and no-ops when padding won't help
+                padded = await self.lightfuzz.helpers.nowafpls.pad_json(self.event, data)
+                if padded is not data:
+                    data = padded
                     self.used_nowafpls = True
             if event_type == "BODYJSON":
                 request_params = {

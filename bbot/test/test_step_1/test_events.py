@@ -191,11 +191,10 @@ async def test_events(events, helpers):
     assert getattr(hr_no_ext, "url_extension", "NOT_SET") == "NOT_SET"
 
     # special extensions (.js) must still reach modules that don't opt in to special URLs,
-    # since the response body has already been retrieved
+    # since the response body has already been retrieved. the distribution behavior
+    # itself is pinned in test_modules_basic.py
     hr_js = _http_response("https://evilcorp.com/app.js")
     assert getattr(hr_js, "url_extension", "") == "js"
-    assert hr_js._url_special_filterable is False
-    assert scan.make_event("https://evilcorp.com/app.js", dummy=True)._url_special_filterable is True
 
     # http response
     assert events.http_response.host == "example.com"
@@ -720,6 +719,21 @@ async def test_events(events, helpers):
     assert reconstituted_event.host == "example.com"
     assert reconstituted_event.type == "HTTP_RESPONSE"
     assert reconstituted_event.parent_id == scan.root_event.id
+
+    # a re-emitted response is distinguished by a marker on the event rather than in its data,
+    # and has to keep that distinct id across a json round trip
+    assert "reemit_source" not in http_response.json()
+    unpacked_response = scan.make_event(blasthttp_response, "HTTP_RESPONSE", parent=scan.root_event)
+    assert unpacked_response.id == http_response.id
+    unpacked_response.reemit_source = "js_unpacker"
+    assert unpacked_response.id != http_response.id
+    assert "_reemit_source" not in unpacked_response.data
+    unpacked_json = unpacked_response.json()
+    assert unpacked_json["reemit_source"] == "js_unpacker"
+    assert "_reemit_source" not in unpacked_json["data_json"]
+    reconstituted_unpacked = event_from_json(unpacked_json)
+    assert reconstituted_unpacked.reemit_source == "js_unpacker"
+    assert reconstituted_unpacked.id == unpacked_response.id
 
     event_1 = scan.make_event("127.0.0.1", parent=scan.root_event)
     event_2 = scan.make_event("127.0.0.2", parent=event_1)

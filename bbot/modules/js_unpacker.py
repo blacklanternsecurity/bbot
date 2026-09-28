@@ -24,8 +24,6 @@ class BaseUnpacker:
         """Re-emit an HTTP_RESPONSE with unpacked body so excavate can extract from it."""
         data = dict(event.data)
         data["body"] = body
-        # Distinct id from the original response so per-module dedup doesn't drop this.
-        data["_reemit_source"] = "js_unpacker"
         # recompute body hashes so downstream content-dedup doesn't collapse this
         # against the original response
         body_bytes = body.encode("utf-8", errors="replace") if isinstance(body, str) else body
@@ -36,13 +34,18 @@ class BaseUnpacker:
             "body_mmh3": mmh3.hash(body_bytes),
             "body_sha256": sha256(body_bytes).hexdigest(),
         }
-        await self.module.emit_event(
+        unpacked = self.module.make_event(
             data,
             "HTTP_RESPONSE",
             parent=event.parent,
             tags=["js-unpacked"],
             context=f"{{module}} unpacked {self.name} JavaScript from {{event.type}}",
         )
+        if unpacked is None:
+            return
+        # distinct id from the original response so per-module dedup doesn't drop this
+        unpacked.reemit_source = "js_unpacker"
+        await self.module.emit_event(unpacked)
 
 
 class SourceMapUnpacker(BaseUnpacker):
@@ -80,6 +83,10 @@ rule source_map
         else:
             base_url = event.data.get("url", "")
             map_url = urljoin(base_url, map_ref)
+            # maps often live on third-party CDNs, so don't require scope, but honor the blacklist
+            if self.module.scan.blacklisted(map_url):
+                self.module.debug(f"Skipping blacklisted source map {map_url}")
+                return
             r = await self.helpers.request(map_url)
             if not r or r.status_code != 200:
                 return
@@ -159,9 +166,10 @@ rule dean_edwards_packer
             return base_n(value // base, base) + chars[value % base]
 
         lookup = {}
-        for i in range(count):
+        # count comes from the page, so never iterate past the keywords we actually have
+        for i in range(min(count, len(keywords))):
             key = base_n(i, radix)
-            if i < len(keywords) and keywords[i]:
+            if keywords[i]:
                 lookup[key] = keywords[i]
 
         def replacer(m):
@@ -211,8 +219,10 @@ rule obfuscator_io
         if rot_match:
             amount_str = rot_match.group(1)
             amount = int(amount_str, 16) if amount_str.startswith("0x") else int(amount_str)
-            for _ in range(amount):
-                string_array.append(string_array.pop(0))
+            # rotation is cyclic, so reduce the page-supplied amount before applying it
+            if string_array:
+                amount %= len(string_array)
+                string_array = string_array[amount:] + string_array[:amount]
 
         # find accessor function name
         accessor_pattern = (

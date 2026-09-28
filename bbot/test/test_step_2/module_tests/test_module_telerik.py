@@ -155,7 +155,7 @@ class TestTelerikRAUDefaultKeys(ModuleTestBase):
     'Could not load file or assembly' when default keys are still accepted.
     """
 
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     module_name = "telerik"
     modules_overrides = ["http", "telerik"]
     config_overrides = {
@@ -213,7 +213,7 @@ class TestTelerikRAUDefaultKeys(ModuleTestBase):
 class TestTelerikDialogHandlerOracle(ModuleTestBase):
     """CVE-2017-9248 quick_check: PBKDF1_MS 'Length cannot be less than zero' oracle → HIGH finding."""
 
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     module_name = "telerik"
     modules_overrides = ["http", "telerik"]
     config_overrides = {
@@ -280,7 +280,7 @@ class TestTelerikDialogHandlerOracle(ModuleTestBase):
 class TestTelerikDialogHandlerKnownKey(ModuleTestBase):
     """PBKDF1_MS mode: hash key + enc key each solvable via distinct oracle strings → CRITICAL finding."""
 
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     module_name = "telerik"
     modules_overrides = ["http", "telerik"]
     config_overrides = {

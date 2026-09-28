@@ -3901,12 +3901,25 @@ class Test_Lightfuzz_filter_event_try_bypasses(ModuleTestBase):
                 f"{event.type} has no POST-style probe to pad and should be rejected, got {result}"
             )
 
-        # the gate held, or we never got a verdict: reject everything
-        for status in (BypassResult.STATUS_BLOCKED, BypassResult.STATUS_ERROR):
+        # the gate held, or we never got a verdict: reject everything, and report which of the two
+        # it was, since an inconclusive probe is an infrastructure problem, not a WAF that held
+        for status, expected_reason in (
+            (BypassResult.STATUS_BLOCKED, "WAF blocked the payload"),
+            (BypassResult.STATUS_ERROR, "WAF bypass probe was inconclusive"),
+        ):
             self._set_verdict(module_test, status)
             for event in all_events:
                 result = await module.filter_event(event)
                 assert not self._accepted(result), f"{event.type} should be rejected on status={status}, got {result}"
+                assert isinstance(result, tuple), (
+                    f"{event.type} rejection on status={status} must carry a reason, got {result}"
+                )
+                assert expected_reason in result[1], (
+                    f"{event.type} rejection on status={status} should say why, got {result}"
+                )
+                assert f"status={status}" in result[1], (
+                    f"{event.type} rejection reason should include the probe verdict, got {result}"
+                )
 
     def check(self, module_test, events):
         # assertions live in test_filter_event
@@ -3963,10 +3976,13 @@ class _NowafplsFuzzTestBase(ModuleTestBase):
     def modules_overrides(self):
         return ["http", "lightfuzz", "excavate"]
 
+    padding_size = 1024
+
     @property
     def config_overrides(self):
         return {
             "interactsh_disable": True,
+            "web": {"nowafpls_padding_sizes": [self.padding_size]},
             "modules": {
                 "lightfuzz": {
                     "enabled_submodules": ["xss"],
@@ -4021,6 +4037,11 @@ class Test_Nowafpls_try_bypasses_bypassable(_NowafplsFuzzTestBase):
             if not b.startswith(b"__nowafpls_pad=") and (b"%3Cscript" in b or b"<script" in b)
         ]
         assert padded_malicious, f"Expected padded fuzz probes. Bodies: {self.post_bodies[:5]}"
+        # fuzz probes must pad with the size the probe validated, not a compiled-in default
+        pad_sizes = {len(b[len(b"__nowafpls_pad=") :].split(b"&", 1)[0]) for b in padded_malicious}
+        assert pad_sizes == {self.padding_size}, (
+            f"Fuzz pads must match the configured padding size {self.padding_size}. Got: {pad_sizes}"
+        )
         # nowafpls's own probe fires exactly one unpadded malicious body; any additional unpadded
         # malicious would mean lightfuzz's fuzz probes are missing the pad.
         assert len(unpadded_malicious) <= 1, (

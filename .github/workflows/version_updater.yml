@@ -1,4 +1,4 @@
-name: Version Updater
+name: Tool Version Updater
 on:
   schedule:
     # Runs at 00:00 every day

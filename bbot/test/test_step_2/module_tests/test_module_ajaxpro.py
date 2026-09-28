@@ -85,6 +85,7 @@ class TestAjaxpro_nowafpls_bypass(ModuleTestBase):
 
     targets = ["ajaxpro-bypass.test"]
     modules_overrides = ["http", "ajaxpro"]
+    config_overrides = {"web": {"nowafpls_padding_sizes": [1024]}}
 
     _exploit_response = (
         'null; r.error = {"Message":"Constructor on type \'AjaxPro.Services.ICartService\' not found.",'
@@ -146,9 +147,16 @@ class TestAjaxpro_nowafpls_bypass(ModuleTestBase):
         module_test.scan.modules["dummy_module"] = self.DummyModule(module_test.scan)
 
     def check(self, module_test, events):
-        assert any(b'"__nowafpls_pad"' in b for b in self.exploit_bodies), (
+        import json
+
+        padded = [b for b in self.exploit_bodies if b'"__nowafpls_pad"' in b]
+        assert padded, (
             f"Ajaxpro's exploit POST should carry the nowafpls JSON pad. Got exploit bodies: {self.exploit_bodies}"
         )
+        # the exploit must pad with the size the probe validated, not a compiled-in default,
+        # otherwise the verdict and the exploit disagree whenever the size is configured
+        pad_sizes = {len(json.loads(b)["__nowafpls_pad"]) for b in padded}
+        assert pad_sizes == {1024}, f"Exploit pad must match the configured padding size. Got: {pad_sizes}"
         finding = next(
             (
                 e
