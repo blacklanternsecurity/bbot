@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       # if one python version fails, let the others finish
       fail-fast: false
@@ -53,7 +53,7 @@ jobs:
           verbose: true
   publish_code:
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stable')
     continue-on-error: true
     steps:
@@ -201,7 +201,7 @@ jobs:
       BBOT_VERSION: ${{ steps.version.outputs.BBOT_VERSION }}
   tag_commit:
     needs: publish_code
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event_name == 'push' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev')
     steps:
       - uses: actions/checkout@v7
@@ -222,7 +222,7 @@ jobs:
           git push origin "$VERSION"
 
   publish_docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event_name == 'push' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev')
     steps:
       - uses: actions/checkout@v7
