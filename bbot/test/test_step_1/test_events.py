@@ -175,6 +175,27 @@ async def test_events(events, helpers):
     )
     assert getattr(wp_no_ext, "url_extension", "NOT_SET") == "NOT_SET"
 
+    # url_extension: HTTP_RESPONSE events
+    # modules that filter on url_extension (e.g. paramminer, lightfuzz) rely on this being set
+    def _http_response(url):
+        return scan.make_event(
+            {"url": url, "raw_header": "HTTP/1.1 200 OK\r\n\r\n"},
+            "HTTP_RESPONSE",
+            dummy=True,
+        )
+
+    hr_pdf = _http_response("https://evilcorp.com/files/document.pdf?foo=bar")
+    assert getattr(hr_pdf, "url_extension", "") == "pdf"
+    assert "extension-pdf" in hr_pdf.tags
+    hr_no_ext = _http_response("https://evilcorp.com/search")
+    assert getattr(hr_no_ext, "url_extension", "NOT_SET") == "NOT_SET"
+
+    # special extensions (.js) must still reach modules that don't opt in to special URLs,
+    # since the response body has already been retrieved. the distribution behavior
+    # itself is pinned in test_modules_basic.py
+    hr_js = _http_response("https://evilcorp.com/app.js")
+    assert getattr(hr_js, "url_extension", "") == "js"
+
     # http response
     assert events.http_response.host == "example.com"
     assert events.http_response.port == 80
@@ -699,6 +720,21 @@ async def test_events(events, helpers):
     assert reconstituted_event.type == "HTTP_RESPONSE"
     assert reconstituted_event.parent_id == scan.root_event.id
 
+    # a re-emitted response is distinguished by a marker on the event rather than in its data,
+    # and has to keep that distinct id across a json round trip
+    assert "reemit_source" not in http_response.json()
+    unpacked_response = scan.make_event(blasthttp_response, "HTTP_RESPONSE", parent=scan.root_event)
+    assert unpacked_response.id == http_response.id
+    unpacked_response.reemit_source = "js_unpacker"
+    assert unpacked_response.id != http_response.id
+    assert "_reemit_source" not in unpacked_response.data
+    unpacked_json = unpacked_response.json()
+    assert unpacked_json["reemit_source"] == "js_unpacker"
+    assert "_reemit_source" not in unpacked_json["data_json"]
+    reconstituted_unpacked = event_from_json(unpacked_json)
+    assert reconstituted_unpacked.reemit_source == "js_unpacker"
+    assert reconstituted_unpacked.id == unpacked_response.id
+
     event_1 = scan.make_event("127.0.0.1", parent=scan.root_event)
     event_2 = scan.make_event("127.0.0.2", parent=event_1)
     event_3 = scan.make_event("127.0.0.3", parent=event_2)
@@ -1025,6 +1061,75 @@ async def test_event_web_spider_distance(bbot_scanner):
     assert url_event_5.web_spider_distance == 1
     assert "spider-danger" in url_event_5.tags
     assert "spider-max" not in url_event_5.tags
+
+
+@pytest.mark.asyncio
+async def test_event_archived_provenance():
+    """A finding whose evidence is an archived snapshot renders with an [ARCHIVED] marker, so the
+    severity is never read as a claim about the live host."""
+    scan = Scanner()
+    await scan._prep()
+    archived_response = scan.make_event(
+        {
+            "method": "GET",
+            "url": "http://www.evilcorp.com/asdf",
+            "hash": {"header_mmh3": "1", "body_mmh3": "2"},
+            "raw_header": "HTTP/1.1 200 OK\r\n\r\n",
+            "archive_url": "http://web.archive.org/web/20190101000000/http://www.evilcorp.com/asdf",
+        },
+        "HTTP_RESPONSE",
+        parent=scan.root_event,
+        tags=["from-wayback", "archived"],
+    )
+
+    finding = scan.make_event(
+        {
+            "host": "www.evilcorp.com",
+            "description": "test",
+            "severity": "HIGH",
+            "confidence": "HIGH",
+            "name": "Test Finding",
+        },
+        "FINDING",
+        parent=archived_response,
+    )
+    archive_url = "http://web.archive.org/web/20190101000000/http://www.evilcorp.com/asdf"
+    assert finding.archive_url == archive_url
+    assert finding.pretty_string.startswith("[ARCHIVED] Severity: [HIGH]")
+    # output.txt / stdout render data_human, which carries the snapshot URL itself
+    assert finding.data_human.startswith("Severity: [HIGH]")
+    assert finding.data_human.endswith(f"(archived: {archive_url})")
+    # output.json serializes json(), and the snapshot URL must not become part of the finding's identity
+    assert finding.json()["archive_url"] == archive_url
+    assert "archive_url" not in finding.json()["data_json"]
+
+    live_response = scan.make_event(
+        {
+            "method": "GET",
+            "url": "http://www.evilcorp.com/qwerty",
+            "hash": {"header_mmh3": "3", "body_mmh3": "4"},
+            "raw_header": "HTTP/1.1 200 OK\r\n\r\n",
+        },
+        "HTTP_RESPONSE",
+        parent=scan.root_event,
+    )
+    live_finding = scan.make_event(
+        {
+            "host": "www.evilcorp.com",
+            "description": "test",
+            "severity": "HIGH",
+            "confidence": "HIGH",
+            "name": "Live Finding",
+        },
+        "FINDING",
+        parent=live_response,
+    )
+    assert live_finding.archive_url is None
+    assert live_finding.pretty_string.startswith("Severity: [HIGH]")
+    assert live_finding.data_human.startswith("Severity: [HIGH]")
+    assert "archive_url" not in live_finding.json()
+
+    await scan._cleanup()
 
 
 @pytest.mark.asyncio

@@ -328,3 +328,28 @@ def test_validate_preset_baddns_subclass_severity_is_validated():
 def test_validate_preset_shodan_idb_retries_is_int():
     """shodan_idb.retries is numeric; the natural `retries: 3` must validate (was typed str)."""
     assert validate_preset({"config": {"modules": {"shodan_idb": {"retries": 3}}}}) == []
+
+
+def test_validate_preset_lightfuzz_avoid_wafs_accepts_bool():
+    """lightfuzz.avoid_wafs is a tri-state that also accepts the boolean form, so configs
+    written against the older bool option still load. Unknown values are still rejected."""
+    for value in (True, False, "ALWAYS", " never "):
+        assert validate_preset({"config": {"modules": {"lightfuzz": {"avoid_wafs": value}}}}) == []
+    errs = validate_preset({"config": {"modules": {"lightfuzz": {"avoid_wafs": "bogus"}}}})
+    assert len(errs) == 1 and errs[0].path == "avoid_wafs"
+    assert "Expected one of" in errs[0].message
+
+
+async def test_lightfuzz_avoid_wafs_bool_coerced_at_runtime():
+    """Schema validation doesn't rewrite the runtime config, so lightfuzz must apply the same
+    coercion when it reads the option. True means 'always' (skip), False means 'never' (fuzz raw)."""
+    from bbot.scanner import Scanner
+
+    for value, expected in ((True, "always"), (False, "never"), ("ALWAYS", "always"), (" never ", "never")):
+        scan = Scanner(
+            "http://127.0.0.1", presets=["lightfuzz"], config={"modules": {"lightfuzz": {"avoid_wafs": value}}}
+        )
+        await scan._prep()
+        assert scan.modules["lightfuzz"].avoid_wafs == expected, (
+            f"avoid_wafs={value!r} became {scan.modules['lightfuzz'].avoid_wafs!r}, expected {expected!r}"
+        )

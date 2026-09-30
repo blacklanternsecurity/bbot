@@ -8,8 +8,7 @@ concurrency:
 
 jobs:
   test-distros:
-    name: install and smoke-test on ${{ matrix.os }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container:
       image: ${{ matrix.os }}
     strategy:

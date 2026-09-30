@@ -118,6 +118,42 @@ async def test_modules_basic_checks(events, blasthttp_mock):
     assert result is True
     assert reason == "event is always emitted"
 
+    # special URL extensions (.js) are withheld from modules that don't opt in.
+    # HTTP_RESPONSE is exempt: its body is already retrieved, so consumers analyze
+    # content rather than deciding whether to fetch. BaseModule defaults to
+    # accept_url_special = False.
+    special_module = BaseModule(scan)
+    special_module._watched_events = None
+    special_module.watched_events = ["*"]
+    js_url = scan.make_event("http://127.0.0.1/app.js", "URL_UNVERIFIED", parent=scan.root_event)
+    assert js_url.url_extension == "js"
+    result, reason = special_module._event_precheck(js_url)
+    assert result is False
+    assert "special URL extension" in reason
+    js_response = scan.make_event(
+        {"url": "http://127.0.0.1/app.js", "method": "GET", "raw_header": "HTTP/1.1 200 OK\r\n\r\n"},
+        "HTTP_RESPONSE",
+        parent=scan.root_event,
+    )
+    assert js_response.url_extension == "js"
+    result, reason = special_module._event_precheck(js_response)
+    assert result is True, reason
+
+    # blacklisted extensions are rejected outright at ingress, HTTP_RESPONSE included.
+    # no module emits one with a blacklisted extension today, so this pins the intended
+    # semantics rather than behavior anything currently depends on
+    css_url = scan.make_event("http://127.0.0.1/style.css", "URL_UNVERIFIED", parent=scan.root_event)
+    # compared as a tuple: handle_event returns None when it accepts, so an
+    # exemption shows up as a clean mismatch rather than an unpack error
+    assert await scan.ingress_module.handle_event(css_url) == (False, "event is blacklisted")
+    css_response = scan.make_event(
+        {"url": "http://127.0.0.1/style.css", "method": "GET", "raw_header": "HTTP/1.1 200 OK\r\n\r\n"},
+        "HTTP_RESPONSE",
+        parent=scan.root_event,
+    )
+    assert css_response.url_extension == "css"
+    assert await scan.ingress_module.handle_event(css_response) == (False, "event is blacklisted")
+
     # common event filtering tests
     for module_class in (BaseModule, BaseOutputModule, BaseReportModule, BaseInternalModule):
         base_module = module_class(scan)

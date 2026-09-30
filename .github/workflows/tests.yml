@@ -12,8 +12,7 @@ concurrency:
 
 jobs:
   test:
-    name: run test suite on python ${{ matrix.python-version }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       # if one python version fails, let the others finish
       fail-fast: false
@@ -68,7 +67,7 @@ jobs:
   publish_code:
     name: publish package and docker images
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stable')
     continue-on-error: true
     steps:
@@ -217,7 +216,7 @@ jobs:
   tag_commit:
     name: tag the release commit
     needs: publish_code
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event_name == 'push' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev')
     steps:
       - uses: actions/checkout@v7
@@ -238,8 +237,7 @@ jobs:
           git push origin "$VERSION"
 
   publish_docs:
-    name: publish the docs site
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event_name == 'push' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev')
     steps:
       - uses: actions/checkout@v7
