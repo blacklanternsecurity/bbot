@@ -1,0 +1,384 @@
+{
+ "rdapConformance": [
+  "redacted",
+  "rdap_level_0"
+ ],
+ "objectClassName": "domain",
+ "links": [
+  {
+   "value": "https://rdap.nominet.uk/uk/domain/bbc.co.uk",
+   "rel": "self",
+   "href": "https://rdap.nominet.uk/uk/domain/bbc.co.uk",
+   "type": "application/rdap+json"
+  }
+ ],
+ "events": [
+  {
+   "eventAction": "registration",
+   "eventDate": "1994-12-13T03:49:48Z"
+  },
+  {
+   "eventAction": "last changed",
+   "eventDate": "2025-10-29T03:51:11.009091Z"
+  },
+  {
+   "eventAction": "expiration",
+   "eventDate": "2034-12-13T03:49:48Z"
+  },
+  {
+   "eventAction": "last update of RDAP database",
+   "eventDate": "2026-10-01T21:06:12.401Z"
+  }
+ ],
+ "status": [
+  "server delete prohibited",
+  "server transfer prohibited",
+  "server update prohibited"
+ ],
+ "handle": "D_7090031-UK",
+ "ldhName": "bbc.co.uk",
+ "unicodeName": "bbc.co.uk",
+ "secureDNS": {
+  "delegationSigned": false,
+  "maxSigLife": 3024000
+ },
+ "entities": [
+  {
+   "objectClassName": "entity",
+   "links": [
+    {
+     "value": "https://rdap.nominet.uk/uk/entity/BBC",
+     "rel": "self",
+     "href": "https://rdap.nominet.uk/uk/entity/BBC",
+     "type": "application/rdap+json"
+    }
+   ],
+   "handle": "BBC",
+   "vcardArray": [
+    "vcard",
+    [
+     [
+      "version",
+      {},
+      "text",
+      "4.0"
+     ],
+     [
+      "fn",
+      {},
+      "text",
+      "British Broadcasting Corporation"
+     ],
+     [
+      "url",
+      {},
+      "uri",
+      "https://www.bbc.co.uk/"
+     ]
+    ]
+   ],
+   "roles": [
+    "registrar"
+   ],
+   "publicIds": [
+    {
+     "type": "Registry Identifier",
+     "identifier": "BBC"
+    }
+   ],
+   "entities": [
+    {
+     "objectClassName": "entity",
+     "vcardArray": [
+      "vcard",
+      [
+       [
+        "version",
+        {},
+        "text",
+        "4.0"
+       ],
+       [
+        "fn",
+        {},
+        "text",
+        "Abuse contact"
+       ],
+       [
+        "email",
+        {},
+        "text",
+        "nominet.admins@bbc.co.uk"
+       ]
+      ]
+     ],
+     "roles": [
+      "abuse"
+     ]
+    }
+   ]
+  },
+  {
+   "objectClassName": "entity",
+   "remarks": [
+    {
+     "title": "REDACTED FOR PRIVACY",
+     "type": "object redacted due to authorization",
+     "description": [
+      "Some of the data in this object has been removed"
+     ]
+    },
+    {
+     "title": "EMAIL REDACTED FOR PRIVACY",
+     "type": "object redacted due to authorization",
+     "description": [
+      "This data is not generally available, if you have legitimate reason to request access please review Nominets data release process."
+     ]
+    },
+    {
+     "title": "Data Quality",
+     "description": [
+      "Name validated.",
+      "Address validated.",
+      "Nominet responsible for validation."
+     ]
+    }
+   ],
+   "events": [
+    {
+     "eventAction": "registration",
+     "eventDate": "2007-07-02T14:56:18Z"
+    },
+    {
+     "eventAction": "last changed",
+     "eventDate": "2015-11-12T13:03:16Z"
+    }
+   ],
+   "status": [
+    "validated"
+   ],
+   "vcardArray": [
+    "vcard",
+    [
+     [
+      "version",
+      {},
+      "text",
+      "4.0"
+     ],
+     [
+      "fn",
+      {},
+      "text",
+      ""
+     ],
+     [
+      "email",
+      {},
+      "text",
+      "redacted@nominet.uk"
+     ]
+    ]
+   ],
+   "roles": [
+    "registrant"
+   ]
+  }
+ ],
+ "publicIds": [
+  {
+   "type": "Registry Identifier",
+   "identifier": "D_7090031-UK"
+  }
+ ],
+ "nameservers": [
+  {
+   "objectClassName": "nameserver",
+   "links": [
+    {
+     "value": "https://rdap.nominet.uk/uk/nameserver/ddns0.bbc.co.uk.",
+     "rel": "self",
+     "href": "https://rdap.nominet.uk/uk/nameserver/ddns0.bbc.co.uk.",
+     "type": "application/rdap+json"
+    }
+   ],
+   "events": [
+    {
+     "eventAction": "registration",
+     "eventActor": "BBC",
+     "eventDate": "2020-12-09T13:12:35Z"
+    },
+    {
+     "eventAction": "last changed",
+     "eventActor": "BBC",
+     "eventDate": "2020-12-10T17:43:59Z"
+    }
+   ],
+   "status": [
+    "active",
+    "associated"
+   ],
+   "handle": "H_1379781-UK",
+   "ldhName": "ddns0.bbc.co.uk.",
+   "unicodeName": "ddns0.bbc.co.uk.",
+   "ipAddresses": {
+    "v4": [
+     "148.163.199.1"
+    ],
+    "v6": [
+     "2607:f740:e04e::1"
+    ]
+   }
+  },
+  {
+   "objectClassName": "nameserver",
+   "links": [
+    {
+     "value": "https://rdap.nominet.uk/uk/nameserver/ddns0.bbc.com.",
+     "rel": "self",
+     "href": "https://rdap.nominet.uk/uk/nameserver/ddns0.bbc.com.",
+     "type": "application/rdap+json"
+    }
+   ],
+   "events": [
+    {
+     "eventAction": "registration",
+     "eventActor": "BBC",
+     "eventDate": "2020-12-09T13:12:35Z"
+    }
+   ],
+   "status": [
+    "active",
+    "associated"
+   ],
+   "handle": "H_1379783-UK",
+   "ldhName": "ddns0.bbc.com.",
+   "unicodeName": "ddns0.bbc.com."
+  }
+ ],
+ "redacted": [
+  {
+   "name": {
+    "type": "Registrant Name"
+   },
+   "reason": {
+    "description": "Server policy"
+   },
+   "postPath": "$.entities[?(@.roles[0]=='registrant')].vcardArray[1][?(@[0]=='fn')][3]",
+   "pathLang": "jsonpath",
+   "method": "emptyValue"
+  },
+  {
+   "name": {
+    "type": "Registrant Organization"
+   },
+   "reason": {
+    "description": "Server policy"
+   },
+   "prePath": "$.entities[?(@.roles[0]=='registrant')].vcardArray[1][?(@[0]=='org')]",
+   "pathLang": "jsonpath",
+   "method": "removal"
+  },
+  {
+   "name": {
+    "description": "Registrant Organisation Type"
+   },
+   "reason": {
+    "description": "Server policy"
+   },
+   "method": "removal"
+  },
+  {
+   "name": {
+    "description": "Registrant Identifier Label"
+   },
+   "reason": {
+    "description": "Server policy"
+   },
+   "method": "removal"
+  },
+  {
+   "name": {
+    "description": "Registrant Organisation Identifier"
+   },
+   "reason": {
+    "description": "Server policy"
+   },
+   "method": "removal"
+  },
+  {
+   "name": {
+    "type": "Registrant Street"
+   },
+   "reason": {
+    "description": "Server policy"
+   },
+   "postPath": "$.entities[?(@.roles[0]=='registrant')].vcardArray[1][?(@[0]=='adr')][3][:3]",
+   "pathLang": "jsonpath",
+   "method": "emptyValue"
+  },
+  {
+   "name": {
+    "type": "Registrant Postal Code"
+   },
+   "reason": {
+    "description": "Server policy"
+   },
+   "postPath": "$.entities[?(@.roles[0]=='registrant')].vcardArray[1][?(@[0]=='adr')][3][5]",
+   "pathLang": "jsonpath",
+   "method": "emptyValue"
+  },
+  {
+   "name": {
+    "type": "Registrant City"
+   },
+   "reason": {
+    "description": "Server policy"
+   },
+   "postPath": "$.entities[?(@.roles[0]=='registrant')].vcardArray[1][?(@[0]=='adr')][3][3]",
+   "pathLang": "jsonpath",
+   "method": "emptyValue"
+  },
+  {
+   "name": {
+    "description": "Registrant Country"
+   },
+   "reason": {
+    "description": "Server policy"
+   },
+   "method": "emptyValue"
+  },
+  {
+   "name": {
+    "description": "Registrant Region"
+   },
+   "reason": {
+    "description": "Server policy"
+   },
+   "method": "emptyValue"
+  },
+  {
+   "name": {
+    "type": "Registrant Email"
+   },
+   "reason": {
+    "description": "Server policy"
+   },
+   "prePath": "$.entities[?(@.roles[0]=='registrant')].vcardArray[1][?(@[0]=='email')]",
+   "replacementPath": "$.entities[?(@.roles[0]=='registrant')].vcardArray[1][?(@[0]=='email')][3]",
+   "pathLang": "jsonpath",
+   "method": "replacementValue"
+  },
+  {
+   "name": {
+    "type": "Registrant Phone"
+   },
+   "reason": {
+    "description": "Server policy"
+   },
+   "prePath": "$.entities[?(@.roles[0]=='registrant')].vcardArray[1][?(@[1].type=='voice')]",
+   "pathLang": "jsonpath",
+   "method": "removal"
+  }
+ ]
+}

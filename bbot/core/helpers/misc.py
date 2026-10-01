@@ -407,6 +407,55 @@ def url_parents(u):
             u = parent
 
 
+def parse_retry_after(value, now=None):
+    """
+    Parse an HTTP Retry-After header value (delta-seconds or HTTP-date, RFC 9110 section 10.2.3) into seconds.
+
+    Args:
+        value (str, int, float, or None): The header value.
+        now (float, optional): Current UNIX time, used for HTTP-date values. Defaults to time.time().
+
+    Returns:
+        float or None: Number of seconds to wait (never negative), or None if the value is missing or unparseable.
+
+    Examples:
+        >>> parse_retry_after("120")
+        120.0
+        >>> parse_retry_after("Wed, 21 Oct 2015 07:28:00 GMT", now=1445412470)
+        10.0
+        >>> parse_retry_after("soon") is None
+        True
+    """
+    from datetime import timezone
+    from email.utils import parsedate_to_datetime
+
+    if value is None:
+        return None
+    value = str(value).strip()
+    if not value:
+        return None
+    try:
+        seconds = float(value)
+    except ValueError:
+        pass
+    else:
+        # reject nan/inf
+        return max(0.0, seconds) if math.isfinite(seconds) else None
+    try:
+        dt = parsedate_to_datetime(value)
+    except (TypeError, ValueError, IndexError):
+        return None
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    if now is None:
+        import time
+
+        now = time.time()
+    return max(0.0, dt.timestamp() - now)
+
+
 def best_http_status(code1, code2):
     """
     Determine the better HTTP status code between two given codes.
