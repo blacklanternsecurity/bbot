@@ -22,8 +22,9 @@ class baddns_direct(baddns_module):
         )
 
     module_threads = 8
-    # --no-deps: baddns pins blastdns<1.10, which pip cannot reconcile with the 2.x bbot runs on
-    deps_pip = ["--no-deps", "baddns~=2.4.0"]
+    # --no-deps: baddns pins blastdns<1.10, which pip cannot reconcile with the 2.x bbot runs on.
+    # The flag is global, so baddns deps BBOT doesn't already provide are listed here (six comes via dateutil).
+    deps_pip = ["--no-deps", "baddns~=2.4.0", "python-whois", "python-dateutil", "six", "colorama"]
 
     scope_distance_modifier = 1
 
