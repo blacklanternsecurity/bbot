@@ -7,10 +7,11 @@ from pathlib import Path
 from .base import ModuleTestBase
 
 from ...bbot_fixtures import *
+from bbot.test.worker import HTTPSERVER_URL, BBOT_TEST_DIR
 
 
 class TestUnarchive(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["filedownload", "http", "excavate", "speculate", "unarchive"]
     config_overrides = {
         "modules": {
@@ -21,7 +22,7 @@ class TestUnarchive(ModuleTestBase):
     }
 
     async def setup_after_prep(self, module_test):
-        temp_path = Path("/tmp/.bbot_test")
+        temp_path = Path(BBOT_TEST_DIR)
 
         # Create a text file to compress
         text_file = temp_path / "test.txt"
@@ -246,7 +247,7 @@ class TestUnarchiveTraversalCheck(ModuleTestBase):
 
     async def setup_after_prep(self, module_test):
         m = module_test.scan.modules["unarchive"]
-        temp_path = Path("/tmp/.bbot_test")
+        temp_path = Path(BBOT_TEST_DIR)
         temp_path.mkdir(exist_ok=True)
 
         # safe tar

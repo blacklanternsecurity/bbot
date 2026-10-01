@@ -3,6 +3,7 @@ import tarfile
 from pathlib import Path
 
 from .base import ModuleTestBase
+from bbot.test.worker import BBOT_TEST_DIR
 from bbot.test.bbot_fixtures import bbot_test_dir
 
 
@@ -412,7 +413,7 @@ class TestDockerPull(ModuleTestBase):
                 ],
             },
         )
-        temp_path = Path("/tmp/.bbot_test")
+        temp_path = Path(f"{BBOT_TEST_DIR}")
         tar_path = temp_path / "docker_pull_test.tar.gz"
         with tarfile.open(tar_path, "w:gz") as tar:
             file_io = io.BytesIO("This is a test file".encode())

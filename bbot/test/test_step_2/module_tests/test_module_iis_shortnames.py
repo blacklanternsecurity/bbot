@@ -1,10 +1,11 @@
 import re
 
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestIIS_Shortnames(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "iis_shortnames"]
     config_overrides = {"modules": {"iis_shortnames": {"detect_only": False}}}
 
@@ -96,7 +97,7 @@ class TestIIS_Shortnames(ModuleTestBase):
         for e in events:
             if e.type == "FINDING" and "iis-magic-url" not in e.tags:
                 magicurl_findingEmitted = True
-            if e.type == "URL_HINT" and e.url == "http://127.0.0.1:8888/BLSHAX~1":
+            if e.type == "URL_HINT" and e.url == f"{HTTPSERVER_URL}/BLSHAX~1":
                 url_hintEmitted = True
             if e.type == "FINDING" and "Possible backup file (zip) in web root" in e.data["description"]:
                 zip_findingEmitted = True
@@ -109,7 +110,7 @@ class TestIIS_Shortnames(ModuleTestBase):
 class TestIIS_Shortnames_GatewayError(ModuleTestBase):
     """Negative test: server returns 502 gateway errors. Should NOT detect IIS shortnames."""
 
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "iis_shortnames"]
 
     async def setup_after_prep(self, module_test):

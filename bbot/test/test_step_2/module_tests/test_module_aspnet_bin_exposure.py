@@ -1,5 +1,6 @@
 from .base import ModuleTestBase
 import re
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestAspnetBinExposure(ModuleTestBase):
@@ -11,7 +12,7 @@ class TestAspnetBinExposure(ModuleTestBase):
     assertion on the Detection Url pattern would fail.
     """
 
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "aspnet_bin_exposure"]
 
     async def setup_before_prep(self, module_test):
@@ -52,7 +53,7 @@ class TestAspnetBinExposure(ModuleTestBase):
 class TestAspnetBinExposure_DeadHost(ModuleTestBase):
     """Dead host returns 404 for everything -- no FINDING should be emitted."""
 
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "aspnet_bin_exposure"]
 
     async def setup_before_prep(self, module_test):
@@ -68,7 +69,7 @@ class TestAspnetBinExposure_DeadHost(ModuleTestBase):
 class TestAspnetBinExposure_FalsePositive(ModuleTestBase):
     """Host serves DLLs for everything (including the fake DLL) -- no FINDING should be emitted."""
 
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "aspnet_bin_exposure"]
 
     async def setup_before_prep(self, module_test):

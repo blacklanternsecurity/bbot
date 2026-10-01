@@ -1,8 +1,9 @@
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestUrl_Manipulation(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "url_manipulation"]
     body = """
     <html>
@@ -34,6 +35,6 @@ class TestUrl_Manipulation(ModuleTestBase):
         assert any(
             e.type == "FINDING"
             and e.data["description"]
-            == f"URL Manipulation: [body] Sig: [Modified URL: http://127.0.0.1:8888/?{module_test.module.rand_string}=.xml]"
+            == f"URL Manipulation: [body] Sig: [Modified URL: {HTTPSERVER_URL}/?{module_test.module.rand_string}=.xml]"
             for e in events
         )

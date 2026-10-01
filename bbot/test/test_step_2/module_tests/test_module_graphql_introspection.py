@@ -1,8 +1,9 @@
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestGraphQLIntrospectionNon200(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["graphql_introspection"]
 
     async def setup_after_prep(self, module_test):
@@ -16,7 +17,7 @@ class TestGraphQLIntrospectionNon200(ModuleTestBase):
 
 
 class TestGraphQLIntrospection(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["graphql_introspection"]
 
     async def setup_after_prep(self, module_test):
@@ -30,5 +31,5 @@ class TestGraphQLIntrospection(ModuleTestBase):
     def check(self, module_test, events):
         finding = [e for e in events if e.type == "FINDING"]
         assert finding, "should have raised 1 FINDING event"
-        assert finding[0].data["url"] == "http://127.0.0.1:8888/"
-        assert finding[0].data["description"] == "GraphQL Schema at http://127.0.0.1:8888/"
+        assert finding[0].data["url"] == f"{HTTPSERVER_URL}/"
+        assert finding[0].data["description"] == f"GraphQL Schema at {HTTPSERVER_URL}/"

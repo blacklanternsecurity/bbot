@@ -1,4 +1,5 @@
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_PORT
 from bbot.modules.base import BaseModule
 
 
@@ -41,7 +42,7 @@ class TestWAFBypass(ModuleTestBase):
             if event.data == "protected.test":
                 await self.helpers.sleep(0.5)
                 self.events_seen.append(event.data)
-                url = "http://protected.test:8888/"
+                url = f"http://protected.test:{HTTPSERVER_PORT}/"
                 url_event = self.scan.make_event(
                     url, "URL", parent=self.scan.root_event, tags=["cloudflare", "in-scope", "status-200"]
                 )
@@ -51,7 +52,7 @@ class TestWAFBypass(ModuleTestBase):
             elif event.data == "direct.test":
                 await self.helpers.sleep(0.5)
                 self.events_seen.append(event.data)
-                url = "http://direct.test:8888/"
+                url = f"http://direct.test:{HTTPSERVER_PORT}/"
                 url_event = self.scan.make_event(
                     url, "URL", parent=self.scan.root_event, tags=["in-scope", "status-200"]
                 )
@@ -131,7 +132,7 @@ class TestWAFBypass(ModuleTestBase):
         correct_description = [
             e
             for e in waf_bypass_events
-            if "WAF Bypass Confirmed - Direct IPs: 127.0.0.1 for http://protected.test:8888/. Similarity 100.00%"
+            if f"WAF Bypass Confirmed - Direct IPs: 127.0.0.1 for http://protected.test:{HTTPSERVER_PORT}/. Similarity 100.00%"
             in e.data["description"]
         ]
         assert correct_description, "Incorrect description"

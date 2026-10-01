@@ -1,5 +1,4 @@
 import json
-import time
 import asyncio
 import ssl
 from urllib.request import urlopen, Request
@@ -7,6 +6,7 @@ from urllib.error import URLError
 from base64 import b64encode
 
 from .base import ModuleTestBase
+from bbot.test.worker import wait_for_container
 
 
 def _elastic_request(method, url, body=None):
@@ -57,15 +57,9 @@ class TestElastic(ModuleTestBase):
             "docker.elastic.co/elasticsearch/elasticsearch:8.16.0",
         )
 
-        # Connect to Elasticsearch with retry logic
-        while True:
-            try:
-                response = _elastic_request("GET", "https://localhost:9200/_cat/health")
-                response.read()
-                break
-            except (URLError, ConnectionError, OSError) as e:
-                self.log.verbose(f"Connection failed: {e}. Retrying...")
-                time.sleep(0.5)
+        await wait_for_container(
+            "Elasticsearch", lambda: _elastic_request("GET", "https://localhost:9200/_cat/health").read()
+        )
 
         # Ensure the index is empty
         try:

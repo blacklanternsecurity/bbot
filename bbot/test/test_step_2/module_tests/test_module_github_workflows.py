@@ -5,6 +5,7 @@ import zipfile
 from pathlib import Path
 
 from .base import ModuleTestBase
+from bbot.test.worker import BBOT_TEST_DIR
 
 
 class TestGithub_Workflows(ModuleTestBase):
@@ -538,7 +539,7 @@ class TestGithubWorkflowsSymlinkCheck(ModuleTestBase):
     async def setup_after_prep(self, module_test):
         m = module_test.scan.modules["github_workflows"]
 
-        symlink_target = Path("/tmp/.bbot_test/symlink_target")
+        symlink_target = Path(f"{BBOT_TEST_DIR}/symlink_target")
         if symlink_target.exists():
             shutil.rmtree(symlink_target)
         symlink_target.mkdir(parents=True, exist_ok=True)
@@ -554,9 +555,9 @@ class TestGithubWorkflowsSymlinkCheck(ModuleTestBase):
         os.symlink(str(symlink_target), str(bad_owner))
 
         # symlink at the output_dir level itself
-        output_dir_symlink_base = Path("/tmp/.bbot_test/fake_output_dir")
+        output_dir_symlink_base = Path(f"{BBOT_TEST_DIR}/fake_output_dir")
         output_dir_symlink_base.mkdir(parents=True, exist_ok=True)
-        output_dir_link = Path("/tmp/.bbot_test/output_dir_link")
+        output_dir_link = Path(f"{BBOT_TEST_DIR}/output_dir_link")
         if output_dir_link.is_symlink() or output_dir_link.exists():
             output_dir_link.unlink()
         os.symlink(str(output_dir_symlink_base), str(output_dir_link))
