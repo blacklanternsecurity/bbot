@@ -3,10 +3,11 @@ import re
 from werkzeug.wrappers import Response
 
 from .base import ModuleTestBase, tempwordlist
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestWebBrute(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     module_name = "webbrute"
     test_wordlist = ["11111111", "admin", "junkword1", "zzzjunkword2"]
     config_overrides = {
@@ -100,7 +101,7 @@ class TestWebBruteRedirectFalsePositive(ModuleTestBase):
     webbrute should detect that all redirect hits go to the same location
     and filter them as false positives."""
 
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     module_name = "webbrute"
     test_wordlist = ["~joe", "~", "junkword1", "zzzjunkword2"]
     config_overrides = {
@@ -134,7 +135,7 @@ class TestWebBruteWAFFalsePositive(ModuleTestBase):
     """WAF returns 200 with block page body for certain paths.
     webbrute should detect WAF content and filter these as false positives."""
 
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     module_name = "webbrute"
     test_wordlist = ["admin", "secret", "junkword1", "zzzjunkword2"]
     config_overrides = {
@@ -174,7 +175,7 @@ class TestWebBruteDynamicContentFilter(ModuleTestBase):
     and report every 200 as a hit. HttpCompare should detect the token as a dynamic
     position and filter it out, only reporting /admin (genuinely different content)."""
 
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     module_name = "webbrute"
     test_wordlist = ["admin", "junkword1", "zzzjunkword2"]
     config_overrides = {"modules": {"webbrute": {"wordlist": tempwordlist(test_wordlist)}}}
@@ -219,7 +220,7 @@ class TestWebBruteHitCap(ModuleTestBase):
     HttpCompare. The sqrt-scaled hit cap should detect this as a filtering
     failure and discard everything before emission."""
 
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     module_name = "webbrute"
     # 50 words → cap of int(4 * sqrt(50)) = 28. All 50 will "hit", exceeding the cap.
     test_wordlist = [f"word{i:03d}" for i in range(50)]
@@ -256,7 +257,7 @@ class TestWebBruteCanaryDefense(ModuleTestBase):
     """Server returns unique content for EVERY path including random strings.
     The canary fires and aborts, discarding all hits."""
 
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     module_name = "webbrute"
     test_wordlist = ["admin", "secret", "login"]
     config_overrides = {"modules": {"webbrute": {"wordlist": tempwordlist(test_wordlist)}}}
@@ -290,7 +291,7 @@ class TestWebBruteMidScanBaselineDrift(ModuleTestBase):
     """Server matches baseline initially, then drifts (WAF kicks in after N requests).
     Mid-scan baseline check should detect the drift and abort."""
 
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     module_name = "webbrute"
     test_wordlist = ["admin", "secret", "login"]
     config_overrides = {"modules": {"webbrute": {"wordlist": tempwordlist(test_wordlist)}}}
@@ -322,7 +323,7 @@ class TestWebBruteMidScanBaselineDrift(ModuleTestBase):
 class TestWebBruteWildcardSkip(ModuleTestBase):
     """When the host is an HTTP wildcard, webbrute should skip fuzzing entirely."""
 
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     module_name = "webbrute"
     test_wordlist = ["admin", "secret"]
     config_overrides = {"modules": {"webbrute": {"wordlist": tempwordlist(test_wordlist)}}}

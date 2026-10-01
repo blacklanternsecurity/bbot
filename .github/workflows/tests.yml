@@ -11,23 +11,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  changes:
-    runs-on: ubuntu-latest
-    outputs:
-      code: ${{ steps.filter.outputs.code }}
-    steps:
-      - uses: actions/checkout@v7
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            code:
-              - '!{docs/**,**/*.md,*.md,mkdocs.yml,LICENSE,.gitignore}'
-
   test:
-    needs: changes
-    if: github.event_name != 'pull_request' || needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       # if one python version fails, let the others finish
       fail-fast: false
@@ -53,7 +38,7 @@ jobs:
         env:
           BBOT_IO_API_KEY: ${{ secrets.BBOT_IO_API_KEY }}
         run: |
-          uv run pytest -vv --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO --cov-config=bbot/test/coverage.cfg --cov-report xml:cov.xml --cov=bbot .
+          uv run pytest -vv -n $(python bbot/test/worker_count.py) --dist loadgroup --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO --cov-config=bbot/test/coverage.cfg --cov-report xml:cov.xml --cov=bbot .
       - name: Upload Debug Logs
         if: always()
         uses: actions/upload-artifact@v7
@@ -68,7 +53,7 @@ jobs:
           verbose: true
   publish_code:
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stable')
     continue-on-error: true
     steps:
@@ -216,7 +201,7 @@ jobs:
       BBOT_VERSION: ${{ steps.version.outputs.BBOT_VERSION }}
   tag_commit:
     needs: publish_code
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event_name == 'push' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev')
     steps:
       - uses: actions/checkout@v7
@@ -237,7 +222,7 @@ jobs:
           git push origin "$VERSION"
 
   publish_docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event_name == 'push' && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev')
     steps:
       - uses: actions/checkout@v7

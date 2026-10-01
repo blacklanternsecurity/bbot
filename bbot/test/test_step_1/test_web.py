@@ -1,8 +1,11 @@
 import re
+from types import SimpleNamespace
 
 from blasthttp import HTTPStatusError
 
 from ..bbot_fixtures import *
+
+from bbot.test.worker import BBOT_TEST_DIR, HTTPSERVER_HOSTPORT
 
 
 @pytest.mark.asyncio
@@ -204,7 +207,7 @@ async def test_web_helpers(bbot_scanner, bbot_httpserver, blasthttp_mock):
     assert scan1.helpers.is_cached(url)
     with open(filename) as f:
         assert f.read() == download_content
-    filename = Path("/tmp/bbot_download_test_file")
+    filename = BBOT_TEST_DIR / "bbot_download_test_file"
     filename.unlink(missing_ok=True)
     filename2 = await scan1.helpers.download(url, filename=filename)
     assert filename2 == filename
@@ -590,6 +593,108 @@ async def test_web_cookies(bbot_scanner, bbot_httpserver):
 
 
 @pytest.mark.asyncio
+async def test_web_redirect_cookies(bbot_scanner, bbot_httpserver):
+    from werkzeug.wrappers import Response
+
+    def login_handler(request):
+        resp = Response("redirecting", status=302)
+        resp.headers["Location"] = "/dashboard"
+        resp.set_cookie("session", "abc123", path="/")
+        return resp
+
+    def dashboard_handler(request):
+        cookie_str = "; ".join([f"{key}={value}" for key, value in request.cookies.items()])
+        return Response(f"Cookies: {cookie_str}")
+
+    bbot_httpserver.expect_request(uri="/login").respond_with_handler(login_handler)
+    bbot_httpserver.expect_request(uri="/dashboard").respond_with_handler(dashboard_handler)
+
+    scan = bbot_scanner("127.0.0.1")
+    await scan._prep()
+
+    # a cookie set by one redirect hop is sent on the hops that follow it
+    r1 = await scan.helpers.request(bbot_httpserver.url_for("/login"), follow_redirects=True)
+    assert r1 is not None
+    assert r1.status_code == 200
+    assert "session=abc123" in r1.text
+
+    # what the chain collects lives for that request only; it does not leak into the next one
+    r2 = await scan.helpers.request(bbot_httpserver.url_for("/dashboard"))
+    assert r2 is not None
+    assert "session=abc123" not in r2.text
+
+    # a cookie the caller set wins over a Set-Cookie of the same name from the chain
+    r3 = await scan.helpers.request(
+        bbot_httpserver.url_for("/login"), follow_redirects=True, cookies={"session": "mine"}
+    )
+    assert r3 is not None
+    assert "session=mine" in r3.text
+    assert "abc123" not in r3.text
+
+    # redirect_cookies=False reverts to not carrying them
+    r4 = await scan.helpers.request(bbot_httpserver.url_for("/login"), follow_redirects=True, redirect_cookies=False)
+    assert r4 is not None
+    assert "session=abc123" not in r4.text
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_web_decode_error(bbot_scanner, bbot_httpserver):
+    import gzip
+    from werkzeug.wrappers import Response
+
+    from bbot.core.helpers.web.response_event import response_to_event_dict
+
+    def lying_handler(request):
+        resp = Response(b"<title>not actually gzipped</title>")
+        resp.headers["Content-Encoding"] = "gzip"
+        return resp
+
+    def honest_handler(request):
+        resp = Response(gzip.compress(b"<title>real body</title>"))
+        resp.headers["Content-Encoding"] = "gzip"
+        return resp
+
+    bbot_httpserver.expect_request(uri="/lying").respond_with_handler(lying_handler)
+    bbot_httpserver.expect_request(uri="/honest").respond_with_handler(honest_handler)
+
+    scan = bbot_scanner("127.0.0.1")
+    await scan._prep()
+
+    # a body that doesn't match its declared Content-Encoding is kept, not dropped,
+    # and comes with a reason saying the bytes are not decoded content
+    r1 = await scan.helpers.request(bbot_httpserver.url_for("/lying"))
+    assert r1 is not None
+    assert r1.status_code == 200
+    assert r1.decode_error
+
+    # both HTTP_RESPONSE dict builders carry that reason forward
+    j1 = response_to_event_dict(r1, HTTPSERVER_HOSTPORT)
+    assert j1["decode_error"] == r1.decode_error
+    assert scan.helpers.response_to_json(r1)["decode_error"] == r1.decode_error
+
+    # those bytes are not content, so they are not offered as a body or a title
+    assert j1["body"] == ""
+    assert j1["title"] == ""
+    assert "not actually gzipped" not in str(j1)
+    event1 = scan.make_event(j1, "HTTP_RESPONSE", parent=scan.root_event)
+    assert not event1.body
+
+    # a body that does match its Content-Encoding is ordinary content
+    r2 = await scan.helpers.request(bbot_httpserver.url_for("/honest"))
+    assert r2 is not None
+    assert r2.decode_error is None
+    j2 = response_to_event_dict(r2, HTTPSERVER_HOSTPORT)
+    assert "decode_error" not in j2
+    assert "decode_error" not in scan.helpers.response_to_json(r2)
+    event2 = scan.make_event(j2, "HTTP_RESPONSE", parent=scan.root_event)
+    assert event2.data["title"] == "real body"
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
 async def test_http_sendcookies(bbot_scanner, bbot_httpserver):
     endpoint = "/"
     url = bbot_httpserver.url_for(endpoint)
@@ -696,5 +801,120 @@ async def test_is_http_wildcard_host(bbot_scanner):
     # cached as None
     result2 = await web.is_http_wildcard_host("https", "down.example.com", 443)
     assert result2 is None
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_base_module_is_http_wildcard_host_per_url(bbot_scanner):
+    """Base module wrapper does a per-URL compare against the wildcard baseline
+    so real endpoints on a catchall host aren't wrongly rejected. WEB_PARAMETER
+    GETPARAM events are probed with the parameter baked into the URL."""
+    from bbot.errors import HttpCompareError
+    from bbot.modules.base import BaseModule
+
+    scan = bbot_scanner("wildcardhost.test")
+    await scan._prep()
+
+    # baseline HttpCompare stub: records the URL passed to compare()
+    class FakeCompare:
+        def __init__(self):
+            self.calls = []
+            self.behaviour = "match"  # override per test
+
+        async def compare(self, url, **kwargs):
+            self.calls.append(url)
+            if self.behaviour == "raise":
+                raise HttpCompareError("boom")
+            if self.behaviour == "dead":
+                # compare() only hands back a None response when the request itself failed
+                return (False, ["request_failed"], False, None)
+            match = self.behaviour == "match"
+            return (match, [], False, SimpleNamespace(status_code=200))
+
+    fake_compare = FakeCompare()
+
+    async def wildcard_returns_compare(scheme, host, port):
+        return fake_compare
+
+    scan.helpers.web.is_http_wildcard_host = wildcard_returns_compare
+
+    module = BaseModule(scan)
+
+    def make_url_event(url):
+        return scan.make_event(url, "URL", parent=scan.root_event, tags=["status-200"])
+
+    def make_web_param_event(url, name, value, ptype="GETPARAM"):
+        data = {"host": "wildcardhost.test", "type": ptype, "name": name, "original_value": value, "url": url}
+        return scan.make_event(data, "WEB_PARAMETER", parent=scan.root_event)
+
+    # 1) URL that matches the wildcard baseline: skip (True)
+    fake_compare.behaviour = "match"
+    fake_compare.calls.clear()
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/index.php"))
+    assert result is True
+    assert fake_compare.calls == ["https://wildcardhost.test/index.php"]
+
+    # 2) URL that diverges from the baseline: real endpoint (False)
+    fake_compare.behaviour = "differ"
+    fake_compare.calls.clear()
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/params.php"))
+    assert result is False
+    assert fake_compare.calls == ["https://wildcardhost.test/params.php"]
+
+    # 3) WEB_PARAMETER GETPARAM: probe URL with the parameter baked in, not the bare URL
+    fake_compare.behaviour = "differ"
+    fake_compare.calls.clear()
+    result = await module._is_http_wildcard_host(
+        make_web_param_event("https://wildcardhost.test/index.php", "manager", "foo")
+    )
+    assert result is False
+    assert len(fake_compare.calls) == 1
+    assert fake_compare.calls[0].startswith("https://wildcardhost.test/index.php?")
+    assert "manager=foo" in fake_compare.calls[0]
+
+    # 4) WEB_PARAMETER POSTPARAM: probe uses the bare URL (POST body isn't reflected in a GET probe)
+    fake_compare.behaviour = "differ"
+    fake_compare.calls.clear()
+    result = await module._is_http_wildcard_host(
+        make_web_param_event("https://wildcardhost.test/index.php", "manager", "foo", ptype="POSTPARAM")
+    )
+    assert result is False
+    assert fake_compare.calls == ["https://wildcardhost.test/index.php"]
+
+    # 5) probe request died: unknown, not a wildcard verdict
+    fake_compare.behaviour = "dead"
+    fake_compare.calls.clear()
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/dead.php"))
+    assert result is None
+
+    # 6) HttpCompareError from the compare -> None
+    fake_compare.behaviour = "raise"
+    fake_compare.calls.clear()
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/broken.php"))
+    assert result is None
+
+    # 7) Scalar True from a test mock (no .compare attribute) -> True (backward-compat)
+    async def wildcard_returns_true(scheme, host, port):
+        return True
+
+    scan.helpers.web.is_http_wildcard_host = wildcard_returns_true
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/whatever"))
+    assert result is True
+
+    # 8) False / None from the helper pass through unchanged
+    async def wildcard_returns_false(scheme, host, port):
+        return False
+
+    scan.helpers.web.is_http_wildcard_host = wildcard_returns_false
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/anything"))
+    assert result is False
+
+    async def wildcard_returns_none(scheme, host, port):
+        return None
+
+    scan.helpers.web.is_http_wildcard_host = wildcard_returns_none
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/anything"))
+    assert result is None
 
     await scan._cleanup()

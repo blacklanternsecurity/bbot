@@ -1,6 +1,7 @@
 import re
 from .base import ModuleTestBase
 from werkzeug.wrappers import Response
+from bbot.test.worker import HTTPSERVER_URL
 
 
 dotnetnuke_http_response = """
@@ -17,7 +18,7 @@ dotnetnuke_http_response = """
 
 
 class TestDotnetnuke(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "dotnetnuke"]
     config_overrides = {"interactsh_disable": "True"}
 
@@ -131,7 +132,7 @@ def extract_subdomain_tag(data):
 
 
 class TestDotnetnuke_blindssrf(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     module_name = "dotnetnuke"
     modules_overrides = ["http", "dotnetnuke"]
     config_overrides = {
