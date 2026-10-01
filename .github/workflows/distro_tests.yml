@@ -1,6 +1,8 @@
 name: Tests (Linux Distros)
 on:
   pull_request:
+    paths-ignore:
+      - '**/*.md'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
