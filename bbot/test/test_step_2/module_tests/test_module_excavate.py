@@ -501,7 +501,6 @@ class TestExcavateNonHttpScheme(TestExcavate):
 
 
 class TestExcavateAIApplicationPositive(TestExcavate):
-    # A realistic client-side bundle: SDK imports, provider endpoint URLs, and an SSE chat stream.
     ai_app_html = """
         <html>
         <head><script src="https://cdn.example.com/app.js"></script></head>
@@ -532,8 +531,6 @@ class TestExcavateAIApplicationPositive(TestExcavate):
         </html>
         """
 
-    # Every label AIApplicationExtractor can emit for this body. Compared as an exact set so a
-    # regression that drops one, or that adds an unexpected one, fails the test.
     expected_technologies = {
         "openai api",
         "anthropic api",
@@ -552,7 +549,6 @@ class TestExcavateAIApplicationPositive(TestExcavate):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        # TECHNOLOGY events lowercase the technology field in core.
         technologies = {e.data["technology"].lower() for e in events if e.type == "TECHNOLOGY"}
         assert technologies == self.expected_technologies, (
             f"missing: {self.expected_technologies - technologies}, unexpected: {technologies - self.expected_technologies}"
@@ -560,10 +556,6 @@ class TestExcavateAIApplicationPositive(TestExcavate):
 
 
 class TestExcavateAIApplicationNegative(TestExcavate):
-    # Content that collides with the detection surface but is not an AI application:
-    # a Google Maps embed (generic AIza key, published in page source by design), an image
-    # path containing a library name, prose naming providers, and non-LLM SSE streams whose
-    # frames carry a bare top-level "delta" and a bare top-level "choices".
     benign_html = (
         "<html><body>"
         '<script src="https://maps.googleapis.com/maps/api/js?'
@@ -575,8 +567,6 @@ class TestExcavateAIApplicationNegative(TestExcavate):
         "<p>The blockchain language model marketing page is over here.</p>"
         '<script>const progress = new EventSource("/progress"); // text/event-stream\n'
         ' // frames: data: {"percent": 42}\n'
-        # Both keys the rule keys on, at the top level of a non-LLM frame: a price ticker
-        # publishing a "delta" move, and a poll publishing a flat "choices" list.
         ' // ticker: data: {"symbol": "ACME", "delta": -0.42, "ts": 1717171717}\n'
         ' // poll:   data: {"question": "best color", "choices": ["red", "blue"]}\n'
         "</script>"
