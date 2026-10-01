@@ -47,6 +47,8 @@ class webbrute_shortnames(webbrute):
 
     supplementary_words = ["html", "ajax", "xml", "json", "api"]
 
+    prefix_index_length = 2
+
     async def generate_templist(self, hint, shortname_type):
         words = await self.helpers.run_in_executor_cpu(self._generate_templist_sync, hint, shortname_type)
         return words, len(words)
@@ -103,13 +105,32 @@ class webbrute_shortnames(webbrute):
         self.rate = self.config.get("rate", 0) or None
         self.concurrency = 50
 
+        prefix_index_length = self.prefix_index_length
+
         class MinimalWordPredictor:
+            # class-level defaults: unpickling restores state without calling __init__
+            prefix_index = {}
+            prefix_index_length = 0
+
             def __init__(self):
                 self.word_frequencies = {}
+                self.prefix_index = {}
+                self.prefix_index_length = 0
+
+            def build_prefix_index(self, prefix_length):
+                index = {}
+                for word in self.word_frequencies:
+                    index.setdefault(word[:prefix_length], []).append(word)
+                self.prefix_index = index
+                self.prefix_index_length = prefix_length
 
             def predict(self, prefix, top_n):
                 prefix = prefix.lower()
-                matches = [(word, freq) for word, freq in self.word_frequencies.items() if word.startswith(prefix)]
+                if self.prefix_index and len(prefix) >= self.prefix_index_length:
+                    candidates = self.prefix_index.get(prefix[: self.prefix_index_length], ())
+                    matches = [(word, self.word_frequencies[word]) for word in candidates if word.startswith(prefix)]
+                else:
+                    matches = [(word, freq) for word, freq in self.word_frequencies.items() if word.startswith(prefix)]
 
                 if not matches:
                     return []
@@ -145,6 +166,11 @@ class webbrute_shortnames(webbrute):
         with open(directory_model, "rb") as f:
             unpickler = CustomUnpickler(f)
             self.directory_predictor = unpickler.load()
+
+        # built once here, not lazily: predict() runs concurrently in the cpu
+        # executor, and a lazy build would be repeated by every racing caller
+        for predictor in (self.endpoint_predictor, self.directory_predictor):
+            await self.helpers.run_in_executor_cpu(predictor.build_prefix_index, prefix_index_length)
 
         self.subword_list = []
         if self.find_subwords:
