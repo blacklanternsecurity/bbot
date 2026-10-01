@@ -145,7 +145,6 @@ class DepsInstaller:
         self.ansible_artifact_dir = self.data_dir / "ansible_artifacts"
         self.parent_helper.mkdir(self.ansible_artifact_dir)
         self.ansible_fact_cache = self.ansible_artifact_dir / "fact_cache"
-        self._discard_corrupt_fact_cache()
         self.setup_status = self.read_setup_status()
 
         # make sure we're using a minimal git config
@@ -277,6 +276,7 @@ class DepsInstaller:
         return sorted(modules, key=cost)
 
     async def _install(self, *modules):
+        self._discard_corrupt_fact_cache()
         await self.install_core_deps()
         succeeded = []
         failed = []
@@ -531,36 +531,39 @@ class DepsInstaller:
         # facts are gathered once instead of on every playbook
         ident = uuid.uuid4().hex
 
-        res = run(
-            playbook=playbook,
-            private_data_dir=str(data_dir),
-            artifact_dir=str(self.ansible_artifact_dir),
-            ident=ident,
-            settings={"fact_cache": "../fact_cache", "fact_cache_type": "jsonfile"},
-            envvars={"ANSIBLE_GATHERING": "smart", "ANSIBLE_CACHE_PLUGIN_TIMEOUT": "86400"},
-            host_pattern="localhost",
-            inventory={
-                "all": {"hosts": {"localhost": _ansible_args}},
-            },
-            module=module,
-            module_args=module_args,
-            quiet=True,
-            verbosity=0,
-            cancel_callback=lambda: None,
-        )
+        try:
+            res = run(
+                playbook=playbook,
+                private_data_dir=str(data_dir),
+                artifact_dir=str(self.ansible_artifact_dir),
+                ident=ident,
+                settings={"fact_cache": "../fact_cache", "fact_cache_type": "jsonfile"},
+                envvars={"ANSIBLE_GATHERING": "smart", "ANSIBLE_CACHE_PLUGIN_TIMEOUT": "86400"},
+                host_pattern="localhost",
+                inventory={
+                    "all": {"hosts": {"localhost": _ansible_args}},
+                },
+                module=module,
+                module_args=module_args,
+                quiet=True,
+                verbosity=0,
+                cancel_callback=lambda: None,
+            )
 
-        log.debug(f"Ansible status: {res.status}")
-        log.debug(f"Ansible return code: {res.rc}")
-        success = res.status == "successful"
-        err = ""
-        for e in res.events:
-            if self.ansible_debug and not success:
-                log.debug(json.dumps(e, indent=2))
-            if e["event"] == "runner_on_failed":
-                err = e["event_data"]["res"]["msg"]
-                break
-        # events are read lazily out of the artifact dir, so only discard it once they are consumed
-        shutil.rmtree(self.ansible_artifact_dir / ident, ignore_errors=True)
+            log.debug(f"Ansible status: {res.status}")
+            log.debug(f"Ansible return code: {res.rc}")
+            success = res.status == "successful"
+            err = ""
+            for e in res.events:
+                if self.ansible_debug and not success:
+                    log.debug(json.dumps(e, indent=2))
+                if e["event"] == "runner_on_failed":
+                    result = e.get("event_data", {}).get("res", {})
+                    err = result.get("msg") or result.get("stderr") or ""
+                    break
+        finally:
+            # events are read lazily out of the artifact dir, so only discard it once they are consumed
+            shutil.rmtree(self.ansible_artifact_dir / ident, ignore_errors=True)
         return success, err
 
     def read_setup_status(self):

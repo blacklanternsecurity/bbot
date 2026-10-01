@@ -381,10 +381,7 @@ async def test_modules_basic_perdomainonly(bbot_scanner, monkeypatch):
         force_start=True,
     )
 
-    # postcheck only reads dedup state off each module, so loading is enough.
-    # _prep() additionally runs setup() on every module, and the ones that dial a
-    # service (rabbitmq, postgres, mysql) each burn their full connect-retry budget.
-    await per_domain_scan.load_modules()
+    await per_domain_scan._prep()
     await per_domain_scan._set_status("RUNNING")
 
     # ensure that a second event under an already-seen domain is deduped away
@@ -573,10 +570,6 @@ async def test_module_loading(bbot_scanner):
         config={i: True for i in available_internal_modules if i != "dnsresolve"},
         force_start=True,
     )
-    # every assertion below reads class attributes off the instantiated modules, so
-    # loading them is enough. _prep() would additionally run setup() on all ~110,
-    # and the ones that talk to a service (rabbitmq, postgres, mysql) each burn
-    # their full connect-retry budget against a service that isn't there.
     await scan2.load_modules()
 
     # attributes, descriptions, etc.
@@ -591,6 +584,11 @@ async def test_module_loading(bbot_scanner):
                 log.error(f"{f.__qualname__}() is not async")
                 not_async.append(f.__qualname__)
     assert not not_async, f"non-async module methods: {not_async}"
+
+    # these dial a service in setup() and burn a 10 to 30s connect-retry budget without one
+    for module_name in ("rabbitmq", "postgres", "mysql"):
+        scan2.modules.pop(module_name)
+    await scan2.setup_modules()
 
     await scan2._cleanup()
 

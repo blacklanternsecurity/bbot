@@ -16,6 +16,7 @@ from bbot.test.worker import (
     HTTPSERVER_ALLINTERFACES_PORT,
     HTTPSERVER_PORT,
     HTTPSERVER_SSL_PORT,
+    worker_id,
 )
 
 from bbot.core import CORE
@@ -543,6 +544,14 @@ def pytest_sessionfinish(session, exitstatus):
     # worker to finish would otherwise delete the directory out from under
     # every worker still running.
     shutil.rmtree(BBOT_TEST_DIR, ignore_errors=True)
+    # the xdist controller finishes last, after every worker is done with the shared deps.
+    # The preload cache is saved there at exit, so stop that first or it outlives the run.
+    if not worker_id():
+        import atexit
+        from bbot.core.modules import MODULE_LOADER
+
+        atexit.unregister(MODULE_LOADER.save_preload_cache)
+        shutil.rmtree(BBOT_TEST_SHARED_DIR, ignore_errors=True)
 
     # Ensure stdout/stderr are blocking before pytest writes summaries
     try:
