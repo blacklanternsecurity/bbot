@@ -32,6 +32,8 @@ _EVENT_FIELDS = {
     "registration": "created",
     "last changed": "updated",
     "expiration": "expires",
+    # when the RDAP server's data was last refreshed (not a change to the registration itself)
+    "last update of rdap database": "rdap_updated",
 }
 # used for "expires" only when the server doesn't provide a plain "expiration" event
 _FALLBACK_EXPIRATION_ACTION = "registrar expiration"
@@ -357,9 +359,9 @@ def parse_registrar(rdap_json):
 
 def parse_events(rdap_json):
     """
-    Extract created/updated/expires dates from an RDAP domain response's events.
+    Extract created/updated/expires/rdap_updated dates from an RDAP domain response's events.
     """
-    result = {"created": None, "updated": None, "expires": None}
+    result = {"created": None, "updated": None, "expires": None, "rdap_updated": None}
     fallback_expiration = None
     for event in rdap_json.get("events", []) or []:
         if not isinstance(event, dict):
@@ -417,7 +419,7 @@ def normalize_rdap(rdap_json, rdap_server=None):
     Normalize a single RDAP domain response into BBOT's stable registration dict.
 
     Keys: domain, registrar, registrar_iana_id, registrant_org, registrant_name, registrant_email,
-    registrant_country, registrant_redacted, created, updated, expires, nameservers, status, rdap_server.
+    registrant_country, registrant_redacted, created, updated, expires, rdap_updated, nameservers, status, rdap_server.
     """
     domain = rdap_json.get("ldhName", "") or rdap_json.get("unicodeName", "") or ""
     status = [s for s in (rdap_json.get("status", []) or []) if isinstance(s, str) and s]

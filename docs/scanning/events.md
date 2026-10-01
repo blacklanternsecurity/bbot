@@ -182,6 +182,7 @@ Below is a full list of event types along with which modules produce/consume the
     "created": "2007-10-09T18:20:50Z",
     "updated": "2026-09-07T09:22:52Z",
     "expires": "2028-10-09T18:20:50Z",
+    "rdap_updated": "2026-10-01T21:04:58Z",
     "nameservers": ["dns1.p08.nsone.net", "ns-421.awsdns-52.com"],
     "status": ["client delete prohibited", "client transfer prohibited", "client update prohibited"],
     "rdap_server": "https://rdap.verisign.com/com/v1/domain/github.com",
@@ -203,6 +204,7 @@ Below is a full list of event types along with which modules produce/consume the
 | `created`               | Registration date (UTC, ISO-8601)                                                                   |
 | `updated`               | Last-changed date (UTC, ISO-8601)                                                                   |
 | `expires`               | Expiration date (UTC, ISO-8601)                                                                     |
+| `rdap_updated`          | When the registry's RDAP data was last refreshed (UTC, ISO-8601)                                    |
 | `nameservers`           | Sorted list of nameservers                                                                          |
 | `status`                | EPP status values, e.g. `client transfer prohibited`                                                |
 | `rdap_server`           | The registry RDAP URL that was queried                                                              |

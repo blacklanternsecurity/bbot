@@ -1324,6 +1324,7 @@ class DOMAIN_REGISTRATION(DictHostEvent):
         created: Optional[str] = None
         updated: Optional[str] = None
         expires: Optional[str] = None
+        rdap_updated: Optional[str] = None
         nameservers: list[str] = []
         status: list[str] = []
         rdap_server: Optional[str] = None
@@ -1331,7 +1332,7 @@ class DOMAIN_REGISTRATION(DictHostEvent):
         raw: Optional[dict] = None
         _validate_host = field_validator("host")(validators.validate_host)
 
-        @field_validator("created", "updated", "expires")
+        @field_validator("created", "updated", "expires", "rdap_updated")
         @classmethod
         def _validate_date(cls, v):
             if v is None:

@@ -265,6 +265,7 @@ def test_rdap_normalize_full_record():
         "created": "2007-10-09T18:20:50Z",
         "updated": "2026-09-07T09:22:52Z",
         "expires": "2028-10-09T18:20:50Z",
+        "rdap_updated": "2026-10-01T21:04:58Z",
         "nameservers": GITHUB_NAMESERVERS,
         "status": ["client delete prohibited", "client transfer prohibited", "client update prohibited"],
         "rdap_server": VERISIGN_GITHUB,
@@ -280,6 +281,8 @@ def test_rdap_normalize_full_record():
     assert registrar["registrant_redacted"] is True
     # registrar's expiration differs from the registry's
     assert registrar["expires"] == "2028-10-09T00:00:00Z"
+    # fractional seconds and +00:00 offsets are normalized
+    assert registrar["rdap_updated"] == "2026-10-01T21:00:23Z"
 
     merged = merge_records(registry, registrar)
     assert merged["registrant_org"] == "GitHub, Inc."
@@ -288,6 +291,7 @@ def test_rdap_normalize_full_record():
     # registry is authoritative for registrar + dates
     assert merged["registrar"] == "MarkMonitor Inc."
     assert merged["expires"] == "2028-10-09T18:20:50Z"
+    assert merged["rdap_updated"] == "2026-10-01T21:04:58Z"
     assert merged["rdap_server"] == VERISIGN_GITHUB
     assert merged["registrar_rdap_server"] == MARKMONITOR_GITHUB
 
@@ -346,6 +350,7 @@ def test_rdap_normalize_redacted_record():
     assert record["registrant_redacted"] is True
     assert record["registrant_email"] is None
     assert record["updated"] == "2025-10-29T03:51:11Z"
+    assert record["rdap_updated"] == "2026-10-01T21:06:12Z"
 
     # registrant nested inside the registrar entity
     record = normalize_rdap(

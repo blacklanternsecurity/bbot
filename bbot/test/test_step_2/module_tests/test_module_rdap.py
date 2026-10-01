@@ -102,6 +102,7 @@ class TestRdap(ModuleTestBase):
         assert "registrant_email" not in github.data
         assert github.data["created"] == "2007-10-09T18:20:50Z"
         assert github.data["expires"] == "2028-10-09T18:20:50Z"
+        assert github.data["rdap_updated"] == "2026-10-01T21:04:58Z"
         assert len(github.data["nameservers"]) == 8
         assert "dns1.p08.nsone.net" in github.data["nameservers"]
         assert github.data["status"] == [
