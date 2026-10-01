@@ -513,7 +513,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     """
 
     watched_events = ["HTTP_RESPONSE", "RAW_TEXT"]
-    produced_events = ["URL_UNVERIFIED", "WEB_PARAMETER"]
+    produced_events = ["URL_UNVERIFIED", "WEB_PARAMETER", "FINDING"]
     _avoid_duplicate_content = True
     flags = ["safe", "passive"]
     meta = {
@@ -534,11 +534,52 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             262144,
             description="Maximum byte slice of the response body searched for a single <form> body. YARA only locates form openings; the bounded slice is what the Python re-based extractor scans for fields. Caps worst-case extraction work per form match.",
         )
+        long_redirect_threshold: int = Field(
+            2048,
+            description="Minimum decoded body size, in bytes, for a 3xx response to be reported as a long redirection response. Set to 0 to disable the check.",
+        )
 
     scope_distance_modifier = None
     accept_dupes = False
 
     _module_threads = 6
+
+    async def check_long_redirect(self, event, body):
+        """Report a redirect that carries a substantial body.
+
+        Browsers discard the body of a 3xx, so content delivered here is never
+        displayed. Occasionally it is the resource the redirect was meant to
+        withhold (CWE-698, Execution After Redirect).
+
+        ``body`` is the decoded body; ``content_length`` reports the compressed
+        size and would undercount anything gzipped.
+        """
+        if not self.long_redirect_threshold:
+            return
+        status_code = event.data.get("status_code")
+        if not status_code or not (300 <= status_code < 400):
+            return
+        location = event.data.get("location")
+        if not location:
+            return
+        if len(body) < self.long_redirect_threshold:
+            return
+        await self.emit_event(
+            {
+                "host": str(event.host),
+                "url": event.data.get("url", ""),
+                "name": "Long Redirection Response",
+                "description": (
+                    f"Redirect carries a body no browser will display. "
+                    f"Status: [{status_code}] Location: [{location}] Body length: [{len(body)}]"
+                ),
+                "severity": "INFO",
+                "confidence": "HIGH",
+            },
+            "FINDING",
+            event,
+            context="{module} saw a {event.type} on a redirect response, which browsers never display",
+        )
 
     def in_bl(self, value):
         # Check if the value is in the blacklist or starts with a blacklisted prefix.
@@ -1384,6 +1425,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         # Bounded slice of the response body searched for a form's body, anchored
         # at each YARA form-opening match. Caps worst-case Python re work per form.
         self.max_form_bytes = int(self.config.get("max_form_bytes", 262144))
+        self.long_redirect_threshold = int(self.config.get("long_redirect_threshold", 2048))
 
         for module in self.scan.modules.values():
             if not str(module).startswith("_"):
@@ -1555,6 +1597,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             headers = event.data.get("header-dict", {})
             if body == "" and headers == {}:
                 return
+
+            await self.check_long_redirect(event, body)
 
             self.assigned_cookies = {}
             content_type = None
