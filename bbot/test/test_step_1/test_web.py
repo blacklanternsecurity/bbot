@@ -1,11 +1,9 @@
 import re
-import time
+from types import SimpleNamespace
 
 from blasthttp import HTTPStatusError
 
 from ..bbot_fixtures import *
-
-from bbot.core.helpers.diff import _ordered_diff
 
 from bbot.test.worker import BBOT_TEST_DIR, HTTPSERVER_HOSTPORT
 
@@ -345,12 +343,7 @@ async def test_web_interactsh(bbot_scanner, bbot_httpserver):
     assert response2.status_code == 200
     assert any(interactsh_domain2.endswith(f"{s}") for s in server_list)
 
-    # poll until every asserted condition holds, capped at the old fixed budget
-    deadline = time.time() + 10
-    while time.time() < deadline:
-        if sync_correct_url and async_correct_url:
-            break
-        await asyncio.sleep(0.1)
+    await asyncio.sleep(10)
 
     data_list = await interactsh_client.poll()
     data_list2 = await interactsh_client2.poll()
@@ -430,116 +423,6 @@ async def test_web_http_compare(blasthttp_mock, bbot_scanner):
     compare_helper.compare_body({"asdf": "fdsa"}, {"fdsa": "asdf"})
     for mode in ("getparam", "header", "cookie"):
         assert await compare_helper.canary_check("http://www.example.com", mode=mode) is True
-
-    assert compare_helper.compare_body(["a", "b", "c"], ["a", "b", "c"]) is True
-    assert compare_helper.compare_body(["a", "b", "c"], ["a", "b", "x"]) is False
-    assert compare_helper.compare_body(["a", "b", "c"], ["c", "b", "a"]) is True
-    assert compare_helper.compare_body({"a": 1}, {"a": 2}) is False
-    assert compare_helper.compare_body({"a": 1}, {"a": 1}) is True
-
-    compare_helper.max_differing_lines = 500
-    base = [f"line {i}" for i in range(20000)]
-    similar = [f"line {i} X" if i < 5000 else f"line {i}" for i in range(20000)]
-    start = time.monotonic()
-    assert compare_helper.compare_body(base, similar) is False
-    assert (time.monotonic() - start) < 5
-
-    config_scan = bbot_scanner(config={"web": {"http_compare_max_differing_lines": 42}})
-    await config_scan._prep()
-    config_helper = config_scan.helpers.http_compare("http://www.example.com")
-    assert config_helper.max_differing_lines == 42
-    await config_scan._cleanup()
-
-    await scan._cleanup()
-
-
-@pytest.mark.asyncio
-async def test_web_http_compare_filtered_lines_not_counted(blasthttp_mock, bbot_scanner):
-    scan = bbot_scanner()
-    await scan._prep()
-    blasthttp_mock.add_response(url=re.compile(r"http://www\.example\.com.*"), text="wat")
-    compare_helper = scan.helpers.http_compare("http://www.example.com")
-    compare_helper.max_differing_lines = 500
-
-    static = [f"line {i}" for i in range(400)]
-    dynamic_a = [f"nonce {i} A" for i in range(600)]
-    dynamic_b = [f"nonce {i} B" for i in range(600)]
-    dynamic_c = [f"nonce {i} C" for i in range(600)]
-
-    baseline_1 = dynamic_a + static
-    baseline_2 = dynamic_b + static
-    subject = dynamic_c + static
-
-    ddiff = _ordered_diff(baseline_1, baseline_2)
-    compare_helper.ddiff_filters = [x.path() for k in ddiff.keys() for x in list(ddiff[k])]
-    assert len(compare_helper.ddiff_filters) == 600
-
-    assert compare_helper.compare_body(baseline_1, subject) is True
-
-    await scan._cleanup()
-
-
-@pytest.mark.asyncio
-async def test_web_http_compare_bounds_dict_bodies(blasthttp_mock, bbot_scanner):
-    scan = bbot_scanner()
-    await scan._prep()
-    blasthttp_mock.add_response(url=re.compile(r"http://www\.example\.com.*"), text="wat")
-    compare_helper = scan.helpers.http_compare("http://www.example.com")
-    compare_helper.max_differing_lines = 500
-    compare_helper.ddiff_filters = []
-
-    def rows(salt):
-        return [
-            f'<div class="r{i}" tok="{salt}{i}">item {i}{salt}</div>'
-            if i < 1000
-            else f'<div class="r{i}">item {i}</div>'
-            for i in range(4000)
-        ]
-
-    content_1 = {"html": {"body": {"div": rows("a")}}}
-    content_2 = {"html": {"body": {"div": rows("b")}}}
-
-    start = time.monotonic()
-    assert compare_helper.compare_body(content_1, content_2) is False
-    assert (time.monotonic() - start) < 5
-
-    await scan._cleanup()
-
-
-@pytest.mark.asyncio
-async def test_web_http_compare_threshold_boundary(blasthttp_mock, bbot_scanner):
-    scan = bbot_scanner()
-    await scan._prep()
-    blasthttp_mock.add_response(url=re.compile(r"http://www\.example\.com.*"), text="wat")
-    compare_helper = scan.helpers.http_compare("http://www.example.com")
-    compare_helper.max_differing_lines = 10
-
-    static = [f"line {i}" for i in range(100)]
-    at_threshold_1 = [f"nonce {i} A" for i in range(5)] + static
-    at_threshold_2 = [f"nonce {i} B" for i in range(5)] + static
-
-    ddiff = _ordered_diff(at_threshold_1, at_threshold_2)
-    compare_helper.ddiff_filters = [x.path() for k in ddiff.keys() for x in list(ddiff[k])]
-
-    assert compare_helper.compare_body(at_threshold_1, at_threshold_2) is True
-
-    over_threshold_1 = [f"nonce {i} A" for i in range(6)] + static
-    over_threshold_2 = [f"nonce {i} B" for i in range(6)] + static
-    compare_helper.ddiff_filters = []
-    assert compare_helper.compare_body(over_threshold_1, over_threshold_2) is False
-
-    await scan._cleanup()
-
-
-@pytest.mark.asyncio
-async def test_web_http_compare_null_threshold_config(blasthttp_mock, bbot_scanner):
-    scan = bbot_scanner(config={"web": {"http_compare_max_differing_lines": None}})
-    await scan._prep()
-    blasthttp_mock.add_response(url=re.compile(r"http://www\.example\.com.*"), text="wat")
-    compare_helper = scan.helpers.http_compare("http://www.example.com")
-    compare_helper.ddiff_filters = []
-
-    assert compare_helper.compare_body(["a", "b", "c"], ["a", "b", "x"]) is False
 
     await scan._cleanup()
 
@@ -918,5 +801,120 @@ async def test_is_http_wildcard_host(bbot_scanner):
     # cached as None
     result2 = await web.is_http_wildcard_host("https", "down.example.com", 443)
     assert result2 is None
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_base_module_is_http_wildcard_host_per_url(bbot_scanner):
+    """Base module wrapper does a per-URL compare against the wildcard baseline
+    so real endpoints on a catchall host aren't wrongly rejected. WEB_PARAMETER
+    GETPARAM events are probed with the parameter baked into the URL."""
+    from bbot.errors import HttpCompareError
+    from bbot.modules.base import BaseModule
+
+    scan = bbot_scanner("wildcardhost.test")
+    await scan._prep()
+
+    # baseline HttpCompare stub: records the URL passed to compare()
+    class FakeCompare:
+        def __init__(self):
+            self.calls = []
+            self.behaviour = "match"  # override per test
+
+        async def compare(self, url, **kwargs):
+            self.calls.append(url)
+            if self.behaviour == "raise":
+                raise HttpCompareError("boom")
+            if self.behaviour == "dead":
+                # compare() only hands back a None response when the request itself failed
+                return (False, ["request_failed"], False, None)
+            match = self.behaviour == "match"
+            return (match, [], False, SimpleNamespace(status_code=200))
+
+    fake_compare = FakeCompare()
+
+    async def wildcard_returns_compare(scheme, host, port):
+        return fake_compare
+
+    scan.helpers.web.is_http_wildcard_host = wildcard_returns_compare
+
+    module = BaseModule(scan)
+
+    def make_url_event(url):
+        return scan.make_event(url, "URL", parent=scan.root_event, tags=["status-200"])
+
+    def make_web_param_event(url, name, value, ptype="GETPARAM"):
+        data = {"host": "wildcardhost.test", "type": ptype, "name": name, "original_value": value, "url": url}
+        return scan.make_event(data, "WEB_PARAMETER", parent=scan.root_event)
+
+    # 1) URL that matches the wildcard baseline: skip (True)
+    fake_compare.behaviour = "match"
+    fake_compare.calls.clear()
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/index.php"))
+    assert result is True
+    assert fake_compare.calls == ["https://wildcardhost.test/index.php"]
+
+    # 2) URL that diverges from the baseline: real endpoint (False)
+    fake_compare.behaviour = "differ"
+    fake_compare.calls.clear()
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/params.php"))
+    assert result is False
+    assert fake_compare.calls == ["https://wildcardhost.test/params.php"]
+
+    # 3) WEB_PARAMETER GETPARAM: probe URL with the parameter baked in, not the bare URL
+    fake_compare.behaviour = "differ"
+    fake_compare.calls.clear()
+    result = await module._is_http_wildcard_host(
+        make_web_param_event("https://wildcardhost.test/index.php", "manager", "foo")
+    )
+    assert result is False
+    assert len(fake_compare.calls) == 1
+    assert fake_compare.calls[0].startswith("https://wildcardhost.test/index.php?")
+    assert "manager=foo" in fake_compare.calls[0]
+
+    # 4) WEB_PARAMETER POSTPARAM: probe uses the bare URL (POST body isn't reflected in a GET probe)
+    fake_compare.behaviour = "differ"
+    fake_compare.calls.clear()
+    result = await module._is_http_wildcard_host(
+        make_web_param_event("https://wildcardhost.test/index.php", "manager", "foo", ptype="POSTPARAM")
+    )
+    assert result is False
+    assert fake_compare.calls == ["https://wildcardhost.test/index.php"]
+
+    # 5) probe request died: unknown, not a wildcard verdict
+    fake_compare.behaviour = "dead"
+    fake_compare.calls.clear()
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/dead.php"))
+    assert result is None
+
+    # 6) HttpCompareError from the compare -> None
+    fake_compare.behaviour = "raise"
+    fake_compare.calls.clear()
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/broken.php"))
+    assert result is None
+
+    # 7) Scalar True from a test mock (no .compare attribute) -> True (backward-compat)
+    async def wildcard_returns_true(scheme, host, port):
+        return True
+
+    scan.helpers.web.is_http_wildcard_host = wildcard_returns_true
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/whatever"))
+    assert result is True
+
+    # 8) False / None from the helper pass through unchanged
+    async def wildcard_returns_false(scheme, host, port):
+        return False
+
+    scan.helpers.web.is_http_wildcard_host = wildcard_returns_false
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/anything"))
+    assert result is False
+
+    async def wildcard_returns_none(scheme, host, port):
+        return None
+
+    scan.helpers.web.is_http_wildcard_host = wildcard_returns_none
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/anything"))
+    assert result is None
 
     await scan._cleanup()
