@@ -1,11 +1,146 @@
+import json
 import logging
 import xmltodict
+from time import monotonic
+from itertools import islice
 from deepdiff import DeepDiff
 from contextlib import suppress
 from xml.parsers.expat import ExpatError
 from bbot.errors import HttpCompareError
 
 log = logging.getLogger("bbot.core.helpers.diff")
+
+# Body comparisons are linear, so they should take milliseconds. Log anything
+# wildly slower than that -- it means a body shape we didn't anticipate.
+SLOW_COMPARE_THRESHOLD = 2.0
+
+# Flattening a structured body costs memory proportional to its leaf count, and a
+# baseline is held for the lifetime of the HttpCompare. Past these limits, compare as
+# lines instead -- a body this big doesn't need leaf-level precision.
+MAX_STRUCTURED_BODY_SIZE = 2_000_000
+MAX_STRUCTURED_LEAVES = 10_000
+
+# Bodies with at least this many lines compare fine as lines; structure is only
+# needed for the few-line shape (a minified JSON or XML API response).
+MAX_STRUCTURED_LINES = 20
+
+_MISSING = object()
+
+
+def _tree_leaves(node, path=()):
+    """Flatten a parsed JSON/XML tree into (path, leaf_value) pairs."""
+    if isinstance(node, dict) and node:
+        for key, value in node.items():
+            yield from _tree_leaves(value, (*path, key))
+    elif isinstance(node, list) and node:
+        for i, value in enumerate(node):
+            yield from _tree_leaves(value, (*path, i))
+    else:
+        # scalars, and empty containers -- which compare unequal to each other
+        yield path, node
+
+
+class _LineBody:
+    """A response body compared as a list of lines.
+
+    Lines are matched by content rather than position, so a line that merely
+    moves is not a difference. Positions that varied between the two baseline
+    samples are filtered out, which is how volatile content (CSRF tokens,
+    timestamps, the echoed request path) is ignored.
+
+    Only the first occurrence of each differing line counts, so a volatile line
+    repeated down the page filters one position rather than every copy of it.
+    """
+
+    __slots__ = ("lines", "line_set")
+
+    def __init__(self, lines):
+        self.lines = lines
+        self.line_set = set(lines)
+
+    def _novel_lines(self, other_set):
+        """(position, line) for the first occurrence of each line absent from `other_set`."""
+        seen = set()
+        for i, line in enumerate(self.lines):
+            if line not in other_set and line not in seen:
+                seen.add(line)
+                yield i, line
+
+    def volatile_paths(self, other):
+        """Positions of the first occurrence of each line not present anywhere in `other`."""
+        return {i for i, _ in self._novel_lines(other.line_set)}
+
+    def matches(self, other, filtered):
+        for body, other_set in ((self, other.line_set), (other, self.line_set)):
+            for i, _ in body._novel_lines(other_set):
+                if i not in filtered:
+                    return False
+        return True
+
+
+class _StructuredBody:
+    """A JSON or XML response body, compared leaf-by-leaf and keyed by path.
+
+    Paths are stable across requests, so volatile leaves are filtered by path.
+    That works even for a body served on a single line -- the usual shape for a
+    JSON API -- where a line-oriented comparison sees one volatile line and then
+    considers every subsequent body a match.
+    """
+
+    __slots__ = ("leaves",)
+
+    def __init__(self, leaves):
+        self.leaves = leaves
+
+    def volatile_paths(self, other):
+        """Element paths whose leaf value differs from `other`, or is missing on either side."""
+        volatile = {path for path, value in self.leaves.items() if other.leaves.get(path, _MISSING) != value}
+        volatile.update(path for path in other.leaves if path not in self.leaves)
+        return volatile
+
+    def matches(self, other, filtered):
+        for path in self.leaves.keys() | other.leaves.keys():
+            if path in filtered:
+                continue
+            if self.leaves.get(path, _MISSING) != other.leaves.get(path, _MISSING):
+                return False
+        return True
+
+
+def _structured(tree):
+    """A `_StructuredBody` for `tree`, or None if it has too many leaves to hold."""
+    leaves = dict(islice(_tree_leaves(tree), MAX_STRUCTURED_LEAVES + 1))
+    if len(leaves) > MAX_STRUCTURED_LEAVES:
+        return None
+    return _StructuredBody(leaves)
+
+
+def parse_body(text):
+    """Parse a response body into its comparable form.
+
+    Few-line JSON and XML are compared leaf-by-leaf; everything else as a list of lines.
+    Malformed, oversized, or pathologically nested input falls back to lines.
+    """
+    lines = text.split("\n")
+    if len(lines) < MAX_STRUCTURED_LINES and len(text) <= MAX_STRUCTURED_BODY_SIZE:
+        with suppress(ExpatError, RecursionError):
+            if (body := _structured(xmltodict.parse(text))) is not None:
+                return body
+        with suppress(ValueError, RecursionError):
+            tree = json.loads(text)
+            # a bare scalar gives one leaf, which is no better than one line
+            if isinstance(tree, (dict, list)) and (body := _structured(tree)) is not None:
+                return body
+    return _LineBody(lines)
+
+
+def _as_body(content):
+    """Coerce an already-parsed body (or a raw dict / line list) into a comparable body."""
+    if isinstance(content, (_LineBody, _StructuredBody)):
+        return content
+    if isinstance(content, dict):
+        return _StructuredBody(dict(_tree_leaves(content)))
+    return _LineBody(list(content))
 
 
 class _BaselineSnapshot:
@@ -96,6 +231,8 @@ class HttpCompare:
         self.json = json
         self.allow_redirects = allow_redirects
         self._baselined = False
+        # Positions/paths in the baseline body that varied between the two samples.
+        self.body_filters = set()
         self.headers = headers
         self.cookies = cookies
         self.timeout = 10
@@ -164,23 +301,10 @@ class HttpCompare:
                 log.debug("Status code not stable during baseline, aborting")
                 raise HttpCompareError("Can't get baseline from source URL")
 
-            try:
-                baseline_1_json = xmltodict.parse(baseline_1.text)
-                baseline_2_json = xmltodict.parse(baseline_2.text)
-            except ExpatError:
-                baseline_1_json = baseline_1.text.split("\n")
-                baseline_2_json = baseline_2.text.split("\n")
-
-            ddiff = DeepDiff(
-                baseline_1_json, baseline_2_json, ignore_order=True, view="tree", threshold_to_diff_deeper=0
+            # Parsing and diffing two full response bodies is CPU-bound; keep it off the event loop.
+            self.baseline_body, self.body_filters = await self.parent_helper.run_in_executor_cpu(
+                self._baseline_bodies, baseline_1.text, baseline_2.text
             )
-            self.ddiff_filters = []
-
-            for k in ddiff.keys():
-                for x in list(ddiff[k]):
-                    self.ddiff_filters.append(x.path())
-
-            self.baseline_json = baseline_1_json
             self.baseline_ignore_headers = [
                 h.lower()
                 for h in [
@@ -212,6 +336,16 @@ class HttpCompare:
             store = getattr(scan, "body_spill_store", None)
             self.baseline = _BaselineSnapshot(baseline_1, spill_store=store)
 
+    @staticmethod
+    def _baseline_bodies(text_1, text_2):
+        """Parse both baseline samples and work out which parts of the response are volatile."""
+        body_1, body_2 = parse_body(text_1), parse_body(text_2)
+        if type(body_1) is not type(body_2):
+            # the samples disagree on a representation (one was truncated, say),
+            # so compare them as lines -- that always works
+            body_1, body_2 = _LineBody(text_1.split("\n")), _LineBody(text_2.split("\n"))
+        return body_1, body_1.volatile_paths(body_2)
+
     def gen_cache_buster(self):
         return {self.parent_helper.rand_string(6): "1"}
 
@@ -235,23 +369,30 @@ class HttpCompare:
                 differing_headers.append(header_value)
         return differing_headers
 
+    @staticmethod
+    def parse_body(text):
+        """Parse a response body into the form compare_body() expects."""
+        return parse_body(text)
+
     def compare_body(self, content_1, content_2):
+        """Whether two bodies match, ignoring the parts observed to be volatile.
+
+        Takes bodies parsed by `parse_body`. Callers that normalize response text
+        themselves (stripping their own reflected probe values, say) may pass raw
+        strings instead, which are compared verbatim.
+        """
         if content_1 == content_2:
             return True
 
-        ddiff = DeepDiff(
-            content_1,
-            content_2,
-            ignore_order=True,
-            view="tree",
-            exclude_paths=self.ddiff_filters,
-            threshold_to_diff_deeper=0,
-        )
-
-        if len(ddiff.keys()) == 0:
-            return True
-        else:
+        if isinstance(content_1, str) or isinstance(content_2, str):
+            # raw text, already normalized by the caller -- no volatile parts to filter
             return False
+
+        body_1, body_2 = _as_body(content_1), _as_body(content_2)
+        if type(body_1) is not type(body_2):
+            # one body is structured and the other isn't -- that alone is a difference
+            return False
+        return body_1.matches(body_2, self.body_filters)
 
     async def compare(
         self,
@@ -331,18 +472,10 @@ class HttpCompare:
         else:
             return (False, diff_reasons, reflection, subject_response)
 
-    @staticmethod
-    def parse_body(text):
-        """Parse a response body into the structure compare_body() expects. Passing raw text works
-        but bypasses the ddiff_filters that mask dynamic content."""
-        try:
-            return xmltodict.parse(text)
-        except ExpatError:
-            return text.split("\n")
-
     def _compare_sync(self, subject_response, subject):
         """CPU-bound comparison work offloaded from the event loop."""
-        subject_json = self.parse_body(subject_response.text)
+        started = monotonic()
+        subject_body = parse_body(subject_response.text)
 
         diff_reasons = []
 
@@ -353,8 +486,12 @@ class HttpCompare:
         if different_headers:
             diff_reasons.append("header")
 
-        if self.compare_body(self.baseline_json, subject_json) is False:
+        if self.compare_body(self.baseline_body, subject_body) is False:
             diff_reasons.append("body")
+
+        elapsed = monotonic() - started
+        if elapsed > SLOW_COMPARE_THRESHOLD:
+            log.debug(f"Slow body comparison ({elapsed:.1f}s, {len(subject_response.text):,} bytes) for {subject}")
 
         return diff_reasons
 
