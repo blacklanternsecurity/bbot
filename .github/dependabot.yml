@@ -51,3 +51,20 @@ updates:
           - "*"
         update-types:
           - "major"
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    target-branch: "dev"
+    schedule:
+      interval: "weekly"
+    groups:
+      pre-commit-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      pre-commit-major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
