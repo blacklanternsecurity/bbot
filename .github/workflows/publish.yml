@@ -31,9 +31,11 @@ jobs:
           import os, subprocess, sys
           from packaging.version import Version
           declared = Version(subprocess.check_output(["uv", "version", "--short"], text=True).strip())
-          tagged = Version(os.environ["GITHUB_REF_NAME"].removeprefix("v"))
-          if tagged != declared:
-              sys.exit(f"tag {tagged} does not match pyproject.toml {declared}")
+          # org tag convention: vX.Y.Z or vX.Y.Z-rc.N, which must spell exactly the declared version
+          base = declared.base_version
+          expected = f"v{base}-rc.{declared.pre[1]}" if declared.pre and declared.pre[0] == "rc" else f"v{declared}"
+          if os.environ["GITHUB_REF_NAME"] != expected or declared.dev is not None or declared.local:
+              sys.exit(f"tag {os.environ['GITHUB_REF_NAME']} does not match pyproject.toml {declared} (expected {expected})")
           print(f"version={declared}")
           print(f"prerelease={str(declared.is_prerelease).lower()}")
           print(f"major={declared.major}")
