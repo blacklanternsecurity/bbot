@@ -12,43 +12,16 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  version:
-    runs-on: ubuntu-24.04
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-      prerelease: ${{ steps.version.outputs.prerelease }}
-      major: ${{ steps.version.outputs.major }}
-      minor: ${{ steps.version.outputs.minor }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
-      - name: Tag matches the declared version
-        id: version
-        run: |
-          uv run --no-project --with packaging python - <<'EOF' >> "$GITHUB_OUTPUT"
-          import os, subprocess, sys
-          from packaging.version import Version
-          declared = Version(subprocess.check_output(["uv", "version", "--short"], text=True).strip())
-          # org tag convention: vX.Y.Z or vX.Y.Z-rc.N, which must spell exactly the declared version
-          base = declared.base_version
-          expected = f"v{base}-rc.{declared.pre[1]}" if declared.pre and declared.pre[0] == "rc" else f"v{declared}"
-          if os.environ["GITHUB_REF_NAME"] != expected or declared.dev is not None or declared.local:
-              sys.exit(f"tag {os.environ['GITHUB_REF_NAME']} does not match pyproject.toml {declared} (expected {expected})")
-          print(f"version={declared}")
-          print(f"prerelease={str(declared.is_prerelease).lower()}")
-          print(f"major={declared.major}")
-          print(f"minor={declared.major}.{declared.minor}")
-          EOF
+  check:
+    uses: blacklanternsecurity/CLA/.github/workflows/release-check.yml@e532142ee9e7322888f6edc80d9a89e2f8c0d96d # feat/shared-workflows
 
   tests:
-    needs: version
+    needs: check
     uses: ./.github/workflows/tests.yml
     secrets: inherit
 
   pypi:
-    needs: [version, tests]
+    needs: tests
     runs-on: ubuntu-24.04
     environment: pypi
     permissions:
@@ -63,96 +36,23 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
 
   docker:
-    # Docker tags must not move unless the PyPI release shipped
-    needs: [version, pypi]
-    runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        include:
-          - file: Dockerfile
-            suffix: ""
-          - file: Dockerfile.full
-            suffix: "-full"
-    env:
-      PRERELEASE: ${{ needs.version.outputs.prerelease }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
-      - id: meta
-        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
-        with:
-          images: blacklanternsecurity/bbot
-          flavor: |
-            latest=false
-            suffix=${{ matrix.suffix }}
-          tags: |
-            type=raw,value=${{ needs.version.outputs.version }}
-            type=raw,value=dev,enable=${{ env.PRERELEASE == 'true' }}
-            type=raw,value=latest,enable=${{ env.PRERELEASE == 'false' }}
-            type=raw,value=stable,enable=${{ env.PRERELEASE == 'false' }}
-            type=raw,value=${{ needs.version.outputs.minor }},enable=${{ env.PRERELEASE == 'false' }}
-            type=raw,value=${{ needs.version.outputs.major }},enable=${{ env.PRERELEASE == 'false' }}
-      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
-        with:
-          context: .
-          file: ${{ matrix.file }}
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-
-  dockerhub-description:
-    needs: docker
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: peter-evans/dockerhub-description@1b9a80c056b620d92cedb9d9b5a223409c68ddfa # v5.0.0
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
-          repository: blacklanternsecurity/bbot
+    needs: [check, pypi]
+    uses: blacklanternsecurity/CLA/.github/workflows/docker.yml@e532142ee9e7322888f6edc80d9a89e2f8c0d96d # feat/shared-workflows
+    secrets: inherit
+    with:
+      image: ${{ github.repository }}
+      version: ${{ needs.check.outputs.version }}
+      prerelease: ${{ needs.check.outputs.prerelease }}
+      major: ${{ needs.check.outputs.major }}
+      minor: ${{ needs.check.outputs.minor }}
+      description: true
 
   release:
-    needs: [version, dockerhub-description]
-    runs-on: ubuntu-24.04
+    needs: [check, docker]
     permissions:
       contents: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
-        with:
-          path: .
-          format: spdx-json
-          output-file: ${{ github.event.repository.name }}-${{ github.ref_name }}.spdx.json
-          upload-artifact: false
-          upload-release-assets: false
-      - uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
-        with:
-          image: blacklanternsecurity/bbot:${{ needs.version.outputs.version }}
-          format: spdx-json
-          output-file: bbot-image-${{ github.ref_name }}.spdx.json
-          upload-artifact: false
-          upload-release-assets: false
-      - uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
-        with:
-          image: blacklanternsecurity/bbot:${{ needs.version.outputs.version }}-full
-          format: spdx-json
-          output-file: bbot-image-full-${{ github.ref_name }}.spdx.json
-          upload-artifact: false
-          upload-release-assets: false
-      - name: GitHub Release with SBOMs
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          PRERELEASE=()
-          if [[ "$GITHUB_REF_NAME" == *-rc.* ]]; then PRERELEASE=(--prerelease); fi
-          gh release create "$GITHUB_REF_NAME" ./*.spdx.json \
-            --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes "${PRERELEASE[@]}"
+    uses: blacklanternsecurity/CLA/.github/workflows/publish.yml@e532142ee9e7322888f6edc80d9a89e2f8c0d96d # feat/shared-workflows
+    with:
+      version: ${{ needs.check.outputs.version }}
+      prerelease: ${{ needs.check.outputs.prerelease }}
+      images: ${{ needs.docker.outputs.images }}

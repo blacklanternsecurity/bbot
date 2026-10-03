@@ -16,7 +16,7 @@ release.sh v3.1.0        # stable
 release.sh v3.1.0-rc.1   # prerelease, pyproject.toml says 3.1.0rc1
 ```
 
-The tool lives at [blacklanternsecurity/.github/scripts/release.sh](https://github.com/blacklanternsecurity/.github/blob/main/scripts/release.sh). It refuses a dirty tree, an existing tag, or a tag outside `vMAJOR.MINOR.PATCH[-rc.N]`, shows what it will tag, and asks before pushing.
+The tool lives at [blacklanternsecurity/CLA/scripts/release.sh](https://github.com/blacklanternsecurity/CLA/blob/main/scripts/release.sh). It refuses a dirty tree, a branch other than trunk, an existing tag, a tag outside `vMAJOR.MINOR.PATCH[-rc.N]`, or a tag that does not match `pyproject.toml`, shows what it will tag, and asks before pushing.
 
 ## What happens after
 
