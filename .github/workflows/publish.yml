@@ -61,7 +61,8 @@ jobs:
           password: ${{ secrets.PYPI_API_TOKEN }}
 
   docker:
-    needs: [version, tests]
+    # Docker tags must not move unless the PyPI release shipped
+    needs: [version, pypi]
     runs-on: ubuntu-24.04
     strategy:
       matrix:
