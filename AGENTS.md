@@ -21,7 +21,7 @@ uv sync --group dev && uv run pre-commit install
 
 ```bash
 uv run pytest
-uv run pytest -k test_module_robots
+uv run pytest bbot/test/test_step_2/module_tests/test_module_robots.py
 ```
 
 ## Standards
