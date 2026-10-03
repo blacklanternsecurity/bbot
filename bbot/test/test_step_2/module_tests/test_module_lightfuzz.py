@@ -16,7 +16,6 @@ from bbot.core.helpers.url import add_get_params
 from bbot.modules.lightfuzz.lightfuzz import lightfuzz
 from bbot.modules.base import BaseModule
 from bbot.core.helpers.nowafpls import BypassResult
-from bbot.modules.lightfuzz.lightfuzz import lightfuzz
 from bbot.modules.lightfuzz.submodules.base import BaseLightfuzz
 from bbot.modules.lightfuzz.submodules.serial import serial as serial_submodule
 
