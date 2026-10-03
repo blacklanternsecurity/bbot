@@ -1,4 +1,5 @@
-name: "CLA Assistant"
+name: CLA
+
 on:
   issue_comment:
     types: [created]
@@ -11,6 +12,5 @@ permissions:
 
 jobs:
   cla:
-    name: check the CLA is signed
-    uses: blacklanternsecurity/CLA/.github/workflows/cla-reusable.yml@4f85d3c525483f0f846ef4384a8ece24a3c74375 # 2026-09-29
+    uses: blacklanternsecurity/CLA/.github/workflows/cla-reusable.yml@e532142ee9e7322888f6edc80d9a89e2f8c0d96d # feat/shared-workflows
     secrets: inherit

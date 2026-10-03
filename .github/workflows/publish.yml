@@ -1,0 +1,58 @@
+name: publish
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    uses: blacklanternsecurity/CLA/.github/workflows/release-check.yml@e532142ee9e7322888f6edc80d9a89e2f8c0d96d # feat/shared-workflows
+
+  tests:
+    needs: check
+    uses: ./.github/workflows/tests.yml
+    secrets: inherit
+
+  pypi:
+    needs: tests
+    runs-on: ubuntu-24.04
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+      - run: uv build
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+
+  docker:
+    needs: [check, pypi]
+    uses: blacklanternsecurity/CLA/.github/workflows/docker.yml@e532142ee9e7322888f6edc80d9a89e2f8c0d96d # feat/shared-workflows
+    secrets: inherit
+    with:
+      image: ${{ github.repository }}
+      version: ${{ needs.check.outputs.version }}
+      prerelease: ${{ needs.check.outputs.prerelease }}
+      major: ${{ needs.check.outputs.major }}
+      minor: ${{ needs.check.outputs.minor }}
+      description: true
+
+  release:
+    needs: [check, docker]
+    permissions:
+      contents: write
+    uses: blacklanternsecurity/CLA/.github/workflows/publish.yml@e532142ee9e7322888f6edc80d9a89e2f8c0d96d # feat/shared-workflows
+    with:
+      version: ${{ needs.check.outputs.version }}
+      prerelease: ${{ needs.check.outputs.prerelease }}
+      images: ${{ needs.docker.outputs.images }}
