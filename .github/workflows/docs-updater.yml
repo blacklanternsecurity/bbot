@@ -5,6 +5,9 @@ on:
     - cron: '30 2 * * *'  # Runs daily at 2:30 AM UTC, a less congested time
   workflow_dispatch:      # Allows manual triggering of the workflow
 
+permissions:
+  contents: read
+
 jobs:
   update_docs:
     runs-on: ubuntu-24.04

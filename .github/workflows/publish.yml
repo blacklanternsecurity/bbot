@@ -2,7 +2,7 @@ name: publish
 
 on:
   push:
-    tags: ["v*", "!archive/**"]
+    tags: ["v*"]
 
 permissions:
   contents: read
@@ -50,6 +50,10 @@ jobs:
   pypi:
     needs: [version, tests]
     runs-on: ubuntu-24.04
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -57,8 +61,6 @@ jobs:
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
       - run: uv build
       - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
 
   docker:
     # Docker tags must not move unless the PyPI release shipped
@@ -81,7 +83,7 @@ jobs:
       - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          password: ${{ secrets.DOCKER_TOKEN }}
       - id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
@@ -113,5 +115,14 @@ jobs:
       - uses: peter-evans/dockerhub-description@1b9a80c056b620d92cedb9d9b5a223409c68ddfa # v5.0.0
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          password: ${{ secrets.DOCKER_TOKEN }}
           repository: blacklanternsecurity/bbot
+
+  release:
+    needs: [version, docker]
+    permissions:
+      contents: write
+    uses: blacklanternsecurity/.github/.github/workflows/publish.yml@main
+    with:
+      manifest: pyproject.toml
+      images: '["blacklanternsecurity/bbot:${{ needs.version.outputs.version }}", "blacklanternsecurity/bbot:${{ needs.version.outputs.version }}-full"]'

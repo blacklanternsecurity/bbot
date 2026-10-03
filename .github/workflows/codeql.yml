@@ -19,6 +19,9 @@ on:
   schedule:
     - cron: '32 3 * * 5'
 
+permissions:
+  contents: read
+
 jobs:
   analyze:
     name: scan ${{ matrix.language }} for security issues
