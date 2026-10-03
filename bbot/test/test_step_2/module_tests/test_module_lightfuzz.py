@@ -13,6 +13,7 @@ import xml.etree.ElementTree as ET
 
 from bbot.scanner import Scanner
 from bbot.core.helpers.url import add_get_params
+from bbot.modules.lightfuzz.lightfuzz import lightfuzz
 from bbot.modules.base import BaseModule
 from bbot.core.helpers.nowafpls import BypassResult
 from bbot.modules.lightfuzz.lightfuzz import lightfuzz
