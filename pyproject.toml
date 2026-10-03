@@ -52,6 +52,7 @@ dependencies = [
     "blastdns>=1.9.0,<2",
     "zstandard>=0.22,<1",
     "packaging>=23.0",
+    "python-whois>=0.9.6,<0.10",
 ]
 
 [project.urls]

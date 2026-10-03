@@ -550,7 +550,7 @@ async def test_events(events, helpers):
     with pytest.raises(ValidationError, match=".*Invalid date.*"):
         scan.make_event({"host": "evilcorp.com", "expires": "tomorrow"}, "DOMAIN_REGISTRATION", dummy=True)
     with pytest.raises(ValidationError, match=".*Invalid date.*"):
-        scan.make_event({"host": "evilcorp.com", "rdap_updated": "yesterday"}, "DOMAIN_REGISTRATION", dummy=True)
+        scan.make_event({"host": "evilcorp.com", "updated": "yesterday"}, "DOMAIN_REGISTRATION", dummy=True)
 
     # test tagging
     ip_event_1 = scan.make_event("8.8.8.8", dummy=True)

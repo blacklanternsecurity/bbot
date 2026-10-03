@@ -46,7 +46,7 @@ from bbot.core.helpers import (
     get_file_extension,
 )
 from bbot.models.helpers import utc_datetime_validator
-from bbot.core.helpers.rdap import parse_rdap_date
+from bbot.core.helpers.whois import parse_whois_date
 from bbot.core.helpers.web.envelopes import BaseEnvelope
 
 
@@ -1303,7 +1303,7 @@ class ASN(DictEvent):
 
 class DOMAIN_REGISTRATION(DictHostEvent):
     """
-    Registration (RDAP/WHOIS) data for a registrable domain, e.g. registrar, registrant org, and dates.
+    WHOIS registration data for a registrable domain, e.g. registrar, registrant org, and dates.
 
     `host` is the registrable domain itself (e.g. "evilcorp.co.uk"), so there is one of these per domain.
     """
@@ -1324,20 +1324,18 @@ class DOMAIN_REGISTRATION(DictHostEvent):
         created: Optional[str] = None
         updated: Optional[str] = None
         expires: Optional[str] = None
-        rdap_updated: Optional[str] = None
         nameservers: list[str] = []
         status: list[str] = []
-        rdap_server: Optional[str] = None
-        registrar_rdap_server: Optional[str] = None
-        raw: Optional[dict] = None
+        whois_server: Optional[str] = None
+        raw: Optional[str] = None
         _validate_host = field_validator("host")(validators.validate_host)
 
-        @field_validator("created", "updated", "expires", "rdap_updated")
+        @field_validator("created", "updated", "expires")
         @classmethod
         def _validate_date(cls, v):
             if v is None:
                 return v
-            normalized = parse_rdap_date(v)
+            normalized = parse_whois_date(v)
             if normalized is None:
                 raise ValueError(f"Invalid date: {v}")
             return normalized

@@ -14,7 +14,7 @@ from . import misc
 from .asn import ASNHelper
 from .dns import DNSHelper
 from .web import WebHelper
-from .rdap import RDAPHelper
+from .whois import WhoisHelper
 from .diff import HttpCompare
 from .nowafpls import NowafplsHelper
 from .regex import RegexHelper
@@ -118,7 +118,7 @@ class ConfigAwareHelper:
         self._asn = None
         self._cloudcheck = None
         self._nowafpls = None
-        self._rdap = None
+        self._whois = None
         self.config_aware_validators = self.validators.Validators(self)
         self.depsinstaller = DepsInstaller(self)
         self.word_cloud = WordCloud(self)
@@ -143,10 +143,10 @@ class ConfigAwareHelper:
         return self._asn
 
     @property
-    def rdap(self):
-        if self._rdap is None:
-            self._rdap = RDAPHelper(self)
-        return self._rdap
+    def whois(self):
+        if self._whois is None:
+            self._whois = WhoisHelper(self)
+        return self._whois
 
     @property
     def blasthttp(self):

@@ -1362,18 +1362,3 @@ async def test_asn_helper_circuit_breaker_resets_on_success(bbot_scanner, monkey
     assert result["asn"] == 15169
     assert asn_helper._consecutive_failures == 0
     assert not asn_helper._circuit_broken
-
-
-def test_parse_retry_after(helpers):
-    assert helpers.parse_retry_after("120") == 120.0
-    assert helpers.parse_retry_after(" 0.5 ") == 0.5
-    assert helpers.parse_retry_after(30) == 30.0
-    assert helpers.parse_retry_after("-5") == 0.0
-    assert helpers.parse_retry_after("Wed, 21 Oct 2015 07:28:00 GMT", now=1445412470) == 10.0
-    # dates in the past mean "retry now"
-    assert helpers.parse_retry_after("Wed, 21 Oct 2015 07:28:00 GMT", now=1445412490) == 0.0
-    assert helpers.parse_retry_after("soon") is None
-    assert helpers.parse_retry_after("nan") is None
-    assert helpers.parse_retry_after("inf") is None
-    assert helpers.parse_retry_after("") is None
-    assert helpers.parse_retry_after(None) is None
