@@ -1,6 +1,6 @@
 from .base import ModuleTestBase
 
-from bbot.test.whois_samples import whois_sample
+from bbot.test.whois_samples import whois_sample, whois_samples
 
 
 def mock_whois(module_test, samples):
@@ -8,7 +8,7 @@ def mock_whois(module_test, samples):
     queries = []
     helper = module_test.scan.helpers.whois
 
-    async def query(domain):
+    async def query(domain, **kwargs):
         queries.append(domain)
         return samples.get(domain)
 
@@ -33,17 +33,16 @@ class TestWhois(ModuleTestBase):
                 "edge.wikipedia.org": {"A": ["127.0.0.90"]},
             }
         )
-        self.queries = mock_whois(
-            module_test, {d: whois_sample(d) for d in ("github.com", "namecheap.com", "wikipedia.org")}
-        )
+        self.samples = whois_samples()
+        self.queries = mock_whois(module_test, self.samples)
 
     def check(self, module_test, events):
         registrations = [e for e in events if e.type == "DOMAIN_REGISTRATION"]
         hosts = sorted(e.data["host"] for e in registrations)
         # exactly one per registrable domain, even though github.com has several subdomains
-        assert hosts == ["github.com", "namecheap.com", "wikipedia.org"], hosts
+        assert hosts == sorted(self.samples), hosts
         # each domain is queried once, and names without a registrable domain never are
-        assert sorted(self.queries) == ["github.com", "namecheap.com", "wikipedia.org"], self.queries
+        assert sorted(self.queries) == sorted(self.samples), self.queries
         assert any(e.type == "DNS_NAME" and e.data == "host.local" for e in events)
         assert any(e.type == "DNS_NAME" and e.data == "co.uk" for e in events)
 

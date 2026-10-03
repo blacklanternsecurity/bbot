@@ -128,33 +128,25 @@ def parse_whois_date(value):
     return value.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def _first(value):
-    if isinstance(value, (list, tuple)):
-        return value[0] if value else None
-    return value
-
-
-def _first_date(value):
-    """Thick WHOIS repeats dates (registry first, then registrar, often truncated to midnight). Keep the registry's."""
-    for v in _as_list(value):
-        date = parse_whois_date(v)
-        if date:
-            return date
-    return None
-
-
-def _latest_date(value):
-    values = value if isinstance(value, (list, tuple)) else [value]
-    dates = sorted(d for d in (parse_whois_date(v) for v in values) if d)
-    return dates[-1] if dates else None
-
-
 def _as_list(value):
     if value is None:
         return []
     if isinstance(value, (list, tuple, set)):
         return list(value)
     return [value]
+
+
+def _dates(value):
+    return [d for d in map(parse_whois_date, _as_list(value)) if d]
+
+
+def _first_date(value):
+    """Thick WHOIS repeats dates (registry first, then registrar, often truncated to midnight). Keep the registry's."""
+    return next(iter(_dates(value)), None)
+
+
+def _latest_date(value):
+    return max(_dates(value), default=None)
 
 
 def normalize_status(value):
@@ -172,7 +164,7 @@ def normalize_status(value):
 
 
 def _clean(value):
-    value = _first(value)
+    value = next(iter(_as_list(value)), None)
     if not isinstance(value, str):
         return None
     value = value.strip()
@@ -274,45 +266,28 @@ class WhoisHelper:
 
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
-        self.timeout = 10
-        self.concurrency = 5
-        self._semaphore = None
         self._cache = {}
 
-    def configure(self, timeout=None, concurrency=None):
-        if timeout is not None:
-            self.timeout = timeout
-        if concurrency is not None:
-            self.concurrency = concurrency
-            self._semaphore = None
-
-    @property
-    def semaphore(self):
-        if self._semaphore is None:
-            self._semaphore = asyncio.Semaphore(self.concurrency)
-        return self._semaphore
-
-    def _query(self, domain):
-        return python_whois.whois(domain, quiet=True, inc_raw=True, timeout=self.timeout)
-
-    async def query(self, domain):
+    async def query(self, domain, **whois_kwargs):
         """Return raw WHOIS text for a domain, or None on failure."""
-        async with self.semaphore:
-            try:
-                entry = await self.parent_helper.run_in_executor_io(self._query, domain)
-            except PywhoisError as e:
-                log.debug(f"WHOIS lookup for {domain} failed: {e}")
-                return None
-            except Exception as e:
-                log.debug(f"Unexpected error during WHOIS lookup for {domain}: {e}")
-                return None
+        try:
+            entry = await self.parent_helper.run_in_executor_io(
+                python_whois.whois, domain, quiet=True, inc_raw=True, **whois_kwargs
+            )
+        except Exception as e:
+            log.debug(f"WHOIS lookup for {domain} failed: {e}")
+            return None
         return entry.get("raw") or getattr(entry, "text", None)
 
-    async def lookup(self, domain, include_raw=False):
-        """Look up and parse WHOIS registration data for a registrable domain. Returns None on failure."""
+    async def lookup(self, domain, include_raw=False, **whois_kwargs):
+        """
+        Look up and parse WHOIS registration data for a registrable domain. Returns None on failure.
+
+        Extra keyword arguments (e.g. timeout) go to python-whois.
+        """
         domain = domain.lower()
         if domain not in self._cache:
-            self._cache[domain] = asyncio.ensure_future(self.query(domain))
+            self._cache[domain] = asyncio.ensure_future(self.query(domain, **whois_kwargs))
         text = await self._cache[domain]
         if not text:
             return None
