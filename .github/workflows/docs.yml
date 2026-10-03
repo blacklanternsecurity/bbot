@@ -1,0 +1,58 @@
+name: docs
+
+on:
+  push:
+    branches:
+      - stable
+      - dev
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish_docs:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
+      - uses: actions/cache@v6
+        with:
+          key: mkdocs-material-${{ env.cache_id }}
+          path: .cache
+          restore-keys: |
+            mkdocs-material-
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+      - name: Install dependencies
+        run: uv sync --frozen --group docs
+      - name: Configure Git
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git fetch origin gh-pages:refs/remotes/origin/gh-pages
+          if git show-ref --verify --quiet refs/heads/gh-pages; then
+            git branch -f gh-pages origin/gh-pages
+          else
+            git branch --track gh-pages origin/gh-pages
+          fi
+      - name: Generate docs (stable branch)
+        if: github.ref == 'refs/heads/stable'
+        run: |
+          uv run --no-sync mike deploy Stable
+      - name: Generate docs (dev branch)
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          uv run --no-sync mike deploy Dev
+      - name: Publish docs
+        run: |
+          git switch gh-pages
+          git push

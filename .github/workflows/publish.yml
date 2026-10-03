@@ -1,0 +1,114 @@
+name: publish
+
+on:
+  push:
+    tags: ["v*", "!archive/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+      major: ${{ steps.version.outputs.major }}
+      minor: ${{ steps.version.outputs.minor }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+      - name: Tag matches the declared version
+        id: version
+        run: |
+          uv run --no-project --with packaging python - <<'EOF' >> "$GITHUB_OUTPUT"
+          import os, subprocess, sys
+          from packaging.version import Version
+          declared = Version(subprocess.check_output(["uv", "version", "--short"], text=True).strip())
+          tagged = Version(os.environ["GITHUB_REF_NAME"].removeprefix("v"))
+          if tagged != declared:
+              sys.exit(f"tag {tagged} does not match pyproject.toml {declared}")
+          print(f"version={declared}")
+          print(f"prerelease={str(declared.is_prerelease).lower()}")
+          print(f"major={declared.major}")
+          print(f"minor={declared.major}.{declared.minor}")
+          EOF
+
+  tests:
+    needs: version
+    uses: ./.github/workflows/tests.yml
+    secrets: inherit
+
+  pypi:
+    needs: [version, tests]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+      - run: uv build
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+
+  docker:
+    needs: [version, tests]
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        include:
+          - file: Dockerfile
+            suffix: ""
+          - file: Dockerfile.full
+            suffix: "-full"
+    env:
+      PRERELEASE: ${{ needs.version.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: blacklanternsecurity/bbot
+          flavor: |
+            latest=false
+            suffix=${{ matrix.suffix }}
+          tags: |
+            type=raw,value=${{ needs.version.outputs.version }}
+            type=raw,value=dev,enable=${{ env.PRERELEASE == 'true' }}
+            type=raw,value=latest,enable=${{ env.PRERELEASE == 'false' }}
+            type=raw,value=stable,enable=${{ env.PRERELEASE == 'false' }}
+            type=raw,value=${{ needs.version.outputs.minor }},enable=${{ env.PRERELEASE == 'false' }}
+            type=raw,value=${{ needs.version.outputs.major }},enable=${{ env.PRERELEASE == 'false' }}
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+
+  dockerhub-description:
+    needs: docker
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: peter-evans/dockerhub-description@1b9a80c056b620d92cedb9d9b5a223409c68ddfa # v5.0.0
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: blacklanternsecurity/bbot
