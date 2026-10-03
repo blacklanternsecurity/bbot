@@ -11,7 +11,6 @@ permissions:
   contents: read
 
 concurrency:
-  # a tests-only prefix, so publish.yml calling this workflow never shares (and cancels) its group
   group: tests-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
@@ -36,45 +35,15 @@ jobs:
   test:
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
-    runs-on: ubuntu-24.04
-    strategy:
-      # if one python version fails, let the others finish
-      fail-fast: false
-      matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Set up Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Set Python Version Environment Variable
-        run: echo "PYTHON_VERSION=${{ matrix.python-version }}" | sed 's|[:/]|_|g' >> $GITHUB_ENV
-      - name: Install uv
-        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
-      - name: Install dependencies
-        run: uv sync --group dev
-      - name: Lint
-        run: |
-          uv run ruff check
-          uv run ruff format --check
-      - name: Run tests
-        env:
-          BBOT_IO_API_KEY: ${{ secrets.BBOT_IO_API_KEY }}
-        run: |
-          uv run pytest -vv -n $(python bbot/test/worker_count.py) --dist loadgroup --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO --cov-config=bbot/test/coverage.cfg --cov-report xml:cov.xml --cov=bbot .
-      - name: Upload Debug Logs
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: pytest-debug-logs-${{ env.PYTHON_VERSION }}
-          path: pytest_debug.log
-      - name: Upload Code Coverage
-        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./cov.xml
-          verbose: true
+    uses: blacklanternsecurity/CLA/.github/workflows/python-tests.yml@883bfbc89464cadbeb10307b2b82891ba7853f56 # feat/shared-workflows
+    secrets: inherit
+    with:
+      uv-sync-args: --group dev
+      setup-script: bbot/test/ci_workers.sh
+      pytest-args: -vv --dist loadgroup --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO --cov-config=bbot/test/coverage.cfg --cov-report xml:cov.xml --cov=bbot .
+      secret-env: '["BBOT_IO_API_KEY"]'
+      coverage: true
+      artifacts: pytest_debug.log
 
   test_matrix:
     name: test matrix passed
@@ -82,8 +51,7 @@ jobs:
     needs: [test]
     runs-on: ubuntu-24.04
     steps:
-      - name: Fail unless every dependency succeeded
-        uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe # v1.2.2
+      - uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe # v1.2.2
         with:
           allowed-skips: test
           jobs: ${{ toJSON(needs) }}
