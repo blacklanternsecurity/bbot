@@ -46,6 +46,7 @@ from bbot.core.helpers import (
     get_file_extension,
 )
 from bbot.models.helpers import utc_datetime_validator
+from bbot.core.helpers.whois import parse_whois_date
 from bbot.core.helpers.web.envelopes import BaseEnvelope
 
 
@@ -1298,6 +1299,67 @@ class ASN(DictEvent):
 
     def _data_human(self):
         return f"AS{self.data['asn']}"
+
+
+class DOMAIN_REGISTRATION(DictHostEvent):
+    """
+    WHOIS registration data for a registrable domain, e.g. registrar, registrant org, and dates.
+
+    `host` is the registrable domain itself (e.g. "evilcorp.co.uk"), so there is one of these per domain.
+    """
+
+    # registrations of affiliate domains are a key shadow-IT signal, so they always reach output
+    _always_emit = True
+    _quick_emit = True
+
+    class _data_validator(BaseModel):
+        host: str
+        registrar: Optional[str] = None
+        registrar_iana_id: Optional[str] = None
+        registrant_org: Optional[str] = None
+        registrant_name: Optional[str] = None
+        registrant_email: Optional[str] = None
+        registrant_country: Optional[str] = None
+        registrant_redacted: bool = False
+        created: Optional[str] = None
+        updated: Optional[str] = None
+        expires: Optional[str] = None
+        nameservers: list[str] = []
+        status: list[str] = []
+        whois_server: Optional[str] = None
+        raw: Optional[str] = None
+        _validate_host = field_validator("host")(validators.validate_host)
+
+        @field_validator("created", "updated", "expires")
+        @classmethod
+        def _validate_date(cls, v):
+            if v is None:
+                return v
+            normalized = parse_whois_date(v)
+            if normalized is None:
+                raise ValueError(f"Invalid date: {v}")
+            return normalized
+
+        @field_validator("nameservers")
+        @classmethod
+        def _validate_nameservers(cls, v):
+            return sorted({str(ns).strip().strip(".").lower() for ns in v if str(ns).strip(". ")})
+
+    def _data_id(self):
+        return self.data["host"]
+
+    def _pretty_string(self):
+        registrar = self.data.get("registrar", "")
+        if registrar:
+            return f"{self.data['host']} ({registrar})"
+        return self.data["host"]
+
+    def _data_human(self):
+        parts = [self._pretty_string()]
+        registrant_org = self.data.get("registrant_org", "")
+        if registrant_org:
+            parts.append(f"registrant: {registrant_org}")
+        return " ".join(parts)
 
 
 class CODE_REPOSITORY(DictHostEvent):

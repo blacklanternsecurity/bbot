@@ -119,7 +119,8 @@
             148,
             149,
             153,
-            156
+            156,
+            161
         ],
         "produces": [
             6,
@@ -181,6 +182,15 @@
         "consumes": [],
         "produces": [
             150
+        ]
+    },
+    {
+        "id": 162,
+        "name": "DOMAIN_REGISTRATION",
+        "parent": 88888888,
+        "consumes": [],
+        "produces": [
+            161
         ]
     },
     {
@@ -2200,6 +2210,17 @@
         ],
         "produces": [
             20
+        ]
+    },
+    {
+        "id": 161,
+        "name": "whois",
+        "parent": 99999999,
+        "consumes": [
+            7
+        ],
+        "produces": [
+            162
         ]
     }
 ]
