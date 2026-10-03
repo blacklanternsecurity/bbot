@@ -20,8 +20,16 @@ def test_whois_parsing():
     assert github["created"] == "2007-10-09T18:20:50Z"
     # the registry's expiry wins over the registrar's midnight-truncated copy
     assert github["expires"] == "2028-10-09T18:20:50Z"
-    assert len(github["nameservers"]) == 8
-    assert "dns1.p08.nsone.net" in github["nameservers"]
+    assert github["nameservers"] == [
+        "dns1.p08.nsone.net",
+        "dns2.p08.nsone.net",
+        "dns3.p08.nsone.net",
+        "dns4.p08.nsone.net",
+        "ns-1283.awsdns-32.org",
+        "ns-1707.awsdns-21.co.uk",
+        "ns-421.awsdns-52.com",
+        "ns-520.awsdns-01.net",
+    ]
     assert github["status"] == ["client delete prohibited", "client transfer prohibited", "client update prohibited"]
     assert github["whois_server"] == "whois.markmonitor.com"
 
