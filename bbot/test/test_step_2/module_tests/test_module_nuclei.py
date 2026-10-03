@@ -233,6 +233,196 @@ def test_nuclei_classify_update_stderr():
     assert c(None) == "failure"
 
 
+def test_nuclei_budget_selection():
+    """Budget mode must only keep templates whose every request block fits inside the budget.
+
+    nuclei runs all of a template's request blocks, so a template that is only partly in-budget
+    still costs the requests of its remaining blocks.
+    """
+    from bbot.modules.nuclei import NucleiBudget
+
+    def clean_block(path):
+        return {"paths": [path], "clean": True}
+
+    summary = {
+        "a.yaml": {"severity": "high", "has_raw": False, "blocks": [clean_block("{{BaseURL}}")]},
+        "b.yaml": {"severity": "info", "has_raw": False, "blocks": [clean_block("{{BaseURL}}")]},
+        "c.yaml": {"severity": "info", "has_raw": False, "blocks": [clean_block("{{BaseURL}}/login")]},
+        "d.yaml": {"severity": "info", "has_raw": False, "blocks": [clean_block("{{BaseURL}}/login")]},
+        # in-budget path, but the block needs custom headers / a non-GET method / redirects,
+        # so nuclei can't merge it with anything
+        "dirty.yaml": {
+            "severity": "info",
+            "has_raw": False,
+            "blocks": [{"paths": ["{{BaseURL}}"], "clean": False}],
+        },
+        # one block in budget, one not
+        "mixed.yaml": {
+            "severity": "info",
+            "has_raw": False,
+            "blocks": [clean_block("{{BaseURL}}"), clean_block("{{BaseURL}}/expensive")],
+        },
+        # raw requests are never merged
+        "raw.yaml": {"severity": "info", "has_raw": True, "blocks": [clean_block("{{BaseURL}}")]},
+    }
+
+    budget_1 = NucleiBudget(summary, 1)
+    assert budget_1.budget_paths == {"{{BaseURL}}"}
+    assert budget_1.collapsible_templates == ["a.yaml", "b.yaml"]
+    assert budget_1.severity_stats == {"high": 1, "info": 1}
+    # a severity with no templates reads as zero rather than raising
+    assert budget_1.severity_stats["critical"] == 0
+
+    # raising the budget pulls in the next most common path
+    budget_2 = NucleiBudget(summary, 2)
+    assert budget_2.budget_paths == {"{{BaseURL}}", "{{BaseURL}}/login"}
+    assert budget_2.collapsible_templates == ["a.yaml", "b.yaml", "c.yaml", "d.yaml"]
+
+    # with every path in budget, mixed.yaml qualifies but dirty and raw still don't
+    budget_all = NucleiBudget(summary, 10)
+    assert "mixed.yaml" in budget_all.collapsible_templates
+    assert "dirty.yaml" not in budget_all.collapsible_templates
+    assert "raw.yaml" not in budget_all.collapsible_templates
+
+
+class TestNucleiProfile(TestNucleiRetries):
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {"nuclei": {"tags": "musictraveler", "profile": "recommended"}},
+    }
+
+    def check(self, module_test, events):
+        assert "-profile" in open(module_test.scan.home / "debug.log").read()
+
+
+class TestNucleiNewTemplates(TestNucleiRetries):
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {"nuclei": {"tags": "musictraveler", "new_templates": True}},
+    }
+
+    def check(self, module_test, events):
+        assert "-new-templates" in open(module_test.scan.home / "debug.log").read()
+
+
+class TestNucleiTemplateCondition(TestNucleiRetries):
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {"nuclei": {"tags": "musictraveler", "template_condition": "severity == 'info'"}},
+    }
+
+    def check(self, module_test, events):
+        assert "-template-condition" in open(module_test.scan.home / "debug.log").read()
+
+
+class TestNucleiTemplateFilters(TestNucleiRetries):
+    """Every straight-passthrough filter option reaches the nuclei command line."""
+
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "nuclei": {
+                "tags": "musictraveler",
+                "exclude_severity": "info",
+                "include_tags": "fuzz",
+                "template_ids": "CVE-2024-0012",
+                "exclude_ids": "CVE-2021-26855",
+                "protocol_types": "http",
+            }
+        },
+    }
+
+    def check(self, module_test, events):
+        log = open(module_test.scan.home / "debug.log").read()
+        for flag in (
+            "-exclude-severity info",
+            "-include-tags fuzz",
+            "-template-id CVE-2024-0012",
+            "-exclude-id CVE-2021-26855",
+            "-type http",
+        ):
+            assert flag in log, f"'{flag}' never reached the nuclei command line"
+
+
+class TestNucleiEnumDrift(TestNucleiRetries):
+    """Pin our hardcoded severity/protocol lists against what the nuclei binary actually accepts.
+
+    Those lists are literals inside the Config validator, because Config bodies are exec'd without
+    module globals. A nuclei version bump that adds a value would otherwise make BBOT reject a
+    config that nuclei supports, so fail here instead of in the field.
+    """
+
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {"nuclei": {"tags": "musictraveler"}},
+    }
+
+    def check(self, module_test, events):
+        import re
+        import subprocess
+        from bbot.scanner import Preset
+
+        nuclei_bin = module_test.scan.helpers.tools_dir / "nuclei"
+        result = subprocess.run([str(nuclei_bin), "-h"], capture_output=True, text=True)
+        help_text = result.stdout + result.stderr
+
+        def advertised(pattern):
+            match = re.search(rf"{pattern}.*?Possible values: (.+)", help_text)
+            assert match, f"could not find '{pattern}' in nuclei -h; the help format may have changed"
+            return [v.strip() for v in match.group(1).split(",") if v.strip()]
+
+        severities = advertised(r"-s, -severity value\[\]")
+        protocol_types = advertised(r"-pt, -type value\[\]")
+        assert severities and protocol_types
+
+        for option, values in (
+            ("severity", severities),
+            ("exclude_severity", severities),
+            ("protocol_types", protocol_types),
+        ):
+            for value in values:
+                preset = Preset(config={"modules": {"nuclei": {option: value}}})
+                # raises ValidationError if nuclei has added a value our validator doesn't know
+                preset.validate()
+
+        # and the validator is actually wired up, so the loop above isn't vacuously passing
+        with pytest.raises(Exception):
+            Preset(config={"modules": {"nuclei": {"severity": "notarealseverity"}}}).validate()
+
+
+@pytest.mark.asyncio
+async def test_nuclei_invalid_profile(caplog):
+    """An unknown profile makes nuclei print FTL and exit 0, so the module has to catch it itself."""
+    from bbot.errors import ScanError
+    from bbot.scanner import Scanner
+
+    scan = Scanner(
+        "127.0.0.1",
+        modules=["nuclei"],
+        config={"interactsh_disable": True, "modules": {"nuclei": {"profile": "definitelynotaprofile"}}},
+    )
+    with pytest.raises(ScanError):
+        await scan._prep()
+    assert "Invalid nuclei profile 'definitelynotaprofile'" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_nuclei_invalid_template_condition(caplog):
+    """nuclei treats an unrecognized field as a non-match rather than an error, so zero matching
+    templates is the only signal that the expression was wrong."""
+    from bbot.errors import ScanError
+    from bbot.scanner import Scanner
+
+    scan = Scanner(
+        "127.0.0.1",
+        modules=["nuclei"],
+        config={"interactsh_disable": True, "modules": {"nuclei": {"template_condition": "bogus_field == 1"}}},
+    )
+    with pytest.raises(ScanError):
+        await scan._prep()
+    assert "matched 0 templates" in caplog.text
+
+
 class TestNucleiCustomHeaders(TestNucleiManual):
     custom_headers = {"testheader1": "test1", "testheader2": "test2"}
     config_overrides = TestNucleiManual.config_overrides
