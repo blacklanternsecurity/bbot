@@ -5,13 +5,15 @@ Parsing lives in module-level functions so it can be used on raw WHOIS text with
 """
 
 import re
-import asyncio
 import logging
 from datetime import datetime, timezone
 
+from cachetools import LRUCache
 import whois as python_whois
 from whois.parser import WhoisEntry
 from whois.exceptions import PywhoisError
+
+from .async_helpers import async_cachedmethod
 
 log = logging.getLogger("bbot.core.helpers.whois")
 
@@ -60,7 +62,7 @@ _PLACEHOLDER_EMAIL_DOMAIN_REGEX = re.compile(
 _STATUS_CODE_REGEX = re.compile(r"^([A-Za-z]+)")
 _CAMEL_REGEX = re.compile(r"(?<=[a-z])(?=[A-Z])")
 _IANA_ID_REGEX = re.compile(r"^\s*Registrar IANA ID:\s*(\d+)", re.I | re.M)
-_REGISTRANT_EMAIL_REGEX = re.compile(r"^\s*Registrant Email:\s*(\S+@\S+)", re.I | re.M)
+_REGISTRANT_EMAIL_REGEX = re.compile(r"^\s*Registrant Email:\s*(\S.*?)\s*$", re.I | re.M)
 
 
 def is_placeholder(value):
@@ -191,6 +193,10 @@ def normalize_whois(domain, entry, text=""):
     raw_name = _clean(entry.get("name")) or _clean(entry.get("registrant_name"))
     email_match = _REGISTRANT_EMAIL_REGEX.search(text or "")
     raw_email = email_match.group(1) if email_match else None
+    # registrant email is often a web form link rather than an address, which means it's withheld
+    if raw_email and "@" not in raw_email:
+        raw_email = None
+        record["registrant_redacted"] = True
     raw_country = _clean(entry.get("country"))
     for field, value in (
         ("registrant_org", raw_org),
@@ -204,9 +210,6 @@ def normalize_whois(domain, entry, text=""):
             record["registrant_redacted"] = True
             continue
         record[field] = value
-    # registrant email is often a web form link rather than an address, which means it's withheld
-    if not email_match and re.search(r"^\s*Registrant Email:\s*\S", text or "", re.I | re.M):
-        record["registrant_redacted"] = True
     # if the registrant is a privacy service, the address (and therefore country) is the privacy service's too
     if is_proxy_service(raw_org) or (not record.get("registrant_org") and is_proxy_service(raw_name)):
         record.pop("registrant_country", None)
@@ -255,8 +258,8 @@ class WhoisHelper:
     """
     WHOIS domain registration lookups, accessible via `self.helpers.whois`.
 
-    Lookups run python-whois in a thread, are cached per domain for the lifetime of the scan, and are
-    limited by a semaphore. A failed lookup returns None; it never raises into the caller.
+    Lookups run python-whois in a thread and are cached per domain for the lifetime of the scan.
+    Concurrency is bounded by the calling module's threads. A failed lookup returns None; it never raises.
 
     Examples:
         >>> record = await self.helpers.whois.lookup("github.com")
@@ -266,8 +269,9 @@ class WhoisHelper:
 
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
-        self._cache = {}
+        self._cache = LRUCache(maxsize=10000)
 
+    @async_cachedmethod(lambda self: self._cache, key=lambda domain, **_: domain)
     async def query(self, domain, **whois_kwargs):
         """Return raw WHOIS text for a domain, or None on failure."""
         try:
@@ -286,9 +290,7 @@ class WhoisHelper:
         Extra keyword arguments (e.g. timeout) go to python-whois.
         """
         domain = domain.lower()
-        if domain not in self._cache:
-            self._cache[domain] = asyncio.ensure_future(self.query(domain, **whois_kwargs))
-        text = await self._cache[domain]
+        text = await self.query(domain, **whois_kwargs)
         if not text:
             return None
         record = parse_whois(domain, text)
