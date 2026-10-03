@@ -6,10 +6,10 @@ BBOT is a recursive, modular OSINT and attack surface scanner. Modules consume a
 
 | Concern | This repository |
 |---|---|
-| Language | Python 3.10 through 3.14 |
+| Language | Python, `requires-python` in pyproject.toml |
 | Package manager | uv |
 | Lint and format | ruff, pinned in pyproject.toml |
-| Tests | pytest with pytest-asyncio |
+| Tests | pytest, plugins in the `dev` group of pyproject.toml |
 
 ## Setup
 
@@ -20,9 +20,8 @@ uv sync --group dev && uv run pre-commit install
 ## Tests
 
 ```bash
-./bbot/test/run_tests.sh
-./bbot/test/run_tests.sh robots,sslcert
-pytest bbot/test/test_step_2/module_tests/test_module_robots.py -x -vv
+uv run pytest
+uv run pytest -k test_module_robots
 ```
 
 ## Standards
@@ -46,8 +45,11 @@ Never restate a standard here. If this file and a standard disagree, the standar
 
 | Document | Read it when |
 |---|---|
-| [docs/dev/module_reference.md](docs/dev/module_reference.md) | Writing or changing a module: architecture, events, attributes, lifecycle, helpers, module tests |
+| [docs/dev/module_howto.md](docs/dev/module_howto.md) | Writing or changing a module |
+| [bbot/modules/base.py](bbot/modules/base.py) | Looking up a module attribute, its default, or a `BaseModule` method |
+| [docs/dev/tests.md](docs/dev/tests.md) | Writing a module test, mocking HTTP or DNS |
+| [docs/dev/helpers/index.md](docs/dev/helpers/index.md) | Before writing utility code, `self.helpers` likely has it |
+| [docs/dev/architecture.md](docs/dev/architecture.md) | Touching the scanner, queues, or event flow |
 | [docs/dev/dev_environment.md](docs/dev/dev_environment.md) | Setting up from a fresh fork |
 
-- Module-specific code lives in the module. Shared patterns go in `bbot/modules/templates`.
-- Every module has one or more tests. No exceptions.
+Shared module patterns go in `bbot/modules/templates/`.

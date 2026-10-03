@@ -50,7 +50,6 @@ nav:
   - Core Dependencies: dev/core_dependencies.md
   - BBOT Internal Architecture: dev/architecture.md
   - How to Write a BBOT Module: dev/module_howto.md
-  - Module Reference: dev/module_reference.md
   - Validating & Inspecting Presets: dev/preset_validation.md
   - Unit Tests: dev/tests.md
   - Discord Bot Example: dev/discord_bot.md
