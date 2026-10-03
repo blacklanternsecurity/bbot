@@ -8,4 +8,4 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    uses: blacklanternsecurity/.github/.github/workflows/dependabot-auto-merge.yml@b51d74d4611e27f2a452472e0f9ef12e8926d41c # 2026-10-03
+    uses: blacklanternsecurity/CLA/.github/workflows/dependabot-auto-merge.yml@0654fbb8b305e452219b14480d31ff56efc74b73 # 2026-10-03
