@@ -2,16 +2,52 @@ version: 2
 updates:
   - package-ecosystem: "uv"
     directory: "/"
+    target-branch: "dev"
     schedule:
       interval: "weekly"
-    target-branch: "dev"
-    open-pull-requests-limit: 10
-  - package-ecosystem: github-actions
-    directory: /
     groups:
-      github-actions:
+      uv-minor-patch:
         patterns:
-          - "*"  # Group all Actions updates into a single larger pull request
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      uv-major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "dev"
     schedule:
-      interval: weekly
-    target-branch: "dev" 
+      interval: "weekly"
+    groups:
+      github-actions-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      github-actions-major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+  - package-ecosystem: "docker"
+    directory: "/"
+    target-branch: "dev"
+    schedule:
+      interval: "weekly"
+    groups:
+      docker-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      docker-major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
