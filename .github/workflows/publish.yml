@@ -119,10 +119,40 @@ jobs:
           repository: blacklanternsecurity/bbot
 
   release:
-    needs: [version, docker]
+    needs: [version, dockerhub-description]
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
-    uses: blacklanternsecurity/.github/.github/workflows/publish.yml@main
-    with:
-      manifest: pyproject.toml
-      images: '["blacklanternsecurity/bbot:${{ needs.version.outputs.version }}", "blacklanternsecurity/bbot:${{ needs.version.outputs.version }}-full"]'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          path: .
+          format: spdx-json
+          output-file: ${{ github.event.repository.name }}-${{ github.ref_name }}.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+      - uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          image: blacklanternsecurity/bbot:${{ needs.version.outputs.version }}
+          format: spdx-json
+          output-file: bbot-image-${{ github.ref_name }}.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+      - uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          image: blacklanternsecurity/bbot:${{ needs.version.outputs.version }}-full
+          format: spdx-json
+          output-file: bbot-image-full-${{ github.ref_name }}.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+      - name: GitHub Release with SBOMs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PRERELEASE=()
+          if [[ "$GITHUB_REF_NAME" == *-rc.* ]]; then PRERELEASE=(--prerelease); fi
+          gh release create "$GITHUB_REF_NAME" ./*.spdx.json \
+            --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes "${PRERELEASE[@]}"
