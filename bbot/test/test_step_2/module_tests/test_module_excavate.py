@@ -2186,3 +2186,93 @@ class TestContentDedupWithURLEvents(ModuleTestBase):
             "Both duplicate-content URLs were processed — content dedup failed for URL events"
         )
         assert len(consumer._content_dup_tracker) > 0, "Content dedup tracker should have entries"
+
+
+class TestExcavateLongRedirect(ModuleTestBase):
+    """A redirect carrying a body above the threshold is reported; one below it is not.
+
+    Browsers discard a 3xx body, so content delivered there is never displayed.
+    """
+
+    targets = [
+        f"{HTTPSERVER_URL}/longredirect",
+        f"{HTTPSERVER_URL}/shortredirect",
+        f"{HTTPSERVER_URL}/bigpage",
+    ]
+    modules_overrides = ["excavate", "http"]
+    config_overrides = {"web": {"spider_distance": 0, "spider_depth": 0}, "omit_event_types": []}
+
+    # Each body must be distinct: excavate's _avoid_duplicate_content drops a
+    # response whose body hash it has already seen, whatever its status code.
+    long_body = "<html><body>" + ("A" * 4096) + "</body></html>"
+    short_body = "<html><body>moved</body></html>"
+    non_redirect_body = "<html><body>" + ("B" * 4096) + "</body></html>"
+
+    async def setup_before_prep(self, module_test):
+        # above threshold, on a redirect: should be reported
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/longredirect"},
+            respond_args={
+                "response_data": self.long_body,
+                "status": 302,
+                "headers": {"Location": "/destination"},
+            },
+        )
+        # below threshold, on a redirect: should not be reported
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/shortredirect"},
+            respond_args={
+                "response_data": self.short_body,
+                "status": 302,
+                "headers": {"Location": "/destination"},
+            },
+        )
+        # above threshold but not a redirect: should not be reported
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/bigpage"},
+            respond_args={"response_data": self.non_redirect_body, "status": 200},
+        )
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING" and "Long Redirection Response" in str(e.data)]
+        reported = {e.data.get("url", "") for e in findings}
+
+        assert any("/longredirect" in u for u in reported), (
+            f"long redirect body was not reported, findings: {[f.data for f in findings]}"
+        )
+        assert not any("/shortredirect" in u for u in reported), (
+            "redirect body below the threshold should not be reported"
+        )
+        assert not any("/bigpage" in u for u in reported), "a 200 response should never be reported"
+
+        finding = next(f for f in findings if "/longredirect" in f.data.get("url", ""))
+        assert finding.data["severity"] == "INFO"
+        assert str(len(self.long_body)) in finding.data["description"], (
+            f"description should carry the decoded body length: {finding.data['description']}"
+        )
+
+
+class TestExcavateLongRedirectDisabled(ModuleTestBase):
+    """A threshold of 0 turns the check off."""
+
+    targets = [f"{HTTPSERVER_URL}/longredirect"]
+    modules_overrides = ["excavate", "http"]
+    config_overrides = {
+        "web": {"spider_distance": 0, "spider_depth": 0},
+        "omit_event_types": [],
+        "modules": {"excavate": {"long_redirect_threshold": 0}},
+    }
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/longredirect"},
+            respond_args={
+                "response_data": "<html><body>" + ("A" * 4096) + "</body></html>",
+                "status": 302,
+                "headers": {"Location": "/destination"},
+            },
+        )
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING" and "Long Redirection Response" in str(e.data)]
+        assert not findings, f"check should be disabled at threshold 0, got: {[f.data for f in findings]}"
