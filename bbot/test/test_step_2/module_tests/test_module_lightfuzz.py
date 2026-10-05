@@ -1527,7 +1527,15 @@ class Test_Lightfuzz_sqli_cookies(Test_Lightfuzz_sqli):
         """
 
     def request_handler(self, request):
-        return sqli_injectable_response(request.cookies.get("test"), self.placeholder_block)
+        # read the raw header rather than request.cookies: the cookie parser discards values
+        # containing spaces, which the boolean differential probes rely on
+        value = None
+        for pair in (request.headers.get("Cookie") or "").split(";"):
+            name, _, pair_value = pair.partition("=")
+            if name.strip() == "test":
+                value = pair_value.strip()
+                break
+        return sqli_injectable_response(value, self.placeholder_block)
 
     def check(self, module_test, events):
         sqli_finding_emitted = False
