@@ -37,12 +37,13 @@ class TestWAFBypass(ModuleTestBase):
         watched_events = ["DNS_NAME"]
         _name = "dummy_module"
         events_seen = []
+        protected_host = "protected.test"
 
         async def handle_event(self, event):
             if event.data == "protected.test":
                 await self.helpers.sleep(0.5)
                 self.events_seen.append(event.data)
-                url = f"http://protected.test:{HTTPSERVER_PORT}/"
+                url = f"http://{self.protected_host}:{HTTPSERVER_PORT}/"
                 url_event = self.scan.make_event(
                     url, "URL", parent=self.scan.root_event, tags=["cloudflare", "in-scope", "status-200"]
                 )
@@ -59,14 +60,14 @@ class TestWAFBypass(ModuleTestBase):
                 if url_event is not None:
                     await self.emit_event(url_event)
 
+    dns_mock = {
+        "protected.test": {"A": [PROTECTED_IP]},
+        "direct.test": {"A": [DIRECT_IP]},
+        "": {"A": []},
+    }
+
     async def setup_after_prep(self, module_test):
-        await module_test.mock_dns(
-            {
-                "protected.test": {"A": [self.PROTECTED_IP]},
-                "direct.test": {"A": [self.DIRECT_IP]},
-                "": {"A": []},
-            }
-        )
+        await module_test.mock_dns(self.dns_mock)
 
         self.module_test = module_test
 
@@ -136,6 +137,49 @@ class TestWAFBypass(ModuleTestBase):
             in e.data["description"]
         ]
         assert correct_description, "Incorrect description"
+
+
+class TestWAFBypassScanTargetsOnlySkip(TestWAFBypass):
+    """By default, a protected host that isn't a scan target is discovered but never attempted"""
+
+    PROTECTED_HOST = "sub.protected.test"
+
+    dns_mock = {
+        "protected.test": {"A": [TestWAFBypass.PROTECTED_IP]},
+        PROTECTED_HOST: {"A": [TestWAFBypass.PROTECTED_IP]},
+        "direct.test": {"A": [TestWAFBypass.DIRECT_IP]},
+        "": {"A": []},
+    }
+
+    class DummyModule(TestWAFBypass.DummyModule):
+        protected_host = "sub.protected.test"
+
+    def check(self, module_test, events):
+        module = module_test.scan.modules["waf_bypass"]
+        # candidate discovery is unaffected -- the host is still tracked, so its IP stays out of the candidate pool
+        assert self.PROTECTED_HOST in module.protected_domains, "Protected host was not discovered"
+        assert not module.content_fingerprints, "Non-target protected host should not be fingerprinted"
+        assert not module.attempted_bypass_pairs, "No bypasses should have been attempted"
+        assert not [e for e in events if e.type == "FINDING"], "FINDING produced for a non-target host"
+
+
+class TestWAFBypassAllHosts(TestWAFBypassScanTargetsOnlySkip):
+    """With scan_targets_only disabled, a protected host that isn't a scan target is still attempted"""
+
+    config_overrides = {
+        "scope": {"report_distance": 2},
+        "modules": {
+            "waf_bypass": {"search_ip_neighbors": True, "neighbor_cidr": 30, "scan_targets_only": False},
+        },
+    }
+
+    def check(self, module_test, events):
+        assert any(
+            e.type == "FINDING"
+            and f"WAF Bypass Confirmed - Direct IPs: 127.0.0.1 for http://{self.PROTECTED_HOST}:{HTTPSERVER_PORT}/"
+            in e.data["description"]
+            for e in events
+        ), "No bypass FINDING for the non-target protected host"
 
 
 class TestWAFBypassTagRecognition(ModuleTestBase):
