@@ -723,9 +723,13 @@ class WebHelper:
             return "retry"
         root_url = f"{scheme}://{host}:{port}/"
         try:
-            root_match, root_reasons, _, _ = await compare.compare(root_url)
+            root_match, root_reasons, _, root_response = await compare.compare(root_url, none_is_match=False)
         except HttpCompareError as e:
             log.debug(f"is_http_wildcard_host: root probe failed for {host}:{port}: {e}")
+            return "retry"
+        if root_response is None:
+            # a dead probe is unknown, not a wildcard verdict
+            log.debug(f"is_http_wildcard_host: root probe to {host}:{port} returned no response")
             return "retry"
         if not root_match:
             log.debug(

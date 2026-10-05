@@ -289,6 +289,8 @@ class WebConfig(BaseModel):
     http_retries: Optional[int] = None
     http_rate_limit: Optional[int] = None
     body_spill: Optional[BodySpillConfig] = None
+    nowafpls_padding_sizes: Optional[list[int]] = None
+    nowafpls_payload: Optional[str] = None
     # The `429_*` keys start with a digit, so we expose them via aliases.
     sleep_interval_429: Optional[int] = Field(default=None, alias="429_sleep_interval")
     max_sleep_interval_429: Optional[int] = Field(default=None, alias="429_max_sleep_interval")
@@ -395,6 +397,7 @@ class BBOTConfig(BaseModel):
     # URL handling
     url_querystring_remove: Optional[bool] = None
     url_querystring_collapse: Optional[bool] = None
+    url_max_path_param_repeats: Optional[int] = None
     url_extension_blacklist: Optional[list[str]] = None
     url_extension_special: Optional[list[str]] = None
     url_extension_static: Optional[list[str]] = None
