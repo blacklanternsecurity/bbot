@@ -5,22 +5,29 @@ class TestOtilabs(ModuleTestBase):
     config_overrides = {"modules": {"otilabs": {"api_key": "asdf"}}}
 
     async def setup_before_prep(self, module_test):
+        # The shape of a real ?wait=1 response for a domain the API hadn't looked up before: every
+        # source has finished, and only the live/historical split (live, live_count) is still being
+        # computed, which BBOT doesn't need because it resolves the names itself.
         module_test.blasthttp_mock.add_response(
-            url="https://domain-intelligence-api.p.rapidapi.com/domain/blacklanternsecurity.com/subdomains",
+            url="https://domain-intelligence-api.p.rapidapi.com/domain/blacklanternsecurity.com/subdomains?wait=1",
             match_headers={"x-rapidapi-host": "domain-intelligence-api.p.rapidapi.com", "x-rapidapi-key": "asdf"},
             json={
-                "domain": "blacklanternsecurity.com",
                 "count": 3,
-                "live_count": 1,
+                "live_count": None,
                 "returned": 3,
                 "subdomains": [
                     "asdf.blacklanternsecurity.com",
                     "zzzz.blacklanternsecurity.com",
                     "www.notblacklanternsecurity.com",
                 ],
-                "live": [{"host": "asdf.blacklanternsecurity.com", "ip": "1.2.3.4"}],
-                "pools": [],
-                "sources_used": ["certspotter: 2 found", "virustotal: 1 found"],
+                "sources_used": [
+                    "certspotter: 2 found",
+                    "virustotal: 2 found",
+                    "subfinder: 1 found",
+                    "crt.sh: unavailable",
+                    "liveness: enriching",
+                ],
+                "warnings": ["crt.sh: unavailable"],
             },
         )
 

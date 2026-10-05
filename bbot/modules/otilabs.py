@@ -29,8 +29,11 @@ class otilabs(subdomain_enum_apikey):
         return url, kwargs
 
     async def request_url(self, query):
-        url = f"{self.base_url}/domain/{self.helpers.quote(query)}/subdomains"
-        return await self.api_request(url)
+        # BBOT queries each domain once, so ask the API to wait for all of its sources (wait=1)
+        # instead of returning its fast partial snapshot. That takes 15-20 seconds for a domain
+        # the API hasn't seen before and is immediate when it's cached.
+        url = f"{self.base_url}/domain/{self.helpers.quote(query)}/subdomains?wait=1"
+        return await self.api_request(url, timeout=self.http_timeout_infrastructure + 20)
 
     async def parse_results(self, r, query):
         results = set()
