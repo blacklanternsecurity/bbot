@@ -24,7 +24,8 @@ class Elastic(webhook):
         password: str = Field("bbotislife", description="Elastic password", sensitive=True)
         timeout: int = Field(10, description="HTTP timeout")
         ssl_verify: bool | None = Field(
-            None, description="Verify SSL certificates (defaults to the global web.ssl_verify_infrastructure setting)"
+            False,
+            description="Verify SSL certificates (Elastic usually serves a self-signed cert; set to null to use the global web.ssl_verify_infrastructure setting)",
         )
 
     async def cleanup(self):
