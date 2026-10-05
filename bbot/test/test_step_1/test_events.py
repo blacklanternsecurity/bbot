@@ -175,6 +175,27 @@ async def test_events(events, helpers):
     )
     assert getattr(wp_no_ext, "url_extension", "NOT_SET") == "NOT_SET"
 
+    # url_extension: HTTP_RESPONSE events
+    # modules that filter on url_extension (e.g. paramminer, lightfuzz) rely on this being set
+    def _http_response(url):
+        return scan.make_event(
+            {"url": url, "raw_header": "HTTP/1.1 200 OK\r\n\r\n"},
+            "HTTP_RESPONSE",
+            dummy=True,
+        )
+
+    hr_pdf = _http_response("https://evilcorp.com/files/document.pdf?foo=bar")
+    assert getattr(hr_pdf, "url_extension", "") == "pdf"
+    assert "extension-pdf" in hr_pdf.tags
+    hr_no_ext = _http_response("https://evilcorp.com/search")
+    assert getattr(hr_no_ext, "url_extension", "NOT_SET") == "NOT_SET"
+
+    # special extensions (.js) must still reach modules that don't opt in to special URLs,
+    # since the response body has already been retrieved. the distribution behavior
+    # itself is pinned in test_modules_basic.py
+    hr_js = _http_response("https://evilcorp.com/app.js")
+    assert getattr(hr_js, "url_extension", "") == "js"
+
     # http response
     assert events.http_response.host == "example.com"
     assert events.http_response.port == 80
@@ -1466,4 +1487,73 @@ async def test_web_parameter_minimize_sentinel():
     # The sentinel must have prevented premature stripping
     assert "original_value" in event.data, "original_value stripped during distribution -- sentinel missing"
 
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_web_parameter_querystring_dedup():
+    """A parameter is identified by its name and type on a page, not by the query string of
+    the request that revealed it. url_querystring_collapse=False opts back in to treating
+    sibling parameter values as significant, so those scans fuzz each variant separately."""
+
+    def make_param(scan, url, name="message", param_type="POSTPARAM"):
+        return scan.make_event(
+            {
+                "host": "example.com",
+                "type": param_type,
+                "name": name,
+                "original_value": "",
+                "url": url,
+                "description": f"{param_type} [{name}]",
+            },
+            "WEB_PARAMETER",
+            parent=scan.root_event,
+        )
+
+    base = "https://example.com/contact"
+    rotating_value = f"{base}?csrf=a08157098935259&id=6"
+    rotating_name = f"{base}?csrf=c19ae748d80ed939&id=6&aYBNT794ROfpo=0978126345"
+
+    # collapse=True (the default, and what lightfuzz/lightfuzz-light inherit): a page that
+    # reissues a token on every load is still one work item
+    scan = Scanner("example.com", config={"url_querystring_remove": False, "url_querystring_collapse": True})
+    await scan._prep()
+    a = make_param(scan, f"{base}?csrf=7f01d97aec3100c7&id=6")
+    e = make_param(scan, rotating_value)
+    assert a.data_id == e.data_id, "rotating parameter values must collapse"
+    assert hash(a) == hash(e)
+    assert a._outgoing_dedup_hash(a) == e._outgoing_dedup_hash(e)
+    # ...and ordering is not identity either
+    assert make_param(scan, f"{base}?id=6&csrf=7f01d97aec3100c7").data_id == a.data_id
+
+    # a page that invents a new parameter NAME on every load does not collapse here. dedup
+    # structurally cannot fold those together, so lightfuzz's max_baseline_generations is
+    # what bounds that loop
+    assert make_param(scan, rotating_name).data_id != a.data_id
+
+    # parameter names are part of the page's identity, so a front controller's pages stay
+    # separate work items while their values do not
+    assert make_param(scan, f"{base}?page=admin").data_id != make_param(scan, f"{base}?action=delete").data_id
+    assert make_param(scan, f"{base}?page=admin").data_id == make_param(scan, f"{base}?page=login").data_id
+
+    # a blank value is still a parameter
+    assert make_param(scan, f"{base}?debug=&id=6").data_id != make_param(scan, f"{base}?id=6").data_id
+
+    # a different parameter, page, or parameter type is still its own work item
+    assert make_param(scan, base, name="subject").data_id != a.data_id
+    assert make_param(scan, "https://example.com/other").data_id != a.data_id
+    assert make_param(scan, base, param_type="GETPARAM").data_id != a.data_id
+    await scan._cleanup()
+
+    # collapse=False (lightfuzz-max, lightfuzz-xss): sibling values are significant again
+    scan = Scanner("example.com", config={"url_querystring_remove": False, "url_querystring_collapse": False})
+    await scan._prep()
+    c = make_param(scan, f"{base}?csrf=7f01d97aec3100c7&id=6")
+    assert make_param(scan, rotating_value).data_id != c.data_id
+    assert make_param(scan, rotating_name).data_id != c.data_id
+    assert make_param(scan, base).data_id != c.data_id
+    # ...but the key still does not depend on parameter ordering
+    assert make_param(scan, f"{base}?id=6&csrf=7f01d97aec3100c7").data_id == c.data_id
+    # a blank value is significant in the mode whose whole point is that values are
+    assert make_param(scan, f"{base}?debug=&id=6").data_id != make_param(scan, f"{base}?id=6").data_id
     await scan._cleanup()
