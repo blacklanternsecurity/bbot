@@ -1,5 +1,7 @@
 import time
+import threading
 import subprocess
+from types import SimpleNamespace
 from itertools import chain
 from importlib.metadata import version as installed_version
 
@@ -242,6 +244,112 @@ async def test_depsinstaller_batch_covers_satisfied_deps(monkeypatch, bbot_scann
     finally:
         for module_name in (*shared_modules, constrained_module):
             preloaded.pop(module_name, None)
+        await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_depsinstaller_ansible_failure_reports_stderr_and_cleans_artifacts(monkeypatch, bbot_scanner):
+    scan = bbot_scanner("127.0.0.1")
+    await scan._prep()
+    installer = scan.helpers.depsinstaller
+    from bbot.core.helpers.depsinstaller import installer as installer_module
+
+    artifact_dirs = []
+
+    def fake_run(**kwargs):
+        artifact = Path(kwargs["artifact_dir"]) / kwargs["ident"]
+        artifact.mkdir(parents=True)
+        artifact_dirs.append(artifact)
+        failed = {"event": "runner_on_failed", "event_data": {"res": {"stderr": "unarchive: bad tarball"}}}
+        return SimpleNamespace(status="failed", rc=2, events=[failed])
+
+    monkeypatch.setattr(installer_module, "run", fake_run)
+    try:
+        success, err = installer.ansible_run(module="command", args={"cmd": "true"})
+        assert success is False
+        assert err == "unarchive: bad tarball"
+        assert artifact_dirs and not artifact_dirs[0].exists()
+    finally:
+        await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_depsinstaller_discards_corrupt_fact_cache_on_each_install(monkeypatch, bbot_scanner, tmp_path):
+    """A fact cache entry corrupted after the installer was built must still be discarded, under install.lock."""
+    scan = bbot_scanner("127.0.0.1")
+    await scan._prep()
+    installer = scan.helpers.depsinstaller
+
+    fact_cache = tmp_path / "fact_cache"
+    fact_cache.mkdir()
+    lock_held_during_discard = []
+
+    async def mock_install_core_deps():
+        return
+
+    def lock_is_held():
+        with open(tmp_path / "install.lock", "w") as probe:
+            return not installer._try_lock(probe)
+
+    discard = installer._discard_corrupt_fact_cache
+
+    def tracking_discard():
+        lock_held_during_discard.append(lock_is_held())
+        discard()
+
+    monkeypatch.setattr(installer, "data_dir", tmp_path)
+    monkeypatch.setattr(installer, "setup_status_cache", tmp_path / "setup_status.json")
+    monkeypatch.setattr(installer, "ansible_fact_cache", fact_cache)
+    monkeypatch.setattr(installer, "_core_deps_cached", lambda: False)
+    monkeypatch.setattr(installer, "install_core_deps", mock_install_core_deps)
+    monkeypatch.setattr(installer, "_discard_corrupt_fact_cache", tracking_discard)
+    try:
+        for attempt in range(2):
+            corrupt = fact_cache / "localhost"
+            corrupt.write_text('{"ansible_facts": ')
+            valid = fact_cache / "otherhost"
+            valid.write_text('{"ansible_facts": {}}')
+            await installer.install("deps_test_no_such_module")
+            assert not corrupt.exists(), f"corrupt fact cache entry survived install #{attempt + 1}"
+            assert valid.exists()
+        assert lock_held_during_discard == [True, True]
+    finally:
+        await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_depsinstaller_concurrent_installs_share_one_event_loop(monkeypatch, bbot_scanner, tmp_path):
+    """
+    Two scans in one process each open their own install.lock fd. If the second takes the
+    flock synchronously while the first is suspended inside it, the loop thread blocks and
+    the first can never resume to release it.
+    """
+    scan = bbot_scanner("127.0.0.1")
+    await scan._prep()
+    installer = scan.helpers.depsinstaller
+
+    async def mock_install(*modules):
+        await asyncio.sleep(0.5)
+        return sorted(modules), []
+
+    monkeypatch.setattr(installer, "data_dir", tmp_path)
+    monkeypatch.setattr(installer, "setup_status_cache", tmp_path / "setup_status.json")
+    monkeypatch.setattr(installer, "_core_deps_cached", lambda: False)
+    monkeypatch.setattr(installer, "_install", mock_install)
+
+    results = []
+
+    async def both():
+        results.extend(await asyncio.gather(installer.install("a"), installer.install("b")))
+
+    # own loop on a daemon thread: a deadlocked loop cannot time itself out
+    worker = threading.Thread(target=asyncio.run, args=(both(),), daemon=True)
+    try:
+        worker.start()
+        worker.join(timeout=10)
+        assert not worker.is_alive(), "concurrent install() calls deadlocked the event loop on install.lock"
+        assert results == [(["a"], []), (["b"], [])]
+    finally:
         await scan._cleanup()
 
 
