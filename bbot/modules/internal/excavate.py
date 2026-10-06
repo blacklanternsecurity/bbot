@@ -141,8 +141,7 @@ def extract_params_location(location_header_value, original_parsed_url):
 _yara_identifier_regex = re.compile(r"[A-Za-z_]\w*")
 _yara_rule_modifiers = ("private", "global")
 
-_href_regex = re.compile(r"""<a\b[^>]*\bhref\s*=\s*["']([^"']+)["']""", re.I)
-_input_tag_regex = re.compile(r"<input\b", re.I)
+_html_end_regex = re.compile(r"</html\s*>", re.I)
 
 
 def _skip_yara_noncode(source, i):
@@ -539,7 +538,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         )
         long_redirect_threshold: int = Field(
             2048,
-            description="Minimum decoded body size, in bytes, for a 3xx response to be reported as a long redirection response. Set to 0 to disable the check.",
+            description="Minimum number of bytes following the end of the HTML document for a 3xx response to be reported as a long redirection response. Set to 0 to disable the check.",
         )
 
     scope_distance_modifier = None
@@ -548,30 +547,28 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     _module_threads = 6
 
     async def check_long_redirect(self, event, body):
-        """Report a redirect that carries a substantial body.
+        """Report a redirect whose body keeps going after the document ends.
 
         Browsers discard the body of a 3xx, so content delivered here is never
-        displayed. Occasionally it is the resource the redirect was meant to
-        withhold (CWE-698, Execution After Redirect).
+        displayed. A server that emits a redirect document and then keeps writing
+        has run the handler the redirect was meant to skip (CWE-698, Execution
+        After Redirect).
 
-        ``body`` is the decoded body; ``content_length`` reports the compressed
-        size and would undercount anything gzipped.
-
-        Size alone is not enough: most long redirect bodies are framework payload
-        or a notice page restating the redirect. The body must also be navigable
-        or interactive.
+        Body size on its own is not the signal: analytics payloads and notice
+        pages clear any byte threshold. Trailing content is measured on the
+        decoded body, since ``content_length`` reports the compressed size and
+        is absent from most of these responses.
         """
         threshold = self.long_redirect_threshold
         status_code = event.http_status
         location = event.data.get("location", "")
-        if not (threshold and location and 300 <= status_code < 400 and len(body) >= threshold):
+        if not (threshold and location and 300 <= status_code < 400):
             return
-
-        # A withheld resource is navigable or interactive: it links somewhere, or it
-        # takes input. Inlined analytics payloads and redirect notice pages are neither.
-        links = len(set(_href_regex.findall(body)))
-        inputs = len(_input_tag_regex.findall(body))
-        if links <= 10 and inputs <= 2:
+        document_end = _html_end_regex.search(body)
+        if not document_end:
+            return
+        trailing = len(body) - document_end.end()
+        if trailing < threshold:
             return
 
         await self.emit_event(
@@ -580,16 +577,15 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 "url": event.data.get("url", ""),
                 "name": "Long Redirection Response",
                 "description": (
-                    "Redirect carries a body no browser will display. "
-                    f"Status: [{status_code}] Location: [{location}] "
-                    f"Body length: [{len(body)}] Links: [{links}] Inputs: [{inputs}]"
+                    "Redirect kept writing after the document ended, delivering content no browser displays. "
+                    f"Status: [{status_code}] Location: [{location}] Trailing bytes: [{trailing}]"
                 ),
-                "severity": "INFO",
+                "severity": "LOW",
                 "confidence": "HIGH",
             },
             "FINDING",
             event,
-            context="{module} saw a {event.type} on a redirect response, which browsers never display",
+            context="{module} found content past the end of the document on a {event.type} redirect, which browsers never display",
         )
 
     def in_bl(self, value):
