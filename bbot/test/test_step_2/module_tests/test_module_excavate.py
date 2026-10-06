@@ -2189,24 +2189,46 @@ class TestContentDedupWithURLEvents(ModuleTestBase):
 
 
 class TestExcavateLongRedirect(ModuleTestBase):
-    """A redirect carrying a body above the threshold is reported; one below it is not.
+    """A redirect is reported only when its body is both long and renders something.
 
     Browsers discard a 3xx body, so content delivered there is never displayed.
+    Size alone is not enough: script payload and boilerplate notice pages clear
+    the byte threshold without withholding anything.
     """
 
     targets = [
         f"{HTTPSERVER_URL}/longredirect",
         f"{HTTPSERVER_URL}/shortredirect",
         f"{HTTPSERVER_URL}/bigpage",
+        f"{HTTPSERVER_URL}/scriptredirect",
+        f"{HTTPSERVER_URL}/noticeredirect",
+        f"{HTTPSERVER_URL}/formredirect",
     ]
     modules_overrides = ["excavate", "http"]
     config_overrides = {"web": {"spider_distance": 0, "spider_depth": 0}, "omit_event_types": []}
 
     # Each body must be distinct: excavate's _avoid_duplicate_content drops a
     # response whose body hash it has already seen, whatever its status code.
-    long_body = "<html><body>" + ("A" * 4096) + "</body></html>"
+    _nav = "".join(f"<a href='/page{i}'>link {i}</a>" for i in range(20))
+    # navigable: the shape of a real page delivered where a redirect was meant
+    long_body = "<html><body>" + _nav + ("A" * 4096) + "</body></html>"
     short_body = "<html><body>moved</body></html>"
-    non_redirect_body = "<html><body>" + ("B" * 4096) + "</body></html>"
+    non_redirect_body = "<html><body>" + _nav + ("B" * 4096) + "</body></html>"
+    # long, but all payload: an inlined analytics agent or framework bundle
+    script_body = "<html><body><script>" + ("x" * 5000) + "</script></body></html>"
+    # long, but it only restates the redirect: a notice page
+    notice_body = (
+        "<html><body>"
+        + ("<div class='pad' data-id='0123456789abcdef'></div>" * 60)
+        + "<p>Moved to <a href='/destination'>here</a>.</p></body></html>"
+    )
+    # barely navigable, but interactive: the resource itself, delivered on a redirect
+    form_body = (
+        "<html><body>"
+        + ("<div class='pad' data-id='fedcba9876543210'></div>" * 60)
+        + "<form><input name='user'><input name='pass'><input name='otp'><input type='submit'></form>"
+        + "</body></html>"
+    )
 
     async def setup_before_prep(self, module_test):
         # above threshold, on a redirect: should be reported
@@ -2232,6 +2254,33 @@ class TestExcavateLongRedirect(ModuleTestBase):
             expect_args={"method": "GET", "uri": "/bigpage"},
             respond_args={"response_data": self.non_redirect_body, "status": 200},
         )
+        # above threshold but neither navigable nor interactive: should not be reported
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/scriptredirect"},
+            respond_args={
+                "response_data": self.script_body,
+                "status": 302,
+                "headers": {"Location": "/destination"},
+            },
+        )
+        # above threshold but its only link is the redirect target: should not be reported
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/noticeredirect"},
+            respond_args={
+                "response_data": self.notice_body,
+                "status": 302,
+                "headers": {"Location": "/destination"},
+            },
+        )
+        # too few links to be navigable, but it takes input: should be reported
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/formredirect"},
+            respond_args={
+                "response_data": self.form_body,
+                "status": 302,
+                "headers": {"Location": "/destination"},
+            },
+        )
 
     def check(self, module_test, events):
         findings = [e for e in events if e.type == "FINDING" and "Long Redirection Response" in str(e.data)]
@@ -2244,11 +2293,23 @@ class TestExcavateLongRedirect(ModuleTestBase):
             "redirect body below the threshold should not be reported"
         )
         assert not any("/bigpage" in u for u in reported), "a 200 response should never be reported"
+        assert not any("/scriptredirect" in u for u in reported), (
+            "a body with no links and no inputs should not be reported"
+        )
+        assert not any("/noticeredirect" in u for u in reported), (
+            "a notice page whose only link is the redirect target should not be reported"
+        )
+        assert any("/formredirect" in u for u in reported), (
+            f"a redirect body carrying a form should be reported, findings: {[f.data for f in findings]}"
+        )
 
         finding = next(f for f in findings if "/longredirect" in f.data.get("url", ""))
         assert finding.data["severity"] == "INFO"
         assert str(len(self.long_body)) in finding.data["description"], (
             f"description should carry the decoded body length: {finding.data['description']}"
+        )
+        assert "Links: [20]" in finding.data["description"], (
+            f"description should carry the link count the gate used: {finding.data['description']}"
         )
 
 
@@ -2267,7 +2328,12 @@ class TestExcavateLongRedirectDisabled(ModuleTestBase):
         module_test.set_expect_requests(
             expect_args={"method": "GET", "uri": "/longredirect"},
             respond_args={
-                "response_data": "<html><body>" + ("A" * 4096) + "</body></html>",
+                "response_data": (
+                    "<html><body>"
+                    + "".join(f"<a href='/p{i}'>l{i}</a>" for i in range(20))
+                    + ("A" * 4096)
+                    + "</body></html>"
+                ),
                 "status": 302,
                 "headers": {"Location": "/destination"},
             },

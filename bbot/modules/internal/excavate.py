@@ -141,6 +141,9 @@ def extract_params_location(location_header_value, original_parsed_url):
 _yara_identifier_regex = re.compile(r"[A-Za-z_]\w*")
 _yara_rule_modifiers = ("private", "global")
 
+_href_regex = re.compile(r"""<a\b[^>]*\bhref\s*=\s*["']([^"']+)["']""", re.I)
+_input_tag_regex = re.compile(r"<input\b", re.I)
+
 
 def _skip_yara_noncode(source, i):
     """
@@ -553,25 +556,33 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
         ``body`` is the decoded body; ``content_length`` reports the compressed
         size and would undercount anything gzipped.
+
+        Size alone is not enough: most long redirect bodies are framework payload
+        or a notice page restating the redirect. The body must also be navigable
+        or interactive.
         """
-        if not self.long_redirect_threshold:
+        threshold = self.long_redirect_threshold
+        status_code = event.http_status
+        location = event.data.get("location", "")
+        if not (threshold and location and 300 <= status_code < 400 and len(body) >= threshold):
             return
-        status_code = event.data.get("status_code")
-        if not status_code or not (300 <= status_code < 400):
+
+        # A withheld resource is navigable or interactive: it links somewhere, or it
+        # takes input. Inlined analytics payloads and redirect notice pages are neither.
+        links = len(set(_href_regex.findall(body)))
+        inputs = len(_input_tag_regex.findall(body))
+        if links <= 10 and inputs <= 2:
             return
-        location = event.data.get("location")
-        if not location:
-            return
-        if len(body) < self.long_redirect_threshold:
-            return
+
         await self.emit_event(
             {
                 "host": str(event.host),
                 "url": event.data.get("url", ""),
                 "name": "Long Redirection Response",
                 "description": (
-                    f"Redirect carries a body no browser will display. "
-                    f"Status: [{status_code}] Location: [{location}] Body length: [{len(body)}]"
+                    "Redirect carries a body no browser will display. "
+                    f"Status: [{status_code}] Location: [{location}] "
+                    f"Body length: [{len(body)}] Links: [{links}] Inputs: [{inputs}]"
                 ),
                 "severity": "INFO",
                 "confidence": "HIGH",
