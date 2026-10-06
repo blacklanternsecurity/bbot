@@ -585,10 +585,14 @@ async def test_module_loading(bbot_scanner):
                 not_async.append(f.__qualname__)
     assert not not_async, f"non-async module methods: {not_async}"
 
-    # these dial a service in setup() and burn a 10 to 30s connect-retry budget without one
-    for module_name in ("rabbitmq", "postgres", "mysql"):
+    # these dial a service in setup() and burn a connect-retry budget or raise without one
+    for module_name in ("rabbitmq", "postgres", "mysql", "kafka"):
         scan2.modules.pop(module_name)
-    await scan2.setup_modules()
+    # returning False is a legitimate config-gated hard-fail, so only catch setup() raising,
+    # which _setup() alone marks by putting the module in an error state
+    results = await asyncio.gather(*[m._setup() for m in scan2.modules.values()])
+    raised = sorted(f"{module.name}: {msg}" for module, _, msg in results if module.errored)
+    assert not raised, f"module setup() raised: {raised}"
 
     await scan2._cleanup()
 
