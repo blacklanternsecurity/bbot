@@ -1208,7 +1208,7 @@ class DictHostEvent(DictEvent):
 
 
 class ClosestHostEvent(DictHostEvent):
-    # if a host/path/url isn't specified, this event type grabs it from the closest parent
+    # if a host isn't specified, this event type grabs host, port, url and path from the closest parent
     # inherited by FINDING
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1227,9 +1227,9 @@ class ClosestHostEvent(DictHostEvent):
                 # inherit closest host+port
                 if parent.host:
                     self.data["host"] = str(parent.host)
-                    self._port = parent.port
-                    # we do this to refresh the hash
+                    # we do this to refresh the hash (this also clears _port, so it must come first)
                     self.data = self.data
+                    self._port = parent.port
                     break
         # die if we still haven't found a host
         if not self.host and not self.data.get("path", ""):
@@ -1641,9 +1641,24 @@ class WEB_PARAMETER(DictHostEvent):
                 log.verbose(f"Error detecting envelopes for {self}: {e}")
         return data
 
+    def _dedup_url(self, url):
+        """The page the parameter lives on, with the query string reduced the way URL events
+        reduce theirs: parameter names are identity, their values are not unless
+        url_querystring_collapse is False. Ordering never is."""
+        base, sep, query = url.partition("?")
+        if not sep or self.scan is None:
+            return url
+        # keep_blank_values, or "?debug=" silently stops being a parameter
+        query_dict = parse_qs(query, keep_blank_values=True)
+        if self.scan.config.get("url_querystring_collapse", True):
+            kept = "|".join(sorted(query_dict.keys()))
+        else:
+            kept = "&".join(f"{k}={','.join(sorted(v))}" for k, v in sorted(query_dict.items()))
+        return f"{base}?{kept}"
+
     def _data_id(self):
         # dedupe by url:name:param_type
-        url = self.data.get("url", "")
+        url = self._dedup_url(self.data.get("url", ""))
         name = self.data.get("name", "")
         param_type = self.data.get("type", "")
         envelopes = getattr(self, "envelopes", "")
@@ -1655,7 +1670,7 @@ class WEB_PARAMETER(DictHostEvent):
         return hash(
             (
                 str(event.host),
-                event.data["url"],
+                event._dedup_url(event.data["url"]),
                 event.data.get("name", ""),
                 event.data.get("type", ""),
                 event.data.get("envelopes", ""),
@@ -2493,6 +2508,11 @@ def event_from_json(j):
 
         resolved_hosts = j.get("resolved_hosts", [])
         event._resolved_hosts = frozenset(resolved_hosts) if resolved_hosts else None
+
+        # some events (e.g. FINDING) carry a port that isn't derivable from their data
+        port = j.get("port", None)
+        if port is not None:
+            event._port = port
 
         http_title = j.get("http_title", "")
         if http_title:

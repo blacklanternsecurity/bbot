@@ -8,6 +8,7 @@ import orjson
 
 from bbot.core.helpers.misc import get_file_extension
 from bbot.core.helpers.validators import clean_url
+from bbot.core.helpers.web.response_event import response_to_event_dict
 from bbot.modules.templates.subdomain_enum import subdomain_enum
 from bbot.core.config.models import BaseModuleConfig, Field
 
@@ -734,7 +735,7 @@ rule akamai_bot_manager_url
             return False
         self._archive_bloom.add(response_url)
 
-        j = self.helpers.response_to_json(r)
+        j = response_to_event_dict(r, raw_url)
         if not j:
             self.verbose(f"Failed to parse archive response for {raw_url}")
             return False
@@ -768,11 +769,12 @@ rule akamai_bot_manager_url
         j["url"] = urlunparse((scheme, netloc, parsed_original.path or "/", "", parsed_original.query, ""))
         # store the archive URL for provenance — downstream modules can check this field
         j["archive_url"] = str(r.url)
-        # override host/port/scheme/path to match the original URL (response_to_json set them from archive.org)
         j["host"] = hostname
         j["port"] = port
         j["scheme"] = scheme
         j["path"] = parsed_original.path or "/"
+        # cert_info is archive.org's certificate, not the original target's
+        j.pop("cert_info", None)
 
         http_response = self.make_event(
             j,

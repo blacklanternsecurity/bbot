@@ -45,6 +45,18 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     with pytest.raises(ValueError):
         helpers.validators.clean_url("http://evilcorp,com")
 
+    # path parameters accumulate inside a path segment, and are keyed by name
+    assert helpers.max_path_param_repeats("http://evilcorp.com/;JSESSIONID=a") == 1
+    assert helpers.max_path_param_repeats("http://evilcorp.com/;JSESSIONID=a;JSESSIONID=b;jsessionid=c") == 3
+    assert helpers.max_path_param_repeats("http://evilcorp.com/app;a=1;b=2") == 1
+    assert helpers.max_path_param_repeats("http://evilcorp.com/app;a=1/b;c=2") == 1
+    # ordinary path segments are not parameters, however deep or repetitive the path
+    assert helpers.max_path_param_repeats("http://evilcorp.com/") == 0
+    assert helpers.max_path_param_repeats("http://evilcorp.com/foo/bar") == 0
+    assert helpers.max_path_param_repeats("http://evilcorp.com/" + "/".join(["a"] * 30)) == 0
+    # the query string is not part of the path
+    assert helpers.max_path_param_repeats("http://evilcorp.com/foo?x=1&x=2&x=3") == 0
+
     assert helpers.url_depth("http://evilcorp.com/asdf/user/") == 2
     assert helpers.url_depth("http://evilcorp.com/asdf/user") == 2
     assert helpers.url_depth("http://evilcorp.com/asdf/") == 1

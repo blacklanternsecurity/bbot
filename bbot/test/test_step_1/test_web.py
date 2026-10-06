@@ -152,21 +152,21 @@ async def test_web_request_rejects_conflicting_body_kwargs(bbot_scanner):
 
 @pytest.mark.asyncio
 async def test_web_helpers(bbot_scanner, bbot_httpserver, blasthttp_mock):
-    # json conversion
+    # response-to-event-dict conversion
+    from bbot.core.helpers.web.response_event import response_to_event_dict
+
     scan = bbot_scanner("evilcorp.com")
     await scan._prep()
     url = "http://www.evilcorp.com/json_test?a=b"
     blasthttp_mock.add_response(url=url, text="hello\nworld")
     response = await scan.helpers.web.request(url)
-    j = scan.helpers.response_to_json(response)
+    j = response_to_event_dict(response, url)
     assert j["status_code"] == 200
     assert j["host"] == "www.evilcorp.com"
-    assert j["scheme"] == "http"
     assert j["method"] == "GET"
-    assert j["port"] == 80
     assert j["path"] == "/json_test"
     assert j["body"] == "hello\nworld"
-    assert j["content_type"] == "text/plain"
+    assert j["content_type"].startswith("text/plain")
     assert j["url"] == "http://www.evilcorp.com/json_test?a=b"
 
     await scan._cleanup()
@@ -675,10 +675,8 @@ async def test_web_decode_error(bbot_scanner, bbot_httpserver):
     assert r1.status_code == 200
     assert r1.decode_error
 
-    # both HTTP_RESPONSE dict builders carry that reason forward
     j1 = response_to_event_dict(r1, HTTPSERVER_HOSTPORT)
     assert j1["decode_error"] == r1.decode_error
-    assert scan.helpers.response_to_json(r1)["decode_error"] == r1.decode_error
 
     # those bytes are not content, so they are not offered as a body or a title
     assert j1["body"] == ""
@@ -693,7 +691,6 @@ async def test_web_decode_error(bbot_scanner, bbot_httpserver):
     assert r2.decode_error is None
     j2 = response_to_event_dict(r2, HTTPSERVER_HOSTPORT)
     assert "decode_error" not in j2
-    assert "decode_error" not in scan.helpers.response_to_json(r2)
     event2 = scan.make_event(j2, "HTTP_RESPONSE", parent=scan.root_event)
     assert event2.data["title"] == "real body"
 
