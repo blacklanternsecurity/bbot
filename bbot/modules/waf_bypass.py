@@ -16,6 +16,8 @@ class waf_bypass(BaseModule):
 
         In finish(), we test if WAF-protected content can be accessed directly via IPs from non-protected domains.
         Optionally, it explores IP neighbors within the same ASN to find additional bypass candidates.
+
+        The `scan_targets_only` option narrows which protected hosts are attempted (candidate discovery is unaffected).
     """
 
     watched_events = ["URL"]
@@ -36,6 +38,10 @@ class waf_bypass(BaseModule):
             ge=1,
             description="Maximum number of concurrent bypass-attempt HTTP checks in finish()",
         )
+        scan_targets_only: bool = Field(
+            True,
+            description="Only attempt bypasses against WAF-protected hosts that were explicitly specified as scan targets",
+        )
 
     meta = {
         "description": "Detects potential WAF bypasses",
@@ -51,6 +57,17 @@ class waf_bypass(BaseModule):
         self.similarity_threshold = self.config.get("similarity_threshold", 0.90)
         self.search_ip_neighbors = self.config.get("search_ip_neighbors", True)
         self.neighbor_cidr = int(self.config.get("neighbor_cidr", 24))
+
+        # When scan_targets_only is enabled (the default), only hosts named verbatim in the scan's targets/seeds are
+        # attempted. Strict scope means a target of "evilcorp.com" won't match "www.evilcorp.com".
+        self.explicit_targets = None
+        if self.config.get("scan_targets_only", True):
+            self.explicit_targets = self.helpers.make_target(
+                *self.scan.target.target.event_seeds,
+                *self.scan.target.seeds.event_seeds,
+                strict_scope=True,
+            )
+            self.verbose(f"Restricting bypass attempts to {len(self.explicit_targets)} explicit scan target(s)")
 
         # Keep track of (protected_domain, ip) pairs we have already attempted to bypass
         self.attempted_bypass_pairs = set()
@@ -101,6 +118,11 @@ class waf_bypass(BaseModule):
             self.protected_domains[domain] = event
             self.debug(f"Found {provider_name}-protected domain: {domain}")
 
+            # ineligible hosts still count towards candidate discovery, they just aren't fingerprinted or attempted
+            if not self.bypass_eligible(domain):
+                self.debug(f"Skipping {domain}: not an explicit scan target")
+                return
+
             response = await self.get_url_content(url)
             if not response:
                 self.debug(f"Failed to get response from protected URL {url}")
@@ -118,6 +140,10 @@ class waf_bypass(BaseModule):
                 "http_code": response.status_code,
             }
             self.debug(f"Stored simhash of response from {url} (content length: {len(response.text)})")
+
+    def bypass_eligible(self, host):
+        """Whether a WAF-protected host is allowed to be attempted (all of them if scan_targets_only is disabled)"""
+        return self.explicit_targets is None or host in self.explicit_targets
 
     async def get_url_content(self, url, ip=None):
         """Helper function to fetch content from a URL, optionally through specific IP"""
@@ -173,6 +199,10 @@ class waf_bypass(BaseModule):
 
     async def finish(self):
         self.verbose(f"Found {len(self.protected_domains)} Protected Domains")
+
+        eligible_domains = {d: e for d, e in self.protected_domains.items() if self.bypass_eligible(d)}
+        if self.explicit_targets is not None:
+            self.verbose(f"{len(eligible_domains)} of them are explicit scan targets and will be attempted")
 
         confirmed_bypasses = []  # [(protected_url, matching_ip, similarity)]
         ip_bypass_candidates = {}  # {ip: domain}
@@ -239,7 +269,7 @@ class waf_bypass(BaseModule):
         coros = []
         new_pairs_count = 0
 
-        for protected_domain, source_event in self.protected_domains.items():
+        for protected_domain, source_event in eligible_domains.items():
             for ip, src in ip_bypass_candidates.items():
                 combo = (protected_domain, ip)
                 if combo in self.attempted_bypass_pairs:

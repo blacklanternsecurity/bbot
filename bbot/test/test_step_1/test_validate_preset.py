@@ -325,9 +325,40 @@ def test_validate_preset_baddns_subclass_severity_is_validated():
     assert "Expected one of" in errs[0].message
 
 
-def test_validate_preset_shodan_idb_retries_is_int():
-    """shodan_idb.retries is numeric; the natural `retries: 3` must validate (was typed str)."""
-    assert validate_preset({"config": {"modules": {"shodan_idb": {"retries": 3}}}}) == []
+def test_validate_preset_deprecated_options_still_validate():
+    """Deprecated options are ignored, but presets that still set them must keep validating."""
+    for module in ("shodan_idb", "discord", "slack", "teams"):
+        assert validate_preset({"config": {"modules": {module: {"retries": 3}}}}) == []
+
+
+def test_deprecated_options_have_no_defaults():
+    from bbot.core.modules import MODULE_LOADER
+
+    for module in ("shodan_idb", "discord", "slack", "teams"):
+        assert "retries" not in MODULE_LOADER.preloaded()[module]["config"]
+
+
+def test_find_deprecated_config():
+    from bbot.core.modules import MODULE_LOADER
+    from bbot.core.config.models import find_deprecated_config
+
+    config = {
+        "web": {"http_retries": 1},
+        "modules": {"slack": {"retries": 5, "webhook_url": "https://example.com"}, "shodan_idb": {"retries": 2}},
+    }
+    assert sorted(find_deprecated_config(config, MODULE_LOADER.config_schema)) == [
+        "modules.shodan_idb.retries",
+        "modules.slack.retries",
+    ]
+    assert find_deprecated_config({"modules": {"slack": {"webhook_url": "x"}}}, MODULE_LOADER.config_schema) == []
+
+
+async def test_deprecated_option_warns_at_scan_start(caplog):
+    from bbot.scanner import Scanner
+
+    scan = Scanner(config={"modules": {"shodan_idb": {"retries": 3}}})
+    await scan._prep()
+    assert 'Config option "modules.shodan_idb.retries" is deprecated and will be ignored' in caplog.text
 
 
 def test_validate_preset_lightfuzz_avoid_wafs_accepts_bool():

@@ -19,11 +19,17 @@ class webhook(BaseOutputModule):
         password: str = Field("", description="Password (basic auth)", sensitive=True)
         headers: dict = Field({}, description="Additional headers to send with the request", sensitive=True)
         timeout: int = Field(10, description="HTTP timeout")
+        ssl_verify: bool | None = Field(
+            None, description="Verify SSL certificates (defaults to the global web.ssl_verify_infrastructure setting)"
+        )
 
     async def setup(self):
         self.url = self.config.get("url", "")
         self.method = self.config.get("method", "POST")
         self.timeout = self.config.get("timeout", 10)
+        self.ssl_verify = self.config.get("ssl_verify", None)
+        if self.ssl_verify is None:
+            self.ssl_verify = self.helpers.web.ssl_verify_infrastructure
         self.headers = dict(self.config.get("headers") or {})
         bearer = self.config.get("bearer", "")
         if bearer:
@@ -42,27 +48,13 @@ class webhook(BaseOutputModule):
         return True
 
     async def handle_event(self, event):
-        while 1:
-            event_json = event.json()
-            event_pydantic = Event(**event_json)
-            event_json = event_pydantic.model_dump(exclude_none=True)
-            response = await self.helpers.request(
-                url=self.url,
-                method=self.method,
-                auth=self.auth,
-                headers=self.headers,
-                json=event_json,
-            )
-            is_success = False if response is None else response.is_success
-            if not is_success:
-                status_code = getattr(response, "status_code", 0)
-                self.warning(f"Error sending {event} (HTTP status code: {status_code}), retrying...")
-                body = getattr(response, "text", "")
-                self.debug(body)
-                if status_code == 429:
-                    sleep_interval = 10
-                else:
-                    sleep_interval = 1
-                await self.helpers.sleep(sleep_interval)
-                continue
-            break
+        event_json = Event(**event.json()).model_dump(exclude_none=True)
+        await self.api_request(
+            url=self.url,
+            method=self.method,
+            auth=self.auth,
+            headers=dict(self.headers),
+            json=event_json,
+            timeout=self.timeout,
+            ssl_verify=self.ssl_verify,
+        )
