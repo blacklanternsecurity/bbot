@@ -544,13 +544,14 @@ def pytest_sessionfinish(session, exitstatus):
     # worker to finish would otherwise delete the directory out from under
     # every worker still running.
     shutil.rmtree(BBOT_TEST_DIR, ignore_errors=True)
-    # the xdist controller finishes last, after every worker is done with the shared deps.
-    # The preload cache is saved there at exit, so stop that first or it outlives the run.
-    if not worker_id():
-        import atexit
-        from bbot.core.modules import MODULE_LOADER
+    # The preload cache is saved into the shared dir at exit, and worker processes can
+    # exit after the controller below has removed it, so no process may save it.
+    import atexit
+    from bbot.core.modules import MODULE_LOADER
 
-        atexit.unregister(MODULE_LOADER.save_preload_cache)
+    atexit.unregister(MODULE_LOADER.save_preload_cache)
+    # the xdist controller finishes last, after every worker is done with the shared deps
+    if not worker_id():
         shutil.rmtree(BBOT_TEST_SHARED_DIR, ignore_errors=True)
 
     # Ensure stdout/stderr are blocking before pytest writes summaries
