@@ -13,10 +13,13 @@ concurrency:
 
 jobs:
   check:
-    uses: blacklanternsecurity/CLA/.github/workflows/release-check.yml@e532142ee9e7322888f6edc80d9a89e2f8c0d96d # feat/shared-workflows
+    uses: blacklanternsecurity/CLA/.github/workflows/release-check.yml@de82726743e51ac51a1be31196d893312a9fea59 # main
 
   tests:
     needs: check
+    permissions:
+      contents: read
+      pull-requests: read
     uses: ./.github/workflows/tests.yml
     secrets: inherit
 
@@ -37,7 +40,7 @@ jobs:
 
   docker:
     needs: [check, pypi]
-    uses: blacklanternsecurity/CLA/.github/workflows/docker.yml@e532142ee9e7322888f6edc80d9a89e2f8c0d96d # feat/shared-workflows
+    uses: blacklanternsecurity/CLA/.github/workflows/docker.yml@de82726743e51ac51a1be31196d893312a9fea59 # main
     secrets: inherit
     with:
       image: ${{ github.repository }}
@@ -51,7 +54,7 @@ jobs:
     needs: [check, docker]
     permissions:
       contents: write
-    uses: blacklanternsecurity/CLA/.github/workflows/publish.yml@e532142ee9e7322888f6edc80d9a89e2f8c0d96d # feat/shared-workflows
+    uses: blacklanternsecurity/CLA/.github/workflows/publish.yml@de82726743e51ac51a1be31196d893312a9fea59 # main
     with:
       version: ${{ needs.check.outputs.version }}
       prerelease: ${{ needs.check.outputs.prerelease }}

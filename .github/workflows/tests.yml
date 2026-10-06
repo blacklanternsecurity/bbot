@@ -35,7 +35,7 @@ jobs:
   test:
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
-    uses: blacklanternsecurity/CLA/.github/workflows/python-tests.yml@e532142ee9e7322888f6edc80d9a89e2f8c0d96d # feat/shared-workflows
+    uses: blacklanternsecurity/CLA/.github/workflows/python-tests.yml@de82726743e51ac51a1be31196d893312a9fea59 # main
     secrets: inherit
     with:
       uv-sync-args: --group dev
@@ -48,10 +48,10 @@ jobs:
   test_matrix:
     name: test matrix passed
     if: always()
-    needs: [test]
+    needs: [changes, test]
     runs-on: ubuntu-24.04
     steps:
       - uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe # v1.2.2
         with:
-          allowed-skips: test
+          allowed-skips: changes, test
           jobs: ${{ toJSON(needs) }}
