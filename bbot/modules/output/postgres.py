@@ -20,7 +20,7 @@ class Postgres(SQLTemplate):
             10, description="Number of times to retry connecting to the database (1 second between retries)"
         )
 
-    deps_pip = ["sqlmodel", "asyncpg"]
+    deps_pip = ["sqlmodel[asyncio]", "asyncpg"]
     protocol = "postgresql+asyncpg"
 
     async def create_database(self):
