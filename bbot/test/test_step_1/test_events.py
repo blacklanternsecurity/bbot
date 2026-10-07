@@ -516,6 +516,42 @@ async def test_events(events, helpers):
     assert tech_event.data["technology"] == "http"
     assert tech_event.port == 80
 
+    # domain registration: host is normalized, dates are normalized to UTC, nameservers are sorted
+    registration_event = scan.make_event(
+        {
+            "host": "EvilCorp.co.uk",
+            "registrar": "Evil Registrar",
+            "registrant_org": "Evil Corp",
+            "created": "2001-01-13T02:12:14.754+02:00",
+            "nameservers": ["NS2.EVILCORP.COM.", "ns1.evilcorp.com", "ns1.evilcorp.com"],
+            "status": ["client transfer prohibited"],
+        },
+        "DOMAIN_REGISTRATION",
+        parent=scan.root_event,
+    )
+    assert registration_event.host == "evilcorp.co.uk"
+    assert registration_event.data["created"] == "2001-01-13T00:12:14Z"
+    assert registration_event.data["nameservers"] == ["ns1.evilcorp.com", "ns2.evilcorp.com"]
+    assert registration_event.data["registrant_redacted"] is False
+    assert "registrant_email" not in registration_event.data
+    assert registration_event.data_id == "evilcorp.co.uk"
+    assert registration_event.pretty_string == "evilcorp.co.uk (Evil Registrar)"
+    assert registration_event.data_human == "evilcorp.co.uk (Evil Registrar) registrant: Evil Corp"
+    assert registration_event.always_emit
+    # survives a JSON round-trip
+    from bbot.core.event import event_from_json
+
+    reconstituted = event_from_json(registration_event.json())
+    assert reconstituted.type == "DOMAIN_REGISTRATION"
+    assert reconstituted.data == registration_event.data
+    # must have a host, and dates must be valid
+    with pytest.raises(ValidationError, match=".*host.*\n.*Field required.*"):
+        scan.make_event({"registrar": "Evil Registrar"}, "DOMAIN_REGISTRATION", dummy=True)
+    with pytest.raises(ValidationError, match=".*Invalid date.*"):
+        scan.make_event({"host": "evilcorp.com", "expires": "tomorrow"}, "DOMAIN_REGISTRATION", dummy=True)
+    with pytest.raises(ValidationError, match=".*Invalid date.*"):
+        scan.make_event({"host": "evilcorp.com", "updated": "yesterday"}, "DOMAIN_REGISTRATION", dummy=True)
+
     # test tagging
     ip_event_1 = scan.make_event("8.8.8.8", dummy=True)
     assert "private-ip" not in ip_event_1.tags
