@@ -1,0 +1,32 @@
+description: Run domino with all but the most benign rules, utilize the spider to find additional endpoints
+
+include:
+  - spider
+
+modules:
+  - http
+  - domino
+
+config:
+  modules:
+    domino:
+      rules:
+        - xss-basic
+        - xss-onclick-getparam
+        - xss-onclick-hash
+        - xss-referer
+        - xss-windowname
+        - xss-interaction
+        - xss-postmessage
+        - xss-js
+        - get-parameter-discovery
+        - prototype-pollution
+        - remote-include
+        - remote-include-get-parameters
+        - jquery
+        - eval
+        - transform
+        - get-parameter-transform
+        - html-injection
+        - remote-include
+        - remote-include-get-parameters
