@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.1_o1u4ip.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.k2t3ac7k.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -2812,12 +2812,6 @@ Is the same as:
 <td>True</td>
 </tr>
 <tr>
-<td>modules.shodan_idb.retries</td>
-<td>Optional[int]</td>
-<td>How many times to retry API requests (e.g. after a 429 error). Overrides the global web.api_retries setting.</td>
-<td>None</td>
-</tr>
-<tr>
 <td>modules.subdomainradar.api_key</td>
 <td>str | list[str]</td>
 <td>SubDomainRadar.io API key</td>
@@ -2917,7 +2911,7 @@ Is the same as:
 <td>modules.trufflehog.version</td>
 <td>str</td>
 <td>trufflehog version</td>
-<td>3.97.9</td>
+<td>3.98.0</td>
 </tr>
 <tr>
 <td>modules.urlscan.urls</td>
@@ -3004,12 +2998,6 @@ Is the same as:
 <td>LOW</td>
 </tr>
 <tr>
-<td>modules.discord.retries</td>
-<td>int</td>
-<td>Number of times to retry sending the message before skipping the event</td>
-<td>10</td>
-</tr>
-<tr>
 <td>modules.discord.webhook_url</td>
 <td>str</td>
 <td>Discord webhook URL</td>
@@ -3020,6 +3008,12 @@ Is the same as:
 <td>str</td>
 <td>Elastic password</td>
 <td>bbotislife</td>
+</tr>
+<tr>
+<td>modules.elastic.ssl_verify</td>
+<td>bool | None</td>
+<td>Verify SSL certificates (Elastic usually serves a self-signed cert; set to null to use the global web.ssl_verify_infrastructure setting)</td>
+<td>False</td>
 </tr>
 <tr>
 <td>modules.elastic.timeout</td>
@@ -3220,12 +3214,6 @@ Is the same as:
 <td>LOW</td>
 </tr>
 <tr>
-<td>modules.slack.retries</td>
-<td>int</td>
-<td>Number of times to retry sending the message before skipping the event</td>
-<td>10</td>
-</tr>
-<tr>
 <td>modules.slack.webhook_url</td>
 <td>str</td>
 <td>Slack webhook URL</td>
@@ -3328,12 +3316,6 @@ Is the same as:
 <td>LOW</td>
 </tr>
 <tr>
-<td>modules.teams.retries</td>
-<td>int</td>
-<td>Number of times to retry sending the message before skipping the event</td>
-<td>10</td>
-</tr>
-<tr>
 <td>modules.teams.webhook_url</td>
 <td>str</td>
 <td>Teams webhook URL</td>
@@ -3392,6 +3374,12 @@ Is the same as:
 <td>str</td>
 <td>Password (basic auth)</td>
 <td></td>
+</tr>
+<tr>
+<td>modules.webhook.ssl_verify</td>
+<td>bool | None</td>
+<td>Verify SSL certificates (defaults to the global web.ssl_verify_infrastructure setting)</td>
+<td>None</td>
 </tr>
 <tr>
 <td>modules.webhook.timeout</td>
