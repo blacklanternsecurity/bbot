@@ -166,7 +166,9 @@ Below is a full list of event types along with which modules produce/consume the
 
 ## WHOIS Enrichment
 
-WHOIS registration data for a registrable domain (e.g. `evilcorp.co.uk`, never a subdomain) can be attached to in-scope `DNS_NAME` events, parsed with [python-whois](https://github.com/richardpenman/whois). It is useful for spotting shadow IT: which registrars a company uses, and which affiliated domains are registered by the same organization.
+Registration data for a registrable domain (e.g. `evilcorp.co.uk`, never a subdomain) can be attached to in-scope `DNS_NAME` events. It is useful for spotting shadow IT: which registrars a company uses, and which affiliated domains are registered by the same organization.
+
+The lookup is two-stage. WHOIS is tried first via [python-whois](https://github.com/richardpenman/whois), because its cache is shared with `baddns`. Registries that don't answer on port 43 fall back to [RDAP](https://about.rdap.org/), which covers most of them. The `source` field records which one answered.
 
 It is off by default, because each registrable domain costs a blocking port-43 lookup. Turn it on with `-c whois=true`.
 
@@ -214,11 +216,13 @@ The record lands in `host_metadata`, keyed by the registrable domain, so every i
 | `expires`             | Expiration date (UTC, ISO-8601)                                             |
 | `nameservers`         | Sorted list of nameservers                                                  |
 | `status`              | EPP status values, e.g. `client transfer prohibited`                        |
-| `whois_server`        | The registrar WHOIS server that answered                                    |
+| `whois_server`        | The registrar WHOIS server that answered (WHOIS only)                       |
+| `rdap_server`         | The RDAP server that answered (RDAP only)                                   |
+| `source`              | Which protocol answered: `whois` or `rdap`                                  |
 
 Fields with no value are omitted. Redacted and privacy-service placeholders (e.g. `REDACTED FOR PRIVACY`, `Domains By Proxy, LLC`, an email web form link) are never reported as real data: the field is left out and `registrant_redacted` is set to `true`. Redaction is per-field, so a record may still include e.g. a real `registrant_org` while the registrant's name and email are redacted.
 
-Registries that don't publish registration data over port-43 WHOIS (e.g. `.uk`) add nothing. Some (e.g. DENIC for `.de`) return nameservers only.
+A handful of TLDs serve neither WHOIS nor RDAP (e.g. Freenom's `.gq`) and add nothing. Some registries return nameservers only.
 
 Lookups are cached per registrable domain and shared with `baddns`, which does its own WHOIS checks, so a domain is only queried once even when both are running.
 

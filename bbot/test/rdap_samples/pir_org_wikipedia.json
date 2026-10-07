@@ -1,0 +1,204 @@
+{
+ "rdapConformance": [
+  "rdap_level_0",
+  "icann_rdap_response_profile_1",
+  "icann_rdap_technical_implementation_guide_1",
+  "redacted"
+ ],
+ "ldhName": "wikipedia.org",
+ "unicodeName": "wikipedia.org",
+ "nameservers": [
+  {
+   "ldhName": "ns0.wikimedia.org",
+   "unicodeName": "ns0.wikimedia.org",
+   "ipAddresses": {
+    "v4": [
+     "208.80.154.238"
+    ],
+    "v6": [
+     "2620:0:861:53::1"
+    ]
+   },
+   "objectClassName": "nameserver",
+   "handle": "da1a201ee62d40d980c058827f8fa8ae-LROR",
+   "status": [
+    "associated"
+   ]
+  },
+  {
+   "ldhName": "ns1.wikimedia.org",
+   "unicodeName": "ns1.wikimedia.org",
+   "ipAddresses": {
+    "v4": [
+     "208.80.153.231"
+    ],
+    "v6": [
+     "2620:0:860:53::1"
+    ]
+   },
+   "objectClassName": "nameserver",
+   "handle": "b4994397345e4a07b9f67afa8f92ede3-LROR",
+   "status": [
+    "associated"
+   ]
+  },
+  {
+   "ldhName": "ns2.wikimedia.org",
+   "unicodeName": "ns2.wikimedia.org",
+   "ipAddresses": {
+    "v4": [
+     "198.35.27.27"
+    ],
+    "v6": [
+     "2a02:ec80:53::1"
+    ]
+   },
+   "objectClassName": "nameserver",
+   "handle": "8d17984d82c7433183f3f5f7ea42d0c3-LROR",
+   "status": [
+    "associated"
+   ]
+  }
+ ],
+ "secureDNS": {
+  "delegationSigned": false,
+  "maxSigLife": 1
+ },
+ "redacted": [
+  {
+   "name": {
+    "type": "Registry Domain ID"
+   },
+   "prePath": "$.handle",
+   "pathLang": "jsonpath",
+   "method": "removal"
+  }
+ ],
+ "objectClassName": "domain",
+ "status": [
+  "client delete prohibited",
+  "client transfer prohibited",
+  "client update prohibited"
+ ],
+ "events": [
+  {
+   "eventAction": "transfer",
+   "eventDate": "2012-03-09T16:33:50.754Z"
+  },
+  {
+   "eventAction": "expiration",
+   "eventDate": "2027-01-13T00:12:14Z"
+  },
+  {
+   "eventAction": "registration",
+   "eventDate": "2001-01-13T00:12:14.754Z"
+  },
+  {
+   "eventAction": "last changed",
+   "eventDate": "2026-08-12T08:47:19.41Z"
+  },
+  {
+   "eventAction": "last update of RDAP database",
+   "eventDate": "2026-10-01T21:05:45.597Z"
+  }
+ ],
+ "entities": [
+  {
+   "vcardArray": [
+    "vcard",
+    [
+     [
+      "version",
+      {},
+      "text",
+      "4.0"
+     ],
+     [
+      "fn",
+      {},
+      "text",
+      "MarkMonitor Inc."
+     ]
+    ]
+   ],
+   "roles": [
+    "registrar"
+   ],
+   "publicIds": [
+    {
+     "type": "IANA Registrar ID",
+     "identifier": "292"
+    }
+   ],
+   "objectClassName": "entity",
+   "handle": "292",
+   "entities": [
+    {
+     "vcardArray": [
+      "vcard",
+      [
+       [
+        "version",
+        {},
+        "text",
+        "4.0"
+       ],
+       [
+        "fn",
+        {},
+        "text",
+        ""
+       ],
+       [
+        "tel",
+        {
+         "type": "voice"
+        },
+        "uri",
+        "tel:+1.2083895740"
+       ],
+       [
+        "email",
+        {},
+        "text",
+        "abusecomplaints@markmonitor.com"
+       ]
+      ]
+     ],
+     "roles": [
+      "abuse"
+     ],
+     "objectClassName": "entity"
+    }
+   ],
+   "links": [
+    {
+     "value": "https://rdap.publicinterestregistry.org/rdap/entity/292",
+     "rel": "self",
+     "href": "https://rdap.publicinterestregistry.org/rdap/entity/292",
+     "type": "application/rdap+json"
+    },
+    {
+     "value": "https://rdap.markmonitor.com/rdap/",
+     "rel": "about",
+     "href": "https://rdap.markmonitor.com/rdap/",
+     "type": "application/rdap+json"
+    }
+   ]
+  }
+ ],
+ "links": [
+  {
+   "value": "https://rdap.publicinterestregistry.org/rdap/domain/wikipedia.org",
+   "rel": "related",
+   "href": "https://rdap.markmonitor.com/rdap/domain/wikipedia.org",
+   "type": "application/rdap+json"
+  },
+  {
+   "value": "https://rdap.publicinterestregistry.org/rdap/domain/wikipedia.org",
+   "rel": "self",
+   "href": "https://rdap.publicinterestregistry.org/rdap/domain/wikipedia.org",
+   "type": "application/rdap+json"
+  }
+ ]
+}

@@ -118,6 +118,7 @@ class ConfigAwareHelper:
         self._cloudcheck = None
         self._nowafpls = None
         self._whois = None
+        self._rdap = None
         self.config_aware_validators = self.validators.Validators(self)
         self.depsinstaller = DepsInstaller(self)
         self.word_cloud = WordCloud(self)
@@ -150,6 +151,14 @@ class ConfigAwareHelper:
 
             self._whois = WhoisHelper(self)
         return self._whois
+
+    @property
+    def rdap(self):
+        if self._rdap is None:
+            from .rdap import RDAPHelper
+
+            self._rdap = RDAPHelper(self)
+        return self._rdap
 
     @property
     def blasthttp(self):

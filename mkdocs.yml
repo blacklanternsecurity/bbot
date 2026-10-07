@@ -66,6 +66,7 @@ nav:
       - DNS: dev/helpers/dns.md
       - Interactsh: dev/helpers/interactsh.md
       - Miscellaneous: dev/helpers/misc.md
+      - RDAP: dev/helpers/rdap.md
       - Web: dev/helpers/web.md
       - Word Cloud: dev/helpers/wordcloud.md
 

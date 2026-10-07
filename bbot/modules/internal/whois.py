@@ -12,6 +12,9 @@ class whois(BaseInterceptModule):
 
     class Config(BaseModuleConfig):
         timeout: int = Field(10, description="WHOIS query timeout in seconds")
+        rdap_fallback: bool = Field(
+            True, description="Fall back to RDAP when WHOIS returns nothing usable for a domain"
+        )
 
     # a WHOIS query is a blocking port-43 round trip that holds up the intercept chain behind it.
     # one per registrable domain, in-scope only, keeps that bounded by the scan's root domains.
@@ -23,7 +26,9 @@ class whois(BaseInterceptModule):
         # empty for IPs, bare public suffixes like "co.uk", and made-up TLDs like "host.local"
         if not domain:
             return
-        record = await self.helpers.whois.lookup(domain, timeout=self.config["timeout"])
+        record = await self.helpers.whois.lookup(
+            domain, timeout=self.config["timeout"], rdap_fallback=self.config["rdap_fallback"]
+        )
         if record:
             event.host_metadata.setdefault(domain, {})["whois"] = record
 
