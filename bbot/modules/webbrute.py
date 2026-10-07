@@ -1,6 +1,8 @@
 import random
 import string
+import asyncio
 from typing import Union
+from collections import OrderedDict
 
 import blasthttp
 
@@ -44,6 +46,15 @@ class webbrute(BaseModule):
 
     in_scope_only = True
     _module_threads = 4
+
+    # bounds the per-shape baseline cache; each entry pins an HttpCompare and its baseline snapshot
+    _baseline_cache_size = 1000
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # keyed by (url, prefix, suffix, ext); subclasses that override setup() inherit this
+        self._baseline_cache = OrderedDict()
+        self._baseline_locks = OrderedDict()
 
     async def setup_deps(self):
         self.wordlist = await self.helpers.wordlist(self.config.get("wordlist"))
@@ -128,16 +139,28 @@ class webbrute(BaseModule):
     # Host-level abort reasons that apply to ALL extensions, not just the one that triggered them.
     HOST_ABORT_REASONS = {"WAF_BLOCK_PAGE", "CONNECTIVITY_ISSUES", "BASELINE_CHANGED_CODES", "RECEIVED_429"}
 
-    async def baseline_fuzz(self, url, exts=None, prefix="", suffix=""):
-        if exts is None:
-            exts = [""]
-        filters = {}
-        host_abort = None
+    async def _baseline_for(self, url, prefix, suffix, ext):
+        """Establish (or reuse) the baseline for one fuzz shape.
 
-        for ext in exts:
-            if host_abort is not None:
-                filters[ext] = host_abort
-                continue
+        A baseline characterizes the response to a nonexistent path of a given
+        shape, so it depends only on (url, prefix, suffix, ext). Re-probing the
+        same shape costs two requests plus the 0.5s inter-sample sleep and
+        yields the same filter, so shapes are memoized per module instance and
+        raced callers are collapsed onto one probe.
+        """
+        key = (url, prefix, suffix, ext)
+        lock = self._baseline_locks.get(key)
+        if lock is None:
+            lock = self._baseline_locks[key] = asyncio.Lock()
+            while len(self._baseline_locks) > self._baseline_cache_size:
+                self._baseline_locks.popitem(last=False)
+
+        async with lock:
+            cached = self._baseline_cache.get(key)
+            if cached is not None:
+                self._baseline_cache.move_to_end(key)
+                self.debug(f"reusing baseline for URL [{url}] with ext [{ext}]")
+                return cached, None
 
             self.debug(f"running baseline for URL [{url}] with ext [{ext}]")
 
@@ -157,33 +180,44 @@ class webbrute(BaseModule):
                 await compare._baseline()
             except HttpCompareError as e:
                 self.warning(f"Could not establish baseline for URL [{url}] ext [{ext}]: {e}")
-                abort = {"abort": True, "reason": "CONNECTIVITY_ISSUES"}
-                filters[ext] = abort
-                host_abort = abort
-                continue
+                return {"abort": True, "reason": "CONNECTIVITY_ISSUES"}, "CONNECTIVITY_ISSUES"
 
             baseline_status = compare.baseline.status_code
 
             if await self.helpers.yara.match(self.waf_yara_rules, compare.baseline.content):
                 self.warning(f"Baseline for URL [{url}] ext [{ext}] returned WAF block page, aborting.")
-                abort = {"abort": True, "reason": "WAF_BLOCK_PAGE"}
-                filters[ext] = abort
-                host_abort = abort
-                continue
+                return {"abort": True, "reason": "WAF_BLOCK_PAGE"}, "WAF_BLOCK_PAGE"
 
             if baseline_status == 429:
                 self.warning(
                     f"Received 429 (Too Many Requests) for URL [{url}]. A WAF or rate limiter is blocking requests, aborting."
                 )
-                abort = {"abort": True, "reason": "RECEIVED_429"}
-                filters[ext] = abort
-                host_abort = abort
-                continue
+                return {"abort": True, "reason": "RECEIVED_429"}, "RECEIVED_429"
 
             if baseline_status == 403:
                 self.warning("All baseline requests received 403. A WAF may be actively blocking traffic.")
 
-            filters[ext] = {"compare": compare}
+            result = {"compare": compare}
+            self._baseline_cache[key] = result
+            while len(self._baseline_cache) > self._baseline_cache_size:
+                self._baseline_cache.popitem(last=False)
+            return result, None
+
+    async def baseline_fuzz(self, url, exts=None, prefix="", suffix=""):
+        if exts is None:
+            exts = [""]
+        filters = {}
+        host_abort = None
+
+        for ext in exts:
+            if host_abort is not None:
+                filters[ext] = host_abort
+                continue
+
+            result, abort_reason = await self._baseline_for(url, prefix, suffix, ext)
+            filters[ext] = result
+            if abort_reason is not None:
+                host_abort = result
 
         return filters
 

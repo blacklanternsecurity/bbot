@@ -297,6 +297,10 @@ class Preset(metaclass=BasePreset):
         return Path(self.config.get("home", "~/.bbot")).expanduser().resolve()
 
     @property
+    def deps_home(self):
+        return self.core.deps_home
+
+    @property
     def target(self):
         if self._target is None:
             raise ValueError("Cannot access target before preset is baked (use ._seeds instead)")

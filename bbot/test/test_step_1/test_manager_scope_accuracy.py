@@ -129,8 +129,6 @@ async def test_manager_scope_accuracy_correct(bbot_scanner, bbot_httpserver, bbo
         if scan_callback is not None:
             scan_callback(scan)
         output_events = [e async for e in scan.async_start()]
-        # let modules initialize
-        await asyncio.sleep(0.5)
         return (output_events, dummy_module.events, dummy_module_nodupes.events, dummy_graph_output_module.events, dummy_graph_batch_output_module.events)
 
     dns_mock_chain = {

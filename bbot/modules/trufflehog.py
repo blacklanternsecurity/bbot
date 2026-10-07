@@ -149,6 +149,8 @@ class trufflehog(BaseModule):
         command = [
             "trufflehog",
             "--json",
+            # without this, overseer re-execs the binary and pays Go package init twice
+            "--local-dev",
             "--no-update",
         ]
         if self.verified:
