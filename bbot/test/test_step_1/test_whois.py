@@ -1,10 +1,7 @@
-from bbot.core.helpers.whois import (
-    is_placeholder,
-    is_proxy_service,
-    normalize_status,
-    parse_whois,
-    parse_whois_date,
-)
+from ..bbot_fixtures import *  # noqa: F403
+
+from bbot.core.helpers.whois import normalize_status, parse_whois
+from bbot.core.helpers.registration import is_placeholder, is_proxy_service, parse_registration_date
 from bbot.test.whois_samples import whois_sample
 
 
@@ -56,11 +53,134 @@ def test_whois_helpers():
     assert not is_placeholder("GitHub, Inc.")
     assert is_proxy_service("Domains By Proxy, LLC")
     assert not is_proxy_service("REDACTED FOR PRIVACY")
-    assert parse_whois_date("2001-01-13T02:12:14.754+02:00") == "2001-01-13T00:12:14Z"
-    assert parse_whois_date("2001-01-13T00:12:14Z") == "2001-01-13T00:12:14Z"
-    assert parse_whois_date("tomorrow") is None
-    assert parse_whois_date(None) is None
+    assert parse_registration_date("2001-01-13T02:12:14.754+02:00") == "2001-01-13T00:12:14Z"
+    assert parse_registration_date("2001-01-13T00:12:14Z") == "2001-01-13T00:12:14Z"
+    assert parse_registration_date("tomorrow") is None
+    assert parse_registration_date(None) is None
     assert normalize_status("clientDeleteProhibited https://icann.org/epp#clientDeleteProhibited") == (
         "client delete prohibited"
     )
     assert normalize_status("ok") == "ok"
+
+
+@pytest.mark.asyncio
+async def test_whois_cache_shared_with_baddns(helpers, monkeypatch):
+    """The WHOIS cache is baddns's own, so each domain is queried once no matter who asks first."""
+    import whois
+    from whois.parser import WhoisEntry
+    from baddns.lib.whoismanager import WhoisManager
+
+    queried = []
+
+    def fake_whois(domain, **kwargs):
+        queried.append(domain)
+        return WhoisEntry.load(domain, whois_sample(domain))
+
+    monkeypatch.setattr(whois, "whois", fake_whois)
+    WhoisManager.clear_cache()
+    try:
+        assert helpers.whois.cache is WhoisManager._cache
+
+        # a domain baddns already fetched is parsed without a second query
+        WhoisManager._cache["github.com"] = {
+            "type": "response",
+            "data": WhoisEntry.load("github.com", whois_sample("github.com")),
+        }
+        github = await helpers.whois.lookup("github.com", rdap_fallback=False)
+        assert github["registrar"] == "MarkMonitor, Inc."
+        assert queried == []
+
+        # ...and our own result lands in the shape baddns reads back
+        namecheap = await helpers.whois.lookup("namecheap.com", rdap_fallback=False)
+        assert namecheap["registrar"] == "NAMECHEAP INC"
+        assert queried == ["namecheap.com"]
+        manager = WhoisManager("www.namecheap.com")
+        await manager.dispatchWHOIS()
+        assert manager.whois_result["type"] == "response"
+        assert queried == ["namecheap.com"]
+
+        # failures are cached too, so a dead domain isn't retried all scan
+        monkeypatch.setattr(whois, "whois", lambda domain, **kwargs: 1 / 0)
+        assert await helpers.whois.lookup("evilcorp.com", rdap_fallback=False) is None
+        assert await helpers.whois.lookup("evilcorp.com", rdap_fallback=False) is None
+        assert WhoisManager._cache["evilcorp.com"]["type"] == "error"
+
+        helpers.whois.clear_cache()
+        assert WhoisManager._cache == {}
+    finally:
+        WhoisManager.clear_cache()
+
+
+@pytest.mark.asyncio
+async def test_whois_works_without_baddns(helpers, monkeypatch):
+    """baddns is an optional cache partner, never a dependency: WHOIS works fully on its own."""
+    import builtins
+    import whois
+    from whois.parser import WhoisEntry
+    from baddns.lib.whoismanager import WhoisManager
+    from bbot.core.helpers.whois import WhoisHelper
+
+    real_import = builtins.__import__
+
+    def no_baddns(name, *args, **kwargs):
+        if name.split(".")[0] == "baddns":
+            raise ImportError("No module named 'baddns'")
+        return real_import(name, *args, **kwargs)
+
+    WhoisManager.clear_cache()
+    try:
+        monkeypatch.setattr(builtins, "__import__", no_baddns)
+        monkeypatch.setattr(whois, "whois", lambda domain, **kw: WhoisEntry.load(domain, whois_sample(domain)))
+
+        helper = WhoisHelper(helpers)
+        assert helper.cache is not WhoisManager._cache
+
+        record = await helper.lookup("github.com", rdap_fallback=False)
+        assert record["registrar"] == "MarkMonitor, Inc."
+        assert record["nameservers"]
+        # cached privately, and nothing reached baddns
+        assert set(helper.cache) == {"github.com"}
+        assert WhoisManager._cache == {}
+
+        # the private cache still serves hits and still absorbs failures
+        assert (await helper.lookup("github.com", rdap_fallback=False))["registrar"] == "MarkMonitor, Inc."
+        monkeypatch.setattr(whois, "whois", lambda domain, **kw: 1 / 0)
+        assert await helper.lookup("evilcorp.com", rdap_fallback=False) is None
+        assert helper.cache["evilcorp.com"]["type"] == "error"
+        helper.clear_cache()
+        assert helper.cache == {}
+    finally:
+        WhoisManager.clear_cache()
+
+
+@pytest.mark.asyncio
+async def test_whois_falls_back_to_rdap(helpers, monkeypatch, blasthttp_mock):
+    """Registries that don't serve port 43 (e.g. Nominet for .uk) still answer over RDAP."""
+    import whois
+    from baddns.lib.whoismanager import WhoisManager
+    from bbot.core.helpers.rdap import RDAP_BOOTSTRAP_URL
+    from bbot.test.rdap_samples import rdap_sample
+
+    blasthttp_mock.add_response(url=RDAP_BOOTSTRAP_URL, json=rdap_sample("iana_dns_bootstrap_trimmed"))
+    blasthttp_mock.add_response(url="https://rdap.nominet.uk/uk/domain/bbc.co.uk", json=rdap_sample("nominet_uk_bbc"))
+
+    def no_port43(domain, **kwargs):
+        raise Exception("Whois command returned no output")
+
+    monkeypatch.setattr(whois, "whois", no_port43)
+    WhoisManager.clear_cache()
+    try:
+        record = await helpers.whois.lookup("bbc.co.uk")
+        assert record is not None, "WHOIS failed and RDAP did not pick it up"
+        assert record["source"] == "rdap"
+        assert record["registrar"]
+        assert record["nameservers"]
+        # same shape as a WHOIS-sourced record: no None values, no RDAP-only keys
+        assert "domain" not in record
+        assert all(v is not None for v in record.values())
+        assert isinstance(record["registrant_redacted"], bool)
+
+        # and the fallback can be turned off
+        assert await helpers.whois.lookup("bbc.co.uk", rdap_fallback=False) is None
+    finally:
+        WhoisManager.clear_cache()

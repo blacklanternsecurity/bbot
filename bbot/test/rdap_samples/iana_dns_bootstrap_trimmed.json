@@ -1,0 +1,56 @@
+{
+ "description": "RDAP bootstrap file for Domain Name System registrations",
+ "publication": "2026-09-30T23:00:03Z",
+ "services": [
+  [
+   [
+    "app",
+    "dev"
+   ],
+   [
+    "https://pubapi.registry.google/rdap/"
+   ]
+  ],
+  [
+   [
+    "fr"
+   ],
+   [
+    "https://rdap.nic.fr/"
+   ]
+  ],
+  [
+   [
+    "uk"
+   ],
+   [
+    "https://rdap.nominet.uk/uk/"
+   ]
+  ],
+  [
+   [
+    "org"
+   ],
+   [
+    "https://rdap.publicinterestregistry.org/rdap/"
+   ]
+  ],
+  [
+   [
+    "com"
+   ],
+   [
+    "https://rdap.verisign.com/com/v1/"
+   ]
+  ],
+  [
+   [
+    "net"
+   ],
+   [
+    "https://rdap.verisign.com/net/v1/"
+   ]
+  ]
+ ],
+ "version": "1.0"
+}

@@ -185,15 +185,6 @@
         ]
     },
     {
-        "id": 162,
-        "name": "DOMAIN_REGISTRATION",
-        "parent": 88888888,
-        "consumes": [],
-        "produces": [
-            161
-        ]
-    },
-    {
         "id": 48,
         "name": "EMAIL_ADDRESS",
         "parent": 88888888,
@@ -2219,8 +2210,6 @@
         "consumes": [
             7
         ],
-        "produces": [
-            162
-        ]
+        "produces": []
     }
 ]

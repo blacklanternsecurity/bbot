@@ -5,141 +5,38 @@ Parsing lives in module-level functions so it can be used on raw WHOIS text with
 """
 
 import re
+import time
 import logging
-from datetime import datetime, timezone
 
-from cachetools import LRUCache
 import whois as python_whois
 from whois.parser import WhoisEntry
 from whois.exceptions import PywhoisError
 
-from .async_helpers import async_cachedmethod
+from .registration import (
+    REGISTRANT_FIELDS,
+    apply_registrant,
+    as_list,
+    clean,
+    is_placeholder,  # noqa: F401
+    is_proxy_service,  # noqa: F401
+    parse_registration_date,
+)
 
 log = logging.getLogger("bbot.core.helpers.whois")
 
 
-# names of privacy/proxy services that registrars put in place of the registrant
-# these are specific phrases rather than bare words like "privacy", which also appear in real organization names
-_PROXY_SERVICE_PATTERNS = (
-    r"privacy\s*(service|protect|guard)",
-    r"(contact|whois|domain|perfect|super)\s*privacy",
-    r"(domain|identity|whois|privacy)\s*protection",
-    r"whois\s*guard",
-    r"by proxy",
-    r"proxy\s*service",
-    r"registration private",
-    r"private by design",
-    r"^on behalf of",
-)
-_PROXY_SERVICE_REGEX = re.compile(r"|".join(_PROXY_SERVICE_PATTERNS), re.I)
-_PLACEHOLDER_REGEX = re.compile(
-    r"|".join(
-        _PROXY_SERVICE_PATTERNS
-        + (
-            r"redact",
-            r"withheld",
-            r"data protected",
-            r"not disclosed",
-            r"statutory masking",
-            r"gdpr",
-            r"request email form",
-            r"^hidden$",
-            r"^n/?a$",
-            r"^none$",
-        )
-    ),
-    re.I,
-)
-# placeholder emails are matched separately on the local part and the domain, so that e.g.
-# "privacy@apple.com" (a real address) isn't mistaken for "x.protect@withheldforprivacy.com"
-_PLACEHOLDER_EMAIL_LOCAL_REGEX = re.compile(r"redact|withheld|whois\s*guard|(^|[._-])protect$", re.I)
-_PLACEHOLDER_EMAIL_DOMAIN_REGEX = re.compile(
-    r"redact|withheld|whoisguard|byproxy|contactprivacy|privacyguardian|privacyprotect|whoisprivacy"
-    r"|privacyservice|domainprotect|identityprotect|privatebydesign",
-    re.I,
-)
 # EPP status codes come with a trailing ICANN link, e.g. "clientDeleteProhibited https://icann.org/epp#..."
 _STATUS_CODE_REGEX = re.compile(r"^([A-Za-z]+)")
 _CAMEL_REGEX = re.compile(r"(?<=[a-z])(?=[A-Z])")
 _IANA_ID_REGEX = re.compile(r"^\s*Registrar IANA ID:\s*(\d+)", re.I | re.M)
 _REGISTRANT_EMAIL_REGEX = re.compile(r"^\s*Registrant Email:\s*(\S.*?)\s*$", re.I | re.M)
 
-
-def is_placeholder(value):
-    """
-    Return True if a registrant value is a privacy/redaction placeholder rather than real data.
-
-    Examples:
-        >>> is_placeholder("REDACTED FOR PRIVACY")
-        True
-        >>> is_placeholder("GitHub, Inc.")
-        False
-    """
-    if not isinstance(value, str):
-        return False
-    value = value.strip()
-    if not value:
-        return False
-    if "@" in value and " " not in value:
-        local, _, domain = value.rpartition("@")
-        return bool(_PLACEHOLDER_EMAIL_LOCAL_REGEX.search(local) or _PLACEHOLDER_EMAIL_DOMAIN_REGEX.search(domain))
-    return bool(_PLACEHOLDER_REGEX.search(value))
-
-
-def is_proxy_service(value):
-    """
-    Return True if a registrant value names a privacy/proxy service (rather than just being redacted).
-
-    The contact details of a proxy service (e.g. its address) belong to the service, not the registrant.
-
-    Examples:
-        >>> is_proxy_service("Domains By Proxy, LLC")
-        True
-        >>> is_proxy_service("REDACTED FOR PRIVACY")
-        False
-    """
-    if not isinstance(value, str) or "@" in value:
-        return False
-    return bool(_PROXY_SERVICE_REGEX.search(value.strip()))
-
-
-def parse_whois_date(value):
-    """
-    Normalize a WHOIS date to a UTC ISO-8601 string like "2007-10-09T18:20:50Z".
-
-    Accepts datetimes (naive ones are assumed UTC) and ISO-8601 strings. Returns None if the value can't be parsed.
-
-    Examples:
-        >>> parse_whois_date("2001-01-13T02:12:14.754+02:00")
-        '2001-01-13T00:12:14Z'
-    """
-    if isinstance(value, str):
-        value = value.strip()
-        if not value:
-            return None
-        if value[-1] in "zZ":
-            value = value[:-1] + "+00:00"
-        try:
-            value = datetime.fromisoformat(value)
-        except ValueError:
-            return None
-    if not isinstance(value, datetime):
-        return None
-    if value.tzinfo is None:
-        value = value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-def _as_list(value):
-    if value is None:
-        return []
-    if isinstance(value, (list, tuple, set)):
-        return list(value)
-    return [value]
+# a response without any of these isn't a registration record
+_REGISTRATION_FIELDS = ("registrar", "creation_date", "expiration_date", "name_servers")
 
 
 def _dates(value):
-    return [d for d in map(parse_whois_date, _as_list(value)) if d]
+    return [d for d in map(parse_registration_date, as_list(value)) if d]
 
 
 def _first_date(value):
@@ -165,59 +62,36 @@ def normalize_status(value):
     return _CAMEL_REGEX.sub(" ", match.group(1)).lower()
 
 
-def _clean(value):
-    value = next(iter(_as_list(value)), None)
-    if not isinstance(value, str):
-        return None
-    value = value.strip()
-    return value or None
+def has_registration_data(entry):
+    """Return True if a parsed python-whois entry carries actual registration data."""
+    return any(entry.get(k) for k in _REGISTRATION_FIELDS)
 
 
-def normalize_whois(domain, entry, text=""):
+def normalize_whois(entry, text=""):
     """
-    Convert a parsed python-whois entry into DOMAIN_REGISTRATION event data.
+    Convert a parsed python-whois entry into a registration record.
 
     Placeholder registrant values are dropped and set registrant_redacted=True.
     Redaction is per-field, so e.g. a redacted name can still come with a real organization.
     """
-    record = {"host": domain, "registrant_redacted": False}
+    record = {"source": "whois", "registrant_redacted": False}
 
-    registrar = _clean(entry.get("registrar"))
+    registrar = clean(entry.get("registrar"))
     if registrar:
         record["registrar"] = registrar
     iana_id = _IANA_ID_REGEX.search(text or "")
     if iana_id:
         record["registrar_iana_id"] = iana_id.group(1)
 
-    raw_org = _clean(entry.get("org")) or _clean(entry.get("registrant_organization"))
-    raw_name = _clean(entry.get("name")) or _clean(entry.get("registrant_name"))
+    raw_org = clean(entry.get("org")) or clean(entry.get("registrant_organization"))
+    raw_name = clean(entry.get("name")) or clean(entry.get("registrant_name"))
     email_match = _REGISTRANT_EMAIL_REGEX.search(text or "")
     raw_email = email_match.group(1) if email_match else None
     # registrant email is often a web form link rather than an address, which means it's withheld
     if raw_email and "@" not in raw_email:
         raw_email = None
         record["registrant_redacted"] = True
-    raw_country = _clean(entry.get("country"))
-    for field, value in (
-        ("registrant_org", raw_org),
-        ("registrant_name", raw_name),
-        ("registrant_email", raw_email),
-        ("registrant_country", raw_country),
-    ):
-        if not value:
-            continue
-        if is_placeholder(value):
-            record["registrant_redacted"] = True
-            continue
-        record[field] = value
-    # if the registrant is a privacy service, the address (and therefore country) is the privacy service's too
-    if is_proxy_service(raw_org) or (not record.get("registrant_org") and is_proxy_service(raw_name)):
-        record.pop("registrant_country", None)
-    if record.get("registrant_email"):
-        record["registrant_email"] = record["registrant_email"].lower()
-    country = record.get("registrant_country")
-    if country and len(country) == 2:
-        record["registrant_country"] = country.upper()
+    apply_registrant(record, raw_org, raw_name, raw_email, clean(entry.get("country")))
 
     for field, key, pick in (
         ("created", "creation_date", _first_date),
@@ -228,12 +102,12 @@ def normalize_whois(domain, entry, text=""):
         if date:
             record[field] = date
 
-    nameservers = [str(ns).strip().strip(".").lower() for ns in _as_list(entry.get("name_servers"))]
+    nameservers = [str(ns).strip().strip(".").lower() for ns in as_list(entry.get("name_servers"))]
     record["nameservers"] = sorted({ns for ns in nameservers if ns})
-    statuses = (normalize_status(s) for s in _as_list(entry.get("status")))
+    statuses = (normalize_status(s) for s in as_list(entry.get("status")))
     record["status"] = sorted({s for s in statuses if s})
 
-    whois_server = _clean(entry.get("whois_server"))
+    whois_server = clean(entry.get("whois_server"))
     if whois_server:
         record["whois_server"] = whois_server.lower()
     return record
@@ -241,7 +115,7 @@ def normalize_whois(domain, entry, text=""):
 
 def parse_whois(domain, text):
     """
-    Parse raw WHOIS text for a domain into DOMAIN_REGISTRATION event data, without network access.
+    Parse raw WHOIS text for a domain into a registration record, without network access.
 
     Returns None if the text has no registration data.
     """
@@ -249,17 +123,35 @@ def parse_whois(domain, text):
         entry = WhoisEntry.load(domain, text)
     except PywhoisError:
         return None
-    if not any(entry.get(k) for k in ("registrar", "creation_date", "expiration_date", "name_servers")):
+    if not has_registration_data(entry):
         return None
-    return normalize_whois(domain, entry, text)
+    return normalize_whois(entry, text)
+
+
+def _shared_cache():
+    """
+    baddns keeps a process-global WHOIS cache on its WhoisManager, keyed by registrable domain, shaped
+    {domain: {"type": "response"|"error", "data": WhoisEntry|str}}. Reading and writing it directly means
+    a domain is queried once no matter which of us gets there first.
+
+    baddns is optional: it is installed on demand with the baddns module, and it owns the shape of that
+    dict. Anything at all going wrong here falls back to a private cache, so WHOIS never depends on it.
+    """
+    try:
+        from baddns.lib.whoismanager import WhoisManager
+
+        return WhoisManager._cache
+    except Exception as e:
+        log.debug(f"baddns is unavailable ({e}); WHOIS lookups will use a private cache")
+        return {}
 
 
 class WhoisHelper:
     """
     WHOIS domain registration lookups, accessible via `self.helpers.whois`.
 
-    Lookups run python-whois in a thread and are cached per domain for the lifetime of the scan.
-    Concurrency is bounded by the calling module's threads. A failed lookup returns None; it never raises.
+    Lookups run python-whois in a thread and are cached per domain, shared with baddns.
+    A failed lookup returns None; it never raises.
 
     Examples:
         >>> record = await self.helpers.whois.lookup("github.com")
@@ -269,31 +161,66 @@ class WhoisHelper:
 
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
-        self._cache = LRUCache(maxsize=10000)
+        self._cache = None
 
-    @async_cachedmethod(lambda self: self._cache, key=lambda domain, **_: domain)
+    @property
+    def cache(self):
+        if self._cache is None:
+            self._cache = _shared_cache()
+        return self._cache
+
+    def clear_cache(self):
+        self.cache.clear()
+
     async def query(self, domain, **whois_kwargs):
-        """Return raw WHOIS text for a domain, or None on failure."""
+        """Return the python-whois entry for a domain, or None on failure."""
+        cached = self.cache.get(domain)
+        # baddns owns the cache's shape; an entry we don't recognize just means we query again
+        if isinstance(cached, dict) and "type" in cached:
+            return cached["data"] if cached["type"] == "response" else None
+        # each query blocks the intercept chain, so log how long it took to make a stall diagnosable
+        start = time.time()
         try:
-            entry = await self.parent_helper.run_in_executor_io(
-                python_whois.whois, domain, quiet=True, inc_raw=True, **whois_kwargs
-            )
+            entry = await self.parent_helper.run_in_executor_io(python_whois.whois, domain, quiet=True, **whois_kwargs)
         except Exception as e:
-            log.debug(f"WHOIS lookup for {domain} failed: {e}")
+            log.debug(f"WHOIS for {domain} failed after {time.time() - start:.1f}s: {e}")
+            self.cache[domain] = {"type": "error", "data": str(e)}
             return None
-        return entry.get("raw") or getattr(entry, "text", None)
+        log.debug(f"WHOIS for {domain} took {time.time() - start:.1f}s")
+        self.cache[domain] = {"type": "response", "data": entry}
+        return entry
 
-    async def lookup(self, domain, include_raw=False, **whois_kwargs):
+    async def lookup(self, domain, include_raw=False, rdap_fallback=True, **whois_kwargs):
         """
-        Look up and parse WHOIS registration data for a registrable domain. Returns None on failure.
+        Look up and parse registration data for a registrable domain. Returns None on failure.
+
+        WHOIS is tried first, because its cache is shared with baddns. Registries that don't serve
+        port 43 (e.g. Nominet for .uk) answer over RDAP instead, so a failure falls back to it.
 
         Extra keyword arguments (e.g. timeout) go to python-whois.
         """
         domain = domain.lower()
-        text = await self.query(domain, **whois_kwargs)
-        if not text:
+        entry = await self.query(domain, **whois_kwargs)
+        if entry is not None and has_registration_data(entry):
+            text = getattr(entry, "text", "") or ""
+            record = normalize_whois(entry, text)
+            if include_raw:
+                record["raw"] = text
+            return record
+        if not rdap_fallback:
             return None
-        record = parse_whois(domain, text)
-        if record and include_raw:
-            record["raw"] = text
+        rdap_record = await self.parent_helper.rdap.lookup(domain, include_raw=include_raw)
+        if not rdap_record:
+            return None
+        # reshape RDAP's record to match normalize_whois(): same keys, empty ones left out
+        record = {"source": "rdap", "registrant_redacted": bool(rdap_record.get("registrant_redacted"))}
+        fields = ("registrar", "registrar_iana_id", *REGISTRANT_FIELDS, "created", "updated", "expires", "rdap_server")
+        for field in fields:
+            value = rdap_record.get(field)
+            if value:
+                record[field] = value
+        record["nameservers"] = rdap_record.get("nameservers") or []
+        record["status"] = rdap_record.get("status") or []
+        if include_raw and rdap_record.get("raw"):
+            record["raw"] = rdap_record["raw"]
         return record

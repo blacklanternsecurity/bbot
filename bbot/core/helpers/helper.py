@@ -14,7 +14,6 @@ from . import misc
 from .asn import ASNHelper
 from .dns import DNSHelper
 from .web import WebHelper
-from .whois import WhoisHelper
 from .diff import HttpCompare
 from .nowafpls import NowafplsHelper
 from .regex import RegexHelper
@@ -119,6 +118,7 @@ class ConfigAwareHelper:
         self._cloudcheck = None
         self._nowafpls = None
         self._whois = None
+        self._rdap = None
         self.config_aware_validators = self.validators.Validators(self)
         self.depsinstaller = DepsInstaller(self)
         self.word_cloud = WordCloud(self)
@@ -145,8 +145,20 @@ class ConfigAwareHelper:
     @property
     def whois(self):
         if self._whois is None:
+            # imported lazily; python-whois compiles a parser regex set per TLD at import time,
+            # and WHOIS enrichment is off by default
+            from .whois import WhoisHelper
+
             self._whois = WhoisHelper(self)
         return self._whois
+
+    @property
+    def rdap(self):
+        if self._rdap is None:
+            from .rdap import RDAPHelper
+
+            self._rdap = RDAPHelper(self)
+        return self._rdap
 
     @property
     def blasthttp(self):

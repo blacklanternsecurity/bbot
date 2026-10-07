@@ -1,19 +1,36 @@
 from .base import ModuleTestBase
 
-from bbot.test.whois_samples import whois_sample, whois_samples
+from bbot.test.whois_samples import whois_sample
+
+DNS_MOCK = {
+    "github.com": {"A": ["127.0.0.88"]},
+    "api.github.com": {"A": ["127.0.0.88"]},
+    "namecheap.com": {"A": ["127.0.0.89"]},
+    # affiliate: www.github.com is hosted on wikipedia's infrastructure
+    "www.github.com": {"A": ["127.0.0.88"], "CNAME": ["edge.wikipedia.org"]},
+    "edge.wikipedia.org": {"A": ["127.0.0.90"]},
+}
 
 
-def mock_whois(module_test, samples):
+def mock_whois(module_test):
     """Serve captured WHOIS text instead of querying port 43, recording each query."""
+    import whois
+    from whois.parser import WhoisEntry
+    from baddns.lib.whoismanager import WhoisManager
+
     queries = []
-    helper = module_test.scan.helpers.whois
 
-    async def query(domain, **kwargs):
+    def fake_whois(domain, **kwargs):
         queries.append(domain)
-        return samples.get(domain)
+        return WhoisEntry.load(domain, whois_sample(domain))
 
-    module_test.monkeypatch.setattr(helper, "query", query)
+    WhoisManager.clear_cache()
+    module_test.monkeypatch.setattr(whois, "whois", fake_whois)
     return queries
+
+
+def whois_metadata(event):
+    return {host: meta["whois"] for host, meta in event.host_metadata.items() if "whois" in meta}
 
 
 class TestWhois(ModuleTestBase):
@@ -23,58 +40,52 @@ class TestWhois(ModuleTestBase):
     config_overrides = {"dns": {"minimal": False}}
 
     async def setup_after_prep(self, module_test):
-        await module_test.mock_dns(
-            {
-                "github.com": {"A": ["127.0.0.88"]},
-                "api.github.com": {"A": ["127.0.0.88"]},
-                "namecheap.com": {"A": ["127.0.0.89"]},
-                # affiliate: www.github.com is hosted on wikipedia's infrastructure
-                "www.github.com": {"A": ["127.0.0.88"], "CNAME": ["edge.wikipedia.org"]},
-                "edge.wikipedia.org": {"A": ["127.0.0.90"]},
-            }
-        )
-        self.samples = whois_samples()
-        self.queries = mock_whois(module_test, self.samples)
+        await module_test.mock_dns(DNS_MOCK)
+        self.queries = mock_whois(module_test)
 
     def check(self, module_test, events):
-        registrations = [e for e in events if e.type == "DOMAIN_REGISTRATION"]
-        hosts = sorted(e.data["host"] for e in registrations)
-        # exactly one per registrable domain, even though github.com has several subdomains
-        assert hosts == sorted(self.samples), hosts
-        # each domain is queried once, and names without a registrable domain never are
-        assert sorted(self.queries) == sorted(self.samples), self.queries
-        assert any(e.type == "DNS_NAME" and e.data == "host.local" for e in events)
-        assert any(e.type == "DNS_NAME" and e.data == "co.uk" for e in events)
+        dns_names = {e.data: e for e in events if e.type == "DNS_NAME"}
 
-        github = next(e for e in registrations if e.data["host"] == "github.com")
-        assert github.data["registrar"] == "MarkMonitor, Inc."
-        assert github.data["registrant_org"] == "GitHub, Inc."
-        assert github.data["expires"] == "2028-10-09T18:20:50Z"
-        assert "raw" not in github.data
-        assert github.scope_distance == 0
-        assert github.pretty_string == "github.com (MarkMonitor, Inc.)"
-        assert 'queried WHOIS for "github.com"' in github.discovery_context
+        # enrichment has to land before the event is distributed, so it must be an intercept module
+        assert module_test.scan.modules["whois"]._intercept
 
-        namecheap = next(e for e in registrations if e.data["host"] == "namecheap.com")
-        assert namecheap.data["registrant_redacted"] is True
-        assert "registrant_org" not in namecheap.data
+        # one query per registrable domain, no matter how many subdomains carry it
+        assert sorted(self.queries) == ["github.com", "namecheap.com"], self.queries
 
-        # affiliate registrations reach output
-        wikipedia = next(e for e in registrations if e.data["host"] == "wikipedia.org")
-        assert wikipedia.data["registrar"] == "MarkMonitor Inc."
-        assert wikipedia.scope_distance > 0
-        assert not wikipedia._internal
+        # every in-scope name under a domain is enriched, keyed by the registrable domain
+        for host in ("github.com", "www.github.com", "api.github.com"):
+            assert whois_metadata(dns_names[host]).keys() == {"github.com"}, host
+        github = whois_metadata(dns_names["github.com"])["github.com"]
+        assert github["registrar"] == "MarkMonitor, Inc."
+        assert github["registrant_org"] == "GitHub, Inc."
+        assert github["expires"] == "2028-10-09T18:20:50Z"
+        # the raw WHOIS text is far too big to ride along on every event
+        assert "raw" not in github
+
+        namecheap = whois_metadata(dns_names["namecheap.com"])["namecheap.com"]
+        assert namecheap["registrant_redacted"] is True
+        assert "registrant_org" not in namecheap
+
+        # no registrable domain, so nothing to look up
+        assert whois_metadata(dns_names["host.local"]) == {}
+        assert whois_metadata(dns_names["co.uk"]) == {}
+
+        # out of scope: enrichment stays in scope so a blocking lookup can't run away with the scan
+        affiliate = dns_names["edge.wikipedia.org"]
+        assert affiliate.scope_distance > 0
+        assert whois_metadata(affiliate) == {}
 
 
-class TestWhoisRawAndFailure(ModuleTestBase):
+class TestWhoisDisabledByDefault(ModuleTestBase):
     module_name = "whois"
-    targets = ["github.com", "evilcorp.com"]
-    config_overrides = {"modules": {"whois": {"include_raw": True}}}
+    modules_overrides = []
+    targets = ["github.com"]
 
     async def setup_after_prep(self, module_test):
-        mock_whois(module_test, {"github.com": whois_sample("github.com")})
+        await module_test.mock_dns(DNS_MOCK)
+        self.queries = mock_whois(module_test)
 
     def check(self, module_test, events):
-        registrations = [e for e in events if e.type == "DOMAIN_REGISTRATION"]
-        assert [e.data["host"] for e in registrations] == ["github.com"]
-        assert "Registrar IANA ID: 292" in registrations[0].data["raw"]
+        assert "whois" not in module_test.scan.modules
+        assert self.queries == []
+        assert all(whois_metadata(e) == {} for e in events if e.host)

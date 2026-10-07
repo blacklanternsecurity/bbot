@@ -431,6 +431,7 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/Stabl
             - [DNS](https://www.blacklanternsecurity.com/bbot/Stable/dev/helpers/dns)
             - [Interactsh](https://www.blacklanternsecurity.com/bbot/Stable/dev/helpers/interactsh)
             - [Miscellaneous](https://www.blacklanternsecurity.com/bbot/Stable/dev/helpers/misc)
+            - [RDAP](https://www.blacklanternsecurity.com/bbot/Stable/dev/helpers/rdap)
             - [Web](https://www.blacklanternsecurity.com/bbot/Stable/dev/helpers/web)
             - [Word Cloud](https://www.blacklanternsecurity.com/bbot/Stable/dev/helpers/wordcloud)
 <!-- END BBOT DOCS TOC -->
