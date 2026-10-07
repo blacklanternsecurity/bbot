@@ -1,3 +1,5 @@
+from ..bbot_fixtures import *  # noqa: F403
+
 from bbot.core.helpers.whois import (
     is_placeholder,
     is_proxy_service,
@@ -64,3 +66,93 @@ def test_whois_helpers():
         "client delete prohibited"
     )
     assert normalize_status("ok") == "ok"
+
+
+@pytest.mark.asyncio
+async def test_whois_cache_shared_with_baddns(helpers, monkeypatch):
+    """The WHOIS cache is baddns's own, so each domain is queried once no matter who asks first."""
+    import whois
+    from whois.parser import WhoisEntry
+    from baddns.lib.whoismanager import WhoisManager
+
+    queried = []
+
+    def fake_whois(domain, **kwargs):
+        queried.append(domain)
+        return WhoisEntry.load(domain, whois_sample(domain))
+
+    monkeypatch.setattr(whois, "whois", fake_whois)
+    WhoisManager.clear_cache()
+    try:
+        assert helpers.whois.cache is WhoisManager._cache
+
+        # a domain baddns already fetched is parsed without a second query
+        WhoisManager._cache["github.com"] = {
+            "type": "response",
+            "data": WhoisEntry.load("github.com", whois_sample("github.com")),
+        }
+        github = await helpers.whois.lookup("github.com")
+        assert github["registrar"] == "MarkMonitor, Inc."
+        assert queried == []
+
+        # ...and our own result lands in the shape baddns reads back
+        namecheap = await helpers.whois.lookup("namecheap.com")
+        assert namecheap["registrar"] == "NAMECHEAP INC"
+        assert queried == ["namecheap.com"]
+        manager = WhoisManager("www.namecheap.com")
+        await manager.dispatchWHOIS()
+        assert manager.whois_result["type"] == "response"
+        assert queried == ["namecheap.com"]
+
+        # failures are cached too, so a dead domain isn't retried all scan
+        monkeypatch.setattr(whois, "whois", lambda domain, **kwargs: 1 / 0)
+        assert await helpers.whois.lookup("evilcorp.com") is None
+        assert await helpers.whois.lookup("evilcorp.com") is None
+        assert WhoisManager._cache["evilcorp.com"]["type"] == "error"
+
+        helpers.whois.clear_cache()
+        assert WhoisManager._cache == {}
+    finally:
+        WhoisManager.clear_cache()
+
+
+@pytest.mark.asyncio
+async def test_whois_works_without_baddns(helpers, monkeypatch):
+    """baddns is an optional cache partner, never a dependency: WHOIS works fully on its own."""
+    import builtins
+    import whois
+    from whois.parser import WhoisEntry
+    from baddns.lib.whoismanager import WhoisManager
+    from bbot.core.helpers.whois import WhoisHelper
+
+    real_import = builtins.__import__
+
+    def no_baddns(name, *args, **kwargs):
+        if name.split(".")[0] == "baddns":
+            raise ImportError("No module named 'baddns'")
+        return real_import(name, *args, **kwargs)
+
+    WhoisManager.clear_cache()
+    try:
+        monkeypatch.setattr(builtins, "__import__", no_baddns)
+        monkeypatch.setattr(whois, "whois", lambda domain, **kw: WhoisEntry.load(domain, whois_sample(domain)))
+
+        helper = WhoisHelper(helpers)
+        assert helper.cache is not WhoisManager._cache
+
+        record = await helper.lookup("github.com")
+        assert record["registrar"] == "MarkMonitor, Inc."
+        assert record["nameservers"]
+        # cached privately, and nothing reached baddns
+        assert set(helper.cache) == {"github.com"}
+        assert WhoisManager._cache == {}
+
+        # the private cache still serves hits and still absorbs failures
+        assert (await helper.lookup("github.com"))["registrar"] == "MarkMonitor, Inc."
+        monkeypatch.setattr(whois, "whois", lambda domain, **kw: 1 / 0)
+        assert await helper.lookup("evilcorp.com") is None
+        assert helper.cache["evilcorp.com"]["type"] == "error"
+        helper.clear_cache()
+        assert helper.cache == {}
+    finally:
+        WhoisManager.clear_cache()

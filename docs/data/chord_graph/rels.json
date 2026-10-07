@@ -1918,10 +1918,5 @@
         "source": 161,
         "target": 7,
         "type": "consumes"
-    },
-    {
-        "source": 162,
-        "target": 161,
-        "type": "produces"
     }
 ]

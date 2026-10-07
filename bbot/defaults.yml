@@ -190,6 +190,8 @@ aggregate: True
 dnsresolve: True
 # Cloud provider tagging
 cloudcheck: True
+# Enrich in-scope DNS_NAMEs with WHOIS registration data (one blocking lookup per registrable domain)
+whois: False
 # Python API event bridge
 python: True
 

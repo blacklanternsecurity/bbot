@@ -5,15 +5,16 @@ Parsing lives in module-level functions so it can be used on raw WHOIS text with
 """
 
 import re
+import time
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 
-from cachetools import LRUCache
 import whois as python_whois
 from whois.parser import WhoisEntry
 from whois.exceptions import PywhoisError
 
-from .async_helpers import async_cachedmethod
+from .validators import is_email
+from bbot.models.helpers import utc_datetime_validator
 
 log = logging.getLogger("bbot.core.helpers.whois")
 
@@ -64,6 +65,9 @@ _CAMEL_REGEX = re.compile(r"(?<=[a-z])(?=[A-Z])")
 _IANA_ID_REGEX = re.compile(r"^\s*Registrar IANA ID:\s*(\d+)", re.I | re.M)
 _REGISTRANT_EMAIL_REGEX = re.compile(r"^\s*Registrant Email:\s*(\S.*?)\s*$", re.I | re.M)
 
+# a response without any of these isn't a registration record
+_REGISTRATION_FIELDS = ("registrar", "creation_date", "expiration_date", "name_servers")
+
 
 def is_placeholder(value):
     """
@@ -80,7 +84,7 @@ def is_placeholder(value):
     value = value.strip()
     if not value:
         return False
-    if "@" in value and " " not in value:
+    if is_email(value):
         local, _, domain = value.rpartition("@")
         return bool(_PLACEHOLDER_EMAIL_LOCAL_REGEX.search(local) or _PLACEHOLDER_EMAIL_DOMAIN_REGEX.search(domain))
     return bool(_PLACEHOLDER_REGEX.search(value))
@@ -125,9 +129,7 @@ def parse_whois_date(value):
             return None
     if not isinstance(value, datetime):
         return None
-    if value.tzinfo is None:
-        value = value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return utc_datetime_validator(value).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _as_list(value):
@@ -173,14 +175,19 @@ def _clean(value):
     return value or None
 
 
-def normalize_whois(domain, entry, text=""):
+def has_registration_data(entry):
+    """Return True if a parsed python-whois entry carries actual registration data."""
+    return any(entry.get(k) for k in _REGISTRATION_FIELDS)
+
+
+def normalize_whois(entry, text=""):
     """
-    Convert a parsed python-whois entry into DOMAIN_REGISTRATION event data.
+    Convert a parsed python-whois entry into a registration record.
 
     Placeholder registrant values are dropped and set registrant_redacted=True.
     Redaction is per-field, so e.g. a redacted name can still come with a real organization.
     """
-    record = {"host": domain, "registrant_redacted": False}
+    record = {"registrant_redacted": False}
 
     registrar = _clean(entry.get("registrar"))
     if registrar:
@@ -241,7 +248,7 @@ def normalize_whois(domain, entry, text=""):
 
 def parse_whois(domain, text):
     """
-    Parse raw WHOIS text for a domain into DOMAIN_REGISTRATION event data, without network access.
+    Parse raw WHOIS text for a domain into a registration record, without network access.
 
     Returns None if the text has no registration data.
     """
@@ -249,17 +256,35 @@ def parse_whois(domain, text):
         entry = WhoisEntry.load(domain, text)
     except PywhoisError:
         return None
-    if not any(entry.get(k) for k in ("registrar", "creation_date", "expiration_date", "name_servers")):
+    if not has_registration_data(entry):
         return None
-    return normalize_whois(domain, entry, text)
+    return normalize_whois(entry, text)
+
+
+def _shared_cache():
+    """
+    baddns keeps a process-global WHOIS cache on its WhoisManager, keyed by registrable domain, shaped
+    {domain: {"type": "response"|"error", "data": WhoisEntry|str}}. Reading and writing it directly means
+    a domain is queried once no matter which of us gets there first.
+
+    baddns is optional: it is installed on demand with the baddns module, and it owns the shape of that
+    dict. Anything at all going wrong here falls back to a private cache, so WHOIS never depends on it.
+    """
+    try:
+        from baddns.lib.whoismanager import WhoisManager
+
+        return WhoisManager._cache
+    except Exception as e:
+        log.debug(f"baddns is unavailable ({e}); WHOIS lookups will use a private cache")
+        return {}
 
 
 class WhoisHelper:
     """
     WHOIS domain registration lookups, accessible via `self.helpers.whois`.
 
-    Lookups run python-whois in a thread and are cached per domain for the lifetime of the scan.
-    Concurrency is bounded by the calling module's threads. A failed lookup returns None; it never raises.
+    Lookups run python-whois in a thread and are cached per domain, shared with baddns.
+    A failed lookup returns None; it never raises.
 
     Examples:
         >>> record = await self.helpers.whois.lookup("github.com")
@@ -269,19 +294,34 @@ class WhoisHelper:
 
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
-        self._cache = LRUCache(maxsize=10000)
+        self._cache = None
 
-    @async_cachedmethod(lambda self: self._cache, key=lambda domain, **_: domain)
+    @property
+    def cache(self):
+        if self._cache is None:
+            self._cache = _shared_cache()
+        return self._cache
+
+    def clear_cache(self):
+        self.cache.clear()
+
     async def query(self, domain, **whois_kwargs):
-        """Return raw WHOIS text for a domain, or None on failure."""
+        """Return the python-whois entry for a domain, or None on failure."""
+        cached = self.cache.get(domain)
+        # baddns owns the cache's shape; an entry we don't recognize just means we query again
+        if isinstance(cached, dict) and "type" in cached:
+            return cached["data"] if cached["type"] == "response" else None
+        # each query blocks the intercept chain, so log how long it took to make a stall diagnosable
+        start = time.time()
         try:
-            entry = await self.parent_helper.run_in_executor_io(
-                python_whois.whois, domain, quiet=True, inc_raw=True, **whois_kwargs
-            )
+            entry = await self.parent_helper.run_in_executor_io(python_whois.whois, domain, quiet=True, **whois_kwargs)
         except Exception as e:
-            log.debug(f"WHOIS lookup for {domain} failed: {e}")
+            log.debug(f"WHOIS for {domain} failed after {time.time() - start:.1f}s: {e}")
+            self.cache[domain] = {"type": "error", "data": str(e)}
             return None
-        return entry.get("raw") or getattr(entry, "text", None)
+        log.debug(f"WHOIS for {domain} took {time.time() - start:.1f}s")
+        self.cache[domain] = {"type": "response", "data": entry}
+        return entry
 
     async def lookup(self, domain, include_raw=False, **whois_kwargs):
         """
@@ -290,10 +330,11 @@ class WhoisHelper:
         Extra keyword arguments (e.g. timeout) go to python-whois.
         """
         domain = domain.lower()
-        text = await self.query(domain, **whois_kwargs)
-        if not text:
+        entry = await self.query(domain, **whois_kwargs)
+        if entry is None or not has_registration_data(entry):
             return None
-        record = parse_whois(domain, text)
-        if record and include_raw:
+        text = getattr(entry, "text", "") or ""
+        record = normalize_whois(entry, text)
+        if include_raw:
             record["raw"] = text
         return record

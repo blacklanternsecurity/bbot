@@ -391,6 +391,7 @@ class BBOTConfig(BaseModel):
     aggregate: Optional[bool] = None
     dnsresolve: Optional[bool] = None
     cloudcheck: Optional[bool] = None
+    whois: Optional[bool] = None
     unarchive: Optional[bool] = None
     python: Optional[bool] = None
 

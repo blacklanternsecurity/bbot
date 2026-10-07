@@ -14,7 +14,6 @@ from . import misc
 from .asn import ASNHelper
 from .dns import DNSHelper
 from .web import WebHelper
-from .whois import WhoisHelper
 from .diff import HttpCompare
 from .nowafpls import NowafplsHelper
 from .regex import RegexHelper
@@ -145,6 +144,10 @@ class ConfigAwareHelper:
     @property
     def whois(self):
         if self._whois is None:
+            # imported lazily; python-whois compiles a parser regex set per TLD at import time,
+            # and WHOIS enrichment is off by default
+            from .whois import WhoisHelper
+
             self._whois = WhoisHelper(self)
         return self._whois
 
