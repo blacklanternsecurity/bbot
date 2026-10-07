@@ -141,6 +141,8 @@ def extract_params_location(location_header_value, original_parsed_url):
 _yara_identifier_regex = re.compile(r"[A-Za-z_]\w*")
 _yara_rule_modifiers = ("private", "global")
 
+_html_end_regex = re.compile(r"</html\s*>", re.I)
+
 
 def _skip_yara_noncode(source, i):
     """
@@ -513,7 +515,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     """
 
     watched_events = ["HTTP_RESPONSE", "RAW_TEXT"]
-    produced_events = ["URL_UNVERIFIED", "WEB_PARAMETER"]
+    produced_events = ["URL_UNVERIFIED", "WEB_PARAMETER", "FINDING"]
     _avoid_duplicate_content = True
     flags = ["safe", "passive"]
     meta = {
@@ -534,11 +536,57 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             262144,
             description="Maximum byte slice of the response body searched for a single <form> body. YARA only locates form openings; the bounded slice is what the Python re-based extractor scans for fields. Caps worst-case extraction work per form match.",
         )
+        long_redirect_threshold: int = Field(
+            2048,
+            description="Minimum number of bytes following the end of the HTML document for a 3xx response to be reported as a long redirection response. Set to 0 to disable the check.",
+        )
 
     scope_distance_modifier = None
     accept_dupes = False
 
     _module_threads = 6
+
+    async def check_long_redirect(self, event, body):
+        """Report a redirect whose body keeps going after the document ends.
+
+        Browsers discard the body of a 3xx, so content delivered here is never
+        displayed. A server that emits a redirect document and then keeps writing
+        has run the handler the redirect was meant to skip (CWE-698, Execution
+        After Redirect).
+
+        Body size on its own is not the signal: analytics payloads and notice
+        pages clear any byte threshold. Trailing content is measured on the
+        decoded body, since ``content_length`` reports the compressed size and
+        is absent from most of these responses.
+        """
+        threshold = self.long_redirect_threshold
+        status_code = event.http_status
+        location = event.data.get("location", "")
+        if not (threshold and location and 300 <= status_code < 400):
+            return
+        document_end = _html_end_regex.search(body)
+        if not document_end:
+            return
+        trailing = len(body) - document_end.end()
+        if trailing < threshold:
+            return
+
+        await self.emit_event(
+            {
+                "host": str(event.host),
+                "url": event.data.get("url", ""),
+                "name": "Long Redirection Response",
+                "description": (
+                    "Redirect kept writing after the document ended, delivering content no browser displays. "
+                    f"Status: [{status_code}] Location: [{location}] Trailing bytes: [{trailing}]"
+                ),
+                "severity": "LOW",
+                "confidence": "HIGH",
+            },
+            "FINDING",
+            event,
+            context="{module} found content past the end of the document on a {event.type} redirect, which browsers never display",
+        )
 
     def in_bl(self, value):
         # Check if the value is in the blacklist or starts with a blacklisted prefix.
@@ -1384,6 +1432,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         # Bounded slice of the response body searched for a form's body, anchored
         # at each YARA form-opening match. Caps worst-case Python re work per form.
         self.max_form_bytes = int(self.config.get("max_form_bytes", 262144))
+        self.long_redirect_threshold = int(self.config.get("long_redirect_threshold", 2048))
 
         for module in self.scan.modules.values():
             if not str(module).startswith("_"):
@@ -1555,6 +1604,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             headers = event.data.get("header-dict", {})
             if body == "" and headers == {}:
                 return
+
+            await self.check_long_redirect(event, body)
 
             self.assigned_cookies = {}
             content_type = None

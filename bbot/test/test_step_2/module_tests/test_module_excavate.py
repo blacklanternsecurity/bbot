@@ -2186,3 +2186,119 @@ class TestContentDedupWithURLEvents(ModuleTestBase):
             "Both duplicate-content URLs were processed — content dedup failed for URL events"
         )
         assert len(consumer._content_dup_tracker) > 0, "Content dedup tracker should have entries"
+
+
+class TestExcavateLongRedirect(ModuleTestBase):
+    """A redirect is reported only when its body keeps going after the document ends.
+
+    Browsers discard a 3xx body, so content delivered there is never displayed.
+    A server that writes a redirect document and then keeps writing has run the
+    handler the redirect was meant to skip.
+    """
+
+    targets = [
+        f"{HTTPSERVER_URL}/longredirect",
+        f"{HTTPSERVER_URL}/shortredirect",
+        f"{HTTPSERVER_URL}/singledoc",
+        f"{HTTPSERVER_URL}/nodoc",
+        f"{HTTPSERVER_URL}/bigpage",
+    ]
+    modules_overrides = ["excavate", "http"]
+    config_overrides = {"web": {"spider_distance": 0, "spider_depth": 0}, "omit_event_types": []}
+
+    # Each body must be distinct: excavate's _avoid_duplicate_content drops a
+    # response whose body hash it has already seen, whatever its status code.
+    redirect_stub = (
+        "<html><head><title>Object moved</title></head>"
+        "<body><h2>Object moved to <a href='/destination'>here</a>.</h2></body></html>"
+    )
+    # what the handler rendered after the redirect document had already been written
+    trailing_page = "<!doctype html><html><body>" + ("A" * 4096) + "</body></html>"
+
+    long_body = redirect_stub + trailing_page
+    short_body = redirect_stub + "<p>tiny</p>"
+    single_doc_body = "<!doctype html><html><body>" + ("B" * 4096) + "</body></html>"
+    no_doc_body = "<!doctype html><html><body>" + ("C" * 4096)
+    non_redirect_body = redirect_stub + "<!doctype html><html><body>" + ("D" * 4096) + "</body></html>"
+
+    async def setup_before_prep(self, module_test):
+        def redirect(uri, body):
+            module_test.set_expect_requests(
+                expect_args={"method": "GET", "uri": uri},
+                respond_args={"response_data": body, "status": 302, "headers": {"Location": "/destination"}},
+            )
+
+        # the handler kept running past the redirect document: should be reported
+        redirect("/longredirect", self.long_body)
+        # trailing content below the threshold: should not be reported
+        redirect("/shortredirect", self.short_body)
+        # one complete document and nothing after it: should not be reported
+        redirect("/singledoc", self.single_doc_body)
+        # no document terminator to measure from: should not be reported
+        redirect("/nodoc", self.no_doc_body)
+        # trailing content, but not a redirect: should not be reported
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/bigpage"},
+            respond_args={"response_data": self.non_redirect_body, "status": 200},
+        )
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING" and "Long Redirection Response" in str(e.data)]
+        reported = {e.data.get("url", "") for e in findings}
+
+        # without this the negative cases below would pass for a response that was never fetched
+        fetched = {e.data.get("url", "") for e in events if e.type == "HTTP_RESPONSE"}
+        for path in ("/longredirect", "/shortredirect", "/singledoc", "/nodoc", "/bigpage"):
+            assert any(path in u for u in fetched), f"{path} was never fetched"
+
+        assert any("/longredirect" in u for u in reported), (
+            f"content past the end of the document was not reported, findings: {[f.data for f in findings]}"
+        )
+        assert not any("/shortredirect" in u for u in reported), (
+            "trailing content below the threshold should not be reported"
+        )
+        assert not any("/singledoc" in u for u in reported), (
+            "a redirect body that is one complete document should not be reported"
+        )
+        assert not any("/nodoc" in u for u in reported), (
+            "a redirect body with no document terminator should not be reported"
+        )
+        assert not any("/bigpage" in u for u in reported), "a 200 response should never be reported"
+
+        finding = next(f for f in findings if "/longredirect" in f.data.get("url", ""))
+        assert finding.data["severity"] == "LOW"
+        assert finding.data["confidence"] == "HIGH"
+        assert f"Trailing bytes: [{len(self.trailing_page)}]" in finding.data["description"], (
+            f"description should carry the trailing byte count: {finding.data['description']}"
+        )
+
+
+class TestExcavateLongRedirectDisabled(ModuleTestBase):
+    """A threshold of 0 turns the check off."""
+
+    targets = [f"{HTTPSERVER_URL}/longredirect"]
+    modules_overrides = ["excavate", "http"]
+    config_overrides = {
+        "web": {"spider_distance": 0, "spider_depth": 0},
+        "omit_event_types": [],
+        "modules": {"excavate": {"long_redirect_threshold": 0}},
+    }
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/longredirect"},
+            respond_args={
+                "response_data": (
+                    "<html><body><h2>Object moved to <a href='/destination'>here</a>.</h2></body></html>"
+                    + "<!doctype html><html><body>"
+                    + ("E" * 4096)
+                    + "</body></html>"
+                ),
+                "status": 302,
+                "headers": {"Location": "/destination"},
+            },
+        )
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING" and "Long Redirection Response" in str(e.data)]
+        assert not findings, f"check should be disabled at threshold 0, got: {[f.data for f in findings]}"
