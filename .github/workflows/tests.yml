@@ -35,7 +35,7 @@ jobs:
   test:
     needs: changes
     if: ${{ !cancelled() && (needs.changes.outputs.code != 'false' || github.event.pull_request.changed_files >= 3000) }}
-    uses: blacklanternsecurity/CLA/.github/workflows/python-tests.yml@de82726743e51ac51a1be31196d893312a9fea59 # main
+    uses: blacklanternsecurity/CLA/.github/workflows/python-tests.yml@40c6e18c0a6e32116eea4f89fc826f53c70889dc # main
     secrets: inherit
     with:
       uv-sync-args: --group dev

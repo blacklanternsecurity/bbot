@@ -9,4 +9,4 @@ jobs:
       contents: write
       pull-requests: write
       checks: read
-    uses: blacklanternsecurity/CLA/.github/workflows/dependabot-auto-merge.yml@de82726743e51ac51a1be31196d893312a9fea59 # main
+    uses: blacklanternsecurity/CLA/.github/workflows/dependabot-auto-merge.yml@40c6e18c0a6e32116eea4f89fc826f53c70889dc # main
