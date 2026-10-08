@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.kt_h8v1e.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.clex98hk.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -2923,7 +2923,7 @@ Is the same as:
 <td>modules.trufflehog.version</td>
 <td>str</td>
 <td>trufflehog version</td>
-<td>3.98.0</td>
+<td>3.99.0</td>
 </tr>
 <tr>
 <td>modules.urlscan.urls</td>
@@ -3446,6 +3446,12 @@ Is the same as:
 <td>str</td>
 <td>Include custom Yara rules</td>
 <td></td>
+</tr>
+<tr>
+<td>modules.excavate.long_redirect_threshold</td>
+<td>int</td>
+<td>Minimum number of bytes following the end of the HTML document for a 3xx response to be reported as a long redirection response. Set to 0 to disable the check.</td>
+<td>2048</td>
 </tr>
 <tr>
 <td>modules.excavate.max_form_bytes</td>
