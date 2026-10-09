@@ -27,7 +27,7 @@ class TestBaddns_direct_cloudflare(BaseTestBaddns):
                 self.events_seen.append(event.data)
                 url = f"http://bad.dns:{HTTPSERVER_PORT}/"
                 url_event = self.scan.make_event(
-                    url, "URL", parent=self.scan.root_event, tags=["cloudflare", "in-scope", "status-401"]
+                    url, "URL", parent=self.scan.root_event, tags=["cloudflare", "in-scope", "status-404"]
                 )
                 if url_event is not None:
                     await self.emit_event(url_event)
@@ -46,8 +46,8 @@ class TestBaddns_direct_cloudflare(BaseTestBaddns):
 
         expect_args = {"method": "GET", "uri": "/"}
         respond_args = {
-            "response_data": "<Error><Code>NoSuchBucket</Code><Message>The specified bucket does not exist</Message><BucketName>bad.dns</BucketName></Error>",
-            "status": 401,
+            "response_data": "<h1>Error 404 - AnnounceKit</h1>",
+            "status": 404,
         }
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
@@ -59,7 +59,7 @@ class TestBaddns_direct_cloudflare(BaseTestBaddns):
     def check(self, module_test, events):
         assert any(
             e.type == "FINDING"
-            and "Possible [AWS Bucket Takeover Detection] via direct BadDNS analysis. Indicator: [[Words: The specified bucket does not exist, BucketName | Condition: and | Part: body] Matchers-Condition: and] Trigger: [self] baddns Module: [CNAME]"
+            and "Possible [Announcekit Takeover Detection] via direct BadDNS analysis. Indicator: [[Words: Error 404 - AnnounceKit | Condition: and | Part: body] Matchers-Condition: and] Trigger: [self] baddns Module: [CNAME]"
             in e.data["description"]
             for e in events
         ), "Failed to emit FINDING"

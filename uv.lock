@@ -7,9 +7,6 @@ resolution-markers = [
     "python_full_version < '3.11'",
 ]
 
-[manifest]
-overrides = [{ name = "blastdns", specifier = ">=2.0.0,<3" }]
-
 [[package]]
 name = "annotated-doc"
 version = "0.0.4"
@@ -163,7 +160,7 @@ wheels = [
 
 [[package]]
 name = "baddns"
-version = "2.4.1"
+version = "2.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "blastdns" },
@@ -175,10 +172,11 @@ dependencies = [
     { name = "python-whois" },
     { name = "pyyaml" },
     { name = "tldextract" },
+    { name = "yara-python" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1d/91/62cef471fba0201e38d1d3cca0170ca0dd25c5417c7f2f2b495dc3903b3e/baddns-2.4.1.tar.gz", hash = "sha256:022e66a7d04ccbf239ba0a012c505dcc8d4246d240817c16802d1c833f1765fa", size = 62730, upload-time = "2026-06-17T23:12:10.841Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/07/38/2adf163056db50f943a838fb3602463762fc523d3f6a9147fd0a2bea631f/baddns-2.5.0.tar.gz", hash = "sha256:8f2f87dc2be54a5a74aea350cf4b079fcafbe31b811951ac940952ad29c2e96a", size = 80403, upload-time = "2026-10-09T15:27:29.881Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8c/d1/f7cc99fbf5146becdefc01b68917f4de8b5d32b355fe8be42e4ae12e5538/baddns-2.4.1-py3-none-any.whl", hash = "sha256:bda752ecdb31fe27c753516ab476f0371d128fe5c7f1c8a677ba49ad9348d8e3", size = 121104, upload-time = "2026-06-17T23:12:09.661Z" },
+    { url = "https://files.pythonhosted.org/packages/16/5a/1e0479d06fcb17e8310383b58be8c4aad5e17f8d781b9ed785b70b6eed3f/baddns-2.5.0-py3-none-any.whl", hash = "sha256:b8d6d04f75cb47cf261c21708ea41ec89111b447844e458337604a702b717b5a", size = 134089, upload-time = "2026-10-09T15:27:28.823Z" },
 ]
 
 [[package]]
@@ -267,7 +265,7 @@ requires-dist = [
     { name = "ansible-runner", specifier = ">=2.3.2,<3" },
     { name = "asndb", specifier = ">=1.1.0" },
     { name = "beautifulsoup4", specifier = ">=4.12.2,<5" },
-    { name = "blastdns", specifier = ">=2.0.0,<3" },
+    { name = "blastdns", specifier = ">=2.0.0,<2.1" },
     { name = "blasthttp", specifier = ">=0.10.0,<0.11" },
     { name = "cachetools", specifier = ">=5.3.2,<8.0.0" },
     { name = "cloudcheck", specifier = ">=11.1.0,<12" },
@@ -304,7 +302,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "baddns", specifier = "~=2.4.1" },
+    { name = "baddns", specifier = "~=2.5.0" },
     { name = "fastapi", specifier = ">=0.115.5,<0.143.0" },
     { name = "maturin", specifier = ">=1.4,<2" },
     { name = "pre-commit", specifier = ">=3.4,<5.0" },
