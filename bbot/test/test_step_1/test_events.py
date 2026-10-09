@@ -1175,6 +1175,31 @@ async def test_event_closest_host():
     assert vuln.data["path"] == "/tmp/asdf.txt"
     assert vuln.host == "www.evilcorp.com"
 
+    # finding inherits the port from its parent, and keeps it across a json round trip
+    from bbot.core.event import event_from_json
+
+    open_port = scan.make_event("8.8.8.8:53", "OPEN_TCP_PORT", parent=scan.root_event)
+    port_finding = scan.make_event(
+        {"description": "test", "severity": "LOW", "confidence": "MEDIUM", "name": "Test Finding"},
+        "FINDING",
+        parent=open_port,
+    )
+    assert port_finding.host == ipaddress.ip_address("8.8.8.8")
+    assert port_finding.port == 53
+    assert port_finding.json()["port"] == 53
+    reconstituted_finding = event_from_json(port_finding.json())
+    assert reconstituted_finding.port == 53
+    assert reconstituted_finding.id == port_finding.id
+    # a finding with its own host doesn't inherit anything
+    own_host_finding = scan.make_event(
+        {"host": "1.2.3.4", "description": "test", "severity": "LOW", "confidence": "MEDIUM", "name": "Test Finding"},
+        "FINDING",
+        parent=open_port,
+    )
+    assert own_host_finding.port is None
+    assert "port" not in own_host_finding.json()
+    assert event_from_json(own_host_finding.json()).port is None
+
     # no host and no path == not allowed
     event3 = scan.make_event("wat", "ASDF", parent=scan.root_event)
     assert not event3.host

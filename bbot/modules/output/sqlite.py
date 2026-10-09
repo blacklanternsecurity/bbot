@@ -18,7 +18,7 @@ class SQLite(SQLTemplate):
             10, description="Number of times to retry connecting to the database (1 second between retries)"
         )
 
-    deps_pip = ["sqlmodel", "aiosqlite"]
+    deps_pip = ["sqlmodel[asyncio]", "aiosqlite"]
 
     async def setup(self):
         db_file = self.config.get("database", "")
