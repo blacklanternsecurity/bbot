@@ -640,6 +640,15 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         path = event.data.get("path", event.parsed_url.path)
         return urlparse(f"{scheme}://{host}{path}")
 
+    async def _document_base_url(self, event, document_url):
+        """The URL relative references in the body resolve against: the page's <base href> if it has one, else document_url."""
+        m = await self.helpers.re.search(bbot_regexes.base_href_regex, getattr(event, "body", "") or "")
+        if m:
+            base_url = urljoin(document_url, html.unescape(m.group(1)))
+            if urlparse(base_url).scheme in ("http", "https"):
+                return base_url
+        return document_url
+
     def url_unparse(self, param_type, parsed_url):
         # Reconstructs a URL, optionally omitting the query string based on remove_querystring configuration value.
         if param_type == "GETPARAM":
@@ -942,6 +951,12 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             # Use event.body (property) so we hit the body-spill store; event.data["body"] is
             # popped at spill time and would be empty here.
             response_body = getattr(event, "body", "") or ""
+            # Use the effective base URL (which may differ from parsed_url for archived content)
+            event_base = self.excavate._event_base_url(event)
+            document_url = f"{event_base.scheme}://{event_base.netloc}{event_base.path}"
+            if not self.excavate.remove_querystring and len(event.parsed_url.query) > 0:
+                document_url += f"?{event.parsed_url.query}"
+            base_url = await self.excavate._document_base_url(event, document_url)
             for identifier, results in yara_results.items():
                 if identifier not in self.parameterExtractorCallbackDict.keys():
                     raise ExcavateError("ParameterExtractor YaraRule identified reference non-existent submodule")
@@ -977,14 +992,12 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                         if endpoint and endpoint.startswith(("http://", "https://")):
                             url = endpoint
 
-                        # The endpoint is usually a form action - we should use it if we have it. If not, default to URL.
-                        else:
-                            # Use the effective base URL (which may differ from parsed_url for archived content)
-                            event_base = self.excavate._event_base_url(event)
-                            base_url = f"{event_base.scheme}://{event_base.netloc}{event_base.path}"
-                            if not self.excavate.remove_querystring and len(event.parsed_url.query) > 0:
-                                base_url += f"?{event.parsed_url.query}"
+                        # The endpoint is usually a form action - we should use it if we have it.
+                        # A form with no action submits to the document URL, not <base href>.
+                        elif endpoint:
                             url = urljoin(base_url, endpoint)
+                        else:
+                            url = document_url
 
                         try:
                             # Validate the URL before using it
@@ -1254,6 +1267,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         tag_attribute_regex = bbot_regexes.tag_attribute_regex
 
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
+            source_url = None
             for identifier, results in yara_results.items():
                 urls_found = 0
                 final_url = ""
@@ -1276,7 +1290,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                 )
                                 continue
                             unescaped_url = html.unescape(m.group(1))
-                            source_url = event.parsed_url.geturl()
+                            if source_url is None:
+                                source_url = await self.excavate._document_base_url(event, event.parsed_url.geturl())
                             final_url = urldefrag(urljoin(source_url, unescaped_url)).url
                             if not await self.helpers.re.search(self.full_url_regex_strict, final_url):
                                 self.excavate.debug(

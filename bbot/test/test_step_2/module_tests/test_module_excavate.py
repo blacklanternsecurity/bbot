@@ -932,6 +932,42 @@ class TestExcavateParameterExtraction_relativeurl(ModuleTestBase):
         assert parameter_extraction_found, "Excavate failed to extract parameter after traversal"
 
 
+class TestExcavateBaseHref(ModuleTestBase):
+    """Relative references resolve against <base href>, not the page URL; a form with no action still uses the page URL."""
+
+    targets = [f"{HTTPSERVER_URL}/app/sub/"]
+    modules_overrides = ["http", "excavate", "hunt"]
+
+    base_href_html = """
+<html>
+<head>
+    <base href="/">
+    <link href="app/theme/getui?ver=1" rel="stylesheet" />
+</head>
+<body>
+    <a href="app/page.html">page</a>
+    <form action="app/search" method="get"><input type="text" name="q" value="1"></form>
+    <form method="post"><input type="text" name="token" value="abc"></form>
+</body>
+</html>
+"""
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpserver.expect_request("/app/sub/").respond_with_data(
+            self.base_href_html, headers={"Content-Type": "text/html"}
+        )
+
+    def check(self, module_test, events):
+        urls = {e.url for e in events if e.type == "URL_UNVERIFIED"}
+        assert f"{HTTPSERVER_URL}/app/page.html" in urls
+        assert not any("/app/sub/app/" in u for u in urls), f"Resolved against page URL instead of <base>: {urls}"
+
+        params = {e.data["name"]: e.data["url"] for e in events if e.type == "WEB_PARAMETER"}
+        assert params.get("ver") == f"{HTTPSERVER_URL}/app/theme/getui", params
+        assert params.get("q") == f"{HTTPSERVER_URL}/app/search", params
+        assert params.get("token") == f"{HTTPSERVER_URL}/app/sub/", params
+
+
 class TestExcavateParameterExtraction_getparam_novalue(TestExcavateParameterExtraction_getparam):
     getparam_extract_html = """
                    <section class=search>
