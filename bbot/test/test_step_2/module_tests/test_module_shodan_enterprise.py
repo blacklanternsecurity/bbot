@@ -1,3 +1,6 @@
+import inspect
+import time
+
 from bbot.test.mock_blasthttp import MockResponse
 
 from .base import ModuleTestBase
@@ -761,3 +764,42 @@ class TestShodan_Enterprise_HostNotFound(ModuleTestBase):
             if r.levelname == "WARNING" and "198.51.100.1" in r.getMessage()
         ]
         assert not warnings, f"a 404 was reported as a problem: {warnings}"
+
+
+class TestShodan_Enterprise_ThrottleSpacesRequests(ModuleTestBase):
+    """requests_per_second paces requests before they are sent, across concurrent lookups."""
+
+    _ips = [f"198.51.100.{i}" for i in range(1, 7)]
+    targets = _ips
+    module_name = "shodan_enterprise"
+    config_overrides = {
+        "modules": {
+            "shodan_enterprise": {
+                "api_key": "deadbeef",
+                "requests_per_second": 5,
+                "concurrency": 4,
+                "search_prefilter": False,
+            }
+        },
+        "dns": {"minimal": True},
+    }
+
+    async def setup_after_prep(self, module_test):
+        self.sent_at = []
+
+        async def _cb(request):
+            url = str(request.url)
+            self.sent_at.append(time.monotonic())
+            ip = url.split("/shodan/host/")[-1].split("?")[0]
+            return MockResponse(status_code=200, json=host_record(ip))
+
+        module_test.blasthttp_mock.add_callback(_cb, url=None)
+
+    def check(self, module_test, events):
+        assert len(self.sent_at) == len(self._ips), self.sent_at
+        span = max(self.sent_at) - min(self.sent_at)
+        expected = (len(self._ips) - 1) / 5
+        assert span >= expected * 0.8, f"{len(self._ips)} requests in {span:.2f}s, expected at least {expected:.2f}s"
+        assert "import asyncio" not in inspect.getsource(inspect.getmodule(type(module_test.module))), (
+            "modules don't import asyncio"
+        )

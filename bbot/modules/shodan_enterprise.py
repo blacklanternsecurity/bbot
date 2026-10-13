@@ -1,4 +1,3 @@
-import asyncio
 import time
 
 from bbot.modules.base import BaseModule
@@ -103,9 +102,7 @@ class shodan_enterprise(BaseModule):
         self.search_chunk_size = max(int(self.config.get("search_chunk_size", 100)), 1)
 
         self.concurrency = max(int(self.config.get("concurrency", 4)), 1)
-        self._semaphore = asyncio.Semaphore(self.concurrency)
-        self._rate_lock = asyncio.Lock()
-        self._last_request = 0.0
+        self._next_slot = 0.0
         self._min_interval = 1.0 / self.requests_per_second
 
         # IPs seen across batches but not yet queried, plus every IP already
@@ -136,14 +133,16 @@ class shodan_enterprise(BaseModule):
         """Serialise requests to requests_per_second, across the whole module.
 
         Shodan's limit applies per API key, so the throttle has to sit in front of
-        every request the module makes rather than inside any one worker.
+        every request the module makes rather than inside any one worker. Each
+        caller reserves the next free slot before its first await, so concurrent
+        lookups queue up without a lock. This paces requests before they go out;
+        api_request() handles the 429s that get through anyway.
         """
-        async with self._rate_lock:
-            now = time.monotonic()
-            delay = self._last_request + self._min_interval - now
-            if delay > 0:
-                await asyncio.sleep(delay)
-            self._last_request = time.monotonic()
+        now = time.monotonic()
+        slot = max(now, self._next_slot)
+        self._next_slot = slot + self._min_interval
+        if slot > now:
+            await self.helpers.sleep(slot - now)
 
     async def _get_json(self, url, description):
         """One API call: the parsed JSON body, or None.
@@ -151,9 +150,8 @@ class shodan_enterprise(BaseModule):
         Rate limiting, retries and API key cycling are api_request()'s. A 404
         means Shodan has no data for that host -- a normal answer, not a failure.
         """
-        async with self._semaphore:
-            await self._throttle()
-            r = await self.api_request(url)
+        await self._throttle()
+        r = await self.api_request(url)
 
         if r is None:
             self.debug(f"No response from Shodan for {description}")
@@ -260,7 +258,9 @@ class shodan_enterprise(BaseModule):
 
         # The per-IP lookup is what makes the result complete: the search index
         # withholds UDP banners (53/udp, 111/udp) that this endpoint returns.
-        await asyncio.gather(*(self._lookup_and_emit(ip) for ip in known))
+        lookups = (self._lookup_and_emit(ip) for ip in known)
+        async for _ in self.helpers.as_completed(lookups, max_concurrent=self.concurrency):
+            pass
 
     async def _search_known_ips(self, ips):
         """Phase 1: which of these IPs does Shodan have anything on?
