@@ -890,3 +890,42 @@ class TestShodan_Enterprise_StopsWorkingOnceErrored(ModuleTestBase):
         assert self.throttled_after_error == 0, (
             f"{self.throttled_after_error} requests still waited on the throttle after the module errored"
         )
+
+
+class TestShodan_Enterprise_EventsDuringFinish(ModuleTestBase):
+    """IPs that reach the module while finish() is working must not stall the scan.
+
+    finish() looks up the buffered IPs, and other modules -- or what this one
+    emits -- can queue new in-scope IPs meanwhile. Their wakeup is lost while
+    the worker is busy inside finish(), so unless finish() takes them itself
+    the scan never finishes.
+    """
+
+    targets = ["1.2.3.0/24"]
+    seeds = [f"1.2.3.{i}" for i in range(40, 46)]
+    module_name = "shodan_enterprise"
+    config_overrides = {
+        "modules": {"shodan_enterprise": {"api_key": "deadbeef", "requests_per_second": 2, "search_prefilter": False}},
+    }
+
+    async def setup_after_prep(self, module_test):
+        module = module_test.module
+        self.injected = False
+
+        async def _cb(request):
+            ip = str(request.url).split("/shodan/host/")[-1].split("?")[0]
+            if not self.injected:
+                # a new in-scope IP turns up while finish() is still looking up the rest
+                self.injected = True
+                late = module.scan.make_event("1.2.3.31", "IP_ADDRESS", parent=module.scan.root_event)
+                late.scope_distance = 0
+                await module.queue_event(late)
+            port = 8443 if ip == "1.2.3.31" else 443
+            return MockResponse(status_code=200, json=host_record(ip, port=port))
+
+        module_test.blasthttp_mock.add_callback(_cb, url=None)
+
+    def check(self, module_test, events):
+        assert self.injected
+        ports = {e.data for e in events if e.type == "OPEN_TCP_PORT"}
+        assert "1.2.3.31:8443" in ports, f"the IP queued during finish() was never looked up: {sorted(ports)}"

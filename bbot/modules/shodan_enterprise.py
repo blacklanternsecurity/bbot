@@ -226,8 +226,19 @@ class shodan_enterprise(BaseModule):
 
         Called when the scan winds down. It can run more than once, which is safe
         here: _drain() empties _pending before awaiting anything.
+
+        What finish() emits can lead back here -- a hostname resolves to an
+        in-scope IP not seen before -- and those IPs are queued while the worker
+        is busy in this method. Their wakeup is lost by the time the worker waits
+        again (it does not re-check the queue first), so the scan would never
+        finish. Take them off the queue and look them up before returning.
         """
         await self._drain()
+        while self.num_incoming_events > 0:
+            events, _ = await self._events_waiting()
+            if events:
+                await self.handle_batch(*events)
+            await self._drain()
 
     async def _drain(self):
         batch, self._pending = self._pending, []
