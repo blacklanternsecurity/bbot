@@ -3,18 +3,6 @@ from bbot.test.mock_blasthttp import MockResponse
 from .base import ModuleTestBase
 
 
-class FakeResponse:
-    """Stand-in for a response object, covering what _request() reads off one."""
-
-    def __init__(self, payload, status_code=200):
-        self._payload = payload
-        self.status_code = status_code
-        self.text = str(payload)
-
-    def json(self):
-        return self._payload
-
-
 def search_response(*ips, total=None):
     """A /shodan/host/search body. Phase 1 only reads ip_str and total."""
     matches = [{"ip_str": ip} for ip in ips]
@@ -29,7 +17,7 @@ def mock_search(module_test, payload, status_code=200, record=None):
     the mock sees it at all is the assertion that the module has one transport.
 
     ``payload=None`` serves the Cloudflare interstitial this endpoint used to
-    answer with: a 403, which _request() does not retry.
+    answer with: a 403.
     """
 
     async def _cb(request):
@@ -274,23 +262,24 @@ class TestShodan_Enterprise_CyclesApiKeyOnRateLimit(ModuleTestBase):
             "shodan_enterprise": {
                 "api_key": ["key1", "key2"],
                 "requests_per_second": 1000,
-                "retry_backoff": 0.01,
             }
-        }
+        },
+        "web": {"429_sleep_interval": 1, "429_max_sleep_interval": 1},
     }
 
     async def setup_after_prep(self, module_test):
         self.lookup_urls = []
 
-        async def _send(url):
+        async def _cb(request):
+            url = str(request.url)
             if "/shodan/host/search" in url:
-                return FakeResponse(search_response("8.8.8.8"))
+                return MockResponse(status_code=200, json=search_response("8.8.8.8"))
             self.lookup_urls.append(url)
             if len(self.lookup_urls) == 1:
-                return FakeResponse({"error": "rate limited"}, status_code=429)
-            return FakeResponse(host_response_8_8_8_8)
+                return MockResponse(status_code=429, json={"error": "rate limited"})
+            return MockResponse(status_code=200, json=host_response_8_8_8_8)
 
-        module_test.monkeypatch.setattr(module_test.module, "_send", _send)
+        module_test.blasthttp_mock.add_callback(_cb, url=None)
 
     def check(self, module_test, events):
         assert len(self.lookup_urls) >= 2, f"expected a retry after the 429, got {self.lookup_urls}"
@@ -363,6 +352,8 @@ class TestShodan_Enterprise_SearchWallDisablesPrefilter(ModuleTestBase):
                 "search_chunk_size": 1,
             }
         },
+        # one attempt per request, so the count below is the number of chunks tried
+        "web": {"api_retries": 0},
         "dns": {"minimal": True},
     }
 
@@ -382,6 +373,9 @@ class TestShodan_Enterprise_SearchWallDisablesPrefilter(ModuleTestBase):
             f"prefilter kept hitting the wall: {len(self.search_calls)} search attempts for {len(self._ips)} IPs"
         )
         assert module_test.module.search_prefilter is False, "prefilter should have turned itself off"
+        # the failed searches count toward api_failure_abort_threshold, but the
+        # lookups that follow succeed and must keep the module alive
+        assert module_test.module.errored is False, "a wall in front of search took the whole module down"
         # and nothing was lost: every IP still got looked up
         ports = {e.data for e in events if e.type == "OPEN_TCP_PORT"}
         assert ports == {f"{ip}:80" for ip in self._ips}, ports
@@ -532,10 +526,26 @@ class TestShodan_Enterprise_BatchingAtScale(ModuleTestBase):
         "dns": {"minimal": True},
     }
 
-    async def setup_before_prep(self, module_test):
-        for ip in self._known_ips:
-            module_test.blasthttp_mock.add_response(
-                url=f"https://api.shodan.io/shodan/host/{ip}?key=deadbeef",
+    async def setup_after_prep(self, module_test):
+        self.search_calls = []
+        self.lookup_calls = []
+        known = set(self._known_ips)
+
+        async def _cb(request):
+            url = str(request.url)
+            if "/shodan/host/search" in url:
+                self.search_calls.append(url)
+                # Answer with whichever known IPs this particular chunk asked about,
+                # so the module's per-chunk bookkeeping is exercised rather than bypassed.
+                asked = url.split("query=")[-1]
+                hits = [ip for ip in known if ip.replace(".", "%2E") in asked or ip in asked]
+                return MockResponse(status_code=200, json=search_response(*hits))
+            self.lookup_calls.append(url)
+            ip = url.split("/shodan/host/")[-1].split("?")[0]
+            if ip not in known:
+                return MockResponse(status_code=404, json={"error": "No information available for that IP."})
+            return MockResponse(
+                status_code=200,
                 json={
                     "data": [
                         {
@@ -552,28 +562,7 @@ class TestShodan_Enterprise_BatchingAtScale(ModuleTestBase):
                 },
             )
 
-    async def setup_after_prep(self, module_test):
-        self.search_calls = []
-        self.lookup_calls = []
-        known = set(self._known_ips)
-
-        async def fake_search(url):
-            self.search_calls.append(url)
-            # Answer with whichever known IPs this particular chunk asked about,
-            # so the module's per-chunk bookkeeping is exercised rather than bypassed.
-            asked = url.split("query=")[-1]
-            hits = [ip for ip in known if ip.replace(".", "%2E") in asked or ip in asked]
-            return FakeResponse(search_response(*hits))
-
-        real_send = module_test.module._send
-
-        async def counting_send(url):
-            if "/shodan/host/search" in url:
-                return await fake_search(url)
-            self.lookup_calls.append(url)
-            return await real_send(url)
-
-        module_test.monkeypatch.setattr(module_test.module, "_send", counting_send)
+        module_test.blasthttp_mock.add_callback(_cb, url=None)
 
     def check(self, module_test, events):
         searches = len(self.search_calls)
@@ -669,3 +658,106 @@ class TestShodan_Enterprise_OutOfScope(ModuleTestBase):
         assert any(e.type == "OPEN_TCP_PORT" and e.data == "1.1.1.1:80" for e in events), (
             "Should have queried out-of-scope IP with in_scope_only=False"
         )
+
+
+def host_record(ip, port=443):
+    return {"data": [{"ip_str": ip, "port": port, "transport": "tcp", "vulns": {}}]}
+
+
+class TestShodan_Enterprise_TransientRateLimitDoesNotError(ModuleTestBase):
+    """A few 429s from a single key are normal operation, not a failure."""
+
+    targets = ["8.8.8.8"]
+    module_name = "shodan_enterprise"
+    config_overrides = {
+        "modules": {
+            "shodan_enterprise": {"api_key": "deadbeef", "requests_per_second": 1000, "search_prefilter": False}
+        },
+        "web": {"429_sleep_interval": 1, "429_max_sleep_interval": 1},
+    }
+
+    async def setup_after_prep(self, module_test):
+        self.lookups = 0
+
+        async def _cb(request):
+            self.lookups += 1
+            if self.lookups <= 2:
+                return MockResponse(status_code=429, json={"error": "rate limited"}, headers={"Retry-After": "1"})
+            return MockResponse(status_code=200, json=host_record("8.8.8.8"))
+
+        module_test.blasthttp_mock.add_callback(_cb, url=None)
+
+    def check(self, module_test, events):
+        assert self.lookups == 3, f"expected two 429s and one success, got {self.lookups} requests"
+        assert any(e.type == "OPEN_TCP_PORT" and e.data == "8.8.8.8:443" for e in events)
+        assert module_test.module.errored is False, "two 429s must not take the module down"
+
+
+class TestShodan_Enterprise_PersistentRateLimitErrors(ModuleTestBase):
+    """A key that is rate limited on every request errors the module out.
+
+    Retrying forever is what stalled shodan_idb for hours on an exhausted quota;
+    after api_request()'s threshold the module must stop asking and let the scan
+    finish.
+    """
+
+    _ips = [f"198.51.100.{i}" for i in range(1, 26)]
+    targets = _ips
+    module_name = "shodan_enterprise"
+    config_overrides = {
+        "modules": {
+            "shodan_enterprise": {"api_key": "deadbeef", "requests_per_second": 1000, "search_prefilter": False}
+        },
+        "web": {"api_retries": 0, "429_sleep_interval": 1, "429_max_sleep_interval": 1},
+        "dns": {"minimal": True},
+    }
+
+    async def setup_after_prep(self, module_test):
+        self.lookups = 0
+
+        async def _cb(request):
+            self.lookups += 1
+            return MockResponse(status_code=429, json={"error": "rate limited"}, headers={"Retry-After": "1"})
+
+        module_test.blasthttp_mock.add_callback(_cb, url=None)
+
+    def check(self, module_test, events):
+        module = module_test.module
+        assert module.errored is True, "the module kept going on a key that is always rate limited"
+        ceiling = module.api_rate_limit_abort_threshold + module.concurrency
+        assert self.lookups <= ceiling, f"{self.lookups} requests after the module should have stopped at ~{ceiling}"
+        assert not any(e.type == "OPEN_TCP_PORT" for e in events)
+
+
+class TestShodan_Enterprise_HostNotFound(ModuleTestBase):
+    """A 404 from the host endpoint means "no data", not a failure."""
+
+    _ips = ["198.51.100.1", "198.51.100.2"]
+    targets = _ips
+    module_name = "shodan_enterprise"
+    config_overrides = {
+        "modules": {
+            "shodan_enterprise": {"api_key": "deadbeef", "requests_per_second": 1000, "search_prefilter": False}
+        },
+        "dns": {"minimal": True},
+    }
+
+    async def setup_after_prep(self, module_test):
+        async def _cb(request):
+            url = str(request.url)
+            if "/shodan/host/198.51.100.1?" in url:
+                return MockResponse(status_code=404, json={"error": "No information available for that IP."})
+            return MockResponse(status_code=200, json=host_record("198.51.100.2"))
+
+        module_test.blasthttp_mock.add_callback(_cb, url=None)
+
+    def check(self, module_test, events):
+        ports = {e.data for e in events if e.type == "OPEN_TCP_PORT"}
+        assert ports == {"198.51.100.2:443"}, ports
+        assert module_test.module.errored is False
+        warnings = [
+            r.getMessage()
+            for r in module_test.caplog.records
+            if r.levelname == "WARNING" and "198.51.100.1" in r.getMessage()
+        ]
+        assert not warnings, f"a 404 was reported as a problem: {warnings}"

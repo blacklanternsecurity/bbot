@@ -39,12 +39,12 @@ class shodan_enterprise(BaseModule):
     That is slower but does not spend query credits, which matters on a plan
     where credits are metered.
 
-    Both phases go through ``helpers.request()``, so the module honours the
-    scan's proxy, SSL and timeout settings throughout, and sends a plain
-    User-Agent rather than the scan's -- see ``_api_user_agent`` for why that one
-    header decides whether Cloudflare lets the search endpoint through. Should a
-    wall appear anyway, ``_search_known_ips`` turns the prefilter off after two
-    failed chunks and the scan continues on direct lookups: slower, never wrong.
+    Both phases go through ``api_request()``, which does the rate limiting,
+    retries and API key cycling, and sends a plain User-Agent rather than the
+    scan's -- a browser User-Agent is what made Cloudflare challenge the search
+    endpoint. Should a wall appear anyway, ``_search_known_ips`` turns the
+    prefilter off after two failed chunks and the scan continues on direct
+    lookups: slower, never wrong.
     """
 
     watched_events = ["IP_ADDRESS"]
@@ -64,8 +64,6 @@ class shodan_enterprise(BaseModule):
         requests_per_second: float = Field(
             1.0, description="Max API requests per second. Measured sustained ceiling is ~1/s."
         )
-        max_retries: int = Field(3, description="Retries on rate-limit and server errors")
-        retry_backoff: float = Field(2.0, description="Initial backoff seconds between retries (doubles each attempt)")
         search_prefilter: bool = Field(
             True,
             description=(
@@ -89,26 +87,6 @@ class shodan_enterprise(BaseModule):
 
     base_url = "https://api.shodan.io"
 
-    # Shodan answers 429 with "Retry-After: 0". BaseModule._get_retry_after()
-    # already floors that at 1s; these constants give the module's own retry loop,
-    # which does not go through api_request(), the same floor and a ceiling.
-    _min_429_sleep = 1.0
-    _max_429_sleep = 60.0
-
-    # API requests carry a plain User-Agent instead of the scan's. web.user_agent
-    # exists to shape how *targets* see the scan; sent to an authenticated vendor
-    # API it buys nothing and costs correctness. api.shodan.io sits behind
-    # Cloudflare, which challenges a request that calls itself a browser while the
-    # TLS handshake underneath is not one -- so a scan configured with a Chrome or
-    # Edge User-Agent gets 403 "Just a moment..." on /shodan/host/search, while
-    # /shodan/host/{ip} is let through. Measured against the live API from the
-    # same host: Chrome/Edge UA -> 403, "BBOT" or Python-urllib -> 200.
-    #
-    # An earlier revision routed the search endpoint over httpx to get around
-    # this. httpx worked only because it never applied the scan's User-Agent; the
-    # header, not the HTTP client, was the whole difference.
-    _api_user_agent = "BBOT"
-
     # Consecutive failed search chunks before phase 1 gives up for this scan.
     _max_search_failures = 2
 
@@ -121,12 +99,11 @@ class shodan_enterprise(BaseModule):
             return None, "No API key specified"
 
         self.requests_per_second = max(float(self.config.get("requests_per_second", 1.0)), 0.01)
-        self.max_retries = int(self.config.get("max_retries", 3))
-        self.retry_backoff = float(self.config.get("retry_backoff", 2.0))
         self.search_prefilter = bool(self.config.get("search_prefilter", True))
         self.search_chunk_size = max(int(self.config.get("search_chunk_size", 100)), 1)
 
-        self._semaphore = asyncio.Semaphore(max(int(self.config.get("concurrency", 4)), 1))
+        self.concurrency = max(int(self.config.get("concurrency", 4)), 1)
+        self._semaphore = asyncio.Semaphore(self.concurrency)
         self._rate_lock = asyncio.Lock()
         self._last_request = 0.0
         self._min_interval = 1.0 / self.requests_per_second
@@ -168,90 +145,36 @@ class shodan_enterprise(BaseModule):
                 await asyncio.sleep(delay)
             self._last_request = time.monotonic()
 
-    async def _send(self, url):
-        """BBOT's HTTP engine, for both phases.
+    async def _get_json(self, url, description):
+        """One API call: the parsed JSON body, or None.
 
-        Going through helpers.request() is what makes the module honour the
-        scan's proxy, SSL and timeout settings, so neither phase gets a private
-        route out.
+        Rate limiting, retries and API key cycling are api_request()'s. A 404
+        means Shodan has no data for that host -- a normal answer, not a failure.
         """
-        return await self.helpers.request(
-            url=url,
-            timeout=self.http_timeout_infrastructure,
-            ssl_verify=self.helpers.web.ssl_verify_infrastructure,
-            headers={"User-Agent": self._api_user_agent},
-        )
+        async with self._semaphore:
+            await self._throttle()
+            r = await self.api_request(url)
 
-    async def _request(self, url, description):
-        """One API call, with throttling, 429 backoff and API key cycling.
-
-        Deliberately not BaseModule.api_request(): it counts every 429 toward
-        api_failure_abort_threshold and disables the module once that is reached.
-        A 417-IP scan against Shodan produced 89 rate-limit responses -- normal
-        operation for this API, not failure. If that is changed upstream, most of
-        this method can go away.
-
-        Both phases share this retry logic and the module-wide throttle, since
-        Shodan's rate limit is per API key and does not care which endpoint is
-        being hit.
-
-        Returns the parsed JSON body, or None if the request could not be
-        completed. A 404 means Shodan has no data for that host, which is a
-        normal answer rather than a failure.
-        """
-        backoff = self.retry_backoff
-
-        for attempt in range(self.max_retries + 1):
-            async with self._semaphore:
-                await self._throttle()
-                r = await self._send(url.format(api_key=self.api_key))
-
-            if r is None:
-                self.debug(f"No response from Shodan for {description}")
-                if attempt >= self.max_retries:
-                    return None
-                await asyncio.sleep(backoff)
-                backoff *= 2
-                continue
-
-            status_code = getattr(r, "status_code", 0)
-
-            if status_code == 200:
-                try:
-                    return r.json()
-                except Exception as e:
-                    self.warning(f"Failed to parse Shodan response for {description}: {e}")
-                    return None
-
-            if status_code == 404:
-                self.debug(f"No Shodan data about {description}")
-                return None
-
-            if status_code == 429:
-                if attempt >= self.max_retries:
-                    self.verbose(f"Giving up on {description} after {attempt + 1} rate-limited attempts")
-                    return None
-                sleep_interval = min(max(backoff, self._min_429_sleep), self._max_429_sleep)
-                self.debug(f"Rate limited on {description}; sleeping {sleep_interval:.1f}s")
-                await asyncio.sleep(sleep_interval)
-                backoff *= 2
-                self.cycle_api_key()
-                continue
-
-            if status_code >= 500:
-                if attempt >= self.max_retries:
-                    self.warning(f"Shodan server error {status_code} for {description}: {self._error_text(r)}")
-                    return None
-                await asyncio.sleep(backoff)
-                backoff *= 2
-                continue
-
-            # Shodan explains refusals in the body ("Access denied", "Invalid
-            # query", credit exhaustion). Logging only the status turns a
-            # one-line fix into a guessing game.
-            self.warning(f"Shodan API error for {description} (status {status_code}): {self._error_text(r)}")
+        if r is None:
+            self.debug(f"No response from Shodan for {description}")
             return None
 
+        status_code = getattr(r, "status_code", 0)
+        if status_code == 404:
+            self.debug(f"No Shodan data about {description}")
+            return None
+
+        if getattr(r, "is_success", False):
+            try:
+                return r.json()
+            except Exception as e:
+                self.warning(f"Failed to parse Shodan response for {description}: {e}")
+                return None
+
+        # Shodan explains refusals in the body ("Access denied", "Invalid
+        # query", credit exhaustion). Logging only the status turns a
+        # one-line fix into a guessing game.
+        self.warning(f"Shodan API error for {description} (status {status_code}): {self._error_text(r)}")
         return None
 
     @staticmethod
@@ -260,9 +183,8 @@ class shodan_enterprise(BaseModule):
         body = (getattr(response, "text", "") or "").strip().replace("\n", " ")
         return body[:200] if body else "<empty body>"
 
-    # Both builders leave "{api_key}" in place, the way BaseModule.api_request()
-    # does: _request() substitutes the current key on every attempt, so cycling
-    # after a 429 reaches the wire instead of rotating a list nobody re-reads.
+    # Both builders leave "{api_key}" in place: api_request() substitutes the
+    # current key on every attempt, so cycling after a 429 reaches the wire.
     def _host_url(self, ip):
         return f"{self.base_url}/shodan/host/{self.helpers.quote(ip)}?key={{api_key}}"
 
@@ -362,7 +284,7 @@ class shodan_enterprise(BaseModule):
             page = 1
 
             while True:
-                body = await self._request(self._search_url(query, page), f"search of {len(chunk)} IPs")
+                body = await self._get_json(self._search_url(query, page), f"search of {len(chunk)} IPs")
                 if body is None:
                     # A failed search must not silently drop these IPs; fall back
                     # to looking the whole chunk up directly.
@@ -410,7 +332,7 @@ class shodan_enterprise(BaseModule):
 
     async def _lookup_and_emit(self, ip):
         """Phase 2: the complete host record, and the events that come from it."""
-        host = await self._request(self._host_url(ip), ip)
+        host = await self._get_json(self._host_url(ip), ip)
         if host is None:
             return
         if "data" not in host:
