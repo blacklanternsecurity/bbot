@@ -47,12 +47,12 @@ class shodan_enterprise(BaseModule):
     """
 
     watched_events = ["IP_ADDRESS"]
-    produced_events = ["OPEN_TCP_PORT", "TECHNOLOGY", "OPEN_UDP_PORT", "FINDING"]
+    produced_events = ["OPEN_TCP_PORT", "TECHNOLOGY", "OPEN_UDP_PORT", "FINDING", "DNS_NAME"]
     flags = ["safe", "passive"]
     meta = {
         "created_date": "2026-01-27",
         "author": "@Control-Punk-Delete, @Tsybon",
-        "description": "Shodan Enterprise API integration module.",
+        "description": "Query the Shodan Enterprise API for open ports, technologies, vulnerabilities and hostnames",
     }
 
     class Config(BaseModuleConfig):
@@ -361,7 +361,7 @@ class shodan_enterprise(BaseModule):
         host, _ = await self._get_json(self._host_url(ip), ip)
         if host is None:
             return
-        if "data" not in host:
+        if not host.get("data") and not host.get("hostnames"):
             self.debug(f"No Shodan data about {ip}")
             return
         await self._emit_host(ip, host)
@@ -375,12 +375,14 @@ class shodan_enterprise(BaseModule):
         if event is None:
             return
 
+        await self._emit_hostnames(ip, host, event)
+
         # TECHNOLOGY carries no port (see _emit_technology), so the same technology
         # on two banners is the same event -- and letting BBOT dedup them means
         # whichever copy happens to arrive first decides the parent. Emit each one
         # once, from the first banner that reports it, so the parent is stable.
         emitted_technologies = set()
-        for data in host["data"]:
+        for data in host.get("data") or []:
             # The port goes first so everything found in that banner can hang off
             # it. Shodan attaches vulns and technologies to the individual banner,
             # not to the host -- across 5 hosts with up to 5 open ports each, 157
@@ -393,6 +395,26 @@ class shodan_enterprise(BaseModule):
             parent = port_event or event
             await self._emit_technologies(ip, data, parent, emitted_technologies)
             await self._emit_findings(ip, data, parent)
+
+    async def _emit_hostnames(self, ip, host, event):
+        # Reverse DNS and certificate names Shodan has seen on this IP. Only the
+        # host-level list: "domains" is derived from the same names and would add
+        # nothing but registrable domains outside the scope. Scope is BBOT's call,
+        # as it is for shodan_idb, which reports the same field from InternetDB.
+        # Names the DNS_NAME validator rejects are dropped by make_event(); a
+        # wildcard it would quietly turn into its parent domain, so skip those.
+        seen = set()
+        for hostname in host.get("hostnames") or []:
+            name = str(hostname).strip().rstrip(".").lower()
+            if not name or name == ip or "*" in name or name in seen:
+                continue
+            seen.add(name)
+            await self.emit_event(
+                name,
+                "DNS_NAME",
+                parent=event,
+                context=f"{{module}} queried Shodan API for {ip} and found {{event.type}}: {{event.pretty_string}}",
+            )
 
     async def _emit_technology(self, ip, technology, data, event, tags, emitted):
         # No port here: TECHNOLOGY's validator takes host/technology/url and drops

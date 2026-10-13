@@ -929,3 +929,130 @@ class TestShodan_Enterprise_EventsDuringFinish(ModuleTestBase):
         assert self.injected
         ports = {e.data for e in events if e.type == "OPEN_TCP_PORT"}
         assert "1.2.3.31:8443" in ports, f"the IP queued during finish() was never looked up: {sorted(ports)}"
+
+
+class TestShodan_Enterprise_Hostnames(ModuleTestBase):
+    """The host record's hostnames come out as DNS_NAME, the way shodan_idb reports them."""
+
+    targets = ["198.51.100.10", "198.51.100.11", "198.51.100.12", "example.com"]
+    module_name = "shodan_enterprise"
+    config_overrides = {
+        "modules": {
+            "shodan_enterprise": {"api_key": "deadbeef", "requests_per_second": 1000, "search_prefilter": False}
+        },
+        "dns": {"minimal": True},
+    }
+
+    async def setup_after_prep(self, module_test):
+        await module_test.mock_dns(
+            {
+                "example.com": {"A": ["198.51.100.20"]},
+                "mail.example.com": {"A": ["198.51.100.10"]},
+                "autodiscover.example.com": {"A": ["198.51.100.10"]},
+                "only.example.com": {"A": ["198.51.100.11"]},
+            }
+        )
+        records = {
+            # duplicates differing in case and a trailing dot, the IP itself, an
+            # empty string and a wildcard -- none of which may crash the module
+            "198.51.100.10": {
+                "hostnames": [
+                    "Mail.Example.com.",
+                    "mail.example.com",
+                    "autodiscover.example.com",
+                    "198.51.100.10",
+                    "",
+                    "*.dev.example.com",
+                ],
+                **host_record("198.51.100.10"),
+            },
+            # names but no banners: the names must still come out
+            "198.51.100.11": {"hostnames": ["only.example.com"], "data": []},
+            # no hostnames key at all
+            "198.51.100.12": host_record("198.51.100.12"),
+        }
+
+        async def _cb(request):
+            ip = str(request.url).split("/shodan/host/")[-1].split("?")[0]
+            if ip in records:
+                return MockResponse(status_code=200, json=records[ip])
+            return MockResponse(status_code=404, json={"error": "No information available for that IP."})
+
+        module_test.blasthttp_mock.add_callback(_cb, url=None)
+
+        # count what the module emits, before the scan's own dedup hides repeats
+        self.emitted_names = []
+        real_emit = module_test.module.emit_event
+
+        async def counting_emit(*args, **kwargs):
+            if len(args) > 1 and args[1] == "DNS_NAME":
+                self.emitted_names.append(args[0])
+            return await real_emit(*args, **kwargs)
+
+        module_test.monkeypatch.setattr(module_test.module, "emit_event", counting_emit)
+
+    def check(self, module_test, events):
+        assert sorted(self.emitted_names) == ["autodiscover.example.com", "mail.example.com", "only.example.com"], (
+            f"module emitted {self.emitted_names}"
+        )
+        names = [e for e in events if e.type == "DNS_NAME" and e.module.name == "shodan_enterprise"]
+        found = sorted(e.data for e in names)
+        # "*.dev.example.com" must not turn into dev.example.com: the validator
+        # strips the wildcard, so the module has to skip it itself
+        assert found == ["autodiscover.example.com", "mail.example.com", "only.example.com"], found
+        for e in names:
+            assert e.parent.type == "IP_ADDRESS", f"{e.data} should hang off its IP, got {e.parent.type}"
+        by_name = {e.data: str(e.parent.data) for e in names}
+        assert by_name["only.example.com"] == "198.51.100.11"
+        ports = {e.data for e in events if e.type == "OPEN_TCP_PORT"}
+        assert ports == {"198.51.100.10:443", "198.51.100.12:443"}, ports
+        assert module_test.module.errored is False
+
+
+class TestShodan_Enterprise_HostnamesDuringFinish(ModuleTestBase):
+    """A hostname found in finish() that resolves to a new in-scope IP must not stall the scan.
+
+    finish() looks up the buffered IPs, and what it emits can lead back to the
+    module: a hostname resolves to an in-scope IP nobody has seen yet. That IP
+    is queued while the worker is busy inside finish(), so the wakeup is gone
+    by the time the worker waits again, and the scan never finishes.
+    """
+
+    # both IPs are in scope, but only the name is a seed: 1.2.3.31 is first seen
+    # when b.example.com, found by the module itself, resolves
+    # everything is in scope, but 1.2.3.31 is not a seed: it is first seen when
+    # b.example.com, a hostname the module itself found on 1.2.3.30, resolves.
+    # The other seeds at a low request rate keep finish() busy meanwhile.
+    targets = ["b.example.com", "1.2.3.0/24"]
+    seeds = ["1.2.3.30"] + [f"1.2.3.{i}" for i in range(40, 46)]
+    module_name = "shodan_enterprise"
+    config_overrides = {
+        "modules": {"shodan_enterprise": {"api_key": "deadbeef", "requests_per_second": 2, "search_prefilter": False}},
+        # A records must become IP_ADDRESS events for the module to see them
+        "dns": {"minimal": False},
+    }
+
+    async def setup_after_prep(self, module_test):
+        await module_test.mock_dns(
+            {
+                "a.example.com": {"A": ["1.2.3.30"]},
+                "b.example.com": {"A": ["1.2.3.31"]},
+            }
+        )
+        records = {
+            "1.2.3.30": {"hostnames": ["b.example.com"], **host_record("1.2.3.30")},
+            "1.2.3.31": host_record("1.2.3.31", port=8443),
+        }
+
+        async def _cb(request):
+            ip = str(request.url).split("/shodan/host/")[-1].split("?")[0]
+            if ip in records:
+                return MockResponse(status_code=200, json=records[ip])
+            return MockResponse(status_code=404, json={"error": "No information available for that IP."})
+
+        module_test.blasthttp_mock.add_callback(_cb, url=None)
+
+    def check(self, module_test, events):
+        ports = {e.data for e in events if e.type == "OPEN_TCP_PORT" and e.module.name == "shodan_enterprise"}
+        # the second IP only exists because of a name found during finish()
+        assert ports == {"1.2.3.30:443", "1.2.3.31:8443"}, ports
