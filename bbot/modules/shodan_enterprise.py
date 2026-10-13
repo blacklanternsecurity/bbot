@@ -145,35 +145,40 @@ class shodan_enterprise(BaseModule):
             await self.helpers.sleep(slot - now)
 
     async def _get_json(self, url, description):
-        """One API call: the parsed JSON body, or None.
+        """One API call: (parsed JSON body or None, HTTP status or 0).
 
         Rate limiting, retries and API key cycling are api_request()'s. A 404
         means Shodan has no data for that host -- a normal answer, not a failure.
+        The status lets the search tell a rate limit from a wall.
         """
+        # Once api_request() has errored the module out, every call returns
+        # nothing; don't make each remaining IP wait its throttle slot for it.
+        if self.errored:
+            return None, 0
         await self._throttle()
         r = await self.api_request(url)
 
         if r is None:
             self.debug(f"No response from Shodan for {description}")
-            return None
+            return None, 0
 
         status_code = getattr(r, "status_code", 0)
         if status_code == 404:
             self.debug(f"No Shodan data about {description}")
-            return None
+            return None, status_code
 
         if getattr(r, "is_success", False):
             try:
-                return r.json()
+                return r.json(), status_code
             except Exception as e:
                 self.warning(f"Failed to parse Shodan response for {description}: {e}")
-                return None
+                return None, status_code
 
         # Shodan explains refusals in the body ("Access denied", "Invalid
         # query", credit exhaustion). Logging only the status turns a
         # one-line fix into a guessing game.
         self.warning(f"Shodan API error for {description} (status {status_code}): {self._error_text(r)}")
-        return None
+        return None, status_code
 
     @staticmethod
     def _error_text(response):
@@ -281,16 +286,24 @@ class shodan_enterprise(BaseModule):
             chunk_set = set(chunk)
             found = set()
             failed = False
+            rate_limited = False
             page = 1
 
             while True:
-                body = await self._get_json(self._search_url(query, page), f"search of {len(chunk)} IPs")
+                body, status_code = await self._get_json(self._search_url(query, page), f"search of {len(chunk)} IPs")
                 if body is None:
+                    if self.errored:
+                        # nothing more will get through; the lookups would be skipped too
+                        return known
                     # A failed search must not silently drop these IPs; fall back
                     # to looking the whole chunk up directly.
                     self.verbose(f"Search failed for a chunk of {len(chunk)} IPs; falling back to direct lookups")
                     found = chunk_set
-                    failed = True
+                    # A rate limit says the key is busy, not that search is
+                    # unavailable: it must not count toward turning phase 1 off,
+                    # which would multiply the requests sent to that same key.
+                    rate_limited = status_code == 429
+                    failed = not rate_limited
                     break
 
                 matches = body.get("matches") or []
@@ -313,6 +326,8 @@ class shodan_enterprise(BaseModule):
 
             known.extend(ip for ip in chunk if ip in found)
 
+            if rate_limited:
+                continue
             if not failed:
                 self._search_failures = 0
                 continue
@@ -332,7 +347,7 @@ class shodan_enterprise(BaseModule):
 
     async def _lookup_and_emit(self, ip):
         """Phase 2: the complete host record, and the events that come from it."""
-        host = await self._get_json(self._host_url(ip), ip)
+        host, _ = await self._get_json(self._host_url(ip), ip)
         if host is None:
             return
         if "data" not in host:

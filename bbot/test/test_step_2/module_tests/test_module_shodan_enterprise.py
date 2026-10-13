@@ -806,3 +806,87 @@ class TestShodan_Enterprise_ThrottleSpacesRequests(ModuleTestBase):
         assert "import asyncio" not in inspect.getsource(inspect.getmodule(type(module_test.module))), (
             "modules don't import asyncio"
         )
+
+
+class TestShodan_Enterprise_SearchRateLimitKeepsPrefilter(ModuleTestBase):
+    """A rate-limited search is not a wall: the prefilter must stay on.
+
+    Turning it off would multiply the requests sent to a key that is already
+    being throttled.
+    """
+
+    _ips = ["198.51.100.1", "198.51.100.2", "198.51.100.3"]
+    targets = _ips
+    module_name = "shodan_enterprise"
+    config_overrides = {
+        "modules": {"shodan_enterprise": {"api_key": "deadbeef", "requests_per_second": 1000, "search_chunk_size": 1}},
+        "web": {"api_retries": 0, "429_sleep_interval": 1, "429_max_sleep_interval": 1},
+        "dns": {"minimal": True},
+    }
+
+    async def setup_after_prep(self, module_test):
+        self.search_calls = 0
+
+        async def _cb(request):
+            url = str(request.url)
+            if "/shodan/host/search" in url:
+                self.search_calls += 1
+                return MockResponse(status_code=429, json={"error": "rate limited"}, headers={"Retry-After": "1"})
+            ip = url.split("/shodan/host/")[-1].split("?")[0]
+            return MockResponse(status_code=200, json=host_record(ip))
+
+        module_test.blasthttp_mock.add_callback(_cb, url=None)
+
+    def check(self, module_test, events):
+        assert module_test.module.search_prefilter is True, "a rate limit was treated as a wall"
+        assert self.search_calls == len(self._ips), f"every chunk should still try search, got {self.search_calls}"
+        ports = {e.data for e in events if e.type == "OPEN_TCP_PORT"}
+        assert ports == {f"{ip}:443" for ip in self._ips}, ports
+        assert module_test.module.errored is False
+
+
+class TestShodan_Enterprise_StopsWorkingOnceErrored(ModuleTestBase):
+    """Once api_request() has errored the module out, nothing waits on the throttle.
+
+    Otherwise every remaining IP still sleeps its 1/requests_per_second slot for
+    a request that will never be sent -- hours of idling on a big scan.
+    """
+
+    _ips = [f"198.51.100.{i}" for i in range(1, 31)]
+    targets = _ips
+    module_name = "shodan_enterprise"
+    config_overrides = {
+        "modules": {
+            "shodan_enterprise": {
+                "api_key": "deadbeef",
+                "requests_per_second": 1000,
+                "search_prefilter": False,
+                "concurrency": 1,
+            }
+        },
+        "web": {"api_retries": 0, "429_sleep_interval": 1, "429_max_sleep_interval": 1},
+        "dns": {"minimal": True},
+    }
+
+    async def setup_after_prep(self, module_test):
+        async def _cb(request):
+            return MockResponse(status_code=429, json={"error": "rate limited"}, headers={"Retry-After": "1"})
+
+        module_test.blasthttp_mock.add_callback(_cb, url=None)
+
+        module = module_test.module
+        self.throttled_after_error = 0
+        real_throttle = module._throttle
+
+        async def counting_throttle():
+            if module.errored:
+                self.throttled_after_error += 1
+            return await real_throttle()
+
+        module_test.monkeypatch.setattr(module, "_throttle", counting_throttle)
+
+    def check(self, module_test, events):
+        assert module_test.module.errored is True
+        assert self.throttled_after_error == 0, (
+            f"{self.throttled_after_error} requests still waited on the throttle after the module errored"
+        )
