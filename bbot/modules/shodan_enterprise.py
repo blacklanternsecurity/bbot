@@ -441,7 +441,6 @@ class shodan_enterprise(BaseModule):
             )
             vuln = {
                 "name": "Shodan - Possible Vulnerabilities",
-                "host": data.get("ip_str"),
                 "severity": severity,
                 "description": f"{cve}{service}",
                 "confidence": "LOW",
@@ -451,14 +450,11 @@ class shodan_enterprise(BaseModule):
                 # shodan_idb reports the same kind of finding.
                 "cves": [cve],
             }
-            # event.port stays None on a FINDING: neither make_event() nor
-            # BaseEvent takes a port, and ClosestHostEvent -- which is documented
-            # to inherit host+port from the closest parent -- only runs for events
-            # that declare no host of their own, and loses the port anyway (the
-            # hash refresh right after the assignment re-derives everything from
-            # data). Measured: parent.port 53, finding.port None. Reported
-            # upstream rather than worked around with a private attribute, so the
-            # service is carried in description and in the parent chain instead.
+            # No "host" here on purpose: ClosestHostEvent takes host *and* port
+            # from the closest parent only when the finding declares no host of
+            # its own. The parent is the banner's port event (or the IP when the
+            # banner has no port), so event.port names the service and
+            # consumers that read it, like output/nmap_xml.py, get it right.
             await self.emit_event(
                 vuln,
                 "FINDING",

@@ -132,13 +132,11 @@ class TestShodan_Enterprise(ModuleTestBase):
         assert finding.data["description"] == "CVE-2021-12345 on 53/tcp", (
             f"finding should name the affected service, got {finding.data['description']!r}"
         )
-        # event.port stays None -- BBOT offers no supported way to set it -- which
-        # is exactly why the service is spelled out in description above. Pinned so
-        # that an upstream fix is noticed.
-        assert finding.port is None, (
-            f"finding.port is now {finding.port}; BBOT may have gained port support -- "
-            "drop the parent-chain workaround if so"
-        )
+        # the finding also inherits host and port from that banner (#3462). The
+        # description still names the service: port is not part of the event id,
+        # so without it the same CVE on two ports would dedupe to one finding.
+        assert str(finding.host) == "8.8.8.8"
+        assert finding.port == 53, f"finding should carry its banner's port, got {finding.port}"
 
         tech_events = [e for e in events if e.type == "TECHNOLOGY"]
         tech_names = {e.data.get("technology") for e in tech_events}
@@ -221,6 +219,11 @@ class TestShodan_Enterprise_FindingPerPort(ModuleTestBase):
         # each one still points at its own port
         parents = sorted(str(e.parent.data) for e in findings)
         assert parents == ["8.8.8.8:443", "8.8.8.8:80"], parents
+        # and since #3462 the finding inherits that port, so consumers reading
+        # event.port (output/nmap_xml.py) see the same service the description names
+        for e in findings:
+            described = int(e.data["description"].split(" on ")[1].split("/")[0])
+            assert e.port == described, f"{e.data['description']!r} carries port {e.port}"
 
 
 class TestShodan_Enterprise_FindingWithoutPort(ModuleTestBase):
