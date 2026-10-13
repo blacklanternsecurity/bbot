@@ -837,9 +837,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                     if not form_action or form_action == "#":
                         form_action = None
 
-                    elif form_action.startswith("./"):
-                        form_action = form_action.lstrip(".")
-
                     form_parameters = {}
                     for form_content_regex_name, form_content_regex in self.form_content_regexes.items():
                         input_tags = await self.excavate.helpers.re.findall(form_content_regex, form_content)

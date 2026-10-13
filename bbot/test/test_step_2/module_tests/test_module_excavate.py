@@ -968,6 +968,57 @@ class TestExcavateBaseHref(ModuleTestBase):
         assert params.get("token") == f"{HTTPSERVER_URL}/app/sub/", params
 
 
+class TestExcavateFormActionRelative(ModuleTestBase):
+    """Form actions on a nested page resolve against the page's directory, the same way a browser submits them."""
+
+    targets = [f"{HTTPSERVER_URL}/app/sub/page"]
+    modules_overrides = ["http", "excavate", "hunt"]
+
+    base_tag = ""
+    expected = {
+        "dot_post": "/app/sub/dotpost",
+        "dot_get": "/app/sub/dotget",
+        "up_post": "/app/uppost",
+        "bare_post": "/app/sub/barepost",
+        "root_post": "/rootpost",
+    }
+
+    async def setup_after_prep(self, module_test):
+        html = f"""
+<html>
+<head>{self.base_tag}</head>
+<body>
+    <form action="./dotpost" method="post"><input type="text" name="dot_post" value="1"></form>
+    <form action="./dotget" method="get"><input type="text" name="dot_get" value="1"></form>
+    <form action="../uppost" method="post"><input type="text" name="up_post" value="1"></form>
+    <form action="barepost" method="post"><input type="text" name="bare_post" value="1"></form>
+    <form action="/rootpost" method="post"><input type="text" name="root_post" value="1"></form>
+</body>
+</html>
+"""
+        module_test.httpserver.expect_request("/app/sub/page").respond_with_data(
+            html, headers={"Content-Type": "text/html"}
+        )
+
+    def check(self, module_test, events):
+        params = {e.data["name"]: e.data["url"] for e in events if e.type == "WEB_PARAMETER"}
+        for name, path in self.expected.items():
+            assert params.get(name) == f"{HTTPSERVER_URL}{path}", f"{name}: {params}"
+
+
+class TestExcavateFormActionRelativeBaseHref(TestExcavateFormActionRelative):
+    """With <base href>, form actions resolve against the base instead of the page."""
+
+    base_tag = '<base href="/other/dir/">'
+    expected = {
+        "dot_post": "/other/dir/dotpost",
+        "dot_get": "/other/dir/dotget",
+        "up_post": "/other/uppost",
+        "bare_post": "/other/dir/barepost",
+        "root_post": "/rootpost",
+    }
+
+
 class TestExcavateParameterExtraction_getparam_novalue(TestExcavateParameterExtraction_getparam):
     getparam_extract_html = """
                    <section class=search>
