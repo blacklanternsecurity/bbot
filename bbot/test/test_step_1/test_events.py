@@ -314,6 +314,24 @@ async def test_events(events, helpers):
         assert tag in affiliate_event2.tags
         assert tag not in affiliate_event3.tags
 
+    # an in-scope event is never an affiliate, whether tagged directly or inheriting it
+    in_scope_parent = scan.make_event("https://evilcorp.com/", "URL", parent=root_event, tags=["status-200"])
+    in_scope_parent.scope_distance = 0
+    tagged_in_scope = scan.make_event(
+        "https://evilcorp.com/a", "URL_UNVERIFIED", parent=in_scope_parent, tags="affiliate"
+    )
+    assert tagged_in_scope.scope_distance == 0
+    assert "affiliate" not in tagged_in_scope.tags
+    out_of_scope_affiliate = scan.make_event(
+        "https://evilcorp.net/", "URL_UNVERIFIED", parent=in_scope_parent, tags="affiliate"
+    )
+    assert out_of_scope_affiliate.scope_distance == 1
+    assert "affiliate" in out_of_scope_affiliate.tags
+    in_scope_child = scan.make_event("https://evilcorp.net/b", "URL_UNVERIFIED", parent=out_of_scope_affiliate)
+    assert "affiliate" in in_scope_child.tags
+    in_scope_child.scope_distance = 0
+    assert "affiliate" not in in_scope_child.tags
+
     # discovery context
     event = scan.make_event(
         "127.0.0.1", parent=scan.root_event, context="something discovered {event.type}: {event.data}"
