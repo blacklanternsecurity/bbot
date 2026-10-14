@@ -1019,6 +1019,43 @@ class TestExcavateFormActionRelativeBaseHref(TestExcavateFormActionRelative):
     }
 
 
+class TestExcavateFormActionRelativeNonHttpBaseHref(TestExcavateFormActionRelative):
+    """A non-http <base href> is ignored, so form actions resolve against the page."""
+
+    base_tag = '<base href="javascript:void(0)">'
+
+
+class TestExcavateParameterExtractionRawText(ModuleTestBase):
+    """RAW_TEXT has no URL: absolute endpoints are still extracted, relative ones are skipped, and the rest of the event is still processed."""
+
+    class DummyModule(BaseModule):
+        watched_events = ["URL"]
+        _name = "dummy_module"
+
+        async def handle_event(self, event):
+            raw_text = (
+                f'<a href="{HTTPSERVER_URL}/absolute?abs_param=1">a</a>\n'
+                '<a href="relative?rel_param=1">r</a>\n'
+                f"{HTTPSERVER_URL}/fromtext"
+            )
+            await self.emit_event(raw_text, "RAW_TEXT", parent=event)
+
+    targets = [f"{HTTPSERVER_URL}/"]
+    modules_overrides = ["http", "excavate", "hunt"]
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["dummy_module"] = self.DummyModule(module_test.scan)
+        module_test.httpserver.expect_request("/").respond_with_data("hi")
+
+    def check(self, module_test, events):
+        raw_text_children = [e for e in events if getattr(e.parent, "type", "") == "RAW_TEXT"]
+        params = {e.data["name"]: e.data["url"] for e in raw_text_children if e.type == "WEB_PARAMETER"}
+        assert params.get("abs_param") == f"{HTTPSERVER_URL}/absolute", params
+        assert "rel_param" not in params, params
+        urls = {e.url for e in raw_text_children if e.type == "URL_UNVERIFIED"}
+        assert f"{HTTPSERVER_URL}/fromtext" in urls, urls
+
+
 class TestExcavateParameterExtraction_getparam_novalue(TestExcavateParameterExtraction_getparam):
     getparam_extract_html = """
                    <section class=search>
