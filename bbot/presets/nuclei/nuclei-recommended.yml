@@ -1,0 +1,18 @@
+description: Run nuclei scans against all discovered targets, using ProjectDiscovery's curated "recommended" template profile
+
+modules:
+  - http
+  - nuclei
+  - portfilter
+
+config:
+  modules:
+    nuclei:
+      profile: recommended
+      directory_only: true # Do not run nuclei on individual non-directory URLs
+
+conditions:
+  - |
+    {% if config.web.spider_distance != 0 %}
+      {{ warn("Running nuclei with spider enabled is generally not recommended. Consider removing 'spider' preset.") }}
+    {% endif %}
