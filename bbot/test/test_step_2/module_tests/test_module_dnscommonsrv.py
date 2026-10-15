@@ -8,27 +8,6 @@ class TestDNSCommonSRV(ModuleTestBase):
     config_overrides = {"dns": {"minimal": False}}
 
     async def setup_after_prep(self, module_test):
-        old_run_live = module_test.scan.helpers.run_live
-
-        async def new_run_live(*command, check=False, text=True, **kwargs):
-            if "massdns" in command[:2]:
-                _input = [l async for l in kwargs["input"]]
-                if "_ldap._tcp.gc._msdcs.blacklanternsecurity.com" in _input:
-                    yield """{"name":"_ldap._tcp.gc._msdcs.blacklanternsecurity.com.","type":"SRV","class":"IN","status":"NOERROR","rx_ts":1713974911725326170,"data":{"answers":[{"ttl":86400,"type":"SRV","class":"IN","name":"_ldap._tcp.gc._msdcs.blacklanternsecurity.com.","data":"10 10 1720 asdf.blacklanternsecurity.com."},{"ttl":86400,"type":"SRV","class":"IN","name":"_ldap._tcp.gc._msdcs.blacklanternsecurity.com.","data":"10 10 1720 asdf.blacklanternsecurity.com."}]},"flags":["rd","ra"],"resolver":"195.226.187.130:53","proto":"UDP"}"""
-                if "_ldap._tcp.gc._msdcs.api.blacklanternsecurity.com" in _input:
-                    yield """{"name":"_ldap._tcp.gc._msdcs.api.blacklanternsecurity.com.","type":"SRV","class":"IN","status":"NOERROR","rx_ts":1713974911725326170,"data":{"answers":[{"ttl":86400,"type":"SRV","class":"IN","name":"_ldap._tcp.gc._msdcs.api.blacklanternsecurity.com.","data":"10 10 1720 asdf.blacklanternsecurity.com."},{"ttl":86400,"type":"SRV","class":"IN","name":"_ldap._tcp.gc._msdcs.blacklanternsecurity.com.","data":"10 10 1720 asdf.blacklanternsecurity.com."}]},"flags":["rd","ra"],"resolver":"195.226.187.130:53","proto":"UDP"}"""
-                if "_ldap._tcp.gc._msdcs.test.api.blacklanternsecurity.com" in _input:
-                    yield """{"name":"_ldap._tcp.gc._msdcs.test.api.blacklanternsecurity.com.","type":"SRV","class":"IN","status":"NOERROR","rx_ts":1713974911725326170,"data":{"answers":[{"ttl":86400,"type":"SRV","class":"IN","name":"_ldap._tcp.gc._msdcs.test.api.blacklanternsecurity.com.","data":"10 10 1720 asdf.blacklanternsecurity.com."},{"ttl":86400,"type":"SRV","class":"IN","name":"_ldap._tcp.gc._msdcs.blacklanternsecurity.com.","data":"10 10 1720 asdf.blacklanternsecurity.com."}]},"flags":["rd","ra"],"resolver":"195.226.187.130:53","proto":"UDP"}"""
-                if "_ldap._tcp.gc._msdcs.www.test.api.blacklanternsecurity.com" in _input:
-                    yield """{"name":"_ldap._tcp.gc._msdcs.www.test.api.blacklanternsecurity.com.","type":"SRV","class":"IN","status":"NOERROR","rx_ts":1713974911725326170,"data":{"answers":[{"ttl":86400,"type":"SRV","class":"IN","name":"_ldap._tcp.gc._msdcs.www.test.api.blacklanternsecurity.com.","data":"10 10 1720 asdf.blacklanternsecurity.com."},{"ttl":86400,"type":"SRV","class":"IN","name":"_ldap._tcp.gc._msdcs.blacklanternsecurity.com.","data":"10 10 1720 asdf.blacklanternsecurity.com."}]},"flags":["rd","ra"],"resolver":"195.226.187.130:53","proto":"UDP"}"""
-                if "_ldap._tcp.gc._msdcs.media.www.test.api.blacklanternsecurity.com" in _input:
-                    yield """{"name":"_ldap._tcp.gc._msdcs.www.test.api.blacklanternsecurity.com.","type":"SRV","class":"IN","status":"NOERROR","rx_ts":1713974911725326170,"data":{"answers":[{"ttl":86400,"type":"SRV","class":"IN","name":"_ldap._tcp.gc._msdcs.media.www.test.api.blacklanternsecurity.com.","data":"10 10 1720 asdf.blacklanternsecurity.com."},{"ttl":86400,"type":"SRV","class":"IN","name":"_ldap._tcp.gc._msdcs.blacklanternsecurity.com.","data":"10 10 1720 asdf.blacklanternsecurity.com."}]},"flags":["rd","ra"],"resolver":"195.226.187.130:53","proto":"UDP"}"""
-            else:
-                async for _ in old_run_live(*command, check=False, text=True, **kwargs):
-                    yield _
-
-        module_test.monkeypatch.setattr(module_test.scan.helpers, "run_live", new_run_live)
-
         await module_test.mock_dns(
             {
                 "blacklanternsecurity.com": {"A": ["1.2.3.4"]},

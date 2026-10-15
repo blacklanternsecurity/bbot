@@ -227,7 +227,7 @@ class nuclei(BaseModule):
             self.retries,
         ]
 
-        if self.helpers.system_resolvers:
+        if self.helpers.dns.resolvers:
             command += ["-r", self.helpers.resolver_file]
 
         for hk, hv in self.scan.custom_http_headers.items():
