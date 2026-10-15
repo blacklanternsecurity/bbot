@@ -285,6 +285,23 @@ def test_nuclei_budget_selection():
     assert "raw.yaml" not in budget_all.collapsible_templates
 
 
+def test_nuclei_budget_skips_dast_and_headless_templates(tmp_path):
+    """Budget mode must not select fuzzing or headless templates, since nuclei skips them without -dast / -headless."""
+    from bbot.modules.nuclei import summarize_nuclei_templates
+
+    (tmp_path / "plain.yaml").write_text("info:\n  severity: info\nhttp:\n  - path:\n      - '{{BaseURL}}'\n")
+    (tmp_path / "dast.yaml").write_text(
+        "info:\n  severity: high\nhttp:\n  - path:\n      - '{{BaseURL}}'\n    fuzzing:\n      - part: query\n"
+    )
+
+    (tmp_path / "headless.yaml").write_text(
+        "info:\n  severity: info\nheadless:\n  - steps:\n      - action: navigate\nhttp:\n  - path:\n      - '{{BaseURL}}'\n"
+    )
+
+    summary = summarize_nuclei_templates(str(tmp_path))
+    assert set(summary) == {str(tmp_path / "plain.yaml")}
+
+
 class TestNucleiProfile(TestNucleiRetries):
     config_overrides = {
         "interactsh_disable": True,

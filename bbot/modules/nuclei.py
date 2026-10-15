@@ -482,9 +482,6 @@ class nuclei(BaseModule):
         )
         return sum(1 for line in (result.stdout or "").splitlines() if line.strip().endswith(".yaml"))
 
-    # bump when summarize_nuclei_templates() changes shape, so old cache entries get rebuilt
-    _TEMPLATE_SUMMARY_VERSION = 1
-
     def _templates_version(self):
         config_file = self.nuclei_config_dir / "nuclei" / ".templates-config.json"
         try:
@@ -499,7 +496,7 @@ class nuclei(BaseModule):
         templates do.
         """
         templates_version = self._templates_version()
-        cache_key = f"nuclei_template_summary:{self._TEMPLATE_SUMMARY_VERSION}:{templates_version}"
+        cache_key = f"nuclei_template_summary:{templates_version}"
         if templates_version:
             # the version is baked into the key, so entries only go stale when templates update
             cached = self.helpers.cache_get(cache_key, cache_hrs=24 * 365)
@@ -582,11 +579,13 @@ def summarize_nuclei_templates(templates_dir):
             continue
         if not isinstance(parsed, dict):
             continue
+        requests = [r for r in parsed.get("http") or [] if isinstance(r, dict)]
+        # nuclei only runs fuzzing (DAST) and headless templates with -dast / -headless, which bbot never passes
+        if parsed.get("headless") or any(r.get("fuzzing") for r in requests):
+            continue
         blocks = []
         has_raw = False
-        for request in parsed.get("http") or []:
-            if not isinstance(request, dict):
-                continue
+        for request in requests:
             if request.get("raw"):
                 has_raw = True
                 continue
