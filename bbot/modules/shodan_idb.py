@@ -51,13 +51,7 @@ class shodan_idb(BaseModule):
     }
 
     class Config(BaseModuleConfig):
-        retries: Optional[int] = Field(
-            None,
-            description="How many times to retry API requests (e.g. after a 429 error). Overrides the global web.api_retries setting.",
-        )
-
-    # we typically don't want to abort this module
-    _api_failure_abort_threshold = 9999999999
+        retries: Optional[int] = Field(None, deprecated=True, description="No longer used")
 
     # since there are rate limits, we set a lower qsize
     # this way when our queue is full, we can give the API a break
@@ -82,11 +76,6 @@ class shodan_idb(BaseModule):
 
     def _incoming_dedup_hash(self, event):
         return hash(self.get_ip(event))
-
-    @property
-    def api_retries(self):
-        # allow the module to override global retry setting
-        return self.config.get("retries", None) or super().api_retries
 
     async def handle_event(self, event):
         ip = self.get_ip(event)

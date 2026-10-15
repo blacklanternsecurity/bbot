@@ -156,3 +156,35 @@ async def test_depsinstaller_stale_pip_cache(monkeypatch, bbot_scanner):
         for module_name in (missing_module, present_module):
             preloaded.pop(module_name, None)
         await scan._cleanup()
+
+
+def test_sql_modules_request_sqlalchemy_asyncio_extra():
+    """SQLAlchemy 2.1 moved greenlet out of its default install and into the `asyncio` extra.
+
+    The SQL output modules drive `sqlalchemy.ext.asyncio`, which hard-requires greenlet, so each
+    one must ask for the extra explicitly. A bare `sqlmodel` resolves without greenlet and the
+    module then hard-fails setup at scan time.
+    """
+    from bbot.core.modules import MODULE_LOADER
+
+    MODULE_LOADER.preload()
+    preloaded = MODULE_LOADER.preloaded()
+
+    sqlmodel_modules = sorted(
+        name
+        for name, module in preloaded.items()
+        if any(dep.split("[")[0].split("=")[0].split("~")[0].strip() == "sqlmodel" for dep in module["deps"]["pip"])
+    )
+    assert sqlmodel_modules, "expected to find modules depending on sqlmodel"
+
+    for module_name in sqlmodel_modules:
+        deps_pip = preloaded[module_name]["deps"]["pip"]
+        provides_greenlet = any(
+            (dep.startswith("sqlmodel[") and "asyncio" in dep.split("]")[0])
+            or dep.split("=")[0].split("~")[0].split("<")[0].split(">")[0].strip() == "greenlet"
+            for dep in deps_pip
+        )
+        assert provides_greenlet, (
+            f"{module_name}.deps_pip must pull in greenlet "
+            f"(via sqlmodel[asyncio] or an explicit greenlet dep), got {deps_pip}"
+        )
