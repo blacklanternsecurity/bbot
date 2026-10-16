@@ -1,13 +1,22 @@
 import asyncio
+import fcntl
 import json
 import os
 import shutil
 import yaml
 from typing import Literal
 from itertools import islice
+from contextlib import suppress
 
 from bbot.modules.base import BaseModule
+from bbot.core.helpers.misc import sha1
 from bbot.core.config.models import BaseModuleConfig, Field
+
+try:
+    # libyaml-backed loader, ~7x faster over the full template set
+    from yaml import CSafeLoader as YamlLoader
+except ImportError:
+    from yaml import SafeLoader as YamlLoader
 
 
 class nuclei(BaseModule):
@@ -38,6 +47,13 @@ class nuclei(BaseModule):
             ),
         )
         etags: str = Field("", description="tags to exclude from the scan")
+        etypes: str = Field(
+            "",
+            description=(
+                "protocol types to exclude from the scan, comma-separated "
+                "(dns, file, http, headless, tcp, workflow, ssl, websocket, whois, code, javascript)"
+            ),
+        )
         budget: int = Field(1, description="Used in budget mode to set the number of allowed requests per host")
         silent: bool = Field(False, description="Don't display nuclei's banner or status messages")
         directory_only: bool = Field(True, description="Filter out 'file' URL event (default True)")
@@ -70,18 +86,8 @@ class nuclei(BaseModule):
         self.nuclei_templates_dir = self.nuclei_state_dir / "templates"
         self.nuclei_config_dir.mkdir(parents=True, exist_ok=True)
         self.nuclei_cache_dir.mkdir(parents=True, exist_ok=True)
-        await self._update_templates()
-        # nuclei writes its version marker before the tarball finishes extracting,
-        # so a killed update can leave the marker pointing at an empty dir and
-        # every subsequent run reports "up-to-date." Verify and repair once.
-        if not self._templates_installed():
-            self.warning("Nuclei templates appear incomplete; wiping isolated state and re-downloading")
-            shutil.rmtree(self.nuclei_state_dir, ignore_errors=True)
-            self.nuclei_config_dir.mkdir(parents=True, exist_ok=True)
-            self.nuclei_cache_dir.mkdir(parents=True, exist_ok=True)
-            await self._update_templates()
-            if not self._templates_installed():
-                return False, "Failed to install nuclei templates after retry"
+        if not await self._ensure_templates():
+            return False, "Failed to install nuclei templates after retry"
         self.proxy = self.scan.web_config.get("http_proxy", "")
         self.mode = self.config.get("mode")
         self.ratelimit = self.config.get("ratelimit")
@@ -97,6 +103,9 @@ class nuclei(BaseModule):
         self.etags = self.config.get("etags")
         if self.etags:
             self.info(f"Excluding the following nuclei tags: [{self.etags}]")
+        self.etypes = self.config.get("etypes")
+        if self.etypes:
+            self.info(f"Excluding the following nuclei protocol types: [{self.etypes}]")
         self.severity = self.config.get("severity")
         if self.mode != "severe" and self.severity != "":
             self.info(f"Limiting nuclei templates to the following severities: [{self.severity}]")
@@ -225,6 +234,8 @@ class nuclei(BaseModule):
             "-stats-json",
             "-retries",
             self.retries,
+            "-timeout",
+            self.scan.http_timeout,
         ]
 
         if self.helpers.system_resolvers:
@@ -239,6 +250,9 @@ class nuclei(BaseModule):
             if option:
                 command.append(f"-{cli_option}")
                 command.append(option)
+
+        if self.etypes:
+            command += ["-exclude-type", self.etypes]
 
         if self.scan.config.get("interactsh_disable") is True:
             self.info("Disabling interactsh in accordance with global settings")
@@ -344,7 +358,61 @@ class nuclei(BaseModule):
         env["XDG_CACHE_HOME"] = str(self.nuclei_cache_dir)
         return env
 
-    async def _update_templates(self):
+    async def _ensure_templates(self):
+        # 13k+ template files extract into one shared dir. Concurrent updaters
+        # (xdist workers, parallel scans) fight over the same tree and each
+        # re-does the other's work, so serialize on a lock beside it. A waiter
+        # that finds the tree already populated skips its own redundant update.
+        # The corruption repair below wipes the tree, so it has to run under the
+        # same lock: wiping while another worker is mid-extract destroys its
+        # output and makes it fail too.
+        uncontended = await self.helpers.run_in_executor_io(self._acquire_template_lock)
+        try:
+            if not uncontended and self._templates_installed():
+                self.info("Nuclei templates already up-to-date")
+                return True
+            outcome = await self._run_template_update()
+            if self._templates_installed():
+                return True
+            # A download that never produced files is a fetch failure, not the
+            # stale-marker corruption the wipe exists to repair. Wiping and
+            # re-downloading just doubles the requests against a source that is
+            # already failing, so only repair when the update claimed success.
+            if outcome == "failure":
+                return False
+            # nuclei writes its version marker before the tarball finishes
+            # extracting, so a killed update can leave the marker pointing at an
+            # empty dir and every subsequent run reports "up-to-date."
+            self.warning("Nuclei templates appear incomplete; wiping isolated state and re-downloading")
+            shutil.rmtree(self.nuclei_state_dir, ignore_errors=True)
+            self.nuclei_config_dir.mkdir(parents=True, exist_ok=True)
+            self.nuclei_cache_dir.mkdir(parents=True, exist_ok=True)
+            await self._run_template_update()
+            return self._templates_installed()
+        finally:
+            self._release_template_lock()
+
+    def _acquire_template_lock(self):
+        lock_path = self.helpers.tools_dir / "nuclei-templates.lock"
+        self._template_lock_file = open(lock_path, "w")
+        try:
+            fcntl.flock(self._template_lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return True
+        except OSError:
+            fcntl.flock(self._template_lock_file, fcntl.LOCK_EX)
+            return False
+
+    def _release_template_lock(self):
+        lock_file = getattr(self, "_template_lock_file", None)
+        if lock_file is None:
+            return
+        self._template_lock_file = None
+        with suppress(OSError):
+            fcntl.flock(lock_file, fcntl.LOCK_UN)
+        with suppress(OSError):
+            lock_file.close()
+
+    async def _run_template_update(self):
         self.info("Updating Nuclei templates")
         # shield so an outer cancel can't kill the subprocess mid-extract and
         # corrupt the templates dir
@@ -361,6 +429,7 @@ class nuclei(BaseModule):
             self.info("Nuclei templates already up-to-date")
         else:
             self.warning(f"Failure while updating nuclei templates: {update_results.stderr or '<no stderr>'}")
+        return outcome
 
     # nuclei's success messaging has drifted across releases (installed / updated /
     # downloaded). Match any of them so a future rename doesn't silently downgrade
@@ -400,11 +469,47 @@ class NucleiBudget:
         self._yaml_files = {}
         self.templates_dir = nuclei_module.nuclei_templates_dir
         self.yaml_list = self.get_yaml_list()
-        self.budget_paths = self.find_budget_paths(nuclei_module.budget)
-        self.collapsible_templates, self.severity_stats = self.find_collapsible_templates()
+        cached = self._cache_load(nuclei_module.budget)
+        if cached is not None:
+            self.budget_paths, self.collapsible_templates, self.severity_stats = cached
+        else:
+            self.budget_paths = self.find_budget_paths(nuclei_module.budget)
+            self.collapsible_templates, self.severity_stats = self.find_collapsible_templates()
+            self._cache_store(nuclei_module.budget)
+        # the parsed documents are ~340MB and are dead once both passes are done
+        self._yaml_files = {}
 
     def get_yaml_list(self):
         return list(self.templates_dir.rglob("*.yaml"))
+
+    def _cache_key(self, budget):
+        """Identify the template set by (path, size, mtime) so a template update invalidates it."""
+        sig = []
+        for f in sorted(self.yaml_list):
+            st = f.stat()
+            sig.append((str(f), st.st_size, st.st_mtime_ns))
+        return f"nuclei_budget_{sha1(repr((budget, sig))).hexdigest()}"
+
+    def _cache_load(self, budget):
+        with suppress(Exception):
+            raw = self.parent.helpers.cache_get(self._cache_key(budget))
+            if raw:
+                d = json.loads(raw)
+                return d["budget_paths"], d["collapsible_templates"], d["severity_stats"]
+        return None
+
+    def _cache_store(self, budget):
+        with suppress(Exception):
+            self.parent.helpers.cache_put(
+                self._cache_key(budget),
+                json.dumps(
+                    {
+                        "budget_paths": self.budget_paths,
+                        "collapsible_templates": self.collapsible_templates,
+                        "severity_stats": self.severity_stats,
+                    }
+                ),
+            )
 
     # Given the current budget setting, scan all of the templates for paths, sort them by frequency and select the first N (budget) items
     def find_budget_paths(self, budget):
@@ -484,11 +589,16 @@ class NucleiBudget:
 
     def parse_yaml(self, yamlfile):
         if yamlfile not in self._yaml_files:
-            with open(yamlfile, "r") as stream:
-                try:
-                    y = yaml.safe_load(stream)
-                    self._yaml_files[yamlfile] = y
-                except yaml.YAMLError as e:
-                    self.parent.warning(f"failed to load yaml file: {e}")
-                    return {}
+            with open(yamlfile, "rb") as stream:
+                raw = stream.read()
+            # a template only contributes if it has an http block; skipping the rest
+            # avoids parsing ~5.3k of 13.6k templates that can never yield a path
+            if not (raw.startswith(b"http:") or b"\nhttp:" in raw):
+                self._yaml_files[yamlfile] = {}
+                return self._yaml_files[yamlfile]
+            try:
+                self._yaml_files[yamlfile] = yaml.load(raw, Loader=YamlLoader)
+            except yaml.YAMLError as e:
+                self.parent.warning(f"failed to load yaml file: {e}")
+                return {}
         return self._yaml_files[yamlfile]
