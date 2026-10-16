@@ -19,12 +19,13 @@ SIGNATURES = yaml.safe_dump(
                 "matchers": [
                     {
                         "type": "dsl",
-                        "name": "linked-app",
+                        # redundant "favicon" suffixes are stripped from names
+                        "name": "linked-app-favicon",
                         "dsl": ['status_code==200 && ("1059184575" == mmh3(base64_py(body)))'],
                     },
                     {
                         "type": "dsl",
-                        "name": "default-app",
+                        "name": "default-app-default-favicon",
                         "dsl": ['status_code==200 && ("1852949020" == mmh3(base64_py(body)))'],
                     },
                     {

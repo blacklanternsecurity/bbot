@@ -30,6 +30,8 @@ class favicon(BaseModule):
     link_rel_regex = re.compile(r"""\brel\s*=\s*["']?([^"'>]+)""", re.I)
     link_href_regex = re.compile(r"""\bhref\s*=\s*["']?([^"'\s>]+)""", re.I)
     signature_regex = re.compile(r'"(-?\d+)"\s*==\s*mmh3\(base64_py\(body\)\)')
+    # some signature names end in a redundant "favicon" (e.g. "asp.net-favicon")
+    name_favicon_suffix_regex = re.compile(r"[-_ ]+(?:default[-_ ]+)?favicon$", re.I)
 
     async def setup(self):
         signatures_url = self.config.get("signatures_url")
@@ -46,7 +48,7 @@ class favicon(BaseModule):
         signatures = {}
         for request in template.get("http", []):
             for matcher in request.get("matchers", []):
-                name = matcher.get("name", "")
+                name = self.name_favicon_suffix_regex.sub("", matcher.get("name", ""))
                 hashes = [int(h) for dsl in matcher.get("dsl", []) for h in self.signature_regex.findall(dsl)]
                 if not hashes:
                     self.warning(f"Skipping favicon signature with unrecognized format: {name}")
