@@ -1,5 +1,5 @@
-import re
 import stat
+import subprocess
 import yaml
 
 from ..bbot_fixtures import *
@@ -137,9 +137,30 @@ async def test_cli_scan(monkeypatch):
 
 
 def test_full_version(monkeypatch, tmp_path):
-    # this test runs from a git checkout, so the commit hash should be included
-    assert re.match(r"^\S+ \(git:[0-9a-f]{9}(-dirty)?\)$", bbot.__full_version__)
-    assert bbot.__full_version__.startswith(f"{bbot.__version__} ")
+    # the real value depends on whether bbot is running from a git checkout
+    if bbot._commit:
+        assert bbot.__full_version__ == f"{bbot.__version__} (git:{bbot._commit})"
+    else:
+        assert bbot.__full_version__ == bbot.__version__
+
+    # fake git checkout
+    (tmp_path / ".git").mkdir()
+    monkeypatch.setattr(bbot, "__file__", str(tmp_path / "bbot" / "__init__.py"))
+
+    def fake_git(stdout, returncode=0):
+        def run(*args, **kwargs):
+            return subprocess.CompletedProcess(args[0], returncode, stdout=stdout, stderr="")
+
+        return run
+
+    monkeypatch.setattr(bbot.subprocess, "run", fake_git("012345678\n"))
+    assert bbot._git_commit() == "012345678"
+    monkeypatch.setattr(bbot.subprocess, "run", fake_git("012345678-dirty\n"))
+    assert bbot._git_commit() == "012345678-dirty"
+
+    # git fails
+    monkeypatch.setattr(bbot.subprocess, "run", fake_git("", returncode=128))
+    assert bbot._git_commit() is None
 
     # no git binary
     def no_git(*args, **kwargs):
@@ -147,10 +168,10 @@ def test_full_version(monkeypatch, tmp_path):
 
     monkeypatch.setattr(bbot.subprocess, "run", no_git)
     assert bbot._git_commit() is None
-    monkeypatch.undo()
 
     # not a git checkout
-    monkeypatch.setattr(bbot, "__file__", str(tmp_path / "bbot" / "__init__.py"))
+    (tmp_path / ".git").rmdir()
+    monkeypatch.setattr(bbot.subprocess, "run", fake_git("012345678\n"))
     assert bbot._git_commit() is None
 
 
