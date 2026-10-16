@@ -344,7 +344,6 @@ Minimal fuzzing: only path traversal, SQLi, and XSS submodules. No POST requests
     modules:
       - http
       - lightfuzz
-      - portfilter
       
     config:
       url_querystring_remove: False # don't strip off the querystring (BBOT normally does this; but lightfuzz needs it)
@@ -411,7 +410,6 @@ XSS-only: enables only the xss submodule with paramminer_getparams and reflected
       - nowafpls
       - paramminer_getparams
       - reflected_parameters
-      - portfilter
     
     config:
       url_querystring_remove: False
@@ -444,7 +442,6 @@ Run nuclei scans against all discovered targets
     modules:
       - http
       - nuclei
-      - portfilter
     
     config:
       modules:
@@ -490,7 +487,6 @@ Run nuclei scans against all discovered targets, using budget mode to look for l
     modules:
       - http
       - nuclei
-      - portfilter
     
     config:
       modules:
@@ -523,7 +519,6 @@ Run nuclei scans against all discovered targets, allowing for spidering, against
       - nuclei
       - robots
       - urlscan
-      - portfilter
       - wayback
     
     config:
@@ -561,7 +556,6 @@ Run nuclei scans against all discovered targets, running templates which match d
     modules:
       - http
       - nuclei
-      - portfilter
     
     config:
       modules:
@@ -1032,13 +1026,13 @@ Here is a the same data, but in a table:
 | kitchen-sink      |            | Everything everywhere all at once                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | 7           | baddns, baddns_direct, baddns_zone, http, hunt, reflected_parameters, webbrute                     |
 | lightfuzz         | web        | Default fuzzing: all 9 submodules (cmdi, crypto, path, serial, sqli, ssti, xss, esi, ssrf) plus companion modules (badsecrets, hunt, reflected_parameters). POST fuzzing disabled but try_post_as_get enabled, so POST params are retested as GET. Skips confirmed WAFs.                                                                                                                                                                                                                                | 7           | badsecrets, http, hunt, lightfuzz, nowafpls, portfilter, reflected_parameters                      |
 | lightfuzz-heavy   | web        | Aggressive fuzzing: everything in lightfuzz, plus paramminer brute-force parameter discovery (headers, GET params, cookies), POST request fuzzing enabled, try_get_as_post enabled (GET params retested as POST), and robots.txt parsing. Still skips confirmed WAFs.                                                                                                                                                                                                                                   | 9           | badsecrets, http, hunt, lightfuzz, nowafpls, portfilter, reflected_parameters, robots, wayback     |
-| lightfuzz-light   | web        | Minimal fuzzing: only path traversal, SQLi, and XSS submodules. No POST requests. No companion modules. Safest option for running alongside larger scans with minimal overhead.                                                                                                                                                                                                                                                                                                                         | 3           | http, lightfuzz, portfilter                                                                        |
+| lightfuzz-light   | web        | Minimal fuzzing: only path traversal, SQLi, and XSS submodules. No POST requests. No companion modules. Safest option for running alongside larger scans with minimal overhead.                                                                                                                                                                                                                                                                                                                         | 2           | http, lightfuzz                                                                                    |
 | lightfuzz-max     | web        | Maximum fuzzing: everything in lightfuzz-heavy, plus the heavy paramminer variant (1-3 letter brute-force on GET params, case mutation on case-sensitive backends, recycle_words on all paramminer modules), WAF targets are no longer skipped, each unique parameter-value pair is fuzzed individually (no collapsing), common headers like X-Forwarded-For are fuzzed even if not observed, and potential parameters are speculated from JSON/XML response bodies. Significantly increases scan time. | 9           | badsecrets, http, hunt, lightfuzz, nowafpls, portfilter, reflected_parameters, robots, wayback     |
-| lightfuzz-xss     | web        | XSS-only: enables only the xss submodule with paramminer_getparams and reflected_parameters. POST fuzzing enabled and try_get_as_post retests every discovered GET parameter as POST, so the nowafpls body-padding bypass gets a chance on WAF-tagged targets (a padded-POST XSS is triggerable from an attacker-controlled form).                                                                                                                                                                      | 6           | http, lightfuzz, nowafpls, paramminer_getparams, portfilter, reflected_parameters                  |
-| nuclei            | nuclei     | Run nuclei scans against all discovered targets                                                                                                                                                                                                                                                                                                                                                                                                                                                         | 3           | http, nuclei, portfilter                                                                           |
-| nuclei-budget     | nuclei     | Run nuclei scans against all discovered targets, using budget mode to look for low hanging fruit with greatly reduced number of requests                                                                                                                                                                                                                                                                                                                                                                | 3           | http, nuclei, portfilter                                                                           |
-| nuclei-heavy      | nuclei     | Run nuclei scans against all discovered targets, allowing for spidering, against ALL URLs, and with additional discovery modules.                                                                                                                                                                                                                                                                                                                                                                       | 6           | http, nuclei, portfilter, robots, urlscan, wayback                                                 |
-| nuclei-technology | nuclei     | Run nuclei scans against all discovered targets, running templates which match discovered technologies                                                                                                                                                                                                                                                                                                                                                                                                  | 3           | http, nuclei, portfilter                                                                           |
+| lightfuzz-xss     | web        | XSS-only: enables only the xss submodule with paramminer_getparams and reflected_parameters. POST fuzzing enabled and try_get_as_post retests every discovered GET parameter as POST, so the nowafpls body-padding bypass gets a chance on WAF-tagged targets (a padded-POST XSS is triggerable from an attacker-controlled form).                                                                                                                                                                      | 5           | http, lightfuzz, nowafpls, paramminer_getparams, reflected_parameters                              |
+| nuclei            | nuclei     | Run nuclei scans against all discovered targets                                                                                                                                                                                                                                                                                                                                                                                                                                                         | 2           | http, nuclei                                                                                       |
+| nuclei-budget     | nuclei     | Run nuclei scans against all discovered targets, using budget mode to look for low hanging fruit with greatly reduced number of requests                                                                                                                                                                                                                                                                                                                                                                | 2           | http, nuclei                                                                                       |
+| nuclei-heavy      | nuclei     | Run nuclei scans against all discovered targets, allowing for spidering, against ALL URLs, and with additional discovery modules.                                                                                                                                                                                                                                                                                                                                                                       | 5           | http, nuclei, robots, urlscan, wayback                                                             |
+| nuclei-technology | nuclei     | Run nuclei scans against all discovered targets, running templates which match discovered technologies                                                                                                                                                                                                                                                                                                                                                                                                  | 2           | http, nuclei                                                                                       |
 | paramminer        | web        | Discover new web parameters via brute-force, and analyze them with additional modules                                                                                                                                                                                                                                                                                                                                                                                                                   | 3           | http, hunt, reflected_parameters                                                                   |
 | paramminer-heavy  | web        | Aggressive paramminer brute-force: enables 1-3 letter combination brute-force on GET parameters and case mutation (camelCase / Title-case variants) on case-sensitive backends. Significantly increases scan time.                                                                                                                                                                                                                                                                                      | 3           | http, hunt, reflected_parameters                                                                   |
 | spider            |            | Recursive web spider                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | 1           | http                                                                                               |

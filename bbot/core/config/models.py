@@ -299,6 +299,16 @@ class DnsConfig(BaseModel):
     omit_queries: Optional[list[str]] = None
 
 
+class CdnPortFilterConfig(BaseModel):
+    """`cdn_port_filter` — drops open ports and URLs on CDN/WAF hosts outside the allowed ports."""
+
+    model_config = STRICT
+
+    enabled: Optional[bool] = None
+    tags: Optional[list[str]] = None
+    allowed_ports: Optional[list[int]] = None
+
+
 class BodySpillConfig(BaseModel):
     """`web.body_spill` — keeps large HTTP_RESPONSE bodies off the Python heap."""
 
@@ -439,6 +449,9 @@ class BBOTConfig(BaseModel):
     url_extension_blacklist: Optional[list[str]] = None
     url_extension_special: Optional[list[str]] = None
     url_extension_static: Optional[list[str]] = None
+
+    # CDN/WAF port filtering
+    cdn_port_filter: Optional[CdnPortFilterConfig] = None
 
     # Parameter handling
     parameter_blacklist: Optional[list[str]] = None

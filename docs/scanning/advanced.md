@@ -45,8 +45,8 @@ usage: bbot [-h] [-t TARGET [TARGET ...]] [-s SEEDS [SEEDS ...]]
                [--current-preset-full] [-mh MODULE] [-o DIR]
                [-om MODULE [MODULE ...]] [-eom MODULE [MODULE ...]] [-lo]
                [--json] [--brief] [--no-color]
-               [--event-types EVENT_TYPES [EVENT_TYPES ...]] [--exclude-cdn]
-               [--no-deps | --force-deps | --retry-deps |
+               [--event-types EVENT_TYPES [EVENT_TYPES ...]]
+               [--allow-cdn-ports] [--no-deps | --force-deps | --retry-deps |
                --ignore-failed-deps] [--install-all-deps] [--version]
                [--reset-config] [--reset-secrets] [--proxy HTTP_PROXY]
                [--no-proxy HOST [HOST ...]]
@@ -78,7 +78,7 @@ Presets:
 
 Modules:
   -m, --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: affiliates,ajaxpro,anubisdb,apkpure,asn,aspnet_bin_exposure,azure_tenant,baddns,baddns_direct,baddns_zone,badsecrets,bevigil,bucket_amazon,bucket_digitalocean,bucket_file_enum,bucket_firebase,bucket_google,bucket_hetzner,bucket_microsoft,bufferoverrun,builtwith,bypass403,c99,censys_dns,censys_ip,certspotter,chaos,code_repository,credshed,crt,crt_db,dehashed,dnsbimi,dnsbrute,dnsbrute_mutations,dnscaa,dnscommonsrv,dnsdumpster,dnstlsrpt,docker_pull,dockerhub,dotnetnuke,emailformat,filedownload,fingerprintx,fullhunt,generic_ssrf,git,git_clone,gitdumper,github_codesearch,github_org,github_usersearch,github_workflows,gitlab_com,gitlab_onprem,google_playstore,gowitness,graphql_introspection,hackertarget,host_header,http,hunt,hunterio,iis_shortnames,ip2location,ipneighbor,ipstack,jadx,js_unpacker,kreuzberg,leakix,legba,lightfuzz,medusa,myssl,newsletters,nowafpls,ntlm,nuclei,oauth,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,pgp,portfilter,portscan,postman,postman_download,rapiddns,reflected_parameters,retirejs,robots,securitytrails,securitytxt,shodan_dns,shodan_enterprise,shodan_idb,skymem,social,sslcert,subdomaincenter,subdomainradar,telerik,trajan,trickest,trufflehog,url_manipulation,urlscan,viewdns,virtualhost,virustotal,waf_bypass,wafw00f,wayback,webbrute,webbrute_shortnames
+                        Modules to enable. Choices: affiliates,ajaxpro,anubisdb,apkpure,asn,aspnet_bin_exposure,azure_tenant,baddns,baddns_direct,baddns_zone,badsecrets,bevigil,bucket_amazon,bucket_digitalocean,bucket_file_enum,bucket_firebase,bucket_google,bucket_hetzner,bucket_microsoft,bufferoverrun,builtwith,bypass403,c99,censys_dns,censys_ip,certspotter,chaos,code_repository,credshed,crt,crt_db,dehashed,dnsbimi,dnsbrute,dnsbrute_mutations,dnscaa,dnscommonsrv,dnsdumpster,dnstlsrpt,docker_pull,dockerhub,dotnetnuke,emailformat,filedownload,fingerprintx,fullhunt,generic_ssrf,git,git_clone,gitdumper,github_codesearch,github_org,github_usersearch,github_workflows,gitlab_com,gitlab_onprem,google_playstore,gowitness,graphql_introspection,hackertarget,host_header,http,hunt,hunterio,iis_shortnames,ip2location,ipneighbor,ipstack,jadx,js_unpacker,kreuzberg,leakix,legba,lightfuzz,medusa,myssl,newsletters,nowafpls,ntlm,nuclei,oauth,otilabs,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,pgp,portscan,postman,postman_download,rapiddns,reflected_parameters,retirejs,robots,securitytrails,securitytxt,shodan_dns,shodan_enterprise,shodan_idb,skymem,social,sslcert,subdomaincenter,subdomainradar,telerik,trajan,trickest,trufflehog,url_manipulation,urlscan,viewdns,virtualhost,virustotal,waf_bypass,wafw00f,wayback,webbrute,webbrute_shortnames
   -l, --list-modules    List available modules.
   -lmo, --list-module-options
                         Show all module config options
@@ -120,7 +120,7 @@ Output:
   --no-color            Disable colored terminal output
   --event-types EVENT_TYPES [EVENT_TYPES ...]
                         Choose which event types to display
-  --exclude-cdn, -ec    Filter out unwanted open ports on CDNs/WAFs (80,443 only)
+  --allow-cdn-ports     Don't filter out open ports on CDNs/WAFs (by default only 80,443 are kept)
 
 Module dependencies:
   Control how modules install their dependencies
