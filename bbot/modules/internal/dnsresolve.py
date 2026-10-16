@@ -50,6 +50,13 @@ class DNSResolve(BaseInterceptModule):
 
         return True
 
+    def incoming_lane(self, event):
+        # events whose host was already resolved upstream skip ahead of hosts still awaiting resolution
+        if not event.host:
+            return 0
+        dns_parent = self.find_dns_parent(event)
+        return 0 if dns_parent is not None and dns_parent is not event else 1
+
     async def filter_event(self, event):
         if (not event.host) or (event.type in ("IP_RANGE",)):
             return False, "event does not have host attribute"
@@ -333,6 +340,14 @@ class DNSResolve(BaseInterceptModule):
                     except ValueError:
                         continue
 
+    def find_dns_parent(self, event):
+        """
+        Get the first DNS_NAME / IP_ADDRESS in an event's chain (including the event itself) with the same host, or None.
+        """
+        for parent in event.get_parents(include_self=True):
+            if parent.host == event.host and parent.type in ("IP_ADDRESS", "DNS_NAME", "DNS_NAME_UNRESOLVED"):
+                return parent
+
     def get_dns_parent(self, event):
         """
         Get the first parent DNS_NAME / IP_ADDRESS of an event. If one isn't found, create it.
@@ -343,12 +358,12 @@ class DNSResolve(BaseInterceptModule):
         - whether the parent is blacklisted
         - whether the parent is a new event, i.e. it is newly created or is the current event
         """
-        for parent in event.get_parents(include_self=True):
-            if parent.host == event.host and parent.type in ("IP_ADDRESS", "DNS_NAME", "DNS_NAME_UNRESOLVED"):
-                blacklisted = any(t.startswith("dns-blacklisted-") for t in parent.tags)
-                in_target = any(t.startswith("dns-in-target-") for t in parent.tags)
-                new_event = parent is event
-                return parent, in_target, blacklisted, new_event
+        parent = self.find_dns_parent(event)
+        if parent is not None:
+            blacklisted = any(t.startswith("dns-blacklisted-") for t in parent.tags)
+            in_target = any(t.startswith("dns-in-target-") for t in parent.tags)
+            new_event = parent is event
+            return parent, in_target, blacklisted, new_event
         tags = set()
         if "seed" in event.tags:
             tags.add("seed")
