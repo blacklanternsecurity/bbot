@@ -450,6 +450,7 @@ class Scanner:
             self.root_event.data["started_at"] = self.start_time.timestamp()
 
             self._start_log_handlers()
+            self.info(f"BBOT version: {__full_version__}")
             self.trace(f"Ran BBOT {__full_version__} at {self.start_time}, command: {' '.join(sys.argv)}")
             self.trace(f"Target: {self.preset.target.json}")
             self.trace(f"Preset: {self.preset.to_dict(redact_secrets=True)}")
