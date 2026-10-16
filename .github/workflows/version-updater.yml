@@ -1,0 +1,81 @@
+name: Tool Version Updater
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tools:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.find.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: dev
+          persist-credentials: false
+      - id: find
+        shell: python
+        run: |
+          import json, os, pathlib, re
+          release = re.compile(r"github\.com/([\w.-]+/[\w.-]+)/releases/download/v#\{BBOT_MODULES_(\w+)_VERSION\}")
+          tools = []
+          for path in sorted(pathlib.Path("bbot/modules").glob("*.py")):
+              m = release.search(path.read_text())
+              if m and m.group(2).lower() == path.stem:
+                  tools.append({"module": path.stem, "repo": m.group(1)})
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"matrix={json.dumps(tools)}\n")
+
+  update:
+    needs: tools
+    if: needs.tools.outputs.matrix != '[]'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: ${{ fromJSON(needs.tools.outputs.matrix) }}
+    env:
+      MODULE: ${{ matrix.tool.module }}
+      REPO: ${{ matrix.tool.repo }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: dev
+          fetch-depth: 0
+          token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
+      - name: Get latest and current version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          latest=$(gh api "repos/$REPO/releases/latest" --jq '.tag_name')
+          {
+            echo "latest_version=${latest#v}"
+            echo "current_version=$(grep -m 1 -oP '(?<=Field\(")[^"]*' "bbot/modules/$MODULE.py")"
+            echo "release_notes<<EOF"
+            gh api "repos/$REPO/releases/latest" --jq '.body'
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+      - name: Update version
+        id: update-version
+        if: env.latest_version != env.current_version
+        run: sed -i "0,/Field(\"[^\"]*\",/ s/Field(\"[^\"]*\",/Field(\"$latest_version\",/" "bbot/modules/$MODULE.py"
+      - name: Create pull request to update the version
+        if: steps.update-version.outcome == 'success'
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
+          commit-message: "Update ${{ env.MODULE }}"
+          title: "Update ${{ env.MODULE }} to ${{ env.latest_version }}"
+          body: |
+            This PR uses https://api.github.com/repos/${{ env.REPO }}/releases/latest to obtain the latest version of ${{ env.MODULE }} and update the version in bbot/modules/${{ env.MODULE }}.py.
+
+            # Release notes:
+            ${{ env.release_notes }}
+          branch: "update-${{ env.MODULE }}"
+          committer: blsaccess <info@blacklanternsecurity.com>
+          author: blsaccess <info@blacklanternsecurity.com>
+          assignees: "TheTechromancer"

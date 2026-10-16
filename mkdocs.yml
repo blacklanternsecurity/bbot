@@ -52,6 +52,7 @@ nav:
   - How to Write a BBOT Module: dev/module_howto.md
   - Validating & Inspecting Presets: dev/preset_validation.md
   - Unit Tests: dev/tests.md
+  - Releasing: dev/releasing.md
   - Discord Bot Example: dev/discord_bot.md
   - Code Reference:
     - Scanner: dev/scanner.md
