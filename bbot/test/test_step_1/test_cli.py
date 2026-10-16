@@ -1,8 +1,10 @@
+import re
 import stat
 import yaml
 
 from ..bbot_fixtures import *
 
+import bbot
 from bbot import cli
 
 
@@ -134,6 +136,24 @@ async def test_cli_scan(monkeypatch):
     assert "[INFO]" in open(scan_log).read()
 
 
+def test_full_version(monkeypatch, tmp_path):
+    # this test runs from a git checkout, so the commit hash should be included
+    assert re.match(r"^\S+ \(git:[0-9a-f]{9}(-dirty)?\)$", bbot.__full_version__)
+    assert bbot.__full_version__.startswith(f"{bbot.__version__} ")
+
+    # no git binary
+    def no_git(*args, **kwargs):
+        raise FileNotFoundError("git")
+
+    monkeypatch.setattr(bbot.subprocess, "run", no_git)
+    assert bbot._git_commit() is None
+    monkeypatch.undo()
+
+    # not a git checkout
+    monkeypatch.setattr(bbot, "__file__", str(tmp_path / "bbot" / "__init__.py"))
+    assert bbot._git_commit() is None
+
+
 @pytest.mark.asyncio
 async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     caplog.set_level(logging.INFO)
@@ -148,6 +168,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     assert result is None
     assert len(out.splitlines()) == 1
     assert out.count(".") > 1
+    assert out.strip() == bbot.__full_version__
 
     # deps behavior
     monkeypatch.setattr("sys.argv", ["bbot", "-n", "depstest", "--retry-deps", "--current-preset"])
