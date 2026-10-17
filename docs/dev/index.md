@@ -32,13 +32,16 @@ if __name__ == "__main__":
 ```python
 from bbot.scanner import Scanner
 
+
 async def main():
     scan = Scanner("evilcorp.com", presets=["subdomain-enum"])
     async for event in scan.async_start():
         print(event.json())
 
+
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())
 ```
 
@@ -49,13 +52,7 @@ For a full listing of `Scanner` attributes and functions, see the [`Scanner` Cod
 You can specify any number of targets:
 
 ```python
-scan = Scanner(
-    "evilcorp.com",
-    "evilcorp.org",
-    "4.3.2.1",
-    "1.2.3.4/24",
-    presets=["subdomain-enum"]
-)
+scan = Scanner("evilcorp.com", "evilcorp.org", "4.3.2.1", "1.2.3.4/24", presets=["subdomain-enum"])
 
 # this is the same as:
 targets = ["evilcorp.com", "evilcorp.org", "4.3.2.1", "1.2.3.4/24"]
@@ -85,13 +82,7 @@ scan = Scanner(
     # exclude modules with these flags
     exclude_flags=["slow"],
     # custom config options
-    config={
-        "modules": {
-            "nuclei": {
-                "tags": "apache,nginx"
-            }
-        }
-    }
+    config={"modules": {"nuclei": {"tags": "apache,nginx"}}},
 )
 ```
 

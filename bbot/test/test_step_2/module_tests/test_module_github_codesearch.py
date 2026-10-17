@@ -1,4 +1,5 @@
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestGithub_Codesearch(ModuleTestBase):
@@ -15,7 +16,7 @@ class TestGithub_Codesearch(ModuleTestBase):
     github_file_endpoint = (
         "/projectdiscovery/nuclei/06f242e5fce3439b7418877676810cbf57934875/v2/cmd/cve-annotate/main.go"
     )
-    github_file_url = f"http://127.0.0.1:8888{github_file_endpoint}"
+    github_file_url = f"{HTTPSERVER_URL}{github_file_endpoint}"
     github_file_content = """-----BEGIN PRIVATE KEY-----
 MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBAOBY2pd9PSQvuxqu
 WXFNVgILTWuUc721Wc2sFNvp4beowhUe1lfxaq5ZfCJcz7z4QsqFhOeks69O9UIb
@@ -68,7 +69,7 @@ Gnl54dJHT+EhlfY=
         )
 
     async def setup_after_prep(self, module_test):
-        module_test.module.github_raw_url = "http://127.0.0.1:8888/"
+        module_test.module.github_raw_url = f"{HTTPSERVER_URL}/"
 
     def check(self, module_test, events):
         assert 1 == len([e for e in events if e.type == "URL_UNVERIFIED"])

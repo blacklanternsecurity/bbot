@@ -142,6 +142,9 @@ class BaseEvent:
     _discovery_context_regex = re.compile(r"\{(?:event|module)[^}]*\}")
     # Stats class for the status line — override in subclasses for custom formatting
     _stats_class = None
+    # Whether this event is subject to `url_extension_special` distribution filtering.
+    # False for events representing already-retrieved content, whose consumers analyze the body.
+    _url_special_filterable = True
 
     # using __slots__ dramatically reduces memory usage in large scans
     __slots__ = [
@@ -546,7 +549,11 @@ class BaseEvent:
     def add_tag(self, tag):
         if self._tags is None:
             self._tags = set()
-        self._tags.add(sys.intern(tagify(tag)))
+        tag = tagify(tag)
+        # an in-scope event is never an affiliate (refresh_scope_tags covers events that become in-scope later)
+        if tag == "affiliate" and getattr(self, "_scope_distance", None) == 0:
+            return
+        self._tags.add(sys.intern(tag))
 
     def add_tags(self, tags):
         for tag in set(tags):
@@ -958,11 +965,14 @@ class BaseEvent:
         web_spider_distance = getattr(self, "web_spider_distance", None)
         if web_spider_distance is not None:
             j["web_spider_distance"] = web_spider_distance
-        # provenance for events whose evidence is an archived snapshot rather than the live host.
-        # kept out of `data` so it doesn't become part of the event's identity.
+        # kept out of `data` so the snapshot URL doesn't become part of the event's identity
         archive_url = self.archive_url
         if archive_url:
             j["archive_url"] = archive_url
+        # also kept out of `data`, though unlike archive_url this one does feed the event's identity
+        reemit_source = getattr(self, "reemit_source", None)
+        if reemit_source:
+            j["reemit_source"] = reemit_source
         # scope distance
         j["scope_distance"] = self.scope_distance
         # scan
@@ -1165,18 +1175,24 @@ class DefaultEvent(BaseEvent):
 class DictEvent(BaseEvent):
     __slots__ = ["url_extension"]
 
+    def _set_url_extension(self):
+        """Extract the file extension from self.parsed_url and record it as an attribute and a tag."""
+        parsed_url = getattr(self, "parsed_url", None)
+        if parsed_url is None:
+            return
+        url_path = parsed_url.path
+        if not url_path:
+            return
+        extension = get_file_extension(str(url_path).lower())
+        if extension:
+            self.url_extension = extension
+            self.add_tag(f"extension-{extension}")
+
     def sanitize_data(self, data):
         url = data.get("url", "")
         if url:
             self.parsed_url = self.validators.validate_url_parsed(url)
-            # extract url_extension from any dict event with a URL
-            url_path = self.parsed_url.path
-            if url_path:
-                parsed_path_lower = str(url_path).lower()
-                extension = get_file_extension(parsed_path_lower)
-                if extension:
-                    self.url_extension = extension
-                    self.add_tag(f"extension-{extension}")
+            self._set_url_extension()
         return data
 
     def _data_load(self, data):
@@ -1196,7 +1212,7 @@ class DictHostEvent(DictEvent):
 
 
 class ClosestHostEvent(DictHostEvent):
-    # if a host/path/url isn't specified, this event type grabs it from the closest parent
+    # if a host isn't specified, this event type grabs host, port, url and path from the closest parent
     # inherited by FINDING
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1215,9 +1231,9 @@ class ClosestHostEvent(DictHostEvent):
                 # inherit closest host+port
                 if parent.host:
                     self.data["host"] = str(parent.host)
-                    self._port = parent.port
-                    # we do this to refresh the hash
+                    # we do this to refresh the hash (this also clears _port, so it must come first)
                     self.data = self.data
+                    self._port = parent.port
                     break
         # die if we still haven't found a host
         if not self.host and not self.data.get("path", ""):
@@ -1447,15 +1463,7 @@ class URL_UNVERIFIED(DictHostEvent):
         self.parsed_url = self.validators.validate_url_parsed(url)
         data["url"] = self.parsed_url.geturl()
 
-        # special handling of URL extensions
-        if self.parsed_url is not None:
-            url_path = self.parsed_url.path
-            if url_path:
-                parsed_path_lower = str(url_path).lower()
-                extension = get_file_extension(parsed_path_lower)
-                if extension:
-                    self.url_extension = extension
-                    self.add_tag(f"extension-{extension}")
+        self._set_url_extension()
 
         # tag as dir or endpoint
         if str(self.parsed_url.path).endswith("/"):
@@ -1637,9 +1645,24 @@ class WEB_PARAMETER(DictHostEvent):
                 log.verbose(f"Error detecting envelopes for {self}: {e}")
         return data
 
+    def _dedup_url(self, url):
+        """The page the parameter lives on, with the query string reduced the way URL events
+        reduce theirs: parameter names are identity, their values are not unless
+        url_querystring_collapse is False. Ordering never is."""
+        base, sep, query = url.partition("?")
+        if not sep or self.scan is None:
+            return url
+        # keep_blank_values, or "?debug=" silently stops being a parameter
+        query_dict = parse_qs(query, keep_blank_values=True)
+        if self.scan.config.get("url_querystring_collapse", True):
+            kept = "|".join(sorted(query_dict.keys()))
+        else:
+            kept = "&".join(f"{k}={','.join(sorted(v))}" for k, v in sorted(query_dict.items()))
+        return f"{base}?{kept}"
+
     def _data_id(self):
         # dedupe by url:name:param_type
-        url = self.data.get("url", "")
+        url = self._dedup_url(self.data.get("url", ""))
         name = self.data.get("name", "")
         param_type = self.data.get("type", "")
         envelopes = getattr(self, "envelopes", "")
@@ -1651,7 +1674,7 @@ class WEB_PARAMETER(DictHostEvent):
         return hash(
             (
                 str(event.host),
-                event.data["url"],
+                event._dedup_url(event.data["url"]),
                 event.data.get("name", ""),
                 event.data.get("type", ""),
                 event.data.get("envelopes", ""),
@@ -1704,6 +1727,10 @@ class EMAIL_ADDRESS(BaseEvent):
 
 
 class HTTP_RESPONSE(URL_UNVERIFIED):
+    # the response body has already been retrieved, so content-analysis modules
+    # should still receive it even for special extensions like .js
+    _url_special_filterable = False
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # count number of consecutive redirects
@@ -1750,20 +1777,37 @@ class HTTP_RESPONSE(URL_UNVERIFIED):
             return ""
         return body_bytes.decode("utf-8", errors="replace")
 
+    @property
+    def reemit_source(self):
+        """Name of the module that re-emitted this response with a transformed body.
+
+        Kept off ``data`` so the marker isn't part of the event's public body. ``json()``
+        surfaces it top-level and ``event_from_json()`` restores it.
+        """
+        return getattr(self, "_reemit_source", None)
+
+    @reemit_source.setter
+    def reemit_source(self, value):
+        self._reemit_source = value
+        # the marker feeds _data_id, so any already-cached identity is stale
+        self._id = None
+        self._data_hash = None
+        self._hash = None
+
     def _data_id(self):
         base = self.data["method"] + "|" + self.data["url"]
-        # Modules that re-emit an HTTP_RESPONSE for the same (method, url) but with a
-        # transformed body (e.g. js_unpacker's unpacked response) set data["_reemit_source"]
-        # so the two events don't collide on event.id and get dropped by per-module dedup.
-        reemit = self.data.get("_reemit_source")
-        if reemit:
-            return base + "|" + str(reemit)
+        # a module re-emitting the same (method, url) with a transformed body sets
+        # reemit_source, so the two events don't collide on event.id and get deduped away
+        reemit_source = self.reemit_source
+        if reemit_source:
+            return base + "|" + str(reemit_source)
         return base
 
     def sanitize_data(self, data):
         url = data.get("url", "")
         self.parsed_url = self.validators.validate_url_parsed(url)
         data["url"] = self.parsed_url.geturl()
+        self._set_url_extension()
 
         if not "raw_header" in data:
             raise ValueError("raw_header is required for HTTP_RESPONSE events")
@@ -1971,7 +2015,6 @@ class FINDING(ClosestHostEvent):
             confidence_str = f"[\033[1m{confidence}\033[0m]"
         else:
             confidence_str = f"[{confidence}]"
-        # the evidence came out of an archive, so the severity describes a snapshot, not the live host
         archived_str = "[ARCHIVED] " if self.archive_url else ""
         return f"{archived_str}Severity: [{severity}] Confidence: {confidence_str} {description}"
 
@@ -1986,7 +2029,6 @@ class FINDING(ClosestHostEvent):
         cves = self.data.get("cves", [])
         if cves:
             parts.append(f"[{', '.join(cves)}]")
-        # the evidence came out of an archive, so the severity describes a snapshot, not the live host
         archive_url = self.archive_url
         if archive_url:
             parts.append(f"(archived: {archive_url})")
@@ -2471,10 +2513,24 @@ def event_from_json(j):
         resolved_hosts = j.get("resolved_hosts", [])
         event._resolved_hosts = frozenset(resolved_hosts) if resolved_hosts else None
 
+        # some events (e.g. FINDING) carry a port that isn't derivable from their data
+        port = j.get("port", None)
+        if port is not None:
+            event._port = port
+
         http_title = j.get("http_title", "")
         if http_title:
             try:
                 event.http_title = http_title
+            except AttributeError:
+                pass
+
+        # must be restored, not recomputed: it feeds _data_id, so dropping it here
+        # would give the rebuilt event a different id than the one that was serialized
+        reemit_source = j.get("reemit_source", "")
+        if reemit_source:
+            try:
+                event.reemit_source = reemit_source
             except AttributeError:
                 pass
 

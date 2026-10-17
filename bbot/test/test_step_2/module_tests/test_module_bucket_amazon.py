@@ -2,6 +2,7 @@ import re
 
 from .base import ModuleTestBase
 from bbot.core.helpers.misc import rand_string
+from bbot.test.worker import HTTPSERVER_URL
 
 __all__ = ["random_bucket_name_1", "random_bucket_name_2", "random_bucket_name_3", "Bucket_Amazon_Base"]
 
@@ -14,7 +15,7 @@ random_bucket_name_3 = f"{random_bucket_name_2}-dev"
 
 
 class Bucket_Amazon_Base(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     provider = "amazon"
 
     random_bucket_1 = f"{random_bucket_name_1}.s3.amazonaws.com"

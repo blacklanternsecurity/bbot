@@ -100,7 +100,7 @@ class BlasthttpMock:
         cookies = kwargs.pop("cookies", None)
         auth = kwargs.pop("auth", None)
         # Drop kwargs that don't apply to mock dispatch but are valid on WebHelper.
-        for k in ("timeout", "max_redirects", "proxy", "retries", "params", "max_body_size"):
+        for k in ("timeout", "max_redirects", "redirect_cookies", "proxy", "retries", "params", "max_body_size"):
             kwargs.pop(k, None)
         follow_redirects = kwargs.pop("follow_redirects", None)
 

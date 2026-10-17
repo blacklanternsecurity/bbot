@@ -11,13 +11,15 @@ All of these helpers work on plain dicts (i.e. what you'd get from `yaml.safe_lo
 ```python
 from bbot.scanner import validate_preset
 
-errors = validate_preset({
-    "modules": ["nuclei"],
-    "config": {
-        "scope": {"strict": True},
-        "modules": {"nuclei": {"ratelimit": 200}},
-    },
-})
+errors = validate_preset(
+    {
+        "modules": ["nuclei"],
+        "config": {
+            "scope": {"strict": True},
+            "modules": {"nuclei": {"ratelimit": 200}},
+        },
+    }
+)
 
 for err in errors:
     print(err)
@@ -126,6 +128,7 @@ import typing
 from pydantic import BaseModel
 from bbot.core.config.models import is_sensitive, is_mandatory
 
+
 def schema_paths(model, *, predicate, prefix=""):
     """Yield dotted paths for every field where `predicate(FieldInfo)` is True."""
     for name, field in model.model_fields.items():
@@ -138,6 +141,7 @@ def schema_paths(model, *, predicate, prefix=""):
             yield from schema_paths(ann, predicate=predicate, prefix=f"{path}.")
         elif predicate(field):
             yield path
+
 
 all_sensitive = list(schema_paths(MODULE_LOADER.config_schema, predicate=is_sensitive))
 # ['web.http_cookies', 'interactsh_token', 'modules.shodan_dns.api_key', ...]

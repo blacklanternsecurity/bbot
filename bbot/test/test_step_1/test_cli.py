@@ -871,6 +871,12 @@ scan_name: {scan_name}
         """
         )
 
+    # These are cleaned up at the end of the test, but an earlier failure (or an
+    # interrupted run) leaves them behind, and then these "not exists" assertions
+    # fail on every later run against the same BBOT home. Clear them up front so
+    # the test establishes its precondition instead of assuming it.
+    shutil.rmtree(output_dir, ignore_errors=True)
+
     assert not output_dir.exists()
     assert not scan_dir.exists()
     assert not output_file.exists()

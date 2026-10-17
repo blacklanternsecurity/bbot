@@ -6,8 +6,11 @@ from bbot.modules.base import BaseModule
 from bbot.core.helpers.async_helpers import NamedLock
 
 from bbot.errors import InteractshError
+from pydantic import field_validator
+
 from bbot.core.config.models import BaseModuleConfig, Field
 from bbot.core.helpers.misc import get_waf_strings
+from bbot.core.helpers.nowafpls import BypassResult
 from bbot.core.helpers.web.response_event import response_to_event_dict
 from bbot.modules.lightfuzz.submodules.base import BaseLightfuzz
 from bbot.modules.lightfuzz.submodules.serial import serial as _serial_submodule
@@ -47,6 +50,18 @@ class lightfuzz(BaseModule):
             True,
             description="Emit canonical baseline responses as HTTP_RESPONSE events so excavate can mine them for new params/URLs.",
         )
+        max_baseline_generations: int = Field(
+            10,
+            description="Stop emitting baseline responses once a parameter is this many lightfuzz generations deep, bounding excavate feedback loops.",
+        )
+
+        @field_validator("avoid_wafs", mode="before")
+        @classmethod
+        def _normalize_avoid_wafs(cls, v):
+            # also accept the boolean form: True skipped WAF-tagged targets, False fuzzed them raw
+            if isinstance(v, bool):
+                return "always" if v else "never"
+            return v.strip().lower() if isinstance(v, str) else v
 
     meta = {
         "description": "BBOT's DAST module — lightly fuzz web parameters discovered during recon for common vulnerability classes",
@@ -68,11 +83,19 @@ class lightfuzz(BaseModule):
         self.try_get_as_post = self.config.get("try_get_as_post", False)
         self.enabled_submodules = self.config.get("enabled_submodules")
         self.interactsh_disable = self.scan.config.get("interactsh_disable", False)
-        self.avoid_wafs = self.config.get("avoid_wafs", "try_bypasses")
+        avoid_wafs = self.config.get("avoid_wafs", "try_bypasses")
+        if isinstance(avoid_wafs, bool):
+            avoid_wafs = "always" if avoid_wafs else "never"
+        self.avoid_wafs = avoid_wafs.strip().lower()
         self.emit_baseline_responses = self.config.get("emit_baseline_responses", True)
+        self.max_baseline_generations = self.config.get("max_baseline_generations", 10)
+        self._baseline_generation_cap_hit = False
         self.submodules = {}
         # Per-event baseline cache so submodules with identical request signatures share one HttpCompare.
         self._baseline_cache = {}
+
+        # Scratch space for submodules needing state that outlives a single WEB_PARAMETER, keyed by submodule name.
+        self.submodule_state = {}
 
         # Cross-event baseline_probe response cache: sibling fields of the same form produce identical requests.
         self._baseline_probe_response_cache = {}
@@ -192,11 +215,41 @@ class lightfuzz(BaseModule):
         """Store an HttpCompare in the per-event baseline cache."""
         self._baseline_cache.setdefault(event.id, {})[signature] = http_compare
 
+    def baseline_generations(self, event):
+        """How many lightfuzz-emitted events are already in this event's ancestry.
+
+        Every baseline response we emit is mined by excavate, which hands the parameters it
+        finds back to us. Pages that vary their form on each load (rotating CSRF tokens,
+        honeypot fields) make each round look new, so the chain is bounded by counting it.
+        """
+        count = 0
+        e = event
+        while 1:
+            parent = e.parent
+            # `is`, not `==`: Event equality is hash-of-id, so two distinct events carrying
+            # equal data would end the walk and undercount everything above them
+            if parent is None or parent is e:
+                break
+            if getattr(parent.module, "name", "") == self.name:
+                count += 1
+                if count >= self.max_baseline_generations:
+                    break
+            e = parent
+        return count
+
     async def emit_baseline_response(self, response, event, method):
         """Emit a baseline blasthttp Response as an HTTP_RESPONSE event so excavate can mine post-submit pages."""
         if not self.emit_baseline_responses:
             return
         if response is None:
+            return
+        if self.baseline_generations(event) >= self.max_baseline_generations:
+            if not self._baseline_generation_cap_hit:
+                self._baseline_generation_cap_hit = True
+                self.verbose(
+                    f"Reached max_baseline_generations ({self.max_baseline_generations}) on {event.host}; "
+                    "no longer emitting baseline responses for parameters nested this deep"
+                )
             return
         try:
             parsed = urlparse(str(response.url))
@@ -398,16 +451,22 @@ class lightfuzz(BaseModule):
                 self.debug(f"Skipping {event.type} (avoid_wafs=always). URL: {url}")
                 return False
             if self.avoid_wafs == "try_bypasses":
-                # Ask nowafpls if body padding gets us through. Only worth asking on events
-                # that can fire a POST probe — GET/COOKIE/HEADER can't be padded.
-                if not self._post_capable(event):
-                    return False, "WAF-tagged event has no POST-style probe to pad"
+                # The "waf" tag comes from the CDN/WAF provider's identity, not from observed
+                # blocking, so ask nowafpls what the host actually does with a payload.
                 result = await self.helpers.nowafpls.is_bypassable(event)
-                if not result.bypassed:
-                    parsed_url = getattr(event, "parsed_url", None)
-                    url = parsed_url.geturl() if parsed_url else "unknown"
-                    self.debug(f"Skipping {event.type} because WAF is not bypassable. URL: {url}")
-                    return False
+                if result.status == BypassResult.STATUS_BLOCKED:
+                    return False, f"WAF blocked the payload and body padding did not help ({result.summary})"
+                if result.status == BypassResult.STATUS_TOO_LARGE:
+                    # the WAF held and the origin caps body size, so padding is not available here
+                    return False, f"WAF blocked the payload and the origin rejected every pad size ({result.summary})"
+                if result.status == BypassResult.STATUS_ERROR:
+                    # no verdict, which is a different thing from a WAF that held; say so instead of
+                    # dropping the event with a generic reason
+                    return False, f"WAF bypass probe was inconclusive ({result.summary})"
+                if result.status == BypassResult.STATUS_BYPASSED and not self._post_capable(event):
+                    # padding is body-only, so a GET/COOKIE/HEADER probe has no bypass to apply
+                    return False, "WAF is bypassable via body padding, but this event has no POST-style probe"
+                # STATUS_NO_INTERFERENCE: nothing is gating the payload, so fuzz normally
             # avoid_wafs == "never": fall through and fuzz raw
 
         # Skip WEB_PARAMETERs on static-asset URLs (pdf, doc, xml, etc.) — fuzzing them is pointless

@@ -1,9 +1,10 @@
 from .base import ModuleTestBase
 from bbot.test.bbot_fixtures import bbot_test_dir
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestBucket_File_Enum(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["bucket_file_enum", "filedownload", "http", "excavate", "cloudcheck"]
 
     download_dir = bbot_test_dir / "test_bucket_file_enum"

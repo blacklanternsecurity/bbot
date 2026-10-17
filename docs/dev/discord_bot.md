@@ -4,5 +4,5 @@
 Below is a simple Discord bot designed to run BBOT scans.
 
 ```python title="examples/discord_bot.py"
---8<-- "examples/discord_bot.py"
+--8 < --"examples/discord_bot.py"
 ```

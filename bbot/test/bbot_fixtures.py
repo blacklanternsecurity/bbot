@@ -15,12 +15,15 @@ from bbot.core import CORE
 from bbot.core.config.merge import deep_merge
 from bbot.scanner import Preset
 from bbot.core.helpers.misc import mkdir, rand_string
+from bbot.test.worker import BBOT_TEST_DIR
 
 
 log = logging.getLogger("bbot.test.fixtures")
 
 
-bbot_test_dir = Path("/tmp/.bbot_test")
+# Per-xdist-worker so parallel workers don't share caches, scan output, or the
+# sessionfinish cleanup. Serial runs still get /tmp/.bbot_test.
+bbot_test_dir = BBOT_TEST_DIR
 mkdir(bbot_test_dir)
 
 

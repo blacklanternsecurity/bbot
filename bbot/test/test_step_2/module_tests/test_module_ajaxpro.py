@@ -1,11 +1,12 @@
 from urllib.parse import urlparse
 
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_URL
 from bbot.modules.base import BaseModule
 
 
 class TestAjaxpro(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "ajaxpro"]
     exploit_headers = {"X-Ajaxpro-Method": "AddItem", "Content-Type": "text/json; charset=UTF-8"}
     exploit_response = """
@@ -40,8 +41,7 @@ class TestAjaxpro(ModuleTestBase):
             if (
                 e.type == "FINDING"
                 and "Ajaxpro Deserialization RCE (CVE-2021-23758)" in e.data["description"]
-                and "http://127.0.0.1:8888/ajaxpro/AjaxPro.Services.ICartService,AjaxPro.2.ashx"
-                in e.data["description"]
+                and f"{HTTPSERVER_URL}/ajaxpro/AjaxPro.Services.ICartService,AjaxPro.2.ashx" in e.data["description"]
             ):
                 ajaxpro_exploit_detection = True
 
@@ -85,6 +85,7 @@ class TestAjaxpro_nowafpls_bypass(ModuleTestBase):
 
     targets = ["ajaxpro-bypass.test"]
     modules_overrides = ["http", "ajaxpro"]
+    config_overrides = {"web": {"nowafpls_padding_sizes": [1024]}}
 
     _exploit_response = (
         'null; r.error = {"Message":"Constructor on type \'AjaxPro.Services.ICartService\' not found.",'
@@ -146,9 +147,16 @@ class TestAjaxpro_nowafpls_bypass(ModuleTestBase):
         module_test.scan.modules["dummy_module"] = self.DummyModule(module_test.scan)
 
     def check(self, module_test, events):
-        assert any(b'"__nowafpls_pad"' in b for b in self.exploit_bodies), (
+        import json
+
+        padded = [b for b in self.exploit_bodies if b'"__nowafpls_pad"' in b]
+        assert padded, (
             f"Ajaxpro's exploit POST should carry the nowafpls JSON pad. Got exploit bodies: {self.exploit_bodies}"
         )
+        # the exploit must pad with the size the probe validated, not a compiled-in default,
+        # otherwise the verdict and the exploit disagree whenever the size is configured
+        pad_sizes = {len(json.loads(b)["__nowafpls_pad"]) for b in padded}
+        assert pad_sizes == {1024}, f"Exploit pad must match the configured padding size. Got: {pad_sizes}"
         finding = next(
             (
                 e

@@ -1,6 +1,4 @@
 from bbot.modules.base import BaseModule
-from bbot.core.config.models import BaseModuleConfig, Field
-from bbot.core.helpers.nowafpls import BypassResult, DEFAULT_PADDING_SIZE, DEFAULT_PAYLOAD
 
 
 class nowafpls(BaseModule):
@@ -13,16 +11,6 @@ class nowafpls(BaseModule):
         "author": "@liquidsec",
     }
 
-    class Config(BaseModuleConfig):
-        padding_size: int = Field(
-            DEFAULT_PADDING_SIZE,
-            description="Size in bytes of the padding injected before the malicious payload",
-        )
-        payload: str = Field(
-            DEFAULT_PAYLOAD,
-            description="Malicious payload expected to trigger the WAF",
-        )
-
     per_host_only = True
     in_scope_only = True
 
@@ -34,16 +22,9 @@ class nowafpls(BaseModule):
         return True
 
     async def handle_event(self, event):
-        result = await self.helpers.nowafpls.is_bypassable(
-            event,
-            padding_size=int(self.config.get("padding_size") or DEFAULT_PADDING_SIZE),
-            payload=self.config.get("payload") or DEFAULT_PAYLOAD,
-        )
+        result = await self.helpers.nowafpls.is_bypassable(event)
         if not result.bypassed:
-            self.debug(
-                f"No bypass finding for {event.url}: status={result.status} "
-                f"provider={result.waf_provider or 'unknown'}"
-            )
+            self.verbose(f"No bypass finding for {event.url}: {result.summary}")
             return
 
         provider = result.waf_provider or "WAF/inspection layer"
@@ -67,7 +48,3 @@ class nowafpls(BaseModule):
                 f"indicating the payload reached the application past the inspection layer."
             ),
         )
-
-    # expose the status constants for consumers/tests that want to reason about
-    # the helper's verdict without importing the helper module directly
-    RESULT = BypassResult

@@ -7,6 +7,7 @@ from contextlib import suppress
 from urllib.request import urlopen, Request
 from urllib.error import URLError
 from urllib.parse import urlencode
+from bbot.test.worker import FASTAPI_PORT, FASTAPI_URL, HTTPSERVER_URL
 
 cwd = Path(__file__).parent.parent.parent
 
@@ -14,7 +15,7 @@ cwd = Path(__file__).parent.parent.parent
 def run_bbot_multiprocess(queue):
     from bbot.scanner import Scanner
 
-    scan = Scanner("http://127.0.0.1:8888", "blacklanternsecurity.com", modules=["http"])
+    scan = Scanner(HTTPSERVER_URL, "blacklanternsecurity.com", modules=["http"])
     events = [e.json() for e in scan.start()]
     queue.put(events)
 
@@ -42,7 +43,7 @@ def test_bbot_fastapi(bbot_httpserver):
         start_time = time.time()
         while True:
             try:
-                response = urlopen("http://127.0.0.1:8978/ping")
+                response = urlopen(f"{FASTAPI_URL}/ping")
                 response.read()
                 break
             except (URLError, ConnectionError):
@@ -52,8 +53,8 @@ def test_bbot_fastapi(bbot_httpserver):
                 continue
 
         # run a scan
-        params = urlencode({"targets": ["http://127.0.0.1:8888", "blacklanternsecurity.com"]}, doseq=True)
-        req = Request(f"http://127.0.0.1:8978/start?{params}")
+        params = urlencode({"targets": [HTTPSERVER_URL, "blacklanternsecurity.com"]}, doseq=True)
+        req = Request(f"{FASTAPI_URL}/start?{params}")
         response = urlopen(req, timeout=100)
         events = json.loads(response.read())
         assert len(events) >= 3
@@ -75,6 +76,8 @@ def start_fastapi_server():
         del env["BBOT_TESTING"]
     python_executable = str(sys.executable)
     process = Popen(
-        [python_executable, "-m", "uvicorn", "bbot.test.fastapi_test:app", "--port", "8978"], cwd=cwd, env=env
+        [python_executable, "-m", "uvicorn", "bbot.test.fastapi_test:app", "--port", str(FASTAPI_PORT)],
+        cwd=cwd,
+        env=env,
     )
     return process

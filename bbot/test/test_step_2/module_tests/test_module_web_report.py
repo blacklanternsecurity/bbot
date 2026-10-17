@@ -1,8 +1,9 @@
 from .base import ModuleTestBase
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestWebReport(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "dotnetnuke", "badsecrets", "web_report", "trufflehog"]
     config_overrides = {"modules": {"trufflehog": {"only_verified": False}}}
 
@@ -21,9 +22,9 @@ class TestWebReport(ModuleTestBase):
         assert "CONFIRMED" in report_content
         assert "Known Secret Found" in report_content
         assert (
-            """<h3>URL</h3>
+            f"""<h3>URL</h3>
 <ul>
-<li><strong>http://127.0.0.1:8888/</strong>"""
+<li><strong>{HTTPSERVER_URL}/</strong>"""
             in report_content
         )
         assert """Possible Secret Found. Detector Type: [PrivateKey]""" in report_content

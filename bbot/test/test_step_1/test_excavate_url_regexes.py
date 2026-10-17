@@ -11,6 +11,7 @@ only matched word characters and dots.
 import yara
 
 from bbot.modules.internal.excavate import excavate
+from bbot.test.worker import HTTPSERVER_URL
 
 
 full_url_regex = excavate.URLExtractor.full_url_regex
@@ -30,7 +31,7 @@ IPV6_URLS = [
 NON_IPV6_URLS = [
     "http://example.com/",
     "https://www.example.com:8080/path",
-    "http://127.0.0.1:8888/",
+    f"{HTTPSERVER_URL}/",
     "https://asdffoo.test.notreal/some/path",
 ]
 

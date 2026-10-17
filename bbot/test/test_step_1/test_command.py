@@ -1,5 +1,7 @@
 import time
 from ..bbot_fixtures import *
+
+from bbot.test.worker import BBOT_TEST_DIR
 from subprocess import CalledProcessError
 
 
@@ -38,7 +40,7 @@ async def test_command(bbot_scanner):
     assert result.splitlines() == [b"some", b"random", b"stdin"]
 
     # test overflow - run
-    tmpfile_path = Path("/tmp/test_bigfile")
+    tmpfile_path = BBOT_TEST_DIR / "test_bigfile"
     with open(tmpfile_path, "w") as f:
         # write 2MB
         f.write("A" * 1024 * 1024 * 2)
@@ -46,7 +48,7 @@ async def test_command(bbot_scanner):
     assert len(result) == 1024 * 1024 * 2
     tmpfile_path.unlink(missing_ok=True)
     # test overflow - run_live
-    tmpfile_path = Path("/tmp/test_bigfile")
+    tmpfile_path = BBOT_TEST_DIR / "test_bigfile"
     with open(tmpfile_path, "w") as f:
         # write 2MB
         f.write("A" * 10 + "\n")
@@ -119,30 +121,30 @@ async def test_command(bbot_scanner):
     # test sudo + existence of environment variables
     await scan1._prep()
     path_parts = os.environ.get("PATH", "").split(":")
-    assert "/tmp/.bbot_test/tools" in path_parts
+    assert f"{BBOT_TEST_DIR}/tools" in path_parts
     run_lines = (await scan1.helpers.run(["env"])).stdout.splitlines()
     assert "BBOT_WEB_USER_AGENT=BBOT Test User-Agent" in run_lines
     for line in run_lines:
         if line.startswith("PATH="):
             path_parts = line.split("=", 1)[-1].split(":")
-            assert "/tmp/.bbot_test/tools" in path_parts
+            assert f"{BBOT_TEST_DIR}/tools" in path_parts
     run_lines_sudo = (await scan1.helpers.run(["env"], sudo=True)).stdout.splitlines()
     assert "BBOT_WEB_USER_AGENT=BBOT Test User-Agent" in run_lines_sudo
     for line in run_lines_sudo:
         if line.startswith("PATH="):
             path_parts = line.split("=", 1)[-1].split(":")
-            assert "/tmp/.bbot_test/tools" in path_parts
+            assert f"{BBOT_TEST_DIR}/tools" in path_parts
     run_live_lines = [l async for l in scan1.helpers.run_live(["env"])]
     assert "BBOT_WEB_USER_AGENT=BBOT Test User-Agent" in run_live_lines
     for line in run_live_lines:
         if line.startswith("PATH="):
             path_parts = line.strip().split("=", 1)[-1].split(":")
-            assert "/tmp/.bbot_test/tools" in path_parts
+            assert f"{BBOT_TEST_DIR}/tools" in path_parts
     run_live_lines_sudo = [l async for l in scan1.helpers.run_live(["env"], sudo=True)]
     assert "BBOT_WEB_USER_AGENT=BBOT Test User-Agent" in run_live_lines_sudo
     for line in run_live_lines_sudo:
         if line.startswith("PATH="):
             path_parts = line.strip().split("=", 1)[-1].split(":")
-            assert "/tmp/.bbot_test/tools" in path_parts
+            assert f"{BBOT_TEST_DIR}/tools" in path_parts
 
     await scan1._cleanup()

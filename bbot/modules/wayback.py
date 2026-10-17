@@ -9,6 +9,7 @@ from cachetools import LRUCache
 
 from bbot.core.helpers.misc import get_file_extension
 from bbot.core.helpers.validators import clean_url
+from bbot.core.helpers.web.response_event import response_to_event_dict
 from bbot.modules.templates.subdomain_enum import subdomain_enum
 from bbot.core.config.models import BaseModuleConfig, Field
 
@@ -172,7 +173,14 @@ rule akamai_bot_manager_url
 
         Any response counts as alive -- only connect failures and timeouts (after retries)
         mark a host dead. Verdicts are cached for the rest of the scan.
+
+        Probing is skipped entirely when a proxy is configured, since the proxy answers on the
+        target's behalf: an unreachable upstream comes back as a proxy 502, which is
+        indistinguishable from a real one. With no trustworthy verdict available we emit every
+        host's URLs rather than guess.
         """
+        if not self._liveness_probing:
+            return set(keys)
         live = set()
         probes = []
         probe_kwargs = {
@@ -235,6 +243,9 @@ rule akamai_bot_manager_url
         # 32M bits (~4MB) supports ~400K entries with negligible false-positive rate
         self._archive_bloom = self.helpers.bloom_filter(32000000)
         self._liveness_cache = LRUCache(maxsize=self._liveness_cache_size)
+        self._liveness_probing = not self.scan.http_proxy
+        if self.urls and not self._liveness_probing:
+            self.verbose("Emitting wayback URLs without liveness probing because an HTTP proxy is configured")
         self._junk_url_rules = self.helpers.yara.compile(source="\n".join(self._junk_url_yara_rules.values()))
         return await super().setup()
 
@@ -439,7 +450,7 @@ rule akamai_bot_manager_url
         # parse JSON + extract URLs off the event loop
         # (CDX responses can contain 100k+ entries)
         try:
-            urls = await self.helpers.run_in_executor_cpu(_parse_cdx_response, r.text)
+            urls = await self.helpers.run_in_executor_mp(_parse_cdx_response, r.text)
         except Exception:
             urls = None
         if urls is None:
@@ -520,7 +531,7 @@ rule akamai_bot_manager_url
         collapsed_urls = 0
         start_time = datetime.now()
         # consolidate URLs to cut down on garbage data (CPU-intensive, runs off the event loop)
-        parsed_urls = await self.helpers.run_in_executor_cpu(
+        parsed_urls = await self.helpers.run_in_executor_mp(
             self.helpers.validators.collapse_urls,
             urls,
             threshold=self.garbage_threshold,
@@ -783,7 +794,7 @@ rule akamai_bot_manager_url
             return False
         self._archive_bloom.add(response_url)
 
-        j = self.helpers.response_to_json(r)
+        j = response_to_event_dict(r, raw_url)
         if not j:
             self.verbose(f"Failed to parse archive response for {raw_url}")
             return False
@@ -817,11 +828,12 @@ rule akamai_bot_manager_url
         j["url"] = urlunparse((scheme, netloc, parsed_original.path or "/", "", parsed_original.query, ""))
         # store the archive URL for provenance — downstream modules can check this field
         j["archive_url"] = str(r.url)
-        # override host/port/scheme/path to match the original URL (response_to_json set them from archive.org)
         j["host"] = hostname
         j["port"] = port
         j["scheme"] = scheme
         j["path"] = parsed_original.path or "/"
+        # cert_info is archive.org's certificate, not the original target's
+        j.pop("cert_info", None)
 
         http_response = self.make_event(
             j,

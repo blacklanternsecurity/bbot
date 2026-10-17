@@ -122,7 +122,7 @@ Comprehensive scan for all IIS/.NET specific modules and module settings
         webbrute_shortnames:
           find_subwords: True
         telerik:
-          exploit_RAU_crypto: True
+          rau_confirm_version: True # Identify the exact Telerik version by uploading a benign 1-byte file
           include_subdirs: True # Run against every directory, not the default first received URL per-host
     ```
 
@@ -215,6 +215,7 @@ Hunt for leaked credentials and vulnerable libraries in client-side JavaScript
       - retirejs
       - robots
       - wayback
+      - js_unpacker
     
     config:
       modules:
@@ -283,13 +284,15 @@ Default fuzzing: all 9 submodules (cmdi, crypto, path, serial, sqli, ssti, xss, 
     modules:
       - badsecrets
       - hunt
+      - nowafpls
       - reflected_parameters
-      
+    
     config:
       modules:
         lightfuzz:
           enabled_submodules: [cmdi,crypto,path,serial,sqli,ssti,xss,esi,ssrf]
           try_post_as_get: True
+          avoid_wafs: try_bypasses
     ```
 
 Category: web
@@ -350,7 +353,7 @@ Minimal fuzzing: only path traversal, SQLi, and XSS submodules. No POST requests
         lightfuzz:
           enabled_submodules: [path,sqli,xss] # only look for the most common vulnerabilities
           disable_post: True # don't send POST requests (less aggressive)
-          avoid_wafs: True
+          avoid_wafs: always
     
     conditions:
     - |
@@ -381,7 +384,7 @@ Maximum fuzzing: everything in lightfuzz-heavy, plus the heavy paramminer varian
         lightfuzz:
           force_common_headers: True # Fuzz common headers like X-Forwarded-For even if they're not observed on the target
           enabled_submodules: [cmdi,crypto,path,serial,sqli,ssti,xss,esi,ssrf]
-          avoid_wafs: False
+          avoid_wafs: never
         excavate:
           speculate_params: True # speculate potential parameters extracted from JSON/XML web responses
         wayback:
@@ -396,26 +399,28 @@ Modules: [0]("")
 
 ## **lightfuzz-xss**
 
-XSS-only: enables only the xss submodule with paramminer_getparams and reflected_parameters. POST disabled, no query string collapsing. Example of a focused single-submodule preset.
+XSS-only: enables only the xss submodule with paramminer_getparams and reflected_parameters. POST fuzzing enabled and try_get_as_post retests every discovered GET parameter as POST, so the nowafpls body-padding bypass gets a chance on WAF-tagged targets (a padded-POST XSS is triggerable from an attacker-controlled form).
 
 ??? note "`lightfuzz-xss.yml`"
     ```yaml title="~/.bbot/presets/web/lightfuzz-xss.yml"
-    description: "XSS-only: enables only the xss submodule with paramminer_getparams and reflected_parameters. POST disabled, no query string collapsing. Example of a focused single-submodule preset."
+    description: "XSS-only: enables only the xss submodule with paramminer_getparams and reflected_parameters. POST fuzzing enabled and try_get_as_post retests every discovered GET parameter as POST, so the nowafpls body-padding bypass gets a chance on WAF-tagged targets (a padded-POST XSS is triggerable from an attacker-controlled form)."
     
     modules:
       - http
       - lightfuzz
+      - nowafpls
       - paramminer_getparams
       - reflected_parameters
       - portfilter
-      
+    
     config:
       url_querystring_remove: False
       url_querystring_collapse: False
       modules:
         lightfuzz:
           enabled_submodules: [xss]
-          disable_post: True
+          try_get_as_post: True
+          avoid_wafs: try_bypasses
     
     conditions:
       - |
@@ -1023,13 +1028,13 @@ Here is a the same data, but in a table:
 | email-enum        |            | Enumerate email addresses from APIs, web crawling, etc.                                                                                                                                                                                                                                                                                                                                                                                                                                                 | 0           |                                                                                                    |
 | fast              |            | Scan only the provided targets as fast as possible - no extra discovery                                                                                                                                                                                                                                                                                                                                                                                                                                 | 0           |                                                                                                    |
 | iis-shortnames    | web        | Recursively enumerate IIS shortnames                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | 0           |                                                                                                    |
-| js-audit          | web        | Hunt for leaked credentials and vulnerable libraries in client-side JavaScript                                                                                                                                                                                                                                                                                                                                                                                                                          | 6           | badsecrets, http, retirejs, robots, trufflehog, wayback                                            |
+| js-audit          | web        | Hunt for leaked credentials and vulnerable libraries in client-side JavaScript                                                                                                                                                                                                                                                                                                                                                                                                                          | 7           | badsecrets, http, js_unpacker, retirejs, robots, trufflehog, wayback                               |
 | kitchen-sink      |            | Everything everywhere all at once                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | 7           | baddns, baddns_direct, baddns_zone, http, hunt, reflected_parameters, webbrute                     |
-| lightfuzz         | web        | Default fuzzing: all 9 submodules (cmdi, crypto, path, serial, sqli, ssti, xss, esi, ssrf) plus companion modules (badsecrets, hunt, reflected_parameters). POST fuzzing disabled but try_post_as_get enabled, so POST params are retested as GET. Skips confirmed WAFs.                                                                                                                                                                                                                                | 6           | badsecrets, http, hunt, lightfuzz, portfilter, reflected_parameters                                |
-| lightfuzz-heavy   | web        | Aggressive fuzzing: everything in lightfuzz, plus paramminer brute-force parameter discovery (headers, GET params, cookies), POST request fuzzing enabled, try_get_as_post enabled (GET params retested as POST), and robots.txt parsing. Still skips confirmed WAFs.                                                                                                                                                                                                                                   | 8           | badsecrets, http, hunt, lightfuzz, portfilter, reflected_parameters, robots, wayback               |
+| lightfuzz         | web        | Default fuzzing: all 9 submodules (cmdi, crypto, path, serial, sqli, ssti, xss, esi, ssrf) plus companion modules (badsecrets, hunt, reflected_parameters). POST fuzzing disabled but try_post_as_get enabled, so POST params are retested as GET. Skips confirmed WAFs.                                                                                                                                                                                                                                | 7           | badsecrets, http, hunt, lightfuzz, nowafpls, portfilter, reflected_parameters                      |
+| lightfuzz-heavy   | web        | Aggressive fuzzing: everything in lightfuzz, plus paramminer brute-force parameter discovery (headers, GET params, cookies), POST request fuzzing enabled, try_get_as_post enabled (GET params retested as POST), and robots.txt parsing. Still skips confirmed WAFs.                                                                                                                                                                                                                                   | 9           | badsecrets, http, hunt, lightfuzz, nowafpls, portfilter, reflected_parameters, robots, wayback     |
 | lightfuzz-light   | web        | Minimal fuzzing: only path traversal, SQLi, and XSS submodules. No POST requests. No companion modules. Safest option for running alongside larger scans with minimal overhead.                                                                                                                                                                                                                                                                                                                         | 3           | http, lightfuzz, portfilter                                                                        |
-| lightfuzz-max     | web        | Maximum fuzzing: everything in lightfuzz-heavy, plus the heavy paramminer variant (1-3 letter brute-force on GET params, case mutation on case-sensitive backends, recycle_words on all paramminer modules), WAF targets are no longer skipped, each unique parameter-value pair is fuzzed individually (no collapsing), common headers like X-Forwarded-For are fuzzed even if not observed, and potential parameters are speculated from JSON/XML response bodies. Significantly increases scan time. | 8           | badsecrets, http, hunt, lightfuzz, portfilter, reflected_parameters, robots, wayback               |
-| lightfuzz-xss     | web        | XSS-only: enables only the xss submodule with paramminer_getparams and reflected_parameters. POST disabled, no query string collapsing. Example of a focused single-submodule preset.                                                                                                                                                                                                                                                                                                                   | 5           | http, lightfuzz, paramminer_getparams, portfilter, reflected_parameters                            |
+| lightfuzz-max     | web        | Maximum fuzzing: everything in lightfuzz-heavy, plus the heavy paramminer variant (1-3 letter brute-force on GET params, case mutation on case-sensitive backends, recycle_words on all paramminer modules), WAF targets are no longer skipped, each unique parameter-value pair is fuzzed individually (no collapsing), common headers like X-Forwarded-For are fuzzed even if not observed, and potential parameters are speculated from JSON/XML response bodies. Significantly increases scan time. | 9           | badsecrets, http, hunt, lightfuzz, nowafpls, portfilter, reflected_parameters, robots, wayback     |
+| lightfuzz-xss     | web        | XSS-only: enables only the xss submodule with paramminer_getparams and reflected_parameters. POST fuzzing enabled and try_get_as_post retests every discovered GET parameter as POST, so the nowafpls body-padding bypass gets a chance on WAF-tagged targets (a padded-POST XSS is triggerable from an attacker-controlled form).                                                                                                                                                                      | 6           | http, lightfuzz, nowafpls, paramminer_getparams, portfilter, reflected_parameters                  |
 | nuclei            | nuclei     | Run nuclei scans against all discovered targets                                                                                                                                                                                                                                                                                                                                                                                                                                                         | 3           | http, nuclei, portfilter                                                                           |
 | nuclei-budget     | nuclei     | Run nuclei scans against all discovered targets, using budget mode to look for low hanging fruit with greatly reduced number of requests                                                                                                                                                                                                                                                                                                                                                                | 3           | http, nuclei, portfilter                                                                           |
 | nuclei-heavy      | nuclei     | Run nuclei scans against all discovered targets, allowing for spidering, against ALL URLs, and with additional discovery modules.                                                                                                                                                                                                                                                                                                                                                                       | 6           | http, nuclei, portfilter, robots, urlscan, wayback                                                 |
