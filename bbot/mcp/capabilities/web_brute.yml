@@ -1,0 +1,59 @@
+description: Brute-force a web server for directories and files that exist but are not linked from anywhere.
+
+modules:
+  - webbrute
+  # verifies each guess. A guessed path only comes back once the server actually
+  # serves it, so the results are discovered content rather than attempts.
+  - http
+
+config:
+  modules:
+    webbrute:
+      # the module's own wordlist depth. The bundled preset trims this to 1000;
+      # 5000 covers considerably more of the raft list for the same one pass.
+      lines: 5000
+      # surface only. Discovered directories are reported but not themselves
+      # brute-forced, which keeps the request count a function of what you
+      # passed rather than of what it happens to find.
+      max_depth: 0
+      # Skip hosts behind a confirmed WAF. Thousands of requests into one
+      # returns blocked responses rather than results, and usually ends with the
+      # source address banned partway through. Unlike `lightfuzz` there is no
+      # padding technique available here, so there is nothing to gain by trying.
+      avoid_wafs: true
+
+meta:
+  accepts:
+    - URL
+
+  yields:
+    # verified only: a guess becomes a URL once the server serves it
+    - URL
+
+  when_not_to_use: |
+    This is five thousand requests per URL you pass.
+
+    Do not expect it to find its own targets. It brute-forces exactly the URLs you give it and does not crawl.
+
+    Do not rely on it against a WAF-protected host.
+
+
+  how_to_call: |
+    Give it the URLs whose contents you want enumerated, one call for all of them. Directory URLs work best.
+
+    It does not recurse on its own.
+
+    Blacklist anything that must not receive five thousand requests.
+
+  interpreting_results: |
+    Everything returned is a URL the server actually served, not a guess that was tried. Guesses that failed never reach you.
+
+
+  caveats: |
+    Surface only by default, so content nested below the URLs you passed is untouched unless you go back for it.
+
+  examples:
+    - description: Enumerate the contents of a web root.
+      targets: ["https://app.evilcorp.com/"]
+    - description: Go a level deeper into a directory an earlier run discovered.
+      targets: ["https://app.evilcorp.com/admin/", "https://app.evilcorp.com/backup/"]

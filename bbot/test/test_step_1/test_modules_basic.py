@@ -9,6 +9,47 @@ from bbot.modules.internal.base import BaseInternalModule
 
 
 @pytest.mark.asyncio
+def test_modules_declare_what_they_emit():
+    """Every event type a module emits must appear in its `produced_events`.
+
+    That list is not documentation. It drives auto-dependency resolution, the
+    generated module tables, and anything reasoning about what a scan can
+    produce, so a module that emits an undeclared type is invisible to all of
+    them.
+
+    Only `emit_event` calls with a literal type are checked. `make_event` is
+    excluded deliberately: a module may construct an event for its own use
+    without emitting it, which `iis_shortnames` does with its magic URL.
+    """
+    import ast
+    from pathlib import Path
+
+    def emitted_types(path):
+        found = set()
+        for node in ast.walk(ast.parse(Path(path).read_text())):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            name = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", "")
+            if name != "emit_event":
+                continue
+            # event type is the second positional argument, or the event_type kwarg
+            candidate = node.args[1] if len(node.args) > 1 else None
+            for keyword in node.keywords:
+                if keyword.arg == "event_type":
+                    candidate = keyword.value
+            if isinstance(candidate, ast.Constant) and isinstance(candidate.value, str):
+                found.add(candidate.value)
+        return found
+
+    for module_name, preloaded in DEFAULT_PRESET.module_loader.preloaded().items():
+        undeclared = sorted(emitted_types(preloaded["path"]) - set(preloaded["produced_events"]))
+        assert not undeclared, (
+            f"{module_name} emits {', '.join(undeclared)} but does not list "
+            f"{'it' if len(undeclared) == 1 else 'them'} in produced_events"
+        )
+
+
 async def test_modules_basic_checks(events, blasthttp_mock):
     from bbot.scanner import Scanner
 

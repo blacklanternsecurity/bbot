@@ -1,0 +1,66 @@
+description: Brute-force a web endpoint for hidden GET parameters, headers and cookies it accepts but never advertises.
+
+# Composed rather than `include: paramminer`, because that preset carries a
+# condition warning that the spider is off -- which here is deliberate, and would
+# fire on every single scan as a warning about a choice already made.
+flags:
+  - web-paramminer
+
+modules:
+  - http
+  # raise findings about the parameters found: one whose value comes back in the
+  # response, or whose name matches a known-dangerous pattern
+  - hunt
+  - reflected_parameters
+
+config:
+  # BBOT withholds WEB_PARAMETER from output by default, so a tool built to
+  # return them would return nothing at all. This is the shipped default list
+  # with WEB_PARAMETER taken out; everything else stays withheld.
+  omit_event_types:
+    - HTTP_RESPONSE
+    - RAW_TEXT
+    - URL_UNVERIFIED
+    - DNS_NAME_UNRESOLVED
+    - FILESYSTEM
+    - RAW_DNS_RECORD
+
+meta:
+  accepts:
+    - URL
+
+  yields:
+    - WEB_PARAMETER
+    - FINDING
+
+  when_not_to_use: |
+    Will only mine the URLs you give it, no spidering. Cost is wordlist size multiplied by endpoints.
+
+    Will issue thousands of requests per endpoint. Expect benign results. Expect rate limiting.
+
+    Use `lightfuzz_deep` instead if what you actually want is vulnerabilities. It runs paramminer and also fuzzes everything it discovers.
+
+  how_to_call: |
+    Be selective about its use. This does not crawl. That is deliberate, because the cost scales directly with endpoint count.
+
+    Pick endpoints that plausibly take input.
+
+
+  interpreting_results: |
+    A WEB_PARAMETER is a name the endpoint responded to differently from the baseline.
+
+    Read the parameter type. GETPARAM, HEADER and COOKIE come from separate wordlists and mean different things.
+
+    Parameters tagged `http_reflection` had their value come back in the response. Look at those first - reflection is the precondition for XSS and often for injection generally.
+
+
+  caveats: |
+    Coverage is the wordlist. A parameter with an application-specific name that is not in it stays hidden, no matter how long this runs.
+
+    Nothing here is fuzzed. The output is a list of input names; turning that into findings is a separate job.
+
+  examples:
+    - description: Find hidden parameters on a specific API endpoint.
+      targets: ["https://api.evilcorp.com/v1/user"]
+    - description: Mine a handful of known form handlers.
+      targets: ["https://app.evilcorp.com/search", "https://app.evilcorp.com/profile"]

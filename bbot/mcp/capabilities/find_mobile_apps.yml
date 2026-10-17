@@ -1,0 +1,55 @@
+description: Find an organization's published Android apps, download them, decompile them, and scan the source for credentials.
+
+modules:
+  # finds the organization's published apps
+  - google_playstore
+  # downloads the APK
+  - apkpure
+  # decompiles it back to readable source
+  - jadx
+  # scans the decompiled source for credentials
+  - trufflehog
+  - http
+
+config:
+  modules:
+    trufflehog:
+      # mobile apps are full of keys for services the scanner cannot reach:
+      # internal APIs, staging endpoints, region-locked backends. Requiring
+      # verification would drop most of what matters here.
+      only_verified: false
+
+meta:
+  accepts:
+    - DNS_NAME
+
+  yields:
+    - FINDING
+
+  when_not_to_use: |
+    Skip it if the organization publishes no mobile apps.
+
+    Downloads APKs from an app store and runs a decompiler over them. Slow and disk-hungry, per app.
+
+  how_to_call: |
+    Provide domains (single or list). Apps are found from the organization name, so a domain that does not map to the publisher name may find nothing.
+
+    Discovery, download, decompilation, then scanning. Nothing appears until the last step.
+
+  interpreting_results: |
+    Credentials in a mobile app shipped to every user who installed it. Rotation usually means a new release.
+
+    Most will be unverified. A key for an internal API or staging backend is unreachable from the scanner and still entirely real.
+
+    Confirm the publisher is actually the target - app store attribution by organization name is imprecise.
+
+  caveats: |
+    Android only.
+
+    Decompilation is lossy. Obfuscated or natively-compiled portions stay unreadable.
+
+    Detection is pattern-based.
+
+  examples:
+    - description: Check whether an organization's Android apps ship embedded credentials.
+      targets: [evilcorp.com]

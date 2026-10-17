@@ -1,0 +1,70 @@
+description: Fuzz a web application's parameters for injection flaws - SQLi, XSS, command injection, path traversal, SSTI, SSRF.
+
+include:
+  # the fuzzer itself: all nine submodules plus badsecrets, hunt and
+  # reflected_parameters as companions
+  - lightfuzz
+  # lightfuzz can only fuzz parameters something has found. Without a crawl it
+  # sees the seed URLs and nothing else, which is why the bundled preset warns
+  # when the spider is off.
+  - spider
+
+modules:
+  # Named here rather than left to the lightfuzz preset that currently pulls it
+  # in. This tool's prose promises WAF-bypass detection, so it owns that
+  # guarantee instead of inheriting it and silently losing it if the bundled
+  # preset changes. nowafpls is also worth running for its own sake: it reports
+  # a bypassable WAF as a LOW finding whether or not anything is then found
+  # behind it.
+  - nowafpls
+
+config:
+  modules:
+    lightfuzz:
+      # lightfuzz-light turns POST off; this is an offensive tool, so it goes
+      # back on. Forms get submitted.
+      disable_post: false
+      # fuzz every parameter both ways. Backends routinely handle the query
+      # string and the request body with different code paths -- a filter on one
+      # is often absent on the other -- and testing only where a parameter was
+      # first seen misses exactly that.
+      try_post_as_get: true
+      try_get_as_post: true
+      # avoid_wafs is left at the bundled preset's `try_bypasses`: WAF-protected
+      # hosts are not skipped, but each one is first probed with nowafpls body
+      # padding, and only fuzzed if the padding actually gets through. Findings
+      # that needed it are tagged `used-nowafpls`.
+
+meta:
+  accepts:
+    # URL-level: point it at the application, not the organization
+    - URL
+
+  yields:
+    - FINDING
+
+  when_not_to_use: |
+    Lightfuzz is aggressive and intrusive, including form-submitting. 
+
+    Although it can sometimes bypass WAFs automatically, if not, it will skip them. 
+
+    Use `lightfuzz_deep` for a more thorough inspection. It does everything this one does and adds paramminer brute-forcing and a wayback-heavy run on top, which costs a much longer scan and a much heavier load on the target. This tool is the one to reach for otherwise.
+
+  how_to_call: |
+    WAF-protected hosts are checked for vulnerability to 'nowafpls' style bypasses. POST-based parameters will automatically pad if detected.
+
+    Provide URLs (single or list). Spider is enabled and will expand testing surface.
+
+  interpreting_results: |
+    Read severity and confidence together. Each module is rated by confidence based on expected false-positive rate.
+
+    Findings tagged `used-nowafpls` only landed because the payload was padded past the WAF, and will not reproduce without it.
+
+  caveats: |
+    Coverage is bounded entirely by parameter discovery. Parameters that only appear after login, or that the application never mentions in HTML, are invisible to it.
+
+  examples:
+    - description: Fuzz a single application's parameters for injection flaws.
+      targets: ["https://app.evilcorp.com/"]
+    - description: Fuzz several known entry points in one scan.
+      targets: ["https://app.evilcorp.com/login", "https://api.evilcorp.com/v1/"]

@@ -1,0 +1,56 @@
+description: Exploit IIS 8.3 shortname disclosure and brute-force the recovered fragments back into real, fetchable filenames.
+
+flags:
+  # enables iis_shortnames and webbrute_shortnames together
+  - iis-shortnames
+
+modules:
+  # promotes each guessed name to a verified URL, so what comes back is the
+  # names that actually resolve rather than the ones that were tried
+  - http
+
+config:
+  modules:
+    iis_shortnames:
+      detect_only: false
+
+meta:
+  accepts:
+    - URL
+
+  yields:
+    # the recovered fragments, including any that were never solved
+    - URL_HINT
+    # solved names, verified: a guess only becomes a URL once the server serves it
+    - URL
+    - FINDING
+
+  when_not_to_use: |
+    Skip it for anything that is not IIS.
+
+    Loudest tool in this family. Does everything `iis_shortnames_exploit` does, then brute-forces filenames on top.
+
+    Come here when a recovered fragment looks worth resolving, not first.
+
+  how_to_call: |
+    Give it URLs at the directory levels you care about. Two stages: 8.3 recovery, then up to 250 candidate names per fragment, each a request.
+
+    That second stage is the cost. Twenty fragments is five thousand extra requests, per directory.
+
+    Blacklist any path that must not be hammered.
+
+  interpreting_results: |
+    Read the URLs first. Those are solved names the server actually served, directly fetchable.
+
+    Then read URL_HINT fragments with no matching URL. Those were recovered but not solved: the file exists and the wordlist did not guess it. Often the most interesting line in the output.
+
+  caveats: |
+    Solving is a dictionary attack against the truncated stem. An application filename that is not a word stays unsolved, which is why unsolved fragments are reported rather than discarded.
+
+    Capped at 250 predictions per fragment and one directory level.
+
+  examples:
+    - description: Recover and resolve the hidden filenames in an IIS web root.
+      targets: ["https://iis.evilcorp.com/"]
+    - description: Solve the contents of a directory an earlier scan flagged as interesting.
+      targets: ["https://iis.evilcorp.com/backup/"]

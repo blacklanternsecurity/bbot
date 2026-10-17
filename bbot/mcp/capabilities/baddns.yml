@@ -1,0 +1,50 @@
+description: Check hostnames for subdomain takeover and other dangling DNS records pointing at unclaimed resources.
+
+modules:
+  - baddns
+
+config:
+  modules:
+    baddns:
+      # the three record types that carry takeover risk
+      enabled_submodules: [CNAME, MX, TXT]
+      # only findings worth acting on. baddns_heavy drops both floors to the
+      # bottom and returns everything, including guesses.
+      min_severity: LOW
+      min_confidence: MEDIUM
+
+meta:
+  accepts:
+    # matches the baddns CLI, which takes a domain
+    - DNS_NAME
+
+  yields:
+    - FINDING
+
+  when_not_to_use: |
+    Checks the names you give it and nothing else. Run `find_subdomains_fast` first and bring the hostname list here - takeovers live on forgotten subdomains.
+
+    Hostnames only. It reads DNS records, so a URL or IP means nothing.
+
+    Use `baddns_heavy` for more submodules, zone transfer and direct-resource checks, and no severity floor.
+
+  how_to_call: |
+    Provide hostnames (single or list). Cheap per name - a handful of DNS lookups - so several hundred subdomains from an earlier enumeration is a normal input.
+
+    Does not crawl or enumerate. Coverage is whatever you pass.
+
+  interpreting_results: |
+    A finding is a strong lead, not a confirmed takeover. Whether the third-party resource can actually still be registered is a manual check.
+
+    Everything returned is MEDIUM or better, so confidence is the discriminator.
+
+    Do not claim the resource without explicit written authorization. Registering it is the takeover, not proof of one.
+
+  caveats: |
+    Baddns may be missing signatures: a negative result does not absolve a dangling record.
+
+  examples:
+    - description: Check a list of known subdomains for dangling records.
+      targets: [old.evilcorp.com, legacy.evilcorp.com, staging.evilcorp.com]
+    - description: Check a single domain's own records.
+      targets: [evilcorp.com]

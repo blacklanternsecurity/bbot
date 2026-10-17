@@ -1,0 +1,71 @@
+description: Audit hostnames exhaustively for DNS misconfiguration and takeover, reporting everything including low-confidence guesses.
+
+include:
+  # BBOT's bundled baddns preset. Resolved against the shipped preset directory,
+  # so it is that file and not this tool of the same name.
+  - baddns
+
+modules:
+  # zone-level checks: transfers, delegation problems
+  - baddns_zone
+  # checks resources directly rather than through a DNS record
+  - baddns_direct
+
+config:
+  modules:
+    baddns:
+      # every submodule, not just the three takeover-bearing record types
+      enabled_submodules: [CNAME, NS, MX, TXT, references, DMARC, SPF, MTA-STS, WILDCARD]
+      # Both floors at the bottom: report everything, including INFO severity and
+      # UNKNOWN confidence. This is the setting that makes the tool exhaustive
+      # and also the one that makes most of its output require triage.
+      min_severity: INFO
+      min_confidence: UNKNOWN
+    baddns_zone:
+      min_severity: INFO
+      min_confidence: UNKNOWN
+    baddns_direct:
+      min_severity: INFO
+      min_confidence: UNKNOWN
+
+meta:
+  accepts:
+    # matches the baddns CLI, which takes a domain
+    - DNS_NAME
+
+  yields:
+    - FINDING
+
+  when_not_to_use: |
+    Reports at INFO severity and UNKNOWN confidence, including observations that are not problems. Expect to triage. Use `baddns` for only what is worth acting on.
+
+    Checks the names you give it and nothing else. Run `find_subdomains_fast` first.
+
+    Hostnames only. It reads DNS records, so a URL or IP means nothing.
+
+  how_to_call: |
+    Provide hostnames (single or list).
+
+    The difference from `baddns`: more submodules, plus zone-level and direct-resource checks, and no severity or confidence floor. See the module and submodule lists below.
+
+    `baddns_direct` makes requests to the resources a record points at, so `blacklist` is functional for those.
+
+  interpreting_results: |
+    Sort by severity and confidence before reading, because most of what comes back at this threshold is informational. A HIGH/CONFIRMED one is a real lead.
+
+    The extra submodules answer different questions from the takeover ones. SPF, DMARC and MTA-STS findings are email security posture: they matter for spoofing and phishing, not for taking over a host. NS and zone findings are about delegation and transfer. Do not read them as takeover candidates.
+
+    Takeover findings still need manual confirmation, and at UNKNOWN confidence they need it more. Whether the third-party resource can actually still be registered is the check that decides whether there is a finding.
+
+    Do not claim any resource without explicit written authorization.
+
+  caveats: |
+    Volume per hostname is several times what `baddns` returns.
+
+    Baddns may be missing signatures: a negative result does not absolve a dangling record.
+
+  examples:
+    - description: Full DNS posture audit of an organization's known hostnames.
+      targets: [evilcorp.com, www.evilcorp.com, mail.evilcorp.com]
+    - description: Exhaustively examine one domain before a handover or acquisition.
+      targets: [evilcorp.com]
