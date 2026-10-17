@@ -70,7 +70,15 @@ class TestShodan_IDB(ModuleTestBase):
         assert description.index("CVE-2021-26855") < description.index("CVE-2021-26857")
         assert "\n" not in description
         assert finding_events[0].data["severity"] == "INFO"
-        assert 2 == len([e for e in events if e.type == "TECHNOLOGY" and str(e.module) == "shodan_idb"])
+        technologies = {
+            e.data["technology"]: e.data["cpe"]
+            for e in events
+            if e.type == "TECHNOLOGY" and str(e.module) == "shodan_idb"
+        }
+        assert technologies == {
+            "internet_information_services": "cpe:/a:microsoft:internet_information_services",
+            "outlook_web_access": "cpe:/a:microsoft:outlook_web_access:15.0.1367",
+        }
 
         assert set(module_test.module._cve_cache.keys()) == {"CVE-2021-26857", "CVE-2021-26855"}
         assert module_test.cvedb_request_counts == {"CVE-2021-26857": 1, "CVE-2021-26855": 1}

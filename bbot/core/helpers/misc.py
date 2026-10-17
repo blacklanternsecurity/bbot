@@ -2614,6 +2614,36 @@ def weighted_shuffle(items, weights):
     return [item for _, item in keyed]
 
 
+cpe_field_regex = re.compile(r"(?<!\\):")
+
+
+def cpe_product(cpe):
+    """
+    Get the product name from a CPE, either a 2.2 URI or a 2.3 formatted string.
+
+    Returns None if the string isn't a CPE or doesn't name a product.
+
+    Examples:
+        >>> cpe_product("cpe:/a:jquery:jquery:3.5.1")
+        'jquery'
+        >>> cpe_product("cpe:2.3:a:apache:tomcat:9.0.50:*:*:*:*:*:*:*")
+        'tomcat'
+    """
+    if cpe.startswith("cpe:2.3:"):
+        # 2.3 escapes literal colons with a backslash
+        fields = [f.replace("\\", "") for f in cpe_field_regex.split(cpe[len("cpe:2.3:") :])]
+    elif cpe.startswith("cpe:/"):
+        fields = cpe[len("cpe:/") :].split(":")
+    else:
+        return None
+    # fields are part, vendor, product, version, ...
+    product = fields[2].lower() if len(fields) > 2 else ""
+    # "*" and "-" mean ANY and N/A
+    if product in ("", "*", "-"):
+        return None
+    return product
+
+
 def parse_port_string(port_string):
     """
     Parses a string containing ports and port ranges into a list of individual ports.

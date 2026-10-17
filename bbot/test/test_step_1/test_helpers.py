@@ -773,6 +773,23 @@ async def test_word_cloud(helpers, bbot_scanner):
     await scan1._cleanup()
 
 
+def test_cpe_product(helpers):
+    assert helpers.cpe_product("cpe:/a:jquery:jquery:3.5.1") == "jquery"
+    assert helpers.cpe_product("cpe:/o:microsoft:windows") == "windows"
+    assert (
+        helpers.cpe_product("cpe:/a:Microsoft:Internet_Information_Services:10.0") == "internet_information_services"
+    )
+    assert helpers.cpe_product("cpe:2.3:a:apache:tomcat:9.0.50:*:*:*:*:*:*:*") == "tomcat"
+    # 2.3 escapes literal colons
+    assert helpers.cpe_product("cpe:2.3:a:vendor:foo\\:bar:1.0:*:*:*:*:*:*:*") == "foo:bar"
+    # no product
+    assert helpers.cpe_product("cpe:/a:vendor") is None
+    assert helpers.cpe_product("cpe:2.3:a:vendor:*:1.0:*:*:*:*:*:*:*") is None
+    assert helpers.cpe_product("cpe:2.3:a:vendor:-:1.0:*:*:*:*:*:*:*") is None
+    # not a CPE
+    assert helpers.cpe_product("nginx") is None
+
+
 def test_names(helpers):
     assert helpers.names == sorted(helpers.names)
     assert helpers.adjectives == sorted(helpers.adjectives)
