@@ -825,6 +825,62 @@ async def test_wildcard_deduplication(bbot_scanner):
     assert sorted(e.data for e in dns_name_events) == ["_wildcard.evilcorp.com", "evilcorp.com"]
 
 
+# *.evilcorp.com and *.nested.evilcorp.com are both wildcards, but serve different pools.
+# The regexes don't overlap: wildcard probes are 10 random lowercase letters.
+NESTED_WILDCARD_DNS = {
+    "evilcorp.com": {"A": ["127.0.0.1"]},
+    r"regex:^[a-z]{10}\.evilcorp\.com$": {"A": ["127.0.0.2"]},
+    r"regex:.*\.nested\.evilcorp\.com$": {"A": ["127.0.0.3", "127.0.0.4"]},
+    "real.evilcorp.com": {"A": ["127.0.0.5"]},
+}
+
+
+@pytest.mark.asyncio
+async def test_nested_wildcards(bbot_scanner):
+    """A wildcard nested under a wildcard with a different pool is detected as the nested zone."""
+    scan = bbot_scanner("evilcorp.com", config={"dns": {"wildcard_ignore": []}})
+    await scan._prep()
+    await scan.helpers.dns._mock_dns(NESTED_WILDCARD_DNS)
+
+    # every depth under the nested zone must report the same parent, so the names dedupe
+    for query in ("a.nested.evilcorp.com", "a.b.nested.evilcorp.com", "a.b.c.d.e.nested.evilcorp.com"):
+        wildcard_rdtypes = await scan.helpers.dns.is_wildcard(query, ["A"])
+        assert wildcard_rdtypes.get("A") == (True, "nested.evilcorp.com"), query
+
+    # a name under a wildcard that matches no wildcard pool may be real
+    wildcard_rdtypes = await scan.helpers.dns.is_wildcard("real.evilcorp.com", ["A"])
+    assert wildcard_rdtypes.get("A") == ("POSSIBLE", "evilcorp.com")
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_nested_wildcard_deduplication(bbot_scanner):
+    """Names at any depth under a nested wildcard collapse into one _wildcard.* event."""
+    from bbot.modules.base import BaseModule
+
+    class DummyModule(BaseModule):
+        watched_events = ["DNS_NAME"]
+        per_domain_only = True
+
+        async def handle_event(self, event):
+            for host in ("a.nested.evilcorp.com", "a.b.nested.evilcorp.com", "a.b.c.d.e.nested.evilcorp.com"):
+                await self.emit_event(host, "DNS_NAME", parent=event)
+
+    scan = bbot_scanner(
+        "evilcorp.com",
+        config={"dns": {"minimal": False, "wildcard_ignore": []}, "omit_event_types": []},
+    )
+    await scan._prep()
+    await scan.helpers.dns._mock_dns(NESTED_WILDCARD_DNS)
+    dummy_module = DummyModule(scan)
+    scan.modules["dummy_module"] = dummy_module
+    events = [e async for e in scan.async_start()]
+
+    dns_names = sorted(e.data for e in events if e.type == "DNS_NAME")
+    assert dns_names == ["_wildcard.nested.evilcorp.com", "evilcorp.com"]
+
+
 @pytest.mark.asyncio
 async def test_dns_graph_structure(bbot_scanner):
     scan = bbot_scanner("https://evilcorp.com", config={"dns": {"search_distance": 1, "minimal": False}})
