@@ -50,6 +50,7 @@ usage: bbot [-h] [-t TARGET [TARGET ...]] [-s SEEDS [SEEDS ...]]
                --ignore-failed-deps] [--install-all-deps] [--version]
                [--reset-config] [--reset-secrets] [--proxy HTTP_PROXY]
                [--no-proxy HOST [HOST ...]]
+               [--custom-nameservers NAMESERVER [NAMESERVER ...]]
                [-H CUSTOM_HEADERS [CUSTOM_HEADERS ...]]
                [-C CUSTOM_COOKIES [CUSTOM_COOKIES ...]]
                [--custom-yara-rules CUSTOM_YARA_RULES]
@@ -78,7 +79,7 @@ Presets:
 
 Modules:
   -m, --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: affiliates,ajaxpro,anubisdb,apkpure,asn,aspnet_bin_exposure,azure_tenant,baddns,baddns_direct,baddns_zone,badsecrets,bevigil,bucket_amazon,bucket_digitalocean,bucket_file_enum,bucket_firebase,bucket_google,bucket_hetzner,bucket_microsoft,bufferoverrun,builtwith,bypass403,c99,censys_dns,censys_ip,certspotter,chaos,code_repository,credshed,crt,crt_db,dehashed,dnsbimi,dnsbrute,dnsbrute_mutations,dnscaa,dnscommonsrv,dnsdumpster,dnstlsrpt,docker_pull,dockerhub,dotnetnuke,emailformat,filedownload,fingerprintx,fullhunt,generic_ssrf,git,git_clone,gitdumper,github_codesearch,github_org,github_usersearch,github_workflows,gitlab_com,gitlab_onprem,google_playstore,gowitness,graphql_introspection,hackertarget,host_header,http,hunt,hunterio,iis_shortnames,ip2location,ipneighbor,ipstack,jadx,js_unpacker,kreuzberg,leakix,legba,lightfuzz,medusa,myssl,newsletters,nowafpls,ntlm,nuclei,oauth,otilabs,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,pgp,portscan,postman,postman_download,rapiddns,reflected_parameters,retirejs,robots,securitytrails,securitytxt,shodan_dns,shodan_enterprise,shodan_idb,skymem,social,sslcert,subdomaincenter,subdomainradar,telerik,trajan,trickest,trufflehog,url_manipulation,urlscan,viewdns,virtualhost,virustotal,waf_bypass,wafw00f,wayback,webbrute,webbrute_shortnames
+                        Modules to enable. Choices: affiliates,ajaxpro,anubisdb,apkpure,asn,aspnet_bin_exposure,azure_tenant,baddns,baddns_direct,baddns_zone,badsecrets,bevigil,bucket_amazon,bucket_digitalocean,bucket_file_enum,bucket_firebase,bucket_google,bucket_hetzner,bucket_microsoft,bufferoverrun,builtwith,bypass403,c99,censys_dns,censys_ip,certspotter,chaos,code_repository,credshed,crt,crt_db,dehashed,dnsbimi,dnsbrute,dnsbrute_mutations,dnscaa,dnscommonsrv,dnsdumpster,dnstlsrpt,docker_pull,dockerhub,dotnetnuke,emailformat,favicon,filedownload,fingerprintx,fullhunt,generic_ssrf,git,git_clone,gitdumper,github_codesearch,github_org,github_usersearch,github_workflows,gitlab_com,gitlab_onprem,google_playstore,gowitness,graphql_introspection,hackertarget,host_header,http,hunt,hunterio,iis_shortnames,ip2location,ipneighbor,ipstack,jadx,js_unpacker,kreuzberg,leakix,legba,lightfuzz,medusa,myssl,newsletters,nowafpls,ntlm,nuclei,oauth,otilabs,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,pgp,portscan,postman,postman_download,rapiddns,reflected_parameters,retirejs,robots,securitytrails,securitytxt,shodan_dns,shodan_enterprise,shodan_idb,skymem,social,sslcert,subdomaincenter,subdomainradar,telerik,trajan,trickest,trufflehog,url_manipulation,urlscan,viewdns,virtualhost,virustotal,waf_bypass,wafw00f,wayback,webbrute,webbrute_shortnames
   -l, --list-modules    List available modules.
   -lmo, --list-module-options
                         Show all module config options
@@ -138,6 +139,8 @@ Misc:
   --proxy HTTP_PROXY    Use this proxy for all HTTP requests
   --no-proxy HOST [HOST ...]
                         Exclude these hosts from proxy (e.g. localhost *.internal.corp 10.0.0.0/8)
+  --custom-nameservers NAMESERVER [NAMESERVER ...]
+                        Use these nameservers instead of the system ones (e.g. 1.1.1.1 8.8.8.8:53)
   -H, --custom-headers CUSTOM_HEADERS [CUSTOM_HEADERS ...]
                         List of custom headers as key value pairs (header=value).
   -C, --custom-cookies CUSTOM_COOKIES [CUSTOM_COOKIES ...]

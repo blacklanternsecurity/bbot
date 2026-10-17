@@ -33,10 +33,28 @@ For clients configured by file, the server speaks stdio:
 Each tool is defined by one file in `bbot/mcp/capabilities/`. That file **is a BBOT preset** -- runnable with `bbot -p` exactly as it sits -- carrying one extra `meta:` block that the scanner ignores and the MCP server reads.
 
 <!-- BBOT MCP CAPABILITIES -->
-| Tool                 | Interaction   | Noise   | Modules   | What it does                                                                                    |
-|----------------------|---------------|---------|-----------|-------------------------------------------------------------------------------------------------|
-| find_subdomains_deep | mixed         | loud    | 47        | Find an organization's subdomains exhaustively, adding recursive DNS brute-force and mutations. |
-| find_subdomains_fast | mixed         | loud    | 45        | Find an organization's subdomains from third-party data, without brute-forcing DNS.             |
+| Tool                   | Interaction   | Noise    | Modules   | What it does                                                                                                                      |
+|------------------------|---------------|----------|-----------|-----------------------------------------------------------------------------------------------------------------------------------|
+| baddns                 | active        | normal   | 1         | Check hostnames for subdomain takeover and other dangling DNS records pointing at unclaimed resources.                            |
+| baddns_heavy           | active        | normal   | 4         | Audit hostnames exhaustively for DNS misconfiguration and takeover, reporting everything including low-confidence guesses.        |
+| badsecrets             | active        | normal   | 2         | Find known or weak cryptographic secrets in a web application - signed cookies, viewstates, JWTs and framework keys.              |
+| dotnet_audit           | active        | invasive | 7         | Audit an IIS/.NET application for known framework vulnerabilities - Telerik, DotNetNuke, AjaxPro, exposed binaries and weak keys. |
+| find_exposed_git       | mixed         | normal   | 4         | Find a web server leaking its .git directory, reconstruct the source from it, and scan that source for credentials.               |
+| find_leaked_secrets    | mixed         | normal   | 8         | Find an organization's public repositories, clone them, and scan their full commit history for leaked credentials.                |
+| find_mobile_apps       | mixed         | normal   | 5         | Find an organization's published Android apps, download them, decompile them, and scan the source for credentials.                |
+| find_public_repos      | mixed         | normal   | 7         | Find an organization's public code repositories and audit their CI/CD configuration, without cloning anything.                    |
+| find_subdomains_deep   | mixed         | loud     | 46        | Find an organization's subdomains exhaustively, adding recursive DNS brute-force and mutations.                                   |
+| find_subdomains_fast   | mixed         | loud     | 44        | Find an organization's subdomains from third-party data, without brute-forcing DNS.                                               |
+| iis_shortnames_detect  | active        | loud     | 2         | Check whether an IIS server leaks 8.3 short filenames, without extracting any.                                                    |
+| iis_shortnames_exploit | active        | loud     | 2         | Exploit IIS 8.3 shortname disclosure to recover the truncated filenames and directories a server is hiding.                       |
+| iis_shortnames_solve   | active        | loud     | 3         | Exploit IIS 8.3 shortname disclosure and brute-force the recovered fragments back into real, fetchable filenames.                 |
+| js_audit               | mixed         | normal   | 7         | Hunt for leaked credentials and vulnerable libraries in a site's client-side JavaScript.                                          |
+| lightfuzz              | active        | invasive | 6         | Fuzz a web application's parameters for injection flaws - SQLi, XSS, command injection, path traversal, SSTI, SSRF.               |
+| lightfuzz_deep         | mixed         | invasive | 11        | Fuzz a web application exhaustively - brute-forces hidden parameters and replays archived URLs, then fuzzes everything found.     |
+| paramminer             | active        | loud     | 6         | Brute-force a web endpoint for hidden GET parameters, headers and cookies it accepts but never advertises.                        |
+| port_scan              | active        | loud     | 2         | Find open TCP ports across hosts or network ranges, and identify what service is listening on each.                               |
+| waf_bypass             | mixed         | loud     | 47        | Find the unprotected origin behind an organization's WAF by reaching its content directly through sibling IPs.                    |
+| web_brute              | active        | loud     | 2         | Brute-force a web server for directories and files that exist but are not linked from anywhere.                                   |
 <!-- END BBOT MCP CAPABILITIES -->
 
 Three things come from the file itself:
