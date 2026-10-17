@@ -11,7 +11,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from collections import OrderedDict
 
-from bbot import __version__
+from bbot import __full_version__
 from bbot.core.event import make_event, update_event
 from .manager import ScanIngress, ScanEgress
 from bbot.core.helpers.misc import sha1, rand_string
@@ -462,7 +462,8 @@ class Scanner:
             self.root_event.data["started_at"] = self.start_time.timestamp()
 
             self._start_log_handlers()
-            self.trace(f"Ran BBOT {__version__} at {self.start_time}, command: {' '.join(sys.argv)}")
+            self.info(f"BBOT version: {__full_version__}")
+            self.trace(f"Ran BBOT {__full_version__} at {self.start_time}, command: {' '.join(sys.argv)}")
             self.trace(f"Target: {self.preset.target.json}")
             self.trace(f"Preset: {self.preset.to_dict(redact_secrets=True)}")
 

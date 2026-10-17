@@ -1,8 +1,10 @@
 import stat
+import subprocess
 import yaml
 
 from ..bbot_fixtures import *
 
+import bbot
 from bbot import cli
 
 
@@ -134,6 +136,45 @@ async def test_cli_scan(monkeypatch):
     assert "[INFO]" in open(scan_log).read()
 
 
+def test_full_version(monkeypatch, tmp_path):
+    # the real value depends on whether bbot is running from a git checkout
+    if bbot._commit:
+        assert bbot.__full_version__ == f"{bbot.__version__} (git:{bbot._commit})"
+    else:
+        assert bbot.__full_version__ == bbot.__version__
+
+    # fake git checkout
+    (tmp_path / ".git").mkdir()
+    monkeypatch.setattr(bbot, "__file__", str(tmp_path / "bbot" / "__init__.py"))
+
+    def fake_git(stdout, returncode=0):
+        def run(*args, **kwargs):
+            return subprocess.CompletedProcess(args[0], returncode, stdout=stdout, stderr="")
+
+        return run
+
+    monkeypatch.setattr(bbot.subprocess, "run", fake_git("012345678\n"))
+    assert bbot._git_commit() == "012345678"
+    monkeypatch.setattr(bbot.subprocess, "run", fake_git("012345678-dirty\n"))
+    assert bbot._git_commit() == "012345678-dirty"
+
+    # git fails
+    monkeypatch.setattr(bbot.subprocess, "run", fake_git("", returncode=128))
+    assert bbot._git_commit() is None
+
+    # no git binary
+    def no_git(*args, **kwargs):
+        raise FileNotFoundError("git")
+
+    monkeypatch.setattr(bbot.subprocess, "run", no_git)
+    assert bbot._git_commit() is None
+
+    # not a git checkout
+    (tmp_path / ".git").rmdir()
+    monkeypatch.setattr(bbot.subprocess, "run", fake_git("012345678\n"))
+    assert bbot._git_commit() is None
+
+
 @pytest.mark.asyncio
 async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     caplog.set_level(logging.INFO)
@@ -148,6 +189,7 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     assert result is None
     assert len(out.splitlines()) == 1
     assert out.count(".") > 1
+    assert out.strip() == bbot.__full_version__
 
     # deps behavior
     monkeypatch.setattr("sys.argv", ["bbot", "-n", "depstest", "--retry-deps", "--current-preset"])
