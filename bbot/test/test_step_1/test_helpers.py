@@ -840,6 +840,33 @@ async def test_async_helpers():
     assert sorted(random_ints) == sorted(results)
 
 
+@pytest.mark.asyncio
+async def test_lane_queue():
+    from bbot.core.helpers.async_helpers import LaneQueue
+
+    # lower lanes are dequeued first, and each lane is FIFO
+    q = LaneQueue(lambda item: item[0])
+    items = [(1, "a"), (0, "b"), (2, "c"), (0, "d"), (1, "e")]
+    for item in items:
+        q.put_nowait(item)
+    assert q.qsize() == len(items)
+    assert [q.get_nowait() for _ in items] == [(0, "b"), (0, "d"), (1, "a"), (1, "e"), (2, "c")]
+    assert q.empty()
+
+    # items with equal lanes are never compared to each other
+    q = LaneQueue(lambda item: 0)
+    q.put_nowait({"unorderable": 1})
+    q.put_nowait({"unorderable": 2})
+    assert q.get_nowait() == {"unorderable": 1}
+
+    # maxsize still applies backpressure
+    q = LaneQueue(lambda item: 0, maxsize=1)
+    q.put_nowait("a")
+    assert q.full()
+    with pytest.raises(asyncio.QueueFull):
+        q.put_nowait("b")
+
+
 def test_portparse(helpers):
     assert helpers.parse_port_string("80,443,22") == [80, 443, 22]
     assert helpers.parse_port_string(80) == [80]

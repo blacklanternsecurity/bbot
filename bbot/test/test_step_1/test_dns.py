@@ -1007,3 +1007,30 @@ async def test_dns_brute_client_config(bbot_scanner, monkeypatch):
     # a DNS-disabled scan never resolves, so it must not be blocked by that check
     scan = bbot_scanner(config={"dns": {"nameservers": ["not-an-ip"], "disable": True}})
     await scan._prep()
+
+
+@pytest.mark.asyncio
+async def test_dnsresolve_incoming_lanes(bbot_scanner):
+    from bbot.core.helpers.async_helpers import LaneQueue
+
+    scan = bbot_scanner("evilcorp.com")
+    await scan._prep()
+    dnsresolve = scan.modules["dnsresolve"]
+
+    dns_name = scan.make_event("www.evilcorp.com", "DNS_NAME", parent=scan.root_event)
+    open_port = scan.make_event("www.evilcorp.com:443", "OPEN_TCP_PORT", parent=dns_name)
+    new_host_url = scan.make_event("http://new.evilcorp.com/", "URL_UNVERIFIED", parent=dns_name)
+    finished = scan.make_event("FINISHED", "FINISHED", dummy=True)
+
+    # hosts that still need resolving wait; hosts already resolved upstream (and hostless events) don't
+    assert dnsresolve.incoming_lane(dns_name) == 1
+    assert dnsresolve.incoming_lane(new_host_url) == 1
+    assert dnsresolve.incoming_lane(open_port) == 0
+    assert dnsresolve.incoming_lane(finished) == 0
+
+    # the queue feeding dnsresolve is divided by those lanes
+    queue = dnsresolve.incoming_event_queue
+    assert isinstance(queue, LaneQueue)
+    for event in (dns_name, new_host_url, open_port):
+        queue.put_nowait((event, {}))
+    assert [queue.get_nowait()[0] for _ in range(3)] == [open_port, dns_name, new_host_url]
