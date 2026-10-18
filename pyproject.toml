@@ -21,7 +21,7 @@ dependencies = [
     "ansible-runner>=2.3.2,<3",
     "deepdiff>=8.0.0,<10",
     "xmltojson>=2.0.2,<3",
-    "pycryptodome>=3.17,<4",
+    "pycryptodome>=3.17,<5",
     "idna>=3.4,<4",
     "tabulate==0.8.10",
     "websockets>=14.0.0,<17.0.0",
