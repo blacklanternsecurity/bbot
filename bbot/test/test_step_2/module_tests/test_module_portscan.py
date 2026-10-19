@@ -1,3 +1,5 @@
+import ipaddress
+
 from .base import ModuleTestBase
 
 
@@ -17,6 +19,29 @@ class TestPortscan(ModuleTestBase):
     masscan_output_1 = """{   "ip": "8.8.8.8",   "timestamp": "1680197558", "ports": [ {"port": 443, "proto": "tcp", "status": "open", "reason": "syn-ack", "ttl": 54} ] }"""
     masscan_output_2 = """{   "ip": "8.8.4.5",   "timestamp": "1680197558", "ports": [ {"port": 80, "proto": "tcp", "status": "open", "reason": "syn-ack", "ttl": 54} ] }"""
     masscan_output_3 = """{   "ip": "8.8.4.6",   "timestamp": "1680197558", "ports": [ {"port": 631, "proto": "tcp", "status": "open", "reason": "syn-ack", "ttl": 54} ] }"""
+
+    expected_results = {
+        ("DNS_NAME", "evilcorp.com"),
+        ("DNS_NAME", "www.evilcorp.com"),
+        ("DNS_NAME", "asdf.evilcorp.net"),
+        ("DNS_NAME", "dummy.evilcorp.com"),
+        ("DNS_NAME", "dummy.www.evilcorp.com"),
+        ("DNS_NAME", "dummy.asdf.evilcorp.net"),
+        ("IP_RANGE", "8.8.8.0/24"),
+        ("IP_RANGE", "8.8.4.0/24"),
+        ("IP_ADDRESS", "8.8.8.8"),
+        ("IP_ADDRESS", "8.8.4.4"),
+        ("IP_ADDRESS", "8.8.4.5"),
+        ("IP_ADDRESS", "8.8.4.6"),
+        ("OPEN_TCP_PORT", "8.8.8.8:443"),
+        ("OPEN_TCP_PORT", "8.8.4.5:80"),
+        ("OPEN_TCP_PORT", "8.8.4.6:631"),
+        ("OPEN_TCP_PORT", "evilcorp.com:443"),
+        ("OPEN_TCP_PORT", "www.evilcorp.com:443"),
+        ("OPEN_TCP_PORT", "asdf.evilcorp.net:80"),
+        ("OPEN_TCP_PORT", "dummy.asdf.evilcorp.net:80"),
+        ("OPEN_TCP_PORT", "dummy.evilcorp.com:631"),
+    }
 
     masscan_output_ping = """{   "ip": "8.8.8.8",   "timestamp": "1719862594", "ports": [ {"port": 0, "proto": "icmp", "status": "open", "reason": "none", "ttl": 54} ] }"""
 
@@ -61,11 +86,15 @@ class TestPortscan(ModuleTestBase):
                 else:
                     self.syn_runs += 1
                     self.syn_scanned += targets
-                    if "8.8.8.0/24" in targets or "8.8.8.8/32" in targets:
-                        yield self.masscan_output_1
-                    if "8.8.4.0/24" in targets:
-                        yield self.masscan_output_2
-                        yield self.masscan_output_3
+                    # like real masscan, report an open port whenever its IP is covered by this run's targets
+                    networks = [ipaddress.ip_network(t) for t in targets]
+                    for ip, output in (
+                        ("8.8.8.8", self.masscan_output_1),
+                        ("8.8.4.5", self.masscan_output_2),
+                        ("8.8.4.6", self.masscan_output_3),
+                    ):
+                        if any(ipaddress.ip_address(ip) in n for n in networks):
+                            yield output
                 yield "]"
             else:
                 async for l in module_test.scan.helpers.run_live(command, *args, **kwargs):
@@ -110,12 +139,13 @@ class TestPortscan(ModuleTestBase):
                 if e.type == "DNS_NAME" and e.data == "dummy.asdf.evilcorp.net" and str(e.module) == "dummy_module"
             ]
         )
-        # the reason these numbers aren't exactly predictable is because we can't predict which one arrives first
-        # to the portscan module. Sometimes, one that would normally be deduped is force-emitted because it led to a new open port.
-        assert 2 <= len([e for e in events if e.type == "IP_ADDRESS" and e.data == "8.8.8.8"]) <= 4
-        assert 2 <= len([e for e in events if e.type == "IP_ADDRESS" and e.data == "8.8.4.4"]) <= 4
-        assert 2 <= len([e for e in events if e.type == "IP_ADDRESS" and e.data == "8.8.4.5"]) <= 4
-        assert 2 <= len([e for e in events if e.type == "IP_ADDRESS" and e.data == "8.8.4.6"]) <= 4
+        # how many IP_ADDRESS events there are depends on which parent an open port is first emitted under (a range,
+        # or an IP that arrived first), but the distinct results don't
+        assert 1 <= len([e for e in events if e.type == "IP_ADDRESS" and e.data == "8.8.8.8"]) <= 4
+        assert 1 <= len([e for e in events if e.type == "IP_ADDRESS" and e.data == "8.8.4.4"]) <= 4
+        assert 1 <= len([e for e in events if e.type == "IP_ADDRESS" and e.data == "8.8.4.5"]) <= 4
+        assert 1 <= len([e for e in events if e.type == "IP_ADDRESS" and e.data == "8.8.4.6"]) <= 4
+        assert {(e.type, e.data) for e in events if e.type != "SCAN"} == self.expected_results
         assert 1 == len([e for e in events if e.type == "OPEN_TCP_PORT" and e.data == "8.8.8.8:443"])
         assert 1 == len([e for e in events if e.type == "OPEN_TCP_PORT" and e.data == "8.8.4.5:80"])
         assert 1 == len([e for e in events if e.type == "OPEN_TCP_PORT" and e.data == "8.8.4.6:631"])
@@ -241,3 +271,36 @@ class TestPortscanSkipTags(ModuleTestBase):
         # the non-skipped host: portscan emitted 443 (real, non-internal), no speculated 80
         assert ("regular-host.com", 443) in consumer_seen
         assert ("regular-host.com", 80) not in consumer_seen
+
+
+class TestPortscanRangeLast(TestPortscan):
+    """The results are the same when a range is scanned after a hostname inside it."""
+
+    module_name = "portscan"
+
+    async def setup_after_prep(self, module_test):
+        await super().setup_after_prep(module_test)
+        portscan = module_test.scan.modules["portscan"]
+        handle_batch = portscan.handle_batch
+        held_ranges = []
+        asdf_scanned = False
+
+        # hold back 8.8.4.0/24 until asdf.evilcorp.net (8.8.4.5) has been scanned on its own
+        async def handle_batch_range_last(*events):
+            nonlocal asdf_scanned
+            held_ranges.extend(e for e in events if e.type == "IP_RANGE" and e.data == "8.8.4.0/24")
+            events = [e for e in events if e not in held_ranges]
+            if events:
+                await handle_batch(*events)
+            if any(e.type == "DNS_NAME" and e.data == "asdf.evilcorp.net" for e in events):
+                asdf_scanned = True
+            if asdf_scanned and held_ranges:
+                ranges = list(held_ranges)
+                held_ranges.clear()
+                await handle_batch(*ranges)
+
+        portscan.handle_batch = handle_batch_range_last
+
+    def check(self, module_test, events):
+        assert "8.8.4.5/32" in self.syn_scanned
+        super().check(module_test, events)
