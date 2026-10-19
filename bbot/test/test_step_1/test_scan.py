@@ -405,6 +405,12 @@ async def test_cdn_port_filter(bbot_scanner, monkeypatch, clean_default_config):
         "https://www.evilcorp.com:2087/",
     }
 
+    # --exclude-cdn is a deprecated no-op that leaves the filter on
+    monkeypatch.setattr("sys.argv", ["bbot", "-t", "evilcorp.com", "-ec"])
+    preset = Preset("evilcorp.com")
+    preset.parse_args()
+    assert preset.validate().bake().config["cdn_port_filter"]["enabled"] is True
+
 
 @pytest.mark.asyncio
 async def test_scan_event_started_at_type(bbot_scanner):

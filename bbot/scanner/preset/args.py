@@ -179,6 +179,8 @@ class BBOTArgs:
             os.environ["NO_COLOR"] = "1"
         if self.parsed.allow_cdn_ports:
             args_preset.core.merge_custom({"cdn_port_filter": {"enabled": False}})
+        if self.parsed.exclude_cdn:
+            log.warning("--exclude-cdn is deprecated and does nothing; CDN/WAF ports are now filtered by default")
 
         # dependencies
         deps_config = args_preset.core.custom_config.get("deps", {})
@@ -394,6 +396,8 @@ class BBOTArgs:
             action="store_true",
             help="Don't filter out open ports on CDNs/WAFs (by default only 80,443 are kept)",
         )
+        # deprecated: CDN/WAF port filtering is now the default
+        output.add_argument("--exclude-cdn", "-ec", action="store_true", help=argparse.SUPPRESS)
 
         deps = p.add_argument_group(
             title="Module dependencies", description="Control how modules install their dependencies"
