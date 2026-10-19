@@ -426,6 +426,22 @@ async def test_scan_event_started_at_type(bbot_scanner):
         )
 
 
+@pytest.mark.asyncio
+async def test_scan_log_version(bbot_scanner):
+    import bbot
+
+    scan = bbot_scanner("127.0.0.1")
+    # run at the default log level, since the test suite otherwise logs at DEBUG
+    old_log_level = scan.core.logger.log_level
+    scan.core.logger.log_level = logging.INFO
+    try:
+        await scan.async_start_without_generator()
+    finally:
+        scan.core.logger.log_level = old_log_level
+    scan_log = open(scan.home / "scan.log").read()
+    assert f"BBOT version: {bbot.__full_version__}" in scan_log
+
+
 async def test_scan_name(bbot_scanner):
     scan = bbot_scanner("evilcorp.com", name="test_scan_name")
     await scan._prep()
