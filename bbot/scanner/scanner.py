@@ -414,7 +414,7 @@ class Scanner:
                 self.debug(
                     f"Setting intercept module {intercept_module.name}._incoming_event_queue to previous intercept module {prev_intercept_module.name}.outgoing_event_queue"
                 )
-                interqueue = asyncio.Queue()
+                interqueue = intercept_module.make_intercept_queue()
                 intercept_module._incoming_event_queue = interqueue
                 prev_intercept_module._outgoing_event_queue = interqueue
 
