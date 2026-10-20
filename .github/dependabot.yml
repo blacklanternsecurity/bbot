@@ -17,6 +17,10 @@ updates:
           - "*"
         update-types:
           - "major"
+      uv-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
   - package-ecosystem: "github-actions"
     directory: "/"
     target-branch: "dev"
