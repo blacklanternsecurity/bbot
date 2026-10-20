@@ -134,3 +134,6 @@ force-exclude = true
 format.exclude = ["bbot/test/test_step_1/test_manager_*"]
 lint.select = ["E", "F"]
 lint.ignore = ["E402", "E711", "E713", "E721", "E741", "F403", "F405", "E501"]
+
+[tool.uv]
+constraint-dependencies = ["virtualenv>=21.7.13"]
