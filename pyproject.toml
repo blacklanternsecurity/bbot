@@ -21,7 +21,7 @@ dependencies = [
     "ansible-runner>=2.3.2,<3",
     "deepdiff>=8.0.0,<10",
     "xmltojson>=2.0.2,<3",
-    "pycryptodome>=3.17,<4",
+    "pycryptodome>=3.17,<5",
     "idna>=3.4,<4",
     "tabulate==0.8.10",
     "websockets>=14.0.0,<17.0.0",
@@ -82,7 +82,7 @@ dev = [
     "pytest-benchmark>=4,<6",
     "pytest-xdist>=3.6,<4",
     "baddns~=2.4.1",
-    "ruff==0.16.10",
+    "ruff==0.17.0",
     "maturin>=1.4,<2",
 ]
 docs = [
@@ -134,3 +134,6 @@ force-exclude = true
 format.exclude = ["bbot/test/test_step_1/test_manager_*"]
 lint.select = ["E", "F"]
 lint.ignore = ["E402", "E711", "E713", "E721", "E741", "F403", "F405", "E501"]
+
+[tool.uv]
+constraint-dependencies = ["virtualenv>=21.7.13"]

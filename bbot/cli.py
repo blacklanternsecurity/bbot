@@ -6,7 +6,7 @@ import sys
 import logging
 import multiprocessing
 from bbot.errors import *
-from bbot import __version__
+from bbot import __full_version__
 from bbot.logger import log_to_stderr
 from bbot.core.helpers.misc import chain_lists
 
@@ -27,7 +27,7 @@ if multiprocessing.current_process().name == "MainProcess":
  {o}|  ___ <{e}|  __ <| |  | | | |
  {o}| |___) {e}| |__) | |__| | | |
  {o}|______/{e}|_____/ \____/  |_|
- {o}BIGHUGE{e} BLS OSINT TOOL {__version__}
+ {o}BIGHUGE{e} BLS OSINT TOOL {__full_version__}
 
 www.blacklanternsecurity.com/bbot
 """
@@ -83,7 +83,7 @@ async def _main():
 
         # --version
         if options.version:
-            print(__version__)
+            print(__full_version__)
             sys.exit(0)
             return
 
