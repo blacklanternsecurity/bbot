@@ -214,6 +214,19 @@ url_querystring_collapse: True
 # Reject URLs whose path repeats the same path parameter this many times (e.g. a session id appended on every redirect)
 url_max_path_param_repeats: 10
 
+# Drop open ports and URLs on CDN/WAF hosts unless the port is allowed or was explicitly targeted
+# CDN edges answer on many ports (e.g. Cloudflare's 2052-2096, 8080, 8443) that rarely lead anywhere useful
+cdn_port_filter:
+  enabled: true
+  # hosts with any of these tags are considered CDN/WAF hosts
+  tags:
+    - cdn
+    - waf
+  # ports that are still allowed on CDN/WAF hosts
+  allowed_ports:
+    - 80
+    - 443
+
 # Completely ignore URLs with these extensions
 url_extension_blacklist:
   # images
