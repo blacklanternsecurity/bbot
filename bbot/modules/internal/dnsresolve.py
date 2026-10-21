@@ -20,9 +20,8 @@ class DNSResolve(BaseInterceptModule):
         _name = "host"
         _type = "internal"
 
-    @property
-    def module_threads(self):
-        return self.dns_config.get("threads", 25)
+    # events resolved concurrently; separate from dns.threads, which caps blastdns queries per resolver
+    _module_threads = 25
 
     async def setup(self):
         self.dns_config = self.scan.config.get("dns", {})
