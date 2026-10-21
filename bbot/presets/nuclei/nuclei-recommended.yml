@@ -3,7 +3,6 @@ description: Run nuclei scans against all discovered targets, using ProjectDisco
 modules:
   - http
   - nuclei
-  - portfilter
 
 config:
   modules:

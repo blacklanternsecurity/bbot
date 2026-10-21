@@ -283,6 +283,12 @@ class Scanner:
         self.url_extension_special = {e.lower() for e in self.config.get("url_extension_special", [])}
         self.url_extension_blacklist = {e.lower() for e in self.config.get("url_extension_blacklist", [])}
 
+        # open ports / URLs on CDN/WAF hosts
+        cdn_port_filter_config = self.config.get("cdn_port_filter", {})
+        self.cdn_port_filter = bool(cdn_port_filter_config.get("enabled", True))
+        self.cdn_tags = set(cdn_port_filter_config.get("tags", []))
+        self.cdn_allowed_ports = set(cdn_port_filter_config.get("allowed_ports", []))
+
         # url querystring behavior
         self.url_querystring_remove = self.config.get("url_querystring_remove", True)
 
