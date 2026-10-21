@@ -1066,6 +1066,20 @@ async def test_dns_brute_client_config(bbot_scanner, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_dnsresolve_module_threads(bbot_scanner):
+    """dnsresolve's worker count is its own module_threads, not dns.threads."""
+    scan = bbot_scanner("evilcorp.com", config={"dns": {"threads": 3}})
+    await scan._prep()
+    assert scan.modules["dnsresolve"].module_threads == 25
+
+    scan = bbot_scanner(
+        "evilcorp.com", config={"dns": {"threads": 3}, "modules": {"dnsresolve": {"module_threads": 50}}}
+    )
+    await scan._prep()
+    assert scan.modules["dnsresolve"].module_threads == 50
+
+
+@pytest.mark.asyncio
 async def test_dnsresolve_incoming_lanes(bbot_scanner):
     from bbot.core.helpers.async_helpers import LaneQueue
 
@@ -1141,7 +1155,7 @@ async def run_parent_child_scan(bbot_scanner, order):
         "evilcorp.com",
         "127.0.1.0/24",
         blacklist=["127.0.0.99"],
-        config={"dns": {"threads": 1, "wildcard_ignore": []}},
+        config={"modules": {"dnsresolve": {"module_threads": 1}}, "dns": {"wildcard_ignore": []}},
     )
     await scan._prep()
     await scan.helpers.dns._mock_dns(parent_child_mock_data)
