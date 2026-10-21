@@ -1,0 +1,18 @@
+description: Run nuclei scans against all discovered targets, using only the templates added in the latest nuclei-templates release
+
+modules:
+  - http
+  - nuclei
+  - portfilter
+
+config:
+  modules:
+    nuclei:
+      new_templates: true
+      directory_only: true # Do not run nuclei on individual non-directory URLs
+
+conditions:
+  - |
+    {% if config.web.spider_distance != 0 %}
+      {{ warn("Running nuclei with spider enabled is generally not recommended. Consider removing 'spider' preset.") }}
+    {% endif %}
