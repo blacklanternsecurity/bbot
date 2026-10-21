@@ -330,6 +330,12 @@ class Scanner:
         Expands async seed types (e.g. ASN → IP ranges), evaluates preset conditions,
         creates the scan's output folder, loads its modules, and calls their .setup() methods.
         """
+        # build the DNS helper up front: blastdns validates dns.nameservers when the
+        # client is constructed, and a bad value should abort the scan here rather than
+        # surface later as a per-event error inside dnsresolve
+        if not self.config.get("dns", {}).get("disable", False):
+            self.helpers.dns
+
         # expand async seed types (e.g. ASN -> IP ranges)
         try:
             await self.preset.target.generate_children(helpers=self.helpers)
@@ -408,7 +414,7 @@ class Scanner:
                 self.debug(
                     f"Setting intercept module {intercept_module.name}._incoming_event_queue to previous intercept module {prev_intercept_module.name}.outgoing_event_queue"
                 )
-                interqueue = asyncio.Queue()
+                interqueue = intercept_module.make_intercept_queue()
                 intercept_module._incoming_event_queue = interqueue
                 prev_intercept_module._outgoing_event_queue = interqueue
 

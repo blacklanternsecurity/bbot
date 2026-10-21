@@ -49,7 +49,7 @@ dependencies = [
     "tldextract>=5.3.0,<6",
     "cloudcheck>=11.2.0,<12",
     "blasthttp>=0.10.1,<0.11",
-    "blastdns>=1.9.0,<2",
+    "blastdns>=2.0.2,<2.1",
     "zstandard>=0.22,<1",
     "packaging>=23.0",
 ]
@@ -77,11 +77,11 @@ dev = [
     "pytest>=8.3.1,<10",
     "pytest-asyncio==1.4.0",
     "uvicorn>=0.32,<0.55",
-    "fastapi>=0.115.5,<0.143.0",
+    "fastapi>=0.115.5,<0.144.0",
     "pytest-httpx>=0.35",
     "pytest-benchmark>=4,<6",
     "pytest-xdist>=3.6,<4",
-    "baddns~=2.4.1",
+    "baddns~=2.5.0",
     "ruff==0.17.0",
     "maturin>=1.4,<2",
 ]
