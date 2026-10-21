@@ -2043,6 +2043,7 @@ class TECHNOLOGY(DictHostEvent):
         host: str
         technology: str
         url: Optional[str] = None
+        cpe: Optional[str] = None
         _validate_url = field_validator("url")(validators.validate_url)
         _validate_host = field_validator("host")(validators.validate_host)
 

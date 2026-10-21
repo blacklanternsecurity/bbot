@@ -244,34 +244,26 @@ class DNSHelper:
         if not raw_dns_records:
             return result
 
-        rdtypes_to_check = set(raw_dns_records)
-
-        # walk parent domains shortest-first, comparing baseline against any wildcard pool
-        parents = list(domain_parents(query))
-        for parent in parents[::-1]:
-            wildcard_results = await self.is_wildcard_domain(parent, rdtypes_to_check)
-
-            for rdtype in list(baseline_raw):
-                if rdtype in result:
+        # walk parent domains shortest-first, stopping at the first wildcard pool that contains the baseline.
+        # a non-matching pool may belong to an outer zone with a nested wildcard below it, so keep descending.
+        possible = {}
+        for parent in list(domain_parents(query))[::-1]:
+            rdtypes_to_check = [rdtype for rdtype in baseline_raw if rdtype not in result]
+            if not rdtypes_to_check:
+                break
+            zones = await asyncio.gather(*[self._is_wildcard_zone(parent, rdtype) for rdtype in rdtypes_to_check])
+            for rdtype, (wildcards, wildcard_raw) in zip(rdtypes_to_check, zones):
+                if not wildcard_raw:
                     continue
+                is_wc = any(r in wildcards for r in baseline.get(rdtype, set()))
+                is_wc_raw = any(r in wildcard_raw for r in baseline_raw[rdtype])
+                if is_wc or is_wc_raw:
+                    result[rdtype] = (True, parent)
+                else:
+                    possible.setdefault(rdtype, ("POSSIBLE", parent))
 
-                _baseline = baseline.get(rdtype, set())
-                _baseline_raw = baseline_raw.get(rdtype, set())
-
-                wildcard_rdtypes = wildcard_results.get(parent, {})
-                wildcards = wildcard_rdtypes.get(rdtype)
-                if wildcards is None:
-                    continue
-                wildcards, wildcard_raw = wildcards
-
-                if wildcard_raw:
-                    rdtypes_to_check.discard(rdtype)
-                    is_wc = any(r in wildcards for r in _baseline)
-                    is_wc_raw = any(r in wildcard_raw for r in _baseline_raw)
-                    if is_wc or is_wc_raw:
-                        result[rdtype] = (True, parent)
-                    else:
-                        result[rdtype] = ("POSSIBLE", parent)
+        for rdtype, verdict in possible.items():
+            result.setdefault(rdtype, verdict)
 
         for rdtype, answers in baseline_raw.items():
             if answers and rdtype not in result:
@@ -284,7 +276,7 @@ class DNSHelper:
         key=lambda domain, rdtypes: (domain, tuple(sorted(rdtypes))),
     )
     async def is_wildcard_domain(self, domain, rdtypes):
-        """For each parent of ``domain``, return the wildcard pool per rdtype.
+        """For each rdtype, return the wildcard pool of the shallowest wildcard parent of ``domain``.
 
         Returns ``{parent: {rdtype: (hosts_set, raw_text_set)}}``.
         """
