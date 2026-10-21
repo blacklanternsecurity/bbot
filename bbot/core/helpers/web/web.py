@@ -464,7 +464,7 @@ class WebHelper:
             max_size = self.parent_helper.human_to_bytes(max_size)
         cache_hrs = float(kwargs.pop("cache_hrs", -1))
 
-        if cache_hrs > 0 and self.parent_helper.is_cached(url):
+        if cache_hrs > 0 and self.parent_helper.is_cached(url, cache_hrs=cache_hrs):
             log.debug(f"{url} is cached at {self.parent_helper.cache_filename(url)}")
             success = True
         else:

@@ -1,4 +1,5 @@
 import re
+import time
 from types import SimpleNamespace
 
 from blasthttp import HTTPStatusError
@@ -214,6 +215,16 @@ async def test_web_helpers(bbot_scanner, bbot_httpserver, blasthttp_mock):
     assert filename2.is_file()
     with open(filename2) as f:
         assert f.read() == download_content
+
+    # download respects cache_hrs when checking freshness
+    cached_file = scan1.helpers.cache_filename(url)
+    cached_file.write_text("stale")
+    two_days_ago = time.time() - 48 * 3600
+    os.utime(cached_file, (two_days_ago, two_days_ago))
+    filename = await scan1.helpers.download(url, cache_hrs=72)
+    assert Path(filename).read_text() == "stale"
+    filename = await scan1.helpers.download(url, cache_hrs=24)
+    assert Path(filename).read_text() == download_content
 
     # beautifulsoup
     download_content = """
