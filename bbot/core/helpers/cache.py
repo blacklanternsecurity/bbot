@@ -1,6 +1,6 @@
-import os
 import time
 import logging
+from pathlib import Path
 
 from .misc import sha1
 
@@ -41,12 +41,13 @@ def cache_put(self, key, content):
         f.write(content)
 
 
+def is_fresh(self, path, cache_hrs=24 * 7):
+    path = Path(path)
+    return path.is_file() and path.stat().st_mtime > time.time() - cache_hrs * 3600
+
+
 def is_cached(self, key, cache_hrs=24 * 7):
-    filename = self.cache_filename(key)
-    if filename.is_file():
-        (m, i, d, n, u, g, sz, atime, mtime, ctime) = os.stat(filename)
-        return mtime > time.time() - cache_hrs * 3600
-    return False
+    return self.is_fresh(self.cache_filename(key), cache_hrs)
 
 
 def cache_filename(self, key):
