@@ -1527,7 +1527,15 @@ class Test_Lightfuzz_sqli_cookies(Test_Lightfuzz_sqli):
         """
 
     def request_handler(self, request):
-        return sqli_injectable_response(request.cookies.get("test"), self.placeholder_block)
+        # read the raw header rather than request.cookies: the cookie parser discards values
+        # containing spaces, which the boolean differential probes rely on
+        value = None
+        for pair in (request.headers.get("Cookie") or "").split(";"):
+            name, _, pair_value = pair.partition("=")
+            if name.strip() == "test":
+                value = pair_value.strip()
+                break
+        return sqli_injectable_response(value, self.placeholder_block)
 
     def check(self, module_test, events):
         sqli_finding_emitted = False
@@ -5935,3 +5943,45 @@ class TestLightfuzzWildcardSkip(ModuleTestBase):
         assert len(web_params_fuzzed) == 0, (
             f"lightfuzz should not fuzz wildcard hosts, but processed params: {web_params_fuzzed}"
         )
+
+
+class Test_Lightfuzz_baseline_respects_spider_limits(ModuleTestBase):
+    """A baseline response's URL is a link from another page; it costs a spider hop like any extracted link."""
+
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http", "lightfuzz", "excavate", "speculate"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {"lightfuzz": {"enabled_submodules": ["path"]}},
+    }
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"},
+            respond_args={"response_data": '<html><a href="/target?x=1">t</a></html>'},
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/target"},
+            respond_args={"response_data": '<html><a href="/deeper?y=1">d</a></html>'},
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/deeper"},
+            respond_args={"response_data": "<html>deeper</html>"},
+        )
+
+    def check(self, module_test, events):
+        assert any(e.type == "WEB_PARAMETER" and e.data["name"] == "x" for e in events)
+        visited = {e.parsed_url.path for e in events if e.type == "URL"}
+        assert "/target" not in visited and "/deeper" not in visited, f"Visited past spider_distance 0: {visited}"
+
+
+class Test_Lightfuzz_baseline_within_spider_limits(Test_Lightfuzz_baseline_respects_spider_limits):
+    config_overrides = {
+        "interactsh_disable": True,
+        "web": {"spider_distance": 1, "spider_depth": 3},
+        "modules": {"lightfuzz": {"enabled_submodules": ["path"]}},
+    }
+
+    def check(self, module_test, events):
+        visited = {e.parsed_url.path for e in events if e.type == "URL"}
+        assert "/target" in visited, f"Baseline URL within spider_distance was not visited: {visited}"
