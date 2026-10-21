@@ -1,9 +1,8 @@
-import json
+from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
+from bbot.core.config.models import BaseModuleConfig, Field
 
-from bbot.modules.templates.subdomain_enum import subdomain_enum
 
-
-class dnsdumpster(subdomain_enum):
+class dnsdumpster(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["safe", "subdomain-enum", "passive"]
@@ -13,63 +12,48 @@ class dnsdumpster(subdomain_enum):
         "author": "@TheTechromancer",
     }
 
-    base_url = "https://dnsdumpster.com"
+    class Config(BaseModuleConfig):
+        api_key: str | list[str] = Field("", description="DNSDumpster API key", sensitive=True, mandatory=True)
+        max_pages: int = Field(10, description="Maximum result pages to request per domain")
+
+    base_url = "https://api.dnsdumpster.com"
 
     async def setup(self):
-        self.apikey_regex = self.helpers.re.compile(r'<form[^>]*data-form-id="mainform"[^>]*hx-headers=\'([^\']*)\'')
-        return True
+        self.max_pages = self.config.get("max_pages", 10)
+        return await super().setup()
 
-    async def query(self, domain):
-        ret = []
-        # first, get the JWT token from the main page
-        res1 = await self.api_request(self.base_url)
-        status_code = getattr(res1, "status_code", 0)
-        if status_code not in [200]:
-            self.verbose(f'Bad response code "{status_code}" from DNSDumpster')
-            return ret
+    def prepare_api_request(self, url, kwargs):
+        kwargs["headers"]["X-API-Key"] = self.api_key
+        return url, kwargs
 
-        # Extract JWT token from the form's hx-headers attribute using regex
-        jwt_token = None
-        try:
-            # Look for the form with data-form-id="mainform" and extract hx-headers
-            form_match = await self.helpers.re.search(self.apikey_regex, res1.text)
-            if form_match:
-                headers_json = form_match.group(1)
-                headers_data = json.loads(headers_json)
-                jwt_token = headers_data.get("Authorization")
-        except (AttributeError, json.JSONDecodeError, KeyError):
-            self.log.warning("Error obtaining JWT token")
-            return ret
-
-        # Abort if we didn't get the JWT token
-        if not jwt_token:
-            self.verbose("Error obtaining JWT token")
-            self.errorState = True
-            return ret
-        else:
-            self.debug("Successfully obtained JWT token")
-
-        if self.scan.stopping:
-            return ret
-
-        # Query the API with the JWT token
-        res2 = await self.api_request(
-            "https://api.dnsdumpster.com/htmld/",
-            method="POST",
-            data={"target": str(domain).lower()},
-            headers={
-                "Authorization": jwt_token,
-                "Content-Type": "application/x-www-form-urlencoded",
-                "Origin": "https://dnsdumpster.com",
-                "Referer": "https://dnsdumpster.com/",
-                "HX-Request": "true",
-                "HX-Target": "results",
-                "HX-Current-URL": "https://dnsdumpster.com/",
-            },
-        )
-        status_code = getattr(res2, "status_code", 0)
-        if status_code not in [200]:
-            self.verbose(f'Bad response code "{status_code}" from DNSDumpster API')
-            return ret
-
-        return await self.scan.extract_in_scope_hostnames(res2.text)
+    async def query(self, query):
+        results = set()
+        a_records = 0
+        for page in range(1, self.max_pages + 1):
+            # page 1 is the bare URL; the API only accepts an explicit page number from 2 on
+            url = f"{self.base_url}/domain/{query}"
+            if page > 1:
+                url = f"{url}?page={page}"
+            r = await self.api_request(url)
+            if r is None:
+                self.verbose(f'No response for "{query}" (page {page})')
+                break
+            if page > 1 and r.status_code in (401, 403):
+                self.verbose(f"Paging past the first page requires a paid membership (HTTP {r.status_code})")
+                break
+            try:
+                data = r.json()
+            except Exception:
+                self.verbose(f'Error parsing JSON for "{query}" (HTTP {r.status_code})')
+                break
+            if not isinstance(data, dict):
+                self.verbose(f'Unexpected response for "{query}" (HTTP {r.status_code}): {r.text[:200]}')
+                break
+            results.update(await self.scan.extract_in_scope_hostnames(r.text))
+            # the response reports how many A records exist in total; stop once they have all been seen
+            page_a_records = len(data.get("a") or [])
+            a_records += page_a_records
+            total = data.get("total_a_recs")
+            if not isinstance(total, int) or not page_a_records or a_records >= total:
+                break
+        return results

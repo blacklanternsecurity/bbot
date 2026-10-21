@@ -146,7 +146,10 @@ class gitdumper(BaseModule):
             return response
         return None
 
-    async def recursive_dir_list(self, dir_listing):
+    async def recursive_dir_list(self, dir_listing, _depth=0, _max_depth=10):
+        if _depth >= _max_depth:
+            self.verbose(f"Maximum directory listing depth ({_max_depth}) reached at {dir_listing.url}")
+            return []
         file_list = []
         soup = self.helpers.beautifulsoup(dir_listing.text, "html.parser")
         links = soup.find_all("a")
@@ -156,12 +159,14 @@ class gitdumper(BaseModule):
                 continue
             if href.endswith("/"):
                 folder_url = self.helpers.urljoin(str(dir_listing.url), href)
+                if not folder_url.startswith(str(dir_listing.url)):
+                    self.verbose(f"Skipping out-of-scope directory link: {folder_url}")
+                    continue
                 response = await self.helpers.request(folder_url)
                 if getattr(response, "status_code", 0) == 200:
-                    file_list.extend(await self.recursive_dir_list(response))
+                    file_list.extend(await self.recursive_dir_list(response, _depth=_depth + 1, _max_depth=_max_depth))
             else:
                 file_url = self.helpers.urljoin(str(dir_listing.url), href)
-                # Ensure the file is in the same domain as the directory listing
                 if file_url.startswith(str(dir_listing.url)):
                     url = self.helpers.urlparse(file_url)
                     file_list.append(url)

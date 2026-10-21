@@ -549,7 +549,11 @@ class BaseEvent:
     def add_tag(self, tag):
         if self._tags is None:
             self._tags = set()
-        self._tags.add(sys.intern(tagify(tag)))
+        tag = tagify(tag)
+        # an in-scope event is never an affiliate (refresh_scope_tags covers events that become in-scope later)
+        if tag == "affiliate" and getattr(self, "_scope_distance", None) == 0:
+            return
+        self._tags.add(sys.intern(tag))
 
     def add_tags(self, tags):
         for tag in set(tags):
@@ -1208,7 +1212,7 @@ class DictHostEvent(DictEvent):
 
 
 class ClosestHostEvent(DictHostEvent):
-    # if a host/path/url isn't specified, this event type grabs it from the closest parent
+    # if a host isn't specified, this event type grabs host, port, url and path from the closest parent
     # inherited by FINDING
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1227,9 +1231,9 @@ class ClosestHostEvent(DictHostEvent):
                 # inherit closest host+port
                 if parent.host:
                     self.data["host"] = str(parent.host)
-                    self._port = parent.port
-                    # we do this to refresh the hash
+                    # we do this to refresh the hash (this also clears _port, so it must come first)
                     self.data = self.data
+                    self._port = parent.port
                     break
         # die if we still haven't found a host
         if not self.host and not self.data.get("path", ""):
@@ -2036,6 +2040,7 @@ class TECHNOLOGY(DictHostEvent):
         host: str
         technology: str
         url: Optional[str] = None
+        cpe: Optional[str] = None
         _validate_url = field_validator("url")(validators.validate_url)
         _validate_host = field_validator("host")(validators.validate_host)
 
@@ -2508,6 +2513,11 @@ def event_from_json(j):
 
         resolved_hosts = j.get("resolved_hosts", [])
         event._resolved_hosts = frozenset(resolved_hosts) if resolved_hosts else None
+
+        # some events (e.g. FINDING) carry a port that isn't derivable from their data
+        port = j.get("port", None)
+        if port is not None:
+            event._port = port
 
         http_title = j.get("http_title", "")
         if http_title:

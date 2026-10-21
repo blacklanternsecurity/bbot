@@ -141,6 +141,8 @@ def extract_params_location(location_header_value, original_parsed_url):
 _yara_identifier_regex = re.compile(r"[A-Za-z_]\w*")
 _yara_rule_modifiers = ("private", "global")
 
+_html_end_regex = re.compile(r"</html\s*>", re.I)
+
 
 def _skip_yara_noncode(source, i):
     """
@@ -513,7 +515,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     """
 
     watched_events = ["HTTP_RESPONSE", "RAW_TEXT"]
-    produced_events = ["URL_UNVERIFIED", "WEB_PARAMETER"]
+    produced_events = ["URL_UNVERIFIED", "WEB_PARAMETER", "FINDING"]
     _avoid_duplicate_content = True
     flags = ["safe", "passive"]
     meta = {
@@ -534,11 +536,57 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             262144,
             description="Maximum byte slice of the response body searched for a single <form> body. YARA only locates form openings; the bounded slice is what the Python re-based extractor scans for fields. Caps worst-case extraction work per form match.",
         )
+        long_redirect_threshold: int = Field(
+            2048,
+            description="Minimum number of bytes following the end of the HTML document for a 3xx response to be reported as a long redirection response. Set to 0 to disable the check.",
+        )
 
     scope_distance_modifier = None
     accept_dupes = False
 
     _module_threads = 6
+
+    async def check_long_redirect(self, event, body):
+        """Report a redirect whose body keeps going after the document ends.
+
+        Browsers discard the body of a 3xx, so content delivered here is never
+        displayed. A server that emits a redirect document and then keeps writing
+        has run the handler the redirect was meant to skip (CWE-698, Execution
+        After Redirect).
+
+        Body size on its own is not the signal: analytics payloads and notice
+        pages clear any byte threshold. Trailing content is measured on the
+        decoded body, since ``content_length`` reports the compressed size and
+        is absent from most of these responses.
+        """
+        threshold = self.long_redirect_threshold
+        status_code = event.http_status
+        location = event.data.get("location", "")
+        if not (threshold and location and 300 <= status_code < 400):
+            return
+        document_end = _html_end_regex.search(body)
+        if not document_end:
+            return
+        trailing = len(body) - document_end.end()
+        if trailing < threshold:
+            return
+
+        await self.emit_event(
+            {
+                "host": str(event.host),
+                "url": event.data.get("url", ""),
+                "name": "Long Redirection Response",
+                "description": (
+                    "Redirect kept writing after the document ended, delivering content no browser displays. "
+                    f"Status: [{status_code}] Location: [{location}] Trailing bytes: [{trailing}]"
+                ),
+                "severity": "LOW",
+                "confidence": "HIGH",
+            },
+            "FINDING",
+            event,
+            context="{module} found content past the end of the document on a {event.type} redirect, which browsers never display",
+        )
 
     def in_bl(self, value):
         # Check if the value is in the blacklist or starts with a blacklisted prefix.
@@ -591,6 +639,15 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 host = f"{host}:{port}"
         path = event.data.get("path", event.parsed_url.path)
         return urlparse(f"{scheme}://{host}{path}")
+
+    async def _document_base_url(self, event, document_url):
+        """The URL relative references in the body resolve against: the page's <base href> if it has one, else document_url."""
+        m = await self.helpers.re.search(bbot_regexes.base_href_regex, getattr(event, "body", "") or "")
+        if m:
+            base_url = urljoin(document_url, html.unescape(m.group(1)))
+            if urlparse(base_url).scheme in ("http", "https"):
+                return base_url
+        return document_url
 
     def url_unparse(self, param_type, parsed_url):
         # Reconstructs a URL, optionally omitting the query string based on remove_querystring configuration value.
@@ -780,9 +837,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                     if not form_action or form_action == "#":
                         form_action = None
 
-                    elif form_action.startswith("./"):
-                        form_action = form_action.lstrip(".")
-
                     form_parameters = {}
                     for form_content_regex_name, form_content_regex in self.form_content_regexes.items():
                         input_tags = await self.excavate.helpers.re.findall(form_content_regex, form_content)
@@ -894,6 +948,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             # Use event.body (property) so we hit the body-spill store; event.data["body"] is
             # popped at spill time and would be empty here.
             response_body = getattr(event, "body", "") or ""
+            # resolved on the first relative endpoint; RAW_TEXT events have no URL to resolve against
+            document_url = base_url = None
             for identifier, results in yara_results.items():
                 if identifier not in self.parameterExtractorCallbackDict.keys():
                     raise ExcavateError("ParameterExtractor YaraRule identified reference non-existent submodule")
@@ -929,14 +985,23 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                         if endpoint and endpoint.startswith(("http://", "https://")):
                             url = endpoint
 
-                        # The endpoint is usually a form action - we should use it if we have it. If not, default to URL.
+                        elif not hasattr(event, "parsed_url"):
+                            self.excavate.debug(
+                                f"Skipping parameter [{parameter_name}] with relative endpoint: {event.type} has no URL"
+                            )
+                            continue
+
+                        # The endpoint is usually a form action - we should use it if we have it.
+                        # A form with no action submits to the document URL, not <base href>.
                         else:
-                            # Use the effective base URL (which may differ from parsed_url for archived content)
-                            event_base = self.excavate._event_base_url(event)
-                            base_url = f"{event_base.scheme}://{event_base.netloc}{event_base.path}"
-                            if not self.excavate.remove_querystring and len(event.parsed_url.query) > 0:
-                                base_url += f"?{event.parsed_url.query}"
-                            url = urljoin(base_url, endpoint)
+                            if document_url is None:
+                                # Use the effective base URL (which may differ from parsed_url for archived content)
+                                event_base = self.excavate._event_base_url(event)
+                                document_url = f"{event_base.scheme}://{event_base.netloc}{event_base.path}"
+                                if not self.excavate.remove_querystring and len(event.parsed_url.query) > 0:
+                                    document_url += f"?{event.parsed_url.query}"
+                                base_url = await self.excavate._document_base_url(event, document_url)
+                            url = urljoin(base_url, endpoint) if endpoint else document_url
 
                         try:
                             # Validate the URL before using it
@@ -1206,6 +1271,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         tag_attribute_regex = bbot_regexes.tag_attribute_regex
 
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
+            source_url = None
             for identifier, results in yara_results.items():
                 urls_found = 0
                 final_url = ""
@@ -1228,7 +1294,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                 )
                                 continue
                             unescaped_url = html.unescape(m.group(1))
-                            source_url = event.parsed_url.geturl()
+                            if source_url is None:
+                                source_url = await self.excavate._document_base_url(event, event.parsed_url.geturl())
                             final_url = urldefrag(urljoin(source_url, unescaped_url)).url
                             if not await self.helpers.re.search(self.full_url_regex_strict, final_url):
                                 self.excavate.debug(
@@ -1384,6 +1451,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         # Bounded slice of the response body searched for a form's body, anchored
         # at each YARA form-opening match. Caps worst-case Python re work per form.
         self.max_form_bytes = int(self.config.get("max_form_bytes", 262144))
+        self.long_redirect_threshold = int(self.config.get("long_redirect_threshold", 2048))
 
         for module in self.scan.modules.values():
             if not str(module).startswith("_"):
@@ -1555,6 +1623,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             headers = event.data.get("header-dict", {})
             if body == "" and headers == {}:
                 return
+
+            await self.check_long_redirect(event, body)
 
             self.assigned_cookies = {}
             content_type = None

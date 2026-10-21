@@ -224,6 +224,7 @@ def _extract_pydantic_config(config_class: ast.ClassDef) -> tuple[dict, dict, se
         description = ""
         is_sensitive = False
         is_mandatory = False
+        is_deprecated = False
 
         value = node.value
         if isinstance(value, ast.Call) and isinstance(value.func, ast.Name) and value.func.id == "Field":
@@ -245,15 +246,22 @@ def _extract_pydantic_config(config_class: ast.ClassDef) -> tuple[dict, dict, se
                 elif kw.arg == "mandatory":
                     with suppress(ValueError, TypeError, SyntaxError):
                         is_mandatory = bool(ast.literal_eval(kw.value))
+                elif kw.arg == "deprecated":
+                    with suppress(ValueError, TypeError, SyntaxError):
+                        is_deprecated = bool(ast.literal_eval(kw.value))
                 elif kw.arg == "json_schema_extra":
                     with suppress(ValueError, TypeError, SyntaxError):
                         extra = ast.literal_eval(kw.value)
                         if isinstance(extra, dict):
                             is_sensitive = is_sensitive or bool(extra.get("sensitive"))
                             is_mandatory = is_mandatory or bool(extra.get("mandatory"))
+                            is_deprecated = is_deprecated or bool(extra.get("deprecated"))
         elif value is not None:
             default = _eval_ast_default(value)
 
+        # deprecated options are still accepted, but they get no default and aren't listed
+        if is_deprecated:
+            continue
         if default is _UNEVALUATED:
             # couldn't statically determine; fall back to None so listing still works
             default = None

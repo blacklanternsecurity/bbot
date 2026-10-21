@@ -1,13 +1,17 @@
+import time
 import asyncio
 import logging
 import traceback
 from sys import exc_info
 from contextlib import suppress
+from email.utils import parsedate_to_datetime
+from datetime import datetime, timezone
 
 from ..core.helpers.misc import get_size  # noqa
 from ..errors import HttpCompareError, ValidationError, WebError
 from ..core.helpers.async_helpers import TaskCounter, ShuffleQueue
 from ..core.event import is_event
+from .. import __version__
 
 
 class BaseModule:
@@ -67,7 +71,7 @@ class BaseModule:
 
         batch_size (int): Size of batches processed by handle_batch(). Default is 1.
 
-        api_failure_abort_threshold (int): Threshold for setting error state after failed HTTP requests (only takes effect when `api_request()` is used. Default is 5.
+        api_failure_abort_threshold (int): Threshold for setting error state after consecutive failed HTTP requests, not counting rate limits (only takes effect when `api_request()` is used).
 
         _preserve_graph (bool): When set to True, accept events that may be duplicates but are necessary for construction of complete graph. Typically only enabled for output modules that need to maintain full chains of events, e.g. `neo4j` and `json`. Default is False.
 
@@ -112,6 +116,11 @@ class BaseModule:
 
     # disable the module after this many failed attempts in a row
     _api_failure_abort_threshold = 3
+    # disable the module after this many rate-limited attempts in a row (per API key)
+    _api_rate_limit_abort_threshold = 10
+    # seconds to wait before retrying a failed API request (doubles with each retry)
+    _api_retry_backoff = 1
+    _api_retry_max_backoff = 30
     # whether to retry on 429s when first pinging the API at scan start
     _ping_retry_on_http_429 = False
 
@@ -164,6 +173,9 @@ class BaseModule:
 
         # track number of failures (for .api_request())
         self._api_request_failures = 0
+        # consecutive rate-limited responses, and when we may send again (shared by all event handlers)
+        self._api_rate_limit_count = 0
+        self._api_rate_limited_until = 0.0
 
         self._default_api_retries = self.scan.config.get("web", {}).get("api_retries", 2)
 
@@ -369,6 +381,10 @@ class BaseModule:
     @property
     def api_failure_abort_threshold(self):
         return (self.api_retries * self._api_failure_abort_threshold) + 1
+
+    @property
+    def api_rate_limit_abort_threshold(self):
+        return self._api_rate_limit_abort_threshold * max(1, len(self._api_keys))
 
     async def ping(self, url=None):
         """Asynchronously checks the health of the configured API.
@@ -1352,57 +1368,80 @@ class BaseModule:
     async def api_request(self, *args, **kwargs):
         """
         Makes an HTTP request while automatically:
-            - avoiding rate limits (sleep/retry)
+            - obeying rate limits (Retry-After), shared across all of the module's event handlers
             - cycling API keys
-            - cancelling after too many failed attempts
+            - backing off between retries of failed requests
+            - cancelling after too many failed or rate-limited attempts
         """
         url = args[0] if args else kwargs.pop("url", "")
         retry_on_http_429 = kwargs.pop("retry_on_http_429", True)
+        # we do all the retrying here; blasthttp's own retries would ignore Retry-After
+        kwargs["retries"] = 0
+        # API calls identify themselves honestly instead of using the scan's (browser) user agent
+        kwargs["headers"] = dict(kwargs.get("headers") or {})
+        if not any(k.lower() == "user-agent" for k in kwargs["headers"]):
+            kwargs["headers"]["User-Agent"] = f"BBOT/{__version__}"
+        if "ssl_verify" not in kwargs:
+            kwargs["ssl_verify"] = self.helpers.web.ssl_verify_infrastructure
+        if "timeout" not in kwargs:
+            kwargs["timeout"] = self.http_timeout_infrastructure
 
-        # loop until we have a successful request
-        for _ in range(self.api_retries):
-            if "headers" not in kwargs:
-                kwargs["headers"] = {}
-            if "ssl_verify" not in kwargs:
-                kwargs["ssl_verify"] = self.helpers.web.ssl_verify_infrastructure
-            if "timeout" not in kwargs:
-                kwargs["timeout"] = self.http_timeout_infrastructure
+        r = None
+        backoff = self._api_retry_backoff
+        for attempt in range(self.api_retries):
+            if self.errored:
+                break
+            # obey the rate limit, which another event handler may have extended while we waited
+            while (remaining := self._api_rate_limited_until - time.monotonic()) > 0:
+                await asyncio.sleep(remaining)
             new_url, kwargs = self.prepare_api_request(url, kwargs)
             kwargs["url"] = new_url
 
             r = await self.helpers.request(**kwargs)
-            success = r is not None and self._api_response_is_success(r)
-
-            if success:
+            if r is not None and self._api_response_is_success(r):
                 self._api_request_failures = 0
-            else:
-                status_code = getattr(r, "status_code", 0)
-                response_text = getattr(r, "text", "")
-                self.trace(f"API response to {url} failed with status code {status_code}: {response_text}")
-                self._api_request_failures += 1
-                if self._api_request_failures >= self.api_failure_abort_threshold:
-                    self.set_error_state(
-                        f"Setting error state due to {self._api_request_failures:,} failed HTTP requests"
-                    )
-                else:
-                    # sleep for a bit if we're being rate limited
-                    retry_after = self._get_retry_after(r)
-                    if (retry_after or status_code == 429) and retry_on_http_429:
-                        sleep_interval = int(retry_after) if retry_after is not None else self._429_sleep_interval
-                        if retry_after and retry_after > self._429_max_sleep_interval:
-                            self.verbose(
-                                f"Got an excessive retry-after header of {retry_after} from {new_url}, using {self._429_max_sleep_interval} instead"
-                            )
-                            sleep_interval = self._429_max_sleep_interval
-                        self.verbose(
-                            f"Sleeping for {sleep_interval:,} seconds due to rate limit (HTTP status: {status_code})"
-                        )
-                        await asyncio.sleep(sleep_interval)
-                    elif self._api_keys:
-                        # if request failed, cycle API keys and try again
-                        self.cycle_api_key()
+                self._api_rate_limit_count = 0
+                break
+
+            status_code = getattr(r, "status_code", 0)
+            response_text = getattr(r, "text", "")
+            self.trace(f"API response to {url} failed with status code {status_code}: {response_text}")
+            retry_after = self._get_retry_after(r)
+
+            if status_code == 429 or retry_after is not None:
+                if not retry_on_http_429:
+                    # e.g. a setup ping, where a 429 usually means the quota is used up; don't wait on it
+                    if len(self._api_keys) < 2:
+                        break
+                    self.cycle_api_key()
                     continue
-            break
+                # rate limits aren't failures, but being rate limited over and over despite obeying is
+                self._api_rate_limit_count += 1
+                if self._api_rate_limit_count >= self.api_rate_limit_abort_threshold:
+                    self.set_error_state(
+                        f"Setting error state after being rate limited {self._api_rate_limit_count:,} times in a row"
+                    )
+                    break
+                sleep_interval = self._429_sleep_interval if retry_after is None else retry_after
+                if sleep_interval > self._429_max_sleep_interval:
+                    self.verbose(
+                        f"Got an excessive retry-after of {sleep_interval} from {new_url}, using {self._429_max_sleep_interval} instead"
+                    )
+                    sleep_interval = self._429_max_sleep_interval
+                self.verbose(f"Rate limited (HTTP status: {status_code}), waiting {sleep_interval:,} seconds")
+                self._api_rate_limited_until = max(self._api_rate_limited_until, time.monotonic() + sleep_interval)
+                self.cycle_api_key()
+                continue
+
+            self._api_rate_limit_count = 0
+            self._api_request_failures += 1
+            if self._api_request_failures >= self.api_failure_abort_threshold:
+                self.set_error_state(f"Setting error state due to {self._api_request_failures:,} failed HTTP requests")
+                break
+            self.cycle_api_key()
+            if attempt < self.api_retries - 1:
+                await asyncio.sleep(backoff)
+                backoff = min(backoff * 2, self._api_retry_max_backoff)
 
         return r
 
@@ -1434,11 +1473,20 @@ class BaseModule:
                 body_json = r.json()
                 if isinstance(body_json, dict):
                     retry_after = body_json.get("retry_after", None)
-        if retry_after is not None:
-            # we don't allow retry-after smaller than 1 second
-            # this is to prevent cases where APIs erroneously return a retry-after value of 0
-            # e.g. https://github.com/blacklanternsecurity/bbot/issues/2826
-            return max(1.0, float(retry_after))
+        if retry_after is None:
+            return None
+        try:
+            seconds = float(retry_after)
+        except (TypeError, ValueError):
+            # Retry-After can also be an HTTP date
+            try:
+                seconds = (parsedate_to_datetime(retry_after) - datetime.now(timezone.utc)).total_seconds()
+            except (TypeError, ValueError):
+                return None
+        # we don't allow retry-after smaller than 1 second
+        # this is to prevent cases where APIs erroneously return a retry-after value of 0
+        # e.g. https://github.com/blacklanternsecurity/bbot/issues/2826
+        return max(1.0, seconds)
 
     def _prepare_api_iter_req(self, url, page, page_size, offset, **requests_kwargs):
         """

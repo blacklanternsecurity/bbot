@@ -314,6 +314,24 @@ async def test_events(events, helpers):
         assert tag in affiliate_event2.tags
         assert tag not in affiliate_event3.tags
 
+    # an in-scope event is never an affiliate, whether tagged directly or inheriting it
+    in_scope_parent = scan.make_event("https://evilcorp.com/", "URL", parent=root_event, tags=["status-200"])
+    in_scope_parent.scope_distance = 0
+    tagged_in_scope = scan.make_event(
+        "https://evilcorp.com/a", "URL_UNVERIFIED", parent=in_scope_parent, tags="affiliate"
+    )
+    assert tagged_in_scope.scope_distance == 0
+    assert "affiliate" not in tagged_in_scope.tags
+    out_of_scope_affiliate = scan.make_event(
+        "https://evilcorp.net/", "URL_UNVERIFIED", parent=in_scope_parent, tags="affiliate"
+    )
+    assert out_of_scope_affiliate.scope_distance == 1
+    assert "affiliate" in out_of_scope_affiliate.tags
+    in_scope_child = scan.make_event("https://evilcorp.net/b", "URL_UNVERIFIED", parent=out_of_scope_affiliate)
+    assert "affiliate" in in_scope_child.tags
+    in_scope_child.scope_distance = 0
+    assert "affiliate" not in in_scope_child.tags
+
     # discovery context
     event = scan.make_event(
         "127.0.0.1", parent=scan.root_event, context="something discovered {event.type}: {event.data}"
@@ -1174,6 +1192,31 @@ async def test_event_closest_host():
     assert vuln.data["url"] == "http://www.evilcorp.com/asdf"
     assert vuln.data["path"] == "/tmp/asdf.txt"
     assert vuln.host == "www.evilcorp.com"
+
+    # finding inherits the port from its parent, and keeps it across a json round trip
+    from bbot.core.event import event_from_json
+
+    open_port = scan.make_event("8.8.8.8:53", "OPEN_TCP_PORT", parent=scan.root_event)
+    port_finding = scan.make_event(
+        {"description": "test", "severity": "LOW", "confidence": "MEDIUM", "name": "Test Finding"},
+        "FINDING",
+        parent=open_port,
+    )
+    assert port_finding.host == ipaddress.ip_address("8.8.8.8")
+    assert port_finding.port == 53
+    assert port_finding.json()["port"] == 53
+    reconstituted_finding = event_from_json(port_finding.json())
+    assert reconstituted_finding.port == 53
+    assert reconstituted_finding.id == port_finding.id
+    # a finding with its own host doesn't inherit anything
+    own_host_finding = scan.make_event(
+        {"host": "1.2.3.4", "description": "test", "severity": "LOW", "confidence": "MEDIUM", "name": "Test Finding"},
+        "FINDING",
+        parent=open_port,
+    )
+    assert own_host_finding.port is None
+    assert "port" not in own_host_finding.json()
+    assert event_from_json(own_host_finding.json()).port is None
 
     # no host and no path == not allowed
     event3 = scan.make_event("wat", "ASDF", parent=scan.root_event)
