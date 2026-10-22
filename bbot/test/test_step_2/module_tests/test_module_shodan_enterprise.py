@@ -140,8 +140,12 @@ class TestShodan_Enterprise(ModuleTestBase):
 
         tech_events = [e for e in events if e.type == "TECHNOLOGY"]
         tech_names = {e.data.get("technology") for e in tech_events}
-        assert "cpe:/a:google:dns" in tech_names
+        # named by CPE product, with the CPE retained
+        assert "dns" in tech_names
+        assert any(e.data.get("cpe") == "cpe:2.3:a:google:dns:1.0:*:*:*:*:*:*:*" for e in tech_events)
+        # the udp service has no CPE, so it falls back to Shodan's product name
         assert "google public dns" in tech_names
+        assert not any(name.startswith("cpe:") for name in tech_names)
         assert "openssl" in tech_names
         assert "nginx" in tech_names
 

@@ -381,30 +381,21 @@ class shodan_enterprise(BaseModule):
         # once, from the first banner that reports it, so the parent is stable.
         emitted_technologies = set()
         for data in host["data"]:
-            # The port goes first so everything found in that banner can hang off
-            # it. Shodan attaches vulns and technologies to the individual banner,
-            # not to the host -- across 5 hosts with up to 5 open ports each, 157
-            # CVEs each appeared exactly once. The port event is the structural
-            # record of that association; the finding also names the service in
-            # its own data (see _emit_findings). Falls back to the IP when the
-            # banner has no usable port, so a finding is never dropped for lack
-            # of a parent.
             port_event = await self._emit_ports(ip, data, event)
             parent = port_event or event
             await self._emit_technologies(ip, data, parent, emitted_technologies)
             await self._emit_findings(ip, data, parent)
 
-    async def _emit_technology(self, ip, technology, data, event, tags, emitted):
-        # No port here: TECHNOLOGY's validator takes host/technology/url and drops
-        # anything else, so passing one only looked like it worked. The affected
-        # port is recoverable from the parent event alone -- see UPSTREAM.md.
-        # The validator also lowercases, so dedup on the form BBOT will store.
+    async def _emit_technology(self, ip, technology, data, event, tags, emitted, cpe=None):
+        # TECHNOLOGY has no port field. The validator lowercases, so dedup on that form.
         key = str(technology).lower()
         if key in emitted:
             return
         emitted.add(key)
 
         tech = {"technology": technology, "host": data.get("ip_str")}
+        if cpe is not None:
+            tech["cpe"] = cpe
         await self.emit_event(
             tech,
             "TECHNOLOGY",
@@ -416,11 +407,14 @@ class shodan_enterprise(BaseModule):
     async def _emit_technologies(self, ip, data, event, emitted):
         tags = data.get("tags") or []
 
-        for key in ("cpe", "cpe23"):
-            for technology in data.get(key, []):
-                await self._emit_technology(ip, technology, data, event, tags, emitted)
-
-        if "product" in data:
+        # name technologies by CPE product (raw CPE kept in "cpe"), falling back to Shodan's product name
+        named = False
+        for cpe in data.get("cpe23") or data.get("cpe") or []:
+            technology = self.helpers.cpe_product(cpe)
+            if technology is not None:
+                named = True
+                await self._emit_technology(ip, technology, data, event, tags, emitted, cpe=cpe)
+        if not named and "product" in data:
             await self._emit_technology(ip, data["product"], data, event, tags, emitted)
 
         components = (data.get("http") or {}).get("components") or {}
