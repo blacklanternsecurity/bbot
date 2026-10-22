@@ -549,7 +549,11 @@ class BaseEvent:
     def add_tag(self, tag):
         if self._tags is None:
             self._tags = set()
-        self._tags.add(sys.intern(tagify(tag)))
+        tag = tagify(tag)
+        # an in-scope event is never an affiliate (refresh_scope_tags covers events that become in-scope later)
+        if tag == "affiliate" and getattr(self, "_scope_distance", None) == 0:
+            return
+        self._tags.add(sys.intern(tag))
 
     def add_tags(self, tags):
         for tag in set(tags):
@@ -2036,6 +2040,7 @@ class TECHNOLOGY(DictHostEvent):
         host: str
         technology: str
         url: Optional[str] = None
+        cpe: Optional[str] = None
         _validate_url = field_validator("url")(validators.validate_url)
         _validate_host = field_validator("host")(validators.validate_host)
 

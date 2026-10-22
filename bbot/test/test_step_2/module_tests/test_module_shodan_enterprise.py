@@ -7,21 +7,13 @@ from .base import ModuleTestBase
 
 
 def search_response(*ips, total=None):
-    """A /shodan/host/search body. Phase 1 only reads ip_str and total."""
+    """A /shodan/host/search body. The module only reads ip_str and total."""
     matches = [{"ip_str": ip} for ip in ips]
     return {"matches": matches, "total": total if total is not None else len(matches)}
 
 
 def mock_search(module_test, payload, status_code=200, record=None):
-    """Answer /shodan/host/search through BBOT's own HTTP mock.
-
-    Both phases go through helpers.request(), so the search is an ordinary BBOT
-    request and blasthttp_mock sees it -- no module internals are patched. That
-    the mock sees it at all is the assertion that the module has one transport.
-
-    ``payload=None`` serves the Cloudflare interstitial this endpoint used to
-    answer with: a 403.
-    """
+    """Answer /shodan/host/search through BBOT's own HTTP mock. ``payload=None`` serves a 403 interstitial."""
 
     async def _cb(request):
         url = str(request.url)
@@ -93,77 +85,60 @@ class TestShodan_Enterprise(ModuleTestBase):
         mock_search(module_test, search_response("8.8.8.8"), record=self.search_calls)
 
     def check(self, module_test, events):
-        # blasthttp_mock only sees requests that went through helpers.request(),
-        # so this is the assertion that the module has a single transport and
-        # phase 1 is not slipping out through a client of its own.
+        # blasthttp_mock only sees requests made through helpers.request()
         assert self.search_calls, "the search never reached BBOT's HTTP layer"
         assert "/shodan/host/search" in self.search_calls[0]
 
         tcp_ports = [e.data for e in events if e.type == "OPEN_TCP_PORT"]
         udp_ports = [e.data for e in events if e.type == "OPEN_UDP_PORT"]
         assert any("8.8.8.8:53" in str(p) for p in tcp_ports), "TCP port 53 not detected"
-        # The UDP banner is why phase 2 exists: the search index withholds it.
+        # the search index withholds this UDP banner, so only the direct lookup finds it
         assert any("8.8.8.8:53" in str(p) for p in udp_ports), "UDP port 53 not detected"
 
         finding_events = [e for e in events if e.type == "FINDING"]
-        # keyed on cves, the machine-readable field -- description is prose and
-        # names the affected service, which is asserted separately below
         finding_map = {e.data["cves"][0]: e.data.get("severity") for e in finding_events}
         assert "CVE-2021-12345" in finding_map
         assert finding_map["CVE-2021-12345"] == "HIGH"
         assert "CVE-2020-00001" in finding_map
         assert finding_map["CVE-2020-00001"] == "LOW"
 
-        # Shodan attaches vulns to a banner, not to the host, so the finding
-        # must descend from that banner's port event -- that is how BBOT records
-        # which service a CVE belongs to.
+        # the finding descends from the port event of its banner
         by_cve = {e.data["cves"][0]: e for e in finding_events}
         finding = by_cve["CVE-2021-12345"]
         assert finding.parent.type == "OPEN_TCP_PORT", (
             f"FINDING should hang off the port it was found on, got {finding.parent.type}"
         )
         assert "8.8.8.8:53" in str(finding.parent.data)
-        # and the CVE belongs in the field meant for it
         assert finding.data.get("cves") == ["CVE-2021-12345"]
-        # ...and the affected service is named in the finding itself, not only in
-        # the parent chain. A consumer that reads a FINDING on its own -- a report,
-        # a CSV export, a dedup key -- must still be able to tell which service the
-        # CVE is on.
+        # the service is named in the finding itself
         assert finding.data["description"] == "CVE-2021-12345 on 53/tcp", (
             f"finding should name the affected service, got {finding.data['description']!r}"
         )
-        # the finding also inherits host and port from that banner (#3462). The
-        # description still names the service: port is not part of the event id,
-        # so without it the same CVE on two ports would dedupe to one finding.
+        # host and port are inherited from the banner's port event (#3462)
         assert str(finding.host) == "8.8.8.8"
         assert finding.port == 53, f"finding should carry its banner's port, got {finding.port}"
 
         tech_events = [e for e in events if e.type == "TECHNOLOGY"]
         tech_names = {e.data.get("technology") for e in tech_events}
-        assert "cpe:/a:google:dns" in tech_names
+        # named by CPE product, with the CPE retained
+        assert "dns" in tech_names
+        assert any(e.data.get("cpe") == "cpe:2.3:a:google:dns:1.0:*:*:*:*:*:*:*" for e in tech_events)
+        # the udp banner has no CPE, so it falls back to Shodan's product name
         assert "google public dns" in tech_names
+        assert not any(name.startswith("cpe:") for name in tech_names)
         assert "openssl" in tech_names
         assert "nginx" in tech_names
 
-        # Technologies come from the same banner and follow the same rule.
-        # Which transport wins is a dedup race -- the TCP and UDP banners carry
-        # the same technology on the same port -- so assert only that the parent
-        # is the port, not which one.
-        # TECHNOLOGY's validator takes only host/technology/url -- the "port" key
-        # the module passes is dropped, so every banner of a host yields identical
-        # data and BBOT keeps just the first. _emit_host walks host["data"] in
-        # order, so "first" is the first banner, not a race: here that is the TCP
-        # one. Recorded rather than worked around; see UPSTREAM.md.
-        tech_parents = {e.parent.type for e in tech_events}
-        assert tech_parents == {"OPEN_TCP_PORT"}, (
-            f"TECHNOLOGY should hang off the first banner's port event, got {tech_parents}"
-        )
+        # each technology hangs off the port of the first banner that reports it
+        parents = {e.data["technology"]: e.parent.type for e in tech_events}
+        assert parents["dns"] == "OPEN_TCP_PORT", parents
+        assert parents["openssl"] == parents["nginx"] == "OPEN_TCP_PORT", parents
+        assert parents["google public dns"] == "OPEN_UDP_PORT", parents
         assert all("port" not in e.data for e in tech_events), (
             "TECHNOLOGY data should not carry a port key that the validator drops"
         )
 
-        # the per-IP bookkeeping must not outlive the batch: _parents holds event
-        # objects, and through them the whole graph above each IP
+        # the per-IP bookkeeping must not outlive the batch
         assert module_test.module._parents == {}, (
             f"_parents still holds {len(module_test.module._parents)} events after the scan"
         )
@@ -189,13 +164,7 @@ def host_response_vuln_on_ports(ip, *ports, cve="CVE-2021-12345", cvss=7.5):
 
 
 class TestShodan_Enterprise_FindingPerPort(ModuleTestBase):
-    """The same CVE on two services is two findings, not one.
-
-    Shodan attaches vulns to a banner, so a host running the same vulnerable
-    product on 80 and 443 reports the CVE on both. With the port living only in
-    the parent chain, the two findings carry byte-identical data and BBOT dedups
-    them down to one -- the second service silently disappears from the report.
-    """
+    """The same CVE on two services is two findings, not one."""
 
     targets = ["8.8.8.8"]
     module_name = "shodan_enterprise"
@@ -216,22 +185,16 @@ class TestShodan_Enterprise_FindingPerPort(ModuleTestBase):
         assert descriptions == ["CVE-2021-12345 on 443/tcp", "CVE-2021-12345 on 80/tcp"], (
             f"expected one finding per affected service, got {descriptions}"
         )
-        # each one still points at its own port
         parents = sorted(str(e.parent.data) for e in findings)
         assert parents == ["8.8.8.8:443", "8.8.8.8:80"], parents
-        # and since #3462 the finding inherits that port, so consumers reading
-        # event.port (output/nmap_xml.py) see the same service the description names
+        # event.port matches the port named in the description
         for e in findings:
             described = int(e.data["description"].split(" on ")[1].split("/")[0])
             assert e.port == described, f"{e.data['description']!r} carries port {e.port}"
 
 
 class TestShodan_Enterprise_FindingWithoutPort(ModuleTestBase):
-    """A banner with no usable port still yields a finding, just without the suffix.
-
-    Shodan occasionally returns a record with no port/transport. The finding must
-    not be dropped, and must not claim a service it does not know.
-    """
+    """A banner with no usable port still yields a finding, without a service suffix."""
 
     targets = ["8.8.8.8"]
     module_name = "shodan_enterprise"
@@ -254,12 +217,7 @@ class TestShodan_Enterprise_FindingWithoutPort(ModuleTestBase):
 
 
 class TestShodan_Enterprise_CyclesApiKeyOnRateLimit(ModuleTestBase):
-    """A 429 must actually move to the next API key.
-
-    The key is baked into the URL, so cycling only works if the URL is rebuilt for
-    each attempt -- otherwise cycle_api_key() rotates the list and the retry goes
-    out under the old key anyway.
-    """
+    """A 429 must move the retry to the next API key."""
 
     targets = ["8.8.8.8"]
     module_name = "shodan_enterprise"
@@ -295,13 +253,7 @@ class TestShodan_Enterprise_CyclesApiKeyOnRateLimit(ModuleTestBase):
 
 
 class TestShodan_Enterprise_SearchStopsWhenChunkResolved(ModuleTestBase):
-    """Stop paging as soon as every IP in the chunk is accounted for.
-
-    Search bills one query credit per page and returns one match per *banner*, so
-    a chunk of busy hosts can run to many pages. The prefilter only ever reads
-    ip_str, so every page past the one that resolves the chunk is a credit spent
-    for nothing.
-    """
+    """Stop paging as soon as every IP in the chunk is accounted for (each page costs a query credit)."""
 
     _ips = ["198.51.100.1", "198.51.100.2", "198.51.100.3"]
     targets = _ips
@@ -338,13 +290,7 @@ class TestShodan_Enterprise_SearchStopsWhenChunkResolved(ModuleTestBase):
 
 
 class TestShodan_Enterprise_SearchWallDisablesPrefilter(ModuleTestBase):
-    """A wall in front of the search endpoint costs two requests, not one per chunk.
-
-    This endpoint answered BBOT's engine with a Cloudflare interstitial once. It
-    does not today, but a gateway, a WAF or exhausted query credits look the same
-    from here: the prefilter must notice, step aside and let the scan finish on
-    direct lookups.
-    """
+    """A wall in front of the search endpoint costs two requests, not one per chunk."""
 
     _ips = [f"198.51.100.{i}" for i in range(1, 6)]
     targets = _ips
@@ -354,11 +300,9 @@ class TestShodan_Enterprise_SearchWallDisablesPrefilter(ModuleTestBase):
             "shodan_enterprise": {
                 "api_key": "deadbeef",
                 "requests_per_second": 1000,
-                # one IP per query, so a per-chunk retry would be obvious
                 "search_chunk_size": 1,
             }
         },
-        # one attempt per request, so the count below is the number of chunks tried
         "web": {"api_retries": 0},
         "dns": {"minimal": True},
     }
@@ -379,23 +323,13 @@ class TestShodan_Enterprise_SearchWallDisablesPrefilter(ModuleTestBase):
             f"prefilter kept hitting the wall: {len(self.search_calls)} search attempts for {len(self._ips)} IPs"
         )
         assert module_test.module.search_prefilter is False, "prefilter should have turned itself off"
-        # the failed searches count toward api_failure_abort_threshold, but the
-        # lookups that follow succeed and must keep the module alive
         assert module_test.module.errored is False, "a wall in front of search took the whole module down"
-        # and nothing was lost: every IP still got looked up
         ports = {e.data for e in events if e.type == "OPEN_TCP_PORT"}
         assert ports == {f"{ip}:80" for ip in self._ips}, ports
 
 
 class TestShodan_Enterprise_ApiRequestsAvoidBrowserUserAgent(ModuleTestBase):
-    """API calls must not inherit a browser User-Agent from the scan config.
-
-    web.user_agent shapes how *targets* see the scan. Sent to an authenticated
-    vendor API it buys nothing and costs correctness: a browser User-Agent over a
-    non-browser TLS stack is precisely what Cloudflare challenges, and
-    api.shodan.io answers the search endpoint with a 403 interstitial. Measured
-    against the live API -- Chrome/Edge UA: 403, "BBOT" or any non-browser UA: 200.
-    """
+    """API calls must not inherit the browser User-Agent from the scan config (Cloudflare challenges it)."""
 
     targets = ["8.8.8.8"]
     module_name = "shodan_enterprise"
@@ -427,27 +361,20 @@ class TestShodan_Enterprise_ApiRequestsAvoidBrowserUserAgent(ModuleTestBase):
     def check(self, module_test, events):
         assert self.seen_agents, "the search never reached BBOT's HTTP layer"
         for ua in self.seen_agents:
-            # the module must set one explicitly -- leaving it unset means
-            # WebHelper fills in web.user_agent, which is the browser string above
             assert ua, "API request left User-Agent to the scan config"
             assert "Mozilla" not in ua, f"API request carried a browser-like User-Agent: {ua!r}"
         assert any(e.type == "OPEN_TCP_PORT" for e in events)
 
 
 class TestShodan_Enterprise_PrefilterSkipsUnknown(ModuleTestBase):
-    """An IP the search does not return must never reach the host endpoint.
-
-    This is where the batching pays off: on real target sets most IPs are unknown
-    to Shodan, and each one skipped here is one rate-limited request saved.
-    """
+    """An IP the search does not return must never reach the host endpoint."""
 
     targets = ["8.8.8.8"]
     module_name = "shodan_enterprise"
     config_overrides = {"modules": {"shodan_enterprise": {"api_key": "deadbeef"}}}
 
     async def setup_before_prep(self, module_test):
-        # Registered so that a phase 2 request would succeed -- the assertion is
-        # that it never happens.
+        # registered so a lookup would succeed; the check asserts it never happens
         module_test.blasthttp_mock.add_response(
             url="https://api.shodan.io/shodan/host/8.8.8.8?key=deadbeef",
             json=host_response_8_8_8_8,
@@ -463,11 +390,7 @@ class TestShodan_Enterprise_PrefilterSkipsUnknown(ModuleTestBase):
 
 
 class TestShodan_Enterprise_SearchFailureFallsBack(ModuleTestBase):
-    """A failed search must degrade to direct lookups, never drop the IPs.
-
-    Cloudflare returned 403 on this endpoint during development; the fallback is
-    what kept that scan complete instead of silently empty.
-    """
+    """A failed search must degrade to direct lookups, never drop the IPs."""
 
     targets = ["8.8.8.8"]
     module_name = "shodan_enterprise"
@@ -489,7 +412,7 @@ class TestShodan_Enterprise_SearchFailureFallsBack(ModuleTestBase):
 
 
 class TestShodan_Enterprise_PrefilterDisabled(ModuleTestBase):
-    """search_prefilter=false skips phase 1 entirely and queries every IP."""
+    """search_prefilter=false skips the search and queries every IP."""
 
     targets = ["8.8.8.8"]
     module_name = "shodan_enterprise"
@@ -514,13 +437,7 @@ class TestShodan_Enterprise_PrefilterDisabled(ModuleTestBase):
 
 
 class TestShodan_Enterprise_BatchingAtScale(ModuleTestBase):
-    """The batching claim, measured: 250 IPs must not cost 250 lookups.
-
-    A handful of targets never exercises chunking, so this feeds enough IPs to
-    span several search queries and counts both transports. Shodan knows 30 of
-    the 250, so the run should cost 3 searches (ceil(250/100)) plus 30 lookups --
-    33 requests where the unbatched module would have made 250.
-    """
+    """250 IPs, 30 known to Shodan: about 3 searches plus 30 lookups instead of 250 lookups."""
 
     _all_ips = [f"198.51.100.{i}" for i in range(250)]
     _known_ips = _all_ips[:30]
@@ -541,8 +458,7 @@ class TestShodan_Enterprise_BatchingAtScale(ModuleTestBase):
             url = str(request.url)
             if "/shodan/host/search" in url:
                 self.search_calls.append(url)
-                # Answer with whichever known IPs this particular chunk asked about,
-                # so the module's per-chunk bookkeeping is exercised rather than bypassed.
+                # answer with whichever known IPs this chunk asked about
                 asked = url.split("query=")[-1]
                 hits = [ip for ip in known if ip.replace(".", "%2E") in asked or ip in asked]
                 return MockResponse(status_code=200, json=search_response(*hits))
@@ -578,18 +494,16 @@ class TestShodan_Enterprise_BatchingAtScale(ModuleTestBase):
             f"= {searches + lookups} requests (unbatched would be {len(self._all_ips)})"
         )
 
-        # Chunking: 250 IPs at search_chunk_size=100 cannot fit in fewer than 3
-        # queries. Batches may arrive split, so allow more, but never one per IP.
+        # 250 IPs at search_chunk_size=100 need at least 3 queries; batches may arrive split
         assert searches >= 3, f"expected at least 3 search queries, got {searches}"
         assert searches < 50, f"search was not batching: {searches} queries for 250 IPs"
 
-        # The point of the prefilter: IPs Shodan does not know cost no lookup.
+        # IPs Shodan does not know cost no lookup
         assert lookups <= len(self._known_ips) * 2, (
-            f"expected ~{len(self._known_ips)} lookups, got {lookups} -- prefilter did not skip unknown IPs"
+            f"expected ~{len(self._known_ips)} lookups, got {lookups} (prefilter did not skip unknown IPs)"
         )
         assert lookups + searches < 250, f"{lookups + searches} requests for 250 IPs is no better than unbatched"
 
-        # And the data still arrives.
         ports = {e.data for e in events if e.type == "OPEN_TCP_PORT"}
         assert f"{self._known_ips[0]}:80" in ports
         assert not any(e.data.startswith("198.51.100.200:") for e in events if e.type == "OPEN_TCP_PORT"), (
@@ -700,12 +614,7 @@ class TestShodan_Enterprise_TransientRateLimitDoesNotError(ModuleTestBase):
 
 
 class TestShodan_Enterprise_PersistentRateLimitErrors(ModuleTestBase):
-    """A key that is rate limited on every request errors the module out.
-
-    Retrying forever is what stalled shodan_idb for hours on an exhausted quota;
-    after api_request()'s threshold the module must stop asking and let the scan
-    finish.
-    """
+    """A key that is rate limited on every request errors the module out so the scan can finish."""
 
     _ips = [f"198.51.100.{i}" for i in range(1, 26)]
     targets = _ips
@@ -846,11 +755,7 @@ class TestShodan_Enterprise_SearchRateLimitKeepsPrefilter(ModuleTestBase):
 
 
 class TestShodan_Enterprise_StopsWorkingOnceErrored(ModuleTestBase):
-    """Once api_request() has errored the module out, nothing waits on the throttle.
-
-    Otherwise every remaining IP still sleeps its 1/requests_per_second slot for
-    a request that will never be sent -- hours of idling on a big scan.
-    """
+    """Once api_request() has errored the module out, nothing waits on the throttle."""
 
     _ips = [f"198.51.100.{i}" for i in range(1, 31)]
     targets = _ips
@@ -893,13 +798,7 @@ class TestShodan_Enterprise_StopsWorkingOnceErrored(ModuleTestBase):
 
 
 class TestShodan_Enterprise_EventsDuringFinish(ModuleTestBase):
-    """IPs that reach the module while finish() is working must not stall the scan.
-
-    finish() looks up the buffered IPs, and other modules -- or what this one
-    emits -- can queue new in-scope IPs meanwhile. Their wakeup is lost while
-    the worker is busy inside finish(), so unless finish() takes them itself
-    the scan never finishes.
-    """
+    """An IP queued while finish() is running must still be looked up, and the scan must finish."""
 
     targets = ["1.2.3.0/24"]
     seeds = [f"1.2.3.{i}" for i in range(40, 46)]
@@ -915,7 +814,7 @@ class TestShodan_Enterprise_EventsDuringFinish(ModuleTestBase):
         async def _cb(request):
             ip = str(request.url).split("/shodan/host/")[-1].split("?")[0]
             if not self.injected:
-                # a new in-scope IP turns up while finish() is still looking up the rest
+                # a new in-scope IP arrives while finish() is still running
                 self.injected = True
                 late = module.scan.make_event("1.2.3.31", "IP_ADDRESS", parent=module.scan.root_event)
                 late.scope_distance = 0
@@ -953,8 +852,7 @@ class TestShodan_Enterprise_Hostnames(ModuleTestBase):
             }
         )
         records = {
-            # duplicates differing in case and a trailing dot, the IP itself, an
-            # empty string and a wildcard -- none of which may crash the module
+            # case and trailing-dot duplicates, the IP itself, an empty string and a wildcard
             "198.51.100.10": {
                 "hostnames": [
                     "Mail.Example.com.",
@@ -966,9 +864,9 @@ class TestShodan_Enterprise_Hostnames(ModuleTestBase):
                 ],
                 **host_record("198.51.100.10"),
             },
-            # names but no banners: the names must still come out
+            # names but no banners
             "198.51.100.11": {"hostnames": ["only.example.com"], "data": []},
-            # no hostnames key at all
+            # no hostnames key
             "198.51.100.12": host_record("198.51.100.12"),
         }
 
@@ -980,7 +878,7 @@ class TestShodan_Enterprise_Hostnames(ModuleTestBase):
 
         module_test.blasthttp_mock.add_callback(_cb, url=None)
 
-        # count what the module emits, before the scan's own dedup hides repeats
+        # count what the module emits before the scan's dedup
         self.emitted_names = []
         real_emit = module_test.module.emit_event
 
@@ -997,8 +895,7 @@ class TestShodan_Enterprise_Hostnames(ModuleTestBase):
         )
         names = [e for e in events if e.type == "DNS_NAME" and e.module.name == "shodan_enterprise"]
         found = sorted(e.data for e in names)
-        # "*.dev.example.com" must not turn into dev.example.com: the validator
-        # strips the wildcard, so the module has to skip it itself
+        # "*.dev.example.com" must be skipped, not turned into dev.example.com
         assert found == ["autodiscover.example.com", "mail.example.com", "only.example.com"], found
         for e in names:
             assert e.parent.type == "IP_ADDRESS", f"{e.data} should hang off its IP, got {e.parent.type}"
@@ -1010,25 +907,15 @@ class TestShodan_Enterprise_Hostnames(ModuleTestBase):
 
 
 class TestShodan_Enterprise_HostnamesDuringFinish(ModuleTestBase):
-    """A hostname found in finish() that resolves to a new in-scope IP must not stall the scan.
+    """A hostname found in finish() that resolves to a new in-scope IP must not stall the scan."""
 
-    finish() looks up the buffered IPs, and what it emits can lead back to the
-    module: a hostname resolves to an in-scope IP nobody has seen yet. That IP
-    is queued while the worker is busy inside finish(), so the wakeup is gone
-    by the time the worker waits again, and the scan never finishes.
-    """
-
-    # both IPs are in scope, but only the name is a seed: 1.2.3.31 is first seen
-    # when b.example.com, found by the module itself, resolves
-    # everything is in scope, but 1.2.3.31 is not a seed: it is first seen when
-    # b.example.com, a hostname the module itself found on 1.2.3.30, resolves.
-    # The other seeds at a low request rate keep finish() busy meanwhile.
+    # 1.2.3.31 is not a seed: it is first seen when b.example.com, found on 1.2.3.30, resolves
     targets = ["b.example.com", "1.2.3.0/24"]
     seeds = ["1.2.3.30"] + [f"1.2.3.{i}" for i in range(40, 46)]
     module_name = "shodan_enterprise"
     config_overrides = {
         "modules": {"shodan_enterprise": {"api_key": "deadbeef", "requests_per_second": 2, "search_prefilter": False}},
-        # A records must become IP_ADDRESS events for the module to see them
+        # A records must become IP_ADDRESS events
         "dns": {"minimal": False},
     }
 
@@ -1054,5 +941,4 @@ class TestShodan_Enterprise_HostnamesDuringFinish(ModuleTestBase):
 
     def check(self, module_test, events):
         ports = {e.data for e in events if e.type == "OPEN_TCP_PORT" and e.module.name == "shodan_enterprise"}
-        # the second IP only exists because of a name found during finish()
         assert ports == {"1.2.3.30:443", "1.2.3.31:8443"}, ports

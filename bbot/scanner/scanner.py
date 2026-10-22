@@ -11,7 +11,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from collections import OrderedDict
 
-from bbot import __version__
+from bbot import __full_version__
 from bbot.core.event import make_event, update_event
 from .manager import ScanIngress, ScanEgress
 from bbot.core.helpers.misc import sha1, rand_string
@@ -283,6 +283,12 @@ class Scanner:
         self.url_extension_special = {e.lower() for e in self.config.get("url_extension_special", [])}
         self.url_extension_blacklist = {e.lower() for e in self.config.get("url_extension_blacklist", [])}
 
+        # open ports / URLs on CDN/WAF hosts
+        cdn_port_filter_config = self.config.get("cdn_port_filter", {})
+        self.cdn_port_filter = bool(cdn_port_filter_config.get("enabled", True))
+        self.cdn_tags = set(cdn_port_filter_config.get("tags", []))
+        self.cdn_allowed_ports = set(cdn_port_filter_config.get("allowed_ports", []))
+
         # url querystring behavior
         self.url_querystring_remove = self.config.get("url_querystring_remove", True)
 
@@ -450,7 +456,8 @@ class Scanner:
             self.root_event.data["started_at"] = self.start_time.timestamp()
 
             self._start_log_handlers()
-            self.trace(f"Ran BBOT {__version__} at {self.start_time}, command: {' '.join(sys.argv)}")
+            self.info(f"BBOT version: {__full_version__}")
+            self.trace(f"Ran BBOT {__full_version__} at {self.start_time}, command: {' '.join(sys.argv)}")
             self.trace(f"Target: {self.preset.target.json}")
             self.trace(f"Preset: {self.preset.to_dict(redact_secrets=True)}")
 
