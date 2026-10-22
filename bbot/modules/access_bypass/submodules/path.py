@@ -42,20 +42,23 @@ class path(BaseAccessBypass):
     friendly_name = "Path Manipulation"
 
     def probes(self):
-        sibling_path = self.sibling_path(self.parsed_url.path)
-        sibling_mutations = self.mutations(sibling_path)
+        # two random sibling paths, so the catch-all control can baseline against the junk template
+        sibling_mutations_1 = self.mutations(self.sibling_path(self.parsed_url.path))
+        sibling_mutations_2 = self.mutations(self.sibling_path(self.parsed_url.path))
         seen = set()
         for key, mutated in self.mutations(self.parsed_url.path).items():
             if mutated in seen:
                 continue
             seen.add(mutated)
             url = f"{self.base_url}{mutated}"
-            sibling = sibling_mutations.get(key)
+            sibling_1 = sibling_mutations_1.get(key)
+            sibling_2 = sibling_mutations_2.get(key)
             yield Probe(
                 key=key,
                 label=f"Modified URL: GET {url}",
                 url=url,
-                sibling_url=f"{self.base_url}{sibling}" if sibling else None,
+                sibling_url=f"{self.base_url}{sibling_1}" if sibling_1 else None,
+                sibling_url_2=f"{self.base_url}{sibling_2}" if sibling_2 else None,
             )
 
     def sibling_path(self, path):

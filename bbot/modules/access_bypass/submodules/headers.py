@@ -25,6 +25,7 @@ class headers(BaseAccessBypass):
         path = self.parsed_url.path.lstrip("/")
         url = f"{self.base_url}/{path}"
         sibling = f"{self.base_url}/{self.helpers.rand_string(8, digits=False)}"
+        sibling_2 = f"{self.base_url}/{self.helpers.rand_string(8, digits=False)}"
 
         for header in ip_headers:
             for value in ip_values:
@@ -34,6 +35,7 @@ class headers(BaseAccessBypass):
                     url=url,
                     headers={header: value},
                     sibling_url=sibling,
+                    sibling_url_2=sibling_2,
                 )
         yield Probe(
             key="xfport",
@@ -41,6 +43,7 @@ class headers(BaseAccessBypass):
             url=url,
             headers={"X-Forwarded-Port": "80"},
             sibling_url=sibling,
+            sibling_url_2=sibling_2,
         )
         yield Probe(
             key="xoriginal",

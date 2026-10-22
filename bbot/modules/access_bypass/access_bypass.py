@@ -69,9 +69,12 @@ class access_bypass(BaseModule):
         return False, "no access_bypass submodule applies to this URL"
 
     async def handle_event(self, event):
+        # blocked-mode checks must not follow redirects (a 302 to /login is not a bypass);
+        # the 2xx extension-routing mode keeps the configured behavior
+        follow_redirects = self.allow_redirects if event.http_status not in (401, 403, 406, 429) else False
         try:
             compare_helper = self.helpers.http_compare(
-                event.url, allow_redirects=self.allow_redirects, include_cache_buster=False
+                event.url, allow_redirects=follow_redirects, include_cache_buster=False
             )
         except HttpCompareError as e:
             self.debug(e)
@@ -88,19 +91,12 @@ class access_bypass(BaseModule):
         if not results:
             return
 
+        # A host that trips many signatures at once is an unstable baseline or a catch-all,
+        # not a stack of real bypasses. Suppress rather than emit a low-signal finding.
         if len(results) > self.collapse_threshold:
-            await self.emit_event(
-                {
-                    "name": "Access Control Bypass",
-                    "description": f"Multiple access-control bypass signatures (exceeded threshold {self.collapse_threshold})",
-                    "host": str(event.host),
-                    "url": event.url,
-                    "severity": "MEDIUM",
-                    "confidence": "LOW",
-                },
-                "FINDING",
-                parent=event,
-                context=f"{{module}} discovered multiple access-control bypasses ({{event.type}}) for {event.url}",
+            self.verbose(
+                f"Suppressing {len(results)} access_bypass signatures for {event.url}: "
+                f"too many to be real (likely catch-all or unstable baseline)"
             )
             return
 

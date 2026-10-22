@@ -1,6 +1,6 @@
 from bbot.errors import HttpCompareError
 
-from .base import BaseAccessBypass
+from .base import BaseAccessBypass, is_allowed_status
 
 # AWS API Gateway custom-authorizer blueprint sentinels; "deny" returns a single-resource
 # Deny policy that the gateway caches by token value, authorizing every other resource.
@@ -30,7 +30,7 @@ class auth(BaseAccessBypass):
         token = self.helpers.rand_string(8)
         try:
             match, reasons, _, response = await self.compare_helper.compare(
-                self.event.url, headers={"Authorization": f"Bearer {token}"}, allow_redirects=True
+                self.event.url, headers={"Authorization": f"Bearer {token}"}, allow_redirects=self.follow_redirects
             )
         except HttpCompareError as e:
             self.access_bypass.debug(e)
@@ -42,14 +42,14 @@ class auth(BaseAccessBypass):
             )
 
     async def is_bypass_from_match(self, match, response):
-        if match is not False or response is None or str(response.status_code).startswith("4"):
+        if match is not False or response is None or not is_allowed_status(response.status_code):
             return False
         return not await self.access_bypass.is_waf_response(response)
 
     async def run_apigw(self, baseline):
         for sentinel in apigw_sentinels:
             response = await self.helpers.request(
-                self.event.url, headers={"Authorization": sentinel}, follow_redirects=True
+                self.event.url, headers={"Authorization": sentinel}, follow_redirects=False
             )
             if response is None:
                 continue
@@ -69,7 +69,7 @@ class auth(BaseAccessBypass):
         root = f"{self.base_url}/"
         if root == self.event.url:
             return
-        response = await self.helpers.request(root, headers={"Authorization": sentinel}, follow_redirects=True)
+        response = await self.helpers.request(root, headers={"Authorization": sentinel}, follow_redirects=False)
         if response is not None and self.is_apigw_bypass(response):
             self.add_result(
                 f"{self.friendly_name}: API Gateway authorizer bypass via cached Deny policy "
@@ -81,6 +81,6 @@ class auth(BaseAccessBypass):
 
     @staticmethod
     def is_apigw_bypass(response):
-        if str(response.status_code).startswith("4"):
+        if not is_allowed_status(response.status_code):
             return False
         return any(h.lower().startswith("x-amzn-remapped-") for h in response.headers.keys())

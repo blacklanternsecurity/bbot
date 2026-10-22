@@ -57,9 +57,8 @@ class TestAccessBypass_collapse(ModuleTestBase):
         module_test.httpserver.no_handler_status_code = 403
 
     def check(self, module_test, events):
-        findings = [e for e in events if e.type == "FINDING"]
-        assert len(findings) == 1
-        assert "Multiple access-control bypass signatures" in findings[0].data["description"]
+        # many signatures at once = unstable/catch-all host => suppressed entirely
+        assert not [e for e in events if e.type == "FINDING"]
 
 
 class TestAccessBypass_aspnetcookieless(ModuleTestBase):
@@ -267,25 +266,51 @@ class TestAccessBypass_extension_append_realfile(ModuleTestBase):
 
 
 class TestAccessBypass_catchall(ModuleTestBase):
-    """A host that answers every path must not produce path-bypass findings."""
+    """A blocked target whose every other path 200s (with the path reflected into the body,
+    so bodies are all unique) must still be recognized as a catch-all and produce nothing."""
 
     targets = [f"{HTTPSERVER_URL}/test"]
     modules_overrides = ["access_bypass", "http"]
     module_name = "access_bypass"
 
     async def setup_after_prep(self, module_test):
-        # every unmatched path returns the same 200 body
         def handler(request):
-            return Response("catch all body", status=200)
+            if request.path == "/test":
+                return Response("", status=403)
+            # reflect the path so every junk response is byte-different (defeats a naive body diff)
+            return Response(f"welcome, you asked for {request.path}", status=200)
 
         module_test.httpserver.expect_request(re.compile(r"/.*")).respond_with_handler(handler)
-        # the target itself must read as blocked so the blocked-mode submodules run
-        module_test.httpserver.no_handler_status_code = 403
 
     def check(self, module_test, events):
-        # /test is 200 (catch-all) so it runs in 2xx mode only; no path/header bypass findings
         findings = [e for e in events if e.type == "FINDING"]
-        assert not any("Path Manipulation" in f.data["description"] for f in findings)
+        assert not any("Path Manipulation" in f.data["description"] for f in findings), (
+            f"catch-all host produced path findings: {[f.data['description'] for f in findings]}"
+        )
+
+
+class TestAccessBypass_5xx_not_bypass(ModuleTestBase):
+    """Regression for a Cloudflare+Spring host: blocked baseline, malformed paths 500 (echoing the
+    path). A 5xx is not a bypass, and the reflected-path 500s must not each count as a signature."""
+
+    targets = [f"{HTTPSERVER_URL}/test"]
+    modules_overrides = ["access_bypass", "http"]
+    module_name = "access_bypass"
+
+    async def setup_after_prep(self, module_test):
+        def handler(request):
+            if request.path == "/test":
+                return Response("", status=401)
+            return Response(
+                json.dumps({"status": 500, "error": "Internal Server Error", "path": request.path}),
+                status=500,
+                headers={"Content-Type": "application/json"},
+            )
+
+        module_test.httpserver.expect_request(re.compile(r"/.*")).respond_with_handler(handler)
+
+    def check(self, module_test, events):
+        assert not [e for e in events if e.type == "FINDING"]
 
 
 class TestAccessBypass_apigw_negative(ModuleTestBase):
