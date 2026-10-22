@@ -225,6 +225,9 @@ include:
   - web-screenshots
   - baddns-heavy
 
+modules:
+  - access_bypass
+
 config:
   modules:
     dnsbrute:

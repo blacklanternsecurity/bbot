@@ -336,6 +336,11 @@ class HttpCompare:
             store = getattr(scan, "body_spill_store", None)
             self.baseline = _BaselineSnapshot(baseline_1, spill_store=store)
 
+    async def get_baseline(self):
+        """Establish the baseline if needed, and return the baseline response snapshot."""
+        await self._baseline()
+        return self.baseline
+
     @staticmethod
     def _baseline_bodies(text_1, text_2):
         """Parse both baseline samples and work out which parts of the response are volatile."""
