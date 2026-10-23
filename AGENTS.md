@@ -400,6 +400,9 @@ Reject events whose host has only ever answered with a challenge that needs a re
 skip_browser_only_hosts = True
 ```
 
+##### `browser_artifacts` (list) -- default: `[]`
+What the module needs from the real browser, e.g. `["screenshot"]` or `["dom", "network"]`. Declaring any makes the module depend on the browser: the scan refuses to start unless `web.enable_browser` is on. Don't list the browser's packages in the module's own `deps_*`; the browser's dependencies are installed by the deps installer only when `web.enable_browser` is on, and `--install-all-deps` would otherwise install them for everyone.
+
 ---
 
 #### Deduplication

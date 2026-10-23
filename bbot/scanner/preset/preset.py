@@ -519,6 +519,19 @@ class Preset(metaclass=BasePreset):
                     "If you genuinely want no DNS at all, also disable the modules listed above."
                 )
 
+        # modules that only work through the browser can't run without it
+        if not baked_preset.config.get("web", {}).get("enable_browser", False):
+            browser_modules = sorted(
+                m for m in baked_preset.modules if baked_preset.preloaded_module(m).get("browser_artifacts", [])
+            )
+            if browser_modules:
+                plural = len(browser_modules) > 1
+                raise ValidationError(
+                    f"{'Modules' if plural else 'Module'} {', '.join(browser_modules)} "
+                    f"{'require' if plural else 'requires'} the browser, but `web.enable_browser` is false. "
+                    f"Set `web.enable_browser=true` or remove {'them' if plural else 'the module'}."
+                )
+
         # create target object
         from bbot.scanner.target import BBOTTarget
 

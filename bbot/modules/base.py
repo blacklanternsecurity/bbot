@@ -63,6 +63,8 @@ class BaseModule:
 
         accept_url_special (bool): Accept "special" URLs not typically distributed to web modules, e.g. JS URLs. Default is False.
 
+        browser_artifacts (List): What this module needs from the browser, e.g. ["screenshot"]. Declaring any makes the module depend on the browser, so the scan won't start unless `web.enable_browser` is on. Empty list by default.
+
         skip_browser_only_hosts (bool): Reject events whose host has only ever answered with a challenge that needs a real browser. For modules that send many crafted requests a browser can't make. Default is False.
 
         options (Dict): Customizable options for the module, e.g., {"api_key": ""}. Empty dict by default.
@@ -113,6 +115,7 @@ class BaseModule:
     in_scope_only = False
     accept_url_special = False
     skip_browser_only_hosts = False
+    browser_artifacts = []
     _avoid_duplicate_content = False
     _module_threads = 1
     _batch_size = 1

@@ -352,6 +352,7 @@ class WebConfig(BaseModel):
     http_max_redirects: Optional[int] = None
     ssl_verify_target: Optional[bool] = None
     ssl_verify_infrastructure: Optional[bool] = None
+    enable_browser: Optional[bool] = None
 
 
 class EngineConfig(BaseModel):

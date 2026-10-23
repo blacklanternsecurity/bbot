@@ -271,7 +271,7 @@ async def _main():
                     f"Successfully installed dependencies for {len(succeeded):,} modules: {','.join(succeeded)}"
                 )
             if failed:
-                log.warning(f"Failed to install dependencies for {len(failed):,} modules: {', '.join(failed)}")
+                log.warning(f"Failed to install dependencies for: {', '.join(failed)}")
                 return False
             return True
 

@@ -158,6 +158,59 @@ async def test_depsinstaller_stale_pip_cache(monkeypatch, bbot_scanner):
         await scan._cleanup()
 
 
+@pytest.mark.asyncio
+async def test_depsinstaller_browser_feature(monkeypatch, bbot_scanner):
+    """The browser's dependencies are installed only when web.enable_browser is on, and a failed install stops the scan."""
+    import json
+    from bbot.errors import ScanError
+    from bbot.core.helpers.depsinstaller.installer import DepsInstaller
+
+    installed = {}
+    install_succeeds = True
+
+    async def mock_install_deps(self, name, deps):
+        installed[name] = deps
+        return install_succeeds
+
+    async def mock_install_core_deps(self):
+        return
+
+    monkeypatch.setattr(DepsInstaller, "install_deps", mock_install_deps)
+    monkeypatch.setattr(DepsInstaller, "install_core_deps", mock_install_core_deps)
+    # keep mocked successes out of the shared setup status cache
+    monkeypatch.setattr(DepsInstaller, "read_setup_status", lambda self: {})
+    monkeypatch.setattr(DepsInstaller, "write_setup_status", lambda self: None)
+
+    # off by default: a scan doesn't install the browser
+    scan = bbot_scanner("127.0.0.1")
+    await scan._prep()
+    assert "browser" not in installed
+    # and neither does installing every module's deps (--install-all-deps)
+    modules = [m for m, p in scan.preset.module_loader.preloaded().items() if p.get("type") in ("scan", "output")]
+    succeeded, failed = await scan.helpers.depsinstaller.install(*modules)
+    assert "browser" not in installed
+    assert "browser" not in succeeded + failed
+    await scan._cleanup()
+
+    # on: the browser is installed, with placeholders resolved
+    scan = bbot_scanner("127.0.0.1", config={"web": {"enable_browser": True}})
+    await scan._prep()
+    browser_deps = installed["browser"]
+    assert browser_deps["pip"] == ["camoufox==0.5.8"]
+    browser_deps_json = json.dumps(browser_deps)
+    assert "#{" not in browser_deps_json
+    assert str(scan.helpers.tools_dir) in browser_deps_json
+    await scan._cleanup()
+
+    # a failed browser install is fatal
+    installed.clear()
+    install_succeeds = False
+    scan = bbot_scanner("127.0.0.1", config={"web": {"enable_browser": True}})
+    with pytest.raises(ScanError, match="Failed to install dependencies for: browser"):
+        await scan._prep()
+    await scan._cleanup()
+
+
 def test_sql_modules_request_sqlalchemy_asyncio_extra():
     """SQLAlchemy 2.1 moved greenlet out of its default install and into the `asyncio` extra.
 

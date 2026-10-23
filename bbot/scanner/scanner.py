@@ -701,7 +701,7 @@ class Scanner:
             # install module dependencies
             succeeded, failed = await self.helpers.depsinstaller.install(*self.preset.modules)
             if failed:
-                msg = f"Failed to install dependencies for {len(failed):,} modules: {','.join(failed)}"
+                msg = f"Failed to install dependencies for: {','.join(failed)}"
                 self._fail_setup(msg)
             modules = sorted([m for m in self.preset.scan_modules if m in succeeded])
             output_modules = sorted([m for m in self.preset.output_modules if m in succeeded])

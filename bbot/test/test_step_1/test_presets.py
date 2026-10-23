@@ -1309,6 +1309,39 @@ def test_preset_dnsresolve_required_by_dns_name_consumers():
     Preset(exclude_modules=["dnsresolve"]).validate().bake()
 
 
+def test_preset_browser_modules_require_enable_browser(tmp_path):
+    """A module that declares browser_artifacts can't run unless web.enable_browser is on."""
+    for name in ("browsertestmod_a", "browsertestmod_b"):
+        (tmp_path / f"{name}.py").write_text(
+            f"""
+from bbot.modules.base import BaseModule
+
+class {name}(BaseModule):
+    watched_events = ["URL"]
+    browser_artifacts = ["screenshot"]
+"""
+        )
+    module_dirs = [str(tmp_path)]
+
+    with pytest.raises(
+        ValidationError,
+        match=r"Module browsertestmod_a requires the browser, but `web.enable_browser` is false\. "
+        r"Set `web.enable_browser=true` or remove the module\.",
+    ):
+        Preset(module_dirs=module_dirs, modules=["browsertestmod_a"]).validate().bake()
+
+    with pytest.raises(ValidationError, match=r"Modules browsertestmod_a, browsertestmod_b require the browser"):
+        Preset(module_dirs=module_dirs, modules=["browsertestmod_a", "browsertestmod_b"]).validate().bake()
+
+    # with the browser enabled, the same modules are fine
+    Preset(
+        module_dirs=module_dirs, modules=["browsertestmod_a"], config={"web": {"enable_browser": True}}
+    ).validate().bake()
+
+    # modules that don't need the browser are unaffected by it being off
+    Preset(module_dirs=module_dirs, modules=["robots"]).validate().bake()
+
+
 def test_preset_path_no_clobber_default(tmp_path):
     """Regression: loading a preset via path (e.g. ./scan.yml) must not clobber
     the default preset search path, even when the preset lives in a parent

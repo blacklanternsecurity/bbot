@@ -148,6 +148,9 @@ web:
   ssl_verify_target: false
   # Whether to verify SSL certificates for non-target traffic (APIs, wordlist downloads, etc.)
   ssl_verify_infrastructure: true
+  # Enable the real browser (Camoufox), used for screenshots, rendered DOMs, and pages behind JavaScript challenges.
+  # Off by default: it's a large download (over 1GB) and memory-hungry, and nothing browser-related is installed unless this is on.
+  enable_browser: false
   # nowafpls WAF-bypass body padding sizes, tried largest first.
   # The probe steps down a rung only when the origin explicitly rejects the size with a 413;
   # 1 MiB is exactly nginx's default client_max_body_size, hence the 128 KiB fallback.
