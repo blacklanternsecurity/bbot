@@ -48,7 +48,7 @@ dependencies = [
     "ansible-core>=2.17,<3",
     "tldextract>=5.3.0,<6",
     "cloudcheck>=11.2.0,<12",
-    "blasthttp>=0.10.1,<0.11",
+    "blasthttp>=1.0.0,<1.1",
     "blastdns>=2.0.2,<2.1",
     "zstandard>=0.22,<1",
     "packaging>=23.0",
@@ -137,3 +137,7 @@ lint.ignore = ["E402", "E711", "E713", "E721", "E741", "F403", "F405", "E501"]
 
 [tool.uv]
 constraint-dependencies = ["virtualenv>=21.7.13"]
+
+[tool.uv.sources]
+# TEMPORARY: blasthttp 1.0 is unreleased (blacklanternsecurity/blasthttp#128); local checkout of 3e1629e
+blasthttp = { path = "../blasthttp-1.0" }
