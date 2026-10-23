@@ -1,5 +1,6 @@
 from baddns.base import get_all_modules
 from baddns.lib.loader import load_signatures
+from baddns.lib.matcher import WordMatcher
 from .base import BaseModule
 
 import logging
@@ -11,7 +12,7 @@ CONFIDENCE_LEVELS = ("UNKNOWN", "LOW", "MEDIUM", "HIGH", "CONFIRMED")
 
 SUBMODULE_MAX_SEVERITY = {
     "CNAME": "MEDIUM",
-    "NS": "MEDIUM",
+    "NS": "HIGH",
     "MX": "MEDIUM",
     "TXT": "LOW",
     "references": "MEDIUM",
@@ -21,11 +22,12 @@ SUBMODULE_MAX_SEVERITY = {
     "SPF": "MEDIUM",
     "MTA-STS": "HIGH",
     "WILDCARD": "HIGH",
+    "DELEGATION": "HIGH",
 }
 
 SUBMODULE_MAX_CONFIDENCE = {
     "CNAME": "CONFIRMED",
-    "NS": "HIGH",
+    "NS": "CONFIRMED",
     "MX": "CONFIRMED",
     "TXT": "CONFIRMED",
     "references": "CONFIRMED",
@@ -35,6 +37,7 @@ SUBMODULE_MAX_CONFIDENCE = {
     "SPF": "CONFIRMED",
     "MTA-STS": "CONFIRMED",
     "WILDCARD": "CONFIRMED",
+    "DELEGATION": "CONFIRMED",
 }
 
 
@@ -56,11 +59,11 @@ class baddns(BaseModule):
         min_confidence: ConfidenceLiteral = Field("MEDIUM", description="Minimum confidence to emit")
         enabled_submodules: list[str] = Field(
             default_factory=list,
-            description="A list of submodules to enable. Empty list (default) enables CNAME, TXT and MX Only",
+            description="A list of submodules to enable. Empty list (default) enables CNAME, MX, TXT and DELEGATION Only",
         )
 
     module_threads = 8
-    deps_pip = ["baddns~=2.4.0"]
+    deps_pip = ["baddns~=2.5.0"]
 
     def select_modules(self):
         selected_submodules = []
@@ -72,7 +75,7 @@ class baddns(BaseModule):
     def set_modules(self):
         self.enabled_submodules = self.config.get("enabled_submodules", [])
         if self.enabled_submodules == []:
-            self.enabled_submodules = ["CNAME", "MX", "TXT"]
+            self.enabled_submodules = ["CNAME", "MX", "TXT", "DELEGATION"]
 
     def _filter_submodules(self):
         filtered = []
@@ -112,6 +115,8 @@ class baddns(BaseModule):
         self._min_sev_idx = SEVERITY_LEVELS.index(min_severity)
         self._min_conf_idx = CONFIDENCE_LEVELS.index(min_confidence)
         self.signatures = load_signatures()
+        # one batched YARA pass per response instead of each signature's words in turn
+        self.word_matcher = WordMatcher(self.signatures)
         self.set_modules()
         self.enabled_submodules = self._filter_submodules()
         if not self.enabled_submodules:
@@ -144,6 +149,7 @@ class baddns(BaseModule):
                 "dns_client": self.scan.helpers.dns.blastdns,
                 "custom_nameservers": self.custom_nameservers,
                 "signatures": self.signatures,
+                "word_matcher": self.word_matcher,
             }
 
             if ModuleClass.name == "NS":
