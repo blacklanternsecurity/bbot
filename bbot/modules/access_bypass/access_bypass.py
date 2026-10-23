@@ -5,7 +5,7 @@ from bbot.modules.base import BaseModule
 from bbot.core.helpers.misc import get_waf_strings
 from bbot.core.config.models import BaseModuleConfig, Field
 
-SUBMODULES = ["path", "headers", "auth", "extension_routing", "nextjs"]
+SUBMODULES = ["path", "headers", "method", "auth", "extension_routing", "nextjs"]
 
 
 class access_bypass(BaseModule):
@@ -22,12 +22,17 @@ class access_bypass(BaseModule):
 
     class Config(BaseModuleConfig):
         enabled_submodules: list[str] = Field(
-            ["path", "headers", "auth", "extension_routing", "nextjs"],
+            ["path", "headers", "method", "auth", "extension_routing", "nextjs"],
             description="Which access_bypass submodules to run. Empty list enables all.",
         )
         allow_redirects: bool = Field(
             True,
             description="Follow redirects when comparing responses. Disabling trades false positives for false negatives.",
+        )
+        state_changing_methods: bool = Field(
+            False,
+            description="Let the 'method' submodule send state-changing verbs (POST/PUT/PATCH/DELETE) and "
+            "method-override headers. These can modify the target, so enabling this makes the module invasive.",
         )
 
     # when more than this many signatures fire on one URL, collapse into a single finding

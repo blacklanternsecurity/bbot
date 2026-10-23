@@ -50,6 +50,7 @@ usage: bbot [-h] [-t TARGET [TARGET ...]] [-s SEEDS [SEEDS ...]]
                --ignore-failed-deps] [--install-all-deps] [--version]
                [--reset-config] [--reset-secrets] [--proxy HTTP_PROXY]
                [--no-proxy HOST [HOST ...]]
+               [--custom-nameservers NAMESERVER [NAMESERVER ...]]
                [-H CUSTOM_HEADERS [CUSTOM_HEADERS ...]]
                [-C CUSTOM_COOKIES [CUSTOM_COOKIES ...]]
                [--custom-yara-rules CUSTOM_YARA_RULES]
@@ -138,6 +139,8 @@ Misc:
   --proxy HTTP_PROXY    Use this proxy for all HTTP requests
   --no-proxy HOST [HOST ...]
                         Exclude these hosts from proxy (e.g. localhost *.internal.corp 10.0.0.0/8)
+  --custom-nameservers NAMESERVER [NAMESERVER ...]
+                        Use these nameservers instead of the system ones (e.g. 1.1.1.1 8.8.8.8:53)
   -H, --custom-headers CUSTOM_HEADERS [CUSTOM_HEADERS ...]
                         List of custom headers as key value pairs (header=value).
   -C, --custom-cookies CUSTOM_COOKIES [CUSTOM_COOKIES ...]

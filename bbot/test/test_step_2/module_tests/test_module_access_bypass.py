@@ -371,6 +371,89 @@ class TestAccessBypass_nextjs_redirected(ModuleTestBase):
         assert not any(e.type == "FINDING" and "Next.js" in e.data["description"] for e in events)
 
 
+class TestAccessBypass_method(ModuleTestBase):
+    """A GET-only block is lifted when the same path is replayed as POST (state_changing enabled)."""
+
+    targets = [f"{HTTPSERVER_URL}/secure"]
+    modules_overrides = ["access_bypass", "http"]
+    module_name = "access_bypass"
+    config_overrides = {"modules": {"access_bypass": {"state_changing_methods": True}}}
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpserver.expect_request("/secure", method="POST").respond_with_data(
+            "admin area reached", status=200
+        )
+        module_test.httpserver.no_handler_status_code = 403
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING"]
+        assert any("Modified Method: POST" in f.data["description"] for f in findings)
+
+
+class TestAccessBypass_method_gated(ModuleTestBase):
+    """With the default config, state-changing verbs are not sent, so a POST-only bypass is missed."""
+
+    targets = [f"{HTTPSERVER_URL}/secure"]
+    modules_overrides = ["access_bypass", "http"]
+    module_name = "access_bypass"
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpserver.expect_request("/secure", method="POST").respond_with_data(
+            "admin area reached", status=200
+        )
+        module_test.httpserver.no_handler_status_code = 403
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING"]
+        assert not any("Modified Method" in f.data["description"] for f in findings)
+
+
+class TestAccessBypass_method_options_catchall(ModuleTestBase):
+    """A server that answers OPTIONS 200 for every path is not a bypass (catch-all)."""
+
+    targets = [f"{HTTPSERVER_URL}/secure"]
+    modules_overrides = ["access_bypass", "http"]
+    module_name = "access_bypass"
+
+    async def setup_after_prep(self, module_test):
+        def handler(request):
+            if request.method == "OPTIONS":
+                return Response("", status=200)
+            return Response("", status=403)
+
+        module_test.httpserver.expect_request(re.compile(r"/.*")).respond_with_handler(handler)
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING"]
+        assert not any("Modified Method: OPTIONS" in f.data["description"] for f in findings)
+
+
+class TestAccessBypass_encoded_qmark(ModuleTestBase):
+    """Family 1: /admin%3F truncates at the origin to /admin, bypassing the block on /admin."""
+
+    targets = [f"{HTTPSERVER_URL}/admin"]
+    modules_overrides = ["access_bypass", "http"]
+    module_name = "access_bypass"
+
+    async def setup_after_prep(self, module_test):
+        def handler(request):
+            raw = request.environ.get("RAW_URI") or request.environ.get("REQUEST_URI") or ""
+            if "%3f" in raw.lower():
+                # origin truncates at the (decoded) '?', routing by what's left of it
+                truncated = re.split(r"%3[fF]", raw)[0].rstrip("/")
+                if truncated == "/admin":
+                    return Response("admin content reached", status=200)
+                return Response("", status=404)
+            # direct access is blocked
+            return Response("", status=403)
+
+        module_test.httpserver.expect_request(re.compile(r"/.*")).respond_with_handler(handler)
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING"]
+        assert any("/admin%3F" in f.data["description"] for f in findings)
+
+
 class TestAccessBypass_nextjs(ModuleTestBase):
     """T2.2: a page that redirects to /auth/signin is reachable via its _next/data route."""
 

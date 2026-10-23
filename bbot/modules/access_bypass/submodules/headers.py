@@ -64,4 +64,3 @@ class headers(BaseAccessBypass):
             method="POST",
             headers={"Content-Length": "0"},
         )
-        yield Probe(key="trace", label="Modified URL: TRACE", url=url, method="TRACE")
