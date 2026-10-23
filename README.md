@@ -15,7 +15,7 @@ _A BBOT scan in real-time - visualization with [VivaGraphJS](https://github.com/
 pipx install bbot
 
 # bleeding edge (dev branch)
-pipx install --pip-args '\--pre' bbot
+pipx install git+https://github.com/blacklanternsecurity/bbot@dev
 ```
 
 _For more installation methods, including [Docker](https://hub.docker.com/r/blacklanternsecurity/bbot), see [Getting Started](https://www.blacklanternsecurity.com/bbot/Stable/)_

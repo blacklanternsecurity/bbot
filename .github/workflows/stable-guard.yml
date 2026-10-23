@@ -1,0 +1,12 @@
+name: stable guard
+
+on:
+  pull_request:
+    branches: [stable]
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    uses: blacklanternsecurity/CLA/.github/workflows/stable-guard.yml@07e14bcbba5e737e1b29bd9e3f9128fbf2483be9 # CLA#11
