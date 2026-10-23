@@ -200,6 +200,7 @@ class http(BaseModule):
             return False
 
         response = result.response
+        self.helpers.web.record_conclusion(response)
         status_code = response.status
         if status_code == 0:
             self.debug(f'No HTTP status code for "{result.url}"')

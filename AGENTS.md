@@ -392,6 +392,14 @@ Whether to accept "special" URLs (e.g. JavaScript files) that are not normally d
 accept_url_special = True
 ```
 
+##### `skip_browser_only_hosts` (bool) -- default: `False`
+Reject events whose host has only ever answered with a challenge that needs a real browser (blasthttp's `needs_browser` verdict). Set this on modules that send many crafted requests a browser can't make, since every one of them would hit the challenge page.
+
+```python
+# lightfuzz.py - fuzzing a host that only serves a JavaScript challenge is wasted traffic
+skip_browser_only_hosts = True
+```
+
 ---
 
 #### Deduplication

@@ -90,6 +90,8 @@ class WebHelper:
         self._custom_cookies = self.web_config.get("http_cookies", {})
         self._wildcard_cache = LRUCache(maxsize=50000)
         self._wildcard_locks = NamedLock(max_size=50000)
+        # host -> "reached" or "browser_only", from blasthttp's verdict on each response
+        self._host_states = {}
 
     @property
     def client(self):
@@ -326,6 +328,7 @@ class WebHelper:
                     f"blasthttp response from {url}: {response.status_code} "
                     f"(Length: {len(response.content)}) headers: {response.headers}"
                 )
+            self.record_conclusion(response)
             return response
 
         except RuntimeError as e:
@@ -424,6 +427,8 @@ class WebHelper:
 
         async for br in iter_batch_results(self.client.request_batch_stream(configs, concurrency=threads)):
             response = br.response  # blasthttp.Response or None
+            if response is not None:
+                self.record_conclusion(response)
             if has_tracker:
                 queue = trackers_by_url.get(br.url)
                 tracker = queue.popleft() if queue else None
@@ -672,6 +677,30 @@ class WebHelper:
         except Exception as e:
             log.debug(f"Error parsing beautifulsoup: {e}")
             return False
+
+    def record_conclusion(self, response):
+        """
+        Track whether a response's host can only be loaded by a real browser.
+
+        A host is "browser_only" once blasthttp concludes ``needs_browser`` for it (a JavaScript
+        challenge no HTTP client can pass). A host that has ever been reached stays "reached", so
+        a host that only challenges some of its paths is not written off.
+        """
+        verdict, vendor = response.conclusion
+        if verdict not in ("reached", "needs_browser"):
+            return
+        host = urlparse(response.url).hostname
+        if not host:
+            return
+        if verdict == "reached":
+            self._host_states[host] = "reached"
+        elif host not in self._host_states:
+            self._host_states[host] = "browser_only"
+            log.verbose(f"{host} can only be loaded by a browser ({vendor} challenge)")
+
+    def is_browser_only(self, host):
+        """Whether this host has answered with a challenge only a browser can pass, and has never been reached."""
+        return self._host_states.get(str(host)) == "browser_only"
 
     async def is_http_wildcard_host(self, scheme, host, port):
         """Detect whether a host returns the same response regardless of URL path.

@@ -63,6 +63,8 @@ class BaseModule:
 
         accept_url_special (bool): Accept "special" URLs not typically distributed to web modules, e.g. JS URLs. Default is False.
 
+        skip_browser_only_hosts (bool): Reject events whose host has only ever answered with a challenge that needs a real browser. For modules that send many crafted requests a browser can't make. Default is False.
+
         options (Dict): Customizable options for the module, e.g., {"api_key": ""}. Empty dict by default.
 
         options_desc (Dict): Descriptions for options, e.g., {"api_key": "API Key"}. Empty dict by default.
@@ -110,6 +112,7 @@ class BaseModule:
     target_only = False
     in_scope_only = False
     accept_url_special = False
+    skip_browser_only_hosts = False
     _avoid_duplicate_content = False
     _module_threads = 1
     _batch_size = 1
@@ -939,6 +942,9 @@ class BaseModule:
         filter_result, reason = self._scope_distance_check(event)
         if not filter_result:
             return filter_result, reason
+
+        if self.skip_browser_only_hosts and event.host and self.helpers.web.is_browser_only(event.host):
+            return False, "its host can only be loaded by a browser"
 
         # custom filtering
         async with self.scan._acatch(context=self.filter_event):

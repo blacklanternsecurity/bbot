@@ -23,6 +23,7 @@ class iis_shortnames(BaseModule):
         "created_date": "2022-04-15",
         "author": "@liquidsec",
     }
+    skip_browser_only_hosts = True
 
     class Config(BaseModuleConfig):
         detect_only: bool = Field(

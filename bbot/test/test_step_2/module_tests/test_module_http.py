@@ -280,3 +280,20 @@ class TestHTTP_429_max_retries(ModuleTestBase):
         assert not any(e.type == "HTTP_RESPONSE" and e.data.get("status_code") == 429 for e in events), (
             "Exhausted 429 retries should not emit an HTTP_RESPONSE event"
         )
+
+
+class TestHTTP_BrowserOnlyHost(ModuleTestBase):
+    """The http module records a host as browser-only when it only answers with a browser challenge."""
+
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http"]
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            "<html>Just a moment...</html>",
+            status=403,
+            headers={"Server": "cloudflare", "cf-mitigated": "challenge"},
+        )
+
+    def check(self, module_test, events):
+        assert module_test.scan.helpers.web.is_browser_only("127.0.0.1")

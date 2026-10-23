@@ -41,6 +41,7 @@ class paramminer_headers(BaseModule):
         "created_date": "2022-04-15",
         "author": "@liquidsec",
     }
+    skip_browser_only_hosts = True
 
     class Config(BaseModuleConfig):
         wordlist: Union[str, list[str]] = Field(

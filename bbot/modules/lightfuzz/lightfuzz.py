@@ -20,6 +20,7 @@ class lightfuzz(BaseModule):
     watched_events = ["URL", "WEB_PARAMETER"]
     produced_events = ["FINDING", "HTTP_RESPONSE"]
     flags = ["active", "loud", "web-heavy", "invasive"]
+    skip_browser_only_hosts = True
 
     class Config(BaseModuleConfig):
         force_common_headers: bool = Field(

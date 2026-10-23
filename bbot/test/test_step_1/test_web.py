@@ -915,3 +915,68 @@ async def test_base_module_is_http_wildcard_host_per_url(bbot_scanner):
     assert result is None
 
     await scan._cleanup()
+
+
+# a 403 shaped like a Cloudflare managed challenge, which blasthttp concludes needs a browser
+CF_CHALLENGE = {
+    "response_data": "<html>Just a moment...</html>",
+    "status": 403,
+    "headers": {"Server": "cloudflare", "cf-mitigated": "challenge"},
+}
+
+
+@pytest.mark.asyncio
+async def test_web_browser_only_hosts(bbot_scanner, bbot_httpserver):
+    """A host is browser-only once it answers with a browser challenge, unless it has ever been reached."""
+    bbot_httpserver.expect_request(uri="/challenge").respond_with_data(**CF_CHALLENGE)
+    bbot_httpserver.expect_request(uri="/").respond_with_data("hello")
+
+    # request(): challenge first, then a reachable page
+    scan = bbot_scanner()
+    await scan._prep()
+    web = scan.helpers.web
+    response = await web.request(bbot_httpserver.url_for("/challenge"))
+    assert response.conclusion == ("needs_browser", "cloudflare")
+    assert web.is_browser_only("127.0.0.1")
+    await web.request(bbot_httpserver.url_for("/"))
+    assert not web.is_browser_only("127.0.0.1")
+    # once reached, a later challenge doesn't write the host off
+    await web.request(bbot_httpserver.url_for("/challenge"))
+    assert not web.is_browser_only("127.0.0.1")
+    await scan._cleanup()
+
+    # request_batch_stream()
+    scan = bbot_scanner()
+    await scan._prep()
+    web = scan.helpers.web
+    assert not web.is_browser_only("127.0.0.1")
+    async for url, response in web.request_batch_stream([bbot_httpserver.url_for("/challenge")]):
+        assert response.conclusion[0] == "needs_browser"
+    assert web.is_browser_only("127.0.0.1")
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_base_module_skip_browser_only_hosts(bbot_scanner, bbot_httpserver):
+    """Modules with skip_browser_only_hosts reject events on a browser-only host; other modules don't."""
+    from bbot.modules.base import BaseModule
+
+    bbot_httpserver.expect_request(uri="/challenge").respond_with_data(**CF_CHALLENGE)
+
+    scan = bbot_scanner("127.0.0.1")
+    await scan._prep()
+
+    skipping = BaseModule(scan)
+    skipping.skip_browser_only_hosts = True
+    normal = BaseModule(scan)
+
+    event = scan.make_event(bbot_httpserver.url_for("/page"), "URL", parent=scan.root_event, tags=["status-200"])
+    event.scope_distance = 0
+
+    assert (await skipping._event_postcheck_inner(event))[0] is True
+
+    await scan.helpers.web.request(bbot_httpserver.url_for("/challenge"))
+    assert await skipping._event_postcheck_inner(event) == (False, "its host can only be loaded by a browser")
+    assert (await normal._event_postcheck_inner(event))[0] is True
+
+    await scan._cleanup()
