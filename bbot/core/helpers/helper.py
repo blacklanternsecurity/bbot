@@ -85,7 +85,7 @@ class ConfigAwareHelper:
     from . import regexes
     from . import validators
     from .files import tempfile, feed_pipe, _feed_pipe, tempfile_tail
-    from .cache import cache_get, cache_put, cache_filename, is_cached
+    from .cache import cache_get, cache_put, cache_filename, is_cached, is_fresh
     from .command import run, run_live, _spawn_proc, _prepare_command_kwargs
 
     def __init__(self, preset):

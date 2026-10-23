@@ -216,6 +216,24 @@ async def test_web_helpers(bbot_scanner, bbot_httpserver, blasthttp_mock):
     with open(filename2) as f:
         assert f.read() == download_content
 
+    # download respects cache_hrs when checking freshness
+    cached_file = scan1.helpers.cache_filename(url)
+    cached_file.write_text("stale")
+    two_days_ago = time.time() - 48 * 3600
+    os.utime(cached_file, (two_days_ago, two_days_ago))
+    filename = await scan1.helpers.download(url, cache_hrs=72)
+    assert Path(filename).read_text() == "stale"
+    filename = await scan1.helpers.download(url, cache_hrs=24)
+    assert Path(filename).read_text() == download_content
+
+    # with a custom filename, freshness is checked on that file, not the url's cache entry
+    assert scan1.helpers.is_cached(url, cache_hrs=24)
+    custom_file = BBOT_TEST_DIR / "bbot_download_cache_hrs_test_file"
+    custom_file.unlink(missing_ok=True)
+    filename = await scan1.helpers.download(url, filename=custom_file, cache_hrs=24)
+    assert filename == custom_file
+    assert custom_file.read_text() == download_content
+
     # beautifulsoup
     download_content = """
     <div>

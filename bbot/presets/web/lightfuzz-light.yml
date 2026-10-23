@@ -3,7 +3,6 @@ description: "Minimal fuzzing: only path traversal, SQLi, and XSS submodules. No
 modules:
   - http
   - lightfuzz
-  - portfilter
   
 config:
   url_querystring_remove: False # don't strip off the querystring (BBOT normally does this; but lightfuzz needs it)
