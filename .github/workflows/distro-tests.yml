@@ -44,6 +44,11 @@ jobs:
             . /etc/os-release
             if [ "$ID" = "ubuntu" ] || [ "$ID" = "debian" ] || [ "$ID" = "kali" ]; then
               export DEBIAN_FRONTEND=noninteractive
+              # http.kali.org redirects to whichever mirror is nearest, and a dead one fails the whole leg
+              if [ "$ID" = "kali" ]; then
+                sed -i 's#http://http.kali.org/kali#http://kali.download/kali#' /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+              fi
+              echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries
               apt-get update
               apt-get -y install curl git bash build-essential docker.io libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev
             elif [ "$ID" = "alpine" ]; then
