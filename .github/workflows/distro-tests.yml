@@ -1,8 +1,6 @@
 name: Tests (Linux Distros)
 on:
   pull_request:
-    paths-ignore:
-      - '**/*.md'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
@@ -12,7 +10,25 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        id: filter
+        with:
+          predicate-quantifier: every
+          filters: |
+            code:
+              - '!**/*.md'
+
   test-distros:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     container:
       image: ${{ matrix.os }}
@@ -61,3 +77,14 @@ jobs:
         with:
           name: pytest-debug-logs-${{ env.OS_NAME }}
           path: pytest_debug.log
+
+  distro_tests:
+    name: distro tests passed
+    if: always()
+    needs: [changes, test-distros]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0
+        with:
+          allowed-skips: test-distros
+          jobs: ${{ toJSON(needs) }}

@@ -2,16 +2,20 @@ name: Tests
 on:
   push:
     branches:
-      - stable
       - dev
   pull_request:
   workflow_call:
+    secrets:
+      BBOT_IO_API_KEY:
+        required: false
+      CODECOV_TOKEN:
+        required: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: tests-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  group: tests-${{ github.workflow_ref }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -35,8 +39,10 @@ jobs:
   test:
     needs: changes
     if: ${{ !cancelled() && (needs.changes.outputs.code != 'false' || github.event.pull_request.changed_files >= 3000) }}
-    uses: blacklanternsecurity/CLA/.github/workflows/python-tests.yml@40c6e18c0a6e32116eea4f89fc826f53c70889dc # main
-    secrets: inherit
+    uses: blacklanternsecurity/CLA/.github/workflows/python-tests.yml@07e14bcbba5e737e1b29bd9e3f9128fbf2483be9 # CLA#11
+    secrets:
+      BBOT_IO_API_KEY: ${{ secrets.BBOT_IO_API_KEY }}
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     with:
       uv-sync-args: --group dev
       setup-script: bbot/test/ci_workers.sh

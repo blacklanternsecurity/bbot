@@ -12,5 +12,7 @@ permissions:
 
 jobs:
   cla:
-    uses: blacklanternsecurity/CLA/.github/workflows/cla-reusable.yml@40c6e18c0a6e32116eea4f89fc826f53c70889dc # main
-    secrets: inherit
+    uses: blacklanternsecurity/CLA/.github/workflows/cla-reusable.yml@07e14bcbba5e737e1b29bd9e3f9128fbf2483be9 # CLA#11
+    secrets:
+      APP_ID: ${{ secrets.APP_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
