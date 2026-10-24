@@ -246,8 +246,12 @@ async def _main():
 
         try:
             scan = Scanner(preset=baked_preset)
-        except (PresetAbortError, ValidationError) as e:
+        except PresetAbortError as e:
             log.warning(str(e))
+            return
+        except ValidationError as e:
+            # the scan can't run as configured, like a module whose setup hard-fails
+            log.error(str(e))
             return
 
         # --install-all-deps
