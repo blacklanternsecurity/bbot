@@ -322,8 +322,6 @@ class http(BaseModule):
         for event in events:
             prefetched = getattr(event, "prefetched_response", None)
             if prefetched is not None:
-                # dropped once used, so the body isn't held for the rest of the scan
-                event.prefetched_response = None
                 self.critical(
                     f"BROWSERDBG http USING PREFETCHED response (no request): {event.url} status={prefetched.status}"
                 )

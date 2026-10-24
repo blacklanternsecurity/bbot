@@ -1427,8 +1427,8 @@ class URL_UNVERIFIED(DictHostEvent):
     __slots__ = [
         "web_spider_distance",
         "num_redirects",
-        # a response the emitting module already has (e.g. from a browser), which the http module uses instead of
-        # fetching the URL again
+        # a response the emitting module already has (e.g. from a browser), which modules use instead of fetching the
+        # URL again. Released once every module is done with the event
         "prefetched_response",
     ]
 
@@ -1574,6 +1574,11 @@ class URL_UNVERIFIED(DictHostEvent):
     @redirect_location.setter
     def redirect_location(self, value):
         self.data["redirect_location"] = value
+
+    def _minimize(self):
+        super()._minimize()
+        if self._module_consumers <= 0:
+            self.prefetched_response = None
 
     @property
     def content_type(self):

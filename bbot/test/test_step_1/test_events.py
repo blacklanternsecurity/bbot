@@ -2,6 +2,8 @@ import random
 import hashlib
 import ipaddress
 
+import blasthttp
+
 from ..bbot_fixtures import *
 from bbot.scanner import Scanner
 from bbot.core.helpers.regexes import event_uuid_regex
@@ -1563,6 +1565,26 @@ async def test_web_parameter_minimize_sentinel():
     assert event._module_consumers >= 1, "no module accepted the event"
     # The sentinel must have prevented premature stripping
     assert "original_value" in event.data, "original_value stripped during distribution -- sentinel missing"
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_prefetched_response_released():
+    """A URL's prefetched response stays until every module is done with the event, then is released."""
+    scan = Scanner("http://example.com")
+    await scan._prep()
+    event = scan.make_event("http://example.com/app.js", "URL_UNVERIFIED", parent=scan.root_event)
+    assert event.prefetched_response is None
+    response = blasthttp.Response("http://example.com/app.js", 200, headers=[], body=b"var a = 1;")
+    event.prefetched_response = response
+
+    # two modules take the event; the first finishing doesn't release it
+    event._module_consumers = 2
+    event._minimize()
+    assert event.prefetched_response is response
+    event._minimize()
+    assert event.prefetched_response is None
 
     await scan._cleanup()
 
