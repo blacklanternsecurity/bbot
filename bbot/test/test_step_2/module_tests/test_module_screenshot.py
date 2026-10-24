@@ -54,7 +54,7 @@ class TestScreenshot(ModuleTestBase):
             assert data["sha256"] == hashlib.sha256(png).hexdigest()
             assert data["size"] == len(png)
             assert data["mime_type"] == "image/png"
-            assert data["width"] > 0 and data["height"] > 0
+            assert (data["width"], data["height"]) == (1440, 900)
             assert len(data["dhash"]) == 16
             assert "file" in event.tags
 

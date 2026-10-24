@@ -18,6 +18,7 @@ from urllib.parse import urlparse
 import blasthttp
 
 from bbot.errors import BrowserError
+from .engines.base import VIEWPORT
 from .engines.camoufox import CamoufoxEngine
 
 log = logging.getLogger("bbot.core.helpers.web.browser")
@@ -602,7 +603,9 @@ class BrowserHelper:
         host = instance.hosts.get(origin)
         if host is None:
             log.critical(f"BROWSERDBG creating context for origin {origin} (contexts open: {len(instance.hosts)})")
-            context = await instance.browser.new_context(ignore_https_errors=not self.verify_certs)
+            context = await instance.browser.new_context(
+                ignore_https_errors=not self.verify_certs, viewport={"width": VIEWPORT[0], "height": VIEWPORT[1]}
+            )
             await context.route("**/*", self._route)
             host = _Host(context)
             instance.hosts[origin] = host

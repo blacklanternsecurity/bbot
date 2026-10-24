@@ -8,7 +8,7 @@ import platform
 from contextlib import suppress
 
 from bbot.errors import BrowserError
-from .base import BrowserEngine
+from .base import VIEWPORT, BrowserEngine
 
 log = logging.getLogger("bbot.core.helpers.web.browser")
 
@@ -40,7 +40,9 @@ CAMOUFOX_PLATFORMS = [
     ),
 ]
 
-WINDOW_SIZE = (1440, 900)
+# the smallest screen the fingerprint may claim. A window taller or wider than its screen is a giveaway, so this
+# leaves room around the viewport for the browser's own toolbars and the OS taskbar
+MIN_SCREEN = (VIEWPORT[0] + 160, VIEWPORT[1] + 150)
 
 
 def _platform_condition(system, arch):
@@ -154,11 +156,12 @@ class CamoufoxEngine(BrowserEngine):
     def _launch_options(self):
         from camoufox import DefaultAddons
         from camoufox.utils import launch_options
+        from camoufox.fingerprints import Screen
 
         kwargs = {
             "executable_path": self.executable_path,
             "headless": True,
-            "window": WINDOW_SIZE,
+            "screen": Screen(min_width=MIN_SCREEN[0], min_height=MIN_SCREEN[1]),
             # uBlock Origin would hide requests (and page content) the scan cares about
             "exclude_addons": [DefaultAddons.UBO],
             "i_know_what_im_doing": True,

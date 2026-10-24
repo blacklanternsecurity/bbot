@@ -1,3 +1,7 @@
+# the size pages render at, and so the size of every screenshot
+VIEWPORT = (1440, 900)
+
+
 class BrowserEngine:
     """
     A browser BBOT can drive. An engine installs its browser and launches it. Everything else (pages,
@@ -7,13 +11,13 @@ class BrowserEngine:
     Playwright Chromium/Firefox/WebKit. BrowserHelper uses only this part of that API, so an engine without it
     needs an adapter for just this subset:
 
-        Browser:        new_context(), close(), on("disconnected")
+        Browser:        new_context(ignore_https_errors, viewport), close(), on("disconnected")
         BrowserContext: new_page(), route(), close()
-        Page:           goto(), on("response"), main_frame, title(), content(), screenshot(), evaluate(),
+        Page:           goto(), route(), on("response"), main_frame, title(), content(), screenshot(), evaluate(),
                         wait_for_load_state(), close(), is_closed()
-        Response:       url, status, frame, request (method, resource_type, is_navigation_request()),
+        Response:       url, status, frame, request (method, resource_type, frame, is_navigation_request()),
                         body(), headers_array(), server_addr()
-        Route:          request (url, headers), abort(), continue_()
+        Route:          request (url, method, headers), abort(), continue_(), fallback()
     """
 
     name = ""
