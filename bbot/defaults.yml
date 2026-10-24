@@ -151,6 +151,14 @@ web:
   # Enable the real browser (Camoufox), used for screenshots, rendered DOMs, and pages behind JavaScript challenges.
   # Off by default: it's a large download (over 1GB) and memory-hungry, and nothing browser-related is installed unless this is on.
   enable_browser: false
+  # Maximum number of browser pages loading at once (each can use 100-300MB of memory)
+  browser_max_pages: 4
+  # Restart the browser after this many pages, since its memory use only grows
+  browser_recycle_after: 500
+  # Shut the browser down after this many seconds unused (it's relaunched when next needed)
+  browser_idle_timeout: 120
+  # Connect to an already-running browser server (e.g. `python -m camoufox server`) instead of launching one
+  browser_ws_endpoint: ""
   # nowafpls WAF-bypass body padding sizes, tried largest first.
   # The probe steps down a rung only when the origin explicitly rejects the size with a 413;
   # 1 MiB is exactly nginx's default client_max_body_size, hence the 128 KiB fallback.

@@ -1059,6 +1059,8 @@ class Scanner:
             # clean up dns engine
             if self.helpers._dns is not None:
                 await self.helpers.dns.shutdown()
+            if self.helpers._browser is not None:
+                await self.helpers.browser.shutdown()
             # In some test paths, `_prep()` is never called, so `home` and
             # `temp_dir` may not exist. Treat those as best-effort cleanups.
             home = getattr(self, "home", None)

@@ -14,6 +14,7 @@ from . import misc
 from .asn import ASNHelper
 from .dns import DNSHelper
 from .web import WebHelper
+from .web.browser import BrowserHelper
 from .diff import HttpCompare
 from .nowafpls import NowafplsHelper
 from .regex import RegexHelper
@@ -114,6 +115,7 @@ class ConfigAwareHelper:
         self.simhash = SimHashHelper()
         self._dns = None
         self._web = None
+        self._browser = None
         self._asn = None
         self._cloudcheck = None
         self._asn = None
@@ -134,6 +136,12 @@ class ConfigAwareHelper:
         if self._web is None:
             self._web = WebHelper(self)
         return self._web
+
+    @property
+    def browser(self):
+        if self._browser is None:
+            self._browser = BrowserHelper(self)
+        return self._browser
 
     @property
     def asn(self):
