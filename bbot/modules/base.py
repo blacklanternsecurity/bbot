@@ -947,6 +947,7 @@ class BaseModule:
             return filter_result, reason
 
         if self.skip_browser_only_hosts and event.host and self.helpers.web.is_browser_only(event.host):
+            self.critical(f"BROWSERDBG {self.name} SKIPPING browser-only host {event.host}: {event.data}")
             return False, "its host can only be loaded by a browser"
 
         # custom filtering

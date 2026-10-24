@@ -202,7 +202,13 @@ class http(BaseModule):
         response = result.response
         self.helpers.web.record_conclusion(response)
         if response.conclusion[0] == "needs_browser":
+            self.critical(
+                f"BROWSERDBG http got a CHALLENGE, handing to browser fallback: {result.url} conclusion={response.conclusion}"
+            )
             response = await self.helpers.web.get_past_challenge(result.url, response, {"follow_redirects": False})
+            self.critical(
+                f"BROWSERDBG http after browser fallback: {result.url} status={response.status} conclusion={response.conclusion}"
+            )
         status_code = response.status
         if status_code == 0:
             self.debug(f'No HTTP status code for "{result.url}"')

@@ -36,21 +36,29 @@ class screenshot(BaseModule):
 
     async def filter_event(self, event):
         if any(t.startswith("status-30") for t in event.tags):
+            self.critical(f"BROWSERDBG screenshot SKIP (redirect): {event.data}")
             return False, "URL is a redirect"
         if event.type == "SOCIAL":
             if not self.visit_social:
+                self.critical(f"BROWSERDBG screenshot SKIP (social=False): {event.data}")
                 return False, "social=False"
         # out-of-scope SOCIAL pages are fine, but not URLs
         elif event.scope_distance > 0:
+            self.critical(f"BROWSERDBG screenshot SKIP (out of scope, distance {event.scope_distance}): {event.data}")
             return False, "event is not in-scope"
         return True
 
     async def handle_event(self, event):
         url = event.url if event.type == "SOCIAL" else (event.url or event.data)
+        self.critical(f"BROWSERDBG screenshot handling {event.type}: {url} (tags={sorted(event.tags)})")
         visit = await self.helpers.browser.visit(url, consumer=self.name)
         if visit is None or not visit.screenshot:
+            self.critical(
+                f"BROWSERDBG screenshot GOT NOTHING for {url}: visit={'None' if visit is None else 'no screenshot'}"
+            )
             return
         if visit.response.conclusion[0] == "needs_browser":
+            self.critical(f"BROWSERDBG screenshot SKIP challenge page: {url} conclusion={visit.response.conclusion}")
             self.debug(f"Not screenshotting {url}: the browser couldn't get past its challenge")
             return
 
@@ -60,7 +68,11 @@ class screenshot(BaseModule):
         path = self.screenshot_path / f"{sha256}.png"
         if not path.exists():
             path.write_bytes(png)
+            self.critical(f"BROWSERDBG screenshot WROTE NEW FILE: {path} ({len(png)} bytes) for {url}")
+        else:
+            self.critical(f"BROWSERDBG screenshot REUSED EXISTING FILE (same content): {path} for {url}")
         width, height, dhash = await self.helpers.run_in_executor_cpu(self._image_info, png)
+        self.critical(f"BROWSERDBG screenshot image info: {url} {width}x{height} dhash={dhash} sha256={sha256}")
         # relative to the scan's folder when it's inside it, like other file events
         event_path = path.relative_to(self.scan.home) if path.is_relative_to(self.scan.home) else path
 
@@ -81,6 +93,9 @@ class screenshot(BaseModule):
             context=f"{{module}} visited {final_url} and saved {{event.type}} to {event_path}",
         )
         self.screenshot_count += 1
+        self.critical(
+            f"BROWSERDBG screenshot EMITTED WEBSCREENSHOT #{self.screenshot_count}: {final_url} -> {event_path}"
+        )
 
     @staticmethod
     def _image_info(png):

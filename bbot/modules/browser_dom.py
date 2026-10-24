@@ -26,10 +26,13 @@ class browser_dom(BaseModule):
 
     async def handle_event(self, event):
         url = event.url or event.data
+        self.critical(f"BROWSERDBG browser_dom handling URL: {url} (tags={sorted(event.tags)})")
         visit = await self.helpers.browser.visit(url, consumer=self.name)
         if visit is None:
+            self.critical(f"BROWSERDBG browser_dom GOT NOTHING for {url}")
             return
         if visit.response.conclusion[0] == "needs_browser":
+            self.critical(f"BROWSERDBG browser_dom SKIP challenge page: {url} conclusion={visit.response.conclusion}")
             self.debug(f"Skipping {url}: the browser couldn't get past its challenge")
             return
 
@@ -55,11 +58,17 @@ class browser_dom(BaseModule):
                 # distinct id from the http module's response for the same URL, so dedup doesn't drop this
                 rendered_event.reemit_source = "browser_dom"
                 await self.emit_event(rendered_event)
+                self.critical(
+                    f"BROWSERDBG browser_dom EMITTED rendered DOM HTTP_RESPONSE: {main.url} ({len(visit.dom)} chars)"
+                )
 
         for request in visit.network:
             requested_url = request["url"]
             if not requested_url.startswith(("http://", "https://")) or requested_url == visit.response.url:
                 continue
+            self.critical(
+                f"BROWSERDBG browser_dom EMITTING network URL: {requested_url} (status {request['status']}, from {url})"
+            )
             await self.emit_event(
                 requested_url,
                 "URL_UNVERIFIED",

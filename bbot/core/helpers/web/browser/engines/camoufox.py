@@ -3,11 +3,14 @@ Camoufox (https://camoufox.com): a Firefox build that spoofs its fingerprint in 
 driven through Playwright.
 """
 
+import logging
 import platform
 from contextlib import suppress
 
 from bbot.errors import BrowserError
 from .base import BrowserEngine
+
+log = logging.getLogger("bbot.core.helpers.web.browser")
 
 CAMOUFOX_PIP = "camoufox==0.5.8"
 # the browser build that camoufox 0.5.8 is pinned to (browser-pin.json in the package)
@@ -127,8 +130,13 @@ class CamoufoxEngine(BrowserEngine):
             self._playwright = await async_playwright().start()
         # a Camoufox server started elsewhere (`python -m camoufox server`)
         if self.ws_endpoint:
+            log.critical(f"BROWSERDBG camoufox CONNECTING to remote browser server: {self.ws_endpoint}")
             return await self._playwright.firefox.connect(self.ws_endpoint)
         options = await self.parent_helper.run_in_executor_io(self._launch_options)
+        log.critical(
+            f"BROWSERDBG camoufox launching: executable={options.get('executable_path')} headless={options.get('headless')} "
+            f"proxy={options.get('proxy')}"
+        )
         return await self._playwright.firefox.launch(**options)
 
     async def stop(self):
