@@ -26,6 +26,7 @@ class gallery(BaseOutputModule):
     learned about each page and host. Rewritten during the scan so an open page fills in as it goes.
 
     Layout, under the gallery folder:
+        index.html          the page (with gallery.js, gallery.css and logo.png), copied from gallery-page/
         data/manifest.js    what's changed; the page polls it
         data/shots-NNN.js   screenshots, `chunk_size` per file
         data/meta.js        per-host data that keeps arriving (technologies, findings, WAFs), and the findings

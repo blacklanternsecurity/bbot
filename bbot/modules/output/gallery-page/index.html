@@ -1,77 +1,98 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BBOT Gallery</title>
-<style>
-  body { margin: 0; padding: 24px; background: #111317; color: #e6e6e6; font: 14px/1.5 system-ui, sans-serif; }
-  h1 { font-size: 20px; margin: 0 0 4px; }
-  #status { color: #9aa0a6; margin-bottom: 16px; }
-  #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
-  figure { margin: 0; background: #1b1e24; border-radius: 6px; overflow: hidden; }
-  figure img { width: 100%; display: block; aspect-ratio: 16 / 10; object-fit: cover; object-position: top; }
-  figcaption { padding: 6px 8px; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-</style>
+<link rel="icon" href="logo.png">
+<link rel="stylesheet" href="gallery.css">
 </head>
 <body>
-<h1 id="title">BBOT Gallery</h1>
-<div id="status">Waiting for the scan to start...</div>
-<div id="grid"></div>
-<script>
-// placeholder until the full gallery page: shows the scan and its screenshots, and keeps itself up to date
-const POLL_MS = 5000;
-const state = { generation: null, chunkRevs: {}, shots: {} };
+<header id="topbar">
+  <div class="brand"><img src="logo.png" alt=""><span id="scan-name">BBOT Gallery</span></div>
+  <input id="search" type="search" placeholder="Search URLs, titles, headers, technologies, certificates, IPs..." autocomplete="off">
+  <div class="views" role="tablist">
+    <button data-view="grid" class="active">Gallery</button>
+    <button data-view="table">Table</button>
+    <button data-view="hosts">Hosts</button>
+  </div>
+  <button id="theme-toggle" title="Switch light/dark">&#9681;</button>
+</header>
+<div id="toolbar">
+  <label>Group by
+    <select id="group-mode">
+      <option value="visual">Looks alike</option>
+      <option value="title">Page title</option>
+      <option value="tech">Technology</option>
+      <option value="cert">TLS certificate</option>
+      <option value="none">Nothing</option>
+    </select>
+  </label>
+  <label id="level-control">Similarity
+    <input id="level" type="range" min="0" max="3" step="1" value="1">
+    <span id="level-label"></span>
+  </label>
+  <label>Order
+    <select id="sort">
+      <option value="rarest">Rarest first</option>
+      <option value="largest">Largest first</option>
+      <option value="host">Host</option>
+      <option value="severity">Worst finding</option>
+    </select>
+  </label>
+  <label class="check"><input id="starred-only" type="checkbox"> Starred only</label>
+  <label class="check"><input id="show-hidden" type="checkbox"> Show hidden</label>
+  <div class="spacer"></div>
+  <button id="compare-button" disabled>Compare (0/2)</button>
+  <div class="menu">
+    <button id="export-button">Export &#9662;</button>
+    <div id="export-menu" class="popup" hidden>
+      <button data-export="copy">Copy URLs</button>
+      <button data-export="txt">Download URLs (.txt)</button>
+      <button data-export="csv">Download CSV</button>
+    </div>
+  </div>
+</div>
+<div id="chips"></div>
+<div id="layout">
+  <aside id="facets"></aside>
+  <main id="main">
+    <div id="spacer"></div>
+    <div id="empty" hidden></div>
+  </main>
+</div>
+<footer id="statusbar"><span id="live-dot"></span><span id="status-text">Waiting for the scan...</span></footer>
 
-window.bbotGallery = {
-  manifest(manifest) {
-    if (manifest.generation !== state.generation) {
-      Object.assign(state, { generation: manifest.generation, chunkRevs: {}, shots: {} });
-    }
-    document.getElementById("title").textContent = `BBOT Gallery: ${manifest.scan.name}`;
-    document.getElementById("status").textContent =
-      `${manifest.total} screenshots, scan ${manifest.scan.status.toLowerCase()}, updated ${new Date(manifest.updated * 1000).toLocaleTimeString()}`;
-    for (const chunk of manifest.chunks) {
-      if (state.chunkRevs[chunk.file] !== chunk.rev) {
-        state.chunkRevs[chunk.file] = chunk.rev;
-        load(`data/${chunk.file}?rev=${chunk.rev}`);
-      }
-    }
-  },
-  shots(chunk) {
-    for (const shot of chunk.screenshots) state.shots[shot.id] = shot;
-    render();
-  },
-  meta() {},
-};
+<div id="detail" class="overlay" hidden>
+  <div class="overlay-panel detail-panel">
+    <div class="detail-image"><a id="detail-full" target="_blank" rel="noopener"><img id="detail-img" alt=""></a></div>
+    <div class="detail-info">
+      <div class="detail-actions">
+        <button id="detail-prev" title="Previous (Left arrow)">&#8592;</button>
+        <button id="detail-next" title="Next (Right arrow)">&#8594;</button>
+        <button id="detail-star">Star</button>
+        <button id="detail-hide">Hide</button>
+        <button id="detail-compare">Compare</button>
+        <div class="spacer"></div>
+        <button id="detail-close" title="Close (Esc)">&#10005;</button>
+      </div>
+      <div id="detail-body"></div>
+    </div>
+  </div>
+</div>
 
-function load(src) {
-  const script = document.createElement("script");
-  script.src = src;
-  script.onload = script.onerror = () => script.remove();
-  document.head.appendChild(script);
-}
+<div id="compare" class="overlay" hidden>
+  <div class="overlay-panel compare-panel">
+    <div class="detail-actions">
+      <strong>Compare</strong><span id="compare-distance"></span>
+      <div class="spacer"></div>
+      <button id="compare-clear">Clear</button>
+      <button id="compare-close" title="Close (Esc)">&#10005;</button>
+    </div>
+    <div id="compare-body"></div>
+  </div>
+</div>
 
-function render() {
-  const grid = document.getElementById("grid");
-  grid.replaceChildren(...Object.values(state.shots).map((shot) => {
-    const figure = document.createElement("figure");
-    const link = document.createElement("a");
-    link.href = shot.file;
-    const img = document.createElement("img");
-    img.loading = "lazy";
-    img.src = shot.thumbnail;
-    link.appendChild(img);
-    const caption = document.createElement("figcaption");
-    caption.textContent = `${shot.status} ${shot.url}`;
-    caption.title = shot.title;
-    figure.append(link, caption);
-    return figure;
-  }));
-}
-
-load(`data/manifest.js?t=${Date.now()}`);
-setInterval(() => load(`data/manifest.js?t=${Date.now()}`), POLL_MS);
-</script>
+<script src="gallery.js"></script>
 </body>
 </html>

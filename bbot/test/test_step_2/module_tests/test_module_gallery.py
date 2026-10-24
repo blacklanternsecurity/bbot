@@ -269,3 +269,86 @@ async def test_gallery_live_updates():
     gallery._flush()
     assert manifest()["chunks"][0]["rev"] == second["rev"] + 1
     await scan._cleanup()
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
+async def test_gallery_page():
+    """The page itself: it shows what the gallery wrote, keeps up as the scan writes more, and treats target text as text."""
+    scan = gallery_scan(refresh_interval=3600)
+    await scan._prep()
+    gallery = scan.modules["gallery"]
+
+    image = io.BytesIO()
+    Image.new("RGB", (1440, 900), "navy").save(image, "PNG")
+    png = image.getvalue()
+    sha256 = hashlib.sha256(png).hexdigest()
+    (scan.home / "screenshots").mkdir(parents=True, exist_ok=True)
+    (scan.home / "screenshots" / f"{sha256}.png").write_bytes(png)
+
+    async def screenshot(n, title):
+        url = f"http://127.0.0.1:8888/{n}"
+        page = scan.make_event(url, "URL", parent=scan.root_event, tags=["status-200"])
+        await gallery.handle_event(
+            scan.make_event(
+                {
+                    "url": url,
+                    "title": title,
+                    "status_code": 200,
+                    "content_type": "text/html",
+                    "raw_header": "HTTP/1.1 200 \r\n\r\n",
+                    "body": "",
+                },
+                "HTTP_RESPONSE",
+                parent=page,
+                tags=["in-scope"],
+            )
+        )
+        data = {"url": url, "path": f"screenshots/{sha256}.png", "sha256": sha256, "size": len(png)}
+        # far enough apart that they don't group
+        dhash = {1: "0" * 16, 2: "f" * 16, 3: "0" * 8 + "f" * 8}[n]
+        data.update({"mime_type": "image/png", "width": 1440, "height": 900, "dhash": dhash, "blank": False})
+        await gallery.handle_event(scan.make_event(data, "WEBSCREENSHOT", parent=page))
+
+    # a title that would run script if it were ever put into the page as HTML
+    await screenshot(1, '<img src=x onerror="window.pwned=1">')
+    await screenshot(2, "second page")
+    gallery._flush()
+
+    browser = await scan.helpers.browser.engine.launch()
+    try:
+        page = await (await browser.new_context()).new_page()
+        errors = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        await page.goto((gallery.gallery_dir / "index.html").as_uri())
+        await page.wait_for_function("document.getElementById('status-text').textContent.includes('2 of 2')")
+        assert await page.locator(".card").count() == 2
+
+        # the viewer's search survives the scan writing more
+        await page.fill("#search", "page")
+        await page.wait_for_function("document.getElementById('status-text').textContent.includes('1 of 2')")
+        await screenshot(3, "third page")
+        gallery._flush()
+        await page.wait_for_function(
+            "document.getElementById('status-text').textContent.includes('2 of 3')", timeout=15000
+        )
+        assert await page.input_value("#search") == "page"
+        assert "#q=page" in await page.evaluate("location.hash")
+
+        # target text is shown, never run
+        await page.fill("#search", "")
+        await page.wait_for_function("document.getElementById('status-text').textContent.includes('3 of 3')")
+        assert await page.locator("text=<img src=x").count() >= 1
+        assert await page.evaluate("window.pwned") is None
+
+        # a card opens its details
+        await page.locator(".thumb").first.click()
+        assert not await page.locator("#detail").get_attribute("hidden")
+        assert "http://127.0.0.1:8888/" in await page.text_content("#detail-body h2")
+        await page.keyboard.press("Escape")
+        assert await page.locator("#detail").get_attribute("hidden") is not None
+        assert errors == []
+    finally:
+        await browser.close()
+        await scan.helpers.browser.engine.stop()
+        await scan._cleanup()
