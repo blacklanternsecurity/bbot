@@ -8,7 +8,8 @@ from werkzeug.wrappers import Response
 from ..bbot_fixtures import *
 from bbot.errors import BrowserError
 
-# these tests drive a real browser, installed by the deps installer when web.enable_browser is on
+# tests marked `browser` drive a real browser, installed by the deps installer when web.enable_browser is on.
+# they only run when BBOT_TEST_BROWSER is set (see conftest.py)
 
 JS_PAGE = """<html><head><title>js page</title></head><body>
 <h1 id="x">static</h1>
@@ -105,6 +106,7 @@ async def test_browser_disabled(bbot_scanner):
     await scan._cleanup()
 
 
+@pytest.mark.browser
 @pytest.mark.asyncio
 async def test_browser_visit(bbot_scanner, bbot_httpserver, tmp_path):
     serve(bbot_httpserver)
@@ -140,6 +142,7 @@ async def test_browser_visit(bbot_scanner, bbot_httpserver, tmp_path):
     assert await no_browser_processes()
 
 
+@pytest.mark.browser
 @pytest.mark.asyncio
 async def test_browser_challenge_and_fetch(bbot_scanner, bbot_httpserver, tmp_path):
     serve(bbot_httpserver)
@@ -170,6 +173,7 @@ async def test_browser_challenge_and_fetch(bbot_scanner, bbot_httpserver, tmp_pa
     await scan._cleanup()
 
 
+@pytest.mark.browser
 @pytest.mark.asyncio
 async def test_browser_crash_recovery(bbot_scanner, bbot_httpserver, tmp_path):
     serve(bbot_httpserver)
@@ -207,6 +211,7 @@ async def test_browser_crash_recovery(bbot_scanner, bbot_httpserver, tmp_path):
     assert await no_browser_processes()
 
 
+@pytest.mark.browser
 @pytest.mark.asyncio
 async def test_browser_recycle_and_idle(bbot_scanner, bbot_httpserver, tmp_path):
     serve(bbot_httpserver)
@@ -237,6 +242,7 @@ async def test_browser_recycle_and_idle(bbot_scanner, bbot_httpserver, tmp_path)
     assert await no_browser_processes()
 
 
+@pytest.mark.browser
 @pytest.mark.asyncio
 async def test_browser_host_eviction(bbot_scanner, tmp_path):
     """Contexts beyond browser_max_pages are closed oldest first, but never one in use or the one just opened."""

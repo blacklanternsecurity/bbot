@@ -39,6 +39,12 @@ with open(Path(__file__).parent / "test.conf") as _f:
 test_config["home"] = str(BBOT_TEST_DIR)
 
 os.environ["BBOT_DEBUG"] = "True"
+
+# Tests that drive a real browser are marked `browser` and skipped unless BBOT_TEST_BROWSER is set, since the browser
+# is a large download. When they do run, the installed browser is kept outside the test home (which is wiped after
+# every session) and linked into it, so only the first session downloads it.
+RUN_BROWSER_TESTS = os.environ.get("BBOT_TEST_BROWSER", "").lower() not in ("", "0", "false")
+BROWSER_INSTALL_CACHE = Path(os.environ.get("BBOT_TEST_BROWSER_DIR", "~/.cache/bbot/test-browser")).expanduser()
 CORE.logger.log_level = logging.DEBUG
 
 # silence all stderr output:
@@ -357,18 +363,49 @@ def proxy_server():
     server_thread.join()
 
 
-def pytest_collection_modifyitems(config, items):
-    """Pin docker-backed tests to one xdist worker.
+def pytest_configure(config):
+    config.addinivalue_line("markers", "browser: drives a real browser; runs only when BBOT_TEST_BROWSER is set")
 
-    They start real containers with fixed names and fixed host port bindings
+
+def pytest_sessionstart(session):
+    if RUN_BROWSER_TESTS:
+        link_browser_install()
+
+
+def link_browser_install():
+    """Point the test home's browser install dir at one that outlives the session."""
+    from bbot.core.helpers.web.browser import BrowserHelper
+
+    install_dirname = BrowserHelper.engine_class.install_dirname
+    persistent = BROWSER_INSTALL_CACHE / install_dirname
+    persistent.mkdir(parents=True, exist_ok=True)
+    link = BBOT_TEST_DIR / "tools" / install_dirname
+    link.parent.mkdir(parents=True, exist_ok=True)
+    if link.is_symlink():
+        link.unlink()
+    elif link.exists():
+        shutil.rmtree(link)
+    link.symlink_to(persistent, target_is_directory=True)
+
+
+def pytest_collection_modifyitems(config, items):
+    """Pin docker-backed and browser tests to one xdist worker, and skip browser tests unless asked for.
+
+    Docker tests start real containers with fixed names and fixed host port bindings
     (kafka, elastic, mongo, mysql, nats, postgres, rabbitmq), so two workers
     running them at once fight over both. They already mark themselves with
-    ``skip_distro_tests``, so reuse that as the signal.
+    ``skip_distro_tests``, so reuse that as the signal. Browser tests share one
+    persistent browser install, which only one worker should be filling at a time.
     """
     for item in items:
         cls = getattr(item, "cls", None)
         if cls is not None and getattr(cls, "skip_distro_tests", False):
             item.add_marker(pytest.mark.xdist_group("docker"))
+        if item.get_closest_marker("browser"):
+            if RUN_BROWSER_TESTS:
+                item.add_marker(pytest.mark.xdist_group("browser"))
+            else:
+                item.add_marker(pytest.mark.skip(reason="drives a real browser; set BBOT_TEST_BROWSER=1 to run"))
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):  # pragma: no cover

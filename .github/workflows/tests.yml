@@ -52,10 +52,41 @@ jobs:
           files: ./cov.xml
           verbose: true
 
+  test_browser:
+    name: browser tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+      - name: Install dependencies
+        run: uv sync --group dev
+      # the browser is a >1GB download; keep the installed copy between runs
+      - name: Cache browser install
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/bbot/test-browser
+          key: bbot-test-browser-${{ hashFiles('bbot/core/helpers/web/browser/engines/*.py') }}
+      - name: Run browser tests
+        env:
+          BBOT_TEST_BROWSER: "1"
+        run: |
+          uv run pytest -vv -m browser --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO .
+      - name: Upload Debug Logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pytest-debug-logs-browser
+          path: pytest_debug.log
+
   test_matrix:
     name: test matrix passed
     if: always()
-    needs: [test]
+    needs: [test, test_browser]
     runs-on: ubuntu-24.04
     steps:
       - name: Fail unless every dependency succeeded

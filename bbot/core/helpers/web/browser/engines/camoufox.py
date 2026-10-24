@@ -12,7 +12,8 @@ from .base import BrowserEngine
 CAMOUFOX_PIP = "camoufox==0.5.8"
 # the browser build that camoufox 0.5.8 is pinned to (browser-pin.json in the package)
 CAMOUFOX_BUILD = "156.0.1-beta.36"
-CAMOUFOX_DIR = f"#{{BBOT_TOOLS}}/camoufox-{CAMOUFOX_BUILD}"
+CAMOUFOX_DIRNAME = f"camoufox-{CAMOUFOX_BUILD}"
+CAMOUFOX_DIR = f"#{{BBOT_TOOLS}}/{CAMOUFOX_DIRNAME}"
 CAMOUFOX_MARKER = f"{CAMOUFOX_DIR}/.bbot-installed"
 
 # (camoufox asset name, system, architecture, sha256 of the release zip, executable within the extracted zip)
@@ -105,6 +106,7 @@ def _camoufox_ansible_tasks():
 
 class CamoufoxEngine(BrowserEngine):
     name = "camoufox"
+    install_dirname = CAMOUFOX_DIRNAME
     deps = {
         "pip": [CAMOUFOX_PIP],
         "ansible": _camoufox_ansible_tasks(),
@@ -162,5 +164,5 @@ class CamoufoxEngine(BrowserEngine):
         system, machine = platform.system(), platform.machine()
         for _, s, arch, _, executable in CAMOUFOX_PLATFORMS:
             if (s, arch) == (system, machine):
-                return self.parent_helper.tools_dir / f"camoufox-{CAMOUFOX_BUILD}" / executable
+                return self.parent_helper.tools_dir / self.install_dirname / executable
         raise BrowserError(f"Camoufox {CAMOUFOX_BUILD} has no build for {system} {machine}")

@@ -19,6 +19,8 @@ class BrowserEngine:
     name = ""
     # installed by the deps installer only when web.enable_browser is on, in the same shape as a module's deps
     deps = {}
+    # the directory under BBOT's tools dir that deps install the browser into
+    install_dirname = ""
 
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper

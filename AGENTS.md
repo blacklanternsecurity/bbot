@@ -63,7 +63,12 @@ bbot --help
 
 # Run a single test file directly
 pytest bbot/test/test_step_2/module_tests/test_module_robots.py -x -vv
+
+# Run the tests that drive a real browser (skipped by default)
+BBOT_TEST_BROWSER=1 pytest -m browser
 ```
+
+Tests marked `browser` need a real browser, a >1GB download, so they're skipped unless `BBOT_TEST_BROWSER` is set. The first run installs the browser into `~/.cache/bbot/test-browser` (override with `BBOT_TEST_BROWSER_DIR`), where later runs reuse it.
 
 ### Linting
 
