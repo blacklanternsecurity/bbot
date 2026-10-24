@@ -6,9 +6,7 @@ Off unless `web.enable_browser` is set. Nothing at import time touches the brows
 packages, so BBOT runs normally on a machine where they were never installed.
 """
 
-import json
 import time
-import base64
 import asyncio
 import logging
 from contextlib import asynccontextmanager, suppress
@@ -37,31 +35,6 @@ VISIT_CACHE_SIZE = 100
 # a page's requests whose bodies are kept, so modules can use them without fetching them again
 NETWORK_BODY_TYPES = {"document", "script", "stylesheet", "xhr", "fetch"}
 NETWORK_BODY_MAX = 5 * 1024 * 1024
-
-# runs inside a warm page, so the request carries the page's cookies and the browser's real network fingerprint
-FETCH_JS = """
-async (url) => {
-    const r = await fetch(url, {credentials: "include", redirect: "follow"});
-    // this runs in an isolated world, which may not read the bytes of page-owned arrays, so the browser's own
-    // FileReader does the base64 encoding
-    const blob = await r.blob();
-    const dataUrl = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(reader.error);
-        reader.readAsDataURL(blob);
-    });
-    const headers = [];
-    r.headers.forEach((value, name) => headers.push([String(name), String(value)]));
-    // a string crosses back out of the isolated world cleanly; objects built from page values don't
-    return JSON.stringify({
-        url: r.url,
-        status: r.status,
-        headers: headers,
-        body: dataUrl.slice(dataUrl.indexOf(",") + 1),
-    });
-}
-"""
 
 
 @dataclass
@@ -140,10 +113,6 @@ class _Host:
 
     def __init__(self, context):
         self.context = context
-        self.warm_page = None
-        # the main document the warm page landed on
-        self.warm_document = None
-        self.warm_lock = asyncio.Lock()
         self.active = 0
 
 
@@ -272,8 +241,9 @@ class BrowserHelper:
 
     async def fetch(self, url):
         """
-        Fetch a URL from inside a page on its origin, so the request carries that origin's cookies (e.g. a passed
-        challenge) and the browser's own network fingerprint. Returns a blasthttp Response, or None on failure.
+        Load a URL in the browser and return what it got, as a blasthttp Response, or None on failure. The request
+        carries the origin's cookies (e.g. a passed challenge) and the browser's own network fingerprint, and works for
+        any response, including one the browser would otherwise download.
         """
         self._check_enabled()
         log.critical(f"BROWSERDBG fetch() called: url={url}")
@@ -316,12 +286,10 @@ class BrowserHelper:
             responses = []
             if "network" in artifacts:
                 page.on("response", lambda r: responses.append(r))
-            hold = RedirectHold(self, page)
-            await hold.start()
-            main = await self._load(page, url, hold)
+            main, redirect = await self._open(page, url)
             if main is None:
                 return None
-            visit = BrowserVisit(url=url, response=main, title=await page.title(), redirect=hold.target)
+            visit = BrowserVisit(url=url, response=main, title=await page.title(), redirect=redirect)
             # bodies are read while the page is still open
             for response in responses:
                 visit.network.append(await self._network_entry(response))
@@ -372,79 +340,31 @@ class BrowserHelper:
     # -- fetches --
 
     async def _fetch(self, url):
-        instance, host = await self._host(url)
-        page = await self._warm_page(instance, host, url)
-        if page is None:
-            return None
-        host.active += 1
-        instance.active += 1
-        try:
-            log.critical(f"BROWSERDBG in-page fetch() starting: url={url} warm_page_url={page.url}")
-            result = json.loads(await page.evaluate(FETCH_JS, url))
+        # its own page rather than a fetch() from another one: no CORS or CSP limits, redirects that cross origins
+        # are followed, and a response the browser would download still comes back
+        async with self._page(url) as page:
+            log.critical(f"BROWSERDBG fetch LOADING in its own page: url={url}")
+            document, _ = await self._open(page, url)
             log.critical(
-                f"BROWSERDBG in-page fetch() done: url={url} final_url={result['url']} status={result['status']}"
+                f"BROWSERDBG fetch LOADED: url={url} final_url={getattr(document, 'url', None)} status={getattr(document, 'status_code', None)} bytes={len(document.content) if document is not None else None}"
             )
-        finally:
-            host.active -= 1
-            instance.active -= 1
-            self._last_used = time.monotonic()
-        headers = [(k, v) for k, v in result["headers"]]
-        return blasthttp.Response(
-            result["url"],
-            result["status"],
-            headers=headers,
-            body=base64.b64decode(result["body"]),
-            request_url=url,
-        )
+            return document
 
     async def _clearance(self, url):
-        instance, host = await self._host(url)
         # load the challenged URL itself, since a challenge may only guard some paths
-        page = await self._warm_page(instance, host, url, warm_url=url, rewarm=True)
-        if page is None or host.warm_document.conclusion[0] == "needs_browser":
-            log.critical(
-                f"BROWSERDBG clearance FAILED: url={url} page={'none' if page is None else 'ok'} conclusion={host.warm_document.conclusion if host.warm_document else None}"
-            )
-            return None
-        cookies = {c["name"]: c["value"] for c in await host.context.cookies([url])}
-        log.critical(
-            f"BROWSERDBG clearance cookies from context: url={url} cookies={ {k: v[:12] + '...' for k, v in cookies.items()} }"
-        )
-        user_agent = await page.evaluate("() => navigator.userAgent")
-        return Clearance(cookies=cookies, user_agent=user_agent, response=host.warm_document)
-
-    async def _warm_page(self, instance, host, url, warm_url=None, rewarm=False):
-        """
-        A page parked on the origin, past any challenge, to fetch from. It lands on the origin's root unless given
-        `warm_url`; `rewarm` replaces an existing one (e.g. to pass a challenge again once its cookies have expired).
-        """
-        async with host.warm_lock:
-            log.critical(
-                f"BROWSERDBG warm page requested: url={url} warm_url={warm_url} rewarm={rewarm} existing={'yes' if host.warm_page is not None else 'no'}"
-            )
-            if rewarm and host.warm_page is not None:
-                await self._close_page(instance, host.warm_page)
-                host.warm_page = None
-            if host.warm_page is None or host.warm_page.is_closed():
-                if warm_url is None:
-                    parsed = urlparse(url)
-                    warm_url = f"{parsed.scheme}://{parsed.netloc}/"
-                async with self._page_slots:
-                    page = await self._new_page(instance, host)
-                    try:
-                        document = await self._load(page, warm_url)
-                        if document is None:
-                            await self._close_page(instance, page)
-                            return None
-                    except BaseException:
-                        await self._close_page(instance, page)
-                        raise
-                host.warm_page = page
-                host.warm_document = document
+        async with self._page(url) as page:
+            document, _ = await self._open(page, url)
+            if document is None or document.conclusion[0] == "needs_browser":
                 log.critical(
-                    f"BROWSERDBG warm page READY: warm_url={warm_url} status={document.status_code} conclusion={document.conclusion}"
+                    f"BROWSERDBG clearance FAILED: url={url} conclusion={getattr(document, 'conclusion', None)}"
                 )
-            return host.warm_page
+                return None
+            cookies = {c["name"]: c["value"] for c in await page.context.cookies([url])}
+            log.critical(
+                f"BROWSERDBG clearance cookies from context: url={url} cookies={ {k: v[:12] + '...' for k, v in cookies.items()} }"
+            )
+            user_agent = await page.evaluate("() => navigator.userAgent")
+            return Clearance(cookies=cookies, user_agent=user_agent, response=document)
 
     # -- pages --
 
@@ -481,6 +401,15 @@ class BrowserHelper:
             log.verbose("Browser page failed to close; restarting the browser")
             log.critical(f"BROWSERDBG page FAILED TO CLOSE, retiring browser: {page.url}")
             self._retire(instance)
+
+    async def _open(self, page, url):
+        """
+        Load `url` in `page`, keeping the page there if it tries to redirect itself. Returns the main document (see
+        `_load`) and where the page tried to go, if anywhere.
+        """
+        hold = RedirectHold(self, page)
+        await hold.start()
+        return await self._load(page, url, hold), hold.target
 
     async def _load(self, page, url, hold=None):
         """
@@ -616,7 +545,7 @@ class BrowserHelper:
         return instance, host
 
     async def _evict_hosts(self, instance, keep):
-        # keep at most max_pages origins' contexts (and warm pages) open, skipping any in use and the one just opened
+        # keep at most max_pages origins' contexts open, skipping any in use and the one just opened
         idle = [origin for origin, host in instance.hosts.items() if host.active == 0 and origin != keep]
         for origin in idle[: max(0, len(instance.hosts) - self.max_pages)]:
             host = instance.hosts.pop(origin)

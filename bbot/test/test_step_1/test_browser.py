@@ -446,6 +446,34 @@ async def test_browser_fallback_fetch(bbot_scanner, bbot_httpserver):
 
 @pytest.mark.browser
 @pytest.mark.asyncio
+async def test_browser_fetch_any_response(bbot_scanner, bbot_httpserver, bbot_httpserver_ssl):
+    """The browser's fetch follows redirects to other origins and returns responses a browser would download."""
+    bbot_httpserver_ssl.expect_request("/landed").respond_with_data(
+        "<html>other origin</html>", content_type="text/html"
+    )
+    bbot_httpserver.expect_request("/hop").respond_with_data(
+        "", status=301, headers={"Location": bbot_httpserver_ssl.url_for("/landed")}
+    )
+    bbot_httpserver.expect_request("/report").respond_with_data(
+        "a,b\n1,2\n", content_type="text/csv", headers={"Content-Disposition": "attachment; filename=report.csv"}
+    )
+    scan = await browser_scan(bbot_scanner)
+    browser = scan.helpers.browser
+
+    # http to https on another port: a different origin
+    response = await browser.fetch(bbot_httpserver.url_for("/hop"))
+    assert response.status_code == 200
+    assert response.url == bbot_httpserver_ssl.url_for("/landed")
+    assert "other origin" in response.text
+
+    response = await browser.fetch(bbot_httpserver.url_for("/report"))
+    assert response.status_code == 200
+    assert response.text == "a,b\n1,2\n"
+    await scan._cleanup()
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
 async def test_browser_certificates(bbot_scanner, bbot_httpserver_ssl):
     """Like blasthttp, the browser doesn't verify target certificates unless web.ssl_verify_target is on."""
     bbot_httpserver_ssl.expect_request("/").respond_with_data(
