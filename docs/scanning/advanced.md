@@ -114,7 +114,7 @@ Output:
   -o DIR, --output-dir DIR
                         Directory to output scan results
   -om MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
-                        Add output module(s). Choices: asset_inventory,csv,discord,elastic,emails,json,kafka,mongo,mysql,nats,neo4j,nmap_xml,postgres,rabbitmq,slack,splunk,sqlite,stdout,subdomains,teams,txt,web_parameters,web_report,webhook,websocket,zeromq
+                        Add output module(s). Choices: asset_inventory,csv,discord,elastic,emails,gallery,json,kafka,mongo,mysql,nats,neo4j,nmap_xml,postgres,rabbitmq,slack,splunk,sqlite,stdout,subdomains,teams,txt,web_parameters,web_report,webhook,websocket,zeromq
   -eom MODULE [MODULE ...], --exclude-output-modules MODULE [MODULE ...]
                         Exclude output module(s)
   -lo, --list-output-modules

@@ -5,6 +5,9 @@ from pathlib import Path
 from bbot.modules.base import BaseModule
 from bbot.core.config.models import BaseModuleConfig, Field
 
+# a screenshot this much one shade is blank. Near-blank pages measure over 99%; anything with layout, well under 90%
+BLANK_THRESHOLD = 0.98
+
 
 class screenshot(BaseModule):
     watched_events = ["URL", "SOCIAL"]
@@ -71,8 +74,10 @@ class screenshot(BaseModule):
             self.critical(f"BROWSERDBG screenshot WROTE NEW FILE: {path} ({len(png)} bytes) for {url}")
         else:
             self.critical(f"BROWSERDBG screenshot REUSED EXISTING FILE (same content): {path} for {url}")
-        width, height, dhash = await self.helpers.run_in_executor_cpu(self._image_info, png)
-        self.critical(f"BROWSERDBG screenshot image info: {url} {width}x{height} dhash={dhash} sha256={sha256}")
+        width, height, dhash, blank = await self.helpers.run_in_executor_cpu(self._image_info, png)
+        self.critical(
+            f"BROWSERDBG screenshot image info: {url} {width}x{height} dhash={dhash} blank={blank} sha256={sha256}"
+        )
         # relative to the scan's folder when it's inside it, like other file events
         event_path = path.relative_to(self.scan.home) if path.is_relative_to(self.scan.home) else path
 
@@ -87,6 +92,7 @@ class screenshot(BaseModule):
                 "width": width,
                 "height": height,
                 "dhash": dhash,
+                "blank": blank,
             },
             "WEBSCREENSHOT",
             parent=event,
@@ -100,18 +106,25 @@ class screenshot(BaseModule):
 
     @staticmethod
     def _image_info(png):
-        """Dimensions, and a 64-bit difference hash: near-identical pages differ in only a few of its bits."""
+        """
+        Dimensions; a 64-bit difference hash, in which near-identical pages differ in only a few bits; and whether the
+        page is blank. A page that's almost all one shade (an empty error page, one line of text) has no shape for the
+        hash to capture, so it hashes like every other near-blank page.
+        """
         from PIL import Image
 
         with Image.open(BytesIO(png)) as image:
             width, height = image.size
-            # each bit says whether a pixel is brighter than its right-hand neighbor, on a 9x8 grayscale thumbnail
-            pixels = list(image.convert("L").resize((9, 8), Image.Resampling.LANCZOS).getdata())
+            gray = image.convert("L")
+        # each bit says whether a pixel is brighter than its right-hand neighbor, on a 9x8 grayscale thumbnail
+        pixels = gray.resize((9, 8), Image.Resampling.LANCZOS).tobytes()
         bits = 0
         for row in range(8):
             for col in range(8):
                 bits = (bits << 1) | (pixels[row * 9 + col] > pixels[row * 9 + col + 1])
-        return width, height, f"{bits:016x}"
+        histogram = gray.resize((160, 90)).histogram()
+        blank = max(histogram) / sum(histogram) >= BLANK_THRESHOLD
+        return width, height, f"{bits:016x}", blank
 
     async def report(self):
         if self.screenshot_count:
