@@ -139,5 +139,6 @@ lint.ignore = ["E402", "E711", "E713", "E721", "E741", "F403", "F405", "E501"]
 constraint-dependencies = ["virtualenv>=21.7.13"]
 
 [tool.uv.sources]
-# TEMPORARY: blasthttp 1.0 is unreleased (blacklanternsecurity/blasthttp#128); local checkout of 3e1629e
+# TEMPORARY: blasthttp 1.0 is unreleased (blacklanternsecurity/blasthttp#128); local checkout of the
+# ladder-exhaustion-memory branch (2ee1bb4), which is 3e1629e plus remembering hosts that refuse every rung
 blasthttp = { path = "../blasthttp-1.0" }
