@@ -93,6 +93,7 @@ class screenshot(BaseModule):
             context=f"{{module}} visited {final_url} and saved {{event.type}} to {event_path}",
         )
         self.screenshot_count += 1
+        self.verbose(f"Screenshot of {final_url}: {path.resolve()}")
         self.critical(
             f"BROWSERDBG screenshot EMITTED WEBSCREENSHOT #{self.screenshot_count}: {final_url} -> {event_path}"
         )
