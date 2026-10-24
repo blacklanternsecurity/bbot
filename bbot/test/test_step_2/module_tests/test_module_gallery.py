@@ -15,6 +15,17 @@ PAGE = """<html><head><title>{title}</title></head><body style="margin:0">
 </body></html>"""
 
 
+def read_manifest(gallery_dir):
+    text = (gallery_dir / "data" / "manifest.js").read_text()
+    return json.loads(text[len("bbotGallery.manifest(") : -len(");\n")])
+
+
+def gallery_scan(**config):
+    """A scan with the gallery, fed events directly: the browser is never used, so it isn't installed."""
+    config = {"web": {"enable_browser": True}, "deps": {"behavior": "disable"}, "modules": {"gallery": config}}
+    return Scanner("127.0.0.1", modules=["screenshot"], config=config)
+
+
 class TestGallery(ModuleTestBase):
     pytestmark = pytest.mark.browser
     targets = [
@@ -27,6 +38,12 @@ class TestGallery(ModuleTestBase):
     config_overrides = {"web": {"enable_browser": True}}
 
     async def setup_after_prep(self, module_test):
+        # before the scan starts there's already a gallery to open, which fills in as it goes
+        gallery_dir = module_test.scan.home / "gallery"
+        assert (gallery_dir / "index.html").is_file()
+        assert read_manifest(gallery_dir)["total"] == 0
+        assert module_test.module.open_command.endswith(str(gallery_dir / "index.html"))
+
         headers = {"X-Gallery-Test": "kept"}
         same = PAGE.format(title="same", left=0, top=0)
         for uri, body in (
@@ -75,18 +92,16 @@ class TestGallery(ModuleTestBase):
         # what an open page loads
         for name in ("manifest.js", "meta.js", "shots-0000.js"):
             assert (gallery_dir / "data" / name).read_text().startswith("bbotGallery.")
-        manifest = (gallery_dir / "data" / "manifest.js").read_text()
-        manifest = json.loads(manifest[len("bbotGallery.manifest(") : -len(");\n")])
+        manifest = read_manifest(gallery_dir)
         assert manifest["total"] == 4
+        assert manifest["scan"]["status"] == "FINISHED"
         assert manifest["chunks"] == [{"file": "shots-0000.js", "rev": manifest["rev"], "count": 4}]
 
 
 @pytest.mark.asyncio
 async def test_gallery_joins():
     """What the rest of the scan learns about a screenshot's page and host ends up with it, whatever order it arrives in."""
-    scan = Scanner(
-        "127.0.0.1", output_modules=["gallery"], config={"modules": {"gallery": {"refresh_interval": 3600}}}
-    )
+    scan = gallery_scan(refresh_interval=3600)
     await scan._prep()
     gallery = scan.modules["gallery"]
 
@@ -173,7 +188,7 @@ async def test_gallery_joins():
 
 @pytest.mark.asyncio
 async def test_gallery_grouping():
-    scan = Scanner("127.0.0.1", output_modules=["gallery"])
+    scan = gallery_scan()
     await scan._prep()
     gallery = scan.modules["gallery"]
 
@@ -194,9 +209,7 @@ async def test_gallery_grouping():
 @pytest.mark.asyncio
 async def test_gallery_live_updates():
     """During the scan only what changed is rewritten, so an open page reloads as little as possible."""
-    scan = Scanner(
-        "127.0.0.1", output_modules=["gallery"], config={"modules": {"gallery": {"refresh_interval": 3600}}}
-    )
+    scan = gallery_scan(refresh_interval=3600)
     await scan._prep()
     gallery = scan.modules["gallery"]
     gallery.chunk_size = 2
@@ -209,8 +222,7 @@ async def test_gallery_live_updates():
     (scan.home / "screenshots" / f"{sha256}.png").write_bytes(png)
 
     def manifest():
-        text = (gallery.data_dir / "manifest.js").read_text()
-        return json.loads(text[len("bbotGallery.manifest(") : -len(");\n")])
+        return read_manifest(gallery.gallery_dir)
 
     async def screenshot(n):
         url = f"http://127.0.0.1:8888/{n}"

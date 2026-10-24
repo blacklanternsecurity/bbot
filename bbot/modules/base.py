@@ -68,6 +68,10 @@ class BaseModule:
 
         browser_artifacts (List): What this module needs from the browser, e.g. ["screenshot"]. Declaring any makes the module depend on the browser and limits its URL events to web pages, so the scan won't start unless `web.enable_browser` is on. Empty list by default.
 
+        companion_of (List): Modules this module exists to serve, e.g. ["screenshot"]. It's enabled automatically
+            alongside any of them unless its `auto_enable` option is false, and a scan that enables it without any of
+            them won't start. Empty list by default.
+
         skip_browser_only_hosts (bool): Reject events whose host has only ever answered with a challenge that needs a real browser. For modules that send many crafted requests a browser can't make. Default is False.
 
         options (Dict): Customizable options for the module, e.g., {"api_key": ""}. Empty dict by default.
@@ -119,6 +123,7 @@ class BaseModule:
     accept_url_special = False
     skip_browser_only_hosts = False
     browser_artifacts = []
+    companion_of = []
     _avoid_duplicate_content = False
     _module_threads = 1
     _batch_size = 1

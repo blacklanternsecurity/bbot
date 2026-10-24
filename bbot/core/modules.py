@@ -659,6 +659,7 @@ class ModuleLoader:
         deps_apt = []
         deps_common = []
         browser_artifacts = []
+        companion_of = []
         ansible_tasks = []
         config = {}
         options_desc = {}
@@ -790,6 +791,11 @@ class ModuleLoader:
                             for artifact in class_attr.value.elts:
                                 if type(artifact.value) == str:
                                     browser_artifacts.append(artifact.value)
+                        # the modules this one exists to serve
+                        elif any(target.id == "companion_of" for target in class_attr.targets):
+                            for companion in class_attr.value.elts:
+                                if type(companion.value) == str:
+                                    companion_of.append(companion.value)
 
                     # class attributes that are booleans
                     if type(class_attr.value) == ast.Constant:
@@ -848,6 +854,7 @@ class ModuleLoader:
             "sudo": len(deps_apt) > 0,
             "disable_auto_module_deps": disable_auto_module_deps,
             "browser_artifacts": browser_artifacts,
+            "companion_of": companion_of,
         }
         ansible_task_list = list(ansible_tasks)
         for dep_common in deps_common:

@@ -1,6 +1,8 @@
 import os
+import sys
 import json
 import time
+import shutil
 import secrets
 from pathlib import Path
 from contextlib import suppress
@@ -14,6 +16,8 @@ THUMBNAIL_WIDTH = 480
 # response headers kept per screenshot
 MAX_HEADER_BYTES = 16 * 1024
 SCHEMA_VERSION = 1
+# the page itself, copied into the gallery folder
+PAGE_DIR = Path(__file__).parent / "gallery-page"
 
 
 class gallery(BaseOutputModule):
@@ -36,11 +40,13 @@ class gallery(BaseOutputModule):
         "author": "@liquidsec",
     }
     deps_pip = ["pillow"]
+    companion_of = ["screenshot"]
     # screenshots per data file; a full one never changes again, so an open page loads it once
     chunk_size = 500
 
     class Config(BaseModuleConfig):
         output_dir: str = Field("", description="Where to write the gallery (default is inside the scan's folder)")
+        auto_enable: bool = Field(True, description="Make a gallery whenever the screenshot module runs")
         refresh_interval: int = Field(30, description="How often to rewrite the gallery during the scan, in seconds")
 
     async def setup(self):
@@ -74,8 +80,23 @@ class gallery(BaseOutputModule):
         self.hosts = {}
         self.findings = []
 
+        # an empty gallery before the scan starts, so it can be opened now and fill in as the scan goes
+        for page_file in PAGE_DIR.iterdir():
+            shutil.copy(page_file, self.gallery_dir / page_file.name)
+        self._written_once = False
+        self._flush(force=True)
+        self.info(f"Screenshot gallery (fills in as the scan runs): {self.open_command}")
         self._flush_task = self.helpers.create_task(self._flush_loop())
         return True
+
+    @property
+    def open_command(self):
+        index = self.gallery_dir / "index.html"
+        if sys.platform == "darwin":
+            return f"open {index}"
+        if sys.platform == "win32":
+            return f'start "" "{index}"'
+        return f"xdg-open {index}"
 
     async def handle_event(self, event):
         handler = getattr(self, f"_handle_{event.type.lower()}")
@@ -249,7 +270,11 @@ class gallery(BaseOutputModule):
             self.meta_rev = self.rev
             self.meta_dirty = False
         self._write_js("manifest.js", "manifest", self._manifest())
-        self.debug(f"Updated the gallery at {self.gallery_dir} ({len(self.screenshots):,} screenshots)")
+        if self.screenshots and not self._written_once:
+            self._written_once = True
+            self.verbose(f"Screenshot gallery has its first screenshots: {self.open_command}")
+        else:
+            self.debug(f"Updated the gallery at {self.gallery_dir} ({len(self.screenshots):,} screenshots)")
 
     def _manifest(self):
         return {
@@ -332,8 +357,11 @@ class gallery(BaseOutputModule):
             self._flush_task = None
         # the scan's status changed even if nothing else did
         self.meta_dirty = True
+        # the closing message below says where it is
+        self._written_once = True
         self._flush(force=True)
         await self.helpers.run_in_executor_io(self._write_json, "gallery.json", self._document())
+        self.info(f"Screenshot gallery ({len(self.screenshots):,} screenshots): {self.open_command}")
 
     async def cleanup(self):
         if self._flush_task is not None:

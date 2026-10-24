@@ -1334,6 +1334,38 @@ def test_preset_browser_modules_require_enable_browser():
     assert {"screenshot", "browser_dom"} <= set(baked.scan_modules)
 
 
+def test_preset_companion_modules():
+    """A module that serves others (companion_of) comes along with them, and can't run without them."""
+    browser = {"web": {"enable_browser": True}}
+
+    # the gallery comes with screenshots, without displacing the default output modules
+    scan = Scanner(modules=["screenshot"], config=browser)
+    assert "gallery" in scan.preset.output_modules
+    assert {"json", "txt"} <= set(scan.preset.output_modules)
+
+    # unless it's turned off, or excluded
+    scan = Scanner(modules=["screenshot"], config={**browser, "modules": {"gallery": {"auto_enable": False}}})
+    assert "gallery" not in scan.preset.output_modules
+    scan = Scanner(modules=["screenshot"], exclude_modules=["gallery"], config=browser)
+    assert "gallery" not in scan.preset.output_modules
+
+    # no screenshots, no gallery
+    scan = Scanner(modules=["robots"])
+    assert "gallery" not in scan.preset.output_modules
+
+    # asking for it without them won't start a scan
+    with pytest.raises(
+        ValidationError,
+        match=r"Module gallery only works alongside screenshot, which is not enabled\. "
+        r"Enable it or remove gallery\.",
+    ):
+        Scanner(output_modules=["gallery"])
+
+    # listing modules isn't a scan
+    baked = Preset(output_modules=["gallery"]).validate().bake()
+    assert "gallery" in baked.output_modules
+
+
 def test_preset_path_no_clobber_default(tmp_path):
     """Regression: loading a preset via path (e.g. ./scan.yml) must not clobber
     the default preset search path, even when the preset lives in a parent

@@ -506,6 +506,18 @@ class Preset(metaclass=BasePreset):
             for output_module in self.default_output_modules:
                 baked_preset.add_module(output_module, module_type="output", raise_error=False)
 
+        # modules that serve others (`companion_of`) come along with them. After the default output modules, so an
+        # output companion doesn't stand in for those
+        excluded = baked_preset.exclude_modules | baked_preset.exclude_output_modules
+        for module, preloaded in baked_preset.module_loader.preloaded().items():
+            companion_of = set(preloaded.get("companion_of", []))
+            if not companion_of or module in baked_preset.modules or module in excluded:
+                continue
+            auto_enable = baked_preset.config.get("modules", {}).get(module, {}).get("auto_enable", True)
+            if auto_enable and companion_of & baked_preset.modules:
+                self.log_verbose(f'Enabling module "{module}" alongside {", ".join(sorted(companion_of))}')
+                baked_preset.add_module(module, preloaded.get("type", "scan"), raise_error=False)
+
         # dnsresolve is the intercept module that resolves every event, tags wildcards/unresolved,
         # and rewrites wildcard hits to `_wildcard.parent`. Modules that watch DNS_NAME depend on
         # those tags to filter false positives; without it, brute-force and passive-enum modules
@@ -532,6 +544,17 @@ class Preset(metaclass=BasePreset):
                     "if you want to reduce DNS overhead while keeping wildcard and unresolved tagging. "
                     "If you genuinely want no DNS at all, also disable the modules listed above."
                 )
+
+        # a companion on its own has nothing to serve
+        if scan is not None:
+            for module in sorted(baked_preset.modules):
+                companion_of = baked_preset.preloaded_module(module).get("companion_of", [])
+                if companion_of and not set(companion_of) & baked_preset.modules:
+                    raise ValidationError(
+                        f"Module {module} only works alongside {' or '.join(companion_of)}, which "
+                        f"{'is' if len(companion_of) == 1 else 'are'} not enabled. Enable "
+                        f"{'it' if len(companion_of) == 1 else 'one of them'} or remove {module}."
+                    )
 
         # modules that only work through the browser can't run without it, when explicitly asked for
         if browser_off:

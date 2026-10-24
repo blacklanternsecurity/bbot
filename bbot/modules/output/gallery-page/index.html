@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BBOT Gallery</title>
+<style>
+  body { margin: 0; padding: 24px; background: #111317; color: #e6e6e6; font: 14px/1.5 system-ui, sans-serif; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  #status { color: #9aa0a6; margin-bottom: 16px; }
+  #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  figure { margin: 0; background: #1b1e24; border-radius: 6px; overflow: hidden; }
+  figure img { width: 100%; display: block; aspect-ratio: 16 / 10; object-fit: cover; object-position: top; }
+  figcaption { padding: 6px 8px; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+</style>
+</head>
+<body>
+<h1 id="title">BBOT Gallery</h1>
+<div id="status">Waiting for the scan to start...</div>
+<div id="grid"></div>
+<script>
+// placeholder until the full gallery page: shows the scan and its screenshots, and keeps itself up to date
+const POLL_MS = 5000;
+const state = { generation: null, chunkRevs: {}, shots: {} };
+
+window.bbotGallery = {
+  manifest(manifest) {
+    if (manifest.generation !== state.generation) {
+      Object.assign(state, { generation: manifest.generation, chunkRevs: {}, shots: {} });
+    }
+    document.getElementById("title").textContent = `BBOT Gallery: ${manifest.scan.name}`;
+    document.getElementById("status").textContent =
+      `${manifest.total} screenshots, scan ${manifest.scan.status.toLowerCase()}, updated ${new Date(manifest.updated * 1000).toLocaleTimeString()}`;
+    for (const chunk of manifest.chunks) {
+      if (state.chunkRevs[chunk.file] !== chunk.rev) {
+        state.chunkRevs[chunk.file] = chunk.rev;
+        load(`data/${chunk.file}?rev=${chunk.rev}`);
+      }
+    }
+  },
+  shots(chunk) {
+    for (const shot of chunk.screenshots) state.shots[shot.id] = shot;
+    render();
+  },
+  meta() {},
+};
+
+function load(src) {
+  const script = document.createElement("script");
+  script.src = src;
+  script.onload = script.onerror = () => script.remove();
+  document.head.appendChild(script);
+}
+
+function render() {
+  const grid = document.getElementById("grid");
+  grid.replaceChildren(...Object.values(state.shots).map((shot) => {
+    const figure = document.createElement("figure");
+    const link = document.createElement("a");
+    link.href = shot.file;
+    const img = document.createElement("img");
+    img.loading = "lazy";
+    img.src = shot.thumbnail;
+    link.appendChild(img);
+    const caption = document.createElement("figcaption");
+    caption.textContent = `${shot.status} ${shot.url}`;
+    caption.title = shot.title;
+    figure.append(link, caption);
+    return figure;
+  }));
+}
+
+load(`data/manifest.js?t=${Date.now()}`);
+setInterval(() => load(`data/manifest.js?t=${Date.now()}`), POLL_MS);
+</script>
+</body>
+</html>
