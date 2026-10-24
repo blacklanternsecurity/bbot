@@ -24,6 +24,7 @@ CHALLENGE_PAGE = """<html><head><title>Just a moment...</title></head><body><scr
 document.cookie = "cleared=1; path=/";
 setTimeout(() => location.reload(), 200);
 </script></body></html>"""
+CHALLENGE_HEADERS = {"Server": "cloudflare", "cf-mitigated": "challenge"}
 
 
 def serve(httpserver):
@@ -34,7 +35,7 @@ def serve(httpserver):
             return Response(
                 CHALLENGE_PAGE,
                 status=403,
-                headers={"Server": "cloudflare", "cf-mitigated": "challenge"},
+                headers=CHALLENGE_HEADERS,
                 content_type="text/html",
             )
         if request.path.startswith("/challenge"):
@@ -360,6 +361,39 @@ async def test_browser_fallback_off(bbot_scanner, bbot_httpserver):
 
 @pytest.mark.browser
 @pytest.mark.asyncio
+async def test_browser_fallback_dead_site(bbot_scanner, bbot_httpserver):
+    """Past the challenge, the site is down: there's nothing to hand blasthttp, and the browser's answer is used."""
+    browser_loads = []
+
+    def handler(request):
+        if "Firefox" not in request.headers.get("User-Agent", ""):
+            return Response(CHALLENGE_PAGE, status=403, headers=CHALLENGE_HEADERS, content_type="text/html")
+        browser_loads.append(request.path)
+        # the challenge sets no cookie, then the site behind it doesn't answer
+        if len(browser_loads) == 1:
+            page = "<html><head><title>Just a moment...</title></head><body><script>setTimeout(() => location.reload(), 200)</script></body></html>"
+            return Response(page, status=403, headers=CHALLENGE_HEADERS, content_type="text/html")
+        return Response("<html>origin is unreachable</html>", status=522, content_type="text/html")
+
+    bbot_httpserver.expect_request(re.compile(".*")).respond_with_handler(handler)
+    scan = await browser_scan(bbot_scanner)
+    web = scan.helpers.web
+
+    response = await web.request(bbot_httpserver.url_for("/dead"), browser_fallback=True)
+    assert response.status_code == 522
+    assert "origin is unreachable" in response.text
+    # no cookies, so no clearance kept and no blasthttp retry
+    assert not web._clearances
+    # blasthttp's one request (its ladder tries two profiles); no retry with cookies
+    blasthttp_requests = [r for r, _ in bbot_httpserver.log if "Firefox" not in r.headers.get("User-Agent", "")]
+    assert len(blasthttp_requests) == 2
+    # the browser loaded it once (the challenge, then its reload), not again for a fetch
+    assert browser_loads == ["/dead", "/dead"]
+    await scan._cleanup()
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
 async def test_browser_fallback_fetch(bbot_scanner, bbot_httpserver):
     """When the browser's cookies don't get blasthttp through, GETs are fetched by the browser itself."""
     serve(bbot_httpserver)
@@ -378,12 +412,22 @@ async def test_browser_fallback_fetch(bbot_scanner, bbot_httpserver):
         return await original_clearance(url)
 
     browser.clearance = counting_clearance
+    fetches = []
+    original_fetch = browser.fetch
+
+    async def counting_fetch(url):
+        fetches.append(url)
+        return await original_fetch(url)
+
+    browser.fetch = counting_fetch
 
     response = await web.request(bbot_httpserver.url_for("/challenge"), browser_fallback=True)
     assert response.status_code == 200
     assert "past the challenge" in response.text
     # the clearance didn't work, so it isn't kept
     assert "127.0.0.1" not in web._clearances
+    # the browser already loaded the URL getting past the challenge, so that's the response; it isn't loaded again
+    assert fetches == []
 
     # a POST can't be replayed in the browser, so it gets the challenge back
     response = await web.request(bbot_httpserver.url_for("/challenge"), method="POST", browser_fallback=True)
@@ -394,6 +438,8 @@ async def test_browser_fallback_fetch(bbot_scanner, bbot_httpserver):
         response = await web.request(bbot_httpserver.url_for(f"/challenge/{i}"), browser_fallback=True)
         assert response.status_code == 200
     assert solves == 3
+    # the POST above used a solve too, so /challenge/0 got the browser's clearance load and the rest were fetched
+    assert fetches == [bbot_httpserver.url_for(f"/challenge/{i}") for i in range(1, 5)]
 
     await scan._cleanup()
 

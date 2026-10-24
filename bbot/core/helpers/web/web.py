@@ -732,7 +732,8 @@ class WebHelper:
 
         The browser passes the challenge, and its cookies and User-Agent are handed to blasthttp, which retries the
         request (`request_kwargs` are the original request's). From then on every request to that host carries them.
-        If that doesn't get through and the request is a GET, the browser fetches the URL itself.
+        If that doesn't get through (or there's nothing to hand off) and the request is a plain GET, the browser's own
+        response is used: the one it got passing the challenge, or a fetch of the URL if it passed it earlier.
 
         Returns the response that got through, or `response` if nothing did.
         """
@@ -746,11 +747,17 @@ class WebHelper:
             )
             return response
         request_kwargs = dict(request_kwargs or {})
+        # the browser can only stand in for a plain GET
+        plain_get = request_kwargs.get("method", "GET").upper() == "GET" and not any(
+            request_kwargs.get(k) is not None for k in ("body", "data", "json", "files")
+        )
         host = urlparse(url).hostname
         sent_with = self._clearances.get(host)
         log.critical(
             f"BROWSERDBG get_past_challenge() waiting for host lock: host={host} have_clearance={sent_with is not None}"
         )
+        # what the browser got loading this URL, if it got past the challenge
+        browser_response = None
         async with self._challenge_locks.lock(host):
             clearance = self._clearances.get(host)
             # unless another request already got a fresh clearance while this one was out, get one
@@ -760,7 +767,14 @@ class WebHelper:
                     f"BROWSERDBG asking BROWSER for clearance: host={host} attempt={self._clearance_counts[host]}/{MAX_CLEARANCES_PER_HOST} url={url}"
                 )
                 clearance = await browser.clearance(url)
-                if clearance is None:
+                if clearance is not None:
+                    browser_response = clearance.response
+                if clearance is None or not clearance.cookies:
+                    # nothing to hand off (e.g. past the challenge, the site itself is down)
+                    log.critical(
+                        f"BROWSERDBG clearance has NOTHING TO HAND OFF: url={url} got_clearance={clearance is not None} browser_status={getattr(browser_response, 'status_code', None)}"
+                    )
+                    clearance = None
                     self._clearances.pop(host, None)
                 else:
                     self._clearances[host] = clearance
@@ -784,9 +798,17 @@ class WebHelper:
                 if self._clearances.get(host) is clearance:
                     self._clearances.pop(host)
                 log.critical(f"BROWSERDBG HANDOFF FAILED, dropped clearance: host={host} url={url}")
-        if request_kwargs.get("method", "GET").upper() == "GET" and not any(
-            request_kwargs.get(k) is not None for k in ("body", "data", "json", "files")
-        ):
+        if not plain_get:
+            log.critical(
+                f"BROWSERDBG not a plain GET, no browser response: url={url} method={request_kwargs.get('method', 'GET')}"
+            )
+        elif browser_response is not None and browser_response.conclusion[0] != "needs_browser":
+            # the browser already loaded this URL while getting past the challenge; no need to load it again
+            log.critical(
+                f"BROWSERDBG using the BROWSER'S CLEARANCE LOAD as the response: url={url} status={browser_response.status_code}"
+            )
+            return browser_response
+        else:
             log.critical(f"BROWSERDBG falling back to BROWSER FETCH: url={url}")
             fetched = await browser.fetch(url)
             if fetched is not None and fetched.conclusion[0] != "needs_browser":
@@ -794,10 +816,6 @@ class WebHelper:
                 return fetched
             log.critical(
                 f"BROWSERDBG BROWSER FETCH did not get through: url={url} result={getattr(fetched, 'conclusion', None)}"
-            )
-        else:
-            log.critical(
-                f"BROWSERDBG not a plain GET, no browser fetch: url={url} method={request_kwargs.get('method', 'GET')}"
             )
         log.critical(f"BROWSERDBG get_past_challenge() GAVE UP, returning original challenge response: url={url}")
         return response

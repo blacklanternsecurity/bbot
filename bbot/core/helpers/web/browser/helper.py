@@ -124,10 +124,14 @@ class RedirectHold:
 
 @dataclass
 class Clearance:
-    """What lets blasthttp through a challenge the browser passed: the origin's cookies and the browser's User-Agent."""
+    """
+    What lets blasthttp through a challenge the browser passed: the origin's cookies and the browser's User-Agent.
+    `response` is what the browser itself got for the URL once past the challenge.
+    """
 
     cookies: dict
     user_agent: str
+    response: blasthttp.Response
 
 
 class _Host:
@@ -406,7 +410,7 @@ class BrowserHelper:
             f"BROWSERDBG clearance cookies from context: url={url} cookies={ {k: v[:12] + '...' for k, v in cookies.items()} }"
         )
         user_agent = await page.evaluate("() => navigator.userAgent")
-        return Clearance(cookies=cookies, user_agent=user_agent)
+        return Clearance(cookies=cookies, user_agent=user_agent, response=host.warm_document)
 
     async def _warm_page(self, instance, host, url, warm_url=None, rewarm=False):
         """
