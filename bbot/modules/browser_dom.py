@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 import blasthttp
 
 from bbot.modules.base import BaseModule
+from bbot.core.helpers.web.browser import NETWORK_BODY_TYPES
 from bbot.core.helpers.web.response_event import response_to_event_dict
 
 
@@ -66,13 +67,21 @@ class browser_dom(BaseModule):
             requested_url = request["url"]
             if not requested_url.startswith(("http://", "https://")) or requested_url == visit.response.url:
                 continue
-            self.critical(
-                f"BROWSERDBG browser_dom EMITTING network URL: {requested_url} (status {request['status']}, from {url})"
-            )
-            await self.emit_event(
+            # images, fonts and media aren't worth following
+            if request["resource_type"] not in NETWORK_BODY_TYPES:
+                continue
+            url_event = self.make_event(
                 requested_url,
                 "URL_UNVERIFIED",
                 parent=event,
                 tags=[f"status-{request['status']}", "spider-danger"],
                 context=f"{{module}} loaded {url} in a browser, which requested {{event.type}}: {requested_url}",
             )
+            if url_event is None:
+                continue
+            # the browser already has the response, so the http module uses it instead of fetching again
+            url_event.prefetched_response = request["response"]
+            self.critical(
+                f"BROWSERDBG browser_dom EMITTING network URL: {requested_url} (status {request['status']}, {request['resource_type']}, prefetched={request['response'] is not None}, from {url})"
+            )
+            await self.emit_event(url_event)

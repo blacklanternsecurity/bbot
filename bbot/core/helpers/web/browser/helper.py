@@ -33,6 +33,9 @@ MAX_CRASHES = 3
 CRASH_WINDOW = 600
 # finished visits held for modules that haven't collected theirs yet
 VISIT_CACHE_SIZE = 100
+# a page's requests whose bodies are kept, so modules can use them without fetching them again
+NETWORK_BODY_TYPES = {"document", "script", "stylesheet", "xhr", "fetch"}
+NETWORK_BODY_MAX = 5 * 1024 * 1024
 
 # runs inside a warm page, so the request carries the page's cookies and the browser's real network fingerprint
 FETCH_JS = """
@@ -69,7 +72,8 @@ class BrowserVisit:
     title: str = ""
     dom: str = None
     screenshot: bytes = None
-    # every response the page received: {"url", "status", "method", "resource_type"}
+    # every response the page received: {"url", "status", "method", "resource_type", "response"}, where "response"
+    # is a blasthttp Response for text resources fetched with GET (see NETWORK_BODY_TYPES), otherwise None
     network: list = field(default_factory=list)
 
 
@@ -259,23 +263,16 @@ class BrowserHelper:
     async def _visit(self, url):
         artifacts = self._enabled_artifacts()
         async with self._page(url) as page:
-            network = []
+            responses = []
             if "network" in artifacts:
-                page.on(
-                    "response",
-                    lambda r: network.append(
-                        {
-                            "url": r.url,
-                            "status": r.status,
-                            "method": r.request.method,
-                            "resource_type": r.request.resource_type,
-                        }
-                    ),
-                )
+                page.on("response", lambda r: responses.append(r))
             main = await self._load(page, url)
             if main is None:
                 return None
-            visit = BrowserVisit(url=url, response=main, title=await page.title(), network=network)
+            visit = BrowserVisit(url=url, response=main, title=await page.title())
+            # bodies are read while the page is still open
+            for response in responses:
+                visit.network.append(await self._network_entry(response))
             if "dom" in artifacts:
                 visit.dom = await page.content()
                 log.critical(f"BROWSERDBG captured DOM: url={url} chars={len(visit.dom)}")
@@ -284,7 +281,7 @@ class BrowserHelper:
                 log.critical(f"BROWSERDBG captured SCREENSHOT: url={url} bytes={len(visit.screenshot)}")
             if "network" in artifacts:
                 log.critical(
-                    f"BROWSERDBG captured NETWORK: url={url} requests={len(network)} urls={[n['url'] for n in network][:20]}"
+                    f"BROWSERDBG captured NETWORK: url={url} requests={len(visit.network)} with_body={sum(1 for n in visit.network if n['response'] is not None)} urls={[(n['url'], n['resource_type'], n['response'] is not None) for n in visit.network][:20]}"
                 )
             return visit
 
@@ -487,9 +484,29 @@ class BrowserHelper:
         response = None
         while not documents.empty():
             response = documents.get_nowait()
+        return await self._to_response(response, url)
+
+    async def _network_entry(self, response):
+        request = response.request
+        entry = {
+            "url": response.url,
+            "status": response.status,
+            "method": request.method,
+            "resource_type": request.resource_type,
+            "response": None,
+        }
+        if request.method == "GET" and request.resource_type in NETWORK_BODY_TYPES:
+            converted = await self._to_response(response, response.url)
+            if len(converted.content) <= NETWORK_BODY_MAX:
+                entry["response"] = converted
+        return entry
+
+    async def _to_response(self, response, request_url):
+        """A browser response as a blasthttp Response."""
         try:
             body = await response.body()
         except Exception:
+            # redirects have no body, and the browser may have already discarded one
             body = b""
         headers = [(h["name"], h["value"]) for h in await response.headers_array()]
         peer_ip = None
@@ -500,7 +517,7 @@ class BrowserHelper:
             response.status,
             headers=headers,
             body=body,
-            request_url=url,
+            request_url=request_url,
             peer_ip=peer_ip,
         )
 

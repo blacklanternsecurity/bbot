@@ -10,8 +10,14 @@ PAGE = "<html><head><title>screenshot test</title></head><body><h1>{}</h1></body
 
 class TestScreenshot(ModuleTestBase):
     pytestmark = pytest.mark.browser
-    # two URLs serving the same page, and one that differs
-    targets = [f"{HTTPSERVER_URL}/", f"{HTTPSERVER_URL}/same", f"{HTTPSERVER_URL}/different"]
+    # two URLs serving the same page, one that differs, and two that aren't pages
+    targets = [
+        f"{HTTPSERVER_URL}/",
+        f"{HTTPSERVER_URL}/same",
+        f"{HTTPSERVER_URL}/different",
+        f"{HTTPSERVER_URL}/photo",
+        f"{HTTPSERVER_URL}/data",
+    ]
     modules_overrides = ["http", "screenshot"]
     config_overrides = {"web": {"enable_browser": True}}
 
@@ -22,10 +28,21 @@ class TestScreenshot(ModuleTestBase):
         module_test.set_expect_requests(
             {"uri": "/different"}, {"response_data": PAGE.format("a different page"), "content_type": "text/html"}
         )
+        module_test.set_expect_requests({"uri": "/photo"}, {"response_data": b"\x89PNG", "content_type": "image/png"})
+        module_test.set_expect_requests(
+            {"uri": "/data"}, {"response_data": '{"a": 1}', "content_type": "application/json; charset=utf-8"}
+        )
 
     def check(self, module_test, events):
         screenshots = {e.data["url"]: e for e in events if e.type == "WEBSCREENSHOT"}
         assert set(screenshots) == {f"{HTTPSERVER_URL}/", f"{HTTPSERVER_URL}/same", f"{HTTPSERVER_URL}/different"}
+
+        # an image or JSON isn't a page: the http module visits it, the browser never does
+        urls = {e.url: e for e in events if e.type == "URL"}
+        assert urls[f"{HTTPSERVER_URL}/photo"].content_type == "image/png"
+        assert urls[f"{HTTPSERVER_URL}/data"].content_type == "application/json"
+        for path in ("/photo", "/data"):
+            assert len([r for r, _ in module_test.httpserver.log if r.path == path]) == 1
 
         for event in screenshots.values():
             data = event.data

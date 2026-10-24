@@ -13,6 +13,9 @@ from ..core.helpers.async_helpers import LaneQueue, TaskCounter, ShuffleQueue
 from ..core.event import is_event
 from .. import __version__
 
+# content types a module that uses the browser will load; a URL whose type isn't known is loaded too
+BROWSER_PAGE_TYPES = {"text/html", "application/xhtml+xml"}
+
 
 class BaseModule:
     """The base class for all BBOT modules.
@@ -63,7 +66,7 @@ class BaseModule:
 
         accept_url_special (bool): Accept "special" URLs not typically distributed to web modules, e.g. JS URLs. Default is False.
 
-        browser_artifacts (List): What this module needs from the browser, e.g. ["screenshot"]. Declaring any makes the module depend on the browser, so the scan won't start unless `web.enable_browser` is on. Empty list by default.
+        browser_artifacts (List): What this module needs from the browser, e.g. ["screenshot"]. Declaring any makes the module depend on the browser and limits its URL events to web pages, so the scan won't start unless `web.enable_browser` is on. Empty list by default.
 
         skip_browser_only_hosts (bool): Reject events whose host has only ever answered with a challenge that needs a real browser. For modules that send many crafted requests a browser can't make. Default is False.
 
@@ -949,6 +952,12 @@ class BaseModule:
         if self.skip_browser_only_hosts and event.host and self.helpers.web.is_browser_only(event.host):
             self.critical(f"BROWSERDBG {self.name} SKIPPING browser-only host {event.host}: {event.data}")
             return False, "its host can only be loaded by a browser"
+
+        # the browser renders pages; an image or a JSON file isn't one
+        if self.browser_artifacts and event.type == "URL":
+            content_type = event.content_type
+            if content_type and content_type not in BROWSER_PAGE_TYPES:
+                return False, f"it isn't a web page ({content_type})"
 
         # custom filtering
         async with self.scan._acatch(context=self.filter_event):

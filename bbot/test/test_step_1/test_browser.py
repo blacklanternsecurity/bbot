@@ -115,7 +115,11 @@ async def test_browser_visit(bbot_scanner, bbot_httpserver):
     # the DOM after scripts ran, not the HTML as served
     assert "built by js" in visit.dom
     assert visit.screenshot.startswith(b"\x89PNG")
-    assert bbot_httpserver.url_for("/pixel.png") in [n["url"] for n in visit.network]
+    network = {n["url"]: n for n in visit.network}
+    pixel = network[bbot_httpserver.url_for("/pixel.png")]
+    assert pixel["resource_type"] == "image"
+    # only text resources keep their response
+    assert pixel["response"] is None
 
     # blacklisted hosts are never contacted, even for a page's subresources
     assert "/blocked.png" not in requested_paths(bbot_httpserver)

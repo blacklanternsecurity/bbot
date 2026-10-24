@@ -1427,10 +1427,14 @@ class URL_UNVERIFIED(DictHostEvent):
     __slots__ = [
         "web_spider_distance",
         "num_redirects",
+        # a response the emitting module already has (e.g. from a browser), which the http module uses instead of
+        # fetching the URL again
+        "prefetched_response",
     ]
 
     def __init__(self, *args, **kwargs):
         self.web_spider_distance = 0
+        self.prefetched_response = None
         super().__init__(*args, **kwargs)
         self.num_redirects = getattr(self.parent, "num_redirects", 0)
 
@@ -1570,6 +1574,15 @@ class URL_UNVERIFIED(DictHostEvent):
     @redirect_location.setter
     def redirect_location(self, value):
         self.data["redirect_location"] = value
+
+    @property
+    def content_type(self):
+        """The response's MIME type, without parameters like charset. Empty if the URL hasn't been visited."""
+        return self.data.get("content_type", "")
+
+    @content_type.setter
+    def content_type(self, value):
+        self.data["content_type"] = value.split(";")[0].strip().lower()
 
 
 class URL(URL_UNVERIFIED):

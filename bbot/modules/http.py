@@ -198,7 +198,6 @@ class http(BaseModule):
             else:
                 self.debug(f"HTTP error for {result.url}: {error_str}")
             return False
-
         response = result.response
         self.helpers.web.record_conclusion(response)
         if response.conclusion[0] == "needs_browser":
@@ -209,9 +208,12 @@ class http(BaseModule):
             self.critical(
                 f"BROWSERDBG http after browser fallback: {result.url} status={response.status} conclusion={response.conclusion}"
             )
+        return await self._process_response(result.url, response, parent_event)
+
+    async def _process_response(self, request_url, response, parent_event):
         status_code = response.status
         if status_code == 0:
-            self.debug(f'No HTTP status code for "{result.url}"')
+            self.debug(f'No HTTP status code for "{request_url}"')
             return False
 
         url = response.url
@@ -219,8 +221,8 @@ class http(BaseModule):
         # The "input" field represents the original scan target (host:port),
         # not the full URL. Other modules and output consumers use this to
         # correlate responses back to the target that produced them.
-        input_parsed = urlparse(result.url)
-        url_input = input_parsed.netloc or result.url
+        input_parsed = urlparse(request_url)
+        url_input = input_parsed.netloc or request_url
         j = self._response_to_json(url_input, response)
 
         # discard 404s from unverified URLs
@@ -252,6 +254,9 @@ class http(BaseModule):
             location = j.get("location", "")
             if location:
                 url_event.redirect_location = location
+            content_type = j.get("content_type", "")
+            if content_type:
+                url_event.content_type = content_type
             response_hash = j.get("hash")
             if response_hash:
                 url_event.data["hash"] = response_hash
@@ -283,6 +288,15 @@ class http(BaseModule):
         paired_probe_urls = {}
 
         for event in events:
+            prefetched = getattr(event, "prefetched_response", None)
+            if prefetched is not None:
+                # dropped once used, so the body isn't held for the rest of the scan
+                event.prefetched_response = None
+                self.critical(
+                    f"BROWSERDBG http USING PREFETCHED response (no request): {event.url} status={prefetched.status}"
+                )
+                await self._process_response(event.url, prefetched, event)
+                continue
             urls, url_hash = self.make_url_metadata(event)
             host = str(event.host)
             if self._host_is_cooled_down(host):
