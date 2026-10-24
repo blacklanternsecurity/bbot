@@ -285,3 +285,17 @@ ol.path li { margin-bottom: 3px; word-break: break-word; }
 #compare-body .side { min-width: 0; }
 #compare-body img { width: 100%; display: block; border: 1px solid var(--border); border-radius: 6px; }
 #compare-body dd.diff { color: var(--accent); font-weight: 600; }
+
+#lightbox { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; background: rgba(0, 0, 0, 0.92); }
+#lightbox[hidden] { display: none; }
+#lightbox-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 20px; overflow: auto; }
+#lightbox-img { max-width: 100%; max-height: 100%; object-fit: contain; cursor: zoom-in; box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6); }
+#lightbox.actual-size #lightbox-stage { align-items: flex-start; justify-content: flex-start; }
+#lightbox.actual-size #lightbox-img { max-width: none; max-height: none; cursor: zoom-out; }
+#lightbox-bar { display: flex; align-items: center; gap: 8px; padding: 10px 20px; background: #111317; color: #e6e8eb; border-top: 2px solid var(--accent); }
+#lightbox-bar button { background: #2a2f3a; border-color: #3a404c; color: #e6e8eb; }
+#lightbox-caption { display: flex; align-items: center; gap: 10px; min-width: 0; white-space: nowrap; }
+#lightbox-caption .url { overflow: hidden; text-overflow: ellipsis; }
+#lightbox-caption .title { color: #9aa0aa; overflow: hidden; text-overflow: ellipsis; }
+#lightbox-caption .position { color: #9aa0aa; }
+.detail-image img { cursor: zoom-in; }

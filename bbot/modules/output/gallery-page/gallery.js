@@ -43,6 +43,7 @@ const expanded = new Set();
 const facetOpen = new Set();
 let compareIds = [];
 let detailId = null;
+let lightboxId = null;
 
 // ---- triage, kept in this browser per scan ----
 
@@ -535,7 +536,7 @@ function card(entry) {
   });
   const thumb = el(
     "div",
-    { class: "thumb", title: "Open", onclick: () => openDetail(shot.id) },
+    { class: "thumb", title: "View larger", onclick: () => openLightbox(shot.id) },
     el("img", { src: shot.thumbnail, loading: "lazy", alt: "" }),
   );
   if (count > 1) {
@@ -580,7 +581,7 @@ function card(entry) {
       "div",
       { class: "line" },
       el("span", { class: statusClass(shot.status), title: "Filter by this status", onclick: () => addFilter("status", String(shot.status)) }, shot.status || "?"),
-      el("span", { class: "url", title: shot.url }, shot.url),
+      el("span", { class: "url clickable", title: `${shot.url}\n(details)`, onclick: () => openDetail(shot.id) }, shot.url),
     ),
     el("div", { class: "line" }, el("span", { class: "title", title: shot.title }, (group && !member && group.label) || shot.title || "(no title)")),
     el(
@@ -627,7 +628,7 @@ function tableRow(item) {
   const row = el(
     "div",
     { class: `table-row ${isHidden(shot) ? "is-hidden" : ""}` },
-    el("div", {}, el("img", { src: shot.thumbnail, loading: "lazy", alt: "", onclick: () => openDetail(shot.id) })),
+    el("div", {}, el("img", { src: shot.thumbnail, loading: "lazy", alt: "", onclick: () => openLightbox(shot.id) })),
     el("div", { title: shot.url, class: "clickable", onclick: () => openDetail(shot.id) }, shot.url),
     el("div", {}, el("span", { class: statusClass(shot.status), onclick: () => addFilter("status", String(shot.status)) }, shot.status || "?")),
     el("div", { title: shot.title }, shot.title),
@@ -710,17 +711,42 @@ function removeFilter(field, value) {
 // ---- detail panel ----
 
 function openDetail(id) {
+  closeOverlays();
   detailId = id;
   $("detail").hidden = false;
   renderDetail();
 }
 
-function stepDetail(delta) {
-  if (!ordered.length) return;
-  const index = ordered.findIndex((s) => s.id === detailId);
-  const next = ordered[(index + delta + ordered.length) % ordered.length];
-  openDetail(next.id);
+// the screenshot `delta` places away from `id`, in display order
+function step(id, delta) {
+  if (!ordered.length) return null;
+  const index = ordered.findIndex((s) => s.id === id);
+  return ordered[(index + delta + ordered.length) % ordered.length].id;
 }
+
+const stepDetail = (delta) => detailId !== null && openDetail(step(detailId, delta));
+
+// ---- lightbox: the screenshot as large as the window allows ----
+
+function openLightbox(id) {
+  closeOverlays();
+  lightboxId = id;
+  const shot = data.shots[id];
+  const box = $("lightbox");
+  box.hidden = false;
+  box.classList.remove("actual-size");
+  $("lightbox-img").src = shot.file;
+  const index = ordered.findIndex((s) => s.id === id);
+  $("lightbox-caption").replaceChildren(
+    el("span", { class: statusClass(shot.status) }, shot.status || "?"),
+    el("span", { class: "url" }, shot.url),
+    el("span", { class: "title" }, shot.title || "(no title)"),
+    index >= 0 ? el("span", { class: "position" }, `${index + 1} / ${ordered.length}`) : null,
+  );
+  $("lightbox-full").href = shot.file;
+}
+
+const stepLightbox = (delta) => lightboxId !== null && openLightbox(step(lightboxId, delta));
 
 function kv(rows) {
   const dl = el("dl", { class: "kv" });
@@ -881,6 +907,8 @@ function openCompare() {
 function closeOverlays() {
   $("detail").hidden = true;
   $("compare").hidden = true;
+  $("lightbox").hidden = true;
+  lightboxId = null;
 }
 
 // ---- export ----
@@ -1083,8 +1111,25 @@ function init() {
   for (const overlay of [$("detail"), $("compare")]) {
     overlay.addEventListener("click", (e) => e.target === overlay && closeOverlays());
   }
+  $("lightbox").addEventListener("click", (e) => {
+    if (e.target.id === "lightbox" || e.target.id === "lightbox-stage") closeOverlays();
+  });
+  // click the image to switch between fitting the window and its actual size
+  $("lightbox-img").addEventListener("click", () => $("lightbox").classList.toggle("actual-size"));
+  $("lightbox-prev").addEventListener("click", () => stepLightbox(-1));
+  $("lightbox-next").addEventListener("click", () => stepLightbox(1));
+  $("lightbox-details").addEventListener("click", () => openDetail(lightboxId));
+  $("lightbox-close").addEventListener("click", closeOverlays);
+  $("detail-img").addEventListener("click", (e) => {
+    e.preventDefault();
+    openLightbox(detailId);
+  });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeOverlays();
+    const inLightbox = !$("lightbox").hidden;
+    if (inLightbox && e.key === "ArrowLeft") stepLightbox(-1);
+    if (inLightbox && e.key === "ArrowRight") stepLightbox(1);
+    if (inLightbox && (e.key === "i" || e.key === "Enter")) openDetail(lightboxId);
     if (!$("detail").hidden && e.key === "ArrowLeft") stepDetail(-1);
     if (!$("detail").hidden && e.key === "ArrowRight") stepDetail(1);
     if (e.key === "/" && document.activeElement !== $("search")) {

@@ -341,9 +341,17 @@ async def test_gallery_page():
         assert await page.locator("text=<img src=x").count() >= 1
         assert await page.evaluate("window.pwned") is None
 
-        # a card opens its details
+        # a thumbnail opens the screenshot larger, arrows step through, and details are a key away
         await page.locator(".thumb").first.click()
-        assert not await page.locator("#detail").get_attribute("hidden")
+        assert await page.locator("#lightbox").get_attribute("hidden") is None
+        assert (await page.get_attribute("#lightbox-img", "src")).endswith(f"{sha256}.png")
+        first = await page.text_content("#lightbox-caption .url")
+        await page.keyboard.press("ArrowRight")
+        assert await page.text_content("#lightbox-caption .url") != first
+        assert "/ 3" in await page.text_content("#lightbox-caption .position")
+        await page.keyboard.press("i")
+        assert await page.locator("#lightbox").get_attribute("hidden") is not None
+        assert await page.locator("#detail").get_attribute("hidden") is None
         assert "http://127.0.0.1:8888/" in await page.text_content("#detail-body h2")
         await page.keyboard.press("Escape")
         assert await page.locator("#detail").get_attribute("hidden") is not None
