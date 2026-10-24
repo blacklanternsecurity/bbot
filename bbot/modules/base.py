@@ -13,7 +13,7 @@ from ..core.helpers.async_helpers import LaneQueue, TaskCounter, ShuffleQueue
 from ..core.event import is_event
 from .. import __version__
 
-# content types a module that uses the browser will load; a URL whose type isn't known is loaded too
+# content types a module that uses the browser will load
 BROWSER_PAGE_TYPES = {"text/html", "application/xhtml+xml"}
 
 
@@ -956,8 +956,8 @@ class BaseModule:
         # the browser renders pages; an image or a JSON file isn't one
         if self.browser_artifacts and event.type == "URL":
             content_type = event.content_type
-            if content_type and content_type not in BROWSER_PAGE_TYPES:
-                return False, f"it isn't a web page ({content_type})"
+            if content_type not in BROWSER_PAGE_TYPES:
+                return False, f"it isn't a web page ({content_type or 'no content type, and not HTML'})"
 
         # custom filtering
         async with self.scan._acatch(context=self.filter_event):

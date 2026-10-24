@@ -407,7 +407,7 @@ skip_browser_only_hosts = True
 ```
 
 ##### `browser_artifacts` (list) -- default: `[]`
-What the module needs from the real browser, e.g. `["screenshot"]` or `["dom", "network"]`. Declaring any makes the module depend on the browser. Such a module only receives `URL` events that are web pages: one whose response was an image, JSON, a script or anything else other than HTML is skipped. With `web.enable_browser` off, a scan that explicitly asks for the module (`-m`, or a preset's `modules`) refuses to start, and one that only covers it with a flag leaves it out with a warning. Don't list the browser's packages in the module's own `deps_*`; the browser's dependencies are installed by the deps installer only when `web.enable_browser` is on, and `--install-all-deps` would otherwise install them for everyone.
+What the module needs from the real browser, e.g. `["screenshot"]` or `["dom", "network"]`. Declaring any makes the module depend on the browser. Such a module only receives `URL` events that are web pages: one whose response was an image, JSON, a script or anything else other than HTML is skipped. A response with no `Content-Type` counts as HTML only if its body opens like HTML, as a browser would judge it. With `web.enable_browser` off, a scan that explicitly asks for the module (`-m`, or a preset's `modules`) refuses to start, and one that only covers it with a flag leaves it out with a warning. Don't list the browser's packages in the module's own `deps_*`; the browser's dependencies are installed by the deps installer only when `web.enable_browser` is on, and `--install-all-deps` would otherwise install them for everyone.
 
 ---
 

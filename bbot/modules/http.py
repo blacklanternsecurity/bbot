@@ -9,6 +9,30 @@ from bbot.core.helpers.web.response_event import response_to_event_dict
 from bbot.modules.base import BaseModule
 from bbot.core.config.models import BaseModuleConfig, Field
 
+# how a browser recognizes HTML served without a Content-Type: the body opens with one of these (WHATWG MIME sniffing)
+HTML_SNIFF_PREFIXES = tuple(
+    f"<{tag}"
+    for tag in (
+        "!doctype html",
+        "html",
+        "head",
+        "script",
+        "iframe",
+        "h1",
+        "div",
+        "font",
+        "table",
+        "a",
+        "style",
+        "title",
+        "b",
+        "body",
+        "br",
+        "p",
+        "!--",
+    )
+)
+
 
 class http(BaseModule):
     watched_events = ["OPEN_TCP_PORT", "URL_UNVERIFIED", "URL"]
@@ -255,6 +279,14 @@ class http(BaseModule):
             if location:
                 url_event.redirect_location = location
             content_type = j.get("content_type", "")
+            if not content_type:
+                # what a browser would render it as
+                opening = j.get("body", "")[:512].lstrip().lower()
+                if any(
+                    opening.startswith(prefix) and opening[len(prefix) : len(prefix) + 1] in (" ", ">")
+                    for prefix in HTML_SNIFF_PREFIXES
+                ):
+                    content_type = "text/html"
             if content_type:
                 url_event.content_type = content_type
             response_hash = j.get("hash")

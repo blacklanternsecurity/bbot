@@ -2,6 +2,8 @@ import hashlib
 
 import pytest
 
+from werkzeug.wrappers import Response
+
 from .base import ModuleTestBase
 from bbot.test.worker import HTTPSERVER_URL
 
@@ -17,6 +19,8 @@ class TestScreenshot(ModuleTestBase):
         f"{HTTPSERVER_URL}/different",
         f"{HTTPSERVER_URL}/photo",
         f"{HTTPSERVER_URL}/data",
+        f"{HTTPSERVER_URL}/untyped-page",
+        f"{HTTPSERVER_URL}/untyped-data",
     ]
     modules_overrides = ["http", "screenshot"]
     config_overrides = {"web": {"enable_browser": True}}
@@ -33,15 +37,36 @@ class TestScreenshot(ModuleTestBase):
             {"uri": "/data"}, {"response_data": '{"a": 1}', "content_type": "application/json; charset=utf-8"}
         )
 
+        # served with no Content-Type at all: the page is recognized as HTML from its body, the data isn't
+        def untyped(body):
+            def handler(request):
+                response = Response(body)
+                del response.headers["Content-Type"]
+                return response
+
+            return handler
+
+        module_test.httpserver.expect_request("/untyped-page").respond_with_handler(
+            untyped("\n  <!DOCTYPE html><html><body><h1>untyped page</h1></body></html>")
+        )
+        module_test.httpserver.expect_request("/untyped-data").respond_with_handler(untyped('{"metrics": []}'))
+
     def check(self, module_test, events):
         screenshots = {e.data["url"]: e for e in events if e.type == "WEBSCREENSHOT"}
-        assert set(screenshots) == {f"{HTTPSERVER_URL}/", f"{HTTPSERVER_URL}/same", f"{HTTPSERVER_URL}/different"}
+        assert set(screenshots) == {
+            f"{HTTPSERVER_URL}/",
+            f"{HTTPSERVER_URL}/same",
+            f"{HTTPSERVER_URL}/different",
+            f"{HTTPSERVER_URL}/untyped-page",
+        }
 
         # an image or JSON isn't a page: the http module visits it, the browser never does
         urls = {e.url: e for e in events if e.type == "URL"}
         assert urls[f"{HTTPSERVER_URL}/photo"].content_type == "image/png"
         assert urls[f"{HTTPSERVER_URL}/data"].content_type == "application/json"
-        for path in ("/photo", "/data"):
+        assert urls[f"{HTTPSERVER_URL}/untyped-page"].content_type == "text/html"
+        assert urls[f"{HTTPSERVER_URL}/untyped-data"].content_type == ""
+        for path in ("/photo", "/data", "/untyped-data"):
             assert len([r for r, _ in module_test.httpserver.log if r.path == path]) == 1
 
         for event in screenshots.values():
@@ -66,7 +91,8 @@ class TestScreenshot(ModuleTestBase):
         )
         assert same.data["path"] == also_same.data["path"]
         assert same.data["path"] != different.data["path"]
-        assert len(list((module_test.scan.home / "screenshots").iterdir())) == 2
+        # the two identical pages, the different one, and the untyped page
+        assert len(list((module_test.scan.home / "screenshots").iterdir())) == 3
 
 
 class TestScreenshotJsRedirect(ModuleTestBase):
