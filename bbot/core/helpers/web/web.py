@@ -24,6 +24,9 @@ warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 
 log = logging.getLogger("bbot.core.helpers.web")
 
+# how many times the browser may pass a host's challenge for blasthttp (more than once, since clearances expire)
+MAX_CLEARANCES_PER_HOST = 3
+
 
 async def iter_batch_results(stream):
     """
@@ -92,6 +95,14 @@ class WebHelper:
         self._wildcard_locks = NamedLock(max_size=50000)
         # host -> "reached" or "browser_only", from blasthttp's verdict on each response
         self._host_states = {}
+        # browser fallback: pass JavaScript challenges with the browser, then hand its cookies to blasthttp
+        self.browser_fallback = bool(self.web_config.get("enable_browser", False)) and self.web_config.get(
+            "browser_fallback", True
+        )
+        # host -> Clearance (the browser's cookies and User-Agent), sent with every request to that host
+        self._clearances = {}
+        self._clearance_counts = {}
+        self._challenge_locks = NamedLock(max_size=10000)
 
     @property
     def client(self):
@@ -199,6 +210,9 @@ class WebHelper:
             cookie_str = "; ".join(f"{ck}={cv}" for ck, cv in cookies.items())
             header_list.append(("Cookie", cookie_str))
 
+        if not ignore_bbot_global_settings:
+            header_list = self.apply_clearance(url, header_list)
+
         # -- Basic auth --
         if auth:
             import base64
@@ -272,6 +286,9 @@ class WebHelper:
             request_target (str, optional): Override the HTTP request-line target.
             resolve_ip (str, optional): Connect TCP to this IP instead of DNS resolution.
             ignore_bbot_global_settings (bool, optional): Skip User-Agent/header/cookie merging.
+            browser_fallback (bool, optional): If the URL is behind a JavaScript challenge, get past it with the
+                browser (see `get_past_challenge()`). Only has an effect when `web.enable_browser` is on. For target
+                URLs whose content matters, never for third-party APIs. Defaults to False.
 
         Raises:
             WebError: If raise_error is True and the request fails.
@@ -288,6 +305,7 @@ class WebHelper:
             If the web request fails, it will return None unless `raise_error` is `True`.
         """
         raise_error = kwargs.pop("raise_error", False)
+        browser_fallback = kwargs.pop("browser_fallback", False)
         kwargs.pop("cache_for", None)
         kwargs.pop("client", None)
         kwargs.pop("stream", None)
@@ -314,6 +332,7 @@ class WebHelper:
             kwargs["method"] = "GET"
 
         # Translate kwargs to blasthttp format
+        request_url = url
         url, method, blast_kwargs = self._build_blasthttp_kwargs(url, **kwargs)
 
         try:
@@ -329,6 +348,8 @@ class WebHelper:
                     f"(Length: {len(response.content)}) headers: {response.headers}"
                 )
             self.record_conclusion(response)
+            if browser_fallback and response.conclusion[0] == "needs_browser":
+                response = await self.get_past_challenge(request_url, response, kwargs)
             return response
 
         except RuntimeError as e:
@@ -351,7 +372,7 @@ class WebHelper:
                 log.trace(traceback.format_exc())
             raise
 
-    async def request_batch_stream(self, urls, threads=10, **kwargs):
+    async def request_batch_stream(self, urls, threads=10, browser_fallback=False, **kwargs):
         """
         Request multiple URLs in parallel via blasthttp's native Rust batch engine,
         yielding each response as soon as it completes (completion order, not input
@@ -418,20 +439,22 @@ class WebHelper:
         from collections import deque
 
         configs = []
-        trackers_by_url = {}
+        entries_by_url = {}
         for url, req_kwargs, tracker in entries:
-            url, method, blast_kwargs = self._build_blasthttp_kwargs(url, **req_kwargs)
-            config = blasthttp.BatchConfig(url, **blast_kwargs)
+            built_url, method, blast_kwargs = self._build_blasthttp_kwargs(url, **req_kwargs)
+            config = blasthttp.BatchConfig(built_url, **blast_kwargs)
             configs.append(config)
-            trackers_by_url.setdefault(config.url, deque()).append(tracker)
+            entries_by_url.setdefault(config.url, deque()).append((url, req_kwargs, tracker))
 
         async for br in iter_batch_results(self.client.request_batch_stream(configs, concurrency=threads)):
             response = br.response  # blasthttp.Response or None
+            queue = entries_by_url.get(br.url)
+            url, req_kwargs, tracker = queue.popleft() if queue else (br.url, kwargs, None)
             if response is not None:
                 self.record_conclusion(response)
+                if browser_fallback and response.conclusion[0] == "needs_browser":
+                    response = await self.get_past_challenge(url, response, req_kwargs)
             if has_tracker:
-                queue = trackers_by_url.get(br.url)
-                tracker = queue.popleft() if queue else None
                 yield br.url, response, tracker
             else:
                 yield br.url, response
@@ -677,6 +700,72 @@ class WebHelper:
         except Exception as e:
             log.debug(f"Error parsing beautifulsoup: {e}")
             return False
+
+    def apply_clearance(self, url, header_list):
+        """
+        Add the browser's challenge clearance for this URL's host, if there is one: its cookies, and its User-Agent
+        in place of BBOT's default. A caller's own User-Agent and cookies take precedence.
+        """
+        clearance = self._clearances.get(urlparse(url).hostname)
+        if clearance is None:
+            return header_list
+        new_headers = []
+        cookie_sent = False
+        for name, value in header_list:
+            lower = name.lower()
+            if lower == "user-agent" and value == self._user_agent:
+                value = clearance.user_agent
+            elif lower == "cookie":
+                sent = {c.split("=", 1)[0].strip() for c in value.split(";")}
+                extra = [f"{k}={v}" for k, v in clearance.cookies.items() if k not in sent]
+                value = "; ".join([value] + extra) if extra else value
+                cookie_sent = True
+            new_headers.append((name, value))
+        if not cookie_sent and clearance.cookies:
+            new_headers.append(("Cookie", "; ".join(f"{k}={v}" for k, v in clearance.cookies.items())))
+        return new_headers
+
+    async def get_past_challenge(self, url, response, request_kwargs=None):
+        """
+        Handle a response blasthttp concluded needs a browser (a JavaScript challenge).
+
+        The browser passes the challenge, and its cookies and User-Agent are handed to blasthttp, which retries the
+        request (`request_kwargs` are the original request's). From then on every request to that host carries them.
+        If that doesn't get through and the request is a GET, the browser fetches the URL itself.
+
+        Returns the response that got through, or `response` if nothing did.
+        """
+        browser = self.parent_helper.browser
+        if not self.browser_fallback or not browser.usable:
+            return response
+        request_kwargs = dict(request_kwargs or {})
+        host = urlparse(url).hostname
+        sent_with = self._clearances.get(host)
+        async with self._challenge_locks.lock(host):
+            clearance = self._clearances.get(host)
+            # unless another request already got a fresh clearance while this one was out, get one
+            if clearance is sent_with and self._clearance_counts.get(host, 0) < MAX_CLEARANCES_PER_HOST:
+                self._clearance_counts[host] = self._clearance_counts.get(host, 0) + 1
+                clearance = await browser.clearance(url)
+                if clearance is None:
+                    self._clearances.pop(host, None)
+                else:
+                    self._clearances[host] = clearance
+            if clearance is not None and clearance is not sent_with:
+                retried = await self.request(url, **request_kwargs)
+                if retried is not None and retried.conclusion[0] != "needs_browser":
+                    log.verbose(f"The browser's cookies got blasthttp past the challenge at {host}")
+                    return retried
+                # the cookies alone don't get blasthttp through; don't keep sending them
+                if self._clearances.get(host) is clearance:
+                    self._clearances.pop(host)
+        if request_kwargs.get("method", "GET").upper() == "GET" and not any(
+            request_kwargs.get(k) is not None for k in ("body", "data", "json", "files")
+        ):
+            fetched = await browser.fetch(url)
+            if fetched is not None and fetched.conclusion[0] != "needs_browser":
+                return fetched
+        return response
 
     def record_conclusion(self, response):
         """

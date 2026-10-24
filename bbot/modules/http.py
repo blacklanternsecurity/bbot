@@ -201,6 +201,8 @@ class http(BaseModule):
 
         response = result.response
         self.helpers.web.record_conclusion(response)
+        if response.conclusion[0] == "needs_browser":
+            response = await self.helpers.web.get_past_challenge(result.url, response, {"follow_redirects": False})
         status_code = response.status
         if status_code == 0:
             self.debug(f'No HTTP status code for "{result.url}"')
@@ -314,7 +316,7 @@ class http(BaseModule):
         for url in stdin:
             config = blasthttp.BatchConfig(
                 url,
-                headers=headers,
+                headers=self.helpers.web.apply_clearance(url, headers),
                 timeout=int(timeout),
                 retries=int(retries),
                 verify_certs=False,

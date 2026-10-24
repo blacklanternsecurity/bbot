@@ -129,7 +129,7 @@ class retirejs(BaseModule):
         return True
 
     async def handle_event(self, event):
-        js_file = await self.helpers.request(event.url)
+        js_file = await self.helpers.request(event.url, browser_fallback=True)
         if js_file:
             js_file_body = js_file.text
             if js_file_body:

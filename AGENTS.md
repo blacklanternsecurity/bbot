@@ -162,7 +162,7 @@ Key helpers:
 
 | Helper | What it does |
 |--------|-------------|
-| `self.helpers.request(url)` | Make an HTTP request (with retries, SSL handling, etc.) |
+| `self.helpers.request(url)` | Make an HTTP request (with retries, SSL handling, etc.). Pass `browser_fallback=True` for target pages whose content matters, to get past JavaScript challenges with the browser when it's enabled; never for third-party APIs |
 | `self.helpers.blasthttp` | Shared blasthttp client (rate-limited via `web.http_rate_limit` config) |
 | `self.helpers.browser` | Shared real browser (only when `web.enable_browser` is on): `visit(url, consumer=self.name)` for a page's DOM/screenshot/network, `fetch(url)` for a request that gets past JavaScript challenges |
 | `self.helpers.resolve(host)` | DNS resolution |

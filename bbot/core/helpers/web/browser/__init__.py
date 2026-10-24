@@ -1,3 +1,3 @@
-from .helper import BrowserHelper, BrowserVisit
+from .helper import BrowserHelper, BrowserVisit, Clearance
 
-__all__ = ["BrowserHelper", "BrowserVisit"]
+__all__ = ["BrowserHelper", "BrowserVisit", "Clearance"]

@@ -262,3 +262,82 @@ async def test_browser_host_eviction(bbot_scanner, tmp_path):
 
     await scan._cleanup()
     assert await no_browser_processes()
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
+async def test_browser_fallback_handoff(bbot_scanner, bbot_httpserver, tmp_path):
+    """The browser passes a challenge and hands its cookies and User-Agent to blasthttp, for every later request."""
+    serve(bbot_httpserver)
+    scan = await browser_scan(bbot_scanner, tmp_path)
+    web = scan.helpers.web
+    url = bbot_httpserver.url_for("/challenge")
+
+    # not opted in: the challenge comes back as is, and the browser isn't involved
+    response = await web.request(url)
+    assert response.conclusion == ("needs_browser", "cloudflare")
+    assert scan.helpers.browser._instance is None
+    assert web.is_browser_only("127.0.0.1")
+
+    # opted in: blasthttp gets through with the browser's cookies
+    response = await web.request(url, browser_fallback=True)
+    assert response.status_code == 200
+    assert "past the challenge" in response.text
+    clearance = web._clearances["127.0.0.1"]
+    assert clearance.cookies == {"cleared": "1"}
+    assert "Firefox" in clearance.user_agent
+    assert not web.is_browser_only("127.0.0.1")
+
+    # every later request to the host carries the clearance, opted in or not
+    response = await web.request(bbot_httpserver.url_for("/challenge/later"))
+    assert response.status_code == 200
+    later_request = [request for request, _ in bbot_httpserver.log if request.path == "/challenge/later"][-1]
+    assert later_request.cookies.get("cleared") == "1"
+    assert later_request.headers.get("User-Agent") == clearance.user_agent
+    # but a caller's own User-Agent wins
+    await web.request(bbot_httpserver.url_for("/challenge/custom-ua"), headers={"User-Agent": "custom"})
+    custom = [request for request, _ in bbot_httpserver.log if request.path == "/challenge/custom-ua"][-1]
+    assert custom.headers.get("User-Agent") == "custom"
+    assert custom.cookies.get("cleared") == "1"
+
+    await scan._cleanup()
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
+async def test_browser_fallback_fetch(bbot_scanner, bbot_httpserver, tmp_path):
+    """When the browser's cookies don't get blasthttp through, GETs are fetched by the browser itself."""
+    serve(bbot_httpserver)
+    scan = await browser_scan(bbot_scanner, tmp_path)
+    web = scan.helpers.web
+    browser = scan.helpers.browser
+
+    # simulate a challenge whose clearance only works for the browser that earned it
+    web.apply_clearance = lambda url, header_list: header_list
+    solves = 0
+    original_clearance = browser.clearance
+
+    async def counting_clearance(url):
+        nonlocal solves
+        solves += 1
+        return await original_clearance(url)
+
+    browser.clearance = counting_clearance
+
+    response = await web.request(bbot_httpserver.url_for("/challenge"), browser_fallback=True)
+    assert response.status_code == 200
+    assert "past the challenge" in response.text
+    # the clearance didn't work, so it isn't kept
+    assert "127.0.0.1" not in web._clearances
+
+    # a POST can't be replayed in the browser, so it gets the challenge back
+    response = await web.request(bbot_httpserver.url_for("/challenge"), method="POST", browser_fallback=True)
+    assert response.conclusion[0] == "needs_browser"
+
+    # the browser solves a host's challenge for blasthttp a limited number of times, then just fetches
+    for i in range(5):
+        response = await web.request(bbot_httpserver.url_for(f"/challenge/{i}"), browser_fallback=True)
+        assert response.status_code == 200
+    assert solves == 3
+
+    await scan._cleanup()

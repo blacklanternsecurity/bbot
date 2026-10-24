@@ -73,12 +73,22 @@ class BrowserVisit:
     network: list = field(default_factory=list)
 
 
+@dataclass
+class Clearance:
+    """What lets blasthttp through a challenge the browser passed: the origin's cookies and the browser's User-Agent."""
+
+    cookies: dict
+    user_agent: str
+
+
 class _Host:
     """One origin's browser context. Its cookies (e.g. a passed challenge) are shared by every visit and fetch."""
 
     def __init__(self, context):
         self.context = context
         self.warm_page = None
+        # the main document the warm page landed on
+        self.warm_document = None
         self.warm_lock = asyncio.Lock()
         self.active = 0
 
@@ -190,6 +200,14 @@ class BrowserHelper:
         self._check_enabled()
         return await self._with_retry(self._fetch, url)
 
+    async def clearance(self, url):
+        """
+        Pass whatever challenge guards `url`, and return a `Clearance` that lets blasthttp through it too. Returns None
+        if the browser couldn't get past it.
+        """
+        self._check_enabled()
+        return await self._with_retry(self._clearance, url)
+
     async def shutdown(self):
         if self._idle_task is not None:
             self._idle_task.cancel()
@@ -278,22 +296,41 @@ class BrowserHelper:
             request_url=url,
         )
 
-    async def _warm_page(self, instance, host, url):
-        """A page parked on the origin's root, past any challenge, to fetch from."""
+    async def _clearance(self, url):
+        instance, host = await self._host(url)
+        # load the challenged URL itself, since a challenge may only guard some paths
+        page = await self._warm_page(instance, host, url, warm_url=url, rewarm=True)
+        if page is None or host.warm_document.conclusion[0] == "needs_browser":
+            return None
+        cookies = {c["name"]: c["value"] for c in await host.context.cookies([url])}
+        user_agent = await page.evaluate("() => navigator.userAgent")
+        return Clearance(cookies=cookies, user_agent=user_agent)
+
+    async def _warm_page(self, instance, host, url, warm_url=None, rewarm=False):
+        """
+        A page parked on the origin, past any challenge, to fetch from. It lands on the origin's root unless given
+        `warm_url`; `rewarm` replaces an existing one (e.g. to pass a challenge again once its cookies have expired).
+        """
         async with host.warm_lock:
+            if rewarm and host.warm_page is not None:
+                await self._close_page(instance, host.warm_page)
+                host.warm_page = None
             if host.warm_page is None or host.warm_page.is_closed():
-                parsed = urlparse(url)
-                root = f"{parsed.scheme}://{parsed.netloc}/"
+                if warm_url is None:
+                    parsed = urlparse(url)
+                    warm_url = f"{parsed.scheme}://{parsed.netloc}/"
                 async with self._page_slots:
                     page = await self._new_page(instance, host)
                     try:
-                        if await self._load(page, root) is None:
+                        document = await self._load(page, warm_url)
+                        if document is None:
                             await self._close_page(instance, page)
                             return None
                     except BaseException:
                         await self._close_page(instance, page)
                         raise
                 host.warm_page = page
+                host.warm_document = document
             return host.warm_page
 
     # -- pages --

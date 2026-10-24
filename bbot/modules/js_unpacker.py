@@ -87,7 +87,7 @@ rule source_map
             if self.module.scan.blacklisted(map_url):
                 self.module.debug(f"Skipping blacklisted source map {map_url}")
                 return
-            r = await self.helpers.request(map_url)
+            r = await self.helpers.request(map_url, browser_fallback=True)
             if not r or r.status_code != 200:
                 return
             map_json = r.text

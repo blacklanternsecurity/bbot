@@ -151,6 +151,9 @@ web:
   # Enable the real browser (Camoufox), used for screenshots, rendered DOMs, and pages behind JavaScript challenges.
   # Off by default: it's a large download (over 1GB) and memory-hungry, and nothing browser-related is installed unless this is on.
   enable_browser: false
+  # When enable_browser is on, get past JavaScript challenges (e.g. Cloudflare) with the browser, then send its cookies
+  # with BBOT's own requests to that host. Applies to page fetches (http, robots, etc.), never to third-party APIs.
+  browser_fallback: true
   # Maximum number of browser pages loading at once (each can use 100-300MB of memory)
   browser_max_pages: 4
   # Restart the browser after this many pages, since its memory use only grows

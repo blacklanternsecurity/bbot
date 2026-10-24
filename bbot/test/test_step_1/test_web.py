@@ -980,3 +980,15 @@ async def test_base_module_skip_browser_only_hosts(bbot_scanner, bbot_httpserver
     assert (await normal._event_postcheck_inner(event))[0] is True
 
     await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_web_browser_fallback_disabled(bbot_scanner, bbot_httpserver):
+    """browser_fallback=True does nothing unless the browser is enabled."""
+    bbot_httpserver.expect_request(uri="/challenge").respond_with_data(**CF_CHALLENGE)
+    scan = bbot_scanner()
+    await scan._prep()
+    response = await scan.helpers.web.request(bbot_httpserver.url_for("/challenge"), browser_fallback=True)
+    assert response.conclusion == ("needs_browser", "cloudflare")
+    assert scan.helpers.browser._instance is None
+    await scan._cleanup()

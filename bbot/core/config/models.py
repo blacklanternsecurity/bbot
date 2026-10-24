@@ -353,6 +353,7 @@ class WebConfig(BaseModel):
     ssl_verify_target: Optional[bool] = None
     ssl_verify_infrastructure: Optional[bool] = None
     enable_browser: Optional[bool] = None
+    browser_fallback: Optional[bool] = None
     browser_max_pages: Optional[int] = None
     browser_recycle_after: Optional[int] = None
     browser_idle_timeout: Optional[int] = None
