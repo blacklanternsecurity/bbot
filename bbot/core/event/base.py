@@ -4,6 +4,7 @@ import sys
 import uuid
 import json
 import base64
+import hashlib
 import logging
 import tarfile
 import datetime
@@ -1259,6 +1260,11 @@ class DictPathEvent(DictHostEvent):
                 self._data_path = self.scan.home / self._data_path
             if self._data_path.is_file():
                 self.add_tag("file")
+                # identify the file by its content, so wherever it ends up it can be stored once and deduplicated
+                if "sha256" not in new_data:
+                    with open(self._data_path, "rb") as file:
+                        new_data["sha256"] = hashlib.file_digest(file, "sha256").hexdigest()
+                new_data.setdefault("size", self._data_path.stat().st_size)
                 if file_blobs:
                     with open(self._data_path, "rb") as file:
                         blob = file.read()

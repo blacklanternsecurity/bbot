@@ -974,11 +974,12 @@ Take screenshots of webpages
       - web-screenshots
     
     config:
+      web:
+        # screenshots are taken with a real browser, which is off by default
+        enable_browser: true
       modules:
-        gowitness:
-          resolution_x: 1440
-          resolution_y: 900
-          # folder to output web screenshots (default is inside ~/.bbot/scans/scan_name)
+        screenshot:
+          # folder to save web screenshots to (default is inside ~/.bbot/scans/scan_name)
           output_path: ""
           # whether to take screenshots of social media pages
           social: True

@@ -478,14 +478,28 @@ class Preset(metaclass=BasePreset):
             if baked_preset.config.get(internal_module, True) is False:
                 baked_preset.exclude_modules.add(internal_module)
 
+        # modules that need the browser can't run in a scan without it
+        browser_off = scan is not None and not baked_preset.config.get("web", {}).get("enable_browser", False)
+
         # enable modules by flag
+        skipped_browser_modules = set()
         for flag in baked_preset.flags:
             for module, preloaded in baked_preset.module_loader.preloaded().items():
                 module_flags = preloaded.get("flags", [])
                 module_type = preloaded.get("type", "scan")
                 if flag in module_flags:
+                    # a flag that happens to cover a browser module isn't a request for the browser, so leave it out
+                    if browser_off and preloaded.get("browser_artifacts", []):
+                        skipped_browser_modules.add(module)
+                        continue
                     self.log_debug(f'Enabling module "{module}" because it has flag "{flag}"')
                     baked_preset.add_module(module, module_type, raise_error=False)
+        skipped_browser_modules -= set(baked_preset.modules)
+        if skipped_browser_modules:
+            log.warning(
+                f"Not enabling {', '.join(sorted(skipped_browser_modules))}: "
+                "they need the browser, which is off. Set `web.enable_browser=true` to include them."
+            )
 
         # ensure we have output modules (unless the user explicitly excluded them)
         if not baked_preset.output_modules and not baked_preset.exclude_output_modules:
@@ -519,8 +533,8 @@ class Preset(metaclass=BasePreset):
                     "If you genuinely want no DNS at all, also disable the modules listed above."
                 )
 
-        # modules that only work through the browser can't run without it
-        if not baked_preset.config.get("web", {}).get("enable_browser", False):
+        # modules that only work through the browser can't run without it, when explicitly asked for
+        if browser_off:
             browser_modules = sorted(
                 m for m in baked_preset.modules if baked_preset.preloaded_module(m).get("browser_artifacts", [])
             )

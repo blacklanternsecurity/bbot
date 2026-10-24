@@ -135,11 +135,11 @@ bbot -t evilcorp.com -p cdn_ports.yml
 
 ### Custom HTTP Proxy
 
-Web pentesters may appreciate BBOT's ability to quickly populate Burp Suite site maps for all subdomains in a target. If your scan includes gowitness, this will capture the traffic as if you manually visited each website in your browser -- including auxiliary web resources and javascript API calls. To accomplish this, set the `web.http_proxy` config option like so:
+Web pentesters may appreciate BBOT's ability to quickly populate Burp Suite site maps for all subdomains in a target. If your scan takes web screenshots (which loads each page in a real browser), this will capture the traffic as if you manually visited each website yourself -- including auxiliary web resources and javascript API calls. To accomplish this, set the `web.http_proxy` config option like so:
 
 ```bash
 # enumerate subdomains, take web screenshots, proxy through Burp
-bbot -t evilcorp.com -f subdomain-enum -m gowitness -c web.http_proxy=http://127.0.0.1:8080
+bbot -t evilcorp.com -p subdomain-enum web-screenshots -c web.http_proxy=http://127.0.0.1:8080
 ```
 
 ### Display `HTTP_RESPONSE` Events
@@ -171,14 +171,14 @@ If you already have a list of discovered targets (e.g. URLs) and don't need DNS-
 
 ~~~bash
 # completely disable DNS resolution
-bbot -m http gowitness -t urls.txt -c dns.disable=true
+bbot -m http -p web-screenshots -t urls.txt -c dns.disable=true
 ~~~
 
 Note that the above setting _completely_ disables DNS, meaning even `A` and `AAAA` records are not resolved. This can cause problems if you're using an IP-based target or blacklist. In this case, you'll want to use `dns.minimal` instead:
 
 ~~~bash
 # only resolve A and AAAA records
-bbot -m http gowitness -t urls.txt -c dns.minimal=true
+bbot -m http -p web-screenshots -t urls.txt -c dns.minimal=true
 ~~~
 
 ## FAQ

@@ -252,7 +252,7 @@ class TestTrajanJenkins(ModuleTestBase):
     config_overrides = {"modules": {"trajan": {"jenkins_token": "test-jenkins-token"}}}
 
     async def setup_after_prep(self, module_test):
-        # Inject a TECHNOLOGY event as if gowitness/shodan detected Jenkins
+        # Inject a TECHNOLOGY event as if another module detected Jenkins
         tech_event = module_test.scan.make_event(
             {
                 "technology": "jenkins",

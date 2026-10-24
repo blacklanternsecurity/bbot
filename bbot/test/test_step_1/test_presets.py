@@ -869,7 +869,7 @@ include:
 
 config:
   modules:
-    gowitness:
+    paramminer_headers:
       module_timeout: 3
 """
         )
@@ -903,7 +903,7 @@ config:
     preset = Preset(include=[str(custom_preset_dir_1 / "preset1")])
     assert preset.config["modules"]["nuclei"]["module_timeout"] == 1
     assert preset.config["modules"]["sslcert"]["module_timeout"] == 2
-    assert preset.config["modules"]["gowitness"]["module_timeout"] == 3
+    assert preset.config["modules"]["paramminer_headers"]["module_timeout"] == 3
     assert preset.config["modules"]["robots"]["module_timeout"] == 4
     assert preset.config["modules"]["wayback"]["module_timeout"] == 5
 
@@ -911,7 +911,7 @@ config:
     preset = Preset(presets=[str(custom_preset_dir_1 / "preset1")])
     assert preset.config["modules"]["nuclei"]["module_timeout"] == 1
     assert preset.config["modules"]["sslcert"]["module_timeout"] == 2
-    assert preset.config["modules"]["gowitness"]["module_timeout"] == 3
+    assert preset.config["modules"]["paramminer_headers"]["module_timeout"] == 3
     assert preset.config["modules"]["robots"]["module_timeout"] == 4
     assert preset.config["modules"]["wayback"]["module_timeout"] == 5
 
@@ -1309,37 +1309,29 @@ def test_preset_dnsresolve_required_by_dns_name_consumers():
     Preset(exclude_modules=["dnsresolve"]).validate().bake()
 
 
-def test_preset_browser_modules_require_enable_browser(tmp_path):
-    """A module that declares browser_artifacts can't run unless web.enable_browser is on."""
-    for name in ("browsertestmod_a", "browsertestmod_b"):
-        (tmp_path / f"{name}.py").write_text(
-            f"""
-from bbot.modules.base import BaseModule
-
-class {name}(BaseModule):
-    watched_events = ["URL"]
-    browser_artifacts = ["screenshot"]
-"""
-        )
-    module_dirs = [str(tmp_path)]
-
+def test_preset_browser_modules_require_enable_browser():
+    """A scan that asks for a module needing the browser (one with browser_artifacts) won't start unless it's on."""
     with pytest.raises(
         ValidationError,
-        match=r"Module browsertestmod_a requires the browser, but `web.enable_browser` is false\. "
+        match=r"Module screenshot requires the browser, but `web.enable_browser` is false\. "
         r"Set `web.enable_browser=true` or remove the module\.",
     ):
-        Preset(module_dirs=module_dirs, modules=["browsertestmod_a"]).validate().bake()
+        Scanner(modules=["screenshot"])
 
-    with pytest.raises(ValidationError, match=r"Modules browsertestmod_a, browsertestmod_b require the browser"):
-        Preset(module_dirs=module_dirs, modules=["browsertestmod_a", "browsertestmod_b"]).validate().bake()
+    with pytest.raises(ValidationError, match=r"Modules browser_dom, screenshot require the browser"):
+        Scanner(modules=["screenshot", "browser_dom"])
 
-    # with the browser enabled, the same modules are fine
-    Preset(
-        module_dirs=module_dirs, modules=["browsertestmod_a"], config={"web": {"enable_browser": True}}
-    ).validate().bake()
+    # with the browser enabled, they're fine
+    scan = Scanner(modules=["screenshot"], config={"web": {"enable_browser": True}})
+    assert "screenshot" in scan.preset.scan_modules
 
-    # modules that don't need the browser are unaffected by it being off
-    Preset(module_dirs=module_dirs, modules=["robots"]).validate().bake()
+    # a flag that happens to cover them isn't asking for the browser: they're left out, and the scan runs
+    scan = Scanner(flags=["web-screenshots"])
+    assert "screenshot" not in scan.preset.scan_modules
+
+    # listing modules (bbot -l, --module-help) isn't a scan, so they're listed either way
+    baked = Preset(modules=["screenshot", "browser_dom"]).validate().bake()
+    assert {"screenshot", "browser_dom"} <= set(baked.scan_modules)
 
 
 def test_preset_path_no_clobber_default(tmp_path):

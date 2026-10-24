@@ -29,7 +29,12 @@ mkdir(bbot_test_dir)
 
 DEFAULT_PRESET = Preset()
 
-available_modules = list(DEFAULT_PRESET.module_loader.configs(type="scan"))
+# modules that need the browser can't run in a scan without it; they have their own tests
+available_modules = [
+    m
+    for m in DEFAULT_PRESET.module_loader.configs(type="scan")
+    if not DEFAULT_PRESET.module_loader.preloaded()[m].get("browser_artifacts", [])
+]
 available_output_modules = list(DEFAULT_PRESET.module_loader.configs(type="output"))
 available_internal_modules = list(DEFAULT_PRESET.module_loader.configs(type="internal"))
 

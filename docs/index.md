@@ -85,7 +85,7 @@ bbot -t evilcorp.com -p subdomain-enum -rf passive
 
 ```bash
 # Port-scan every subdomain, screenshot every webpage, output to current directory
-bbot -t evilcorp.com -p subdomain-enum -m portscan gowitness -n my_scan -o .
+bbot -t evilcorp.com -p subdomain-enum web-screenshots -m portscan -n my_scan -o .
 ```
 
 **Subdomains + basic web scan:**

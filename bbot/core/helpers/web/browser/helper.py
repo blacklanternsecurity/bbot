@@ -134,6 +134,8 @@ class BrowserHelper:
         self.recycle_after = web_config.get("browser_recycle_after", 500)
         self.idle_timeout = web_config.get("browser_idle_timeout", 120)
         self.page_timeout = web_config.get("http_timeout", 10) * 3
+        # like blasthttp, don't verify target certificates unless asked to (self-signed certs, intercepting proxies)
+        self.verify_certs = web_config.get("ssl_verify_target", False)
         self._custom_headers = web_config.get("http_headers", {}) or {}
         self._custom_cookies = web_config.get("http_cookies", {}) or {}
 
@@ -432,7 +434,7 @@ class BrowserHelper:
         origin = f"{parsed.scheme}://{parsed.netloc}"
         host = instance.hosts.get(origin)
         if host is None:
-            context = await instance.browser.new_context()
+            context = await instance.browser.new_context(ignore_https_errors=not self.verify_certs)
             await context.route("**/*", self._route)
             host = _Host(context)
             instance.hosts[origin] = host

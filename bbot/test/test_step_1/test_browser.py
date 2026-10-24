@@ -66,26 +66,11 @@ async def no_browser_processes():
     return False
 
 
-def write_browser_modules(module_dir):
-    # two modules that want different things from the same page load
-    for name, artifacts in (("browsertest_shots", ["screenshot"]), ("browsertest_dom", ["dom", "network"])):
-        (module_dir / f"{name}.py").write_text(
-            f"""
-from bbot.modules.base import BaseModule
-
-class {name}(BaseModule):
-    watched_events = ["URL"]
-    browser_artifacts = {artifacts!r}
-"""
-        )
-
-
-async def browser_scan(bbot_scanner, tmp_path, **web_config):
-    write_browser_modules(tmp_path)
+async def browser_scan(bbot_scanner, **web_config):
+    # screenshot and browser_dom want different things from the same page load
     scan = bbot_scanner(
         "127.0.0.1",
-        module_dirs=[str(tmp_path)],
-        modules=["browsertest_shots", "browsertest_dom"],
+        modules=["screenshot", "browser_dom"],
         blacklist=["localhost"],
         config={"web": {"enable_browser": True, **web_config}},
     )
@@ -108,15 +93,15 @@ async def test_browser_disabled(bbot_scanner):
 
 @pytest.mark.browser
 @pytest.mark.asyncio
-async def test_browser_visit(bbot_scanner, bbot_httpserver, tmp_path):
+async def test_browser_visit(bbot_scanner, bbot_httpserver):
     serve(bbot_httpserver)
-    scan = await browser_scan(bbot_scanner, tmp_path, http_headers={"X-Bbot-Test": "bbot-test-value"})
+    scan = await browser_scan(bbot_scanner, http_headers={"X-Bbot-Test": "bbot-test-value"})
     browser = scan.helpers.browser
     url = bbot_httpserver.url_for("/")
 
     # both modules ask at once: the page is loaded once and both get the same visit
     shots, dom = await asyncio.gather(
-        browser.visit(url, consumer="browsertest_shots"), browser.visit(url, consumer="browsertest_dom")
+        browser.visit(url, consumer="screenshot"), browser.visit(url, consumer="browser_dom")
     )
     assert shots is dom
     assert requested_paths(bbot_httpserver).count("/") == 1
@@ -144,9 +129,9 @@ async def test_browser_visit(bbot_scanner, bbot_httpserver, tmp_path):
 
 @pytest.mark.browser
 @pytest.mark.asyncio
-async def test_browser_challenge_and_fetch(bbot_scanner, bbot_httpserver, tmp_path):
+async def test_browser_challenge_and_fetch(bbot_scanner, bbot_httpserver):
     serve(bbot_httpserver)
-    scan = await browser_scan(bbot_scanner, tmp_path)
+    scan = await browser_scan(bbot_scanner)
     browser = scan.helpers.browser
 
     # blasthttp can't get past the challenge
@@ -175,9 +160,9 @@ async def test_browser_challenge_and_fetch(bbot_scanner, bbot_httpserver, tmp_pa
 
 @pytest.mark.browser
 @pytest.mark.asyncio
-async def test_browser_crash_recovery(bbot_scanner, bbot_httpserver, tmp_path):
+async def test_browser_crash_recovery(bbot_scanner, bbot_httpserver):
     serve(bbot_httpserver)
-    scan = await browser_scan(bbot_scanner, tmp_path)
+    scan = await browser_scan(bbot_scanner)
     browser = scan.helpers.browser
     url = bbot_httpserver.url_for("/")
 
@@ -213,9 +198,9 @@ async def test_browser_crash_recovery(bbot_scanner, bbot_httpserver, tmp_path):
 
 @pytest.mark.browser
 @pytest.mark.asyncio
-async def test_browser_recycle_and_idle(bbot_scanner, bbot_httpserver, tmp_path):
+async def test_browser_recycle_and_idle(bbot_scanner, bbot_httpserver):
     serve(bbot_httpserver)
-    scan = await browser_scan(bbot_scanner, tmp_path, browser_recycle_after=2, browser_idle_timeout=1)
+    scan = await browser_scan(bbot_scanner, browser_recycle_after=2, browser_idle_timeout=1)
     browser = scan.helpers.browser
 
     # restarted after browser_recycle_after pages
@@ -244,9 +229,9 @@ async def test_browser_recycle_and_idle(bbot_scanner, bbot_httpserver, tmp_path)
 
 @pytest.mark.browser
 @pytest.mark.asyncio
-async def test_browser_host_eviction(bbot_scanner, tmp_path):
+async def test_browser_host_eviction(bbot_scanner):
     """Contexts beyond browser_max_pages are closed oldest first, but never one in use or the one just opened."""
-    scan = await browser_scan(bbot_scanner, tmp_path, browser_max_pages=1)
+    scan = await browser_scan(bbot_scanner, browser_max_pages=1)
     browser = scan.helpers.browser
 
     instance, busy = await browser._host("http://127.0.0.1:8001/")
@@ -266,10 +251,10 @@ async def test_browser_host_eviction(bbot_scanner, tmp_path):
 
 @pytest.mark.browser
 @pytest.mark.asyncio
-async def test_browser_fallback_handoff(bbot_scanner, bbot_httpserver, tmp_path):
+async def test_browser_fallback_handoff(bbot_scanner, bbot_httpserver):
     """The browser passes a challenge and hands its cookies and User-Agent to blasthttp, for every later request."""
     serve(bbot_httpserver)
-    scan = await browser_scan(bbot_scanner, tmp_path)
+    scan = await browser_scan(bbot_scanner)
     web = scan.helpers.web
     url = bbot_httpserver.url_for("/challenge")
 
@@ -305,10 +290,10 @@ async def test_browser_fallback_handoff(bbot_scanner, bbot_httpserver, tmp_path)
 
 @pytest.mark.browser
 @pytest.mark.asyncio
-async def test_browser_fallback_fetch(bbot_scanner, bbot_httpserver, tmp_path):
+async def test_browser_fallback_fetch(bbot_scanner, bbot_httpserver):
     """When the browser's cookies don't get blasthttp through, GETs are fetched by the browser itself."""
     serve(bbot_httpserver)
-    scan = await browser_scan(bbot_scanner, tmp_path)
+    scan = await browser_scan(bbot_scanner)
     web = scan.helpers.web
     browser = scan.helpers.browser
 
@@ -341,3 +326,23 @@ async def test_browser_fallback_fetch(bbot_scanner, bbot_httpserver, tmp_path):
     assert solves == 3
 
     await scan._cleanup()
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
+async def test_browser_certificates(bbot_scanner, bbot_httpserver_ssl):
+    """Like blasthttp, the browser doesn't verify target certificates unless web.ssl_verify_target is on."""
+    bbot_httpserver_ssl.expect_request("/").respond_with_data(
+        "<html><title>self-signed</title></html>", content_type="text/html"
+    )
+    url = bbot_httpserver_ssl.url_for("/")
+
+    scan = await browser_scan(bbot_scanner)
+    visit = await scan.helpers.browser.visit(url)
+    assert visit is not None and visit.title == "self-signed"
+    await scan._cleanup()
+
+    scan = await browser_scan(bbot_scanner, ssl_verify_target=True)
+    assert await scan.helpers.browser.visit(url) is None
+    await scan._cleanup()
+    assert await no_browser_processes()
