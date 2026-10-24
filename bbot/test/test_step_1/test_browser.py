@@ -1,5 +1,6 @@
 import os
 import re
+import time
 import asyncio
 
 import psutil
@@ -162,6 +163,52 @@ async def test_browser_challenge_and_fetch(bbot_scanner, bbot_httpserver):
     await scan._cleanup()
 
 
+# pages that send themselves elsewhere, each after building some content with a script
+BUILD_JS = 'document.body.insertAdjacentHTML("beforeend", "<p>built before leaving</p>");'
+REDIRECT_PAGES = {
+    "/inline": f"<script>{BUILD_JS} location.href = '/dest';</script>",
+    "/replace": f"<script>{BUILD_JS} location.replace('/dest');</script>",
+    "/onload": f"<script>window.onload = () => {{ {BUILD_JS} location.href = '/dest'; }};</script>",
+    "/timeout": f"<script>{BUILD_JS} setTimeout(() => location.href = '/dest', 300);</script>",
+    "/meta": f'<meta http-equiv="refresh" content="0;url=/dest"><script>{BUILD_JS}</script>',
+    "/form": f'<form id="f" action="/dest" method="POST"></form><script>{BUILD_JS} document.getElementById("f").submit();</script>',
+    # long after the page has settled and been captured
+    "/late": f"<script>{BUILD_JS} setTimeout(() => location.href = '/dest', 8000);</script>",
+}
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
+async def test_browser_redirect_hold(bbot_scanner, bbot_httpserver):
+    def handler(request):
+        body = REDIRECT_PAGES.get(request.path, "destination")
+        return Response(f"<html><body>{body}</body></html>", content_type="text/html")
+
+    bbot_httpserver.expect_request(re.compile(".*")).respond_with_handler(handler)
+    scan = await browser_scan(bbot_scanner)
+    browser = scan.helpers.browser
+    dest = bbot_httpserver.url_for("/dest")
+
+    for path in ("/inline", "/replace", "/onload", "/timeout", "/meta", "/form"):
+        url = bbot_httpserver.url_for(path)
+        start = time.monotonic()
+        visit = await browser.visit(url)
+        # a redirect before the page finishes loading doesn't leave us waiting for a load that never comes
+        assert time.monotonic() - start < 20, path
+        # the page we asked for, as its script left it
+        assert visit.response.url == url, path
+        assert "built before leaving" in visit.dom, path
+        assert visit.redirect == ("POST" if path == "/form" else "GET", dest), path
+
+    late = await browser.visit(bbot_httpserver.url_for("/late"))
+    assert late.redirect is None
+    assert "built before leaving" in late.dom
+
+    # the browser never went to the destination
+    assert "/dest" not in requested_paths(bbot_httpserver)
+    await scan._cleanup()
+
+
 @pytest.mark.browser
 @pytest.mark.asyncio
 async def test_browser_crash_recovery(bbot_scanner, bbot_httpserver):
@@ -289,6 +336,25 @@ async def test_browser_fallback_handoff(bbot_scanner, bbot_httpserver):
     assert custom.headers.get("User-Agent") == "custom"
     assert custom.cookies.get("cleared") == "1"
 
+    await scan._cleanup()
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
+async def test_browser_fallback_off(bbot_scanner, bbot_httpserver):
+    serve(bbot_httpserver)
+    # the browser is on for screenshots and DOMs, but blasthttp doesn't hand challenges to it
+    scan = await browser_scan(bbot_scanner, browser_fallback=False)
+    browser = scan.helpers.browser
+
+    response = await scan.helpers.request(bbot_httpserver.url_for("/challenge"), browser_fallback=True)
+    assert response.conclusion == ("needs_browser", "cloudflare")
+    assert browser._instance is None
+    assert not scan.helpers.web._clearances
+
+    # the browser modules still get their pages
+    visit = await browser.visit(bbot_httpserver.url_for("/"))
+    assert visit.response.status_code == 200
     await scan._cleanup()
 
 

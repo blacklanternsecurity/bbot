@@ -67,3 +67,26 @@ class TestScreenshot(ModuleTestBase):
         assert same.data["path"] == also_same.data["path"]
         assert same.data["path"] != different.data["path"]
         assert len(list((module_test.scan.home / "screenshots").iterdir())) == 2
+
+
+class TestScreenshotJsRedirect(ModuleTestBase):
+    pytestmark = pytest.mark.browser
+    targets = [f"{HTTPSERVER_URL}/leaving"]
+    # without browser_dom, the destination of a redirect the browser held is still emitted
+    modules_overrides = ["http", "screenshot"]
+    config_overrides = {"web": {"enable_browser": True}}
+
+    async def setup_after_prep(self, module_test):
+        leaving = "<html><body><h1>leaving</h1><script>location.href = '/destination';</script></body></html>"
+        module_test.set_expect_requests({"uri": "/leaving"}, {"response_data": leaving, "content_type": "text/html"})
+        module_test.set_expect_requests(
+            {"uri": "/destination"}, {"response_data": "<html>destination</html>", "content_type": "text/html"}
+        )
+
+    def check(self, module_test, events):
+        screenshots = {e.data["url"] for e in events if e.type == "WEBSCREENSHOT"}
+        # the page that redirected is captured as itself, and the destination gets its own screenshot
+        assert screenshots == {f"{HTTPSERVER_URL}/leaving", f"{HTTPSERVER_URL}/destination"}
+        destinations = [e for e in events if e.type == "URL_UNVERIFIED" and "js-redirect" in e.tags]
+        assert [e.url for e in destinations] == [f"{HTTPSERVER_URL}/destination"]
+        assert str(destinations[0].module) == "screenshot"

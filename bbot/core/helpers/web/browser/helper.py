@@ -75,6 +75,51 @@ class BrowserVisit:
     # every response the page received: {"url", "status", "method", "resource_type", "response"}, where "response"
     # is a blasthttp Response for text resources fetched with GET (see NETWORK_BODY_TYPES), otherwise None
     network: list = field(default_factory=list)
+    # where the page tried to send itself (a script or meta refresh), as (method, url); the page was kept instead
+    redirect: tuple = None
+    # set by the first module to emit `redirect`, so it's emitted once
+    redirect_emitted: bool = False
+
+
+class RedirectHold:
+    """
+    Keeps a page from navigating itself away (a script or meta refresh), so what's captured is the page that was
+    asked for, including anything its scripts built before redirecting. A challenge page is let through, since it
+    navigates once solved.
+    """
+
+    def __init__(self, helper, page):
+        self.helper = helper
+        self.page = page
+        # the latest main-frame document
+        self.document = None
+        self.target = None
+        self.caught = asyncio.Event()
+
+    async def start(self):
+        self.page.on("response", self._on_response)
+        await self.page.route("**/*", self._route)
+
+    def _on_response(self, response):
+        if response.frame == self.page.main_frame and response.request.is_navigation_request():
+            self.document = response
+
+    async def _route(self, route):
+        request = route.request
+        # the page's own first load, subresources and iframes go through as normal
+        if self.document is None or request.frame != self.page.main_frame or not request.is_navigation_request():
+            await route.fallback()
+            return
+        current = await self.helper._to_response(self.document, self.document.url)
+        if current.conclusion[0] == "needs_browser":
+            log.critical(f"BROWSERDBG redirect LET THROUGH (challenge page): {current.url} -> {request.url}")
+            await route.fallback()
+            return
+        log.critical(f"BROWSERDBG redirect HELD: {current.url} -> {request.method} {request.url}")
+        if self.target is None:
+            self.target = (request.method, request.url)
+        self.caught.set()
+        await route.abort("aborted")
 
 
 @dataclass
@@ -266,10 +311,12 @@ class BrowserHelper:
             responses = []
             if "network" in artifacts:
                 page.on("response", lambda r: responses.append(r))
-            main = await self._load(page, url)
+            hold = RedirectHold(self, page)
+            await hold.start()
+            main = await self._load(page, url, hold)
             if main is None:
                 return None
-            visit = BrowserVisit(url=url, response=main, title=await page.title())
+            visit = BrowserVisit(url=url, response=main, title=await page.title(), redirect=hold.target)
             # bodies are read while the page is still open
             for response in responses:
                 visit.network.append(await self._network_entry(response))
@@ -430,10 +477,11 @@ class BrowserHelper:
             log.critical(f"BROWSERDBG page FAILED TO CLOSE, retiring browser: {page.url}")
             self._retire(instance)
 
-    async def _load(self, page, url):
+    async def _load(self, page, url, hold=None):
         """
         Navigate to `url` and wait out any challenge. Returns the main document as a blasthttp Response, judged by
-        blasthttp's own challenge detection, or None if the page didn't load.
+        blasthttp's own challenge detection, or None if the page didn't load. With a `RedirectHold`, the page stays
+        put if it tries to redirect itself.
         """
         documents = asyncio.Queue()
 
@@ -444,7 +492,7 @@ class BrowserHelper:
         page.on("response", on_response)
         log.critical(f"BROWSERDBG navigating: url={url} timeout={self.page_timeout}s")
         try:
-            await page.goto(url, wait_until="load", timeout=self.page_timeout * 1000)
+            await self._navigate(page, url, hold)
         except Exception as e:
             log.critical(f"BROWSERDBG navigation raised: url={url} error={e!r} have_document={not documents.empty()}")
             if documents.empty():
@@ -479,6 +527,25 @@ class BrowserHelper:
         with suppress(Exception):
             await page.wait_for_load_state("networkidle", timeout=SETTLE_TIMEOUT * 1000)
         return main
+
+    async def _navigate(self, page, url, hold):
+        goto = asyncio.ensure_future(page.goto(url, wait_until="load", timeout=self.page_timeout * 1000))
+        if hold is None:
+            await goto
+            return
+        caught = asyncio.ensure_future(hold.caught.wait())
+        try:
+            await asyncio.wait({goto, caught}, return_when=asyncio.FIRST_COMPLETED)
+        finally:
+            caught.cancel()
+        if goto.done():
+            goto.result()
+            return
+        # a redirect caught before the page finished loading means it never will: its document is already complete
+        log.critical(f"BROWSERDBG redirect held before load finished, not waiting for it: url={url}")
+        goto.cancel()
+        with suppress(BaseException):
+            await goto
 
     async def _latest_document(self, documents, url):
         response = None

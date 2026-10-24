@@ -28,7 +28,7 @@ class browser_dom(BaseModule):
     async def handle_event(self, event):
         url = event.url or event.data
         self.critical(f"BROWSERDBG browser_dom handling URL: {url} (tags={sorted(event.tags)})")
-        visit = await self.helpers.browser.visit(url, consumer=self.name)
+        visit = await self.browser_visit(event)
         if visit is None:
             self.critical(f"BROWSERDBG browser_dom GOT NOTHING for {url}")
             return
@@ -48,11 +48,15 @@ class browser_dom(BaseModule):
                 request_url=url,
                 peer_ip=main.peer_ip,
             )
+            tags = ["browser-dom", f"status-{main.status_code}"]
+            if visit.redirect is not None:
+                # the page tried to redirect itself; this is what it built before it would have left
+                tags.append("js-redirect")
             rendered_event = self.make_event(
                 response_to_event_dict(rendered, urlparse(url).netloc or url),
                 "HTTP_RESPONSE",
                 parent=event,
-                tags=["browser-dom", f"status-{main.status_code}"],
+                tags=tags,
                 context="{module} loaded {event.parent.data} in a browser and got its rendered DOM",
             )
             if rendered_event is not None:

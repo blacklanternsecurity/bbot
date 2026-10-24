@@ -8,7 +8,7 @@ from bbot.core.config.models import BaseModuleConfig, Field
 
 class screenshot(BaseModule):
     watched_events = ["URL", "SOCIAL"]
-    produced_events = ["WEBSCREENSHOT"]
+    produced_events = ["WEBSCREENSHOT", "URL_UNVERIFIED"]
     flags = ["active", "safe", "web-screenshots"]
     meta = {
         "description": "Take screenshots of webpages with a real browser",
@@ -51,7 +51,7 @@ class screenshot(BaseModule):
     async def handle_event(self, event):
         url = event.url if event.type == "SOCIAL" else (event.url or event.data)
         self.critical(f"BROWSERDBG screenshot handling {event.type}: {url} (tags={sorted(event.tags)})")
-        visit = await self.helpers.browser.visit(url, consumer=self.name)
+        visit = await self.browser_visit(event)
         if visit is None or not visit.screenshot:
             self.critical(
                 f"BROWSERDBG screenshot GOT NOTHING for {url}: visit={'None' if visit is None else 'no screenshot'}"

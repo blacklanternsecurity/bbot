@@ -164,7 +164,7 @@ Key helpers:
 |--------|-------------|
 | `self.helpers.request(url)` | Make an HTTP request (with retries, SSL handling, etc.). Pass `browser_fallback=True` for target pages whose content matters, to get past JavaScript challenges with the browser when it's enabled; never for third-party APIs |
 | `self.helpers.blasthttp` | Shared blasthttp client (rate-limited via `web.http_rate_limit` config) |
-| `self.helpers.browser` | Shared real browser (only when `web.enable_browser` is on): `visit(url, consumer=self.name)` for a page's DOM/screenshot/network, `fetch(url)` for a request that gets past JavaScript challenges |
+| `self.helpers.browser` | Shared real browser (only when `web.enable_browser` is on): `visit(url, consumer=self.name)` for a page's DOM/screenshot/network (modules call it through `self.browser_visit(event)`, which also emits where the page tried to redirect itself), `fetch(url)` for a request that gets past JavaScript challenges |
 | `self.helpers.resolve(host)` | DNS resolution |
 | `self.helpers.is_ip(s)` | Check if string is an IP |
 | `self.helpers.is_dns_name(s)` | Check if string is a hostname |

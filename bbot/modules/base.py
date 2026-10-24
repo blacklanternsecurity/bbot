@@ -1384,6 +1384,32 @@ class BaseModule:
             kwargs["headers"]["Authorization"] = f"Bearer {self.api_key}"
         return url, kwargs
 
+    async def browser_visit(self, event):
+        """
+        Load `event`'s URL in the browser and return the `BrowserVisit`, or None if the page couldn't be loaded.
+
+        If the page tried to send itself elsewhere (a script or meta refresh), the browser kept the original page
+        and the destination is emitted here as a URL_UNVERIFIED, once across every module sharing the visit.
+        """
+        url = event.url or event.data
+        visit = await self.helpers.browser.visit(url, consumer=self.name)
+        if visit is None or visit.redirect is None or visit.redirect_emitted:
+            return visit
+        visit.redirect_emitted = True
+        method, target = visit.redirect
+        # a form posting itself somewhere isn't a page to visit, and reloading the same page isn't a discovery
+        if method == "GET" and target != visit.response.url:
+            # no spider-danger: like an HTTP redirect, following it doesn't count as spidering
+            self.critical(f"BROWSERDBG {self.name} EMITTING js-redirect destination: {url} -> {target}")
+            await self.emit_event(
+                target,
+                "URL_UNVERIFIED",
+                parent=event,
+                tags=["js-redirect"],
+                context=f"{{module}} loaded {url} in a browser, which tried to redirect to {{event.type}}: {target}",
+            )
+        return visit
+
     async def api_request(self, *args, **kwargs):
         """
         Makes an HTTP request while automatically:

@@ -56,3 +56,41 @@ class TestBrowserDom(ModuleTestBase):
 
         # images aren't followed
         assert not any(e.type == "URL_UNVERIFIED" and e.url.endswith("/pixel.png") for e in events)
+
+
+REDIRECT_PAGE = """<html><head><title>leaving</title></head><body><script>
+document.body.insertAdjacentHTML("beforeend", "<a href='/only-before-leaving'>x</a>");
+location.href = "/destination";
+</script></body></html>"""
+
+
+class TestBrowserDomJsRedirect(ModuleTestBase):
+    pytestmark = pytest.mark.browser
+    targets = [f"{HTTPSERVER_URL}/leaving"]
+    # both browser modules share the page load, and the destination is emitted once between them
+    modules_overrides = ["http", "browser_dom", "screenshot"]
+    config_overrides = {"web": {"enable_browser": True}, "excavate": True}
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests(
+            {"uri": "/leaving"}, {"response_data": REDIRECT_PAGE, "content_type": "text/html"}
+        )
+        module_test.set_expect_requests(
+            {"uri": "/destination"}, {"response_data": "<html>destination</html>", "content_type": "text/html"}
+        )
+
+    def check(self, module_test, events):
+        # the page as its script left it, kept instead of following the redirect
+        rendered = [e for e in events if e.type == "HTTP_RESPONSE" and "browser-dom" in e.tags]
+        leaving = [e for e in rendered if e.url == f"{HTTPSERVER_URL}/leaving"]
+        assert len(leaving) == 1
+        assert "js-redirect" in leaving[0].tags
+        assert "/only-before-leaving" in leaving[0].body
+
+        destinations = [e for e in events if e.type == "URL_UNVERIFIED" and "js-redirect" in e.tags]
+        assert len(destinations) == 1
+        assert destinations[0].url == f"{HTTPSERVER_URL}/destination"
+        # like an HTTP redirect, it doesn't count as spidering
+        assert "spider-danger" not in destinations[0].tags
+        # and it's then visited in its own right
+        assert any(e.type == "URL" and e.url == f"{HTTPSERVER_URL}/destination" for e in events)
