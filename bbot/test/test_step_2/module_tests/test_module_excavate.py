@@ -2172,6 +2172,30 @@ class TestExcavateHttpWildcardSkipsUrls(ModuleTestBase):
         )
 
 
+class TestExcavateHttpWildcardOncePerResponse(TestExcavateHttpWildcardSkipsUrls):
+    """The wildcard verdict for a response is probed once, however many URLs the response holds."""
+
+    html_body = "".join(f'<a href="{HTTPSERVER_URL}/link{i}">link</a>' for i in range(10))
+
+    async def setup_after_prep(self, module_test):
+        self.compared = []
+        compared = self.compared
+
+        class WildcardBaseline:
+            async def compare(self, url, **kwargs):
+                compared.append(url)
+                return True, None, None, object()
+
+        async def mock_wildcard(scheme, host, port):
+            return WildcardBaseline() if host == "127.0.0.1" else False
+
+        module_test.scan.helpers.web.is_http_wildcard_host = mock_wildcard
+
+    def check(self, module_test, events):
+        assert not any(e.type == "URL_UNVERIFIED" and str(e.module) == "excavate" and "/link" in e.url for e in events)
+        assert self.compared == [f"{HTTPSERVER_URL}/"], f"expected one probe of the response URL, got {self.compared}"
+
+
 class TestExcavateContentDedup(ModuleTestBase):
     """Verify _avoid_duplicate_content=True on excavate skips HTTP_RESPONSE events with duplicate body hashes."""
 

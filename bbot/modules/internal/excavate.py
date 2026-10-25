@@ -5,7 +5,9 @@ import time
 import inspect
 import regex as re
 from pathlib import Path
+from cachetools import LRUCache
 from bbot.errors import ExcavateError, ValidationError
+from bbot.core.helpers.async_helpers import async_cachedmethod
 import bbot.core.helpers.regexes as bbot_regexes
 from bbot.modules.base import BaseInterceptModule
 from bbot.modules.internal.base import BaseInternalModule
@@ -605,6 +607,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         """Check if an event represents archived wayback content."""
         return isinstance(event.data, dict) and "archive_url" in event.data
 
+    # one verdict per response, however many URLs it holds
+    @async_cachedmethod(lambda self: self._http_wildcard_cache, key=lambda event: event.id)
     async def _host_is_http_wildcard(self, event):
         """True if this event's host is an HTTP wildcard responder."""
         return await self._is_http_wildcard_host(event) is True
@@ -1435,6 +1439,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             )
 
     async def setup(self):
+        self._http_wildcard_cache = LRUCache(maxsize=1000)
         self.yara_rules_dict = {}
         self.yara_preprocess_dict = {}
         self.custom_yara_imports = []
