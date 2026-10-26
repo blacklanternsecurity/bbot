@@ -182,6 +182,8 @@ REDIRECT_PAGES = {
 @pytest.mark.asyncio
 async def test_browser_redirect_hold(bbot_scanner, bbot_httpserver):
     def handler(request):
+        if request.path == "/http-redirect":
+            return Response("", status=302, headers={"Location": "/landing"})
         body = REDIRECT_PAGES.get(request.path, "destination")
         return Response(f"<html><body>{body}</body></html>", content_type="text/html")
 
@@ -204,6 +206,11 @@ async def test_browser_redirect_hold(bbot_scanner, bbot_httpserver):
     late = await browser.visit(bbot_httpserver.url_for("/late"))
     assert late.redirect is None
     assert "built before leaving" in late.dom
+
+    # the server's own redirect isn't held: the browser follows it like any client
+    followed = await browser.visit(bbot_httpserver.url_for("/http-redirect"))
+    assert followed.response.url == bbot_httpserver.url_for("/landing")
+    assert followed.redirect is None
 
     # the browser never went to the destination
     assert "/dest" not in requested_paths(bbot_httpserver)
@@ -426,6 +433,9 @@ async def test_browser_unpassable_host(bbot_scanner, bbot_httpserver, monkeypatc
     def handler(request):
         if "Firefox" in request.headers.get("User-Agent", "") and request.headers.get("Sec-Fetch-Mode") == "navigate":
             browser_loads.append(request.path)
+        # the protection's own redirect, like http to https
+        if request.path == "/redirect":
+            return Response("", status=301, headers={"Location": "/first"})
         # a challenge that never clears, for blasthttp and the browser alike
         page = "<html><head><title>Just a moment...</title></head><body>still checking</body></html>"
         return Response(page, status=403, headers=CHALLENGE_HEADERS, content_type="text/html")
@@ -433,6 +443,11 @@ async def test_browser_unpassable_host(bbot_scanner, bbot_httpserver, monkeypatc
     bbot_httpserver.expect_request(re.compile(".*")).respond_with_handler(handler)
     scan = await browser_scan(bbot_scanner)
     web = scan.helpers.web
+
+    # a redirect doesn't count as reaching the host
+    response = await web.request(bbot_httpserver.url_for("/redirect"))
+    assert response.status_code == 301
+    assert not web.is_browser_only("127.0.0.1")
 
     # the clearance gets the same challenge, and the same again when it reloads, so there's no fetch after it
     response = await web.request(bbot_httpserver.url_for("/first"), browser_fallback=True)

@@ -833,10 +833,13 @@ class WebHelper:
         A host is "browser_only" once blasthttp concludes ``needs_browser`` for it (a JavaScript
         challenge no HTTP client can pass), and "unpassable" once a page the browser itself loaded
         (``by_browser``) still concludes that. A host that has ever been reached stays "reached", so
-        a host that only challenges some of its paths is not written off.
+        a host that only challenges some of its paths is not written off. A redirect doesn't count as
+        reaching a host: the protection in front of it often sends one itself (e.g. http to https).
         """
         verdict, vendor = response.conclusion
         if verdict not in ("reached", "needs_browser"):
+            return
+        if verdict == "reached" and 300 <= response.status_code < 400:
             return
         host = urlparse(response.url).hostname
         if not host:
