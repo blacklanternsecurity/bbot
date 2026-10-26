@@ -229,6 +229,16 @@ async def test_browser_redirect_hold(bbot_scanner, bbot_httpserver):
 
 @pytest.mark.browser
 @pytest.mark.asyncio
+async def test_browser_redirect_to_nowhere(bbot_scanner, bbot_httpserver):
+    """A redirect to somewhere that doesn't answer is a failed load, not a visit to the browser's own error page."""
+    bbot_httpserver.expect_request("/").respond_with_data("", status=302, headers={"Location": "http://127.0.0.1:1/"})
+    scan = await browser_scan(bbot_scanner)
+    assert await scan.helpers.browser.visit(bbot_httpserver.url_for("/")) is None
+    await scan._cleanup()
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
 async def test_browser_crash_recovery(bbot_scanner, bbot_httpserver):
     serve(bbot_httpserver)
     scan = await browser_scan(bbot_scanner)

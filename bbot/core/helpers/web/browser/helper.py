@@ -427,14 +427,20 @@ class BrowserHelper:
 
         page.on("response", on_response)
         log.critical(f"BROWSERDBG navigating: url={url} timeout={self.page_timeout}s")
+        error = None
         try:
             await self._navigate(page, url, hold)
         except Exception as e:
             log.critical(f"BROWSERDBG navigation raised: url={url} error={e!r} have_document={not documents.empty()}")
+            error = e
             if documents.empty():
                 log.debug(f"Browser failed to load {url}: {e}")
                 return None
         main = await self._latest_document(documents, url)
+        # a redirect to somewhere that failed leaves the browser showing its own error page, not the site
+        if error is not None and 300 <= main.status_code < 400:
+            log.debug(f"Browser failed to load {url} after a redirect to {main.headers.get('location')}: {error}")
+            return None
         log.critical(
             f"BROWSERDBG main document: url={url} final_url={main.url} status={main.status_code} conclusion={main.conclusion}"
         )
