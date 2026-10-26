@@ -30,9 +30,11 @@ pipx install git+https://github.com/blacklanternsecurity/bbot@dev
 bbot --help
 ```
 
+Installing `dev` from git can build dependencies from source, which may need a [Rust toolchain](https://rustup.rs).
+
 ### Docker
 
-[Docker images](https://hub.docker.com/r/blacklanternsecurity/bbot) are provided, along with helper script `bbot-docker.sh` to persist your scan data. Releases are on Docker Hub as `stable` and `stable-full`. The bleeding edge `dev` and `dev-full` images are built from every push to `dev` and published to GHCR at `ghcr.io/blacklanternsecurity/bbot`. `-full` images are larger and have all of BBOT's module dependencies preinstalled (wordlists, pip packages, etc.). Docker Hub's `dev` tags and the `--pre` PyPI builds are no longer updated.
+Docker images are provided on [Docker Hub](https://hub.docker.com/r/blacklanternsecurity/bbot) and [GHCR](https://github.com/blacklanternsecurity/bbot/pkgs/container/bbot), along with helper script `bbot-docker.sh` to persist your scan data. Releases are on Docker Hub as `stable` and `stable-full`. The bleeding edge `dev` and `dev-full` images are built from every push to `dev` and published to GHCR at `ghcr.io/blacklanternsecurity/bbot`. `-full` images are larger and have all of BBOT's module dependencies preinstalled (wordlists, pip packages, etc.). Docker Hub's `dev` tags and the `--pre` PyPI builds are no longer updated.
 
 Scans are output to `~/.bbot/scans` (the usual place for BBOT scan data).
 
