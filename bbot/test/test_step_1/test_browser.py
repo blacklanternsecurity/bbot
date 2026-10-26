@@ -303,6 +303,27 @@ async def test_browser_host_eviction(bbot_scanner):
 
 @pytest.mark.browser
 @pytest.mark.asyncio
+async def test_browser_one_context_per_origin(bbot_scanner):
+    """A URL with its scheme's default port and one without are the same origin, and share a context and its cookies."""
+    scan = await browser_scan(bbot_scanner)
+    browser = scan.helpers.browser
+
+    _, https = await browser._host("https://127.0.0.1:443/login")
+    _, https_bare = await browser._host("https://127.0.0.1/")
+    _, http = await browser._host("http://127.0.0.1:80/")
+    _, http_bare = await browser._host("http://127.0.0.1/robots.txt")
+    instance, other_port = await browser._host("http://127.0.0.1:8001/")
+    assert https is https_bare
+    assert http is http_bare
+    assert other_port is not http
+    assert set(instance.hosts) == {"https://127.0.0.1", "http://127.0.0.1", "http://127.0.0.1:8001"}
+
+    await scan._cleanup()
+    assert await no_browser_processes()
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
 async def test_browser_fallback_handoff(bbot_scanner, bbot_httpserver):
     """The browser passes a challenge and hands its cookies and User-Agent to blasthttp, for every later request."""
     serve(bbot_httpserver)

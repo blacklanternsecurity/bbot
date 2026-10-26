@@ -11,11 +11,11 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass, field
-from urllib.parse import urlparse
 
 import blasthttp
 
 from bbot.errors import BrowserError
+from bbot.core.helpers.validators import clean_url
 from .engines.base import VIEWPORT
 from .engines.camoufox import CamoufoxEngine
 
@@ -527,7 +527,8 @@ class BrowserHelper:
     async def _host(self, url):
         """The running browser, and the context for this URL's origin, launching either if needed."""
         instance = await self._get_instance()
-        parsed = urlparse(url)
+        # https://host:443 and https://host are one origin, and must share one context's cookies
+        parsed = clean_url(url)
         origin = f"{parsed.scheme}://{parsed.netloc}"
         host = instance.hosts.get(origin)
         if host is None:
