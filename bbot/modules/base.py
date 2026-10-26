@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 
 from ..core.helpers.misc import get_size  # noqa
 from ..errors import HttpCompareError, ValidationError, WebError
-from ..core.helpers.async_helpers import TaskCounter, ShuffleQueue
+from ..core.helpers.async_helpers import LaneQueue, TaskCounter, ShuffleQueue
 from ..core.event import is_event
 from .. import __version__
 
@@ -2050,6 +2050,18 @@ class BaseInterceptModule(BaseModule):
         Get an event from this module's incoming event queue
         """
         return await self.incoming_event_queue.get()
+
+    def make_intercept_queue(self):
+        """
+        Make the queue that feeds this module from the previous intercept module, divided into lanes by `incoming_lane()`
+        """
+        return LaneQueue(lambda item: self.incoming_lane(item[0]))
+
+    def incoming_lane(self, event):
+        """
+        The lane an incoming event joins. Events in lower lanes are handled first.
+        """
+        return 0
 
     async def forward_event(self, event, kwargs):
         """
