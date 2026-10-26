@@ -537,7 +537,8 @@ class DepsInstaller:
                 private_data_dir=str(data_dir),
                 artifact_dir=str(self.ansible_artifact_dir),
                 ident=ident,
-                settings={"fact_cache": "../fact_cache", "fact_cache_type": "jsonfile"},
+                fact_cache="../fact_cache",
+                fact_cache_type="jsonfile",
                 envvars={"ANSIBLE_GATHERING": "smart", "ANSIBLE_CACHE_PLUGIN_TIMEOUT": "86400"},
                 host_pattern="localhost",
                 inventory={
