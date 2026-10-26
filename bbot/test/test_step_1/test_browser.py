@@ -1,13 +1,23 @@
 import os
 import re
+import ssl
+import json
 import time
 import asyncio
+import platform
+import datetime
 
 import psutil
 from werkzeug.wrappers import Response
 
 from ..bbot_fixtures import *
 from bbot.errors import BrowserError
+from bbot.core.helpers.web.browser.engines import camoufox
+from pytest_httpserver import HTTPServer
+from cryptography import x509
+from cryptography.x509.oid import NameOID
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec
 
 # tests marked `browser` drive a real browser, installed by the deps installer when web.enable_browser is on.
 # they only run when BBOT_TEST_BROWSER is set (see conftest.py)
@@ -327,6 +337,86 @@ async def test_browser_one_context_per_origin(bbot_scanner):
 
     await scan._cleanup()
     assert await no_browser_processes()
+
+
+def make_cert(name, issuer=None):
+    """A certificate for `name` and its key, signed by `issuer` (a cert and key) or self-signed as a CA."""
+    key = ec.generate_private_key(ec.SECP256R1())
+    subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, name)])
+    issuer_cert, issuer_key = issuer or (None, key)
+    now = datetime.datetime.now(datetime.timezone.utc)
+    builder = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(issuer_cert.subject if issuer_cert else subject)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now - datetime.timedelta(days=1))
+        .not_valid_after(now + datetime.timedelta(days=1))
+    )
+    if issuer is None:
+        builder = builder.add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
+    else:
+        builder = builder.add_extension(x509.SubjectAlternativeName([x509.DNSName(name)]), critical=False)
+    return builder.sign(issuer_key, hashes.SHA256()), key
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
+@pytest.mark.skipif(platform.system() != "Linux", reason="mirrors the Linux browser install")
+async def test_browser_ignores_hsts(bbot_scanner, bbot_httpserver, tmp_path, monkeypatch):
+    """Once a host's https has sent Strict-Transport-Security, its http on another port still loads."""
+    # Firefox only learns HSTS over a certificate it trusts, so the browser has to trust this one
+    ca = make_cert("bbot test CA")
+    cert, key = make_cert("hsts.test", issuer=ca)
+    (tmp_path / "ca.pem").write_bytes(ca[0].public_bytes(serialization.Encoding.PEM))
+    (tmp_path / "cert.pem").write_bytes(cert.public_bytes(serialization.Encoding.PEM))
+    (tmp_path / "key.pem").write_bytes(
+        key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption())
+    )
+
+    scan = await browser_scan(bbot_scanner)
+    # a copy of the installed browser with the CA added to its policies, linked rather than copied where it can be
+    installed = scan.helpers.browser.engine.install_dir
+    browser_dir = tmp_path / "browser"
+    browser_dir.mkdir()
+    for entry in installed.iterdir():
+        if entry.name in ("camoufox", "camoufox-bin", "camoufox.cfg"):
+            (browser_dir / entry.name).write_bytes(entry.read_bytes())
+            (browser_dir / entry.name).chmod(entry.stat().st_mode)
+        elif entry.name != "distribution":
+            (browser_dir / entry.name).symlink_to(entry)
+    policies = json.loads((installed / "distribution" / "policies.json").read_text())
+    policies["policies"]["Certificates"] = {"Install": [str(tmp_path / "ca.pem")]}
+    (browser_dir / "distribution").mkdir()
+    (browser_dir / "distribution" / "policies.json").write_text(json.dumps(policies))
+    monkeypatch.setattr(camoufox.CamoufoxEngine, "install_dir", property(lambda self: browser_dir))
+    monkeypatch.setitem(camoufox.FIREFOX_PREFS, "network.dns.localDomains", "hsts.test")
+
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(tmp_path / "cert.pem", tmp_path / "key.pem")
+    https = HTTPServer(host="127.0.0.1", port=0, ssl_context=context)
+    https.expect_request("/").respond_with_data(
+        "<html><title>https</title></html>",
+        content_type="text/html",
+        headers={"Strict-Transport-Security": "max-age=31536000; includeSubDomains"},
+    )
+    https.start()
+    bbot_httpserver.expect_request("/").respond_with_data("<html><title>http</title></html>", content_type="text/html")
+
+    try:
+        browser = scan.helpers.browser
+        secure = await browser.visit(f"https://hsts.test:{https.port}/")
+        assert secure.title == "https"
+        # the scan still sees the header
+        assert secure.response.headers.get("strict-transport-security") == "max-age=31536000; includeSubDomains"
+        plain = await browser.visit(f"http://hsts.test:{bbot_httpserver.port}/")
+        assert plain is not None and plain.title == "http"
+        assert plain.response.url == f"http://hsts.test:{bbot_httpserver.port}/"
+        assert (browser_dir / "camoufox.cfg").read_text().count(camoufox.HSTS_HOOK_MARKER) == 1
+    finally:
+        await scan._cleanup()
+        https.stop()
 
 
 @pytest.mark.browser

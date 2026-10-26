@@ -40,6 +40,27 @@ CAMOUFOX_PLATFORMS = [
     ),
 ]
 
+# Firefox prefs set on every launch. Its built-in list of HTTPS-only domains would rewrite their http:// loads
+FIREFOX_PREFS = {"network.stricttransportsecurity.preloadlist": False}
+
+# appended to camoufox.cfg, which Firefox runs with full privileges at startup. Once any page on a host sends
+# Strict-Transport-Security, Firefox rewrites every later http:// load of that host, on any port and in every
+# context, to https://; a scan has to load both. Playwright records the header before this blanks it.
+HSTS_HOOK_MARKER = "// bbot: ignore Strict-Transport-Security"
+HSTS_HOOK = f"""
+{HSTS_HOOK_MARKER}
+Services.obs.addObserver(
+  {{
+    observe(channel) {{
+      try {{
+        channel.QueryInterface(Components.interfaces.nsIHttpChannel).setResponseHeader("Strict-Transport-Security", "", false);
+      }} catch (e) {{}}
+    }},
+  }},
+  "http-on-examine-response"
+);
+"""
+
 # the smallest screen the fingerprint may claim. A window taller or wider than its screen is a giveaway, so this
 # leaves room around the viewport for the browser's own toolbars and the OS taskbar
 MIN_SCREEN = (VIEWPORT[0] + 160, VIEWPORT[1] + 150)
@@ -165,15 +186,34 @@ class CamoufoxEngine(BrowserEngine):
             # uBlock Origin would hide requests (and page content) the scan cares about
             "exclude_addons": [DefaultAddons.UBO],
             "i_know_what_im_doing": True,
+            "firefox_user_prefs": FIREFOX_PREFS,
         }
         if self._http_proxy:
             kwargs["proxy"] = {"server": self._http_proxy, "bypass": ",".join(self._http_proxy_exclude)}
+        self._add_hsts_hook()
         return launch_options(**kwargs)
+
+    def _add_hsts_hook(self):
+        """Add `HSTS_HOOK` to the installed browser's camoufox.cfg, once."""
+        config = self.config_path
+        if HSTS_HOOK_MARKER not in config.read_text():
+            with open(config, "a") as f:
+                f.write(HSTS_HOOK)
+
+    @property
+    def install_dir(self):
+        return self.parent_helper.tools_dir / self.install_dirname
 
     @property
     def executable_path(self):
         system, machine = platform.system(), platform.machine()
         for _, s, arch, _, executable in CAMOUFOX_PLATFORMS:
             if (s, arch) == (system, machine):
-                return self.parent_helper.tools_dir / self.install_dirname / executable
+                return self.install_dir / executable
         raise BrowserError(f"Camoufox {CAMOUFOX_BUILD} has no build for {system} {machine}")
+
+    @property
+    def config_path(self):
+        if platform.system() == "Darwin":
+            return self.install_dir / "Camoufox.app/Contents/Resources/camoufox.cfg"
+        return self.install_dir / "camoufox.cfg"
