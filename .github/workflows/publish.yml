@@ -4,8 +4,7 @@ on:
   push:
     branches: [stable]
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
   group: publish-${{ github.ref }}
@@ -13,6 +12,10 @@ concurrency:
 
 jobs:
   check:
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
     uses: blacklanternsecurity/CLA/.github/workflows/release-check.yml@07e14bcbba5e737e1b29bd9e3f9128fbf2483be9 # CLA#11
     with:
       image: ${{ github.repository }}
@@ -31,6 +34,8 @@ jobs:
   build:
     needs: tests
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -46,6 +51,8 @@ jobs:
   docker:
     needs: [check, tests]
     if: needs.check.outputs.release == 'true'
+    permissions:
+      contents: read
     uses: blacklanternsecurity/CLA/.github/workflows/docker.yml@07e14bcbba5e737e1b29bd9e3f9128fbf2483be9 # CLA#11
     with:
       image: ${{ github.repository }}
