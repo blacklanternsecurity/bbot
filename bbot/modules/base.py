@@ -963,6 +963,8 @@ class BaseModule:
             content_type = event.content_type
             if content_type not in BROWSER_PAGE_TYPES:
                 return False, f"it isn't a web page ({content_type or 'no content type, and not HTML'})"
+        if self.browser_artifacts and event.host and self.helpers.web.is_unpassable(event.host):
+            return False, "the browser couldn't get past its host's protection"
 
         # custom filtering
         async with self.scan._acatch(context=self.filter_event):

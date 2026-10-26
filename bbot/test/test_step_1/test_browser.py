@@ -382,6 +382,88 @@ async def test_browser_fallback_off(bbot_scanner, bbot_httpserver):
 
 @pytest.mark.browser
 @pytest.mark.asyncio
+async def test_browser_challenge_without_reload(bbot_scanner, bbot_httpserver, monkeypatch):
+    """A challenge whose script sets its cookie but doesn't reload is passed by reloading it."""
+    monkeypatch.setattr("bbot.core.helpers.web.browser.helper.CHALLENGE_RELOAD_AFTER", 1)
+    browser_loads = []
+
+    def handler(request):
+        # blasthttp sends navigation headers on one rung, and borrows the browser's User-Agent after a handoff
+        if "Firefox" in request.headers.get("User-Agent", "") and request.headers.get("Sec-Fetch-Mode") == "navigate":
+            browser_loads.append(request.path)
+        if request.cookies.get("cleared") == "1":
+            return Response(
+                "<html><head><title>real</title></head>past the challenge</html>", content_type="text/html"
+            )
+        page = '<html><head><title>Just a moment...</title></head><body><script>document.cookie = "cleared=1; path=/"</script></body></html>'
+        return Response(page, status=403, headers=CHALLENGE_HEADERS, content_type="text/html")
+
+    bbot_httpserver.expect_request(re.compile(".*")).respond_with_handler(handler)
+    scan = await browser_scan(bbot_scanner)
+    web = scan.helpers.web
+
+    start = time.monotonic()
+    response = await web.request(bbot_httpserver.url_for("/page"), browser_fallback=True)
+    assert response.status_code == 200
+    assert "past the challenge" in response.text
+    assert web._clearances["127.0.0.1"].cookies == {"cleared": "1"}
+    # the challenge load and the reload
+    assert browser_loads == ["/page", "/page"]
+    assert time.monotonic() - start < 15
+    assert not web.is_browser_only("127.0.0.1")
+
+    await scan._cleanup()
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
+async def test_browser_unpassable_host(bbot_scanner, bbot_httpserver, monkeypatch):
+    """A host whose challenge the browser can't pass either gets one browser load, and no more."""
+    monkeypatch.setattr("bbot.core.helpers.web.browser.helper.CHALLENGE_TIMEOUT", 2)
+    monkeypatch.setattr("bbot.core.helpers.web.browser.helper.CHALLENGE_RELOAD_AFTER", 1)
+    browser_loads = []
+
+    def handler(request):
+        if "Firefox" in request.headers.get("User-Agent", "") and request.headers.get("Sec-Fetch-Mode") == "navigate":
+            browser_loads.append(request.path)
+        # a challenge that never clears, for blasthttp and the browser alike
+        page = "<html><head><title>Just a moment...</title></head><body>still checking</body></html>"
+        return Response(page, status=403, headers=CHALLENGE_HEADERS, content_type="text/html")
+
+    bbot_httpserver.expect_request(re.compile(".*")).respond_with_handler(handler)
+    scan = await browser_scan(bbot_scanner)
+    web = scan.helpers.web
+
+    # the clearance gets the same challenge, and the same again when it reloads, so there's no fetch after it
+    response = await web.request(bbot_httpserver.url_for("/first"), browser_fallback=True)
+    assert response.conclusion == ("needs_browser", "cloudflare")
+    assert browser_loads == ["/first", "/first"]
+    assert web.is_unpassable("127.0.0.1")
+    assert web.is_browser_only("127.0.0.1")
+
+    # later requests to the host don't go to the browser
+    response = await web.request(bbot_httpserver.url_for("/second"), browser_fallback=True)
+    assert response.conclusion == ("needs_browser", "cloudflare")
+    assert browser_loads == ["/first", "/first"]
+
+    # and neither do the browser modules
+    page = scan.make_event(
+        {"url": bbot_httpserver.url_for("/third"), "content_type": "text/html"},
+        "URL",
+        parent=scan.root_event,
+        tags=["status-200"],
+    )
+    page.scope_distance = 0
+    for module in ("screenshot", "browser_dom"):
+        accepted, reason = await scan.modules[module]._event_postcheck_inner(page)
+        assert not accepted
+        assert "couldn't get past" in reason
+
+    await scan._cleanup()
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
 async def test_browser_fallback_dead_site(bbot_scanner, bbot_httpserver):
     """Past the challenge, the site is down: there's nothing to hand blasthttp, and the browser's answer is used."""
     browser_loads = []

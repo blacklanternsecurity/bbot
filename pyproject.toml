@@ -140,6 +140,6 @@ constraint-dependencies = ["virtualenv>=21.7.13"]
 
 [tool.uv.sources]
 # TEMPORARY: blasthttp 1.0 is unreleased (blacklanternsecurity/blasthttp#128); local checkout of the
-# ladder-exhaustion-memory branch (ce5efb6), which is 3e1629e plus remembering hosts that refuse every rung and
-# only trusting Cloudflare challenge body markers on a refusal
+# local-browser-build branch (979a316), which is 1.0-connection-profiles with the anti-bot rules in
+# antibot_rules.json (#145) plus only trusting Cloudflare challenge body markers on a refusal
 blasthttp = { path = "../blasthttp-1.0" }

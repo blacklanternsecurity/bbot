@@ -752,6 +752,9 @@ class WebHelper:
             request_kwargs.get(k) is not None for k in ("body", "data", "json", "files")
         )
         host = urlparse(url).hostname
+        if self.is_unpassable(host):
+            log.debug(f"Not asking the browser about {url}: it couldn't get past {host} before")
+            return response
         sent_with = self._clearances.get(host)
         log.critical(
             f"BROWSERDBG get_past_challenge() waiting for host lock: host={host} have_clearance={sent_with is not None}"
@@ -808,6 +811,9 @@ class WebHelper:
                 f"BROWSERDBG using the BROWSER'S CLEARANCE LOAD as the response: url={url} status={browser_response.status_code}"
             )
             return browser_response
+        elif self.is_unpassable(host):
+            # the clearance just loaded this host in the browser and got the same challenge
+            log.debug(f"Not fetching {url} in the browser: it couldn't get past {host}")
         else:
             log.critical(f"BROWSERDBG falling back to BROWSER FETCH: url={url}")
             fetched = await browser.fetch(url)
@@ -820,12 +826,13 @@ class WebHelper:
         log.critical(f"BROWSERDBG get_past_challenge() GAVE UP, returning original challenge response: url={url}")
         return response
 
-    def record_conclusion(self, response):
+    def record_conclusion(self, response, by_browser=False):
         """
-        Track whether a response's host can only be loaded by a real browser.
+        Track whether a response's host can only be loaded by a real browser, or not even by one.
 
         A host is "browser_only" once blasthttp concludes ``needs_browser`` for it (a JavaScript
-        challenge no HTTP client can pass). A host that has ever been reached stays "reached", so
+        challenge no HTTP client can pass), and "unpassable" once a page the browser itself loaded
+        (``by_browser``) still concludes that. A host that has ever been reached stays "reached", so
         a host that only challenges some of its paths is not written off.
         """
         verdict, vendor = response.conclusion
@@ -838,6 +845,10 @@ class WebHelper:
             if self._host_states.get(host) == "browser_only":
                 log.critical(f"BROWSERDBG host went from BROWSER_ONLY to REACHED: {host} url={response.url}")
             self._host_states[host] = "reached"
+        elif by_browser and self._host_states.get(host) != "reached":
+            if self._host_states.get(host) != "unpassable":
+                log.verbose(f"The browser can't get past {host} either ({vendor} challenge)")
+            self._host_states[host] = "unpassable"
         elif host not in self._host_states:
             self._host_states[host] = "browser_only"
             log.verbose(f"{host} can only be loaded by a browser ({vendor} challenge)")
@@ -845,7 +856,11 @@ class WebHelper:
 
     def is_browser_only(self, host):
         """Whether this host has answered with a challenge only a browser can pass, and has never been reached."""
-        return self._host_states.get(str(host)) == "browser_only"
+        return self._host_states.get(str(host)) in ("browser_only", "unpassable")
+
+    def is_unpassable(self, host):
+        """Whether this host has turned away the browser too, and has never been reached."""
+        return self._host_states.get(str(host)) == "unpassable"
 
     async def is_http_wildcard_host(self, scheme, host, port):
         """Detect whether a host returns the same response regardless of URL path.

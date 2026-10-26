@@ -23,6 +23,8 @@ log = logging.getLogger("bbot.core.helpers.web.browser")
 
 # a challenge page reloads itself once it's solved; how long to wait for that
 CHALLENGE_TIMEOUT = 30
+# some only set their cookies and don't reload; how long to wait before reloading for them
+CHALLENGE_RELOAD_AFTER = 5
 # the most a single page operation may take, so a hung page can't hold a slot forever
 OPERATION_TIMEOUT = 90
 # how long to let a loaded page settle (late requests, rendering) before capturing it
@@ -437,6 +439,7 @@ class BrowserHelper:
             f"BROWSERDBG main document: url={url} final_url={main.url} status={main.status_code} conclusion={main.conclusion}"
         )
         deadline = time.monotonic() + CHALLENGE_TIMEOUT
+        reloaded = False
         # a solved challenge navigates to the real page, so keep taking main documents until one isn't a challenge
         while main.conclusion[0] == "needs_browser":
             remaining = deadline - time.monotonic()
@@ -448,8 +451,14 @@ class BrowserHelper:
                 log.critical(f"BROWSERDBG CHALLENGE NOT CLEARED in {CHALLENGE_TIMEOUT}s: url={url}")
                 break
             try:
-                next_document = await asyncio.wait_for(documents.get(), timeout=remaining)
+                wait = remaining if reloaded else min(remaining, CHALLENGE_RELOAD_AFTER)
+                next_document = await asyncio.wait_for(documents.get(), timeout=wait)
             except asyncio.TimeoutError:
+                if not reloaded:
+                    reloaded = True
+                    log.critical(f"BROWSERDBG challenge page sat still, RELOADING: url={url}")
+                    with suppress(Exception):
+                        await page.reload(wait_until="load", timeout=self.page_timeout * 1000)
                 continue
             with suppress(Exception):
                 await page.wait_for_load_state("load", timeout=self.page_timeout * 1000)
@@ -460,6 +469,7 @@ class BrowserHelper:
             )
         with suppress(Exception):
             await page.wait_for_load_state("networkidle", timeout=SETTLE_TIMEOUT * 1000)
+        self.parent_helper.web.record_conclusion(main, by_browser=True)
         return main
 
     async def _navigate(self, page, url, hold):
