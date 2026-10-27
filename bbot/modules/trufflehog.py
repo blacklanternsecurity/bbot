@@ -21,7 +21,7 @@ class trufflehog(BaseModule):
         concurrency: int = Field(8, description="Number of concurrent workers")
         collapse_duplicates: bool = Field(
             True,
-            description="Report each secret found in web content once per host, rather than once for every page it appears on",
+            description="Report each secret found in HTTP responses once per host, rather than once for every page it appears on",
         )
         deleted_forks: bool = Field(
             False,
@@ -53,7 +53,7 @@ class trufflehog(BaseModule):
         self.verified = self.config.get("only_verified", True)
         self.concurrency = self.config.get("concurrency", 8)
         self.collapse_duplicates = self.config.get("collapse_duplicates", True)
-        # (where, detector, secret, verified) for every secret already reported
+        # (host, detector, secret, verified) for every HTTP response secret already reported
         self.reported_secrets = set()
 
         self.deleted_forks = self.config.get("deleted_forks", False)
@@ -116,7 +116,7 @@ class trufflehog(BaseModule):
         if event.type == "CODE_REPOSITORY":
             host = event.host
         else:
-            host = str(event.parent.host)
+            host = event.parent.host
         async for (
             decoder_name,
             detector_name,
@@ -125,13 +125,12 @@ class trufflehog(BaseModule):
             verified,
             source_metadata,
         ) in self.execute_trufflehog(module, path=path, stdin_data=stdin_data):
-            if self.collapse_duplicates:
+            # only HTTP responses collapse per host; a repo, file or document is its own leak
+            if self.collapse_duplicates and event.type == "HTTP_RESPONSE":
                 # the decoder is left out: the same secret found plain and HTML-encoded is still one secret
-                # web content collapses per host; a repo or file is its own leak wherever it's hosted
-                where = host if stdin_data is not None else path
-                secret_key = (where, detector_name, raw_result, rawv2_result, verified)
+                secret_key = (host, detector_name, raw_result, rawv2_result, verified)
                 if secret_key in self.reported_secrets:
-                    self.debug(f"Already reported {detector_name} secret on {where}: {raw_result}")
+                    self.debug(f"Already reported {detector_name} secret on {host}: {raw_result}")
                     continue
                 self.reported_secrets.add(secret_key)
             verified_str = "Verified" if verified else "Possible"
@@ -140,8 +139,9 @@ class trufflehog(BaseModule):
                 "name": f"TruffleHog - {detector_name}",
                 "description": f"{verified_str} Secret Found. Detector Type: [{detector_name}] Decoder Type: [{decoder_name}] Details: [{source_metadata}]",
             }
+            # without a host, FINDING inherits host, url and path from the nearest parent (e.g. a downloaded file)
             if host:
-                data["host"] = host
+                data["host"] = str(host)
             if event.type == "HTTP_RESPONSE":
                 url = event.data.get("url", "")
                 if url:

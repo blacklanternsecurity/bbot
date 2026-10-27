@@ -9,6 +9,7 @@ from pathlib import Path
 from werkzeug.wrappers import Response
 
 from .base import ModuleTestBase
+from bbot.modules.base import BaseModule
 from bbot.test.bbot_fixtures import bbot_test_dir
 from bbot.test.worker import HTTPSERVER_URL, BBOT_TEST_DIR, BBOT_TEST_DIR_NAME
 
@@ -1443,3 +1444,40 @@ class TestTrufflehog_CollapseDuplicatesOff(TestTrufflehog_CollapseDuplicates):
         "web": {"spider_distance": 1, "spider_depth": 1},
     }
     expected_shared = 2
+
+
+class TestTrufflehog_CollapseDuplicatesRawText(ModuleTestBase):
+    # Only HTTP responses collapse: the same secret in two downloaded documents is reported once per document.
+    class DummyModule(BaseModule):
+        watched_events = ["URL"]
+        _name = "dummy_module"
+
+        async def handle_event(self, event):
+            for name in ("report.pdf", "notes.docx"):
+                file_path = TestTrufflehog_CollapseDuplicatesRawText.download_dir / name
+                file_event = self.make_event({"path": str(file_path)}, "FILESYSTEM", parent=event, tags=["file"])
+                await self.emit_event(file_event)
+                text = f'{name}: webhook = "{TestTrufflehog_CollapseDuplicates._shared_webhook}"'
+                await self.emit_event(text, "RAW_TEXT", parent=file_event)
+
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http", "trufflehog"]
+    config_overrides = {"modules": {"trufflehog": {"only_verified": False}}}
+    download_dir = bbot_test_dir / "test_trufflehog_collapse_rawtext"
+
+    async def setup_after_prep(self, module_test):
+        # the files themselves hold nothing, so only the RAW_TEXT can produce findings
+        self.download_dir.mkdir(parents=True, exist_ok=True)
+        for name in ("report.pdf", "notes.docx"):
+            (self.download_dir / name).write_text("nothing here")
+        module_test.scan.modules["dummy_module"] = self.DummyModule(module_test.scan)
+        module_test.httpserver.expect_request("/").respond_with_data("hi")
+
+    def check(self, module_test, events):
+        webhook = TestTrufflehog_CollapseDuplicates._shared_webhook
+        findings = [e for e in events if e.type == "FINDING" and webhook in e.data.get("description", "")]
+        paths = sorted(Path(f.data.get("path", "")).name for f in findings)
+        assert paths == ["notes.docx", "report.pdf"], f"expected one finding per document, got {paths}"
+        assert all(f.data.get("host") == "127.0.0.1" for f in findings), (
+            f"findings must inherit the download host, got {[f.data.get('host') for f in findings]}"
+        )
