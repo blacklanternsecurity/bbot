@@ -5,6 +5,7 @@ import json
 import time
 import asyncio
 import platform
+import threading
 import datetime
 
 import psutil
@@ -235,6 +236,35 @@ async def test_browser_redirect_to_nowhere(bbot_scanner, bbot_httpserver):
     scan = await browser_scan(bbot_scanner)
     assert await scan.helpers.browser.visit(bbot_httpserver.url_for("/")) is None
     await scan._cleanup()
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
+async def test_browser_stalled_font(bbot_scanner, bbot_httpserver, monkeypatch):
+    """A web font that never finishes loading doesn't cost the page its screenshot."""
+    monkeypatch.setattr("bbot.core.helpers.web.browser.helper.FONT_TIMEOUT", 3)
+    # the font is only requested after the load event, so the page loads but its fonts never settle
+    page = """<html><head><style>@font-face { font-family: stalled; src: url(/font.woff2); }</style></head><body>
+<script>addEventListener("load", () => { const p = document.createElement("p"); p.style.fontFamily = "stalled"; p.textContent = "late"; document.body.append(p); })</script>
+</body></html>"""
+    font_requested, release = threading.Event(), threading.Event()
+
+    def handler(request):
+        if request.path == "/font.woff2":
+            font_requested.set()
+            release.wait(60)
+            return Response(b"", content_type="font/woff2")
+        return Response(page, content_type="text/html")
+
+    bbot_httpserver.expect_request(re.compile(".*")).respond_with_handler(handler)
+    scan = await browser_scan(bbot_scanner)
+    try:
+        visit = await scan.helpers.browser.visit(bbot_httpserver.url_for("/"))
+        assert font_requested.is_set()
+        assert visit.screenshot.startswith(b"\x89PNG")
+    finally:
+        release.set()
+        await scan._cleanup()
 
 
 @pytest.mark.browser

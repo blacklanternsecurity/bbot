@@ -29,6 +29,8 @@ CHALLENGE_RELOAD_AFTER = 5
 OPERATION_TIMEOUT = 90
 # how long to let a loaded page settle (late requests, rendering) before capturing it
 SETTLE_TIMEOUT = 3
+# how long a screenshot waits for web fonts before it's taken with whatever has loaded
+FONT_TIMEOUT = 30
 # stop using the browser for the rest of the scan if it dies this often
 MAX_CRASHES = 3
 CRASH_WINDOW = 600
@@ -299,6 +301,16 @@ class BrowserHelper:
                 visit.dom = await page.content()
                 log.critical(f"BROWSERDBG captured DOM: url={url} chars={len(visit.dom)}")
             if "screenshot" in artifacts:
+                try:
+                    await asyncio.wait_for(
+                        page.evaluate("document.fonts.ready.then(() => true)"), timeout=FONT_TIMEOUT
+                    )
+                except asyncio.TimeoutError:
+                    # playwright's screenshot waits on the same fonts; stopping the stalled loads settles them
+                    log.verbose(
+                        f"Web fonts still loading on {url} after {FONT_TIMEOUT}s, taking the screenshot without them"
+                    )
+                    await page.evaluate("window.stop()")
                 visit.screenshot = await page.screenshot()
                 log.critical(f"BROWSERDBG captured SCREENSHOT: url={url} bytes={len(visit.screenshot)}")
             if "network" in artifacts:
