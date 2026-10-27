@@ -19,6 +19,10 @@ class trufflehog(BaseModule):
         config: str = Field("", description="File path or URL to YAML trufflehog config")
         only_verified: bool = Field(True, description="Only report credentials that have been verified")
         concurrency: int = Field(8, description="Number of concurrent workers")
+        collapse_duplicates: bool = Field(
+            True,
+            description="Report each secret found in web content once per host, rather than once for every page it appears on",
+        )
         deleted_forks: bool = Field(
             False,
             description="Scan for deleted github forks. WARNING: This is SLOW. For a smaller repository, this process can take 20 minutes. For a larger repository, it could take hours.",
@@ -48,6 +52,9 @@ class trufflehog(BaseModule):
     async def setup(self):
         self.verified = self.config.get("only_verified", True)
         self.concurrency = self.config.get("concurrency", 8)
+        self.collapse_duplicates = self.config.get("collapse_duplicates", True)
+        # (where, detector, secret, verified) for every secret already reported
+        self.reported_secrets = set()
 
         self.deleted_forks = self.config.get("deleted_forks", False)
         self.github_token = ""
@@ -118,6 +125,15 @@ class trufflehog(BaseModule):
             verified,
             source_metadata,
         ) in self.execute_trufflehog(module, path=path, stdin_data=stdin_data):
+            if self.collapse_duplicates:
+                # the decoder is left out: the same secret found plain and HTML-encoded is still one secret
+                # web content collapses per host; a repo or file is its own leak wherever it's hosted
+                where = host if stdin_data is not None else path
+                secret_key = (where, detector_name, raw_result, rawv2_result, verified)
+                if secret_key in self.reported_secrets:
+                    self.debug(f"Already reported {detector_name} secret on {where}: {raw_result}")
+                    continue
+                self.reported_secrets.add(secret_key)
             verified_str = "Verified" if verified else "Possible"
             confidence = "CONFIRMED" if verified else "MEDIUM"
             data = {
