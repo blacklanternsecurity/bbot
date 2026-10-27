@@ -425,6 +425,13 @@ async def test_regex_helper():
         "www.evilcorp.co.uk",
     }
 
+    # a hostname with hyphens in it is one hostname, not one per hyphen
+    extracted = await scan.extract_in_scope_hostnames("https://dev-api.evilcorp.com/ my-app-test.evilcorp.com")
+    assert extracted == {"dev-api.evilcorp.com", "my-app-test.evilcorp.com", "evilcorp.com"}
+    # the same name standing on its own elsewhere still counts
+    extracted = await scan.extract_in_scope_hostnames("dev-api.evilcorp.com api.evilcorp.com")
+    assert extracted == {"dev-api.evilcorp.com", "api.evilcorp.com", "evilcorp.com"}
+
     scan = Scanner()
     await scan._prep()
     extracted = await scan.extract_in_scope_hostnames(host_blob)
