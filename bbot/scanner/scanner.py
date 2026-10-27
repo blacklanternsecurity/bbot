@@ -1325,15 +1325,11 @@ class Scanner:
         character continues a label of a longer match is one of those.
         """
         instances = [(i.offset, i.matched_data.decode("utf-8", errors="ignore")) for i in instances]
-        hostnames = set()
+        # every offset that continues a label of some match, collected in one pass so this stays linear
+        mid_label = set()
         for offset, hostname in instances:
-            mid_label = any(
-                other_offset < offset < other_offset + len(other) and other[offset - other_offset - 1] != "."
-                for other_offset, other in instances
-            )
-            if not mid_label:
-                hostnames.add(hostname)
-        return hostnames
+            mid_label.update(offset + j for j in range(1, len(hostname)) if hostname[j - 1] != ".")
+        return {hostname for offset, hostname in instances if offset not in mid_label}
 
     @property
     def json(self):
