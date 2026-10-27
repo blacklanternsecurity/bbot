@@ -138,17 +138,21 @@ function changed() {
 
 const derivedCache = new Map();
 
+// one pill per severity present, worst first
+const severityPills = (d, cls) => d.severities.map(([s, n]) => el("span", { class: `${cls} sev-${s}` }, `${s} ${n}`));
+
 function info(shot) {
   let d = derivedCache.get(shot.id);
   if (d && d.version === data.version) return d;
   const host = data.hosts[shot.host] || {};
   const findings = (host.findings || []).map((id) => data.findings[id]).filter(Boolean);
-  const severity = SEVERITIES.find((s) => findings.some((f) => f.severity === s)) || "";
+  const severities = SEVERITIES.map((s) => [s, findings.filter((f) => f.severity === s).length]).filter(([, n]) => n);
   d = {
     version: data.version,
     host,
     findings,
-    severity,
+    severity: severities.length ? severities[0][0] : "",
+    severities,
     technologies: host.technologies || [],
     clouds: cloudProviders(host.metadata),
     wafs: host.wafs || [],
@@ -557,13 +561,7 @@ function card(entry) {
     );
   }
   if (d.severity) {
-    thumb.append(
-      el(
-        "span",
-        { class: `badge severity sev-${d.severity}`, title: `${d.findings.length} finding(s) on ${shot.host}` },
-        `${d.severity} ${d.findings.length}`,
-      ),
-    );
+    thumb.append(el("div", { class: "badge-row", title: `${d.findings.length} finding(s) on ${shot.host}` }, severityPills(d, "badge")));
   }
   const starKey = group && !member && count > 1 ? group.key : `url:${shot.url}`;
   const actions = el(
@@ -634,7 +632,7 @@ function tableRow(item) {
     el("div", { title: shot.title }, shot.title),
     el("div", { title: shot.server, class: "clickable", onclick: () => shot.server && addFilter("server", shot.server) }, shot.server),
     el("div", { title: d.technologies.join(", ") }, d.technologies.join(", ")),
-    el("div", {}, d.severity ? el("span", { class: `tag sev-${d.severity}` }, `${d.severity} ${d.findings.length}`) : ""),
+    el("div", { class: "tags" }, ...severityPills(d, "tag")),
     el("div", { title: shot.ips.join(", ") }, shot.ips.join(", ")),
     el("div", {}, d.clouds.join(", ")),
   );

@@ -313,6 +313,15 @@ async def test_gallery_page():
     # a title that would run script if it were ever put into the page as HTML
     await screenshot(1, '<img src=x onerror="window.pwned=1">')
     await screenshot(2, "second page")
+    for severity in ("INFO", "HIGH"):
+        finding = {
+            "host": "127.0.0.1",
+            "name": "Test",
+            "description": f"a {severity} finding",
+            "severity": severity,
+            "confidence": "HIGH",
+        }
+        await gallery.handle_event(scan.make_event(finding, "FINDING", parent=scan.root_event))
     gallery._flush()
 
     browser = await scan.helpers.browser.engine.launch()
@@ -323,6 +332,11 @@ async def test_gallery_page():
         await page.goto((gallery.gallery_dir / "index.html").as_uri())
         await page.wait_for_function("document.getElementById('status-text').textContent.includes('2 of 2')")
         assert await page.locator(".card").count() == 2
+        # one pill per severity present, worst first
+        assert await page.locator(".card").first.locator(".badge-row .badge").all_text_contents() == [
+            "HIGH 1",
+            "INFO 1",
+        ]
 
         # the viewer's search survives the scan writing more
         await page.fill("#search", "page")

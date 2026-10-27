@@ -196,7 +196,8 @@ a { color: var(--accent); }
   color: #fff;
 }
 .badge.count { top: 6px; left: 6px; background: var(--accent); color: #000; cursor: pointer; }
-.badge.severity { top: 6px; right: 6px; }
+.badge-row { position: absolute; top: 6px; right: 6px; max-width: calc(100% - 56px); display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 3px; }
+.badge-row .badge { position: static; }
 .badge.blank { bottom: 6px; left: 6px; }
 .sev-CRITICAL { background: var(--critical) !important; color: #fff !important; }
 .sev-HIGH { background: var(--high) !important; color: #fff !important; }
