@@ -384,3 +384,50 @@ async def test_lightfuzz_avoid_wafs_bool_coerced_at_runtime():
         assert scan.modules["lightfuzz"].avoid_wafs == expected, (
             f"avoid_wafs={value!r} became {scan.modules['lightfuzz'].avoid_wafs!r}, expected {expected!r}"
         )
+
+
+def test_validate_preset_untrusted_module_dir_runs_no_code(tmp_path):
+    """A module dir refused by the loader's trust prompt is never read, so its Config class never executes."""
+    from bbot.core.modules import ModuleLoader
+
+    mod_dir = tmp_path / "mods"
+    mod_dir.mkdir()
+    canary = tmp_path / "canary"
+    (mod_dir / "canarymod.py").write_text(
+        "from bbot.modules.base import BaseModule\n"
+        "from bbot.core.config.models import BaseModuleConfig, Field\n"
+        "class canarymod(BaseModule):\n"
+        '    watched_events = ["DNS_NAME"]\n'
+        '    produced_events = ["DNS_NAME"]\n'
+        '    flags = ["passive", "safe"]\n'
+        '    meta = {"description": "x", "created_date": "2025-01-01", "author": "@x"}\n'
+        "    class Config(BaseModuleConfig):\n"
+        f"        _canary = __import__('pathlib').Path({str(canary)!r}).write_text('ran')\n"
+        '        foo: str = Field("", description="foo")\n'
+    )
+    preset = {"module_dirs": [str(mod_dir)], "modules": ["canarymod"]}
+
+    asked = []
+    loader = ModuleLoader()
+    loader.confirm_module_dir = lambda module_dir, module_names: asked.append((module_dir, module_names)) or False
+    errs = validate_preset(preset, module_loader=loader)
+    assert asked == [(mod_dir.resolve(), ["canarymod"])]
+    assert any(e.path == "module_dirs" and "not trusted" in e.message for e in errs), [str(e) for e in errs]
+    assert "canarymod" not in loader.preloaded()
+    assert not canary.exists()
+
+    # trusting the folder loads it, and validating then executes its Config class
+    loader.confirm_module_dir = lambda module_dir, module_names: True
+    assert validate_preset(preset, module_loader=loader) == []
+    assert canary.read_text() == "ran"
+
+
+def test_validate_preset_config_module_dirs_is_unknown(tmp_path):
+    """`module_dirs` is a top-level preset key. Under `config` it's an unknown option, and nothing is loaded."""
+    from bbot.core.modules import ModuleLoader
+
+    loader = ModuleLoader()
+    errs = validate_preset({"config": {"module_dirs": [str(tmp_path)]}}, module_loader=loader)
+    assert len(errs) == 1, [str(e) for e in errs]
+    assert '"module_dirs" is a top-level preset option' in errs[0].message
+    assert tmp_path.resolve() not in loader.module_dirs

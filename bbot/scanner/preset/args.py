@@ -337,7 +337,12 @@ class BBOTArgs:
             action="store_true",
             help="Run scan even in the case of condition violations or failed module setups",
         )
-        scan.add_argument("-y", "--yes", action="store_true", help="Skip scan confirmation prompt")
+        scan.add_argument(
+            "-y",
+            "--yes",
+            action="store_true",
+            help="Skip confirmation prompts (including trusting custom module folders)",
+        )
         scan.add_argument(
             "--fast-mode",
             action="store_true",

@@ -425,9 +425,6 @@ class BBOTConfig(BaseModel):
     engine: Optional[EngineConfig] = None
     deps: Optional[DepsConfig] = None
 
-    # Module loader paths
-    module_dirs: Optional[list[str]] = None
-
     # Module runtime
     module_handle_event_timeout: Optional[int] = None
     module_handle_batch_timeout: Optional[int] = None

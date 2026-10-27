@@ -1564,3 +1564,123 @@ def test_config_secret_file_refuses_insecure(tmp_path, monkeypatch):
         MODULE_LOADER._write_secret_text(target, "secret stuff")
     assert not target.exists()
     assert list(tmp_path.glob(".secrets.yml.*")) == []
+
+
+def write_custom_module(module_dir, name):
+    (module_dir / f"{name}.py").write_text(
+        "from bbot.modules.base import BaseModule\n"
+        f"class {name}(BaseModule):\n"
+        '    watched_events = ["DNS_NAME"]\n'
+        '    produced_events = ["DNS_NAME"]\n'
+        '    flags = ["passive", "safe"]\n'
+        '    meta = {"description": "x", "created_date": "2025-01-01", "author": "@x"}\n'
+    )
+
+
+def test_module_dir_refuses_world_writable(tmp_path):
+    from bbot.core.modules import ModuleLoader
+
+    loader = ModuleLoader()
+    mod_dir = tmp_path / "mods"
+    mod_dir.mkdir()
+    write_custom_module(mod_dir, "permmod")
+
+    # a world-writable folder is refused, with the fix in the message
+    mod_dir.chmod(0o777)
+    with pytest.raises(BBOTError, match="directory is world-writable") as e:
+        loader.add_module_dir(mod_dir)
+    assert "chmod o-w" in str(e.value)
+    assert "permmod" not in loader.preloaded()
+
+    # so is a world-writable module file inside an otherwise safe folder
+    mod_dir.chmod(0o755)
+    (mod_dir / "permmod.py").chmod(0o666)
+    with pytest.raises(BBOTError, match=r"permmod\.py\": file is world-writable"):
+        loader.add_module_dir(mod_dir)
+    assert "permmod" not in loader.preloaded()
+
+    # once fixed, it loads
+    (mod_dir / "permmod.py").chmod(0o644)
+    loader.add_module_dir(mod_dir)
+    assert "permmod" in loader.preloaded()
+
+
+def test_module_dir_refuses_other_owner(tmp_path, monkeypatch):
+    from bbot.core.modules import ModuleLoader
+
+    if os.getuid() == 0:
+        pytest.skip("files owned by root are always accepted")
+
+    loader = ModuleLoader()
+    mod_dir = tmp_path / "mods"
+    mod_dir.mkdir()
+    write_custom_module(mod_dir, "ownermod")
+
+    # pretend to be a different user, so the folder belongs to someone else
+    real_uid = os.getuid()
+    monkeypatch.setattr(os, "getuid", lambda: real_uid + 54321)
+    with pytest.raises(BBOTError, match="directory is owned by") as e:
+        loader.add_module_dir(mod_dir)
+    assert "chown" in str(e.value)
+    assert "ownermod" not in loader.preloaded()
+
+    monkeypatch.setattr(os, "getuid", lambda: real_uid)
+    loader.add_module_dir(mod_dir)
+    assert "ownermod" in loader.preloaded()
+
+
+def test_custom_module_dir_warning(tmp_path, caplog):
+    from bbot.core.modules import ModuleLoader
+
+    caplog.set_level(logging.WARNING)
+    loader = ModuleLoader()
+    mod_dir = tmp_path / "mods"
+    mod_dir.mkdir()
+    write_custom_module(mod_dir, "warnmod")
+
+    # without a trust prompt (library use), loading a custom folder is announced
+    loader.add_module_dir(mod_dir)
+    assert f'Loading custom modules from "{mod_dir.resolve()}": warnmod' in caplog.text
+    assert "warnmod" in loader.preloaded()
+
+
+def test_custom_module_cannot_replace_existing(tmp_path):
+    from bbot.core.modules import ModuleLoader
+
+    loader = ModuleLoader()
+    # even a folder the user trusts can't replace a module, and isn't asked about
+    asked = []
+    loader.confirm_module_dir = lambda module_dir, module_names: asked.append(module_dir) or True
+
+    # a built-in module name
+    builtin_path = loader.preloaded()["robots"]["path"]
+    shadow_dir = tmp_path / "shadow"
+    shadow_dir.mkdir()
+    write_custom_module(shadow_dir, "robots")
+    with pytest.raises(BBOTError, match='a module named "robots" already exists') as e:
+        loader.add_module_dir(shadow_dir)
+    assert builtin_path in str(e.value)
+    assert loader.preloaded()["robots"]["path"] == builtin_path
+
+    # a name already loaded from another custom folder
+    first_dir = tmp_path / "first"
+    first_dir.mkdir()
+    write_custom_module(first_dir, "dupemod")
+    loader.add_module_dir(first_dir)
+    second_dir = tmp_path / "second"
+    second_dir.mkdir()
+    write_custom_module(second_dir, "dupemod")
+    with pytest.raises(BBOTError, match='a module named "dupemod" already exists'):
+        loader.add_module_dir(second_dir)
+    assert loader.preloaded()["dupemod"]["path"] == str((first_dir / "dupemod.py").resolve())
+
+    # two modules with the same name inside one folder's subfolders
+    nested_dir = tmp_path / "nested"
+    (nested_dir / "output").mkdir(parents=True)
+    write_custom_module(nested_dir, "twinmod")
+    write_custom_module(nested_dir / "output", "twinmod")
+    with pytest.raises(BBOTError, match='a module named "twinmod" already exists'):
+        loader.add_module_dir(nested_dir)
+    assert "twinmod" not in loader.preloaded()
+
+    assert asked == [first_dir.resolve()]

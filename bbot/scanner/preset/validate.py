@@ -110,6 +110,9 @@ def _format_msg(err: dict, known_modules: set | None = None, known_paths: set | 
         # get useful hints like "Did you mean 'modules'?".
         if len(loc) == 1:
             return get_closest_match(field, _PRESET_KEYS, msg="preset option")
+        # A top-level preset key nested under `config:` by mistake (e.g. `config.module_dirs`)
+        if len(loc) == 2 and loc[0] == "config" and field in _PRESET_KEYS:
+            return f'"{field}" is a top-level preset option, not a config option. Move it out of the "config" section.'
         # For everything else, suggest from the known dotted-path universe
         # (`web.spier_distance` → `web.spider_distance`).
         if known_paths:
@@ -200,11 +203,14 @@ def validate_preset(preset_dict: Any, module_loader=None) -> list[PresetValidati
     the preset is valid. Errors from all layers are aggregated, so a user
     with multiple typos sees them all at once.
 
-    **Side effect**: any custom `module_dirs` declared in the preset (either
-    at top level or inside `config`) are registered with `module_loader` so
-    their modules become known. Without this, modules from a custom dir
-    would be falsely reported as unknown. Idempotent — `add_module_dir`
-    short-circuits on already-loaded directories.
+    **Side effect**: any custom `module_dirs` declared in the preset are
+    registered with `module_loader` so their modules become known. Without
+    this, modules from a custom dir would be falsely reported as unknown.
+    Idempotent — `add_module_dir` short-circuits on already-loaded directories.
+
+    Validating a custom module executes its `Config` class, so only validate
+    presets whose module dirs you trust. `add_module_dir` warns (or asks the
+    loader's `confirm_module_dir` hook) before loading each one.
 
     Args:
         preset_dict: Preset as a plain dict (e.g. from `yaml.safe_load`).
@@ -227,31 +233,21 @@ def validate_preset(preset_dict: Any, module_loader=None) -> list[PresetValidati
     errors: list[PresetValidationError] = []
 
     # Pre-load any custom module_dirs the preset declares so the composite
-    # schema includes their modules. Defensive iteration — bad shape gets
-    # surfaced by the schema pass below.
-    config_dict = preset_dict.get("config")
-    for source in (
-        preset_dict.get("module_dirs"),
-        config_dict.get("module_dirs") if isinstance(config_dict, dict) else None,
-    ):
-        # Skip non-list shapes (e.g. a string) so we don't iterate characters
-        # and trigger filesystem calls. The schema pass below reports the
-        # actual type error.
-        if not isinstance(source, list):
+    # schema includes their modules. Skip non-list shapes (e.g. a string) so we
+    # don't iterate characters and trigger filesystem calls. The schema pass
+    # below reports the actual type error.
+    module_dirs = preset_dict.get("module_dirs")
+    for d in module_dirs if isinstance(module_dirs, list) else []:
+        if not isinstance(d, str):
             continue
-        for d in source:
-            if not isinstance(d, str):
-                continue
-            # A bad custom module (e.g. a legacy options dict, which preload rejects
-            # via sys.exit) must not kill a caller that just wants a list of errors.
-            try:
-                module_loader.add_module_dir(d)
-            except (SystemExit, Exception) as e:
-                detail = str(e).strip()
-                suffix = f": {detail}" if detail and detail != "1" else ""
-                errors.append(
-                    PresetValidationError("preset", "module_dirs", f"Failed to load module dir {d!r}{suffix}")
-                )
+        # A bad custom module (e.g. a legacy options dict, which preload rejects
+        # via sys.exit) must not kill a caller that just wants a list of errors.
+        try:
+            module_loader.add_module_dir(d)
+        except (SystemExit, Exception) as e:
+            detail = str(e).strip()
+            suffix = f": {detail}" if detail and detail != "1" else ""
+            errors.append(PresetValidationError("preset", "module_dirs", f"Failed to load module dir {d!r}{suffix}"))
 
     known_modules = set(module_loader.all_module_choices)
     # The type index is the single source of truth for known dotted config

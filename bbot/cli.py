@@ -36,6 +36,14 @@ www.blacklanternsecurity.com/bbot
 scan_name = ""
 
 
+def stdin_is_tty():
+    # In some environments (e.g. tests) stdin may be closed or not support isatty(). Treat those cases as non-interactive.
+    try:
+        return sys.stdin.isatty()
+    except (ValueError, io.UnsupportedOperation):
+        return False
+
+
 async def _main():
     import asyncio
     import traceback
@@ -54,6 +62,29 @@ async def _main():
     try:
         # start by creating a default scan preset
         preset = Preset(_log=True, name="bbot_cli_main")
+
+        # ask before anything in a custom module dir is read, since even validating a module executes code
+        def confirm_module_dir(module_dir, module_names):
+            # written directly to stderr, since queued log messages could land after the input() prompt
+            log_to_stderr(f'About to load and validate custom modules from "{module_dir}"', level="HUGEWARNING")
+            log_to_stderr(f"  Modules in this folder: {', '.join(module_names) or '(none)'}", level="WARNING")
+            log_to_stderr(
+                "Custom modules are Python code that runs with your privileges. "
+                "Even validating a malicious module can result in code execution.",
+                level="WARNING",
+            )
+            if preset.args.parsed.yes:
+                return True
+            if not stdin_is_tty():
+                log_to_stderr(
+                    "Refusing to load custom modules without confirmation; re-run with --yes to trust this folder.",
+                    level="ERROR",
+                )
+                return False
+            return input("Do you trust this folder? [y/N] ").strip().lower() in ("y", "yes")
+
+        preset.module_loader.confirm_module_dir = confirm_module_dir
+
         # parse command line arguments and merge into preset
         try:
             preset.parse_args()
@@ -101,12 +132,8 @@ async def _main():
             for p in reset_paths:
                 log.warning(f"  {p}")
             log.warning("A backup of each existing file will be saved with a .bak extension.")
-            try:
-                stdin_is_tty = sys.stdin.isatty()
-            except (ValueError, io.UnsupportedOperation):
-                stdin_is_tty = False
             if not options.yes:
-                if not stdin_is_tty:
+                if not stdin_is_tty():
                     log.error("Refusing to reset config without confirmation; re-run with --yes to proceed.")
                     sys.exit(1)
                     return
@@ -290,13 +317,7 @@ async def _main():
         if not options.dry_run:
             log.trace(f"Command: {' '.join(sys.argv)}")
 
-            # In some environments (e.g. tests) stdin may be closed or not support isatty(). Treat those cases as non-interactive.
-            try:
-                stdin_is_tty = sys.stdin.isatty()
-            except (ValueError, io.UnsupportedOperation):
-                stdin_is_tty = False
-
-            if stdin_is_tty:
+            if stdin_is_tty():
                 # warn if any targets belong directly to a cloud provider
                 if not scan.preset.strict_scope:
                     from cloudcheck import CloudCheckError
@@ -409,6 +430,9 @@ async def _main():
         log.trace(traceback.format_exc())
 
     finally:
+        # the trust prompt belongs to this CLI run, not to the shared module loader
+        with suppress(BaseException):
+            preset.module_loader.confirm_module_dir = None
         # save word cloud
         with suppress(BaseException):
             scan.helpers.word_cloud.save()

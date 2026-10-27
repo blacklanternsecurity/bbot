@@ -1133,3 +1133,63 @@ async def test_cli_reset_config_hint_skips_cli_typo(monkeypatch, caplog, tmp_pat
     # validation still fails, but there's nothing to reset -- so no hint
     assert "scope.strct" in caplog.text
     assert "regenerating from current defaults" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_cli_custom_module_dir_trust(monkeypatch, capsys, tmp_path):
+    from bbot.core.modules import MODULE_LOADER
+
+    monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
+    monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
+    # the CLI installs its trust prompt on the shared module loader
+    monkeypatch.setattr(MODULE_LOADER, "confirm_module_dir", None)
+
+    mod_dir = tmp_path / "mods"
+    mod_dir.mkdir()
+    canary = tmp_path / "canary"
+    (mod_dir / "clicanary.py").write_text(
+        "from bbot.modules.base import BaseModule\n"
+        "from bbot.core.config.models import BaseModuleConfig, Field\n"
+        "class clicanary(BaseModule):\n"
+        '    watched_events = ["DNS_NAME"]\n'
+        '    produced_events = ["DNS_NAME"]\n'
+        '    flags = ["passive", "safe"]\n'
+        '    meta = {"description": "x", "created_date": "2025-01-01", "author": "@x"}\n'
+        "    class Config(BaseModuleConfig):\n"
+        f"        _canary = __import__('pathlib').Path({str(canary)!r}).write_text('ran')\n"
+        '        foo: str = Field("", description="foo")\n'
+    )
+    preset_file = tmp_path / "custom.yml"
+    preset_file.write_text(f"module_dirs:\n  - {mod_dir}\nmodules:\n  - clicanary\n")
+
+    # without --yes and no TTY, the folder is refused before anything in it is read
+    monkeypatch.setattr("sys.argv", ["bbot", "-p", str(preset_file), "--dry-run"])
+    await cli._main()
+    stderr = capsys.readouterr().err
+    assert f'About to load and validate custom modules from "{mod_dir.resolve()}"' in stderr
+    assert "Modules in this folder: clicanary" in stderr
+    assert "Refusing to load custom modules without confirmation" in stderr
+    assert "clicanary" not in MODULE_LOADER.preloaded()
+    assert not canary.exists()
+
+    # answering no at the prompt refuses it too
+    monkeypatch.setattr(cli, "stdin_is_tty", lambda: True)
+    prompts = []
+    monkeypatch.setattr("builtins.input", lambda prompt="": prompts.append(prompt) or "n")
+    await cli._main()
+    capsys.readouterr()
+    assert prompts == ["Do you trust this folder? [y/N] "]
+    assert "clicanary" not in MODULE_LOADER.preloaded()
+    assert not canary.exists()
+
+    # --yes trusts it without asking, but still prints the warning
+    prompts.clear()
+    monkeypatch.setattr("sys.argv", ["bbot", "-p", str(preset_file), "--dry-run", "-y"])
+    await cli._main()
+    stderr = capsys.readouterr().err
+    assert prompts == []
+    assert "Even validating a malicious module can result in code execution" in stderr
+    assert "clicanary" in MODULE_LOADER.preloaded()
+    assert canary.read_text() == "ran"
+    # the prompt doesn't outlive the CLI run
+    assert MODULE_LOADER.confirm_module_dir is None

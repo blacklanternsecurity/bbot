@@ -311,6 +311,9 @@ class ModuleLoader:
 
         self._module_dirs = set()
         self._module_dirs_preloaded = set()
+        # Optional callable(module_dir, module_names) -> bool, asked before anything in a custom
+        # module dir is read. Returning False refuses the dir. Without one, a warning is logged.
+        self.confirm_module_dir = None
         self.add_module_dir(self.default_module_dir)
 
         # save preload cache before exiting
@@ -337,12 +340,53 @@ class ModuleLoader:
         if not module_dir.is_dir():
             log.warning(f'Failed to add custom module dir "{module_dir}", please make sure it exists')
             return
-        new_module_dirs = set()
-        for _module_dir in self.get_recursive_dirs(module_dir):
-            _module_dir = Path(_module_dir).resolve()
-            if _module_dir not in self._module_dirs:
-                self._module_dirs.add(_module_dir)
-                new_module_dirs.add(_module_dir)
+        new_module_dirs = {d for d in self.get_recursive_dirs(module_dir) if d not in self._module_dirs}
+        if module_dir != self.default_module_dir.resolve():
+            module_files = sorted(f.resolve() for d in new_module_dirs for f in list_files(d, filter=self.file_filter))
+            # custom modules are code, so refuse anything another local user could have planted or modified
+            if os.name == "posix":
+                import pwd
+
+                def user_name(uid):
+                    with suppress(KeyError):
+                        return pwd.getpwuid(uid).pw_name
+                    return f"uid {uid}"
+
+                uid = os.getuid()
+                for path in sorted(new_module_dirs) + module_files:
+                    st = path.stat()
+                    kind = "directory" if path.is_dir() else "file"
+                    if st.st_mode & stat.S_IWOTH:
+                        raise BBOTError(
+                            f'Refusing to load custom modules from "{path}": {kind} is world-writable '
+                            f"(mode {stat.S_IMODE(st.st_mode):04o}), so anyone on this system could add or modify "
+                            f'modules there. To fix: chmod o-w "{path}"'
+                        )
+                    if st.st_uid not in (uid, 0):
+                        raise BBOTError(
+                            f'Refusing to load custom modules from "{path}": {kind} is owned by '
+                            f'"{user_name(st.st_uid)}", not by you ("{user_name(uid)}") or root. To fix, take '
+                            f'ownership (chown {user_name(uid)} "{path}") or move it somewhere you own.'
+                        )
+            # a custom module can never take over an existing module's name, so it can't silently replace it
+            seen = {}
+            for f in module_files:
+                existing = self.__preloaded.get(f.stem, {}).get("path") or seen.get(f.stem)
+                if existing:
+                    raise BBOTError(
+                        f'Refusing to load custom module "{f}": a module named "{f.stem}" already exists at '
+                        f'"{existing}". Custom modules can\'t replace existing ones; give it a different name.'
+                    )
+                seen[f.stem] = f
+            module_names = sorted(seen)
+            if self.confirm_module_dir is None:
+                log.warning(
+                    f'Loading custom modules from "{module_dir}": {", ".join(module_names)}. '
+                    "Custom modules are Python code; only load module dirs you trust."
+                )
+            elif not self.confirm_module_dir(module_dir, module_names):
+                raise BBOTError(f'Custom module dir "{module_dir}" was not trusted; refusing to load it')
+        self._module_dirs.update(new_module_dirs)
         self.preload(module_dirs=new_module_dirs)
 
     def file_filter(self, file):
