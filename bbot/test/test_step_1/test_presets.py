@@ -1605,27 +1605,34 @@ def test_module_dir_refuses_world_writable(tmp_path):
     assert "permmod" in loader.preloaded()
 
 
-def test_module_dir_refuses_other_owner(tmp_path, monkeypatch):
+def test_module_dir_other_owner_is_noted(tmp_path, monkeypatch, caplog):
     from bbot.core.modules import ModuleLoader
 
     if os.getuid() == 0:
-        pytest.skip("files owned by root are always accepted")
+        pytest.skip("files owned by root are never flagged")
 
+    caplog.set_level(logging.WARNING)
     loader = ModuleLoader()
     mod_dir = tmp_path / "mods"
     mod_dir.mkdir()
     write_custom_module(mod_dir, "ownermod")
 
-    # pretend to be a different user, so the folder belongs to someone else
+    # pretend to be a different user (like root under sudo), so the folder belongs to someone else
     real_uid = os.getuid()
     monkeypatch.setattr(os, "getuid", lambda: real_uid + 54321)
-    with pytest.raises(BBOTError, match="directory is owned by") as e:
+    asked = []
+    loader.confirm_module_dir = lambda module_dir, module_names, notes: asked.append(notes) or False
+    with pytest.raises(BBOTError, match="was not trusted"):
         loader.add_module_dir(mod_dir)
-    assert "chown" in str(e.value)
+    # it's not refused outright; the trust prompt shows who else can change the code
+    assert len(asked) == 1 and len(asked[0]) == 1
+    assert "That user can change this code" in asked[0][0]
     assert "ownermod" not in loader.preloaded()
 
-    monkeypatch.setattr(os, "getuid", lambda: real_uid)
+    # without a prompt (library use), the note goes in the warning and the folder loads
+    loader.confirm_module_dir = None
     loader.add_module_dir(mod_dir)
+    assert "That user can change this code" in caplog.text
     assert "ownermod" in loader.preloaded()
 
 
@@ -1650,7 +1657,7 @@ def test_custom_module_cannot_replace_existing(tmp_path):
     loader = ModuleLoader()
     # even a folder the user trusts can't replace a module, and isn't asked about
     asked = []
-    loader.confirm_module_dir = lambda module_dir, module_names: asked.append(module_dir) or True
+    loader.confirm_module_dir = lambda module_dir, module_names, notes: asked.append(module_dir) or True
 
     # a built-in module name
     builtin_path = loader.preloaded()["robots"]["path"]

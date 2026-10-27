@@ -64,10 +64,12 @@ async def _main():
         preset = Preset(_log=True, name="bbot_cli_main")
 
         # ask before anything in a custom module dir is read, since even validating a module executes code
-        def confirm_module_dir(module_dir, module_names):
+        def confirm_module_dir(module_dir, module_names, notes):
             # written directly to stderr, since queued log messages could land after the input() prompt
             log_to_stderr(f'About to load and validate custom modules from "{module_dir}"', level="HUGEWARNING")
             log_to_stderr(f"  Modules in this folder: {', '.join(module_names) or '(none)'}", level="WARNING")
+            for note in notes:
+                log_to_stderr(f"  {note}", level="WARNING")
             log_to_stderr(
                 "Custom modules are Python code that runs with your privileges. "
                 "Even validating a malicious module can result in code execution.",

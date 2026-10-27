@@ -383,10 +383,12 @@ class Scanner:
                 f.write(self.preset.to_yaml(redact_secrets=redact_secrets))
 
             # deprecated options are accepted but ignored, so make sure the user knows
-            for path in find_deprecated_config(
+            for path, message in find_deprecated_config(
                 self.preset.core.custom_config, self.preset.module_loader.config_schema
-            ):
-                self.hugewarning(f'Config option "{path}" is deprecated and will be ignored', trace=False)
+            ).items():
+                self.hugewarning(
+                    f'Config option "{path}" is deprecated and will be ignored. {message}'.strip(), trace=False
+                )
 
             # log scan overview
             start_msg = f"Scan seeded with {len(self.seeds.event_seeds):,} seed(s)"

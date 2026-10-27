@@ -195,13 +195,16 @@ module_dirs:
 Custom modules are Python code that runs with your privileges, and even validating a malicious module can result in code execution. Only load module folders you trust. To protect you, BBOT:
 
 - Asks you to confirm each custom module folder before reading anything in it. The prompt lists the modules in the folder.
-- Refuses to load a folder or module file that is world-writable, or owned by another user (anyone other than you or root), since another user on the system could have planted or modified it. The error tells you how to fix the permissions.
+- Refuses to load a folder or module file that is world-writable, since anyone on the system could have planted or modified it. The error tells you how to fix the permissions.
+- Points out, in the prompt, any part of the folder owned by another user (anyone other than you or root), since that user can change the code. This is common when running BBOT with `sudo`, or in Docker with a folder mounted from the host.
 - Refuses a custom module that has the same name as an existing module (built-in or from another custom folder). Custom modules can never replace existing ones. If you want a modified version of a built-in module, give your copy a different name and enable it instead of the original.
 
 !!! warning
     Passing `-y` / `--yes` answers yes to the trust prompt automatically. Only use `-y` with presets whose module folders you trust.
 
 When BBOT is used as a Python library, there is no prompt; it logs a warning for each custom module folder instead.
+
+`module_dirs` only works at the top level of a preset. Setting it as a config option (in `bbot.yml`, under `config:` in a preset, or with `-c module_dirs=...`) is deprecated and ignored, and logs a warning at scan start.
 
 ### Conditions
 
