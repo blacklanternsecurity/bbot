@@ -23,6 +23,11 @@ output_modules:
 ```
 <!-- END BBOT SUBDOMAIN ENUM PRESET -->
 
+!!! danger "A preset is executable code, not just data"
+    A preset can load custom Python modules (`module_dirs`) and run Jinja/Python `conditions`. Both execute with your privileges the moment the preset is loaded or validated, **before the scan starts**. BBOT makes a best-effort to harden this path (a trust prompt for custom module folders, a sandbox for conditions, input validation on config), but these are courtesy safeguards, **not a security boundary**.
+
+    Treat a preset from anyone else exactly as you would a Python script from an untrusted source: read it before you run it, and only run presets you trust.
+
 ## How to use Presets (`-p`)
 
 BBOT ships with a collection of presets for common tasks like subdomain enumeration and web spidering. The defaults live in `bbot/presets` inside the installed package. You can also place custom presets anywhere and reference them by path.
@@ -224,7 +229,7 @@ conditions:
 ```
 
 ```yaml title="my_preset.yml"
-description: Enable webbrute but only when the web spider isn't also enabled
+description: Abort if webbrute and the web spider are both enabled
 
 modules:
   - webbrute
@@ -232,15 +237,14 @@ modules:
 conditions:
   - |
     {% if config.web.spider_distance > 0 and config.web.spider_depth > 0 %}
-      {{ warn("Disabling webbrute because the web spider is enabled") }}
-      {{ preset.exclude_module("webbrute") }}
+      {{ abort("Don't run webbrute with the web spider enabled; remove one of them.") }}
     {% endif %}
 ```
 
-Conditions use [Jinja](https://palletsprojects.com/p/jinja/), which means they can contain Python code. They run inside a sandboxed environment which has access to the following variables:
+Conditions use [Jinja](https://palletsprojects.com/p/jinja/), which means they can contain Python code. They run inside a sandbox and are given a **read-only snapshot** of the preset and config: a condition can inspect the scan's settings and `warn` or `abort`, but it cannot modify the preset or reach BBOT internals. The available variables are:
 
-- `preset` - the current preset object
-- `config` - the current config (an alias for `preset.config`)
+- `preset` - a read-only snapshot of the current preset (its modules, flags, config, etc.)
+- `config` - a read-only snapshot of the current config
 - `warn(message)` - display a custom warning message to the user
 - `abort(message)` - abort the scan with an optional message
 
