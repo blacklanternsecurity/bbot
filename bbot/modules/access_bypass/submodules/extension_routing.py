@@ -37,7 +37,4 @@ class extension_routing(BaseAccessBypass):
                 self.access_bypass.debug("Ignoring positive result due to presence of parameter name in result")
                 continue
             if match is False and str(response.status_code).startswith("2") and "body" in reasons:
-                self.add_result(
-                    f"{self.friendly_name}: [{','.join(reasons)}] Sig: [Modified URL: {url}]",
-                    confidence="LOW",
-                )
+                self.add_result(await self.describe(f"Modified URL: {url}", reasons, response), confidence="LOW")

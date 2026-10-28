@@ -48,8 +48,9 @@ class nextjs(BaseAccessBypass):
             page_props = self.extract_page_props(response.text or "")
             if page_props is not None:
                 self.add_result(
-                    f"{self.friendly_name}: {self.event.url} redirects to "
-                    f"{self.event.redirect_location}, but its data route {data_url} returned page data unauthenticated",
+                    f"{self.friendly_name}. Signature: [Modified URL: {data_url}] "
+                    f"Indicator: [{self.event.url} redirects to {self.event.redirect_location}, its data route "
+                    f"returned page data unauthenticated]",
                     confidence="HIGH",
                     url=data_url,
                 )

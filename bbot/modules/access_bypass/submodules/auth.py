@@ -1,6 +1,6 @@
 from bbot.errors import HttpCompareError
 
-from .base import BaseAccessBypass, is_allowed_status
+from .base import BaseAccessBypass, has_content, is_allowed_status
 
 # AWS API Gateway custom-authorizer blueprint sentinels; "deny" returns a single-resource
 # Deny policy that the gateway caches by token value, authorizing every other resource.
@@ -35,14 +35,16 @@ class auth(BaseAccessBypass):
         except HttpCompareError as e:
             self.access_bypass.debug(e)
             return
-        if await self.is_bypass_from_match(match, response):
+        if await self.is_bypass_from_match(match, reasons, response):
             self.add_result(
-                f"{self.friendly_name}: [{','.join(reasons)}] Sig: [Added Header: Authorization: Bearer <garbage>]",
+                await self.describe(f"Added Header: Authorization: Bearer {token}", reasons, response),
                 confidence="MEDIUM",
             )
 
-    async def is_bypass_from_match(self, match, response):
+    async def is_bypass_from_match(self, match, reasons, response):
         if match is not False or response is None or not is_allowed_status(response.status_code):
+            return False
+        if not has_content(response, reasons):
             return False
         return not await self.access_bypass.is_waf_response(response)
 
@@ -55,8 +57,8 @@ class auth(BaseAccessBypass):
                 continue
             if self.is_apigw_bypass(response):
                 self.add_result(
-                    f"{self.friendly_name}: API Gateway authorizer bypass via 'Authorization: {sentinel}' "
-                    f"(backend reached, x-amzn-remapped-* headers present)",
+                    f"{self.friendly_name}. Technique: [API Gateway Authorizer] Signature: [Added Header: "
+                    f"Authorization: {sentinel}] Indicator: [x-amzn-remapped-* headers, backend reached]",
                     severity="HIGH",
                     confidence="HIGH",
                 )
@@ -72,8 +74,8 @@ class auth(BaseAccessBypass):
         response = await self.helpers.request(root, headers={"Authorization": sentinel}, follow_redirects=False)
         if response is not None and self.is_apigw_bypass(response):
             self.add_result(
-                f"{self.friendly_name}: API Gateway authorizer bypass via cached Deny policy "
-                f"('Authorization: {sentinel}'); {root} reached the backend",
+                f"{self.friendly_name}. Technique: [API Gateway Authorizer, cached Deny policy] Signature: "
+                f"[Added Header: Authorization: {sentinel}] Indicator: [x-amzn-remapped-* headers, backend reached at {root}]",
                 severity="HIGH",
                 confidence="HIGH",
                 url=root,

@@ -1,8 +1,11 @@
+import re
+
 from .base import BaseAccessBypass, Probe
 
-# Side-effect-free verbs. HEAD/OPTIONS can't modify state; an unknown verb (ACB) is routed as GET
+# Side-effect-free verbs. OPTIONS can't modify state; an unknown verb (ACB) is routed as GET
 # by servers that don't recognize it, bypassing GET-specific deny rules without touching anything.
-safe_methods = ["HEAD", "OPTIONS", "ACB"]
+# HEAD is left out: it never carries a body, so it can't show we reached anything.
+safe_methods = ["OPTIONS", "ACB"]
 
 # State-changing verbs. Only sent when `state_changing_methods` is enabled (makes the module invasive).
 state_changing_verbs = ["POST", "PUT", "PATCH", "DELETE"]
@@ -10,6 +13,9 @@ state_changing_verbs = ["POST", "PUT", "PATCH", "DELETE"]
 # Headers that rewrite the effective method at the application layer while the wire verb stays POST.
 # A POST on the wire may trigger actions, so these are gated behind `state_changing_methods` too.
 override_headers = ["X-HTTP-Method-Override", "X-HTTP-Method", "X-Method-Override"]
+
+# an OPTIONS body that only lists the allowed methods, e.g. "GET,HEAD,POST"
+method_list_regex = re.compile(r"^[A-Z]+(\s*,\s*[A-Z]+)*$")
 
 
 class method(BaseAccessBypass):
@@ -38,10 +44,16 @@ class method(BaseAccessBypass):
             for header in override_headers:
                 yield Probe(
                     key=f"override:{header}",
-                    label=f"Added Header: {header}: GET (POST)",
+                    label=f"Modified Method: POST, Added Header: {header}: GET",
                     url=url,
                     method="POST",
                     headers={header: "GET"},
                     sibling_url=sibling,
                     sibling_url_2=sibling_2,
                 )
+
+    async def confirm(self, probe, response):
+        if probe.method == "OPTIONS" and method_list_regex.match(response.text.strip()):
+            self.access_bypass.debug(f"Rejecting {probe.label}: the body only lists the allowed methods")
+            return False
+        return True

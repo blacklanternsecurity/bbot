@@ -31,8 +31,8 @@ class access_bypass(BaseModule):
         )
         state_changing_methods: bool = Field(
             False,
-            description="Let the 'method' submodule send state-changing verbs (POST/PUT/PATCH/DELETE) and "
-            "method-override headers. These can modify the target, so enabling this makes the module invasive.",
+            description="Send state-changing verbs (POST/PUT/PATCH/DELETE), method-override headers, and an empty "
+            "POST. These can modify the target, so enabling this makes the module invasive.",
         )
 
     # when more than this many signatures fire on one URL, collapse into a single finding

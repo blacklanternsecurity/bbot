@@ -428,6 +428,63 @@ class TestAccessBypass_method_options_catchall(ModuleTestBase):
         assert not any("Modified Method: OPTIONS" in f.data["description"] for f in findings)
 
 
+class TestAccessBypass_method_options_no_content(ModuleTestBase):
+    """OPTIONS answering 200 on the blocked path only, with no content, is not a bypass."""
+
+    targets = [f"{HTTPSERVER_URL}/secure"]
+    modules_overrides = ["access_bypass", "http"]
+    module_name = "access_bypass"
+    options_body = ""
+
+    async def setup_after_prep(self, module_test):
+        def handler(request):
+            if request.method == "OPTIONS":
+                if request.path == "/secure":
+                    return Response(self.options_body, status=200, headers={"Allow": "GET,HEAD,POST"})
+                return Response("not found", status=404)
+            return Response("access denied", status=403)
+
+        module_test.httpserver.expect_request(re.compile(r"/.*")).respond_with_handler(handler)
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING"]
+        assert not any("Method Manipulation" in f.data["description"] for f in findings), (
+            f"OPTIONS without content produced a finding: {[f.data['description'] for f in findings]}"
+        )
+
+
+class TestAccessBypass_method_options_method_list(TestAccessBypass_method_options_no_content):
+    """An OPTIONS body that only lists the allowed methods is not content."""
+
+    options_body = "GET,HEAD,POST"
+
+
+class TestAccessBypass_method_unknown_verb(ModuleTestBase):
+    """An unknown verb routed to the real page is a bypass, shown next to the blocked response."""
+
+    targets = [f"{HTTPSERVER_URL}/secure"]
+    modules_overrides = ["access_bypass", "http"]
+    module_name = "access_bypass"
+
+    async def setup_after_prep(self, module_test):
+        def handler(request):
+            if request.method == "ACB" and request.path == "/secure":
+                return Response("<html><title>Admin Panel</title>admin area reached</html>", status=200)
+            if request.method == "ACB":
+                return Response("not found", status=404)
+            return Response("access denied", status=403)
+
+        module_test.httpserver.expect_request(re.compile(r"/.*")).respond_with_handler(handler)
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING" and "Method Manipulation" in e.data["description"]]
+        assert len(findings) == 1
+        assert findings[0].data["description"] == (
+            "Method Manipulation. Signature: [Modified Method: ACB] Baseline: [403, 13 bytes] -> "
+            "Probe: [200, 57 bytes, 'Admin Panel'] Differences: [code,body]"
+        )
+
+
 class TestAccessBypass_encoded_qmark(ModuleTestBase):
     """Family 1: /admin%3F truncates at the origin to /admin, bypassing the block on /admin."""
 

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from bbot.errors import HttpCompareError
+from bbot.core.helpers.web.response_event import extract_title
 
 # URLs answering with these codes are treated as access-controlled
 BLOCKED_STATUS_CODES = (401, 403, 406, 429)
@@ -25,6 +26,20 @@ class Probe:
 def is_allowed_status(status_code):
     """A bypass means we reached the resource: a 2xx. 3xx (usually to auth) and 5xx are not bypasses."""
     return 200 <= int(status_code) < 300
+
+
+def has_content(response, reasons):
+    """A bypass has to show us something: a body, and not the one the block answered with."""
+    return "body" in reasons and bool((response.text or "").strip())
+
+
+def summarize(response):
+    """Status, size and title, for showing a response in a finding."""
+    summary = f"{response.status_code}, {len(response.content)} bytes"
+    title = " ".join(extract_title(response.text).split())
+    if title:
+        summary += f", '{title[:50]}'"
+    return summary
 
 
 class BaseAccessBypass:
@@ -64,8 +79,13 @@ class BaseAccessBypass:
         """Submodule-specific acceptance check, run after the common success rules."""
         return True
 
-    def describe(self, probe, reasons):
-        return f"{self.friendly_name}: [{','.join(reasons)}] Sig: [{probe.label}]"
+    async def describe(self, label, reasons, response):
+        """The signature, and the blocked response next to the one that got through."""
+        baseline = await self.compare_helper.get_baseline()
+        return (
+            f"{self.friendly_name}. Signature: [{label}] Baseline: [{summarize(baseline)}] -> "
+            f"Probe: [{summarize(response)}] Differences: [{','.join(reasons)}]"
+        )
 
     def add_result(self, description, severity=None, confidence=None, url=None):
         self.results.append(
@@ -92,17 +112,20 @@ class BaseAccessBypass:
                 error_count += 1
                 self.access_bypass.debug(e)
                 continue
-            if await self.is_bypass(probe, match, response):
-                self.add_result(self.describe(probe, reasons))
+            if await self.is_bypass(probe, match, reasons, response):
+                self.add_result(await self.describe(probe.label, reasons, response))
 
     async def get_probes(self):
         return list(self.probes())
 
-    async def is_bypass(self, probe, match, response):
+    async def is_bypass(self, probe, match, reasons, response):
         if match is not False or response is None:
             return False
         if not is_allowed_status(response.status_code):
             self.access_bypass.debug(f"Status code is {response.status_code} (not 2xx), not a bypass")
+            return False
+        if not has_content(response, reasons):
+            self.access_bypass.debug(f"Rejecting {probe.label}: the {response.status_code} brought no new content")
             return False
         if await self.access_bypass.is_waf_response(response):
             self.access_bypass.debug(f"Rejecting {probe.label} based on presence of WAF string")

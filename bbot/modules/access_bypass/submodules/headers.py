@@ -57,10 +57,12 @@ class headers(BaseAccessBypass):
             url=url,
             headers={"X-rewrite-url": "nonsense"},
         )
-        yield Probe(
-            key="cl0",
-            label="Modified URL: POST (Content-Length: 0)",
-            url=url,
-            method="POST",
-            headers={"Content-Length": "0"},
-        )
+        # a POST on the wire may trigger actions, so it waits for state_changing_methods like the method submodule's
+        if self.access_bypass.config.get("state_changing_methods", False):
+            yield Probe(
+                key="cl0",
+                label="Modified Method: POST, Added Header: Content-Length: 0",
+                url=url,
+                method="POST",
+                headers={"Content-Length": "0"},
+            )
