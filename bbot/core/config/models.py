@@ -54,6 +54,17 @@ def _validate_version(v):
 VersionStr = Annotated[str, AfterValidator(_validate_version)]
 
 
+# Paths from config are interpolated into dependency install steps, some of which run through a shell
+# (e.g. #{BBOT_TOOLS} from `home`), so reject shell metacharacters that would break out of the path.
+_SHELL_UNSAFE = set(";|&$`<>\n\r()")
+
+
+def _validate_safe_path(v):
+    if isinstance(v, str) and (set(v) & _SHELL_UNSAFE):
+        raise ValueError(f'invalid path (contains shell metacharacters): "{v}"')
+    return v
+
+
 def Field(
     default=PydanticUndefined,
     *,
@@ -488,6 +499,7 @@ class BBOTConfig(BaseModel):
     bbot_io_api_key: Optional[str] = Field(default=None, sensitive=True)
 
     _validate_interactsh_server = field_validator("interactsh_server")(validate_fqdn_or_ip)
+    _validate_home = field_validator("home")(_validate_safe_path)
 
     # Per-module configs — validated separately, per-module, against each
     # module's own `class Config(BaseModuleConfig)`.

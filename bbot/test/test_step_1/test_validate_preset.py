@@ -16,6 +16,14 @@ def test_module_version_config_validation():
     assert any("version" in e.message for e in errs)
 
 
+def test_home_config_validation():
+    """`home` is interpolated into dependency commands, so it rejects shell metacharacters."""
+    assert validate_preset({"config": {"home": "/tmp/mybbot"}}) == []
+    errs = validate_preset({"config": {"home": "/tmp/x;id>/tmp/pwned;#"}})
+    assert len(errs) >= 1
+    assert any("home" in e.message or "shell metacharacters" in e.message for e in errs)
+
+
 def test_validate_preset_typo_top_level():
     errs = validate_preset({"modlues": ["nuclei"]})
     assert len(errs) == 1
