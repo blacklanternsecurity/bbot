@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.hf_wlnmk.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.1qo7patf.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1059,6 +1059,11 @@
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">subdomains</span>
 </code></pre></div>
 <!-- END BBOT SUBDOMAIN ENUM PRESET -->
+<div class="admonition danger">
+<p class="admonition-title">A preset is executable code, not just data</p>
+<p>A preset can load custom Python modules (<code>module_dirs</code>) and run Jinja/Python <code>conditions</code>. Both execute with your privileges the moment the preset is loaded or validated, <strong>before the scan starts</strong>. BBOT makes a best-effort to harden this path (a trust prompt for custom module folders, a sandbox for conditions, input validation on config), but these are courtesy safeguards, <strong>not a security boundary</strong>.</p>
+<p>Treat a preset from anyone else exactly as you would a Python script from an untrusted source: read it before you run it, and only run presets you trust.</p>
+</div>
 <h2 id="how-to-use-presets-p">How to use Presets (<code>-p</code>)</h2>
 <p>BBOT ships with a collection of presets for common tasks like subdomain enumeration and web spidering. The defaults live in <code>bbot/presets</code> inside the installed package. You can also place custom presets anywhere and reference them by path.</p>
 <p>To list them, you can do:</p>
@@ -1266,6 +1271,19 @@ bbot<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>
 <span style="color: #7EE787">module_dirs</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">/home/user/custom_modules</span>
 </code></pre></div>
+<p>Custom modules are Python code that runs with your privileges, and even validating a malicious module can result in code execution. Only load module folders you trust. To protect you, BBOT:</p>
+<ul>
+<li>Asks you to confirm each custom module folder before reading anything in it. The prompt lists the modules in the folder.</li>
+<li>Refuses to load a folder or module file that is world-writable, since anyone on the system could have planted or modified it. The error tells you how to fix the permissions.</li>
+<li>Points out, in the prompt, any part of the folder owned by another user (anyone other than you or root), since that user can change the code. This is common when running BBOT with <code>sudo</code>, or in Docker with a folder mounted from the host.</li>
+<li>Refuses a custom module that has the same name as an existing module (built-in or from another custom folder). Custom modules can never replace existing ones. If you want a modified version of a built-in module, give your copy a different name and enable it instead of the original.</li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Passing <code>-y</code> / <code>--yes</code> answers yes to the trust prompt automatically. Only use <code>-y</code> with presets whose module folders you trust. <code>-S</code> / <code>--silent</code> doesn't answer it: since the prompt can't be shown, BBOT stops with an error unless you also pass <code>-y</code>.</p>
+</div>
+<p>When BBOT is used as a Python library, there is no prompt; it logs a warning for each custom module folder instead.</p>
+<p><code>module_dirs</code> only works at the top level of a preset. Setting it as a config option (in <code>bbot.yml</code>, under <code>config:</code> in a preset, or with <code>-c module_dirs=...</code>) is deprecated and ignored, and logs a warning at scan start.</p>
 <h3 id="conditions">Conditions</h3>
 <p>Sometimes, you might need to add custom logic to a preset. BBOT supports this via <code>conditions</code>. The <code>conditions</code> attribute allows you to specify a list of custom conditions that will be evaluated before the scan starts. This is useful for performing last-minute sanity checks, or changing the behavior of the scan based on custom criteria.</p>
 <div class="highlight" style="background: #0d1117"><span class="filename">my_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Abort if nuclei templates aren't specified</span>
@@ -1279,7 +1297,7 @@ bbot<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>
 <span style="color: #6E7681">      </span><span style="color: #79C0FF; font-weight: bold">{{ abort("Don't forget to set your templates!") }}</span>
 <span style="color: #6E7681">    </span><span style="color: #79C0FF; font-weight: bold">{% endif %}</span>
 </code></pre></div>
-<div class="highlight" style="background: #0d1117"><span class="filename">my_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Enable webbrute but only when the web spider isn't also enabled</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">my_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Abort if webbrute and the web spider are both enabled</span>
 
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">webbrute</span>
@@ -1287,14 +1305,13 @@ bbot<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>
 <span style="color: #7EE787">conditions</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">|</span>
 <span style="color: #6E7681">    </span><span style="color: #79C0FF; font-weight: bold">{% if config.web.spider_distance &gt; 0 and config.web.spider_depth &gt; 0 %}</span>
-<span style="color: #6E7681">      </span><span style="color: #79C0FF; font-weight: bold">{{ warn("Disabling webbrute because the web spider is enabled") }}</span>
-<span style="color: #6E7681">      </span><span style="color: #79C0FF; font-weight: bold">{{ preset.exclude_module("webbrute") }}</span>
+<span style="color: #6E7681">      </span><span style="color: #79C0FF; font-weight: bold">{{ abort("Don't run webbrute with the web spider enabled; remove one of them.") }}</span>
 <span style="color: #6E7681">    </span><span style="color: #79C0FF; font-weight: bold">{% endif %}</span>
 </code></pre></div>
-<p>Conditions use <a href="https://palletsprojects.com/p/jinja/">Jinja</a>, which means they can contain Python code. They run inside a sandboxed environment which has access to the following variables:</p>
+<p>Conditions use <a href="https://palletsprojects.com/p/jinja/">Jinja</a>, which means they can contain Python code. They run inside a sandbox and are given a <strong>read-only snapshot</strong> of the preset and config: a condition can inspect the scan's settings and <code>warn</code> or <code>abort</code>, but it cannot modify the preset or reach BBOT internals. The available variables are:</p>
 <ul>
-<li><code>preset</code> - the current preset object</li>
-<li><code>config</code> - the current config (an alias for <code>preset.config</code>)</li>
+<li><code>preset</code> - a read-only snapshot of the current preset (its modules, flags, config, etc.)</li>
+<li><code>config</code> - a read-only snapshot of the current config</li>
 <li><code>warn(message)</code> - display a custom warning message to the user</li>
 <li><code>abort(message)</code> - abort the scan with an optional message</li>
 </ul>
