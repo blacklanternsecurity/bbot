@@ -549,6 +549,9 @@ class Scanner:
                     )
             self.debug(f"Awaited {len(tasks):,} tasks")
             await self._report()
+            browser_hint = self.helpers.web.browser_hint()
+            if browser_hint:
+                self.hugeinfo(browser_hint)
             await self._cleanup()
             # report on final scan status
             await self.dispatcher.on_finish(self)

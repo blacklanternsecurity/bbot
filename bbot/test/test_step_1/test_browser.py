@@ -738,3 +738,21 @@ async def test_browser_certificates(bbot_scanner, bbot_httpserver_ssl):
     assert await scan.helpers.browser.visit(url) is None
     await scan._cleanup()
     assert await no_browser_processes()
+
+
+@pytest.mark.asyncio
+async def test_browser_hint(bbot_scanner, bbot_httpserver, caplog):
+    """With the browser off, a scan ends by counting the URLs a challenge kept it out of."""
+    serve(bbot_httpserver)
+    urls = [bbot_httpserver.url_for(path) for path in ("/challenge/a", "/challenge/b", "/page")]
+    scan = bbot_scanner(*urls, modules=["http"])
+    [e async for e in scan.async_start()]
+    assert (
+        "2 URLs were skipped as they were deemed unopenable without a browser (WAF challenges). "
+        "Consider re-running with -c web.enable_browser=true"
+    ) in caplog.text
+
+    # with the browser on, a fallback that's off was turned off on purpose
+    scan = bbot_scanner("127.0.0.1", config={"web": {"enable_browser": True, "browser_fallback": False}})
+    scan.helpers.web.unopened_urls.add(urls[0])
+    assert scan.helpers.web.browser_hint() is None

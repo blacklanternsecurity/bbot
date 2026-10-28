@@ -99,6 +99,8 @@ class WebHelper:
         self.browser_fallback = bool(self.web_config.get("enable_browser", False)) and self.web_config.get(
             "browser_fallback", True
         )
+        # URLs left behind a challenge because the browser fallback is off, for the hint at the end of the scan
+        self.unopened_urls = set()
         # host -> Clearance (the browser's cookies and User-Agent), sent with every request to that host
         self._clearances = {}
         self._clearance_counts = {}
@@ -745,6 +747,8 @@ class WebHelper:
             log.critical(
                 f"BROWSERDBG get_past_challenge() SKIPPED (browser fallback off or browser unusable): url={url}"
             )
+            if not self.browser_fallback:
+                self.unopened_urls.add(url)
             return response
         request_kwargs = dict(request_kwargs or {})
         # the browser can only stand in for a plain GET
@@ -856,6 +860,16 @@ class WebHelper:
             self._host_states[host] = "browser_only"
             log.verbose(f"{host} can only be loaded by a browser ({vendor} challenge)")
             log.critical(f"BROWSERDBG host marked BROWSER_ONLY: {host} ({vendor} challenge) url={response.url}")
+
+    def browser_hint(self):
+        """A suggestion to turn the browser on, if it would have opened URLs the scan couldn't."""
+        # with the browser on, the fallback was turned off on purpose
+        if not self.unopened_urls or self.web_config.get("enable_browser", False):
+            return None
+        return (
+            f"{len(self.unopened_urls):,} URLs were skipped as they were deemed unopenable without a browser "
+            f"(WAF challenges). Consider re-running with -c web.enable_browser=true"
+        )
 
     def is_browser_only(self, host):
         """Whether this host has answered with a challenge only a browser can pass, and has never been reached."""
