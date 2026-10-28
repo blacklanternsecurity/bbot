@@ -16,7 +16,7 @@ if multiprocessing.current_process().name == "MainProcess":
     no_color = "--no-color" in sys.argv or bool(os.environ.get("NO_COLOR", ""))
     if no_color:
         os.environ["NO_COLOR"] = "1"
-    silent = "-s" in sys.argv or "--silent" in sys.argv
+    silent = "-S" in sys.argv or "--silent" in sys.argv
 
     if not silent:
         o = "" if no_color else "\033[1;38;5;208m"
