@@ -136,6 +136,7 @@ class Preset(metaclass=BasePreset):
         silent=False,
         _exclude=None,
         _log=True,
+        _skip_module_dirs=False,
     ):
         """
         Initializes the Preset class.
@@ -266,9 +267,10 @@ class Preset(metaclass=BasePreset):
         self.debug = debug
         self.silent = silent
 
-        # custom module directories
+        # custom module directories. when only listing presets (e.g. bbot -lp), skip them: loading a
+        # folder's modules would run the trust prompt (or error without a tty) for a read-only command.
         self._module_dirs = set()
-        self.module_dirs = module_dirs
+        self.module_dirs = None if _skip_module_dirs else module_dirs
 
         # target / seeds / blacklist
         # these are temporary receptacles until they all get .baked() together
@@ -686,7 +688,7 @@ class Preset(metaclass=BasePreset):
         return resolved
 
     @classmethod
-    def from_dict(cls, preset_dict, name=None, _exclude=None, _log=False):
+    def from_dict(cls, preset_dict, name=None, _exclude=None, _log=False, _skip_module_dirs=False):
         """
         Create a preset from a Python dictionary object.
 
@@ -762,6 +764,7 @@ class Preset(metaclass=BasePreset):
             conditions=preset_dict.get("conditions", []),
             _exclude=_exclude,
             _log=_log,
+            _skip_module_dirs=_skip_module_dirs,
         )
         return new_preset
 
@@ -786,7 +789,7 @@ class Preset(metaclass=BasePreset):
             self._preset_files_loaded.add(preset_from_yaml.filename)
 
     @classmethod
-    def from_yaml_file(cls, filename, _exclude=None, _log=False):
+    def from_yaml_file(cls, filename, _exclude=None, _log=False, _skip_module_dirs=False):
         """
         Create a preset from a YAML file. If the full path is not specified, BBOT will look in all the usual places for it.
 
@@ -796,37 +799,40 @@ class Preset(metaclass=BasePreset):
             >>> preset = Preset.from_yaml_file("/home/user/my_preset.yml")
         """
         filename = PRESET_PATH.find(filename)
-        try:
+        # a module-dir-skipping load (preset listing) must not read or write the shared cache,
+        # or a later real load would reuse a preset whose custom modules were never loaded
+        if not _skip_module_dirs and filename in _preset_cache:
             return _preset_cache[filename]
-        except KeyError:
-            if _exclude is None:
-                _exclude = set()
-            if _exclude is not None and filename in _exclude:
-                log.debug(f"Not loading {filename} because it was already loaded {_exclude}")
-                return False
-            log.debug(f"Loading {filename} because it's not in excluded list ({_exclude})")
-            _exclude = set(_exclude)
-            _exclude.add(filename)
-            try:
-                yaml_str = open(filename).read()
-            except FileNotFoundError:
-                raise PresetNotFoundError(f'Could not find preset at "{filename}" - file does not exist')
-            try:
-                yaml_dict = yaml.safe_load(yaml_str) or {}
-            except yaml.YAMLError as e:
-                raise ValidationError(
-                    f"YAML syntax error in {filename}:\n\n{e}\n\nPlease check the file for indentation or formatting errors."
-                )
-            preset = cls.from_dict(
-                yaml_dict,
-                name=filename.stem,
-                _exclude=_exclude,
-                _log=_log,
+        if _exclude is None:
+            _exclude = set()
+        if _exclude is not None and filename in _exclude:
+            log.debug(f"Not loading {filename} because it was already loaded {_exclude}")
+            return False
+        log.debug(f"Loading {filename} because it's not in excluded list ({_exclude})")
+        _exclude = set(_exclude)
+        _exclude.add(filename)
+        try:
+            yaml_str = open(filename).read()
+        except FileNotFoundError:
+            raise PresetNotFoundError(f'Could not find preset at "{filename}" - file does not exist')
+        try:
+            yaml_dict = yaml.safe_load(yaml_str) or {}
+        except yaml.YAMLError as e:
+            raise ValidationError(
+                f"YAML syntax error in {filename}:\n\n{e}\n\nPlease check the file for indentation or formatting errors."
             )
-            preset._yaml_str = yaml_str
-            preset.filename = filename
+        preset = cls.from_dict(
+            yaml_dict,
+            name=filename.stem,
+            _exclude=_exclude,
+            _log=_log,
+            _skip_module_dirs=_skip_module_dirs,
+        )
+        preset._yaml_str = yaml_str
+        preset.filename = filename
+        if not _skip_module_dirs:
             _preset_cache[filename] = preset
-            return preset
+        return preset
 
     @classmethod
     def from_yaml_string(cls, yaml_preset):
@@ -1084,9 +1090,10 @@ class Preset(metaclass=BasePreset):
                         if original_filename.is_symlink():
                             continue
 
-                        # try to load it as a preset
+                        # try to load it as a preset. skip its module_dirs: listing is read-only and
+                        # must not run the trust prompt (or error without a tty) for custom folders
                         try:
-                            loaded_preset = self.from_yaml_file(original_filename, _log=True)
+                            loaded_preset = self.from_yaml_file(original_filename, _log=True, _skip_module_dirs=True)
                             if loaded_preset is False:
                                 continue
                         except Exception as e:

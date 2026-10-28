@@ -1718,6 +1718,29 @@ def test_module_dir_symlinked_modules(tmp_path):
     assert "linkmod" in loader.preloaded()
 
 
+def test_preset_listing_skips_module_dirs(tmp_path):
+    """Listing presets must not load (or prompt for) a preset's custom module_dirs."""
+    from bbot.scanner import Preset
+    from bbot.core.modules import MODULE_LOADER
+
+    mod_dir = tmp_path / "mods"
+    mod_dir.mkdir()
+    write_custom_module(mod_dir, "listmod")
+    preset_file = tmp_path / "listed.yml"
+    preset_file.write_text(f"module_dirs:\n  - {mod_dir}\nmodules:\n  - listmod\n")
+
+    asked = []
+    original = MODULE_LOADER.confirm_module_dir
+    MODULE_LOADER.confirm_module_dir = lambda *a, **k: asked.append(a) or True
+    try:
+        preset = Preset.from_yaml_file(preset_file, _skip_module_dirs=True)
+    finally:
+        MODULE_LOADER.confirm_module_dir = original
+    assert asked == []
+    assert "listmod" not in MODULE_LOADER.preloaded()
+    assert mod_dir.resolve() not in preset.module_dirs
+
+
 def test_module_dir_refuses_name_modules(tmp_path):
     from bbot.core.modules import ModuleLoader
 
