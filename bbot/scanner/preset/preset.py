@@ -23,7 +23,17 @@ DEFAULT_PRESETS = None
 
 
 class BasePreset(type):
-    def __call__(cls, *args, include=None, presets=None, name=None, description=None, _exclude=None, **kwargs):
+    def __call__(
+        cls,
+        *args,
+        include=None,
+        presets=None,
+        name=None,
+        description=None,
+        _exclude=None,
+        _skip_module_dirs=False,
+        **kwargs,
+    ):
         """
         Handles loading of "included" presets, while preserving the proper load order
 
@@ -42,12 +52,20 @@ class BasePreset(type):
         if include and not isinstance(include, (list, tuple, set)):
             include = [include]
 
-        main_preset = type.__call__(cls, *args, name=name, description=description, _exclude=_exclude, **kwargs)
+        main_preset = type.__call__(
+            cls,
+            *args,
+            name=name,
+            description=description,
+            _exclude=_exclude,
+            _skip_module_dirs=_skip_module_dirs,
+            **kwargs,
+        )
 
         if include:
             include_preset = type.__call__(cls, name=name, description=description, _exclude=_exclude)
             for included_preset in include:
-                include_preset.include_preset(included_preset)
+                include_preset.include_preset(included_preset, _skip_module_dirs=_skip_module_dirs)
             include_preset.merge(main_preset)
             return include_preset
 
@@ -768,7 +786,7 @@ class Preset(metaclass=BasePreset):
         )
         return new_preset
 
-    def include_preset(self, filename):
+    def include_preset(self, filename, _skip_module_dirs=False):
         """
         Load a preset from a yaml file and merge it into this one.
 
@@ -783,7 +801,9 @@ class Preset(metaclass=BasePreset):
             >>> preset.include_preset("/home/user/my_preset.yml")
         """
         self.log_debug(f'Including preset "{filename}"')
-        preset_from_yaml = self.from_yaml_file(filename, _exclude=self._preset_files_loaded)
+        preset_from_yaml = self.from_yaml_file(
+            filename, _exclude=self._preset_files_loaded, _skip_module_dirs=_skip_module_dirs
+        )
         if preset_from_yaml is not False:
             self.merge(preset_from_yaml)
             self._preset_files_loaded.add(preset_from_yaml.filename)

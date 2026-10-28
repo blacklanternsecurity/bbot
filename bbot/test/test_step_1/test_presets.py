@@ -1736,16 +1736,28 @@ def test_preset_listing_skips_module_dirs(tmp_path):
     preset_file = tmp_path / "listed.yml"
     preset_file.write_text(f"module_dirs:\n  - {mod_dir}\nmodules:\n  - listmod\n")
 
+    # and an included preset's module_dirs are skipped too
+    inc_mod_dir = tmp_path / "incmods"
+    inc_mod_dir.mkdir()
+    write_custom_module(inc_mod_dir, "incmod")
+    included = tmp_path / "included.yml"
+    included.write_text(f"module_dirs:\n  - {inc_mod_dir}\nmodules:\n  - incmod\n")
+    outer_file = tmp_path / "outer.yml"
+    outer_file.write_text(f"include:\n  - {included}\n")
+
     asked = []
     original = MODULE_LOADER.confirm_module_dir
     MODULE_LOADER.confirm_module_dir = lambda *a, **k: asked.append(a) or True
     try:
         preset = Preset.from_yaml_file(preset_file, _skip_module_dirs=True)
+        outer = Preset.from_yaml_file(outer_file, _skip_module_dirs=True)
     finally:
         MODULE_LOADER.confirm_module_dir = original
     assert asked == []
     assert "listmod" not in MODULE_LOADER.preloaded()
+    assert "incmod" not in MODULE_LOADER.preloaded()
     assert mod_dir.resolve() not in preset.module_dirs
+    assert inc_mod_dir.resolve() not in outer.module_dirs
 
 
 def test_module_dir_refuses_name_modules(tmp_path):
