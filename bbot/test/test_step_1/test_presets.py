@@ -965,28 +965,35 @@ conditions:
         await scan._prep()
 
 
-def test_conditions_run_in_immutable_sandbox():
-    """Conditions evaluate in an immutable Jinja sandbox: they may read the preset
-    and config and call warn()/abort(), but may not mutate objects."""
-    from jinja2.exceptions import SecurityError
+def test_conditions_use_readonly_snapshot():
+    """Conditions see a read-only data snapshot of the preset/config: reads and warn()/abort()
+    work, but the live object graph (core, module_loader) is not reachable, so no method on it
+    can be called to change state."""
+    from jinja2.exceptions import UndefinedError
     from bbot.scanner.preset.conditions import ConditionEvaluator
 
-    # reading config and calling abort() works
+    # reading config and preset fields and calling abort() works
     preset = Preset(
         modules=["robots"],
-        conditions=["{% if config.web.spider_distance == 0 %}{{ abort('stop') }}{% endif %}"],
+        conditions=[
+            "{% if config.web.spider_distance == 0 and 'robots' in preset.modules %}{{ abort('stop') }}{% endif %}"
+        ],
     )
     preset.validate()
     with pytest.raises(PresetAbortError):
         ConditionEvaluator(preset.bake()).evaluate()
 
-    # mutating an object is refused
-    preset = Preset(
-        modules=["robots"],
-        conditions=["{{ preset.module_loader.preloaded()['robots']['deps']['shell'].append('x') }}"],
-    )
+    # the live object graph isn't exposed, so a method call on it can't change state
+    preset = Preset(modules=["robots"], conditions=["{{ preset.core.merge_custom({'home': '/tmp/x'}) }}"])
     preset.validate()
-    with pytest.raises(SecurityError):
+    baked = preset.bake()
+    with pytest.raises(UndefinedError):
+        ConditionEvaluator(baked).evaluate()
+    assert baked.core.custom_config.get("home") is None
+
+    preset = Preset(modules=["robots"], conditions=["{{ preset.module_loader.add_module_dir('/tmp/evil') }}"])
+    preset.validate()
+    with pytest.raises(UndefinedError):
         ConditionEvaluator(preset.bake()).evaluate()
 
 
