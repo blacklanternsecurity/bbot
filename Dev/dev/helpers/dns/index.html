@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../../assets/stylesheets/extra-style.7nzg14hg.min.css" rel="stylesheet"/></head>
+<link href="../../../assets/stylesheets/extra-style.jwl17bib.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1469,15 +1469,7 @@ filtering.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">454</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">455</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">456</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">457</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">458</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">459</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">460</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">461</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">462</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">463</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">464</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">465</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">DNSHelper</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">457</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">DNSHelper</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""Helper class for DNS-related operations within BBOT.</span>
 
 <span style="color: #A5D6FF">    Wraps the blastdns ``Client`` (a Rust-backed async DNS engine) and adds the</span>
@@ -1690,34 +1682,26 @@ filtering.</p>
         <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">raw_dns_records:</span>
             <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">result</span>
 
-        <span style="color: #E6EDF3">rdtypes_to_check</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set(raw_dns_records)</span>
-
-        <span style="color: #8B949E; font-style: italic"># walk parent domains shortest-first, comparing baseline against any wildcard pool</span>
-        <span style="color: #E6EDF3">parents</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">list(domain_parents(query))</span>
-        <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">parent</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">parents[::</span><span style="color: #FF7B72; font-weight: bold">-</span><span style="color: #A5D6FF">1</span><span style="color: #E6EDF3">]:</span>
-            <span style="color: #E6EDF3">wildcard_results</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">is_wildcard_domain(parent,</span> <span style="color: #E6EDF3">rdtypes_to_check)</span>
-
-            <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">rdtype</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">list(baseline_raw):</span>
-                <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">rdtype</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">result:</span>
+        <span style="color: #8B949E; font-style: italic"># walk parent domains shortest-first, stopping at the first wildcard pool that contains the baseline.</span>
+        <span style="color: #8B949E; font-style: italic"># a non-matching pool may belong to an outer zone with a nested wildcard below it, so keep descending.</span>
+        <span style="color: #E6EDF3">possible</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">{}</span>
+        <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">parent</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">list(domain_parents(query))[::</span><span style="color: #FF7B72; font-weight: bold">-</span><span style="color: #A5D6FF">1</span><span style="color: #E6EDF3">]:</span>
+            <span style="color: #E6EDF3">rdtypes_to_check</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[rdtype</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">rdtype</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">baseline_raw</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">rdtype</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">result]</span>
+            <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">rdtypes_to_check:</span>
+                <span style="color: #FF7B72">break</span>
+            <span style="color: #E6EDF3">zones</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">asyncio</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">gather(</span><span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">[self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_is_wildcard_zone(parent,</span> <span style="color: #E6EDF3">rdtype)</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">rdtype</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">rdtypes_to_check])</span>
+            <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">rdtype,</span> <span style="color: #E6EDF3">(wildcards,</span> <span style="color: #E6EDF3">wildcard_raw)</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">zip(rdtypes_to_check,</span> <span style="color: #E6EDF3">zones):</span>
+                <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">wildcard_raw:</span>
                     <span style="color: #FF7B72">continue</span>
+                <span style="color: #E6EDF3">is_wc</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">any(r</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">wildcards</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">r</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">baseline</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(rdtype,</span> <span style="color: #E6EDF3">set()))</span>
+                <span style="color: #E6EDF3">is_wc_raw</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">any(r</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">wildcard_raw</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">r</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">baseline_raw[rdtype])</span>
+                <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">is_wc</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">is_wc_raw:</span>
+                    <span style="color: #E6EDF3">result[rdtype]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">(</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">parent)</span>
+                <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
+                    <span style="color: #E6EDF3">possible</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">setdefault(rdtype,</span> <span style="color: #E6EDF3">(</span><span style="color: #A5D6FF">"POSSIBLE"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">parent))</span>
 
-                <span style="color: #E6EDF3">_baseline</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">baseline</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(rdtype,</span> <span style="color: #E6EDF3">set())</span>
-                <span style="color: #E6EDF3">_baseline_raw</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">baseline_raw</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(rdtype,</span> <span style="color: #E6EDF3">set())</span>
-
-                <span style="color: #E6EDF3">wildcard_rdtypes</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">wildcard_results</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(parent,</span> <span style="color: #E6EDF3">{})</span>
-                <span style="color: #E6EDF3">wildcards</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">wildcard_rdtypes</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(rdtype)</span>
-                <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">wildcards</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
-                    <span style="color: #FF7B72">continue</span>
-                <span style="color: #E6EDF3">wildcards,</span> <span style="color: #E6EDF3">wildcard_raw</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">wildcards</span>
-
-                <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">wildcard_raw:</span>
-                    <span style="color: #E6EDF3">rdtypes_to_check</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">discard(rdtype)</span>
-                    <span style="color: #E6EDF3">is_wc</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">any(r</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">wildcards</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">r</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">_baseline)</span>
-                    <span style="color: #E6EDF3">is_wc_raw</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">any(r</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">wildcard_raw</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">r</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">_baseline_raw)</span>
-                    <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">is_wc</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">is_wc_raw:</span>
-                        <span style="color: #E6EDF3">result[rdtype]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">(</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">parent)</span>
-                    <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
-                        <span style="color: #E6EDF3">result[rdtype]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">(</span><span style="color: #A5D6FF">"POSSIBLE"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">parent)</span>
+        <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">rdtype,</span> <span style="color: #E6EDF3">verdict</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">possible</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">items():</span>
+            <span style="color: #E6EDF3">result</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">setdefault(rdtype,</span> <span style="color: #E6EDF3">verdict)</span>
 
         <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">rdtype,</span> <span style="color: #E6EDF3">answers</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">baseline_raw</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">items():</span>
             <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">answers</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #E6EDF3">rdtype</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">result:</span>
@@ -1730,7 +1714,7 @@ filtering.</p>
         <span style="color: #E6EDF3">key</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #FF7B72">lambda</span> <span style="color: #E6EDF3">domain,</span> <span style="color: #E6EDF3">rdtypes:</span> <span style="color: #E6EDF3">(domain,</span> <span style="color: #E6EDF3">tuple(sorted(rdtypes))),</span>
     <span style="color: #E6EDF3">)</span>
     <span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">is_wildcard_domain</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">domain,</span> <span style="color: #E6EDF3">rdtypes):</span>
-<span style="color: #6E7681">        </span><span style="color: #A5D6FF">"""For each parent of ``domain``, return the wildcard pool per rdtype.</span>
+<span style="color: #6E7681">        </span><span style="color: #A5D6FF">"""For each rdtype, return the wildcard pool of the shallowest wildcard parent of ``domain``.</span>
 
 <span style="color: #A5D6FF">        Returns ``{parent: {rdtype: (hosts_set, raw_text_set)}}``.</span>
 <span style="color: #A5D6FF">        """</span>
@@ -2239,15 +2223,7 @@ resolved for this query. If omitted, the records are fetched.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">254</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">255</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">256</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">257</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">258</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">259</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">260</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">261</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">262</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">263</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">264</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">265</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@async_cachedmethod</span><span style="color: #E6EDF3">(</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">257</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@async_cachedmethod</span><span style="color: #E6EDF3">(</span>
     <span style="color: #FF7B72">lambda</span> <span style="color: #E6EDF3">self:</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_is_wildcard_cache,</span>
     <span style="color: #E6EDF3">key</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #FF7B72">lambda</span> <span style="color: #E6EDF3">query,</span> <span style="color: #E6EDF3">rdtypes,</span> <span style="color: #E6EDF3">raw_dns_records</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">(query,</span> <span style="color: #E6EDF3">tuple(sorted(rdtypes)),</span> <span style="color: #E6EDF3">bool(raw_dns_records)),</span>
 <span style="color: #E6EDF3">)</span>
@@ -2302,34 +2278,26 @@ resolved for this query. If omitted, the records are fetched.</p>
     <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">raw_dns_records:</span>
         <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">result</span>
 
-    <span style="color: #E6EDF3">rdtypes_to_check</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set(raw_dns_records)</span>
-
-    <span style="color: #8B949E; font-style: italic"># walk parent domains shortest-first, comparing baseline against any wildcard pool</span>
-    <span style="color: #E6EDF3">parents</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">list(domain_parents(query))</span>
-    <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">parent</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">parents[::</span><span style="color: #FF7B72; font-weight: bold">-</span><span style="color: #A5D6FF">1</span><span style="color: #E6EDF3">]:</span>
-        <span style="color: #E6EDF3">wildcard_results</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">is_wildcard_domain(parent,</span> <span style="color: #E6EDF3">rdtypes_to_check)</span>
-
-        <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">rdtype</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">list(baseline_raw):</span>
-            <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">rdtype</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">result:</span>
+    <span style="color: #8B949E; font-style: italic"># walk parent domains shortest-first, stopping at the first wildcard pool that contains the baseline.</span>
+    <span style="color: #8B949E; font-style: italic"># a non-matching pool may belong to an outer zone with a nested wildcard below it, so keep descending.</span>
+    <span style="color: #E6EDF3">possible</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">{}</span>
+    <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">parent</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">list(domain_parents(query))[::</span><span style="color: #FF7B72; font-weight: bold">-</span><span style="color: #A5D6FF">1</span><span style="color: #E6EDF3">]:</span>
+        <span style="color: #E6EDF3">rdtypes_to_check</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[rdtype</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">rdtype</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">baseline_raw</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">rdtype</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">result]</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">rdtypes_to_check:</span>
+            <span style="color: #FF7B72">break</span>
+        <span style="color: #E6EDF3">zones</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">asyncio</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">gather(</span><span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">[self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_is_wildcard_zone(parent,</span> <span style="color: #E6EDF3">rdtype)</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">rdtype</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">rdtypes_to_check])</span>
+        <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">rdtype,</span> <span style="color: #E6EDF3">(wildcards,</span> <span style="color: #E6EDF3">wildcard_raw)</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">zip(rdtypes_to_check,</span> <span style="color: #E6EDF3">zones):</span>
+            <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">wildcard_raw:</span>
                 <span style="color: #FF7B72">continue</span>
+            <span style="color: #E6EDF3">is_wc</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">any(r</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">wildcards</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">r</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">baseline</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(rdtype,</span> <span style="color: #E6EDF3">set()))</span>
+            <span style="color: #E6EDF3">is_wc_raw</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">any(r</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">wildcard_raw</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">r</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">baseline_raw[rdtype])</span>
+            <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">is_wc</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">is_wc_raw:</span>
+                <span style="color: #E6EDF3">result[rdtype]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">(</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">parent)</span>
+            <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
+                <span style="color: #E6EDF3">possible</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">setdefault(rdtype,</span> <span style="color: #E6EDF3">(</span><span style="color: #A5D6FF">"POSSIBLE"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">parent))</span>
 
-            <span style="color: #E6EDF3">_baseline</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">baseline</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(rdtype,</span> <span style="color: #E6EDF3">set())</span>
-            <span style="color: #E6EDF3">_baseline_raw</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">baseline_raw</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(rdtype,</span> <span style="color: #E6EDF3">set())</span>
-
-            <span style="color: #E6EDF3">wildcard_rdtypes</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">wildcard_results</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(parent,</span> <span style="color: #E6EDF3">{})</span>
-            <span style="color: #E6EDF3">wildcards</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">wildcard_rdtypes</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(rdtype)</span>
-            <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">wildcards</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
-                <span style="color: #FF7B72">continue</span>
-            <span style="color: #E6EDF3">wildcards,</span> <span style="color: #E6EDF3">wildcard_raw</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">wildcards</span>
-
-            <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">wildcard_raw:</span>
-                <span style="color: #E6EDF3">rdtypes_to_check</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">discard(rdtype)</span>
-                <span style="color: #E6EDF3">is_wc</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">any(r</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">wildcards</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">r</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">_baseline)</span>
-                <span style="color: #E6EDF3">is_wc_raw</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">any(r</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">wildcard_raw</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">r</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">_baseline_raw)</span>
-                <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">is_wc</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">is_wc_raw:</span>
-                    <span style="color: #E6EDF3">result[rdtype]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">(</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">parent)</span>
-                <span style="color: #FF7B72">else</span><span style="color: #E6EDF3">:</span>
-                    <span style="color: #E6EDF3">result[rdtype]</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">(</span><span style="color: #A5D6FF">"POSSIBLE"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">parent)</span>
+    <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">rdtype,</span> <span style="color: #E6EDF3">verdict</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">possible</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">items():</span>
+        <span style="color: #E6EDF3">result</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">setdefault(rdtype,</span> <span style="color: #E6EDF3">verdict)</span>
 
     <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">rdtype,</span> <span style="color: #E6EDF3">answers</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">baseline_raw</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">items():</span>
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">answers</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #E6EDF3">rdtype</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">result:</span>
@@ -2350,11 +2318,19 @@ resolved for this query. If omitted, the records are fetched.</p>
 <div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">is_wildcard_domain(domain,</span> <span style="color: #E6EDF3">rdtypes)</span>
 </code></pre></div>
 <div class="doc doc-contents">
-<p>For each parent of <code>domain</code>, return the wildcard pool per rdtype.</p>
+<p>For each rdtype, return the wildcard pool of the shallowest wildcard parent of <code>domain</code>.</p>
 <p>Returns <code>{parent: {rdtype: (hosts_set, raw_text_set)}}</code>.</p>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/helpers/dns/dns.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">267</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">259</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">260</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">261</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">262</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">263</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">264</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">265</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">266</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">267</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">268</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">269</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">270</span>
@@ -2378,20 +2354,12 @@ resolved for this query. If omitted, the records are fetched.</p>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">288</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">289</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">290</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">291</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">292</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">293</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">294</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">295</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">296</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">297</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">298</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">299</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@async_cachedmethod</span><span style="color: #E6EDF3">(</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">291</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@async_cachedmethod</span><span style="color: #E6EDF3">(</span>
     <span style="color: #FF7B72">lambda</span> <span style="color: #E6EDF3">self:</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">_is_wildcard_domain_cache,</span>
     <span style="color: #E6EDF3">key</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #FF7B72">lambda</span> <span style="color: #E6EDF3">domain,</span> <span style="color: #E6EDF3">rdtypes:</span> <span style="color: #E6EDF3">(domain,</span> <span style="color: #E6EDF3">tuple(sorted(rdtypes))),</span>
 <span style="color: #E6EDF3">)</span>
 <span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">is_wildcard_domain</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">domain,</span> <span style="color: #E6EDF3">rdtypes):</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""For each parent of ``domain``, return the wildcard pool per rdtype.</span>
+<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""For each rdtype, return the wildcard pool of the shallowest wildcard parent of ``domain``.</span>
 
 <span style="color: #A5D6FF">    Returns ``{parent: {rdtype: (hosts_set, raw_text_set)}}``.</span>
 <span style="color: #A5D6FF">    """</span>

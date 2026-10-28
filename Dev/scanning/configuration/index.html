@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.7nzg14hg.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.jwl17bib.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1266,6 +1266,19 @@ Is the same as:
 <span style="color: #8B949E; font-style: italic"># Reject URLs whose path repeats the same path parameter this many times (e.g. a session id appended on every redirect)</span>
 <span style="color: #7EE787">url_max_path_param_repeats</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">10</span>
 
+<span style="color: #8B949E; font-style: italic"># Drop open ports and URLs on CDN/WAF hosts unless the port is allowed or was explicitly targeted</span>
+<span style="color: #8B949E; font-style: italic"># CDN edges answer on many ports (e.g. Cloudflare's 2052-2096, 8080, 8443) that rarely lead anywhere useful</span>
+<span style="color: #7EE787">cdn_port_filter</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">enabled</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># hosts with any of these tags are considered CDN/WAF hosts</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">tags</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">cdn</span>
+<span style="color: #6E7681">    </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">waf</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># ports that are still allowed on CDN/WAF hosts</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">allowed_ports</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">80</span>
+<span style="color: #6E7681">    </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">443</span>
+
 <span style="color: #8B949E; font-style: italic"># Completely ignore URLs with these extensions</span>
 <span style="color: #7EE787">url_extension_blacklist</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># images</span>
@@ -1592,6 +1605,12 @@ Is the same as:
 <td>bool</td>
 <td>If True, brute-force SRV records on hosts discovered by dnsbrute_mutations. Default False skips them.</td>
 <td>False</td>
+</tr>
+<tr>
+<td>modules.favicon.signatures_url</td>
+<td>str</td>
+<td>URL of the nuclei favicon-detect template to load favicon signatures from</td>
+<td>https://raw.githubusercontent.com/projectdiscovery/nuclei-templates/main/http/technologies/favicon-detect.yaml</td>
 </tr>
 <tr>
 <td>modules.filedownload.extensions</td>
@@ -1924,6 +1943,24 @@ Is the same as:
 <td></td>
 </tr>
 <tr>
+<td>modules.nuclei.exclude_ids</td>
+<td>str</td>
+<td>Exclude templates with the given IDs</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.nuclei.exclude_severity</td>
+<td>str</td>
+<td>Filter out templates with the given severities</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.nuclei.include_tags</td>
+<td>str</td>
+<td>tags to run even though nuclei excludes them by default (e.g. dos, fuzz, bruteforce)</td>
+<td></td>
+</tr>
+<tr>
 <td>modules.nuclei.mode</td>
 <td>Literal['manual', 'technology', 'severe', 'budget']</td>
 <td>manual | technology | severe | budget. Technology: Only activate based on technology events that match nuclei tags (nuclei -as mode). Manual (DEFAULT): Fully manual settings. Severe: Only critical and high severity templates without intrusive. Budget: Limit Nuclei to a specified number of HTTP requests</td>
@@ -1934,6 +1971,30 @@ Is the same as:
 <td>int</td>
 <td>Max time in seconds to spend handling each batch of events</td>
 <td>21600</td>
+</tr>
+<tr>
+<td>modules.nuclei.new_templates</td>
+<td>bool</td>
+<td>Only run templates added in the latest templates release</td>
+<td>False</td>
+</tr>
+<tr>
+<td>modules.nuclei.new_templates_versions</td>
+<td>str</td>
+<td>Only run templates added in the given templates releases, e.g. 'v10.4.8,v10.4.9'</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.nuclei.profile</td>
+<td>str</td>
+<td>nuclei template profile to run (built-in profile id, or path to a profile file)</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.nuclei.protocol_types</td>
+<td>str</td>
+<td>Only run templates of the given protocol types (http, dns, ssl, tcp, javascript, etc.)</td>
+<td></td>
 </tr>
 <tr>
 <td>modules.nuclei.ratelimit</td>
@@ -1963,6 +2024,18 @@ Is the same as:
 <td>modules.nuclei.tags</td>
 <td>str</td>
 <td>execute a subset of templates that contain the provided tags</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.nuclei.template_condition</td>
+<td>str</td>
+<td><code>expression to filter templates by, e.g. "epss_score&gt;=0.1 &amp;&amp; max_request&lt;=3"</code></td>
+<td></td>
+</tr>
+<tr>
+<td>modules.nuclei.template_ids</td>
+<td>str</td>
+<td>Only run templates with the given IDs (wildcards allowed)</td>
 <td></td>
 </tr>
 <tr>
@@ -2758,6 +2831,12 @@ Is the same as:
 <td></td>
 </tr>
 <tr>
+<td>modules.otilabs.api_key</td>
+<td>str | list[str]</td>
+<td>RapidAPI key subscribed to the OTI Labs Domain Intelligence API</td>
+<td></td>
+</tr>
+<tr>
 <td>modules.otx.api_key</td>
 <td>str | list[str]</td>
 <td>OTX API key</td>
@@ -2768,18 +2847,6 @@ Is the same as:
 <td>list[str]</td>
 <td>PGP key servers to search</td>
 <td><code>['https://keyserver.ubuntu.com/pks/lookup?fingerprint=on&amp;op=vindex&amp;search=&lt;query&gt;', 'http://the.earth.li:11371/pks/lookup?fingerprint=on&amp;op=vindex&amp;search=&lt;query&gt;', 'https://pgpkeys.eu/pks/lookup?search=&lt;query&gt;&amp;op=index', 'https://pgp.mit.edu/pks/lookup?search=&lt;query&gt;&amp;op=index']</code></td>
-</tr>
-<tr>
-<td>modules.portfilter.allowed_cdn_ports</td>
-<td>str</td>
-<td>Comma-separated list of ports that are allowed to be scanned for CDNs</td>
-<td>80,443</td>
-</tr>
-<tr>
-<td>modules.portfilter.cdn_tags</td>
-<td>str</td>
-<td>Comma-separated list of tags to skip, e.g. 'cdn,waf'</td>
-<td>cdn,waf</td>
 </tr>
 <tr>
 <td>modules.postman.api_key</td>
@@ -2923,7 +2990,7 @@ Is the same as:
 <td>modules.trufflehog.version</td>
 <td>str</td>
 <td>trufflehog version</td>
-<td>3.99.2</td>
+<td>3.99.7</td>
 </tr>
 <tr>
 <td>modules.urlscan.urls</td>

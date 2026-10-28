@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.7nzg14hg.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.jwl17bib.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -440,10 +440,10 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="#exclude-cdns-from-port-scan">
+<a class="md-nav__link" href="#cdnwaf-port-filtering">
 <span class="md-ellipsis">
       
-        Exclude CDNs from Port Scan
+        CDN/WAF Port Filtering
       
     </span>
 </a>
@@ -1229,24 +1229,31 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># custom spider settings on the command line</span>
 bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>www.evilcorp.com<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>http<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>web.spider_distance<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">3</span><span style="color: #6E7681"> </span>web.spider_depth<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">5</span>
 </code></pre></div>
-<h3 id="exclude-cdns-from-port-scan">Exclude CDNs from Port Scan</h3>
-<p>Use <code>--exclude-cdn</code> to filter out unwanted open ports from CDNs and WAFs, e.g. Cloudflare. You can also customize the criteria by setting <code>modules.portfilter.cdn_tags</code>. By default, only open ports with <code>cdn-*</code> tags are filtered, but you can include all cloud providers by setting <code>cdn_tags</code> to <code>cdn,cloud</code>:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>--exclude-cdn<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.portfilter.cdn_tags<span style="color: #FF7B72; font-weight: bold">=</span>cdn,cloud
+<h3 id="cdnwaf-port-filtering">CDN/WAF Port Filtering</h3>
+<p>CDNs and WAFs like Cloudflare answer on many ports (e.g. 2052-2096, 8080, 8443) for every host behind them. Port sources like <code>shodan_idb</code> and <code>portscan</code> report these as open, but they rarely lead anywhere useful, and probing them wastes a lot of time. By default, BBOT drops open ports and URLs on hosts tagged <code>cdn</code> or <code>waf</code> unless the port is 80 or 443.</p>
+<p>Ports you explicitly target are never filtered. For example, <code>-t www.evilcorp.com:8443</code> keeps that port and anything discovered on it, even if the host is behind a CDN.</p>
+<p>To turn the filter off and keep every port:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>--allow-cdn-ports
 </code></pre></div>
-<p>Additionally, you can customize the allowed ports by setting <code>modules.portscan.allowed_cdn_ports</code>.</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>--exclude-cdn<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.portfilter.allowed_cdn_ports<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">80</span>,443,8443
+<p>You can also customize which tags count as a CDN/WAF, and which ports are allowed on them:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>cdn_port_filter.tags<span style="color: #FF7B72; font-weight: bold">=[</span>cdn,waf,cloud<span style="color: #FF7B72; font-weight: bold">]</span><span style="color: #6E7681"> </span>cdn_port_filter.allowed_ports<span style="color: #FF7B72; font-weight: bold">=[</span><span style="color: #A5D6FF">80</span>,443,8443<span style="color: #FF7B72; font-weight: bold">]</span>
 </code></pre></div>
 <p>Example preset:</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">skip_cdns.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">portfilter</span>
-
-<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">    </span><span style="color: #7EE787">portfilter</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">      </span><span style="color: #7EE787">cdn_tags</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">cdn-,cloud-</span>
-<span style="color: #6E7681">      </span><span style="color: #7EE787">allowed_cdn_ports</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">80,443,8443</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">cdn_ports.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">cdn_port_filter</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #8B949E; font-style: italic"># set to false to keep every port (same as --allow-cdn-ports)</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">enabled</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span>
+<span style="color: #6E7681">    </span><span style="color: #8B949E; font-style: italic"># hosts with any of these tags are considered CDN/WAF hosts</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">tags</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">cdn</span>
+<span style="color: #6E7681">      </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">waf</span>
+<span style="color: #6E7681">    </span><span style="color: #8B949E; font-style: italic"># ports that are still allowed on CDN/WAF hosts</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">allowed_ports</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">80</span>
+<span style="color: #6E7681">      </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">443</span>
+<span style="color: #6E7681">      </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">8443</span>
 </code></pre></div>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>skip_cdns.yml
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>cdn_ports.yml
 </code></pre></div>
 <h3 id="custom-http-proxy">Custom HTTP Proxy</h3>
 <p>Web pentesters may appreciate BBOT's ability to quickly populate Burp Suite site maps for all subdomains in a target. If your scan includes gowitness, this will capture the traffic as if you manually visited each website in your browser -- including auxiliary web resources and javascript API calls. To accomplish this, set the <code>web.http_proxy</code> config option like so:</p>

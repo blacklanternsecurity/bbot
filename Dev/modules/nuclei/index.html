@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.7nzg14hg.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.jwl17bib.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -564,6 +564,15 @@
 <span class="md-ellipsis">
       
         Nuclei pass-through options
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#limiting-templates">
+<span class="md-ellipsis">
+      
+        Limiting templates
       
     </span>
 </a>
@@ -1140,6 +1149,24 @@
 <td></td>
 </tr>
 <tr>
+<td>modules.nuclei.exclude_ids</td>
+<td>str</td>
+<td>Exclude templates with the given IDs</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.nuclei.exclude_severity</td>
+<td>str</td>
+<td>Filter out templates with the given severities</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.nuclei.include_tags</td>
+<td>str</td>
+<td>tags to run even though nuclei excludes them by default (e.g. dos, fuzz, bruteforce)</td>
+<td></td>
+</tr>
+<tr>
 <td>modules.nuclei.mode</td>
 <td>Literal['manual', 'technology', 'severe', 'budget']</td>
 <td>manual | technology | severe | budget. Technology: Only activate based on technology events that match nuclei tags (nuclei -as mode). Manual (DEFAULT): Fully manual settings. Severe: Only critical and high severity templates without intrusive. Budget: Limit Nuclei to a specified number of HTTP requests</td>
@@ -1150,6 +1177,30 @@
 <td>int</td>
 <td>Max time in seconds to spend handling each batch of events</td>
 <td>21600</td>
+</tr>
+<tr>
+<td>modules.nuclei.new_templates</td>
+<td>bool</td>
+<td>Only run templates added in the latest templates release</td>
+<td>False</td>
+</tr>
+<tr>
+<td>modules.nuclei.new_templates_versions</td>
+<td>str</td>
+<td>Only run templates added in the given templates releases, e.g. 'v10.4.8,v10.4.9'</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.nuclei.profile</td>
+<td>str</td>
+<td>nuclei template profile to run (built-in profile id, or path to a profile file)</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.nuclei.protocol_types</td>
+<td>str</td>
+<td>Only run templates of the given protocol types (http, dns, ssl, tcp, javascript, etc.)</td>
+<td></td>
 </tr>
 <tr>
 <td>modules.nuclei.ratelimit</td>
@@ -1179,6 +1230,18 @@
 <td>modules.nuclei.tags</td>
 <td>str</td>
 <td>execute a subset of templates that contain the provided tags</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.nuclei.template_condition</td>
+<td>str</td>
+<td><code>expression to filter templates by, e.g. "epss_score&gt;=0.1 &amp;&amp; max_request&lt;=3"</code></td>
+<td></td>
+</tr>
+<tr>
+<td>modules.nuclei.template_ids</td>
+<td>str</td>
+<td>Only run templates with the given IDs (wildcards allowed)</td>
 <td></td>
 </tr>
 <tr>
@@ -1213,12 +1276,22 @@ As an alternative to the other modes, you can take advantage of Nuclei's "collap
 <p>For only the cost of one (or more) "extra" request(s) per host, it can activate several hundred modules. These are modules which happen to look at a BaseUrl, and typically look for a specific string or other attribute. Nuclei is smart about reusing the request data when it can, and we can use this to our advantage.</p>
 <p>The budget parameter is the # of extra requests per host you are willing to send to "feed" Nuclei templates (defaults to 1).
 For those times when vulnerability scanning isn't the main focus, but you want to look for easy wins.</p>
-<p>Of course, there is a rapidly diminishing return when you set the value to more than a handful. Eventually, this becomes 1 template per 1 budget value increase. However, in the 1-10 range there is a lot of value. This graphic should give you a rough visual idea of this concept.</p>
+<p>To give a sense of scale: against a recent template set, a budget of 1 selects roughly 1,300 templates for about 2 requests per host, and a budget of 10 selects roughly 1,500. There is a rapidly diminishing return past a handful, and eventually this becomes 1 template per 1 budget value increase. However, in the 1-10 range there is a lot of value. This graphic should give you a rough visual idea of this concept.</p>
 <p><img alt="Nuclei Budget Mode" src="https://github.com/blacklanternsecurity/bbot/assets/24899338/08a3429c-5a73-437b-84de-27c07d85a529"/></p>
+<p>Note that Nuclei's own <code>metadata.max-request</code> field is <em>not</em> the same thing, and <code>template_condition</code> is not a substitute for budget mode. <code>max-request</code> caps the requests made by each individual template, whereas budget mode caps the total requests made against each host by selecting templates that all land on the same handful of URLs.</p>
 <h3 id="nuclei-pass-through-options">Nuclei pass-through options</h3>
 <p>Most of the rest of the options are usually passed straight through to Nuclei when its executed. You can do things like set specific <strong>tags</strong> to include, (or exclude with <strong>etags</strong>), exactly how you'd do with Nuclei directly. You can also limit the templates with <strong>severity</strong>.</p>
 <p>The <strong>ratelimit</strong> and <strong>concurrency</strong> settings default to the same defaults that Nuclei does. These are relatively sane settings, but if you are in a sensitive environment it can certainly help to turn them down.</p>
 <p><strong>templates</strong> will allow you to set your own templates directory. This can be very useful if you have your own custom templates that you want to use with BBOT.</p>
+<h3 id="limiting-templates">Limiting templates</h3>
+<p>These options stack on top of whichever <strong>mode</strong> you've chosen, and on top of each other. Nuclei intersects them, so combining two filters gives you the templates that satisfy both.</p>
+<p><strong>exclude_severity</strong> is the counterpart to <strong>severity</strong>. Dropping <code>info</code> on its own removes about 5,000 templates, most of which are detections rather than vulnerabilities.</p>
+<p><strong>template_ids</strong> and <strong>exclude_ids</strong> select or drop templates by ID, and <strong>template_ids</strong> accepts wildcards (e.g. <code>CVE-2024-*</code>). <strong>exclude_ids</strong> is the clean way to suppress a template that false-positives against a particular client, without maintaining your own copy of the template tree.</p>
+<p><strong>protocol_types</strong> restricts the scan to given protocols: <code>http</code>, <code>dns</code>, <code>ssl</code>, <code>tcp</code>, <code>javascript</code>, <code>code</code>, <code>file</code>, <code>headless</code>, <code>websocket</code>, <code>whois</code>, <code>workflow</code>.</p>
+<p><strong>include_tags</strong> force-runs tags that Nuclei excludes by default. Nuclei ships an ignore list (<code>dos</code>, <code>local</code>, <code>fuzz</code>, <code>bruteforce</code>, <code>txt-service</code>) that applies before any option here, and this is the only way to reach those templates. Be careful with <code>fuzz</code> in particular: those templates carry very large payload lists and account for the overwhelming majority of Nuclei's potential request volume.</p>
+<p><strong>profile</strong> selects a Nuclei template profile, which is a curated bundle of filter settings. You can give it the id of one of the profiles that ships with nuclei-templates (<code>recommended</code>, <code>pentest</code>, <code>cves</code>, <code>kev</code>, <code>misconfigurations</code>, <code>wordpress</code>, and more -- run <code>nuclei -tpl</code> for the full list), or a path to a profile file of your own. The <code>recommended</code> profile is a good default: alongside a severity floor it carries a maintained list of templates known to produce false positives, and that list updates along with the templates.</p>
+<p><strong>template_condition</strong> is passed to Nuclei's <code>-template-condition</code> and filters on the template's metadata. Useful fields include <code>severity</code>, <code>max_request</code>, <code>epss_score</code>, <code>epss_percentile</code>, <code>cvss_score</code>, <code>cve_id</code>, <code>cwe_id</code>, <code>cpe</code>, <code>vendor</code>, <code>product</code> and <code>tags</code>. For example, <code>epss_score &gt;= 0.1 || contains(tags, 'kev')</code> limits the scan to vulnerabilities with real-world exploitation evidence. Be aware that Nuclei treats an unrecognized field name as a non-match rather than an error, so BBOT counts the matching templates at startup and refuses to scan if the expression matches nothing.</p>
+<p><strong>new_templates</strong> limits the scan to templates added in the most recent nuclei-templates release, which is typically 100-130 templates. <strong>new_templates_versions</strong> does the same for specific releases, e.g. <code>v10.4.8,v10.4.9</code>. These are handy for re-scanning a target you've already covered, to see only what's new.</p>
 <h3 id="example-commands">Example Commands</h3>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># Scan a SINGLE target with a basic port scan and web modules</span>
 bbot<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>web<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>portscan<span style="color: #6E7681"> </span>nuclei<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>app.evilcorp.com
