@@ -343,13 +343,37 @@ class ModuleLoader:
             log.warning(f'Failed to add custom module dir "{module_dir}", please make sure it exists')
             return
         new_module_dirs = {d for d in self.get_recursive_dirs(module_dir) if d not in self._module_dirs}
+        vetted = None
         if module_dir != self.default_module_dir.resolve():
-            # not resolved: a module is named after the file in the folder, even if that file is a symlink
-            module_files = sorted(f for d in new_module_dirs for f in list_files(d, filter=self.file_filter))
+            # a custom dir named "modules" takes the built-in package's namespace (bbot.modules), so its
+            # files would overwrite built-in package entries in sys.modules; refuse it
+            for d in new_module_dirs:
+                if d.name == "modules":
+                    raise BBOTError(
+                        f'Refusing to load custom modules from "{d}": a custom module directory can\'t be '
+                        'named "modules" (it collides with BBOT\'s built-in module package). Rename it.'
+                    )
+            # vet exactly what will be loaded, resolving links once, here: a list of
+            # (containing dir, module name from the link, resolved target). preload() is handed this
+            # same list so it loads precisely what was checked and shown, never a fresh listing.
+            vetted = []
+            for d in sorted(new_module_dirs):
+                # a broken .py symlink is skipped by list_files; refuse it so a target created later
+                # (between this check and load) can't slip in unchecked
+                for entry in sorted(d.iterdir()):
+                    if entry.is_symlink() and entry.suffix.lower() == ".py" and not entry.exists():
+                        raise BBOTError(
+                            f'Refusing to load custom modules from "{d}": "{entry.name}" is a broken symlink.'
+                        )
+                for f in sorted(list_files(d, filter=self.file_filter)):
+                    # f.stem is the link's own name (the module name); f.resolve() is the target we'll load
+                    vetted.append((d, f.stem, f.resolve()))
+            module_files = [path for (_, _, path) in vetted]
             # custom modules are code: refuse anything every user on the system could modify, and point out
             # anything a specific other user could (common with sudo, or folders mounted into the docker image)
             notes = []
             if os.name == "posix":
+                import grp
                 import pwd
 
                 def user_name(uid):
@@ -357,16 +381,18 @@ class ModuleLoader:
                         return pwd.getpwuid(uid).pw_name
                     return f"uid {uid}"
 
+                def group_name(gid):
+                    with suppress(KeyError):
+                        return grp.getgrgid(gid).gr_name
+                    return f"gid {gid}"
+
                 uid = os.getuid()
                 other_owners = set()
-                # everything that decides which code runs: the folders, the module files (following symlinks),
-                # the bytecode Python caches for them, and every folder above any of those
-                checked = set(new_module_dirs) | {f.resolve() for f in module_files}
-                for d in new_module_dirs:
-                    pycache = d / "__pycache__"
-                    if pycache.is_dir():
-                        checked.add(pycache.resolve())
-                        checked.update(p.resolve() for p in pycache.iterdir())
+                writable_groups = set()
+                # everything that decides which code runs: the folders, the module files (resolved through
+                # symlinks), and every folder above any of those. custom modules load from source with a
+                # hash check, so cached bytecode is never read and __pycache__ needs no check here.
+                checked = set(new_module_dirs) | set(module_files)
                 parents = {parent for path in checked for parent in path.parents} - checked
                 for path in sorted(checked | parents):
                     st = path.stat()
@@ -380,20 +406,27 @@ class ModuleLoader:
                         )
                     if st.st_uid not in (uid, 0):
                         other_owners.add(st.st_uid)
+                    # group-writable isn't refused (a per-user group is fine), but shared groups like macOS's
+                    # "staff" mean every local user can write. only flag the module dirs/files themselves,
+                    # not ancestors, since group-writable parents (e.g. /tmp) are common and not the concern.
+                    if path in checked and st.st_mode & stat.S_IWGRP:
+                        writable_groups.add(st.st_gid)
                 for owner in sorted(other_owners):
                     notes.append(
                         f'Owned by "{user_name(owner)}", not by you ("{user_name(uid)}"). That user can change this code.'
                     )
+                for gid in sorted(writable_groups):
+                    notes.append(f'Writable by group "{group_name(gid)}"; anyone in that group can change this code.')
             # a custom module can never take over an existing module's name, so it can't silently replace it
             seen = {}
-            for f in module_files:
-                existing = self.__preloaded.get(f.stem, {}).get("path") or seen.get(f.stem)
+            for _, name, path in vetted:
+                existing = self.__preloaded.get(name, {}).get("path") or seen.get(name)
                 if existing:
                     raise BBOTError(
-                        f'Refusing to load custom module "{f}": a module named "{f.stem}" already exists at '
+                        f'Refusing to load custom module "{path}": a module named "{name}" already exists at '
                         f'"{existing}". Custom modules can\'t replace existing ones; give it a different name.'
                     )
-                seen[f.stem] = f
+                seen[name] = path
             module_names = sorted(seen)
             if self.confirm_module_dir is None:
                 log.warning(
@@ -404,7 +437,7 @@ class ModuleLoader:
             elif not self.confirm_module_dir(module_dir, module_names, notes):
                 raise BBOTError(f'Custom module dir "{module_dir}" was not trusted; refusing to load it')
         self._module_dirs.update(new_module_dirs)
-        self.preload(module_dirs=new_module_dirs)
+        self.preload(module_dirs=new_module_dirs, vetted=vetted)
 
     def file_filter(self, file):
         # name and suffix come from the file in the folder, which is what preload() names the module after
@@ -415,7 +448,7 @@ class ModuleLoader:
                 return False
         return True
 
-    def preload(self, module_dirs=None):
+    def preload(self, module_dirs=None, vetted=None):
         """Preloads all BBOT modules.
 
         This function recursively iterates through each file in the module directories
@@ -447,10 +480,13 @@ class ModuleLoader:
 
             log.debug(f"Preloading modules from {module_dir}")
             new_modules = True
-            for module_file in list_files(module_dir, filter=self.file_filter):
-                module_name = module_file.stem
-                module_file = module_file.resolve()
-
+            # when a caller vetted the folder (add_module_dir), load exactly the (name, resolved path)
+            # pairs it checked and showed in the prompt, instead of re-listing and re-resolving here
+            if vetted is not None:
+                file_entries = [(name, path) for (d, name, path) in vetted if d == module_dir]
+            else:
+                file_entries = [(f.stem, f.resolve()) for f in list_files(module_dir, filter=self.file_filter)]
+            for module_name, module_file in file_entries:
                 # try to load from cache
                 module_cache_key = (PRELOAD_CACHE_VERSION, str(module_file), tuple(module_file.stat()))
                 preloaded = self.preload_cache.get(module_name, {})
@@ -508,6 +544,9 @@ class ModuleLoader:
                 flags = preloaded.get("flags", [])
                 self.flag_choices.update(set(flags))
 
+                # custom modules (loaded from a vetted dir) are imported from source with a hash check,
+                # never from cached bytecode; mark them so load_module takes that path
+                preloaded["custom"] = vetted is not None
                 self.__preloaded[module_name] = preloaded
                 self._configs[module_name] = dict(preloaded.get("config", {}))
 
@@ -958,10 +997,27 @@ class ModuleLoader:
             module_path = preloaded["cache_key"][0]
         full_namespace = f"{namespace}.{module_name}"
 
-        spec = importlib.util.spec_from_file_location(full_namespace, module_path)
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[full_namespace] = module
-        spec.loader.exec_module(module)
+        if preloaded.get("custom"):
+            # custom modules are imported from source and verified against the hash recorded when the
+            # folder was vetted, so cached bytecode (which Python would read from __pycache__) never runs
+            import types
+
+            with open(module_path) as f:
+                source = f.read()
+            if sha1(source).hexdigest() != preloaded.get("hash"):
+                raise BBOTError(
+                    f'Refusing to load custom module "{module_name}": its source at "{module_path}" '
+                    "changed since it was vetted."
+                )
+            module = types.ModuleType(full_namespace)
+            module.__file__ = str(module_path)
+            sys.modules[full_namespace] = module
+            exec(compile(source, str(module_path), "exec"), module.__dict__)
+        else:
+            spec = importlib.util.spec_from_file_location(full_namespace, module_path)
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[full_namespace] = module
+            spec.loader.exec_module(module)
 
         # for every top-level variable in the .py file
         for variable in module.__dict__.keys():

@@ -1630,26 +1630,14 @@ def test_module_dir_refuses_world_writable(tmp_path):
     assert "permmod" in loader.preloaded()
 
 
-def test_module_dir_refuses_world_writable_pycache_and_parents(tmp_path):
+def test_module_dir_refuses_world_writable_parents(tmp_path):
     from bbot.core.modules import ModuleLoader
 
     loader = ModuleLoader()
     shared = tmp_path / "shared"
     mod_dir = shared / "mods"
-    pycache = mod_dir / "__pycache__"
-    pycache.mkdir(parents=True)
+    mod_dir.mkdir(parents=True)
     write_custom_module(mod_dir, "cachemod")
-
-    # Python runs cached bytecode from __pycache__, so it's checked like the modules themselves
-    pycache.chmod(0o777)
-    with pytest.raises(BBOTError, match=r"__pycache__\": directory is world-writable"):
-        loader.add_module_dir(mod_dir)
-    pycache.chmod(0o755)
-    (pycache / "cachemod.cpython-311.pyc").write_bytes(b"")
-    (pycache / "cachemod.cpython-311.pyc").chmod(0o666)
-    with pytest.raises(BBOTError, match=r"cachemod\.cpython-311\.pyc\": file is world-writable"):
-        loader.add_module_dir(mod_dir)
-    (pycache / "cachemod.cpython-311.pyc").unlink()
 
     # a world-writable parent folder lets anyone swap the module folder out
     shared.chmod(0o777)
@@ -1661,6 +1649,33 @@ def test_module_dir_refuses_world_writable_pycache_and_parents(tmp_path):
     shared.chmod(0o1777)
     loader.add_module_dir(mod_dir)
     assert "cachemod" in loader.preloaded()
+
+
+def test_custom_module_loads_from_source_not_bytecode(tmp_path):
+    """Custom modules import from source verified against the vetted hash, so planted
+    bytecode is never run and a post-vet source swap is refused at load."""
+    from bbot.core.modules import ModuleLoader
+
+    loader = ModuleLoader()
+    mod_dir = (tmp_path / "mods").resolve()
+    mod_dir.mkdir()
+    write_custom_module(mod_dir, "srcmod")
+    loader.add_module_dir(mod_dir)
+    assert loader.preloaded()["srcmod"]["custom"] is True
+
+    # loads normally from the vetted source
+    assert loader.load_module("srcmod").__name__ == "srcmod"
+
+    # a planted .pyc is ignored (source is compiled directly), so loading still succeeds
+    pycache = mod_dir / "__pycache__"
+    pycache.mkdir(exist_ok=True)
+    (pycache / "srcmod.cpython-311.pyc").write_bytes(b"garbage")
+    assert loader.load_module("srcmod").__name__ == "srcmod"
+
+    # swapping the source after it was vetted is refused (hash mismatch)
+    (mod_dir / "srcmod.py").write_text((mod_dir / "srcmod.py").read_text() + "\n# tampered\n")
+    with pytest.raises(BBOTError, match="changed since it was vetted"):
+        loader.load_module("srcmod")
 
 
 def test_module_dir_symlinked_modules(tmp_path):
@@ -1703,6 +1718,74 @@ def test_module_dir_symlinked_modules(tmp_path):
     assert "linkmod" in loader.preloaded()
 
 
+def test_module_dir_refuses_name_modules(tmp_path):
+    from bbot.core.modules import ModuleLoader
+
+    loader = ModuleLoader()
+    # a top-level custom dir named "modules" collides with the built-in package namespace
+    mod_dir = tmp_path / "modules"
+    mod_dir.mkdir()
+    write_custom_module(mod_dir, "topmod")
+    with pytest.raises(BBOTError, match=r'named "modules"'):
+        loader.add_module_dir(mod_dir)
+    assert "topmod" not in loader.preloaded()
+
+    # so does a subdir named "modules" inside an otherwise fine custom dir
+    outer = tmp_path / "mods"
+    inner = outer / "modules"
+    inner.mkdir(parents=True)
+    write_custom_module(inner, "submod")
+    with pytest.raises(BBOTError, match=r'named "modules"'):
+        loader.add_module_dir(outer)
+    assert "submod" not in loader.preloaded()
+
+
+def test_module_dir_refuses_dangling_symlink(tmp_path):
+    from bbot.core.modules import ModuleLoader
+
+    loader = ModuleLoader()
+    mod_dir = tmp_path / "mods"
+    mod_dir.mkdir()
+    (mod_dir / "late.py").symlink_to(tmp_path / "does_not_exist.py")
+    with pytest.raises(BBOTError, match="broken symlink"):
+        loader.add_module_dir(mod_dir)
+    assert "late" not in loader.preloaded()
+
+
+def test_preload_loads_only_vetted_entries(tmp_path):
+    """preload() loads exactly the (name, path) entries it is handed, not a fresh listing
+    of the folder, so a file appearing after the folder was vetted is not loaded."""
+    from bbot.core.modules import ModuleLoader
+
+    loader = ModuleLoader()
+    mod_dir = (tmp_path / "mods").resolve()
+    mod_dir.mkdir()
+    write_custom_module(mod_dir, "vetted_mod")
+    write_custom_module(mod_dir, "unvetted_mod")
+
+    loader._module_dirs.add(mod_dir)
+    loader.preload(module_dirs={mod_dir}, vetted=[(mod_dir, "vetted_mod", (mod_dir / "vetted_mod.py").resolve())])
+    assert "vetted_mod" in loader.preloaded()
+    assert "unvetted_mod" not in loader.preloaded()
+
+
+def test_module_dir_group_writable_is_noted(tmp_path):
+    from bbot.core.modules import ModuleLoader
+
+    loader = ModuleLoader()
+    mod_dir = tmp_path / "mods"
+    mod_dir.mkdir()
+    write_custom_module(mod_dir, "groupmod")
+
+    # a group-writable module file is not refused, but the trust prompt points it out
+    (mod_dir / "groupmod.py").chmod(0o664)
+    asked = []
+    loader.confirm_module_dir = lambda module_dir, module_names, notes: asked.append(notes) or True
+    loader.add_module_dir(mod_dir)
+    assert any("Writable by group" in note for note in asked[-1])
+    assert "groupmod" in loader.preloaded()
+
+
 def test_module_dir_other_owner_is_noted(tmp_path, monkeypatch, caplog):
     from bbot.core.modules import ModuleLoader
 
@@ -1714,6 +1797,9 @@ def test_module_dir_other_owner_is_noted(tmp_path, monkeypatch, caplog):
     mod_dir = tmp_path / "mods"
     mod_dir.mkdir()
     write_custom_module(mod_dir, "ownermod")
+    # not group-writable, so this exercises only the other-owner note
+    mod_dir.chmod(0o755)
+    (mod_dir / "ownermod.py").chmod(0o644)
 
     # pretend to be a different user (like root under sudo), so the folder belongs to someone else
     real_uid = os.getuid()
