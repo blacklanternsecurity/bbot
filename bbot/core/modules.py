@@ -86,7 +86,7 @@ def _exec_config_class(source: str, module_name: str):
     """
     from typing import Annotated, Any, Dict, List, Literal, Optional, Set, Tuple, Union
     from pydantic import AfterValidator, BeforeValidator, field_validator, model_validator
-    from bbot.core.config.models import BaseModuleConfig, ConfidenceLiteral, Field, SeverityLiteral
+    from bbot.core.config.models import BaseModuleConfig, ConfidenceLiteral, Field, SeverityLiteral, VersionStr
 
     namespace: dict = {
         "Annotated": Annotated,
@@ -106,6 +106,7 @@ def _exec_config_class(source: str, module_name: str):
         "BaseModuleConfig": BaseModuleConfig,
         "SeverityLiteral": SeverityLiteral,
         "ConfidenceLiteral": ConfidenceLiteral,
+        "VersionStr": VersionStr,
     }
     try:
         exec(source, namespace)
@@ -114,7 +115,7 @@ def _exec_config_class(source: str, module_name: str):
             f'module "{module_name}" has an invalid Config class ({type(e).__name__}: {e}). '
             "Config blocks may only reference: Optional, Union, Literal, Any, List, Dict, Tuple, Set, "
             "Field, field_validator, model_validator, BeforeValidator, AfterValidator, BaseModuleConfig, "
-            "and Python builtins."
+            "SeverityLiteral, ConfidenceLiteral, VersionStr, and Python builtins."
         ) from e
     cfg = namespace.get("Config")
     if cfg is None:

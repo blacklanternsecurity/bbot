@@ -8,6 +8,14 @@ def test_validate_preset_valid():
     assert errs == []
 
 
+def test_module_version_config_validation():
+    """Module `version` options accept version-like strings only."""
+    assert validate_preset({"modules": ["retirejs"], "config": {"modules": {"retirejs": {"version": "5.4.0"}}}}) == []
+    errs = validate_preset({"modules": ["retirejs"], "config": {"modules": {"retirejs": {"version": "5.3.0 oops #"}}}})
+    assert len(errs) >= 1
+    assert any("version" in e.message for e in errs)
+
+
 def test_validate_preset_typo_top_level():
     errs = validate_preset({"modlues": ["nuclei"]})
     assert len(errs) == 1

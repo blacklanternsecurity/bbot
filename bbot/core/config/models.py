@@ -14,9 +14,10 @@ merged dict straight from YAML, and these models only ever validate shape.
 from __future__ import annotations
 
 import os
+import re
 from typing import Annotated, Any, Literal, Optional
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, field_validator
+from pydantic import AfterValidator, BaseModel, BeforeValidator, ConfigDict, field_validator
 from pydantic import Field as _PydanticField
 from pydantic_core import PydanticUndefined
 
@@ -37,6 +38,20 @@ SeverityLiteral = Annotated[Literal["INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
 ConfidenceLiteral = Annotated[
     Literal["UNKNOWN", "LOW", "MEDIUM", "HIGH", "CONFIRMED"], BeforeValidator(_normalize_upper)
 ]
+
+# Version strings are interpolated into a module's dependency install steps (download URLs,
+# shell commands), so they're restricted to characters that appear in real version tags.
+_VERSION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]*$")
+
+
+def _validate_version(v):
+    if isinstance(v, str) and not _VERSION_RE.match(v):
+        raise ValueError(f'invalid version string: "{v}"')
+    return v
+
+
+# Type for module `version` options, used across tool-wrapping modules.
+VersionStr = Annotated[str, AfterValidator(_validate_version)]
 
 
 def Field(
@@ -536,6 +551,7 @@ __all__ = [
     "PresetSchema",
     "ScopeConfig",
     "SeverityLiteral",
+    "VersionStr",
     "WebConfig",
     "coerce_config",
     "coerce_value",

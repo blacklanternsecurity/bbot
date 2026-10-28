@@ -965,6 +965,31 @@ conditions:
         await scan._prep()
 
 
+def test_conditions_run_in_immutable_sandbox():
+    """Conditions evaluate in an immutable Jinja sandbox: they may read the preset
+    and config and call warn()/abort(), but may not mutate objects."""
+    from jinja2.exceptions import SecurityError
+    from bbot.scanner.preset.conditions import ConditionEvaluator
+
+    # reading config and calling abort() works
+    preset = Preset(
+        modules=["robots"],
+        conditions=["{% if config.web.spider_distance == 0 %}{{ abort('stop') }}{% endif %}"],
+    )
+    preset.validate()
+    with pytest.raises(PresetAbortError):
+        ConditionEvaluator(preset.bake()).evaluate()
+
+    # mutating an object is refused
+    preset = Preset(
+        modules=["robots"],
+        conditions=["{{ preset.module_loader.preloaded()['robots']['deps']['shell'].append('x') }}"],
+    )
+    preset.validate()
+    with pytest.raises(SecurityError):
+        ConditionEvaluator(preset.bake()).evaluate()
+
+
 async def test_preset_module_disablement(clean_default_config):
     # internal module disablement
     preset = Preset().validate().bake()

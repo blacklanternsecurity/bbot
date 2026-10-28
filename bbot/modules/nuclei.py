@@ -10,7 +10,7 @@ from collections import Counter
 from pydantic import field_validator
 
 from bbot.modules.base import BaseModule
-from bbot.core.config.models import BaseModuleConfig, Field
+from bbot.core.config.models import BaseModuleConfig, Field, VersionStr
 
 
 class nuclei(BaseModule):
@@ -24,7 +24,7 @@ class nuclei(BaseModule):
     }
 
     class Config(BaseModuleConfig):
-        version: str = Field("3.11.1", description="nuclei version")
+        version: VersionStr = Field("3.11.1", description="nuclei version")
         tags: str = Field("", description="execute a subset of templates that contain the provided tags")
         templates: str = Field("", description="template or template directory paths to include in the scan")
         severity: str = Field("", description="Filter based on severity field available in the template.")

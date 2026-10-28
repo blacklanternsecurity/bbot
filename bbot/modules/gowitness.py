@@ -7,7 +7,7 @@ import platform
 from pathlib import Path
 
 from bbot.modules.base import BaseModule
-from bbot.core.config.models import BaseModuleConfig, Field
+from bbot.core.config.models import BaseModuleConfig, Field, VersionStr
 
 
 class gowitness(BaseModule):
@@ -17,7 +17,7 @@ class gowitness(BaseModule):
     meta = {"description": "Take screenshots of webpages", "created_date": "2022-07-08", "author": "@TheTechromancer"}
 
     class Config(BaseModuleConfig):
-        version: str = Field("3.1.1", description="Gowitness version")
+        version: VersionStr = Field("3.1.1", description="Gowitness version")
         threads: int = Field(0, description="How many gowitness threads to spawn (default is number of CPUs x 2)")
         timeout: int = Field(10, description="Preflight check timeout")
         resolution_x: int = Field(1440, description="Screenshot resolution x")

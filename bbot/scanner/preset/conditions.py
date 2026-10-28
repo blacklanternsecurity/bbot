@@ -41,11 +41,11 @@ class ConditionEvaluator:
 
     @property
     def jinja_env(self):
-        from jinja2.sandbox import SandboxedEnvironment
+        from jinja2.sandbox import ImmutableSandboxedEnvironment
 
         global JINJA_ENV
         if JINJA_ENV is None:
-            JINJA_ENV = SandboxedEnvironment()
+            JINJA_ENV = ImmutableSandboxedEnvironment()
         return JINJA_ENV
 
     def check_condition(self, condition_str, context):
