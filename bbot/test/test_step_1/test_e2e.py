@@ -8,6 +8,7 @@ Tests:
 """
 
 import json
+import shutil
 import subprocess
 import sys
 import os
@@ -32,15 +33,22 @@ def _find_repo_root():
 
 @pytest.fixture(scope="module")
 def bbot_venv(tmp_path_factory):
-    """Create a fresh virtualenv and pip-install bbot from the local checkout."""
+    """Create a fresh virtualenv and install bbot from the local checkout."""
     venv_dir = tmp_path_factory.mktemp("bbot_e2e_venv")
     repo_root = _find_repo_root()
 
-    subprocess.check_call([sys.executable, "-m", "venv", str(venv_dir)])
-    pip = str(venv_dir / "bin" / "pip")
-    bbot = str(venv_dir / "bin" / "bbot")
+    # uv reuses its shared wheel cache, which CI already warmed via `uv sync`
+    uv = shutil.which("uv")
+    if uv:
+        subprocess.check_call([uv, "venv", str(venv_dir), "--python", sys.executable, "--seed", "--quiet"])
+        venv_python = str(venv_dir / "bin" / "python")
+        subprocess.check_call([uv, "pip", "install", "-e", repo_root, "--python", venv_python, "--quiet"], timeout=300)
+    else:
+        subprocess.check_call([sys.executable, "-m", "venv", str(venv_dir)])
+        pip = str(venv_dir / "bin" / "pip")
+        subprocess.check_call([pip, "install", "-e", repo_root, "--quiet"], timeout=300)
 
-    subprocess.check_call([pip, "install", "-e", repo_root, "--quiet"], timeout=300)
+    bbot = str(venv_dir / "bin" / "bbot")
     assert os.path.isfile(bbot), f"bbot CLI not found at {bbot}"
     return bbot
 
@@ -106,6 +114,9 @@ def run_bbot(bbot_bin, *args, timeout=180):
     )
 
 
+# bbot_venv is module-scoped but xdist scopes fixtures per worker, so splitting
+# these across workers rebuilds the venv once per worker
+@pytest.mark.xdist_group("e2e_venv")
 class TestE2E:
     def test_install_and_help(self, bbot_venv):
         """bbot installs from local source and -h works."""
