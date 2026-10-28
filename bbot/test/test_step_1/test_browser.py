@@ -756,3 +756,8 @@ async def test_browser_hint(bbot_scanner, bbot_httpserver, caplog):
     scan = bbot_scanner("127.0.0.1", config={"web": {"enable_browser": True, "browser_fallback": False}})
     scan.helpers.web.unopened_urls.add(urls[0])
     assert scan.helpers.web.browser_hint() is None
+
+    # one URL reads as one
+    scan = bbot_scanner("127.0.0.1")
+    scan.helpers.web.unopened_urls.add(urls[0])
+    assert scan.helpers.web.browser_hint().startswith("1 URL was skipped")

@@ -866,8 +866,10 @@ class WebHelper:
         # with the browser on, the fallback was turned off on purpose
         if not self.unopened_urls or self.web_config.get("enable_browser", False):
             return None
+        count = len(self.unopened_urls)
+        urls_were = "URL was" if count == 1 else "URLs were"
         return (
-            f"{len(self.unopened_urls):,} URLs were skipped as they were deemed unopenable without a browser "
+            f"{count:,} {urls_were} skipped as they were deemed unopenable without a browser "
             f"(WAF challenges). Consider re-running with -c web.enable_browser=true"
         )
 
