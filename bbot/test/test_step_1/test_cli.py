@@ -1040,7 +1040,7 @@ async def test_cli_console_control_chars(monkeypatch, capsys):
 
 
 @pytest.mark.asyncio
-async def test_cli_reset_config(monkeypatch, caplog, tmp_path):
+async def test_cli_reset_config(monkeypatch, caplog, capsys, tmp_path):
     from bbot.core import CORE
 
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
@@ -1059,9 +1059,9 @@ async def test_cli_reset_config(monkeypatch, caplog, tmp_path):
 
     # without --yes and no TTY, it refuses and changes nothing
     monkeypatch.setattr("sys.argv", ["bbot", "--reset-config"])
-    caplog.clear()
+    capsys.readouterr()
     await cli._main()
-    assert "Refusing to reset config without confirmation" in caplog.text
+    assert "Refusing to reset config without confirmation" in capsys.readouterr().err
     assert not (tmp_path / "bbot.yml.bak").exists()
     assert config_file.read_text() == "scope:\n  strict: false\n"
 
@@ -1081,6 +1081,17 @@ async def test_cli_reset_config(monkeypatch, caplog, tmp_path):
     await cli._main()
     assert (tmp_path / "secrets.yml.bak").is_file()
     assert stat.S_IMODE(secrets_file.stat().st_mode) & 0o077 == 0
+
+    # --silent doesn't confirm it either, even at a terminal, and the error still shows
+    config_file.write_text("scope:\n  strict: false\n")
+    monkeypatch.setattr(CORE.logger, "log_level", CORE.logger.log_level)  # -S silences the shared logger
+    monkeypatch.setattr(cli, "stdin_is_tty", lambda: True)
+    monkeypatch.setattr("builtins.input", lambda prompt="": pytest.fail("prompted under --silent"))
+    monkeypatch.setattr("sys.argv", ["bbot", "--reset-config", "-S"])
+    capsys.readouterr()
+    await cli._main()
+    assert "Refusing to reset config without confirmation (--silent hides the prompt)" in capsys.readouterr().err
+    assert config_file.read_text() == "scope:\n  strict: false\n"
 
 
 @pytest.mark.asyncio
@@ -1136,6 +1147,38 @@ async def test_cli_reset_config_hint_skips_cli_typo(monkeypatch, caplog, tmp_pat
 
 
 @pytest.mark.asyncio
+async def test_cli_silent_is_not_yes(monkeypatch, capsys):
+    from bbot.core import CORE
+    from bbot.logger import log_to_stderr
+
+    monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
+    monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
+    monkeypatch.setattr(CORE.logger, "log_level", CORE.logger.log_level)  # -S silences the shared logger
+
+    # the "scan ready" pause is skipped under --silent, since it couldn't be seen
+    # (a real pipe as stdin, since an interactive scan also listens for keyboard input)
+    stdin_r, stdin_w = os.pipe()
+    monkeypatch.setattr(sys, "stdin", os.fdopen(stdin_r))
+    monkeypatch.setattr(cli, "stdin_is_tty", lambda: True)
+    monkeypatch.setattr("builtins.input", lambda prompt="": pytest.fail("prompted under --silent"))
+    monkeypatch.setattr("sys.argv", ["bbot", "-t", "127.0.0.1", "-S"])
+    assert await cli._main() is True
+    os.close(stdin_w)
+
+    # --silent hides direct stderr messages, except errors
+    capsys.readouterr()
+    log_to_stderr("just info", level="INFO")
+    log_to_stderr("an error", level="ERROR")
+    err = capsys.readouterr().err
+    assert "just info" not in err and "an error" in err
+
+    # -s is --seeds, not --silent
+    monkeypatch.setattr("sys.argv", ["bbot", "-s", "127.0.0.1"])
+    log_to_stderr("just info", level="INFO")
+    assert "just info" in capsys.readouterr().err
+
+
+@pytest.mark.asyncio
 async def test_cli_custom_module_dir_trust(monkeypatch, capsys, tmp_path):
     from bbot.core.modules import MODULE_LOADER
 
@@ -1179,6 +1222,18 @@ async def test_cli_custom_module_dir_trust(monkeypatch, capsys, tmp_path):
     await cli._main()
     capsys.readouterr()
     assert prompts == ["Do you trust this folder? [y/N] "]
+    assert "clicanary" not in MODULE_LOADER.preloaded()
+    assert not canary.exists()
+
+    # --silent doesn't trust it: the prompt can't be shown, so it's refused, with a visible error
+    monkeypatch.setattr(MODULE_LOADER.core.logger, "log_level", MODULE_LOADER.core.logger.log_level)
+    prompts.clear()
+    monkeypatch.setattr("sys.argv", ["bbot", "-p", str(preset_file), "--dry-run", "-S"])
+    await cli._main()
+    stderr = capsys.readouterr().err
+    assert prompts == []
+    assert "Refusing to load custom modules without confirmation (--silent hides the prompt)" in stderr
+    assert "About to load and validate custom modules" not in stderr
     assert "clicanary" not in MODULE_LOADER.preloaded()
     assert not canary.exists()
 

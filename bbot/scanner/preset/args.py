@@ -460,9 +460,6 @@ class BBOTArgs:
         return p
 
     def sanitize_args(self):
-        # silent implies -y
-        if self.parsed.silent:
-            self.parsed.yes = True
         # chain_lists allows either comma-separated or space-separated lists
         self.parsed.modules = chain_lists(self.parsed.modules)
         self.parsed.exclude_modules = chain_lists(self.parsed.exclude_modules)

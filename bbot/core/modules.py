@@ -343,7 +343,8 @@ class ModuleLoader:
             return
         new_module_dirs = {d for d in self.get_recursive_dirs(module_dir) if d not in self._module_dirs}
         if module_dir != self.default_module_dir.resolve():
-            module_files = sorted(f.resolve() for d in new_module_dirs for f in list_files(d, filter=self.file_filter))
+            # not resolved: a module is named after the file in the folder, even if that file is a symlink
+            module_files = sorted(f for d in new_module_dirs for f in list_files(d, filter=self.file_filter))
             # custom modules are code: refuse anything every user on the system could modify, and point out
             # anything a specific other user could (common with sudo, or folders mounted into the docker image)
             notes = []
@@ -357,9 +358,19 @@ class ModuleLoader:
 
                 uid = os.getuid()
                 other_owners = set()
-                for path in sorted(new_module_dirs) + module_files:
+                # everything that decides which code runs: the folders, the module files (following symlinks),
+                # the bytecode Python caches for them, and every folder above any of those
+                checked = set(new_module_dirs) | {f.resolve() for f in module_files}
+                for d in new_module_dirs:
+                    pycache = d / "__pycache__"
+                    if pycache.is_dir():
+                        checked.add(pycache.resolve())
+                        checked.update(p.resolve() for p in pycache.iterdir())
+                parents = {parent for path in checked for parent in path.parents} - checked
+                for path in sorted(checked | parents):
                     st = path.stat()
-                    if st.st_mode & stat.S_IWOTH:
+                    # a sticky parent like /tmp is fine, since nobody else can rename or replace what's inside it
+                    if st.st_mode & stat.S_IWOTH and not (path in parents and st.st_mode & stat.S_ISVTX):
                         kind = "directory" if path.is_dir() else "file"
                         raise BBOTError(
                             f'Refusing to load custom modules from "{path}": {kind} is world-writable '
@@ -395,11 +406,13 @@ class ModuleLoader:
         self.preload(module_dirs=new_module_dirs)
 
     def file_filter(self, file):
-        file = file.resolve()
-        for part in file.parts:
+        # name and suffix come from the file in the folder, which is what preload() names the module after
+        if file.suffix.lower() != ".py" or file.stem in ["base", "__init__"]:
+            return False
+        for part in file.resolve().parts:
             if part.endswith("_submodules") or part == "templates":
                 return False
-        return file.suffix.lower() == ".py" and file.stem not in ["base", "__init__"]
+        return True
 
     def preload(self, module_dirs=None):
         """Preloads all BBOT modules.

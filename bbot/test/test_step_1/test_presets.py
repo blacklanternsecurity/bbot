@@ -1605,6 +1605,79 @@ def test_module_dir_refuses_world_writable(tmp_path):
     assert "permmod" in loader.preloaded()
 
 
+def test_module_dir_refuses_world_writable_pycache_and_parents(tmp_path):
+    from bbot.core.modules import ModuleLoader
+
+    loader = ModuleLoader()
+    shared = tmp_path / "shared"
+    mod_dir = shared / "mods"
+    pycache = mod_dir / "__pycache__"
+    pycache.mkdir(parents=True)
+    write_custom_module(mod_dir, "cachemod")
+
+    # Python runs cached bytecode from __pycache__, so it's checked like the modules themselves
+    pycache.chmod(0o777)
+    with pytest.raises(BBOTError, match=r"__pycache__\": directory is world-writable"):
+        loader.add_module_dir(mod_dir)
+    pycache.chmod(0o755)
+    (pycache / "cachemod.cpython-311.pyc").write_bytes(b"")
+    (pycache / "cachemod.cpython-311.pyc").chmod(0o666)
+    with pytest.raises(BBOTError, match=r"cachemod\.cpython-311\.pyc\": file is world-writable"):
+        loader.add_module_dir(mod_dir)
+    (pycache / "cachemod.cpython-311.pyc").unlink()
+
+    # a world-writable parent folder lets anyone swap the module folder out
+    shared.chmod(0o777)
+    with pytest.raises(BBOTError, match=r"shared\": directory is world-writable"):
+        loader.add_module_dir(mod_dir)
+    assert "cachemod" not in loader.preloaded()
+
+    # unless it's sticky (like /tmp), so nobody else can rename what's in it
+    shared.chmod(0o1777)
+    loader.add_module_dir(mod_dir)
+    assert "cachemod" in loader.preloaded()
+
+
+def test_module_dir_symlinked_modules(tmp_path):
+    from bbot.core.modules import ModuleLoader
+
+    loader = ModuleLoader()
+    asked = []
+    loader.confirm_module_dir = lambda module_dir, module_names, notes: asked.append(module_names) or True
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    write_custom_module(elsewhere, "innocuous")
+
+    # a symlink is named after the link, so it can't use an innocent target to take over a module's name
+    shadow_dir = tmp_path / "shadow"
+    shadow_dir.mkdir()
+    (shadow_dir / "robots.py").symlink_to(elsewhere / "innocuous.py")
+    with pytest.raises(BBOTError, match='a module named "robots" already exists'):
+        loader.add_module_dir(shadow_dir)
+    assert loader.preloaded()["robots"]["path"] != str((elsewhere / "innocuous.py").resolve())
+
+    # and a link that isn't a .py file isn't a module, wherever it points
+    other_dir = tmp_path / "other"
+    other_dir.mkdir()
+    (other_dir / "sneaky.txt").symlink_to(elsewhere / "innocuous.py")
+    loader.add_module_dir(other_dir)
+    assert "sneaky" not in loader.preloaded() and "innocuous" not in loader.preloaded()
+
+    # the folder a link points into is checked too
+    link_dir = tmp_path / "links"
+    link_dir.mkdir()
+    (link_dir / "linkmod.py").symlink_to(elsewhere / "innocuous.py")
+    elsewhere.chmod(0o777)
+    with pytest.raises(BBOTError, match=r"elsewhere\": directory is world-writable"):
+        loader.add_module_dir(link_dir)
+    elsewhere.chmod(0o755)
+
+    # otherwise a symlinked module loads under the link's name, which is the name the prompt shows
+    loader.add_module_dir(link_dir)
+    assert asked[-1] == ["linkmod"]
+    assert "linkmod" in loader.preloaded()
+
+
 def test_module_dir_other_owner_is_noted(tmp_path, monkeypatch, caplog):
     from bbot.core.modules import ModuleLoader
 

@@ -110,7 +110,7 @@ def _format_msg(err: dict, known_modules: set | None = None, known_paths: set | 
         # get useful hints like "Did you mean 'modules'?".
         if len(loc) == 1:
             return get_closest_match(field, _PRESET_KEYS, msg="preset option")
-        # A top-level preset key nested under `config:` by mistake (e.g. `config.module_dirs`)
+        # A top-level preset key nested under `config:` by mistake (e.g. `config.include`)
         if len(loc) == 2 and loc[0] == "config" and field in _PRESET_KEYS:
             return f'"{field}" is a top-level preset option, not a config option. Move it out of the "config" section.'
         # For everything else, suggest from the known dotted-path universe

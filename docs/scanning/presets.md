@@ -200,7 +200,7 @@ Custom modules are Python code that runs with your privileges, and even validati
 - Refuses a custom module that has the same name as an existing module (built-in or from another custom folder). Custom modules can never replace existing ones. If you want a modified version of a built-in module, give your copy a different name and enable it instead of the original.
 
 !!! warning
-    Passing `-y` / `--yes` answers yes to the trust prompt automatically. Only use `-y` with presets whose module folders you trust.
+    Passing `-y` / `--yes` answers yes to the trust prompt automatically. Only use `-y` with presets whose module folders you trust. `-S` / `--silent` doesn't answer it: since the prompt can't be shown, BBOT stops with an error unless you also pass `-y`.
 
 When BBOT is used as a Python library, there is no prompt; it logs a warning for each custom module folder instead.
 

@@ -44,6 +44,20 @@ def stdin_is_tty():
         return False
 
 
+def confirm(question, refusal, options):
+    """
+    Ask a yes/no question, which --yes answers. Returns None if it can't be asked (--silent hides it,
+    or there's no terminal), after printing `refusal` as an error.
+    """
+    if options.yes:
+        return True
+    if options.silent or not stdin_is_tty():
+        reason = "--silent hides the prompt" if options.silent else "there's no terminal to ask"
+        log_to_stderr(f"{refusal} ({reason}); re-run with --yes to proceed.", level="ERROR")
+        return None
+    return input(f"{question} [y/N] ").strip().lower() in ("y", "yes")
+
+
 async def _main():
     import asyncio
     import traceback
@@ -75,15 +89,11 @@ async def _main():
                 "Even validating a malicious module can result in code execution.",
                 level="WARNING",
             )
-            if preset.args.parsed.yes:
-                return True
-            if not stdin_is_tty():
-                log_to_stderr(
-                    "Refusing to load custom modules without confirmation; re-run with --yes to trust this folder.",
-                    level="ERROR",
-                )
-                return False
-            return input("Do you trust this folder? [y/N] ").strip().lower() in ("y", "yes")
+            return confirm(
+                "Do you trust this folder?",
+                "Refusing to load custom modules without confirmation",
+                preset.args.parsed,
+            )
 
         preset.module_loader.confirm_module_dir = confirm_module_dir
 
@@ -134,16 +144,14 @@ async def _main():
             for p in reset_paths:
                 log.warning(f"  {p}")
             log.warning("A backup of each existing file will be saved with a .bak extension.")
-            if not options.yes:
-                if not stdin_is_tty():
-                    log.error("Refusing to reset config without confirmation; re-run with --yes to proceed.")
-                    sys.exit(1)
-                    return
-                answer = input("Continue? [y/N] ").strip().lower()
-                if answer not in ("y", "yes"):
-                    log.info("Aborted. No changes made.")
-                    sys.exit(0)
-                    return
+            answer = confirm("Continue?", "Refusing to reset config without confirmation", options)
+            if answer is None:
+                sys.exit(1)
+                return
+            if not answer:
+                log.info("Aborted. No changes made.")
+                sys.exit(0)
+                return
             backups = preset.module_loader.reset_config_files(reset_labels)
             log.success("Regenerated config files from current defaults.")
             for b in backups:
@@ -357,7 +365,8 @@ async def _main():
                         f"INVASIVE modules enabled: {','.join(invasive_modules)}. These may be intrusive or destructive. To exclude, use -ef invasive"
                     )
 
-                if not options.yes:
+                # only a pause, not a safety check, so it's skipped when --silent would hide it
+                if not options.yes and not options.silent:
                     log.hugesuccess(f"Scan ready. Press enter to execute {scan.name}")
                     input()
 
