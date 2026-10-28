@@ -55,7 +55,9 @@ def confirm(question, refusal, options):
         reason = "--silent hides the prompt" if options.silent else "there's no terminal to ask"
         log_to_stderr(f"{refusal} ({reason}); re-run with --yes to proceed.", level="ERROR")
         return None
-    return input(f"{question} [y/N] ").strip().lower() in ("y", "yes")
+    # write the question to stderr (not via input()'s stdout prompt) so it isn't swallowed by `> out` / `| jq`
+    log_to_stderr(f"{question} [y/N] ", level="WARNING")
+    return input().strip().lower() in ("y", "yes")
 
 
 async def _main():

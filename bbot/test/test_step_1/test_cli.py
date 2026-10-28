@@ -1215,34 +1215,36 @@ async def test_cli_custom_module_dir_trust(monkeypatch, capsys, tmp_path):
     assert "clicanary" not in MODULE_LOADER.preloaded()
     assert not canary.exists()
 
-    # answering no at the prompt refuses it too
+    # answering no at the prompt refuses it too; the question goes to stderr, not into stdout
     monkeypatch.setattr(cli, "stdin_is_tty", lambda: True)
-    prompts = []
-    monkeypatch.setattr("builtins.input", lambda prompt="": prompts.append(prompt) or "n")
+    calls = []
+    monkeypatch.setattr("builtins.input", lambda prompt="": calls.append(prompt) or "n")
     await cli._main()
-    capsys.readouterr()
-    assert prompts == ["Do you trust this folder? [y/N] "]
+    out, err = capsys.readouterr()
+    assert calls == [""]  # input() called with no stdout prompt
+    assert "Do you trust this folder? [y/N]" in err
+    assert "Do you trust this folder?" not in out
     assert "clicanary" not in MODULE_LOADER.preloaded()
     assert not canary.exists()
 
     # --silent doesn't trust it: the prompt can't be shown, so it's refused, with a visible error
     monkeypatch.setattr(MODULE_LOADER.core.logger, "log_level", MODULE_LOADER.core.logger.log_level)
-    prompts.clear()
+    calls.clear()
     monkeypatch.setattr("sys.argv", ["bbot", "-p", str(preset_file), "--dry-run", "-S"])
     await cli._main()
     stderr = capsys.readouterr().err
-    assert prompts == []
+    assert calls == []
     assert "Refusing to load custom modules without confirmation (--silent hides the prompt)" in stderr
     assert "About to load and validate custom modules" not in stderr
     assert "clicanary" not in MODULE_LOADER.preloaded()
     assert not canary.exists()
 
     # --yes trusts it without asking, but still prints the warning
-    prompts.clear()
+    calls.clear()
     monkeypatch.setattr("sys.argv", ["bbot", "-p", str(preset_file), "--dry-run", "-y"])
     await cli._main()
     stderr = capsys.readouterr().err
-    assert prompts == []
+    assert calls == []
     assert "Even validating a malicious module can result in code execution" in stderr
     assert "clicanary" in MODULE_LOADER.preloaded()
     assert canary.read_text() == "ran"
