@@ -12,6 +12,40 @@ import yara
 from bbot.test.worker import HTTPSERVER_PORT, HTTPSERVER_URL, LOCALHOST_URL
 
 
+class TestExcavateHyphenatedHostnames(ModuleTestBase):
+    targets = [f"{HTTPSERVER_URL}/", "test.notreal"]
+    modules_overrides = ["excavate", "http"]
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"},
+            respond_args={"response_data": "<p>dev-api.test.notreal and my-app-test.test.notreal</p>"},
+        )
+
+    async def setup_after_prep(self, module_test):
+        # every name resolves, so a made-up one would survive to the output
+        await module_test.mock_dns(
+            {
+                h: {"A": ["127.0.0.1"]}
+                for h in (
+                    "test.notreal",
+                    "dev-api.test.notreal",
+                    "api.test.notreal",
+                    "my-app-test.test.notreal",
+                    "app-test.test.notreal",
+                    "test.test.notreal",
+                )
+            }
+        )
+
+    def check(self, module_test, events):
+        hostnames = {e.data for e in events if e.type == "DNS_NAME" and str(e.module) == "excavate"}
+        assert {"dev-api.test.notreal", "my-app-test.test.notreal"} <= hostnames
+        for fragment in ("api.test.notreal", "app-test.test.notreal", "test.test.notreal"):
+            assert fragment not in hostnames, f"excavate made up {fragment} from part of a hyphenated name"
+        assert not any("DNS_NAME -" in e.discovery_context for e in events)
+
+
 class TestExcavate(ModuleTestBase):
     targets = [f"{HTTPSERVER_URL}/", "test.notreal", f"{HTTPSERVER_URL}/subdir/links.html"]
     modules_overrides = ["excavate", "http"]
