@@ -8,6 +8,22 @@ def test_validate_preset_valid():
     assert errs == []
 
 
+def test_module_version_config_validation():
+    """Module `version` options accept version-like strings only."""
+    assert validate_preset({"modules": ["retirejs"], "config": {"modules": {"retirejs": {"version": "5.4.0"}}}}) == []
+    errs = validate_preset({"modules": ["retirejs"], "config": {"modules": {"retirejs": {"version": "5.3.0 oops #"}}}})
+    assert len(errs) >= 1
+    assert any("version" in e.message for e in errs)
+
+
+def test_home_config_validation():
+    """`home` is interpolated into dependency commands, so it rejects shell metacharacters."""
+    assert validate_preset({"config": {"home": "/tmp/mybbot"}}) == []
+    errs = validate_preset({"config": {"home": "/tmp/x;id>/tmp/pwned;#"}})
+    assert len(errs) >= 1
+    assert any("home" in e.message or "shell metacharacters" in e.message for e in errs)
+
+
 def test_validate_preset_typo_top_level():
     errs = validate_preset({"modlues": ["nuclei"]})
     assert len(errs) == 1
@@ -346,11 +362,15 @@ def test_find_deprecated_config():
         "web": {"http_retries": 1},
         "modules": {"slack": {"retries": 5, "webhook_url": "https://example.com"}, "shodan_idb": {"retries": 2}},
     }
-    assert sorted(find_deprecated_config(config, MODULE_LOADER.config_schema)) == [
-        "modules.shodan_idb.retries",
-        "modules.slack.retries",
-    ]
-    assert find_deprecated_config({"modules": {"slack": {"webhook_url": "x"}}}, MODULE_LOADER.config_schema) == []
+    assert find_deprecated_config(config, MODULE_LOADER.config_schema) == {
+        "modules.slack.retries": "",
+        "modules.shodan_idb.retries": "",
+    }
+    assert find_deprecated_config({"modules": {"slack": {"webhook_url": "x"}}}, MODULE_LOADER.config_schema) == {}
+    # a deprecation can say what to use instead
+    assert find_deprecated_config({"module_dirs": ["/tmp/x"]}, MODULE_LOADER.config_schema) == {
+        "module_dirs": "Set module_dirs at the top level of a preset and load it with -p."
+    }
 
 
 async def test_deprecated_option_warns_at_scan_start(caplog):
@@ -359,6 +379,29 @@ async def test_deprecated_option_warns_at_scan_start(caplog):
     scan = Scanner(config={"modules": {"shodan_idb": {"retries": 3}}})
     await scan._prep()
     assert 'Config option "modules.shodan_idb.retries" is deprecated and will be ignored' in caplog.text
+
+
+async def test_config_module_dirs_is_a_noop(tmp_path, caplog):
+    from bbot.scanner import Scanner
+
+    mod_dir = tmp_path / "mods"
+    mod_dir.mkdir()
+    (mod_dir / "noopmod.py").write_text(
+        "from bbot.modules.base import BaseModule\n"
+        "class noopmod(BaseModule):\n"
+        '    watched_events = ["DNS_NAME"]\n'
+        '    produced_events = ["DNS_NAME"]\n'
+        '    flags = ["passive", "safe", "subdomain-enum"]\n'
+        '    meta = {"description": "x", "created_date": "2025-01-01", "author": "@x"}\n'
+    )
+    scan = Scanner(config={"module_dirs": [str(mod_dir)]}, flags=["subdomain-enum"])
+    await scan._prep()
+    assert (
+        'Config option "module_dirs" is deprecated and will be ignored. '
+        "Set module_dirs at the top level of a preset and load it with -p." in caplog.text
+    )
+    assert mod_dir.resolve() not in scan.preset.module_loader.module_dirs
+    assert "noopmod" not in scan.modules
 
 
 def test_validate_preset_lightfuzz_avoid_wafs_accepts_bool():
@@ -384,3 +427,57 @@ async def test_lightfuzz_avoid_wafs_bool_coerced_at_runtime():
         assert scan.modules["lightfuzz"].avoid_wafs == expected, (
             f"avoid_wafs={value!r} became {scan.modules['lightfuzz'].avoid_wafs!r}, expected {expected!r}"
         )
+
+
+def test_validate_preset_untrusted_module_dir_runs_no_code(tmp_path):
+    """A module dir refused by the loader's trust prompt is never read, so its Config class never executes."""
+    from bbot.core.modules import ModuleLoader
+
+    mod_dir = tmp_path / "mods"
+    mod_dir.mkdir()
+    canary = tmp_path / "canary"
+    (mod_dir / "canarymod.py").write_text(
+        "from bbot.modules.base import BaseModule\n"
+        "from bbot.core.config.models import BaseModuleConfig, Field\n"
+        "class canarymod(BaseModule):\n"
+        '    watched_events = ["DNS_NAME"]\n'
+        '    produced_events = ["DNS_NAME"]\n'
+        '    flags = ["passive", "safe"]\n'
+        '    meta = {"description": "x", "created_date": "2025-01-01", "author": "@x"}\n'
+        "    class Config(BaseModuleConfig):\n"
+        f"        _canary = __import__('pathlib').Path({str(canary)!r}).write_text('ran')\n"
+        '        foo: str = Field("", description="foo")\n'
+    )
+    preset = {"module_dirs": [str(mod_dir)], "modules": ["canarymod"]}
+
+    asked = []
+    loader = ModuleLoader()
+    loader.confirm_module_dir = lambda module_dir, module_names, notes: (
+        asked.append((module_dir, module_names)) or False
+    )
+    errs = validate_preset(preset, module_loader=loader)
+    assert asked == [(mod_dir.resolve(), ["canarymod"])]
+    assert any(e.path == "module_dirs" and "not trusted" in e.message for e in errs), [str(e) for e in errs]
+    assert "canarymod" not in loader.preloaded()
+    assert not canary.exists()
+
+    # trusting the folder loads it, and validating then executes its Config class
+    loader.confirm_module_dir = lambda module_dir, module_names, notes: True
+    assert validate_preset(preset, module_loader=loader) == []
+    assert canary.read_text() == "ran"
+
+
+def test_validate_preset_config_module_dirs_is_ignored(tmp_path):
+    """`module_dirs` only works as a top-level preset key. As a config option it's deprecated: accepted, but nothing is loaded."""
+    from bbot.core.modules import ModuleLoader
+
+    loader = ModuleLoader()
+    assert validate_preset({"config": {"module_dirs": [str(tmp_path)]}}, module_loader=loader) == []
+    assert tmp_path.resolve() not in loader.module_dirs
+
+
+def test_validate_preset_misplaced_preset_key():
+    """A top-level preset key nested under `config:` points the user back to the top level."""
+    errs = validate_preset({"config": {"include": ["subdomain-enum"]}})
+    assert len(errs) == 1, [str(e) for e in errs]
+    assert '"include" is a top-level preset option' in errs[0].message

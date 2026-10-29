@@ -101,7 +101,7 @@ Scan:
   -d, --debug           Enable debugging
   -S, --silent          Be quiet
   --force               Run scan even in the case of condition violations or failed module setups
-  -y, --yes             Skip scan confirmation prompt
+  -y, --yes             Skip confirmation prompts (including trusting custom module folders)
   --fast-mode           Scan only the provided targets as fast as possible, with no extra discovery
   --dry-run             Abort before executing scan
   --current-preset      Show the current preset in YAML format

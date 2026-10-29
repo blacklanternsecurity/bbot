@@ -218,3 +218,5 @@ If you have a custom module and you want to use it with BBOT, you can add its pa
 module_dirs:
   - /home/user/my_modules
 ```
+
+BBOT asks you to trust each custom module folder before loading it, and refuses folders anyone on the system can modify. See [Custom Modules](../scanning/presets.md#custom-modules) for details.
