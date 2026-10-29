@@ -1,0 +1,73 @@
+description: Discover a domain's subdomains, crawl their web content, and match everything fetched against a custom YARA rule you provide.
+
+include:
+  - subdomain-enum
+  - spider
+
+exclude_modules:
+  # The brute-force modules dominate a subdomain scan's wall time and are not
+  # what this tool is for: it is a content sweep, not an exhaustive enumeration.
+  - dnsbrute
+  - dnsbrute_mutations
+  # A content sweep has no business downloading third-party workspaces.
+  - postman_download
+  - shodan_idb
+
+
+meta:
+  yara_scan: discover
+
+  accepts:
+    # Domain-level: there is nothing to enumerate from a bare URL or IP.
+    - DNS_NAME
+
+  yields:
+    # Every YARA match excavate makes is reported as a FINDING.
+    - FINDING
+    # The pages actually fetched and matched against, so a hit can be traced
+    # back to where it was seen.
+    - URL
+
+  when_to_use: |
+    Reach for this when you have a pattern and want to know everywhere across an organization that it appears: a hardcoded key format, a template string, a version banner, a path, a marker left by a framework. It discovers the subdomains, crawls their web content, and runs your YARA rule against every response.
+
+    It is the broad sweep. Give it a domain and a rule and it goes looking across the whole surface, not just the host you already know about.
+
+  when_not_to_use: |
+    Skip it when you already know the exact hosts or URLs to look at - `yara_scan_targets` does the same match without spending time discovering subdomains, and stays strictly on what you give it.
+
+    Skip it when you do not yet have a rule. This tool is only as good as the YARA you hand it; a vague rule over a large surface returns noise.
+
+    It is not a vulnerability scanner. It finds content matching your rule and nothing else.
+
+  how_it_works: |
+    Runs BBOT's passive subdomain enumeration, then crawls the discovered web surface (spider distance 2, depth 4) and feeds every HTTP response to excavate, which matches your rule against the body. Each match is a FINDING carrying the URL it was seen on.
+
+    Your rule is compiled before the scan starts. If it does not compile, nothing is launched and you get the compiler error back, so a typo costs a second rather than a scan.
+
+  how_to_call: |
+    Give it one or more domains and a complete YARA rule as `yara_rule` - the full `rule name { ... }` text, inline. One or more rules in the one string is fine.
+
+    The rule matches against both the body and the headers of each HTTP response (HTML, JavaScript, JSON, Set-Cookie and the rest - headers are serialized as `name: value` lines), plus the text extracted from any files the scan downloads. It does not match TLS certificates or the raw socket.
+
+    Production and third-party-managed hosts belong in `blacklist`. `strict_scope` mostly defeats this tool - subdomain expansion is how it reaches anything.
+
+    Your rule is standard YARA and most of what you know carries over. A few optional `meta:` keys are specific to this scanner and tune the FINDING a match produces: `description` (what the finding says), `severity` (INFO, LOW, MEDIUM, HIGH or CRITICAL, default INFO), `confidence`, `tags` (a list), and `emit_match` (set it to include the matched bytes in the finding, so you see exactly what hit). Everything else is ordinary YARA.
+
+  interpreting_results: |
+    A FINDING means your rule matched the content at the named URL. It is exactly as trustworthy as the rule: a loose rule produces loose findings.
+
+    No findings means the rule matched nothing on the surface that was crawled, not that the content is absent everywhere - the crawl is bounded by spider distance and depth, and by what links off the pages it reached.
+
+  caveats: |
+    The crawl is bounded. Content behind a login, reachable only by a link the spider did not follow, or served by a host no enumeration found, is not examined.
+
+    Subdomain coverage scales with configured API keys; with none it falls back to certificate transparency alone.
+
+    YARA matches response bodies and headers, and text extracted from downloaded files. It does not decode or unpack content excavate did not already decode.
+
+  examples:
+    - description: Sweep an organization's whole web surface for a hardcoded internal API key format.
+      targets: [evilcorp.com]
+    - description: Look across several related domains for a template marker that betrays a staging build.
+      targets: [evilcorp.com, evilcorp.org]

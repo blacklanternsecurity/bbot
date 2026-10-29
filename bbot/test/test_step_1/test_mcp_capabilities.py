@@ -287,8 +287,10 @@ def test_derivation_is_pure(registry):
     derivation that reused a Preset object would return stale results here."""
     for entry in registry:
         preset_dict = entry.capability.preset.to_preset_dict()
-        assert derive(preset_dict, name=entry.name) == derive(preset_dict, name=entry.name)
-        assert derive(preset_dict, name=entry.name) == entry.facts
+        internal = ("FINDING", "URL") if entry.capability.meta.yara_scan else ()
+        kwargs = dict(name=entry.name, internal_produces=internal)
+        assert derive(preset_dict, **kwargs) == derive(preset_dict, **kwargs)
+        assert derive(preset_dict, **kwargs) == entry.facts
 
 
 def test_bundled_includes_are_not_shadowed(tmp_path):
@@ -537,3 +539,26 @@ def test_event_renderer_paginates():
     rendered = event_render.render(events, limit=10)["DNS_NAME"]
     assert rendered.count("\n") == 10
     assert "and 40 more" in rendered
+
+
+def test_yara_scan_meta_accepts_only_known_values():
+    """The marker that turns a capability into a custom-YARA tool is a closed set."""
+    from pydantic import ValidationError as PydanticValidationError
+
+    from bbot.mcp.models import CapabilityMeta
+
+    for good in ("", "discover", "strict"):
+        CapabilityMeta(when_not_to_use="x", yields=["FINDING"], yara_scan=good)
+    for bad in ("yes", "both", "Discover"):
+        with pytest.raises(PydanticValidationError):
+            CapabilityMeta(when_not_to_use="x", yields=["FINDING"], yara_scan=bad)
+
+
+def test_yara_capabilities_advertise_the_bbot_meta_keys(registry):
+    """Hunters need to know excavate's rule-meta extras, so the long form names them."""
+    yara = [e for e in registry if e.capability.meta.yara_scan]
+    assert yara, "expected custom-YARA capabilities"
+    for entry in yara:
+        how = entry.capability.meta.how_to_call
+        for key in ("severity", "emit_match", "confidence", "tags"):
+            assert key in how, f"{entry.name} how_to_call omits the {key} meta key"
