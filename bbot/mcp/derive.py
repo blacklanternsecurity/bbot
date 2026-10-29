@@ -84,13 +84,19 @@ def bake_preset_dict(preset_dict, name="capability", bundled_includes=True):
     return preset, preset.bake()
 
 
-def derive(preset_dict, name="capability", bundled_includes=True):
-    """Derive the facts an agent needs from a preset body."""
+def derive(preset_dict, name="capability", bundled_includes=True, internal_produces=()):
+    """Derive the facts an agent needs from a preset body.
+
+    ``internal_produces`` adds event types that internal (always-on) modules
+    will produce at runtime but that ``bake()`` excludes from the scan-module
+    list.  The YARA pseudotools need this: excavate emits FINDING per match,
+    but excavate is internal and therefore absent from the derived produces.
+    """
     preset, baked = bake_preset_dict(preset_dict, name=name, bundled_includes=bundled_includes)
-    return facts_from_baked(preset, baked)
+    return facts_from_baked(preset, baked, internal_produces=internal_produces)
 
 
-def facts_from_baked(preset, baked):
+def facts_from_baked(preset, baked, internal_produces=()):
     """Build `DerivedFacts` from an already-baked preset."""
     preloaded = baked.module_loader.preloaded()
     scan_modules = sorted(baked.scan_modules)
@@ -100,6 +106,7 @@ def facts_from_baked(preset, baked):
     for module in scan_modules:
         consumes.update(preloaded[module]["watched_events"])
         produces.update(preloaded[module]["produced_events"])
+    produces.update(internal_produces)
     consumes_any = "*" in consumes
     consumes.discard("*")
     produces.discard("*")

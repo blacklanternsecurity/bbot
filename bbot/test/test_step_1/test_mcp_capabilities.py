@@ -287,8 +287,10 @@ def test_derivation_is_pure(registry):
     derivation that reused a Preset object would return stale results here."""
     for entry in registry:
         preset_dict = entry.capability.preset.to_preset_dict()
-        assert derive(preset_dict, name=entry.name) == derive(preset_dict, name=entry.name)
-        assert derive(preset_dict, name=entry.name) == entry.facts
+        internal = ("FINDING", "URL") if entry.capability.meta.yara_scan else ()
+        kwargs = dict(name=entry.name, internal_produces=internal)
+        assert derive(preset_dict, **kwargs) == derive(preset_dict, **kwargs)
+        assert derive(preset_dict, **kwargs) == entry.facts
 
 
 def test_bundled_includes_are_not_shadowed(tmp_path):
