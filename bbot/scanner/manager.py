@@ -210,6 +210,19 @@ class ScanEgress(BaseInterceptModule):
         abort_if = kwargs.pop("abort_if", None)
         on_success_callback = kwargs.pop("on_success_callback", None)
 
+        # drop open ports and URLs on CDN/WAF hosts, unless the port is allowed or was explicitly targeted
+        if (
+            self.scan.cdn_port_filter
+            and event.type in ("OPEN_TCP_PORT", "URL_UNVERIFIED", "URL")
+            and event.port not in self.scan.cdn_allowed_ports
+            and not self.scan.cdn_tags.isdisjoint(event.tags)
+            and not any(
+                "seed" in p.tags and p.host == event.host and p.port == event.port
+                for p in event.get_parents(include_self=True)
+            )
+        ):
+            return False, f"port {event.port} is not allowed on CDN/WAF hosts (cdn_port_filter)"
+
         # mark omitted event types
         # we could do this all in the output module's filter_event(), but we mark it here permanently so the events' .get_parent() can factor in the omission, and skip over omitted parents
         omitted_event_type = event.type in self.scan.omitted_event_types
