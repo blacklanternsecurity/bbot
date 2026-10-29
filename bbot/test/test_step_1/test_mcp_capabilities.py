@@ -537,3 +537,26 @@ def test_event_renderer_paginates():
     rendered = event_render.render(events, limit=10)["DNS_NAME"]
     assert rendered.count("\n") == 10
     assert "and 40 more" in rendered
+
+
+def test_yara_scan_meta_accepts_only_known_values():
+    """The marker that turns a capability into a custom-YARA tool is a closed set."""
+    from pydantic import ValidationError as PydanticValidationError
+
+    from bbot.mcp.models import CapabilityMeta
+
+    for good in ("", "discover", "strict"):
+        CapabilityMeta(when_not_to_use="x", yields=["FINDING"], yara_scan=good)
+    for bad in ("yes", "both", "Discover"):
+        with pytest.raises(PydanticValidationError):
+            CapabilityMeta(when_not_to_use="x", yields=["FINDING"], yara_scan=bad)
+
+
+def test_yara_capabilities_advertise_the_bbot_meta_keys(registry):
+    """Hunters need to know excavate's rule-meta extras, so the long form names them."""
+    yara = [e for e in registry if e.capability.meta.yara_scan]
+    assert yara, "expected custom-YARA capabilities"
+    for entry in yara:
+        how = entry.capability.meta.how_to_call
+        for key in ("severity", "emit_match", "confidence", "tags"):
+            assert key in how, f"{entry.name} how_to_call omits the {key} meta key"

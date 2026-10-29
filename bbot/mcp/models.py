@@ -111,6 +111,13 @@ class CapabilityMeta(BaseModel):
 
     examples: list[CapabilityExample] = Field(default_factory=list)
 
+    # Set on the two custom-YARA tools, empty on every other. Non-empty tells the MCP server
+    # to give this tool an extra `yara_rule` parameter, compile it, and feed it to excavate's
+    # `custom_yara_rules`. "discover" expands to subdomains; "strict" stays on the exact
+    # targets. A dedicated marker rather than a general parameter mechanism, on purpose: these
+    # are the only tools that take a rule, and the scan body cannot carry a per-call value.
+    yara_scan: str = ""
+
     @field_validator("yields", "accepts")
     @classmethod
     def _valid_event_types(cls, v):
@@ -134,6 +141,14 @@ class CapabilityMeta(BaseModel):
         v = (v or "").strip()
         if v and PLACEHOLDER_RE.search(v):
             raise ValueError(f'"{info.field_name}" still contains a scaffold placeholder')
+        return v
+
+    @field_validator("yara_scan")
+    @classmethod
+    def _valid_yara_scan(cls, v):
+        v = (v or "").strip()
+        if v and v not in ("discover", "strict"):
+            raise ValueError('"yara_scan" must be "discover", "strict", or omitted')
         return v
 
 

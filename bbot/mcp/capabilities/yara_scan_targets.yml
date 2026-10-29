@@ -1,0 +1,58 @@
+description: Match the web content of the exact targets you give (and nothing else) against a custom YARA rule you provide.
+
+include:
+  - spider
+
+
+meta:
+  yara_scan: strict
+
+  accepts:
+    - DNS_NAME
+    - URL
+
+  yields:
+    # Every YARA match excavate makes is reported as a FINDING.
+    - FINDING
+    # The pages actually fetched and matched against.
+    - URL
+
+  when_to_use: |
+    Reach for this when you already know which hosts or URLs to look at and want your YARA rule run against their web content without discovering anything new. It crawls only what you give it and stays strictly in scope.
+
+    It is the targeted counterpart to `yara_scan`: same matching, no subdomain enumeration, no scope expansion.
+
+  when_not_to_use: |
+    Use `yara_scan` instead when the target is a domain and you want the pattern hunted across its whole discovered surface, subdomains included.
+
+    Skip it when you do not yet have a rule - the tool is only as good as the YARA you hand it.
+
+    It is not a vulnerability scanner. It finds content matching your rule and nothing else.
+
+  how_it_works: |
+    Crawls exactly the targets you give (spider distance 2, depth 4) with strict scope on, and feeds every HTTP response to excavate, which matches your rule against the body. Each match is a FINDING carrying the URL it was seen on.
+
+    Your rule is compiled before the scan starts. If it does not compile, nothing is launched and you get the compiler error back.
+
+  how_to_call: |
+    Give it the exact hostnames or URLs to examine and a complete YARA rule as `yara_rule` - the full `rule name { ... }` text, inline.
+
+    Scope is strict by default: it will not wander off the targets you name. The rule matches against both the body and the headers of each HTTP response (headers serialized as `name: value` lines), plus text extracted from any files the scan downloads. It does not match TLS certificates or the raw socket.
+
+    Your rule is standard YARA and most of what you know carries over. A few optional `meta:` keys are specific to this scanner and tune the FINDING a match produces: `description` (what the finding says), `severity` (INFO, LOW, MEDIUM, HIGH or CRITICAL, default INFO), `confidence`, `tags` (a list), and `emit_match` (set it to include the matched bytes in the finding, so you see exactly what hit). Everything else is ordinary YARA.
+
+  interpreting_results: |
+    A FINDING means your rule matched the content at the named URL. It is exactly as trustworthy as the rule.
+
+    No findings means the rule matched nothing on the pages crawled from the targets you gave, within spider distance and depth.
+
+  caveats: |
+    It only looks at what you point it at and what those pages link to within the crawl bounds. It discovers no new hosts by design.
+
+    YARA matches response bodies and headers, and text extracted from downloaded files. It does not decode or unpack content excavate did not already decode.
+
+  examples:
+    - description: Check two known applications for a leaked credential pattern.
+      targets: ["https://app.evilcorp.com/", "https://portal.evilcorp.com/"]
+    - description: Match a specific marker against one host without touching anything else.
+      targets: [staging.evilcorp.com]

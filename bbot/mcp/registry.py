@@ -45,7 +45,14 @@ class CapabilityEntry:
         facts = derive(self.capability.preset.to_preset_dict(), name=self.name)
         # A pseudotool that promises an event type its modules never emit would
         # return an empty result set that reads exactly like a clean target.
-        impossible = sorted(set(self.capability.yields) - set(facts.produces))
+        produces = set(facts.produces)
+        if self.capability.meta.yara_scan:
+            # A custom-YARA tool drives excavate -- an internal module, so absent from the
+            # derived scan-module produces (see INTERNAL_MODULE_NOTE) -- to emit a FINDING per
+            # match. That FINDING is the whole point of the tool, so it is a legitimate yield
+            # here even though no scan module declares it.
+            produces |= {"FINDING", "URL"}
+        impossible = sorted(set(self.capability.yields) - produces)
         if impossible:
             raise ValueError(
                 f'"{self.name}" declares yields: {", ".join(impossible)}, but its preset\'s modules '

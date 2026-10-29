@@ -51,6 +51,17 @@ STRICT_SCOPE_FIELD = Field(
     "in-scope, so scanning evilcorp.com pulls in everything under it."
 )
 
+YARA_RULE_FIELD = Field(
+    description=(
+        "A complete YARA rule, as inline text, to match against everything the scan fetches. "
+        "Standard YARA; a match is reported as a FINDING. Optional rule meta keys tune the "
+        "finding: description, severity (INFO/LOW/MEDIUM/HIGH/CRITICAL, default INFO), "
+        "confidence, tags, and emit_match (include the matched bytes). The rule is compiled "
+        "before the scan starts; if it does not compile, nothing is launched and the compiler "
+        "error is returned."
+    )
+)
+
 
 def create_server():
     from mcp.server.fastmcp import FastMCP
@@ -76,24 +87,47 @@ def create_server():
         """Turn one capability preset into an MCP tool."""
 
         targets_field = Field(description=fmt.targets_description(entry))
+        yara_scan = entry.capability.meta.yara_scan
 
-        def run_capability(
-            targets: Annotated[list[str], targets_field],
-            blacklist: Annotated[Optional[list[str]], BLACKLIST_FIELD] = None,
-            strict_scope: Annotated[bool, STRICT_SCOPE_FIELD] = False,
-        ) -> str:
+        def _launch(targets, blacklist, strict_scope, yara_rule=""):
             if entry.name not in described:
                 return (
                     f"Call describe_tool('{entry.name}') before running it. Its description says what it "
                     "does; the details say what it will miss, when it is the wrong choice, and how to "
                     "read its output."
                 )
+            rule = (yara_rule or "").strip()
+            if yara_scan:
+                if not rule:
+                    return (
+                        "This tool needs a yara_rule: a complete YARA rule (inline text) to match "
+                        "against everything the scan fetches."
+                    )
+                # Compile before launching, so a typo costs nothing and the error reaches the
+                # caller instead of surfacing minutes later inside a running scan. yara-python
+                # is always present -- excavate imports it.
+                try:
+                    import yara
+
+                    yara.compile(source=rule)
+                except Exception as e:  # noqa: BLE001 - yara.SyntaxError / yara.Error
+                    return f"Your YARA rule did not compile, so nothing was launched: {e}"
+                # The strict variant stays on exactly what it was given; the discover variant
+                # is free to expand to subdomains.
+                if yara_scan == "strict":
+                    strict_scope = True
             try:
                 targets, blacklist, warnings = prepare(entry, targets, blacklist)
             except ComposeError as e:
                 return f"Could not start this scan: {e}"
 
             preset_dict = entry.capability.preset.to_preset_dict()
+            if yara_scan:
+                # Feed the rule to excavate, which matches it against every HTTP body the scan
+                # pulls back and reports each hit as a FINDING.
+                preset_dict.setdefault("config", {}).setdefault("modules", {}).setdefault("excavate", {})[
+                    "custom_yara_rules"
+                ] = rule
             scan_kwargs = runner.scanner_kwargs(preset_dict, blacklist=blacklist, strict_scope=strict_scope)
             try:
                 handle = runner.launch(
@@ -148,6 +182,28 @@ def create_server():
             if warnings:
                 payload["warnings"] = warnings
             return json.dumps(payload, indent=2, default=str)
+
+        # Tools that take a custom YARA rule get an extra, required `yara_rule` parameter; the
+        # strict variant defaults scope to exact-targets-only. Two signatures because FastMCP
+        # builds the tool schema from the function signature.
+        if yara_scan:
+
+            def run_capability(
+                targets: Annotated[list[str], targets_field],
+                yara_rule: Annotated[str, YARA_RULE_FIELD],
+                blacklist: Annotated[Optional[list[str]], BLACKLIST_FIELD] = None,
+                strict_scope: Annotated[bool, STRICT_SCOPE_FIELD] = (yara_scan == "strict"),
+            ) -> str:
+                return _launch(targets, blacklist, strict_scope, yara_rule)
+
+        else:
+
+            def run_capability(
+                targets: Annotated[list[str], targets_field],
+                blacklist: Annotated[Optional[list[str]], BLACKLIST_FIELD] = None,
+                strict_scope: Annotated[bool, STRICT_SCOPE_FIELD] = False,
+            ) -> str:
+                return _launch(targets, blacklist, strict_scope)
 
         run_capability.__name__ = entry.name
         run_capability.__doc__ = fmt.tool_description(entry)

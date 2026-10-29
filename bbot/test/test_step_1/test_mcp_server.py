@@ -69,10 +69,68 @@ async def test_tool_descriptions(server):
 
 async def test_pseudotool_signature_stays_small(server, registry):
     """Every parameter is re-declared on every generated tool, so the signature
-    is what decides whether this scales."""
+    is what decides whether this scales. The custom-YARA tools carry one extra,
+    required `yara_rule`; every other tool keeps the three-parameter shape."""
+    yara = {e.name for e in registry if e.capability.meta.yara_scan}
     for tool in [t for t in await server.list_tools() if t.name in registry]:
-        assert set(tool.inputSchema["properties"]) == {"targets", "blacklist", "strict_scope"}
-        assert tool.inputSchema["required"] == ["targets"]
+        if tool.name in yara:
+            assert set(tool.inputSchema["properties"]) == {
+                "targets",
+                "yara_rule",
+                "blacklist",
+                "strict_scope",
+            }
+            assert set(tool.inputSchema["required"]) == {"targets", "yara_rule"}
+        else:
+            assert set(tool.inputSchema["properties"]) == {"targets", "blacklist", "strict_scope"}
+            assert tool.inputSchema["required"] == ["targets"]
+
+
+async def test_yara_tools_require_and_compile_a_rule(registry):
+    """A custom-YARA tool takes a rule, compiles it before launching, and refuses
+    an empty or broken one without starting a scan."""
+    fresh = create_server()
+    yara_names = sorted(e.name for e in registry if e.capability.meta.yara_scan)
+    assert yara_names, "expected custom-YARA capabilities to exist"
+    for name in yara_names:
+        await call(fresh, "describe_tool", name=name)
+        broken = await call(fresh, name, targets=["evilcorp.com"], yara_rule="rule x {")
+        assert "did not compile" in broken
+        assert "scan_id" not in broken
+        missing = await call(fresh, name, targets=["evilcorp.com"], yara_rule="")
+        assert "yara_rule" in missing
+        assert "scan_id" not in missing
+
+
+async def test_yara_rule_is_injected_into_excavate(registry, monkeypatch):
+    """A valid rule reaches excavate's custom_yara_rules; the strict variant also
+    forces exact-targets scope. No real scan is launched."""
+    from bbot.mcp import run as runner
+
+    captured = {}
+
+    def fake_launch(targets, scan_kwargs, selection, *a, **k):
+        captured["kwargs"] = scan_kwargs
+        captured["selection"] = selection
+
+        class _Handle:
+            scan_id = "SCAN:test"
+            state = "running"
+            queued_behind = []
+
+        return _Handle()
+
+    monkeypatch.setattr(runner, "launch", fake_launch)
+    rule = 'rule findkey { strings: $a = "AKIA" condition: $a }'
+    for entry in [e for e in registry if e.capability.meta.yara_scan]:
+        fresh = create_server()
+        await call(fresh, "describe_tool", name=entry.name)
+        captured.clear()
+        await call(fresh, entry.name, targets=["evilcorp.com"], yara_rule=rule)
+        config = captured["kwargs"]["config"]
+        assert config["modules"]["excavate"]["custom_yara_rules"] == rule
+        if entry.capability.meta.yara_scan == "strict":
+            assert config["scope"]["strict"] is True
 
 
 async def test_short_description_carries_what_selection_needs(server, registry):
