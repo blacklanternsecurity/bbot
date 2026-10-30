@@ -1,0 +1,12 @@
+name: stable guard
+
+on:
+  pull_request:
+    branches: [stable]
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    uses: blacklanternsecurity/release-workflows/.github/workflows/stable-guard.yml@c53c202eedeb26a86088936363e6cb06ce99ac15 # v1.0.0
