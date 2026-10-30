@@ -134,6 +134,12 @@ web:
   ssl_verify_target: false
   # Whether to verify SSL certificates for non-target traffic (APIs, wordlist downloads, etc.)
   ssl_verify_infrastructure: true
+  # nowafpls WAF-bypass body padding sizes, tried largest first.
+  # The probe steps down a rung only when the origin explicitly rejects the size with a 413;
+  # 1 MiB is exactly nginx's default client_max_body_size, hence the 128 KiB fallback.
+  nowafpls_padding_sizes: [1048576, 131072]
+  # Payload the nowafpls probe uses to detect whether the WAF is interfering at all
+  nowafpls_payload: "<script>alert(1)</script>"
   # Maximum HTTP requests per second (0 = unlimited)
   # Applies globally across all blasthttp consumers (http probing, web brute, etc.)
   http_rate_limit: 0
@@ -165,9 +171,6 @@ deps:
 
 ### ADVANCED OPTIONS ###
 
-# Load BBOT modules from these custom paths
-module_dirs: []
-
 # maximum runtime in seconds for each module's handle_event() is 60 minutes
 # when the timeout is reached, the offending handle_event() will be cancelled and the module will move on to the next event
 module_handle_event_timeout: 3600
@@ -191,6 +194,21 @@ python: True
 url_querystring_remove: True
 # When query string is retained, by default collapse parameter values down to a single value per parameter
 url_querystring_collapse: True
+# Reject URLs whose path repeats the same path parameter this many times (e.g. a session id appended on every redirect)
+url_max_path_param_repeats: 10
+
+# Drop open ports and URLs on CDN/WAF hosts unless the port is allowed or was explicitly targeted
+# CDN edges answer on many ports (e.g. Cloudflare's 2052-2096, 8080, 8443) that rarely lead anywhere useful
+cdn_port_filter:
+  enabled: true
+  # hosts with any of these tags are considered CDN/WAF hosts
+  tags:
+    - cdn
+    - waf
+  # ports that are still allowed on CDN/WAF hosts
+  allowed_ports:
+    - 80
+    - 443
 
 # Completely ignore URLs with these extensions
 url_extension_blacklist:

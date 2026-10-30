@@ -122,7 +122,7 @@ class path(BaseLightfuzz):
             confirmations = 0
             while iterations > 0:
                 try:
-                    http_compare = self.compare_baseline(
+                    http_compare = await self.compare_baseline(
                         self.event.data["type"], probe_value, cookies, skip_urlencoding=True
                     )
                     singledot_probe = await self.compare_probe(

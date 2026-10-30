@@ -49,7 +49,9 @@ def log_to_stderr(msg, level="INFO", logname=True):
     from bbot.core.helpers.misc import make_printable
 
     levelname = level.upper()
-    if not any(x in sys.argv for x in ("-s", "--silent")):
+    # errors still print under --silent, so a run never stops without saying why
+    silent = any(x in sys.argv for x in ("-S", "--silent"))
+    if not silent or levelname in ("ERROR", "CRITICAL"):
         msg = make_printable(msg)
         levelshort = f"[{loglevel_mapping.get(level, 'INFO')}]"
         levelshort = f"{colorize(levelshort, level=levelname)}"

@@ -1,6 +1,7 @@
 import json
 import re
 import base64
+import html
 from types import SimpleNamespace
 from urllib.parse import urlparse, parse_qs
 
@@ -10,8 +11,13 @@ from urllib.parse import unquote, quote
 
 import xml.etree.ElementTree as ET
 
+from bbot.scanner import Scanner
 from bbot.core.helpers.url import add_get_params
+from bbot.modules.lightfuzz.lightfuzz import lightfuzz
+from bbot.modules.base import BaseModule
+from bbot.core.helpers.nowafpls import BypassResult
 from bbot.modules.lightfuzz.submodules.base import BaseLightfuzz
+from bbot.modules.lightfuzz.submodules.serial import serial as serial_submodule
 
 from .test_module_paramminer_headers import helper
 from bbot.test.worker import HTTPSERVER_URL
@@ -21,6 +27,25 @@ def _make_base_lightfuzz(url):
     event = SimpleNamespace(url=url, data={"name": "p"})
     lightfuzz = SimpleNamespace(helpers=SimpleNamespace(add_get_params=add_get_params))
     return BaseLightfuzz(lightfuzz, event)
+
+
+def sqli_injectable_response(value, empty_block):
+    """Emulate a parameter whose value lands unquoted inside a SQL string literal.
+
+    Covers everything the sqli code-change branch must observe on a genuinely injectable
+    parameter: an unbalanced quote errors, a doubled quote recovers, and a TRUE/FALSE
+    boolean pair changes the result set. Benign suffixes behave like any other search term,
+    so the flip stays quote-specific.
+    """
+    if value is None:
+        return Response(empty_block, status=200)
+    if value.endswith("' AND '1'='1"):
+        return Response(f"<html><p>1 result for: {value}</p><p>Row Alpha</p></html>", status=200)
+    if value.endswith("' AND '1'='2"):
+        return Response(f"<html><p>0 results for: {value}</p></html>", status=200)
+    if value.endswith("'") and not value.endswith("''"):
+        return Response("<html><p>Found error in SQL query</p></html>", status=500)
+    return Response(f"<html><p>0 results for: {value}</p></html>", status=200)
 
 
 def test_lightfuzz_build_query_string_no_existing_qs():
@@ -54,6 +79,100 @@ def test_lightfuzz_build_query_string_preserves_fragment():
     result = bl.build_query_string("PROBE", "p")
     assert result.count("?") == 1
     assert result.endswith("#frag")
+
+
+def _generation_chain(scan, depth, host="example.com", duplicate_at=None):
+    """An event whose ancestry contains `depth` lightfuzz-emitted events.
+
+    Built from real events, so the walk meets real parent links and real equality, which is
+    hash-of-id and therefore data equality. `duplicate_at` gives one generation's excavate and
+    lightfuzz events the same URL, making a parent and child equal without being the same
+    object, which is the shape that truncates a walk keyed on `==`.
+    """
+    modules = {name: scan._make_dummy_module(name) for name in ("http", "excavate", "lightfuzz")}
+    node = scan.make_event(f"https://{host}/", "URL_UNVERIFIED", parent=scan.root_event, module=modules["http"])
+    for i in range(depth):
+        excavate_url = f"https://{host}/g{i}"
+        lightfuzz_url = excavate_url if i == duplicate_at else f"{excavate_url}/probe"
+        node = scan.make_event(excavate_url, "URL_UNVERIFIED", parent=node, module=modules["excavate"])
+        node = scan.make_event(lightfuzz_url, "URL_UNVERIFIED", parent=node, module=modules["lightfuzz"])
+    return scan.make_event(f"https://{host}/leaf", "URL_UNVERIFIED", parent=node, module=modules["excavate"])
+
+
+def _fake_baseline_response(url):
+    return SimpleNamespace(
+        url=url,
+        status=200,
+        raw_headers="Content-Type: text/html",
+        headers={"Content-Type": "text/html", "Content-Length": "5"},
+        body_bytes=b"hello",
+        body="hello",
+        decode_error=None,
+        hash=SimpleNamespace(
+            body_md5="m", body_mmh3="m", body_sha256="s", header_md5="m", header_mmh3="m", header_sha256="s"
+        ),
+        cert_info=None,
+    )
+
+
+async def test_lightfuzz_baseline_generations_counts_ancestry():
+    fake = SimpleNamespace(name="lightfuzz", max_baseline_generations=10)
+    count = lightfuzz.baseline_generations
+    scan = Scanner("example.com")
+    await scan._prep()
+    assert count(fake, _generation_chain(scan, 0)) == 0
+    assert count(fake, _generation_chain(scan, 1)) == 1
+    assert count(fake, _generation_chain(scan, 7)) == 7
+    # counting stops at the cap instead of walking the rest of the chain
+    assert count(fake, _generation_chain(scan, 60)) == 10
+    # an ancestor that merely carries the same data as its parent must not end the walk,
+    # or every generation above it stops being counted and the cap never fires
+    assert count(fake, _generation_chain(scan, 7, duplicate_at=5)) == 7
+    await scan._cleanup()
+
+
+async def test_lightfuzz_baseline_generation_cap_stops_emitting():
+    """Baseline responses are what excavate mines to produce the next generation of
+    parameters, so past the cap they stop being emitted and the loop is starved."""
+    emitted = []
+
+    async def _emit_event(*args, **kwargs):
+        emitted.append(args)
+
+    def _fake_module(cap=3):
+        module = SimpleNamespace(
+            name="lightfuzz",
+            max_baseline_generations=cap,
+            emit_baseline_responses=True,
+            _baseline_generation_cap_hit=False,
+            emit_event=_emit_event,
+            verbose=lambda *a, **kw: None,
+            debug=lambda *a, **kw: None,
+        )
+        module.baseline_generations = lambda event: lightfuzz.baseline_generations(module, event)
+        return module
+
+    response = _fake_baseline_response("https://example.com/contact?csrf=abc")
+    scan = Scanner("example.com")
+    await scan._prep()
+
+    # below the cap, the feedback edge stays open
+    module = _fake_module()
+    await lightfuzz.emit_baseline_response(module, response, _generation_chain(scan, 2), "GET")
+    assert len(emitted) == 1
+    assert module._baseline_generation_cap_hit is False
+
+    # at the cap, excavate gets nothing new to mine
+    emitted.clear()
+    module = _fake_module()
+    await lightfuzz.emit_baseline_response(module, response, _generation_chain(scan, 3), "GET")
+    assert emitted == []
+    assert module._baseline_generation_cap_hit is True
+
+    # deeper still stays capped
+    await lightfuzz.emit_baseline_response(module, response, _generation_chain(scan, 9), "GET")
+    assert emitted == []
+    await scan._cleanup()
 
 
 # Path Traversal single dot tolerance
@@ -1199,9 +1318,7 @@ class Test_Lightfuzz_sqli(ModuleTestBase):
         },
     }
 
-    def request_handler(self, request):
-        qs = str(request.query_string.decode())
-        parameter_block = """
+    parameter_block = """
         <section class=search>
             <form action=/ method=GET>
                 <input type=text placeholder='Search the blog...' name=search>
@@ -1209,30 +1326,9 @@ class Test_Lightfuzz_sqli(ModuleTestBase):
             </form>
         </section>
         """
-        if "search=" in qs:
-            value = qs.split("=")[1]
 
-            if "&" in value:
-                value = value.split("&")[0]
-
-            sql_block_normal = f"""
-        <section class=blog-header>
-            <h1>0 search results for '{unquote(value)}'</h1>
-            <hr>
-        </section>
-        """
-
-            sql_block_error = """
-        <section class=error>
-            <h1>Found error in SQL query</h1>
-            <hr>
-        </section>
-        """
-            if value.endswith("'"):
-                if value.endswith("''"):
-                    return Response(sql_block_normal, status=200)
-                return Response(sql_block_error, status=500)
-        return Response(parameter_block, status=200)
+    def request_handler(self, request):
+        return sqli_injectable_response(request.args.get("search"), self.parameter_block)
 
     async def setup_after_prep(self, module_test):
         module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
@@ -1272,8 +1368,7 @@ class Test_Lightfuzz_sqli_post(ModuleTestBase):
         },
     }
 
-    def request_handler(self, request):
-        parameter_block = """
+    parameter_block = """
         <section class=search>
             <form action=/ method=POST>
                 <input type=text placeholder='Search the blog...' name=search>
@@ -1282,27 +1377,8 @@ class Test_Lightfuzz_sqli_post(ModuleTestBase):
         </section>
         """
 
-        if "search" in request.form.keys():
-            value = request.form["search"]
-
-            sql_block_normal = f"""
-        <section class=blog-header>
-            <h1>0 search results for '{unquote(value)}'</h1>
-            <hr>
-        </section>
-        """
-
-            sql_block_error = """
-        <section class=error>
-            <h1>Found error in SQL query</h1>
-            <hr>
-        </section>
-        """
-            if value.endswith("'"):
-                if value.endswith("''"):
-                    return Response(sql_block_normal, status=200)
-                return Response(sql_block_error, status=500)
-        return Response(parameter_block, status=200)
+    def request_handler(self, request):
+        return sqli_injectable_response(request.form.get("search"), self.parameter_block)
 
     async def setup_after_prep(self, module_test):
         module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
@@ -1392,32 +1468,14 @@ class Test_Lightfuzz_sqli_headers(Test_Lightfuzz_sqli):
         for event in seed_events:
             await module_test.scan.ingress_module.incoming_event_queue.put(event)
 
-    def request_handler(self, request):
-        placeholder_block = """
+    placeholder_block = """
         <html>
         <p>placeholder</p>
         </html>
         """
 
-        if request.headers.get("testheader") is not None:
-            header_value = request.headers.get("testheader")
-
-            header_block_normal = f"""
-            <html>
-            <p>placeholder</p>
-            <p>test: {header_value}</p>
-            </html>
-            """
-            header_block_error = """
-            <html>
-            <p>placeholder</p>
-            <p>Error!</p>
-            </html>
-            """
-            if header_value.endswith("'") and not header_value.endswith("''"):
-                return Response(header_block_error, status=500)
-            return Response(header_block_normal, status=200)
-        return Response(placeholder_block, status=200)
+    def request_handler(self, request):
+        return sqli_injectable_response(request.headers.get("testheader"), self.placeholder_block)
 
     def check(self, module_test, events):
         sqli_finding_emitted = False
@@ -1462,33 +1520,22 @@ class Test_Lightfuzz_sqli_cookies(Test_Lightfuzz_sqli):
         for event in seed_events:
             await module_test.scan.ingress_module.incoming_event_queue.put(event)
 
-    def request_handler(self, request):
-        placeholder_block = """
+    placeholder_block = """
         <html>
         <p>placeholder</p>
         </html>
         """
 
-        if request.cookies.get("test") is not None:
-            header_value = request.cookies.get("test")
-
-            header_block_normal = f"""
-            <html>
-            <p>placeholder</p>
-            <p>test: {header_value}</p>
-            </html>
-            """
-
-            header_block_error = """
-            <html>
-            <p>placeholder</p>
-            <p>Error!</p>
-            </html>
-            """
-            if header_value.endswith("'") and not header_value.endswith("''"):
-                return Response(header_block_error, status=500)
-            return Response(header_block_normal, status=200)
-        return Response(placeholder_block, status=200)
+    def request_handler(self, request):
+        # read the raw header rather than request.cookies: the cookie parser discards values
+        # containing spaces, which the boolean differential probes rely on
+        value = None
+        for pair in (request.headers.get("Cookie") or "").split(";"):
+            name, _, pair_value = pair.partition("=")
+            if name.strip() == "test":
+                value = pair_value.strip()
+                break
+        return sqli_injectable_response(value, self.placeholder_block)
 
     def check(self, module_test, events):
         sqli_finding_emitted = False
@@ -1816,6 +1863,36 @@ class Test_Lightfuzz_serial_errorresolution_falsepositive(Test_Lightfuzz_serial_
         assert no_finding_emitted, "False positive finding was emitted"
 
 
+# Serialization Module: the parameter is parsed as a URI, not deserialized. .NET's Uri reads
+# everything before the first "/" as the hostname, so the control payload (no "/", trailing "=")
+# throws and the dotnet payload (leading token "AAEAAAD") parses -- a 500->200 flip that has
+# nothing to do with deserialization. A structurally-corrupted twin parses just as well, which
+# is what proves the outcome is independent of the payload's content.
+class Test_Lightfuzz_serial_errorresolution_uri_parse_fp(Test_Lightfuzz_serial_errorresolution):
+    uri_parse_error = (
+        "<html><body>System.UriFormatException: Invalid URI: The hostname could not be parsed.</body></html>"
+    )
+
+    def request_handler(self, request):
+        post_params = request.form
+        if "TextBox1" not in post_params.keys():
+            return Response(self.dotnet_serial_html, status=200)
+        if post_params["__VIEWSTATE"] != "/wEPDwULLTE5MTI4MzkxNjVkZNt7ICM+GixNryV6ucx+srzhXlwP":
+            return Response(self.dotnet_serial_error, status=500)
+        host = post_params["TextBox1"].split("/")[0]
+        if not host or re.fullmatch(r"[A-Za-z0-9.-]+", host) is None:
+            return Response(self.uri_parse_error, status=500)
+        return Response("<html><body>Request accepted</body></html>", status=200)
+
+    def check(self, module_test, events):
+        findings = [
+            e.data["description"]
+            for e in events
+            if e.type == "FINDING" and "Unsafe Deserialization" in e.data.get("description", "")
+        ]
+        assert not findings, f"URI parsing was misreported as unsafe deserialization: {findings}"
+
+
 class Test_Lightfuzz_serial_errorresolution_existingvalue_valid(Test_Lightfuzz_serial_errorresolution):
     dotnet_serial_html = """
         <!DOCTYPE html>
@@ -1999,7 +2076,8 @@ class Test_Lightfuzz_serial_errordifferential_falsepositive(Test_Lightfuzz_seria
 
         else:
             dotnet_serial_reflection = (
-                f"<html><body><p>invalid user</p><p>reflected input: {post_params['TextBox1']}</body></html>"
+                "<html><body><p>java.io.OptionalDataException</p>"
+                f"<p>reflected input: {post_params['TextBox1']}</body></html>"
             )
             return Response(dotnet_serial_reflection, status=500)
 
@@ -2012,8 +2090,8 @@ class Test_Lightfuzz_serial_errordifferential_falsepositive(Test_Lightfuzz_seria
 
 
 # Serialization Module (Error Resolution - Transient Baseline)
-# Simulates a server that returns 500 on the first request (baseline), then 200 for everything after.
-# The confirmation re-send of the control payload should catch this and suppress the finding.
+# A server whose error state does not survive the first request has no baseline to resolve,
+# so no finding may be reported.
 class Test_Lightfuzz_serial_errorresolution_transient_baseline(Test_Lightfuzz_serial_errorresolution):
     request_count = 0
 
@@ -2038,9 +2116,42 @@ class Test_Lightfuzz_serial_errorresolution_transient_baseline(Test_Lightfuzz_se
         assert no_finding_emitted, "False positive Error Resolution finding was emitted despite transient baseline"
 
 
+# Magic headers identifying a serialized object of each language family. A handler keyed on
+# these accepts every real payload while rejecting the controls and the scrambled-header twins.
+JAVA_SERIAL_HEADER = b"\xac\xed\x00\x05"
+DOTNET_SERIAL_HEADER = b"\x00\x01\x00\x00"
+SERIAL_MAGIC_HEADERS = (JAVA_SERIAL_HEADER, DOTNET_SERIAL_HEADER, b"\x80\x04", b"\x04\x08", b"a:")
+
+
+def carries_serialization_header(value):
+    """True if ``value`` decodes (raw, base64, or hex) to a recognized serialization header."""
+    candidates = [value.encode()]
+    for decoder in (base64.b64decode, bytes.fromhex):
+        try:
+            candidates.append(decoder(value))
+        except Exception:
+            pass
+    return any(c.startswith(SERIAL_MAGIC_HEADERS) for c in candidates)
+
+
+def error_resolution_languages(events):
+    """Language families named by the Error Resolution findings in ``events``."""
+    languages = set()
+    for e in events:
+        if e.type != "FINDING":
+            continue
+        description = e.data.get("description", "")
+        if "Error Resolution" not in description:
+            continue
+        match = re.search(r"Serialization Payload: \[([a-z0-9_]+)\]", description)
+        if match:
+            languages.add(match.group(1).split("_")[0])
+    return languages
+
+
 # Serialization Module (Error Resolution - Multi-Language Family False Positive)
-# Simulates a server where ALL serialization payloads resolve the error (500->200),
-# spanning multiple language families. The multi-family check should discard them all.
+# A host that resolves its error for several language families is not deserializing any one of
+# them, so none of its Error Resolution findings may be reported.
 class Test_Lightfuzz_serial_errorresolution_multi_language(Test_Lightfuzz_serial_errorresolution):
     def request_handler(self, request):
         post_params = request.form
@@ -2048,21 +2159,13 @@ class Test_Lightfuzz_serial_errorresolution_multi_language(Test_Lightfuzz_serial
         if "TextBox1" not in post_params.keys():
             return Response(self.dotnet_serial_html, status=200)
 
-        # __VIEWSTATE mismatch triggers the baseline path
-        if post_params["__VIEWSTATE"] != "/wEPDwULLTE5MTI4MzkxNjVkZNt7ICM+GixNryV6ucx+srzhXlwP":
-            return Response(self.dotnet_serial_error, status=500)
-
-        # ALL payloads "resolve" the error - this is the false positive scenario
-        return Response("<html><body>OK</body></html>", status=200)
+        if carries_serialization_header(post_params["TextBox1"]):
+            return Response("<html><body>OK</body></html>", status=200)
+        return Response(self.dotnet_serial_error, status=500)
 
     def check(self, module_test, events):
-        no_finding_emitted = True
-        for e in events:
-            if e.type == "FINDING" and "Error Resolution" in e.data.get("description", ""):
-                no_finding_emitted = False
-        assert no_finding_emitted, (
-            "False positive Error Resolution finding was emitted despite multiple language families triggering"
-        )
+        languages = error_resolution_languages(events)
+        assert not languages, f"Error Resolution findings emitted for multiple language families: {languages}"
 
 
 class Test_Lightfuzz_serial_errorresolution_nonstandard_status(Test_Lightfuzz_serial_errorresolution):
@@ -2095,6 +2198,141 @@ class Test_Lightfuzz_serial_errorresolution_nonstandard_status(Test_Lightfuzz_se
         assert no_finding_emitted, (
             "False positive Error Resolution finding was emitted for non-standard baseline status code (>511)"
         )
+
+
+# Serialization Module (Error Resolution - Non-Error Baseline)
+# Error Resolution infers a deserializer from an application-level failure to interpret the
+# payload. A baseline that is not such a failure cannot be resolved, whatever the probe returns.
+class _SerialNonErrorBaseline(Test_Lightfuzz_serial_errorresolution):
+    def request_handler(self, request):
+        post_params = request.form
+        if "TextBox1" not in post_params.keys():
+            return Response(self.dotnet_serial_html, status=200)
+        if post_params["TextBox1"] == "AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw==":
+            return Response("<html><body>Deserialization successful!</body></html>", status=200)
+        return Response(self.dotnet_serial_error, status=self.baseline_status)
+
+    def check(self, module_test, events):
+        findings = [
+            e.data["description"]
+            for e in events
+            if e.type == "FINDING" and "Error Resolution" in e.data.get("description", "")
+        ]
+        assert not findings, f"Error Resolution finding emitted for a [{self.baseline_status}] baseline: {findings}"
+
+
+class Test_Lightfuzz_serial_errorresolution_gateway_baseline(_SerialNonErrorBaseline):
+    baseline_status = 503
+
+
+class Test_Lightfuzz_serial_errorresolution_redirect_baseline(_SerialNonErrorBaseline):
+    baseline_status = 302
+
+
+class Test_Lightfuzz_serial_errorresolution_routing_baseline(_SerialNonErrorBaseline):
+    baseline_status = 404
+
+
+# Serialization Module (Error Resolution - Unstable Control)
+# The error state must hold for the control across the whole trial, not just while the baseline
+# is established, so a control that starts succeeding mid-trial withdraws the finding.
+class Test_Lightfuzz_serial_errorresolution_unstable_control(Test_Lightfuzz_serial_errorresolution):
+    control_request_count = 0
+
+    def request_handler(self, request):
+        post_params = request.form
+        if "TextBox1" not in post_params.keys():
+            return Response(self.dotnet_serial_html, status=200)
+
+        submitted = post_params["TextBox1"]
+        if submitted == serial_submodule.CONTROL_PAYLOAD_BASE64:
+            self.control_request_count += 1
+            # the baseline pair and the first trial round error, later control samples succeed
+            if self.control_request_count > 3:
+                return Response("<html><body>OK</body></html>", status=200)
+        elif submitted == "AAEAAAD/////AQAAAAAAAAAGAQAAAAdndXN0YXZvCw==":
+            return Response("<html><body>Deserialization successful!</body></html>", status=200)
+        return Response(self.dotnet_serial_error, status=500)
+
+    def check(self, module_test, events):
+        findings = [
+            e.data["description"]
+            for e in events
+            if e.type == "FINDING" and "Error Resolution" in e.data.get("description", "")
+        ]
+        assert not findings, f"Error Resolution finding emitted despite an unstable control: {findings}"
+
+
+# Serialization Module (Error Resolution - Multi-Language Family Across Parameters)
+# The single-language-family invariant holds for the host, not for one parameter, so families
+# split across two parameters must still collapse to one.
+class Test_Lightfuzz_serial_errorresolution_multi_language_per_host(Test_Lightfuzz_serial_errorresolution):
+    dotnet_serial_html = """
+        <!DOCTYPE html>
+        <html>
+        <head><title>
+            Deserialization RCE Example
+        </title></head>
+        <body>
+            <form method="post" action="./deser.aspx" id="form1">
+                <div>
+                    <textarea name="TextBox1" rows="2" cols="20" id="TextBox1"></textarea><br />
+                    <textarea name="TextBox2" rows="2" cols="20" id="TextBox2"></textarea><br />
+                    <input type="submit" name="Button1" value="Submit" id="Button1" />
+                </div>
+            </form>
+        </body>
+        </html>
+        """
+
+    def request_handler(self, request):
+        post_params = request.form
+        if "TextBox1" not in post_params.keys() and "TextBox2" not in post_params.keys():
+            return Response(self.dotnet_serial_html, status=200)
+
+        # TextBox1 accepts only java, TextBox2 only dotnet
+        for field, header in (("TextBox1", JAVA_SERIAL_HEADER), ("TextBox2", DOTNET_SERIAL_HEADER)):
+            value = post_params.get(field, "")
+            if value:
+                try:
+                    decoded = base64.b64decode(value)
+                except Exception:
+                    decoded = b""
+                if decoded.startswith(header):
+                    return Response("<html><body>OK</body></html>", status=200)
+        return Response(self.dotnet_serial_error, status=500)
+
+    def check(self, module_test, events):
+        languages = error_resolution_languages(events)
+        assert languages, "No Error Resolution finding was emitted for either parameter"
+        assert len(languages) == 1, f"Error Resolution findings spanned multiple language families: {languages}"
+
+
+# Serialization Module (Differential Error Analysis - Non-Error Baseline)
+# Differential Error Analysis rests on a framework error string appearing in the probe and not
+# the baseline, so it stays available whatever status the baseline carries.
+class Test_Lightfuzz_serial_errordifferential_nonstandard_baseline(Test_Lightfuzz_serial_errorresolution):
+    java_cast_error = """
+        <html>
+            <p>java.lang.ClassCastException: Cannot cast java.lang.String to com.example.User</p>
+        </html>
+        """
+
+    def request_handler(self, request):
+        post_params = request.form
+        if "TextBox1" not in post_params.keys():
+            return Response(self.dotnet_serial_html, status=200)
+        if post_params["TextBox1"] == "rO0ABXQABHRlc3Q=":
+            return Response(self.java_cast_error, status=500)
+        return Response(self.dotnet_serial_error, status=512)
+
+    def check(self, module_test, events):
+        assert any(
+            e.type == "FINDING"
+            and "Technique: [Differential Error Analysis]" in e.data.get("description", "")
+            and "Error-String: [cannot cast java.lang.string]" in e.data.get("description", "")
+            for e in events
+        ), "Differential Error Analysis was not reported for a non-standard baseline status"
 
 
 # Python pickle Error Resolution — verifies the new python_pickle_base64
@@ -3698,7 +3936,7 @@ class Test_Lightfuzz_filter_event(ModuleTestBase):
         "modules": {
             "lightfuzz": {
                 "enabled_submodules": ["xss"],
-                "avoid_wafs": True,
+                "avoid_wafs": "always",
             }
         },
     }
@@ -3775,6 +4013,289 @@ class Test_Lightfuzz_filter_event(ModuleTestBase):
         pass
 
 
+class Test_Lightfuzz_filter_event_try_bypasses(ModuleTestBase):
+    """Under try_bypasses the nowafpls verdict decides, not the "waf" tag. The tag reflects the
+    CDN/WAF provider's identity, so a host that isn't gating payloads must still be fuzzed."""
+
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http", "lightfuzz"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {
+            "lightfuzz": {
+                "enabled_submodules": ["xss"],
+                "avoid_wafs": "try_bypasses",
+            }
+        },
+    }
+
+    def _web_param(self, module_test, param_type):
+        return module_test.scan.make_event(
+            {
+                "host": "127.0.0.1",
+                "type": param_type,
+                "name": "test",
+                "original_value": "value",
+                "url": f"{HTTPSERVER_URL}/",
+                "description": "Test parameter",
+            },
+            "WEB_PARAMETER",
+            module_test.scan.root_event,
+            module="excavate",
+            tags=["distance-0", "waf"],
+        )
+
+    async def setup_after_prep(self, module_test):
+        self.url_event = module_test.scan.make_event(
+            f"{HTTPSERVER_URL}/",
+            "URL",
+            module_test.scan.root_event,
+            module="http",
+            tags=["status-200", "distance-0", "waf"],
+        )
+        self.getparam_event = self._web_param(module_test, "GETPARAM")
+        self.postparam_event = self._web_param(module_test, "POSTPARAM")
+
+    @staticmethod
+    def _accepted(result):
+        # filter_event returns True to accept, or False / (False, reason) to reject
+        return result is True
+
+    def _set_verdict(self, module_test, status):
+        async def _stub(event, *args, **kwargs):
+            return BypassResult(status=status)
+
+        module_test.scan.helpers.nowafpls.is_bypassable = _stub
+
+    async def test_filter_event(self, module_test):
+        module = module_test.scan.modules["lightfuzz"]
+        all_events = (self.url_event, self.getparam_event, self.postparam_event)
+
+        # nothing is gating the payload, so there is no WAF to work around: fuzz every event type
+        self._set_verdict(module_test, BypassResult.STATUS_NO_INTERFERENCE)
+        for event in all_events:
+            result = await module.filter_event(event)
+            assert self._accepted(result), (
+                f"{event.type} should be fuzzed when the probe reports no interference, got {result}"
+            )
+
+        # padding is body-only, so a confirmed bypass only helps events that can fire a POST probe
+        self._set_verdict(module_test, BypassResult.STATUS_BYPASSED)
+        assert self._accepted(await module.filter_event(self.postparam_event)), (
+            "POSTPARAM should be accepted when the WAF is bypassable via body padding"
+        )
+        for event in (self.url_event, self.getparam_event):
+            result = await module.filter_event(event)
+            assert not self._accepted(result), (
+                f"{event.type} has no POST-style probe to pad and should be rejected, got {result}"
+            )
+
+        # the gate held, or we never got a verdict: reject everything, and report which of the two
+        # it was, since an inconclusive probe is an infrastructure problem, not a WAF that held
+        for status, expected_reason in (
+            (BypassResult.STATUS_BLOCKED, "WAF blocked the payload"),
+            (BypassResult.STATUS_ERROR, "WAF bypass probe was inconclusive"),
+        ):
+            self._set_verdict(module_test, status)
+            for event in all_events:
+                result = await module.filter_event(event)
+                assert not self._accepted(result), f"{event.type} should be rejected on status={status}, got {result}"
+                assert isinstance(result, tuple), (
+                    f"{event.type} rejection on status={status} must carry a reason, got {result}"
+                )
+                assert expected_reason in result[1], (
+                    f"{event.type} rejection on status={status} should say why, got {result}"
+                )
+                assert f"status={status}" in result[1], (
+                    f"{event.type} rejection reason should include the probe verdict, got {result}"
+                )
+
+    def check(self, module_test, events):
+        # assertions live in test_filter_event
+        pass
+
+
+class _NowafplsFuzzTestBase(ModuleTestBase):
+    """Shared setup: dummy module emits a WAF-tagged POSTPARAM WEB_PARAMETER, and the mocked
+    endpoint's callback records every POST body so tests can assert on what actually fired.
+
+    Subclasses set ``bypass_works`` and ``avoid_wafs`` — the callback maps unpadded/padded
+    payloads to responses based on ``bypass_works``, giving the helper a real verdict to
+    memoize (rather than us monkey-patching it)."""
+
+    targets = ["nowafpls-fuzz.test"]
+    bypass_works = True
+    # when False the endpoint answers the malicious payload normally, i.e. nothing is gating it
+    waf_blocks = True
+    avoid_wafs = "try_bypasses"
+
+    class DummyModule(BaseModule):
+        watched_events = ["DNS_NAME"]
+        _name = "dummy_module"
+
+        async def handle_event(self, event):
+            if event.data != "nowafpls-fuzz.test":
+                return
+            url = self.scan.make_event(
+                "http://nowafpls-fuzz.test/",
+                "URL",
+                parent=event,
+                tags=["waf", "cloudflare", "in-scope", "status-200"],
+            )
+            if url is not None:
+                await self.emit_event(url)
+            param = self.scan.make_event(
+                {
+                    "host": "nowafpls-fuzz.test",
+                    "type": "POSTPARAM",
+                    "name": "q",
+                    "original_value": "hello",
+                    "url": "http://nowafpls-fuzz.test/",
+                    "description": "test parameter",
+                    "additional_params": {},
+                },
+                "WEB_PARAMETER",
+                parent=event,
+                tags=["waf", "in-scope", "distance-0"],
+            )
+            if param is not None:
+                await self.emit_event(param)
+
+    @property
+    def modules_overrides(self):
+        return ["http", "lightfuzz", "excavate"]
+
+    padding_size = 1024
+
+    @property
+    def config_overrides(self):
+        return {
+            "interactsh_disable": True,
+            "web": {"nowafpls_padding_sizes": [self.padding_size]},
+            "modules": {
+                "lightfuzz": {
+                    "enabled_submodules": ["xss"],
+                    "disable_post": False,
+                    "avoid_wafs": self.avoid_wafs,
+                }
+            },
+        }
+
+    async def setup_after_prep(self, module_test):
+        from blasthttp.mock import MockResponse
+
+        await module_test.mock_dns({"nowafpls-fuzz.test": {"A": ["127.0.0.1"]}})
+        self.post_bodies: list[bytes] = []
+        bypass = self.bypass_works
+        blocks = self.waf_blocks
+
+        def cb(request):
+            body = request.content or b""
+            if isinstance(body, str):
+                body = body.encode()
+            if request.method == "POST":
+                self.post_bodies.append(body)
+            # Baseline (benign) is always accepted.
+            # Malicious payload without pad is WAF-blocked (403).
+            # Padded malicious is accepted iff bypass_works.
+            has_pad = body.startswith(b"__nowafpls_pad=")
+            has_malicious = b"%3Cscript" in body or b"<script" in body
+            if has_malicious and not has_pad and blocks:
+                return MockResponse(status_code=403, text="Attention Required! | Cloudflare\nRay ID: abcd")
+            if has_malicious and has_pad and not bypass:
+                return MockResponse(status_code=403, text="Attention Required! | Cloudflare\nRay ID: abcd")
+            return MockResponse(status_code=200, text="Welcome to the application")
+
+        module_test.blasthttp_mock.add_callback(callback=cb)
+        module_test.scan.modules["dummy_module"] = self.DummyModule(module_test.scan)
+
+
+class Test_Nowafpls_try_bypasses_bypassable(_NowafplsFuzzTestBase):
+    """try_bypasses + WAF is bypassable: XSS submodule should fire padded POST bodies against the target."""
+
+    bypass_works = True
+    avoid_wafs = "try_bypasses"
+
+    def check(self, module_test, events):
+        padded_malicious = [
+            b for b in self.post_bodies if b.startswith(b"__nowafpls_pad=") and (b"%3Cscript" in b or b"<script" in b)
+        ]
+        unpadded_malicious = [
+            b
+            for b in self.post_bodies
+            if not b.startswith(b"__nowafpls_pad=") and (b"%3Cscript" in b or b"<script" in b)
+        ]
+        assert padded_malicious, f"Expected padded fuzz probes. Bodies: {self.post_bodies[:5]}"
+        # fuzz probes must pad with the size the probe validated, not a compiled-in default
+        pad_sizes = {len(b[len(b"__nowafpls_pad=") :].split(b"&", 1)[0]) for b in padded_malicious}
+        assert pad_sizes == {self.padding_size}, (
+            f"Fuzz pads must match the configured padding size {self.padding_size}. Got: {pad_sizes}"
+        )
+        # nowafpls's own probe fires exactly one unpadded malicious body; any additional unpadded
+        # malicious would mean lightfuzz's fuzz probes are missing the pad.
+        assert len(unpadded_malicious) <= 1, (
+            f"Only the helper's own probe should send unpadded malicious payloads (<=1). "
+            f"Got {len(unpadded_malicious)}: {unpadded_malicious[:5]}"
+        )
+
+
+class Test_Nowafpls_try_bypasses_blocked(_NowafplsFuzzTestBase):
+    """try_bypasses + WAF holds: helper reports 'blocked', filter_event rejects the WEB_PARAMETER,
+    XSS submodule should fire zero fuzz probes (helper's own 3-request probe is the only POST traffic)."""
+
+    bypass_works = False
+    avoid_wafs = "try_bypasses"
+
+    def check(self, module_test, events):
+        malicious = [b for b in self.post_bodies if b"%3Cscript" in b or b"<script" in b]
+        # The helper's probe itself fires one unpadded and one padded malicious POST as part of
+        # deciding bypass; anything beyond that would be lightfuzz fuzzing.
+        assert len(malicious) <= 2, (
+            f"With bypass blocked, only nowafpls's own probe should send malicious payloads (<=2). "
+            f"Got {len(malicious)}: {malicious[:5]}"
+        )
+
+
+class Test_Nowafpls_try_bypasses_no_interference(_NowafplsFuzzTestBase):
+    """try_bypasses + the host isn't gating the payload: the probe reports no interference, so
+    lightfuzz fuzzes normally and unpadded. A verdict of "not bypassed" must not be read as
+    "skip this host" -- only an observed block should suppress fuzzing."""
+
+    waf_blocks = False
+    avoid_wafs = "try_bypasses"
+
+    # the only POST bodies nowafpls's own probe ever sends: two benign baselines and one
+    # unpadded malicious payload (it returns before testing padding when there's no interference)
+    PROBE_BODIES = {b"q=hello", b"q=%3Cscript%3Ealert%281%29%3C%2Fscript%3E"}
+
+    def check(self, module_test, events):
+        fuzz_bodies = [b for b in self.post_bodies if b not in self.PROBE_BODIES]
+        padded = [b for b in self.post_bodies if b.startswith(b"__nowafpls_pad=")]
+        # anything the probe didn't send is lightfuzz, which only reaches the wire if
+        # filter_event accepted the WEB_PARAMETER
+        assert fuzz_bodies, (
+            f"Expected lightfuzz to fuzz a host with no interference, but the only POST traffic "
+            f"was nowafpls's own probe: {self.post_bodies[:5]}"
+        )
+        # nothing is gating the payload, so there is nothing to pad around
+        assert not padded, f"No padding should be applied when nothing is gating the payload. Got: {padded[:3]}"
+
+
+class Test_Nowafpls_never_still_pads(_NowafplsFuzzTestBase):
+    """avoid_wafs=never: no filter-time probe, but prepare_request still opportunistically pads POST
+    when the helper reports bypassable. Padded fuzz bodies should still land on the wire."""
+
+    bypass_works = True
+    avoid_wafs = "never"
+
+    def check(self, module_test, events):
+        padded = [b for b in self.post_bodies if b.startswith(b"__nowafpls_pad=")]
+        assert padded, (
+            f"Under 'never' + bypassable, prepare_request should still opportunistically pad. "
+            f"Got bodies: {self.post_bodies[:5]}"
+        )
+
+
 # try_post_as_get: fuzz POST parameters as GET parameters
 class Test_Lightfuzz_try_post_as_get(ModuleTestBase):
     targets = [HTTPSERVER_URL]
@@ -3790,10 +4311,7 @@ class Test_Lightfuzz_try_post_as_get(ModuleTestBase):
         },
     }
 
-    def request_handler(self, request):
-        qs = str(request.query_string.decode())
-
-        parameter_block = """
+    parameter_block = """
         <section class=search>
             <form action=/ method=POST>
                 <input type=text placeholder='Search the blog...' name=search>
@@ -3802,29 +4320,9 @@ class Test_Lightfuzz_try_post_as_get(ModuleTestBase):
         </section>
         """
 
-        if "search=" in qs:
-            value = qs.split("=")[1]
-            if "&" in value:
-                value = value.split("&")[0]
-
-            sql_block_normal = f"""
-        <section class=blog-header>
-            <h1>0 search results for '{unquote(value)}'</h1>
-            <hr>
-        </section>
-        """
-
-            sql_block_error = """
-        <section class=error>
-            <h1>Found error in SQL query</h1>
-            <hr>
-        </section>
-        """
-            if value.endswith("'"):
-                if value.endswith("''"):
-                    return Response(sql_block_normal, status=200)
-                return Response(sql_block_error, status=500)
-        return Response(parameter_block, status=200)
+    def request_handler(self, request):
+        # only the converted GETPARAM pass reaches a query here; the POST pass is disabled
+        return sqli_injectable_response(request.args.get("search"), self.parameter_block)
 
     async def setup_after_prep(self, module_test):
         module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
@@ -3872,8 +4370,7 @@ class Test_Lightfuzz_try_get_as_post(ModuleTestBase):
         },
     }
 
-    def request_handler(self, request):
-        parameter_block = """
+    parameter_block = """
         <section class=search>
             <form action=/ method=GET>
                 <input type=text placeholder='Search the blog...' name=search>
@@ -3882,27 +4379,10 @@ class Test_Lightfuzz_try_get_as_post(ModuleTestBase):
         </section>
         """
 
-        if request.method == "POST" and "search" in request.form.keys():
-            value = request.form["search"]
-
-            sql_block_normal = f"""
-        <section class=blog-header>
-            <h1>0 search results for '{unquote(value)}'</h1>
-            <hr>
-        </section>
-        """
-
-            sql_block_error = """
-        <section class=error>
-            <h1>Found error in SQL query</h1>
-            <hr>
-        </section>
-        """
-            if value.endswith("'"):
-                if value.endswith("''"):
-                    return Response(sql_block_normal, status=200)
-                return Response(sql_block_error, status=500)
-        return Response(parameter_block, status=200)
+    def request_handler(self, request):
+        # only the converted POSTPARAM pass reaches a query here
+        value = request.form.get("search") if request.method == "POST" else None
+        return sqli_injectable_response(value, self.parameter_block)
 
     async def setup_after_prep(self, module_test):
         module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
@@ -4148,6 +4628,85 @@ class Test_Lightfuzz_sqli_flappy_baseline(Test_Lightfuzz_sqli):
         )
 
 
+def _sqli_code_change_findings(events):
+    return [
+        e.data["description"] for e in events if e.type == "FINDING" and "Code Change" in e.data.get("description", "")
+    ]
+
+
+# SQLi negative test: the textbook 200->500->200 status flip on a parameter that never reaches a
+# query. TRUE and FALSE boolean payloads come back byte-identical, so there is no SQL logic to
+# confirm. This is the shape an envelope-wrapped parameter produces when the injected quote
+# changes the envelope's structural validity rather than a query's.
+class Test_Lightfuzz_sqli_no_boolean_differential_fp(Test_Lightfuzz_sqli):
+    def request_handler(self, request):
+        value = request.args.get("search")
+        if value is None:
+            return Response(self.parameter_block, status=200)
+        if value.endswith("'") and not value.endswith("''"):
+            return Response("<html><p>Bad Request</p></html>", status=500)
+        return Response("<html><p>0 results</p></html>", status=200)
+
+    def check(self, module_test, events):
+        findings = _sqli_code_change_findings(events)
+        assert not findings, f"SQLi reported from a status flip with no boolean differential: {findings}"
+
+
+# SQLi negative test: the single-quote probe is blocked by an access-control layer whose block
+# page carries no recognizable WAF signature. The transition into 403 is what identifies it.
+class Test_Lightfuzz_sqli_unsigned_403_fp(Test_Lightfuzz_sqli):
+    def request_handler(self, request):
+        value = request.args.get("search")
+        if value is None:
+            return Response(self.parameter_block, status=200)
+        if value.endswith("'") and not value.endswith("''"):
+            return Response(
+                "<html><head><title>Forbidden</title></head><body><h1>Forbidden</h1>"
+                "<p>Reference: 0aB1cD2e</p></body></html>",
+                status=403,
+            )
+        return Response("<html><p>0 results</p></html>", status=200)
+
+    def check(self, module_test, events):
+        findings = _sqli_code_change_findings(events)
+        assert not findings, f"SQLi reported from a probe blocked with an unsigned 403: {findings}"
+
+
+# SQLi negative test: the status is keyed on the payload's length, not its quoting. A benign
+# one-vs-two-character pair reproduces the same status triplet, so the change isn't quote-specific.
+class Test_Lightfuzz_sqli_length_keyed_fp(Test_Lightfuzz_sqli):
+    def request_handler(self, request):
+        value = request.args.get("search")
+        if value is None:
+            return Response(self.parameter_block, status=200)
+        if len(value) == 11:
+            return Response("<html><p>Bad Request</p></html>", status=500)
+        return Response("<html><p>0 results</p></html>", status=200)
+
+    def check(self, module_test, events):
+        findings = _sqli_code_change_findings(events)
+        assert not findings, f"SQLi reported from a length-keyed status flip: {findings}"
+
+
+# SQLi negative test: the parameter never reaches a query, and the app reflects it HTML-escaped.
+# The escaped reflection differs between the TRUE and FALSE boolean payloads, so unless every
+# escape spelling is stripped, the reflection itself reads as a boolean differential.
+class Test_Lightfuzz_sqli_escaped_reflection_fp(Test_Lightfuzz_sqli):
+    def request_handler(self, request):
+        value = request.args.get("search")
+        if value is None:
+            return Response(self.parameter_block, status=200)
+        if value.endswith("'") and not value.endswith("''"):
+            return Response("<html><p>Bad Request</p></html>", status=500)
+        # the Jinja/ASP.NET spelling, deliberately not the one html.escape() produces
+        reflection = html.escape(value).replace("&#x27;", "&#39;")
+        return Response(f"<html><p>0 results for: {reflection}</p></html>", status=200)
+
+    def check(self, module_test, events):
+        findings = _sqli_code_change_findings(events)
+        assert not findings, f"SQLi reported from an HTML-escaped reflection: {findings}"
+
+
 # Verify that POST SQLi findings include additional_params in the description
 class Test_Lightfuzz_sqli_post_additional_params(ModuleTestBase):
     targets = [HTTPSERVER_URL]
@@ -4161,8 +4720,7 @@ class Test_Lightfuzz_sqli_post_additional_params(ModuleTestBase):
         },
     }
 
-    def request_handler(self, request):
-        parameter_block = """
+    parameter_block = """
         <section class=search>
             <form action=/ method=POST>
                 <input type=text name=search>
@@ -4171,14 +4729,9 @@ class Test_Lightfuzz_sqli_post_additional_params(ModuleTestBase):
             </form>
         </section>
         """
-        if "search" in request.form.keys():
-            value = request.form["search"]
-            if value.endswith("'"):
-                if value.endswith("''"):
-                    return Response("<p>normal</p>", status=200)
-                return Response("<p>error</p>", status=500)
-            return Response("<p>results</p>", status=200)
-        return Response(parameter_block, status=200)
+
+    def request_handler(self, request):
+        return sqli_injectable_response(request.form.get("search"), self.parameter_block)
 
     async def setup_after_prep(self, module_test):
         module_test.scan.modules["lightfuzz"].helpers.rand_string = lambda *args, **kwargs: (
@@ -5390,3 +5943,45 @@ class TestLightfuzzWildcardSkip(ModuleTestBase):
         assert len(web_params_fuzzed) == 0, (
             f"lightfuzz should not fuzz wildcard hosts, but processed params: {web_params_fuzzed}"
         )
+
+
+class Test_Lightfuzz_baseline_respects_spider_limits(ModuleTestBase):
+    """A baseline response's URL is a link from another page; it costs a spider hop like any extracted link."""
+
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http", "lightfuzz", "excavate", "speculate"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {"lightfuzz": {"enabled_submodules": ["path"]}},
+    }
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"},
+            respond_args={"response_data": '<html><a href="/target?x=1">t</a></html>'},
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/target"},
+            respond_args={"response_data": '<html><a href="/deeper?y=1">d</a></html>'},
+        )
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/deeper"},
+            respond_args={"response_data": "<html>deeper</html>"},
+        )
+
+    def check(self, module_test, events):
+        assert any(e.type == "WEB_PARAMETER" and e.data["name"] == "x" for e in events)
+        visited = {e.parsed_url.path for e in events if e.type == "URL"}
+        assert "/target" not in visited and "/deeper" not in visited, f"Visited past spider_distance 0: {visited}"
+
+
+class Test_Lightfuzz_baseline_within_spider_limits(Test_Lightfuzz_baseline_respects_spider_limits):
+    config_overrides = {
+        "interactsh_disable": True,
+        "web": {"spider_distance": 1, "spider_depth": 3},
+        "modules": {"lightfuzz": {"enabled_submodules": ["path"]}},
+    }
+
+    def check(self, module_test, events):
+        visited = {e.parsed_url.path for e in events if e.type == "URL"}
+        assert "/target" in visited, f"Baseline URL within spider_distance was not visited: {visited}"

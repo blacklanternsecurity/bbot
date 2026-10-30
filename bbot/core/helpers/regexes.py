@@ -203,6 +203,7 @@ button_tag_regex2 = re.compile(
     r"<button[^>]*?value=[\"\']?([\-%\._=+\/\w]*)[\"\']?[^>]*?name=[\"\']?([\-\._=+\/\w]+)[\"\']?[^>]*?>"
 )
 tag_attribute_regex = re.compile(r"<[^>]*(?:href|action|src)\s*=\s*[\"\']?(?!mailto:)([^\'\"\>]+)[\"\']?[^>]*>")
+base_href_regex = re.compile(r"<base\b[^>]*?\shref\s*=\s*[\"\']?([^\'\"\>\s]+)", re.I)
 
 _invalid_netloc_chars = r"\s!@#$%^&()=/?\\'\";~`<>"
 # first char must not be a colon, even though it's a valid char for a netloc

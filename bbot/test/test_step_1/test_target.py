@@ -725,6 +725,32 @@ def test_blacklist_get_invalid_host():
     assert result is not None
 
 
+def test_target_add_hostless_with_single_address():
+    """Hostless entries (e.g. BLACKLIST_REGEX) must sort against any host form without a type error.
+
+    host_size_key() returns a (size, str) tuple, so the hostless sentinel must also carry a str
+    in its second position. Explicitly-masked single addresses (/32, /128) share size 0 with the
+    sentinel, which forces the second elements to be compared.
+    """
+    from bbot.scanner.target import ScanBlacklist
+
+    # a hostless entry batched with an explicitly-masked single address
+    for single_address in ["1.2.3.4/32", "dead::beef/128"]:
+        blacklist = ScanBlacklist("RE:test", single_address)
+        assert "REGEX:test" in blacklist.inputs
+        assert blacklist.get(single_address.split("/")[0]) is not None
+
+    # a mixed batch of every host form alongside multiple hostless entries
+    blacklist = ScanBlacklist(
+        "RE:evil", "RE:test", "1.2.3.4/32", "1.2.3.0/24", "dead::beef/128", "5.6.7.8", "evilcorp.com"
+    )
+    assert {r.pattern for r in blacklist.blacklist_regexes} == {"evil", "test"}
+    for host in ["1.2.3.4", "1.2.3.5", "dead::beef", "5.6.7.8", "www.evilcorp.com"]:
+        assert blacklist.get(host) is not None
+    assert "test.com" in blacklist
+    assert "9.9.9.9" not in blacklist
+
+
 def test_no_double_parsing():
     """Regression test: when seeds are auto-populated from target, EventSeed parsing
     should happen only once (via ScanTarget), not twice. BBOTTarget should pass

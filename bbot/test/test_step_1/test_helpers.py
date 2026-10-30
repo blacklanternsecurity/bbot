@@ -45,6 +45,18 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     with pytest.raises(ValueError):
         helpers.validators.clean_url("http://evilcorp,com")
 
+    # path parameters accumulate inside a path segment, and are keyed by name
+    assert helpers.max_path_param_repeats("http://evilcorp.com/;JSESSIONID=a") == 1
+    assert helpers.max_path_param_repeats("http://evilcorp.com/;JSESSIONID=a;JSESSIONID=b;jsessionid=c") == 3
+    assert helpers.max_path_param_repeats("http://evilcorp.com/app;a=1;b=2") == 1
+    assert helpers.max_path_param_repeats("http://evilcorp.com/app;a=1/b;c=2") == 1
+    # ordinary path segments are not parameters, however deep or repetitive the path
+    assert helpers.max_path_param_repeats("http://evilcorp.com/") == 0
+    assert helpers.max_path_param_repeats("http://evilcorp.com/foo/bar") == 0
+    assert helpers.max_path_param_repeats("http://evilcorp.com/" + "/".join(["a"] * 30)) == 0
+    # the query string is not part of the path
+    assert helpers.max_path_param_repeats("http://evilcorp.com/foo?x=1&x=2&x=3") == 0
+
     assert helpers.url_depth("http://evilcorp.com/asdf/user/") == 2
     assert helpers.url_depth("http://evilcorp.com/asdf/user") == 2
     assert helpers.url_depth("http://evilcorp.com/asdf/") == 1
@@ -761,6 +773,23 @@ async def test_word_cloud(helpers, bbot_scanner):
     await scan1._cleanup()
 
 
+def test_cpe_product(helpers):
+    assert helpers.cpe_product("cpe:/a:jquery:jquery:3.5.1") == "jquery"
+    assert helpers.cpe_product("cpe:/o:microsoft:windows") == "windows"
+    assert (
+        helpers.cpe_product("cpe:/a:Microsoft:Internet_Information_Services:10.0") == "internet_information_services"
+    )
+    assert helpers.cpe_product("cpe:2.3:a:apache:tomcat:9.0.50:*:*:*:*:*:*:*") == "tomcat"
+    # 2.3 escapes literal colons
+    assert helpers.cpe_product("cpe:2.3:a:vendor:foo\\:bar:1.0:*:*:*:*:*:*:*") == "foo:bar"
+    # no product
+    assert helpers.cpe_product("cpe:/a:vendor") is None
+    assert helpers.cpe_product("cpe:2.3:a:vendor:*:1.0:*:*:*:*:*:*:*") is None
+    assert helpers.cpe_product("cpe:2.3:a:vendor:-:1.0:*:*:*:*:*:*:*") is None
+    # not a CPE
+    assert helpers.cpe_product("nginx") is None
+
+
 def test_names(helpers):
     assert helpers.names == sorted(helpers.names)
     assert helpers.adjectives == sorted(helpers.adjectives)
@@ -815,17 +844,81 @@ async def test_async_helpers():
     import random
     from bbot.core.helpers.misc import as_completed
 
+    # sleeps are scaled down; wall time here is sum(sleeps)/max_concurrent,
+    # so full-second sleeps buy nothing but 25s of idling
     async def do_stuff(r):
-        await asyncio.sleep(r)
+        await asyncio.sleep(r / 100)
         return r
 
     random_ints = [random.random() for _ in range(1000)]
     tasks = [do_stuff(r) for r in random_ints]
     results = set()
+    completion_order = []
     async for t in as_completed(tasks):
-        results.add(await t)
+        r = await t
+        results.add(r)
+        completion_order.append(r)
     assert len(results) == 1000
     assert sorted(random_ints) == sorted(results)
+    # results must arrive as they finish, not in submission order
+    assert completion_order != random_ints
+
+    # max_concurrent is an upper bound that actually gets saturated
+    for limit in (1, 5, 20, 50):
+        live = 0
+        peak = 0
+
+        async def probe(r):
+            nonlocal live, peak
+            live += 1
+            peak = max(peak, live)
+            try:
+                await asyncio.sleep(r / 100)
+                return r
+            finally:
+                live -= 1
+
+        vals = [random.random() for _ in range(200)]
+        completed = 0
+        async for t in as_completed([probe(r) for r in vals], max_concurrent=limit):
+            await t
+            completed += 1
+        assert completed == 200
+        assert peak == limit
+
+    # unlimited concurrency schedules everything at once
+    live = 0
+    peak = 0
+
+    async def unlimited(i):
+        nonlocal live, peak
+        live += 1
+        peak = max(peak, live)
+        try:
+            await asyncio.sleep(0)
+            return i
+        finally:
+            live -= 1
+
+    completed = 0
+    async for t in as_completed([unlimited(i) for i in range(200)], max_concurrent=None):
+        await t
+        completed += 1
+    assert completed == 200
+    assert peak == 200
+
+    # a raising coroutine is still yielded, and does not abort the rest
+    async def boom():
+        raise ValueError("boom")
+
+    async def fine(i):
+        await asyncio.sleep(0)
+        return i
+
+    yielded = [t async for t in as_completed([boom(), fine(1), boom(), fine(2)])]
+    assert len(yielded) == 4
+    assert sum(1 for t in yielded if isinstance(t.exception(), ValueError)) == 2
+    assert sorted(t.result() for t in yielded if t.exception() is None) == [1, 2]
 
 
 def test_portparse(helpers):

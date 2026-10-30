@@ -75,7 +75,7 @@ class SubdomainRadar(subdomain_enum_apikey):
         return True
 
     def prepare_api_request(self, url, kwargs):
-        kwargs["headers"] = {"Authorization": f"Bearer {self.api_key}"}
+        kwargs.setdefault("headers", {})["Authorization"] = f"Bearer {self.api_key}"
         return url, kwargs
 
     async def handle_event(self, event):

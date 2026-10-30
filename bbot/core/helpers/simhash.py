@@ -1,5 +1,7 @@
-import xxhash
 import re
+import struct
+import xxhash
+from collections import Counter
 
 _non_word_re = re.compile(r"[^\w]+")
 
@@ -12,10 +14,6 @@ class SimHashHelper:
     def compute_simhash(text, bits=64, truncate=True, normalization_filter=None):
         """
         Static method for computing a SimHash fingerprint.
-
-        Designed to be called via run_in_executor_cpu(): the work is short and the
-        input is truncated to ~3KB inside the helper, so a thread pool avoids the
-        pickle/spawn overhead of a process pool.
 
         Args:
             text (str): The text to hash
@@ -87,19 +85,26 @@ class SimHashHelper:
         if normalization_filter:
             text = self._normalize_text(text, normalization_filter)
 
-        vector = [0] * self.bits
         features = self._get_features(text)
+        num_features = len(features)
 
-        for feature in features:
-            hv = self._hash_feature(feature)
-            for i in range(self.bits):
-                bit = (hv >> i) & 1
-                vector[i] += 1 if bit else -1
+        # Tally how many feature hashes have each bit set. Packing the hashes into a
+        # buffer lets Counter do the counting in C over a byte-strided slice; a plain
+        # per-bit Python loop costs 64 iterations per feature and dominates the function.
+        packed = struct.pack(f"<{num_features}Q", *[self._hash_feature(f) for f in features])
 
-        # Final fingerprint
+        ones = [0] * 64
+        for byte_pos in range(8):
+            counts = Counter(packed[byte_pos::8])
+            for bit_pos in range(8):
+                mask = 1 << bit_pos
+                ones[byte_pos * 8 + bit_pos] = sum(count for value, count in counts.items() if value & mask)
+
+        # A bit is set when it appears in at least half the features, i.e. when
+        # (ones - zeros) >= 0. Bits past 64 are never set, since the hash is 64 bits.
         fingerprint = 0
-        for i, val in enumerate(vector):
-            if val >= 0:
+        for i in range(min(self.bits, 64)):
+            if 2 * ones[i] >= num_features:
                 fingerprint |= 1 << i
         return fingerprint
 

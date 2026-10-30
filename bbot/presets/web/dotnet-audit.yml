@@ -22,5 +22,5 @@ config:
     webbrute_shortnames:
       find_subwords: True
     telerik:
-      exploit_RAU_crypto: True
+      rau_confirm_version: True # Identify the exact Telerik version by uploading a benign 1-byte file
       include_subdirs: True # Run against every directory, not the default first received URL per-host

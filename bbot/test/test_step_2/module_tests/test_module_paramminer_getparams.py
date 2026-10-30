@@ -288,3 +288,11 @@ class TestParamminer_Getparams_filter_static(TestParamminer_Getparams_finish):
         assert excavate_extracted_param, "Excavate should still extract the parameter from the HTML link"
         assert not paramminer_recycled_to_php, "Paramminer should not recycle words from static-URL WEB_PARAMETERs"
         assert not paramminer_bruted_pdf, "Paramminer should not brute-force parameters on static URLs"
+
+        # paramminer's static filter also applies to HTTP_RESPONSE events, which requires
+        # url_extension to be populated on them
+        pdf_responses = [e for e in events if e.type == "HTTP_RESPONSE" and e.data["url"].endswith("test2.pdf")]
+        assert pdf_responses, "expected an HTTP_RESPONSE for the .pdf URL"
+        assert getattr(pdf_responses[0], "url_extension", None) == "pdf", (
+            "HTTP_RESPONSE is missing url_extension, so paramminer's static filter is bypassed"
+        )

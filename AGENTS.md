@@ -265,7 +265,7 @@ setup()  -->  handle_event() (called many times)  -->  finish()  -->  report()  
 Event types this module wants to process. The module's `handle_event()` is only called for these types.
 
 ```python
-# sslcert.py - watches for open ports to grab SSL certs from
+# fingerprintx.py - watches for open ports to fingerprint the service behind them
 watched_events = ["OPEN_TCP_PORT"]
 
 # newsletters.py - watches HTTP responses to scan HTML
@@ -302,8 +302,8 @@ Common flags:
 # crt.py - queries a third-party API, never touches the target
 flags = ["subdomain-enum", "passive"]
 
-# sslcert.py - connects directly to target ports
-flags = ["affiliates", "subdomain-enum", "email-enum", "active", "web"]
+# sslcert.py - reads certs from responses the scan already fetched
+flags = ["safe", "affiliates", "subdomain-enum", "email-enum", "active", "web"]
 ```
 
 ##### `meta` (dict)
@@ -324,27 +324,33 @@ meta = {"description": "Query API for subdomains", "auth_required": True}
 
 #### Options
 
-##### `options` / `options_desc` (dict)
-User-configurable settings. Access them via `self.config.get("option_name")`.
+##### `class Config(BaseModuleConfig)`
+User-configurable settings are declared as a nested `Config` class using pydantic fields. Access
+them via `self.config.get("option_name")`.
+
+> The legacy `options` / `options_desc` dicts are **no longer supported in BBOT 3.0+** -- a module
+> that declares them fails to load with a `CRITICAL` message.
 
 ```python
 # robots.py - configurable parsing options
-options = {"include_sitemap": False, "include_allow": True, "include_disallow": True}
-options_desc = {
-    "include_sitemap": "Include 'sitemap' entries",
-    "include_allow": "Include 'Allow' Entries",
-    "include_disallow": "Include 'Disallow' Entries",
-}
+from bbot.core.config.models import BaseModuleConfig, Field
 
-# In handle_event():
-if self.config.get("include_sitemap") is True:
-    ...
+
+class robots(BaseModule):
+    class Config(BaseModuleConfig):
+        include_sitemap: bool = Field(False, description="Include 'sitemap' entries")
+        include_allow: bool = Field(True, description="Include 'Allow' Entries")
+        include_disallow: bool = Field(True, description="Include 'Disallow' Entries")
+
+    # In handle_event():
+    #   if self.config.get("include_sitemap") is True:
+    #       ...
 ```
 
 ```python
-# sslcert.py - timeout and behavior options
-options = {"timeout": 5.0, "skip_non_ssl": True}
-options_desc = {"timeout": "Socket connect timeout in seconds", "skip_non_ssl": "Don't try common non-SSL ports"}
+# shodan_dns.py - an API key, marked sensitive and mandatory
+class Config(BaseModuleConfig):
+    api_key: str | list[str] = Field("", description="Shodan API key", sensitive=True, mandatory=True)
 ```
 
 ---
@@ -445,8 +451,8 @@ def _incoming_dedup_hash(self, event):
 How many `handle_event()` calls can run concurrently. Increase this for I/O-bound modules.
 
 ```python
-# sslcert.py - connects to many hosts in parallel
-_module_threads = 25
+# iis_shortnames.py - many short requests per host
+_module_threads = 4
 ```
 
 ##### `_batch_size` (int) -- default: `1`
@@ -480,16 +486,16 @@ _shuffle_incoming_queue = False
 Python packages to install.
 
 ```python
-# sslcert.py
-deps_pip = ["pyOpenSSL~=25.3.0"]
+# badsecrets.py
+deps_pip = ["badsecrets~=1.2.1"]
 ```
 
 ##### `deps_apt` (list)
 System packages to install.
 
 ```python
-# sslcert.py
-deps_apt = ["openssl"]
+# git_clone.py
+deps_apt = ["git"]
 ```
 
 ##### `deps_modules` (list)
@@ -595,10 +601,11 @@ async def handle_batch(self, *events):
 Called before `handle_event()`. Return `True` to accept, `False` to reject, or `(False, "reason")` to reject with a logged reason.
 
 ```python
-# sslcert.py - skip ports that don't typically use SSL
+# apkpure.py - only handle Android apps
 async def filter_event(self, event):
-    if self.skip_non_ssl and event.port in self.non_ssl_ports:
-        return False, f"Port {event.port} doesn't typically use SSL"
+    if event.type == "MOBILE_APP":
+        if "android" not in event.tags:
+            return False, "event is not an android app"
     return True
 ```
 

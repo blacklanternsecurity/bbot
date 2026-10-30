@@ -14,9 +14,10 @@ merged dict straight from YAML, and these models only ever validate shape.
 from __future__ import annotations
 
 import os
+import re
 from typing import Annotated, Any, Literal, Optional
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, field_validator
+from pydantic import AfterValidator, BaseModel, BeforeValidator, ConfigDict, field_validator
 from pydantic import Field as _PydanticField
 from pydantic_core import PydanticUndefined
 
@@ -38,10 +39,42 @@ ConfidenceLiteral = Annotated[
     Literal["UNKNOWN", "LOW", "MEDIUM", "HIGH", "CONFIRMED"], BeforeValidator(_normalize_upper)
 ]
 
+# Version strings are interpolated into a module's dependency install steps (download URLs,
+# shell commands), so they're restricted to characters that appear in real version tags.
+_VERSION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]*$")
 
-def Field(default=PydanticUndefined, *, sensitive: bool = False, mandatory: bool = False, **kwargs):
+
+def _validate_version(v):
+    if isinstance(v, str) and not _VERSION_RE.match(v):
+        raise ValueError(f'invalid version string: "{v}"')
+    return v
+
+
+# Type for module `version` options, used across tool-wrapping modules.
+VersionStr = Annotated[str, AfterValidator(_validate_version)]
+
+
+# Paths from config are interpolated into dependency install steps, some of which run through a shell
+# (e.g. #{BBOT_TOOLS} from `home`), so reject shell metacharacters that would break out of the path.
+_SHELL_UNSAFE = set(";|&$`<>\n\r()")
+
+
+def _validate_safe_path(v):
+    if isinstance(v, str) and (set(v) & _SHELL_UNSAFE):
+        raise ValueError(f'invalid path (contains shell metacharacters): "{v}"')
+    return v
+
+
+def Field(
+    default=PydanticUndefined,
+    *,
+    sensitive: bool = False,
+    mandatory: bool = False,
+    deprecated: bool | str = False,
+    **kwargs,
+):
     """
-    Drop-in replacement for `pydantic.Field` that records two BBOT-specific
+    Drop-in replacement for `pydantic.Field` that records BBOT-specific
     flags as field metadata:
 
     - `sensitive=True`: value should be redacted when serializing configs
@@ -49,8 +82,12 @@ def Field(default=PydanticUndefined, *, sensitive: bool = False, mandatory: bool
     - `mandatory=True`: option must be supplied for the module to function;
       drives the "Needs API Key" column in `bbot -l` and the
       `BaseModule.auth_required` property.
+    - `deprecated=True`: option is no longer used. It is still accepted so
+      existing presets keep working, but it is ignored, left out of defaults
+      and docs, and setting it logs a warning at scan startup. Pass a string
+      instead of `True` to add it to that warning (e.g. what to use instead).
 
-    Both flags are stashed under `json_schema_extra` so pydantic preserves
+    The flags are stashed under `json_schema_extra` so pydantic preserves
     them on `FieldInfo.json_schema_extra` (and in any generated JSON schema)
     without affecting validation. All other arguments pass through unchanged.
     """
@@ -59,6 +96,8 @@ def Field(default=PydanticUndefined, *, sensitive: bool = False, mandatory: bool
         extra["sensitive"] = True
     if mandatory:
         extra["mandatory"] = True
+    if deprecated:
+        extra["deprecated"] = deprecated
     if extra:
         kwargs["json_schema_extra"] = extra
     return _PydanticField(default, **kwargs)
@@ -76,6 +115,10 @@ def is_sensitive(field) -> bool:
 
 def is_mandatory(field) -> bool:
     return bool(field_flags(field).get("mandatory"))
+
+
+def is_deprecated(field) -> bool:
+    return bool(field_flags(field).get("deprecated"))
 
 
 def _unwrap_optional(annotation):
@@ -231,6 +274,30 @@ def partition_sensitive_config(config, model, *, keep_sensitive: bool):
     return out
 
 
+def find_deprecated_config(config, model, prefix=""):
+    """
+    Walk `config` (a dict) alongside the pydantic `model` and return every deprecated
+    option that is set, as `{dotted_path: message}`, e.g. `{"modules.slack.retries": ""}`.
+    The message is the string passed as `deprecated=`, or "" for `deprecated=True`.
+    """
+    found = {}
+    if not isinstance(config, dict) or model is None:
+        return found
+    for key, val in config.items():
+        field = _resolve_field(model, key)
+        if field is None:
+            continue
+        dotted = f"{prefix}.{key}" if prefix else str(key)
+        if is_deprecated(field):
+            message = field_flags(field)["deprecated"]
+            found[dotted] = message if isinstance(message, str) else ""
+            continue
+        sub_model = _field_submodel(field)
+        if sub_model is not None:
+            found.update(find_deprecated_config(val, sub_model, dotted))
+    return found
+
+
 class ScopeConfig(BaseModel):
     model_config = STRICT
 
@@ -261,6 +328,16 @@ class DnsConfig(BaseModel):
     omit_queries: Optional[list[str]] = None
 
 
+class CdnPortFilterConfig(BaseModel):
+    """`cdn_port_filter` — drops open ports and URLs on CDN/WAF hosts outside the allowed ports."""
+
+    model_config = STRICT
+
+    enabled: Optional[bool] = None
+    tags: Optional[list[str]] = None
+    allowed_ports: Optional[list[int]] = None
+
+
 class BodySpillConfig(BaseModel):
     """`web.body_spill` — keeps large HTTP_RESPONSE bodies off the Python heap."""
 
@@ -289,6 +366,8 @@ class WebConfig(BaseModel):
     http_retries: Optional[int] = None
     http_rate_limit: Optional[int] = None
     body_spill: Optional[BodySpillConfig] = None
+    nowafpls_padding_sizes: Optional[list[int]] = None
+    nowafpls_payload: Optional[str] = None
     # The `429_*` keys start with a digit, so we expose them via aliases.
     sleep_interval_429: Optional[int] = Field(default=None, alias="429_sleep_interval")
     max_sleep_interval_429: Optional[int] = Field(default=None, alias="429_max_sleep_interval")
@@ -375,8 +454,9 @@ class BBOTConfig(BaseModel):
     engine: Optional[EngineConfig] = None
     deps: Optional[DepsConfig] = None
 
-    # Module loader paths
-    module_dirs: Optional[list[str]] = None
+    module_dirs: Optional[list[str]] = Field(
+        None, deprecated="Set module_dirs at the top level of a preset and load it with -p."
+    )
 
     # Module runtime
     module_handle_event_timeout: Optional[int] = None
@@ -395,9 +475,13 @@ class BBOTConfig(BaseModel):
     # URL handling
     url_querystring_remove: Optional[bool] = None
     url_querystring_collapse: Optional[bool] = None
+    url_max_path_param_repeats: Optional[int] = None
     url_extension_blacklist: Optional[list[str]] = None
     url_extension_special: Optional[list[str]] = None
     url_extension_static: Optional[list[str]] = None
+
+    # CDN/WAF port filtering
+    cdn_port_filter: Optional[CdnPortFilterConfig] = None
 
     # Parameter handling
     parameter_blacklist: Optional[list[str]] = None
@@ -415,6 +499,7 @@ class BBOTConfig(BaseModel):
     bbot_io_api_key: Optional[str] = Field(default=None, sensitive=True)
 
     _validate_interactsh_server = field_validator("interactsh_server")(validate_fqdn_or_ip)
+    _validate_home = field_validator("home")(_validate_safe_path)
 
     # Per-module configs — validated separately, per-module, against each
     # module's own `class Config(BaseModuleConfig)`.
@@ -478,10 +563,13 @@ __all__ = [
     "PresetSchema",
     "ScopeConfig",
     "SeverityLiteral",
+    "VersionStr",
     "WebConfig",
     "coerce_config",
     "coerce_value",
     "field_flags",
+    "find_deprecated_config",
+    "is_deprecated",
     "is_mandatory",
     "is_sensitive",
     "partition_sensitive_config",

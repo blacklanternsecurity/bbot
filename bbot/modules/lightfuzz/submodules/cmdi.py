@@ -57,7 +57,7 @@ class cmdi(BaseLightfuzz):
             if int(arith_a) and int(arith_b) and arith_a[0] != "0" and arith_b[0] != "0":
                 break
         arith_canary = str(int(arith_a) * int(arith_b))
-        http_compare = self.compare_baseline(
+        http_compare = await self.compare_baseline(
             self.event.data["type"], probe_value, cookies
         )  # Initialize the http_compare object and establish a baseline HTTP response
 

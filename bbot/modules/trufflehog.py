@@ -1,7 +1,7 @@
 import json
 from functools import partial
 from bbot.modules.base import BaseModule
-from bbot.core.config.models import BaseModuleConfig, Field
+from bbot.core.config.models import BaseModuleConfig, Field, VersionStr
 
 
 class trufflehog(BaseModule):
@@ -15,7 +15,7 @@ class trufflehog(BaseModule):
     }
 
     class Config(BaseModuleConfig):
-        version: str = Field("3.97.0", description="trufflehog version")
+        version: VersionStr = Field("3.99.7", description="trufflehog version")
         config: str = Field("", description="File path or URL to YAML trufflehog config")
         only_verified: bool = Field(True, description="Only report credentials that have been verified")
         concurrency: int = Field(8, description="Number of concurrent workers")
@@ -149,6 +149,8 @@ class trufflehog(BaseModule):
         command = [
             "trufflehog",
             "--json",
+            # without this, overseer re-execs the binary and pays Go package init twice
+            "--local-dev",
             "--no-update",
         ]
         if self.verified:

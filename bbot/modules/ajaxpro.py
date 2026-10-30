@@ -69,7 +69,10 @@ class ajaxpro(BaseModule):
         payload = {}
         headers = {"X-Ajaxpro-Method": "AddItem"}
 
-        probe_response = await self.helpers.request(full_url, method="POST", headers=headers, json=payload)
+        padded_payload = await self.helpers.nowafpls.pad_json(event, payload)
+        used_nowafpls = padded_payload is not payload
+
+        probe_response = await self.helpers.request(full_url, method="POST", headers=headers, json=padded_payload)
         if probe_response:
             if (
                 "AjaxPro.Services.ICartService" in probe_response.text
@@ -87,5 +90,6 @@ class ajaxpro(BaseModule):
                     },
                     "FINDING",
                     event,
+                    tags=["used-nowafpls"] if used_nowafpls else None,
                     context=f"{self.meta['description']} discovered Ajaxpro instance ({event.type}) at {detection_url}",
                 )

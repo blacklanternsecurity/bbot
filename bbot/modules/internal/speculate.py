@@ -172,6 +172,10 @@ class speculate(BaseInternalModule):
         event_is_url = event.type == "URL"
         event_has_url = not event.type.startswith("URL") and isinstance(event.data, dict) and "url" in event.data
         event_tags = ["blasthttp-safe"] if event.type in ("CODE_REPOSITORY", "SOCIAL") else []
+        # a response whose URL isn't already in its history (e.g. a lightfuzz baseline) was reached via
+        # a link on another page, so it costs a spider hop like any extracted link
+        if event.type == "HTTP_RESPONSE":
+            event_tags.append("spider-danger")
         if event_is_url or event_has_url:
             url = event.url
             # only emit the url if it's not already in the event's history

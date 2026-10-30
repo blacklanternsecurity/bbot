@@ -464,8 +464,8 @@ class WebHelper:
             max_size = self.parent_helper.human_to_bytes(max_size)
         cache_hrs = float(kwargs.pop("cache_hrs", -1))
 
-        if cache_hrs > 0 and self.parent_helper.is_cached(url):
-            log.debug(f"{url} is cached at {self.parent_helper.cache_filename(url)}")
+        if cache_hrs > 0 and self.parent_helper.is_fresh(filename, cache_hrs):
+            log.debug(f"{url} is cached at {filename}")
             success = True
         else:
             try:
@@ -723,9 +723,13 @@ class WebHelper:
             return "retry"
         root_url = f"{scheme}://{host}:{port}/"
         try:
-            root_match, root_reasons, _, _ = await compare.compare(root_url)
+            root_match, root_reasons, _, root_response = await compare.compare(root_url, none_is_match=False)
         except HttpCompareError as e:
             log.debug(f"is_http_wildcard_host: root probe failed for {host}:{port}: {e}")
+            return "retry"
+        if root_response is None:
+            # a dead probe is unknown, not a wildcard verdict
+            log.debug(f"is_http_wildcard_host: root probe to {host}:{port} returned no response")
             return "retry"
         if not root_match:
             log.debug(
@@ -734,64 +738,3 @@ class WebHelper:
             return False
         log.verbose(f"is_http_wildcard_host: {scheme}://{host}:{port} is an HTTP wildcard responder")
         return compare
-
-    def response_to_json(self, response):
-        """
-        Convert web response to JSON object, to a JSON-serializable dict.
-        """
-
-        if response is None:
-            return
-
-        import mmh3
-        from datetime import datetime
-        from hashlib import md5, sha256
-        from bbot.core.helpers.misc import tagify, urlparse, split_host_port, smart_decode
-
-        request = response.request
-        url = str(request.url)
-        parsed_url = urlparse(url)
-        netloc = parsed_url.netloc
-        scheme = parsed_url.scheme.lower()
-        host, port = split_host_port(f"{scheme}://{netloc}")
-
-        raw_headers = "\r\n".join([f"{k}: {v}" for k, v in response.headers.items()])
-        raw_headers_encoded = raw_headers.encode()
-
-        headers = {}
-        for k, v in response.headers.items():
-            k = tagify(k, delimiter="_")
-            headers[k] = v
-
-        j = {
-            "timestamp": datetime.now().isoformat(),
-            "hash": {
-                "body_md5": md5(response.content).hexdigest(),
-                "body_mmh3": mmh3.hash(response.content),
-                "body_sha256": sha256(response.content).hexdigest(),
-                # "body_simhash": "TODO",
-                "header_md5": md5(raw_headers_encoded).hexdigest(),
-                "header_mmh3": mmh3.hash(raw_headers_encoded),
-                "header_sha256": sha256(raw_headers_encoded).hexdigest(),
-                # "header_simhash": "TODO",
-            },
-            "header": headers,
-            "body": smart_decode(response.content),
-            "content_type": headers.get("content_type", "").split(";")[0].strip(),
-            "url": url,
-            "host": str(host),
-            "port": port,
-            "scheme": scheme,
-            "method": response.request.method,
-            "path": parsed_url.path,
-            "raw_header": raw_headers,
-            "status_code": response.status_code,
-        }
-
-        # blasthttp keeps a response whose body didn't decode and says why, rather
-        # than dropping it. Record that so nothing treats the bytes as content.
-        decode_error = response.decode_error
-        if decode_error:
-            j["decode_error"] = decode_error
-
-        return j

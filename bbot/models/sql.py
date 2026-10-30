@@ -112,7 +112,7 @@ class Scan(BBOTBaseModel, table=True):
     id: str = Field(primary_key=True)
     name: str
     status: str
-    started_at: NaiveUTC = Field(index=True)
+    started_at: NaiveUTC = Field(sa_column=Column(SQLADateTime, nullable=False, index=True))
     finished_at: Optional[NaiveUTC] = Field(default=None, sa_column=Column(SQLADateTime, nullable=True, index=True))
     duration_seconds: Optional[float] = Field(default=None)
     duration: Optional[str] = Field(default=None)

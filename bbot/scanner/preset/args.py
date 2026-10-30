@@ -177,8 +177,10 @@ class BBOTArgs:
             args_preset.core.merge_custom({"modules": {"stdout": {"event_types": self.parsed.event_types}}})
         if self.parsed.no_color:
             os.environ["NO_COLOR"] = "1"
+        if self.parsed.allow_cdn_ports:
+            args_preset.core.merge_custom({"cdn_port_filter": {"enabled": False}})
         if self.parsed.exclude_cdn:
-            args_preset.explicit_scan_modules.add("portfilter")
+            log.warning("--exclude-cdn is deprecated and does nothing; CDN/WAF ports are now filtered by default")
 
         # dependencies
         deps_config = args_preset.core.custom_config.get("deps", {})
@@ -335,7 +337,12 @@ class BBOTArgs:
             action="store_true",
             help="Run scan even in the case of condition violations or failed module setups",
         )
-        scan.add_argument("-y", "--yes", action="store_true", help="Skip scan confirmation prompt")
+        scan.add_argument(
+            "-y",
+            "--yes",
+            action="store_true",
+            help="Skip confirmation prompts (including trusting custom module folders)",
+        )
         scan.add_argument(
             "--fast-mode",
             action="store_true",
@@ -390,11 +397,12 @@ class BBOTArgs:
         output.add_argument("--no-color", action="store_true", help="Disable colored terminal output")
         output.add_argument("--event-types", nargs="+", default=[], help="Choose which event types to display")
         output.add_argument(
-            "--exclude-cdn",
-            "-ec",
+            "--allow-cdn-ports",
             action="store_true",
-            help="Filter out unwanted open ports on CDNs/WAFs (80,443 only)",
+            help="Don't filter out open ports on CDNs/WAFs (by default only 80,443 are kept)",
         )
+        # deprecated: CDN/WAF port filtering is now the default
+        output.add_argument("--exclude-cdn", "-ec", action="store_true", help=argparse.SUPPRESS)
 
         deps = p.add_argument_group(
             title="Module dependencies", description="Control how modules install their dependencies"
@@ -452,9 +460,6 @@ class BBOTArgs:
         return p
 
     def sanitize_args(self):
-        # silent implies -y
-        if self.parsed.silent:
-            self.parsed.yes = True
         # chain_lists allows either comma-separated or space-separated lists
         self.parsed.modules = chain_lists(self.parsed.modules)
         self.parsed.exclude_modules = chain_lists(self.parsed.exclude_modules)
