@@ -1,0 +1,6 @@
+# REST-style MCP tool backends: HTTP services that expose tools to AI agents without speaking JSON-RPC.
+# One CSV row per signature. Quote a field if it contains a comma.
+# name,label,path,body_regex,severity,confidence,impact,cves
+# - path: identity/health path that is requested (GET); body_regex is matched against its body (case-insensitive)
+# - cves: semicolon-separated, may be empty
+mcp-kali-server,MCP Kali tools server,/health,Kali Linux Tools API Server,CRITICAL,CONFIRMED,unauthenticated command execution exposed to agents via /api/command,
