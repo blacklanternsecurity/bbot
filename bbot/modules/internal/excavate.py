@@ -385,10 +385,14 @@ class ExcavateRule:
         yara_rule_settings = YaraRuleSettings(description, tags, emit_match, severity, confidence)
         yara_results = {}
         for h in r.strings:
-            yara_results[h.identifier.lstrip("$")] = sorted(
-                {i.matched_data.decode("utf-8", errors="ignore") for i in h.instances}
-            )
+            yara_results[h.identifier.lstrip("$")] = sorted(self.match_strings(h))
         await self.process(yara_results, event, yara_rule_settings, discovery_context)
+
+    def match_strings(self, string):
+        """
+        The distinct text a yara string matched. Override when some matches shouldn't count.
+        """
+        return {i.matched_data.decode("utf-8", errors="ignore") for i in string.instances}
 
     async def process(self, yara_results, event, yara_rule_settings, discovery_context):
         """
@@ -1371,6 +1375,9 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         def __init__(self, excavate):
             super().__init__(excavate)
             self.yara_rules.update(excavate.scan.dns_yara_rules_uncompiled)
+
+        def match_strings(self, string):
+            return self.excavate.scan.yara_hostnames(string.instances)
 
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
             for identifier in yara_results.keys():

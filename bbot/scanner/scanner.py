@@ -1333,9 +1333,24 @@ class Scanner:
         if dns_yara_rules is not None:
             for match in await self.helpers.run_in_executor_cpu(dns_yara_rules.match, data=s):
                 for string in match.strings:
-                    for instance in string.instances:
-                        matches.add(str(instance))
+                    matches.update(self.yara_hostnames(string.instances))
         return matches
+
+    @staticmethod
+    def yara_hostnames(instances):
+        """
+        Hostnames from one string of the DNS yara rules, without the fragments that start partway through a label.
+
+        Yara reports a match at every offset the pattern can start from, and a word boundary sits on both sides of a hyphen,
+        so "dv-api.evilcorp.com" also yields "-api.evilcorp.com" and "api.evilcorp.com". A match whose first
+        character continues a label of a longer match is one of those.
+        """
+        instances = [(i.offset, i.matched_data.decode("utf-8", errors="ignore")) for i in instances]
+        # every offset that continues a label of some match, collected in one pass so this stays linear
+        mid_label = set()
+        for offset, hostname in instances:
+            mid_label.update(offset + j for j in range(1, len(hostname)) if hostname[j - 1] != ".")
+        return {hostname for offset, hostname in instances if offset not in mid_label}
 
     @property
     def json(self):
