@@ -1,0 +1,1297 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="OSINT automation for hackers" name="description"/>
+<meta content="TheTechromancer" name="author"/>
+<link href="https://blacklanternsecurity.github.io/bbot/Dev/migration/3.1_breaking_changes/" rel="canonical"/>
+<link href="../../modules/webbrute/" rel="prev"/>
+<link href="../3.0_breaking_changes/" rel="next"/>
+<link href="../../favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.7" name="generator"/>
+<title>3.0 → 3.1 Breaking Changes - BBOT Docs</title>
+<link href="../../assets/stylesheets/main.ec1eaa64.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+<link href="../../assets/stylesheets/extra-style.srs9dhfm.min.css" rel="stylesheet"/></head>
+<body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#migrating-from-bbot-30-to-31">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<div data-md-color-scheme="default" data-md-component="outdated" hidden="">
+</div>
+<header class="md-header" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="BBOT Docs" class="md-header__button md-logo" data-md-component="logo" href="../.." title="BBOT Docs">
+<img alt="logo" src="../../bbot.png"/>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            BBOT Docs
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              3.0 → 3.1 Breaking Changes
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-hidden="true" class="md-option" data-md-color-accent="deep-orange" data-md-color-media="" data-md-color-primary="black" data-md-color-scheme="slate" id="__palette_0" name="__palette" type="radio"/>
+</form>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/blacklanternsecurity/bbot" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    blacklanternsecurity/bbot
+  </div>
+</a>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<nav aria-label="Tabs" class="md-tabs" data-md-component="tabs">
+<div class="md-grid">
+<ul class="md-tabs__list">
+<li class="md-tabs__item md-tabs__item--active">
+<a class="md-tabs__link" href="../..">
+          
+  
+  
+  User Manual
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../dev/">
+          
+  
+  
+  Developer Manual
+
+        </a>
+</li>
+</ul>
+</div>
+</nav>
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="BBOT Docs" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="BBOT Docs">
+<img alt="logo" src="../../bbot.png"/>
+</a>
+    BBOT Docs
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/blacklanternsecurity/bbot" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    blacklanternsecurity/bbot
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_1" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    User Manual
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="true" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_1">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    User Manual
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_1" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_1" id="__nav_1_1_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    Basics
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_1_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_1">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Basics
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../how_it_works/">
+<span class="md-ellipsis">
+    
+  
+    How it Works
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../comparison/">
+<span class="md-ellipsis">
+    
+  
+    Comparison to Other Tools
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_2" id="__nav_1_2_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    Scanning
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_2_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_2">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Scanning
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/">
+<span class="md-ellipsis">
+    
+  
+    Scanning Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_2_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_2_2" id="__nav_1_2_2_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Presets
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_2_2_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_1_2_2">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Presets
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/presets/">
+<span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/presets_list/">
+<span class="md-ellipsis">
+    
+  
+    List of Presets
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/events/">
+<span class="md-ellipsis">
+    
+  
+    Events
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/output/">
+<span class="md-ellipsis">
+    
+  
+    Output
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/tips_and_tricks/">
+<span class="md-ellipsis">
+    
+  
+    Tips and Tricks
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/advanced/">
+<span class="md-ellipsis">
+    
+  
+    Advanced Usage
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/configuration/">
+<span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../scanning/scan_sanity/">
+<span class="md-ellipsis">
+    
+  
+    Scan Sanity
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_3" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_3" id="__nav_1_3_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    Modules
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_3_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_3">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Modules
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/list_of_modules/">
+<span class="md-ellipsis">
+    
+  
+    List of Modules
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/internal_modules/">
+<span class="md-ellipsis">
+    
+  
+    Internal Modules
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/nuclei/">
+<span class="md-ellipsis">
+    
+  
+    Nuclei
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/wayback/">
+<span class="md-ellipsis">
+    
+  
+    Wayback
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/custom_yara_rules/">
+<span class="md-ellipsis">
+    
+  
+    Custom YARA Rules
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/lightfuzz/">
+<span class="md-ellipsis">
+    
+  
+    Lightfuzz
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../modules/webbrute/">
+<span class="md-ellipsis">
+    
+  
+    Webbrute
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_1_4" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_4" id="__nav_1_4_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    Migration
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="true" aria-labelledby="__nav_1_4_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Migration
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    
+  
+    3.0 → 3.1 Breaking Changes
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    
+  
+    3.0 → 3.1 Breaking Changes
+  
+
+    
+  </span>
+</a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#config-and-presets">
+<span class="md-ellipsis">
+      
+        Config and Presets
+      
+    </span>
+</a>
+<nav aria-label="Config and Presets" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#custom-module-folders-module_dirs">
+<span class="md-ellipsis">
+      
+        Custom module folders (module_dirs)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#preset-conditions-are-read-only">
+<span class="md-ellipsis">
+      
+        Preset conditions are read-only
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#version-and-home-are-validated">
+<span class="md-ellipsis">
+      
+        version and home are validated
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#deprecated-retries-options">
+<span class="md-ellipsis">
+      
+        Deprecated retries options
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#nuclei-options-are-validated-up-front">
+<span class="md-ellipsis">
+      
+        Nuclei options are validated up front
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#cdnwaf-port-filtering">
+<span class="md-ellipsis">
+      
+        CDN/WAF Port Filtering
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#modules">
+<span class="md-ellipsis">
+      
+        Modules
+      
+    </span>
+</a>
+<nav aria-label="Modules" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#dnsdumpster-requires-an-api-key">
+<span class="md-ellipsis">
+      
+        dnsdumpster requires an API key
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#waf_bypass-only-targets-scan-targets-by-default">
+<span class="md-ellipsis">
+      
+        waf_bypass only targets scan targets by default
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#wayback-checks-hosts-before-emitting-urls">
+<span class="md-ellipsis">
+      
+        wayback checks hosts before emitting URLs
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#event-output">
+<span class="md-ellipsis">
+      
+        Event Output
+      
+    </span>
+</a>
+<nav aria-label="Event Output" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#cpe-based-technology-names">
+<span class="md-ellipsis">
+      
+        CPE-based technology names
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#no-affiliate-tag-on-in-scope-events">
+<span class="md-ellipsis">
+      
+        No affiliate tag on in-scope events
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#wayback-http_response-events">
+<span class="md-ellipsis">
+      
+        wayback HTTP_RESPONSE events
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#python-api-custom-modules">
+<span class="md-ellipsis">
+      
+        Python API / Custom Modules
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../3.0_breaking_changes/">
+<span class="md-ellipsis">
+    
+  
+    2.x → 3.0 Breaking Changes
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_1_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    Misc
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_1_5_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_1_5">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Misc
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../contribution/">
+<span class="md-ellipsis">
+    
+  
+    Contribution
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../release_history/">
+<span class="md-ellipsis">
+    
+  
+    Release History
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../troubleshooting/">
+<span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Developer Manual
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Manual
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/">
+<span class="md-ellipsis">
+    
+  
+    Development Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/dev_environment/">
+<span class="md-ellipsis">
+    
+  
+    Setting Up a Dev Environment
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/core_dependencies/">
+<span class="md-ellipsis">
+    
+  
+    Core Dependencies
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/architecture/">
+<span class="md-ellipsis">
+    
+  
+    BBOT Internal Architecture
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/module_howto/">
+<span class="md-ellipsis">
+    
+  
+    How to Write a BBOT Module
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/preset_validation/">
+<span class="md-ellipsis">
+    
+  
+    Validating &amp; Inspecting Presets
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/tests/">
+<span class="md-ellipsis">
+    
+  
+    Unit Tests
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/discord_bot/">
+<span class="md-ellipsis">
+    
+  
+    Discord Bot Example
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_9" id="__nav_2_9_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Code Reference
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_9_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_9">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Code Reference
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/scanner/">
+<span class="md-ellipsis">
+    
+  
+    Scanner
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/presets/">
+<span class="md-ellipsis">
+    
+  
+    Presets
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/event/">
+<span class="md-ellipsis">
+    
+  
+    Event
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/target/">
+<span class="md-ellipsis">
+    
+  
+    Target
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/basemodule/">
+<span class="md-ellipsis">
+    
+  
+    BaseModule
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/core/">
+<span class="md-ellipsis">
+    
+  
+    BBOTCore
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2_9_7" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_9_7" id="__nav_2_9_7_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Helpers
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_9_7_label" class="md-nav" data-md-level="3">
+<label class="md-nav__title" for="__nav_2_9_7">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Helpers
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/">
+<span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/command/">
+<span class="md-ellipsis">
+    
+  
+    Command
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/dns/">
+<span class="md-ellipsis">
+    
+  
+    DNS
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/interactsh/">
+<span class="md-ellipsis">
+    
+  
+    Interactsh
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/misc/">
+<span class="md-ellipsis">
+    
+  
+    Miscellaneous
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/web/">
+<span class="md-ellipsis">
+    
+  
+    Web
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../dev/helpers/wordcloud/">
+<span class="md-ellipsis">
+    
+  
+    Word Cloud
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="migrating-from-bbot-30-to-31">Migrating from BBOT 3.0 to 3.1</h1>
+<p>BBOT 3.1 is a minor release, but it includes a handful of changes that can affect existing presets, configs, custom modules, and anything that consumes scan output. This page lists them so you can check your setup before upgrading.</p>
+<p>If a change is missing here, please open an issue.</p>
+<hr/>
+<h2 id="config-and-presets">Config and Presets</h2>
+<h3 id="custom-module-folders-module_dirs">Custom module folders (<code>module_dirs</code>)</h3>
+<p><code>module_dirs</code> is now only honored as a top-level preset key, loaded with <code>-p</code>:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">module_dirs</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">/home/user/my_modules</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>3.0</th>
+<th>3.1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>config.module_dirs</code> (in <code>bbot.yml</code>, under <code>config:</code> in a preset, or <code>-c module_dirs=...</code>) loaded custom modules</td>
+<td>deprecated and ignored, with a warning at scan start</td>
+</tr>
+<tr>
+<td>custom modules loaded without asking</td>
+<td>BBOT asks before loading each custom module folder</td>
+</tr>
+<tr>
+<td>a custom module could replace a built-in module with the same name</td>
+<td>refused with an error</td>
+</tr>
+<tr>
+<td><code>-S</code> / <code>--silent</code> implied <code>-y</code>, auto-trusting custom module folders</td>
+<td><code>-S</code> no longer implies <code>-y</code>; a silent run refuses an untrusted folder (with a visible error) unless <code>-y</code> is also passed</td>
+</tr>
+</tbody>
+</table>
+<p>Loading custom modules now works like this:</p>
+<ul>
+<li>Before anything in a custom module folder is read, BBOT lists its modules and asks <code>Do you trust this folder? [y/N]</code>. Without a terminal (CI, cron, pipes), it refuses unless <code>-y</code> is passed.</li>
+<li>A folder, parent folder, or module file that is world-writable is refused, with the <code>chmod</code> command to fix it. Sticky parents like <code>/tmp</code> are allowed. Folders or files writable by a group are noted in the prompt.</li>
+<li>If the folder is owned by another user (common with <code>sudo</code>, or folders mounted into the Docker image), the prompt says so.</li>
+<li>A custom module can't reuse the name of an existing module, built-in or custom. Rename it and leave the original off.</li>
+<li>A custom module folder can't be named <code>modules</code> (it collides with BBOT's built-in module package).</li>
+<li>Custom modules are loaded from source, not from any cached bytecode (<code>__pycache__</code>).</li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title"><code>-y</code> trusts custom module folders</p>
+<p><code>-y</code> / <code>--yes</code> answers the trust prompt automatically. The warning still prints, but the modules load. Only pass <code>-y</code> with presets you trust. <code>-S</code> / <code>--silent</code> does <strong>not</strong> answer the prompt: a silent run without <code>-y</code> stops with an error.</p>
+</div>
+<p>See <a href="../../scanning/presets/#custom-modules">Custom Modules</a> for details.</p>
+<h3 id="preset-conditions-are-read-only">Preset conditions are read-only</h3>
+<p>Preset <code>conditions</code> can now only <em>read</em> the preset and config (plus <code>warn()</code> / <code>abort()</code>); they can no longer modify the preset or call its methods. A condition that changed the preset (like the old <code>{{ preset.exclude_module("webbrute") }}</code> example) now errors. Conditions that check <code>config</code> and warn or abort are unaffected.</p>
+<h3 id="version-and-home-are-validated"><code>version</code> and <code>home</code> are validated</h3>
+<p>Because they're interpolated into dependency install commands, a module's <code>version</code> option and the global <code>home</code> option are now validated when the preset is checked: <code>version</code> must be a version-like string, and <code>home</code> can't contain shell metacharacters. A value that doesn't fit stops the scan before it starts instead of ending up in a shell command.</p>
+<h3 id="deprecated-retries-options">Deprecated <code>retries</code> options</h3>
+<p>The <code>retries</code> option on <code>slack</code>, <code>discord</code>, <code>teams</code>, and <code>shodan_idb</code> no longer does anything. Retries and rate limits are now handled by the shared API request logic. The option is still accepted, but it's ignored and BBOT warns about it at scan start.</p>
+<h3 id="nuclei-options-are-validated-up-front">Nuclei options are validated up front</h3>
+<p><code>modules.nuclei.severity</code>, <code>exclude_severity</code>, and <code>protocol_types</code> are now checked when the preset is validated. A typo that used to fail partway into a scan now stops the scan before it starts.</p>
+<hr/>
+<h2 id="cdnwaf-port-filtering">CDN/WAF Port Filtering</h2>
+<p>CDN/WAF port filtering moved out of the <code>portfilter</code> module and into the core, and it's now on by default.</p>
+<table>
+<thead>
+<tr>
+<th>3.0</th>
+<th>3.1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>portfilter</code> module (opt-in, enabled by some presets)</td>
+<td>removed; filtering is built in and on by default</td>
+</tr>
+<tr>
+<td><code>modules.portfilter.cdn_tags</code></td>
+<td><code>cdn_port_filter.tags</code></td>
+</tr>
+<tr>
+<td><code>modules.portfilter.allowed_cdn_ports</code></td>
+<td><code>cdn_port_filter.allowed_ports</code></td>
+</tr>
+<tr>
+<td><code>--exclude-cdn</code> / <code>-ec</code></td>
+<td>deprecated, does nothing</td>
+</tr>
+<tr>
+<td><em>(no equivalent)</em></td>
+<td><code>--allow-cdn-ports</code> / <code>cdn_port_filter.enabled: false</code> turns the filter off</td>
+</tr>
+</tbody>
+</table>
+<p>By default, open ports other than 80 and 443 are dropped on hosts tagged <code>cdn</code> or <code>waf</code>. If you relied on seeing every port on CDN hosts, pass <code>--allow-cdn-ports</code>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Remove <code>portfilter</code> from presets</p>
+<p>Presets that list <code>portfilter</code> under <code>modules</code> need to be updated, since the module no longer exists.</p>
+</div>
+<hr/>
+<h2 id="modules">Modules</h2>
+<h3 id="dnsdumpster-requires-an-api-key"><code>dnsdumpster</code> requires an API key</h3>
+<p>dnsdumpster no longer has a keyless mode. Set <code>modules.dnsdumpster.api_key</code>, or the module is disabled at setup.</p>
+<h3 id="waf_bypass-only-targets-scan-targets-by-default"><code>waf_bypass</code> only targets scan targets by default</h3>
+<p><code>modules.waf_bypass.scan_targets_only</code> now defaults to <code>true</code>, so bypasses are only attempted against hosts named in the scan's targets or seeds. Set it to <code>false</code> for the old behavior.</p>
+<h3 id="wayback-checks-hosts-before-emitting-urls"><code>wayback</code> checks hosts before emitting URLs</h3>
+<p>With <code>urls: true</code>, wayback now probes each host once and drops URLs on hosts that don't respond. Expect fewer, but live, URLs from wayback.</p>
+<hr/>
+<h2 id="event-output">Event Output</h2>
+<h3 id="cpe-based-technology-names">CPE-based technology names</h3>
+<p><code>TECHNOLOGY</code> events from <code>shodan_idb</code>, <code>shodan_enterprise</code>, and <code>censys_ip</code> that come from a CPE now use the product name (e.g. <code>jquery</code>) instead of the raw CPE string. The CPE moves to a new <code>cpe</code> field. Anything that matched on the CPE string in <code>technology</code> should match on <code>cpe</code> instead.</p>
+<h3 id="no-affiliate-tag-on-in-scope-events">No <code>affiliate</code> tag on in-scope events</h3>
+<p>In-scope events are no longer tagged <code>affiliate</code>. Filters that relied on that tag for in-scope events will need updating.</p>
+<h3 id="wayback-http_response-events"><code>wayback</code> <code>HTTP_RESPONSE</code> events</h3>
+<p><code>HTTP_RESPONSE</code> events from wayback are now built the same way as those from <code>http</code>, so some keys in their data have changed. They also no longer include <code>cert_info</code>, which described archive.org's certificate rather than the target's.</p>
+<hr/>
+<h2 id="python-api-custom-modules">Python API / Custom Modules</h2>
+<table>
+<thead>
+<tr>
+<th>3.0</th>
+<th>3.1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self.helpers.response_to_json(response)</code></td>
+<td>removed; use <code>response_to_event_dict()</code> from <code>bbot.core.helpers.web.response_event</code></td>
+</tr>
+</tbody>
+</table>
+</article>
+</div>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
+<script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+<script src="../../javascripts/tablesort.js"></script>
+<script src="../../javascripts/tablesort.min.js"></script>
+<script src="../../javascripts/vega@5.js"></script>
+<script src="../../javascripts/vega-lite@5.js"></script>
+<script src="../../javascripts/vega-embed@6.js"></script>
+</body>
+</html>
