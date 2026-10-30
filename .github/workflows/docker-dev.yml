@@ -16,6 +16,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-    uses: blacklanternsecurity/CLA/.github/workflows/docker-dev.yml@07e14bcbba5e737e1b29bd9e3f9128fbf2483be9 # CLA#11
+    uses: blacklanternsecurity/release-workflows/.github/workflows/docker-dev.yml@c53c202eedeb26a86088936363e6cb06ce99ac15 # v1.0.0
     with:
       image: ${{ github.repository }}

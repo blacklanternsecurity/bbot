@@ -39,7 +39,7 @@ jobs:
   test:
     needs: changes
     if: ${{ !cancelled() && (needs.changes.outputs.code != 'false' || github.event.pull_request.changed_files >= 3000) }}
-    uses: blacklanternsecurity/CLA/.github/workflows/python-tests.yml@07e14bcbba5e737e1b29bd9e3f9128fbf2483be9 # CLA#11
+    uses: blacklanternsecurity/release-workflows/.github/workflows/python-tests.yml@c53c202eedeb26a86088936363e6cb06ce99ac15 # v1.0.0
     secrets:
       BBOT_IO_API_KEY: ${{ secrets.BBOT_IO_API_KEY }}
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

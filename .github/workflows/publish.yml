@@ -16,7 +16,9 @@ jobs:
       contents: read
       actions: read
       pull-requests: read
-    uses: blacklanternsecurity/CLA/.github/workflows/release-check.yml@07e14bcbba5e737e1b29bd9e3f9128fbf2483be9 # CLA#11
+    uses: blacklanternsecurity/release-workflows/.github/workflows/release-check.yml@c53c202eedeb26a86088936363e6cb06ce99ac15 # v1.0.0
+    secrets:
+      BLS_RELEASE_PRIVATE_KEY: ${{ secrets.BLS_RELEASE_PRIVATE_KEY }}
     with:
       image: ${{ github.repository }}
 
@@ -53,7 +55,7 @@ jobs:
     if: needs.check.outputs.release == 'true'
     permissions:
       contents: read
-    uses: blacklanternsecurity/CLA/.github/workflows/docker.yml@07e14bcbba5e737e1b29bd9e3f9128fbf2483be9 # CLA#11
+    uses: blacklanternsecurity/release-workflows/.github/workflows/docker.yml@c53c202eedeb26a86088936363e6cb06ce99ac15 # v1.0.0
     with:
       image: ${{ github.repository }}
       version: ${{ needs.check.outputs.version }}
@@ -81,7 +83,9 @@ jobs:
     if: needs.check.outputs.release == 'true'
     permissions:
       contents: read
-    uses: blacklanternsecurity/CLA/.github/workflows/publish.yml@07e14bcbba5e737e1b29bd9e3f9128fbf2483be9 # CLA#11
+    uses: blacklanternsecurity/release-workflows/.github/workflows/publish.yml@c53c202eedeb26a86088936363e6cb06ce99ac15 # v1.0.0
+    secrets:
+      BLS_RELEASE_PRIVATE_KEY: ${{ secrets.BLS_RELEASE_PRIVATE_KEY }}
     with:
       tag: ${{ needs.check.outputs.tag }}
       version: ${{ needs.check.outputs.version }}

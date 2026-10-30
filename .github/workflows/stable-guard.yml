@@ -9,4 +9,4 @@ permissions:
 
 jobs:
   guard:
-    uses: blacklanternsecurity/CLA/.github/workflows/stable-guard.yml@07e14bcbba5e737e1b29bd9e3f9128fbf2483be9 # CLA#11
+    uses: blacklanternsecurity/release-workflows/.github/workflows/stable-guard.yml@c53c202eedeb26a86088936363e6cb06ce99ac15 # v1.0.0
