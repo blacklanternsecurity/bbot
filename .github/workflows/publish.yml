@@ -62,6 +62,9 @@ jobs:
       major: ${{ needs.check.outputs.major }}
       minor: ${{ needs.check.outputs.minor }}
       description: true
+    secrets:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
 
   pypi:
     needs: [build, docker]
