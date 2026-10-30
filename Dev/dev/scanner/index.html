@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.srs9dhfm.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.x0dcw88q.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -897,6 +897,15 @@
 <span class="md-ellipsis">
       
         setup_modules
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#bbot.scanner.Scanner.yara_hostnames">
+<span class="md-ellipsis">
+      
+        yara_hostnames
       
     </span>
 </a>
@@ -2791,7 +2800,22 @@
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1548</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1549</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1550</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1551</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">Scanner</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1551</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1552</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1553</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1554</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1555</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1556</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1557</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1558</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1559</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1560</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1561</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1562</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1563</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1564</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1565</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1566</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">Scanner</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""A class representing a single BBOT scan</span>
 
 <span style="color: #A5D6FF">    Examples:</span>
@@ -4086,9 +4110,24 @@
         <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">dns_yara_rules</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
             <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">match</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">helpers</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">run_in_executor_cpu(dns_yara_rules</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">match,</span> <span style="color: #E6EDF3">data</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">s):</span>
                 <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">string</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">match</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">strings:</span>
-                    <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">instance</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">string</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">instances:</span>
-                        <span style="color: #E6EDF3">matches</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">add(str(instance))</span>
+                    <span style="color: #E6EDF3">matches</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">yara_hostnames(string</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">instances))</span>
         <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">matches</span>
+
+    <span style="color: #D2A8FF; font-weight: bold">@staticmethod</span>
+    <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">yara_hostnames</span><span style="color: #E6EDF3">(instances):</span>
+<span style="color: #6E7681">        </span><span style="color: #A5D6FF">"""</span>
+<span style="color: #A5D6FF">        Hostnames from one string of the DNS yara rules, without the fragments that start partway through a label.</span>
+
+<span style="color: #A5D6FF">        Yara reports a match at every offset the pattern can start from, and a word boundary sits on both sides of a hyphen,</span>
+<span style="color: #A5D6FF">        so "dv-api.evilcorp.com" also yields "-api.evilcorp.com" and "api.evilcorp.com". A match whose first</span>
+<span style="color: #A5D6FF">        character continues a label of a longer match is one of those.</span>
+<span style="color: #A5D6FF">        """</span>
+        <span style="color: #E6EDF3">instances</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[(i</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">offset,</span> <span style="color: #E6EDF3">i</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">matched_data</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">decode(</span><span style="color: #A5D6FF">"utf-8"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">errors</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"ignore"</span><span style="color: #E6EDF3">))</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">i</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">instances]</span>
+        <span style="color: #8B949E; font-style: italic"># every offset that continues a label of some match, collected in one pass so this stays linear</span>
+        <span style="color: #E6EDF3">mid_label</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set()</span>
+        <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">offset,</span> <span style="color: #E6EDF3">hostname</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">instances:</span>
+            <span style="color: #E6EDF3">mid_label</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update(offset</span> <span style="color: #FF7B72; font-weight: bold">+</span> <span style="color: #E6EDF3">j</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">j</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">range(</span><span style="color: #A5D6FF">1</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">len(hostname))</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">hostname[j</span> <span style="color: #FF7B72; font-weight: bold">-</span> <span style="color: #A5D6FF">1</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">!=</span> <span style="color: #A5D6FF">"."</span><span style="color: #E6EDF3">)</span>
+        <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">{hostname</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">offset,</span> <span style="color: #E6EDF3">hostname</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">instances</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">offset</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">mid_label}</span>
 
     <span style="color: #D2A8FF; font-weight: bold">@property</span>
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">json</span><span style="color: #E6EDF3">(self):</span>
@@ -5044,8 +5083,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1334</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1335</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1336</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1337</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1338</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">extract_in_scope_hostnames</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">s):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1337</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">extract_in_scope_hostnames</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">s):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Given a string, uses yara to extract hostnames matching scan targets</span>
 
@@ -5058,8 +5096,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
     <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">dns_yara_rules</span> <span style="color: #FF7B72; font-weight: bold">is</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #79C0FF">None</span><span style="color: #E6EDF3">:</span>
         <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">match</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #FF7B72">await</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">helpers</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">run_in_executor_cpu(dns_yara_rules</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">match,</span> <span style="color: #E6EDF3">data</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #E6EDF3">s):</span>
             <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">string</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">match</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">strings:</span>
-                <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">instance</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">string</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">instances:</span>
-                    <span style="color: #E6EDF3">matches</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">add(str(instance))</span>
+                <span style="color: #E6EDF3">matches</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">yara_hostnames(string</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">instances))</span>
     <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">matches</span>
 </code></pre></div></td></tr></table></div>
 </details>
@@ -5560,6 +5597,55 @@ Soft-failed modules are not set to an error state but are also removed if <code>
             <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">modules</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">pop(module</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">name)</span>
 
     <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">succeeded,</span> <span style="color: #E6EDF3">hard_failed,</span> <span style="color: #E6EDF3">soft_failed</span>
+</code></pre></div></td></tr></table></div>
+</details>
+</div>
+</div>
+<div class="doc doc-object doc-function">
+<h2 class="doc doc-heading" id="bbot.scanner.Scanner.yara_hostnames">
+<span class="doc doc-object-name doc-function-name">yara_hostnames</span>
+<span class="doc doc-labels">
+<small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
+</span>
+</h2>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">yara_hostnames(instances)</span>
+</code></pre></div>
+<div class="doc doc-contents">
+<p>Hostnames from one string of the DNS yara rules, without the fragments that start partway through a label.</p>
+<p>Yara reports a match at every offset the pattern can start from, and a word boundary sits on both sides of a hyphen,
+so "dv-api.evilcorp.com" also yields "-api.evilcorp.com" and "api.evilcorp.com". A match whose first
+character continues a label of a longer match is one of those.</p>
+<details class="mkdocstrings-source">
+<summary>Source code in <code>bbot/scanner/scanner.py</code></summary>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1339</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1340</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1341</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1342</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1343</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1344</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1345</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1346</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1347</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1348</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1349</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1350</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1351</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1352</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1353</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@staticmethod</span>
+<span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">yara_hostnames</span><span style="color: #E6EDF3">(instances):</span>
+<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
+<span style="color: #A5D6FF">    Hostnames from one string of the DNS yara rules, without the fragments that start partway through a label.</span>
+
+<span style="color: #A5D6FF">    Yara reports a match at every offset the pattern can start from, and a word boundary sits on both sides of a hyphen,</span>
+<span style="color: #A5D6FF">    so "dv-api.evilcorp.com" also yields "-api.evilcorp.com" and "api.evilcorp.com". A match whose first</span>
+<span style="color: #A5D6FF">    character continues a label of a longer match is one of those.</span>
+<span style="color: #A5D6FF">    """</span>
+    <span style="color: #E6EDF3">instances</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[(i</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">offset,</span> <span style="color: #E6EDF3">i</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">matched_data</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">decode(</span><span style="color: #A5D6FF">"utf-8"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">errors</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">"ignore"</span><span style="color: #E6EDF3">))</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">i</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">instances]</span>
+    <span style="color: #8B949E; font-style: italic"># every offset that continues a label of some match, collected in one pass so this stays linear</span>
+    <span style="color: #E6EDF3">mid_label</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set()</span>
+    <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">offset,</span> <span style="color: #E6EDF3">hostname</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">instances:</span>
+        <span style="color: #E6EDF3">mid_label</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update(offset</span> <span style="color: #FF7B72; font-weight: bold">+</span> <span style="color: #E6EDF3">j</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">j</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">range(</span><span style="color: #A5D6FF">1</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">len(hostname))</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">hostname[j</span> <span style="color: #FF7B72; font-weight: bold">-</span> <span style="color: #A5D6FF">1</span><span style="color: #E6EDF3">]</span> <span style="color: #FF7B72; font-weight: bold">!=</span> <span style="color: #A5D6FF">"."</span><span style="color: #E6EDF3">)</span>
+    <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">{hostname</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">offset,</span> <span style="color: #E6EDF3">hostname</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">instances</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">offset</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">mid_label}</span>
 </code></pre></div></td></tr></table></div>
 </details>
 </div>
