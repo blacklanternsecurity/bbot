@@ -965,6 +965,38 @@ conditions:
         await scan._prep()
 
 
+def test_conditions_use_readonly_snapshot():
+    """Conditions see a read-only data snapshot of the preset/config: reads and warn()/abort()
+    work, but the live object graph (core, module_loader) is not reachable, so no method on it
+    can be called to change state."""
+    from jinja2.exceptions import UndefinedError
+    from bbot.scanner.preset.conditions import ConditionEvaluator
+
+    # reading config and preset fields and calling abort() works
+    preset = Preset(
+        modules=["robots"],
+        conditions=[
+            "{% if config.web.spider_distance == 0 and 'robots' in preset.modules %}{{ abort('stop') }}{% endif %}"
+        ],
+    )
+    preset.validate()
+    with pytest.raises(PresetAbortError):
+        ConditionEvaluator(preset.bake()).evaluate()
+
+    # the live object graph isn't exposed, so a method call on it can't change state
+    preset = Preset(modules=["robots"], conditions=["{{ preset.core.merge_custom({'home': '/tmp/x'}) }}"])
+    preset.validate()
+    baked = preset.bake()
+    with pytest.raises(UndefinedError):
+        ConditionEvaluator(baked).evaluate()
+    assert baked.core.custom_config.get("home") is None
+
+    preset = Preset(modules=["robots"], conditions=["{{ preset.module_loader.add_module_dir('/tmp/evil') }}"])
+    preset.validate()
+    with pytest.raises(UndefinedError):
+        ConditionEvaluator(preset.bake()).evaluate()
+
+
 async def test_preset_module_disablement(clean_default_config):
     # internal module disablement
     preset = Preset().validate().bake()
@@ -1564,3 +1596,324 @@ def test_config_secret_file_refuses_insecure(tmp_path, monkeypatch):
         MODULE_LOADER._write_secret_text(target, "secret stuff")
     assert not target.exists()
     assert list(tmp_path.glob(".secrets.yml.*")) == []
+
+
+def write_custom_module(module_dir, name):
+    (module_dir / f"{name}.py").write_text(
+        "from bbot.modules.base import BaseModule\n"
+        f"class {name}(BaseModule):\n"
+        '    watched_events = ["DNS_NAME"]\n'
+        '    produced_events = ["DNS_NAME"]\n'
+        '    flags = ["passive", "safe"]\n'
+        '    meta = {"description": "x", "created_date": "2025-01-01", "author": "@x"}\n'
+    )
+
+
+def test_module_dir_refuses_world_writable(tmp_path):
+    from bbot.core.modules import ModuleLoader
+
+    loader = ModuleLoader()
+    mod_dir = tmp_path / "mods"
+    mod_dir.mkdir()
+    write_custom_module(mod_dir, "permmod")
+
+    # a world-writable folder is refused, with the fix in the message
+    mod_dir.chmod(0o777)
+    with pytest.raises(BBOTError, match="directory is world-writable") as e:
+        loader.add_module_dir(mod_dir)
+    assert "chmod o-w" in str(e.value)
+    assert "permmod" not in loader.preloaded()
+
+    # so is a world-writable module file inside an otherwise safe folder
+    mod_dir.chmod(0o755)
+    (mod_dir / "permmod.py").chmod(0o666)
+    with pytest.raises(BBOTError, match=r"permmod\.py\": file is world-writable"):
+        loader.add_module_dir(mod_dir)
+    assert "permmod" not in loader.preloaded()
+
+    # once fixed, it loads
+    (mod_dir / "permmod.py").chmod(0o644)
+    loader.add_module_dir(mod_dir)
+    assert "permmod" in loader.preloaded()
+
+
+def test_module_dir_refuses_world_writable_parents(tmp_path):
+    from bbot.core.modules import ModuleLoader
+
+    loader = ModuleLoader()
+    shared = tmp_path / "shared"
+    mod_dir = shared / "mods"
+    mod_dir.mkdir(parents=True)
+    write_custom_module(mod_dir, "cachemod")
+
+    # a world-writable parent folder lets anyone swap the module folder out
+    shared.chmod(0o777)
+    with pytest.raises(BBOTError, match=r"shared\": directory is world-writable"):
+        loader.add_module_dir(mod_dir)
+    assert "cachemod" not in loader.preloaded()
+
+    # unless it's sticky (like /tmp), so nobody else can rename what's in it
+    shared.chmod(0o1777)
+    loader.add_module_dir(mod_dir)
+    assert "cachemod" in loader.preloaded()
+
+
+def test_custom_module_loads_from_source_not_bytecode(tmp_path):
+    """Custom modules import from source verified against the vetted hash, so planted
+    bytecode is never run and a post-vet source swap is refused at load."""
+    from bbot.core.modules import ModuleLoader
+
+    loader = ModuleLoader()
+    mod_dir = (tmp_path / "mods").resolve()
+    mod_dir.mkdir()
+    write_custom_module(mod_dir, "srcmod")
+    loader.add_module_dir(mod_dir)
+    assert loader.preloaded()["srcmod"]["custom"] is True
+
+    # loads normally from the vetted source
+    assert loader.load_module("srcmod").__name__ == "srcmod"
+
+    # a planted .pyc is ignored (source is compiled directly), so loading still succeeds
+    pycache = mod_dir / "__pycache__"
+    pycache.mkdir(exist_ok=True)
+    (pycache / "srcmod.cpython-311.pyc").write_bytes(b"garbage")
+    assert loader.load_module("srcmod").__name__ == "srcmod"
+
+    # swapping the source after it was vetted is refused (hash mismatch)
+    (mod_dir / "srcmod.py").write_text((mod_dir / "srcmod.py").read_text() + "\n# tampered\n")
+    with pytest.raises(BBOTError, match="changed since it was vetted"):
+        loader.load_module("srcmod")
+
+
+def test_module_dir_symlinked_modules(tmp_path):
+    from bbot.core.modules import ModuleLoader
+
+    loader = ModuleLoader()
+    asked = []
+    loader.confirm_module_dir = lambda module_dir, module_names, notes: asked.append(module_names) or True
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    write_custom_module(elsewhere, "innocuous")
+
+    # a symlink is named after the link, so it can't use an innocent target to take over a module's name
+    shadow_dir = tmp_path / "shadow"
+    shadow_dir.mkdir()
+    (shadow_dir / "robots.py").symlink_to(elsewhere / "innocuous.py")
+    with pytest.raises(BBOTError, match='a module named "robots" already exists'):
+        loader.add_module_dir(shadow_dir)
+    assert loader.preloaded()["robots"]["path"] != str((elsewhere / "innocuous.py").resolve())
+
+    # and a link that isn't a .py file isn't a module, wherever it points
+    other_dir = tmp_path / "other"
+    other_dir.mkdir()
+    (other_dir / "sneaky.txt").symlink_to(elsewhere / "innocuous.py")
+    loader.add_module_dir(other_dir)
+    assert "sneaky" not in loader.preloaded() and "innocuous" not in loader.preloaded()
+
+    # the folder a link points into is checked too
+    link_dir = tmp_path / "links"
+    link_dir.mkdir()
+    (link_dir / "linkmod.py").symlink_to(elsewhere / "innocuous.py")
+    elsewhere.chmod(0o777)
+    with pytest.raises(BBOTError, match=r"elsewhere\": directory is world-writable"):
+        loader.add_module_dir(link_dir)
+    elsewhere.chmod(0o755)
+
+    # otherwise a symlinked module loads under the link's name, which is the name the prompt shows
+    loader.add_module_dir(link_dir)
+    assert asked[-1] == ["linkmod"]
+    assert "linkmod" in loader.preloaded()
+
+
+def test_preset_listing_skips_module_dirs(tmp_path):
+    """Listing presets must not load (or prompt for) a preset's custom module_dirs."""
+    from bbot.scanner import Preset
+    from bbot.core.modules import MODULE_LOADER
+
+    mod_dir = tmp_path / "mods"
+    mod_dir.mkdir()
+    write_custom_module(mod_dir, "listmod")
+    preset_file = tmp_path / "listed.yml"
+    preset_file.write_text(f"module_dirs:\n  - {mod_dir}\nmodules:\n  - listmod\n")
+
+    # and an included preset's module_dirs are skipped too
+    inc_mod_dir = tmp_path / "incmods"
+    inc_mod_dir.mkdir()
+    write_custom_module(inc_mod_dir, "incmod")
+    included = tmp_path / "included.yml"
+    included.write_text(f"module_dirs:\n  - {inc_mod_dir}\nmodules:\n  - incmod\n")
+    outer_file = tmp_path / "outer.yml"
+    outer_file.write_text(f"include:\n  - {included}\n")
+
+    asked = []
+    original = MODULE_LOADER.confirm_module_dir
+    MODULE_LOADER.confirm_module_dir = lambda *a, **k: asked.append(a) or True
+    try:
+        preset = Preset.from_yaml_file(preset_file, _skip_module_dirs=True)
+        outer = Preset.from_yaml_file(outer_file, _skip_module_dirs=True)
+    finally:
+        MODULE_LOADER.confirm_module_dir = original
+    assert asked == []
+    assert "listmod" not in MODULE_LOADER.preloaded()
+    assert "incmod" not in MODULE_LOADER.preloaded()
+    assert mod_dir.resolve() not in preset.module_dirs
+    assert inc_mod_dir.resolve() not in outer.module_dirs
+
+
+def test_module_dir_refuses_name_modules(tmp_path):
+    from bbot.core.modules import ModuleLoader
+
+    loader = ModuleLoader()
+    # a top-level custom dir named "modules" collides with the built-in package namespace
+    mod_dir = tmp_path / "modules"
+    mod_dir.mkdir()
+    write_custom_module(mod_dir, "topmod")
+    with pytest.raises(BBOTError, match=r'named "modules"'):
+        loader.add_module_dir(mod_dir)
+    assert "topmod" not in loader.preloaded()
+
+    # so does a subdir named "modules" inside an otherwise fine custom dir
+    outer = tmp_path / "mods"
+    inner = outer / "modules"
+    inner.mkdir(parents=True)
+    write_custom_module(inner, "submod")
+    with pytest.raises(BBOTError, match=r'named "modules"'):
+        loader.add_module_dir(outer)
+    assert "submod" not in loader.preloaded()
+
+
+def test_module_dir_refuses_dangling_symlink(tmp_path):
+    from bbot.core.modules import ModuleLoader
+
+    loader = ModuleLoader()
+    mod_dir = tmp_path / "mods"
+    mod_dir.mkdir()
+    (mod_dir / "late.py").symlink_to(tmp_path / "does_not_exist.py")
+    with pytest.raises(BBOTError, match="broken symlink"):
+        loader.add_module_dir(mod_dir)
+    assert "late" not in loader.preloaded()
+
+
+def test_preload_loads_only_vetted_entries(tmp_path):
+    """preload() loads exactly the (name, path) entries it is handed, not a fresh listing
+    of the folder, so a file appearing after the folder was vetted is not loaded."""
+    from bbot.core.modules import ModuleLoader
+
+    loader = ModuleLoader()
+    mod_dir = (tmp_path / "mods").resolve()
+    mod_dir.mkdir()
+    write_custom_module(mod_dir, "vetted_mod")
+    write_custom_module(mod_dir, "unvetted_mod")
+
+    loader._module_dirs.add(mod_dir)
+    loader.preload(module_dirs={mod_dir}, vetted=[(mod_dir, "vetted_mod", (mod_dir / "vetted_mod.py").resolve())])
+    assert "vetted_mod" in loader.preloaded()
+    assert "unvetted_mod" not in loader.preloaded()
+
+
+def test_module_dir_group_writable_is_noted(tmp_path):
+    from bbot.core.modules import ModuleLoader
+
+    loader = ModuleLoader()
+    mod_dir = tmp_path / "mods"
+    mod_dir.mkdir()
+    write_custom_module(mod_dir, "groupmod")
+
+    # a group-writable module file is not refused, but the trust prompt points it out
+    (mod_dir / "groupmod.py").chmod(0o664)
+    asked = []
+    loader.confirm_module_dir = lambda module_dir, module_names, notes: asked.append(notes) or True
+    loader.add_module_dir(mod_dir)
+    assert any("Writable by group" in note for note in asked[-1])
+    assert "groupmod" in loader.preloaded()
+
+
+def test_module_dir_other_owner_is_noted(tmp_path, monkeypatch, caplog):
+    from bbot.core.modules import ModuleLoader
+
+    if os.getuid() == 0:
+        pytest.skip("files owned by root are never flagged")
+
+    caplog.set_level(logging.WARNING)
+    loader = ModuleLoader()
+    mod_dir = tmp_path / "mods"
+    mod_dir.mkdir()
+    write_custom_module(mod_dir, "ownermod")
+    # not group-writable, so this exercises only the other-owner note
+    mod_dir.chmod(0o755)
+    (mod_dir / "ownermod.py").chmod(0o644)
+
+    # pretend to be a different user (like root under sudo), so the folder belongs to someone else
+    real_uid = os.getuid()
+    monkeypatch.setattr(os, "getuid", lambda: real_uid + 54321)
+    asked = []
+    loader.confirm_module_dir = lambda module_dir, module_names, notes: asked.append(notes) or False
+    with pytest.raises(BBOTError, match="was not trusted"):
+        loader.add_module_dir(mod_dir)
+    # it's not refused outright; the trust prompt shows who else can change the code
+    assert len(asked) == 1 and len(asked[0]) == 1
+    assert "That user can change this code" in asked[0][0]
+    assert "ownermod" not in loader.preloaded()
+
+    # without a prompt (library use), the note goes in the warning and the folder loads
+    loader.confirm_module_dir = None
+    loader.add_module_dir(mod_dir)
+    assert "That user can change this code" in caplog.text
+    assert "ownermod" in loader.preloaded()
+
+
+def test_custom_module_dir_warning(tmp_path, caplog):
+    from bbot.core.modules import ModuleLoader
+
+    caplog.set_level(logging.WARNING)
+    loader = ModuleLoader()
+    mod_dir = tmp_path / "mods"
+    mod_dir.mkdir()
+    write_custom_module(mod_dir, "warnmod")
+
+    # without a trust prompt (library use), loading a custom folder is announced
+    loader.add_module_dir(mod_dir)
+    assert f'Loading custom modules from "{mod_dir.resolve()}": warnmod' in caplog.text
+    assert "warnmod" in loader.preloaded()
+
+
+def test_custom_module_cannot_replace_existing(tmp_path):
+    from bbot.core.modules import ModuleLoader
+
+    loader = ModuleLoader()
+    # even a folder the user trusts can't replace a module, and isn't asked about
+    asked = []
+    loader.confirm_module_dir = lambda module_dir, module_names, notes: asked.append(module_dir) or True
+
+    # a built-in module name
+    builtin_path = loader.preloaded()["robots"]["path"]
+    shadow_dir = tmp_path / "shadow"
+    shadow_dir.mkdir()
+    write_custom_module(shadow_dir, "robots")
+    with pytest.raises(BBOTError, match='a module named "robots" already exists') as e:
+        loader.add_module_dir(shadow_dir)
+    assert builtin_path in str(e.value)
+    assert loader.preloaded()["robots"]["path"] == builtin_path
+
+    # a name already loaded from another custom folder
+    first_dir = tmp_path / "first"
+    first_dir.mkdir()
+    write_custom_module(first_dir, "dupemod")
+    loader.add_module_dir(first_dir)
+    second_dir = tmp_path / "second"
+    second_dir.mkdir()
+    write_custom_module(second_dir, "dupemod")
+    with pytest.raises(BBOTError, match='a module named "dupemod" already exists'):
+        loader.add_module_dir(second_dir)
+    assert loader.preloaded()["dupemod"]["path"] == str((first_dir / "dupemod.py").resolve())
+
+    # two modules with the same name inside one folder's subfolders
+    nested_dir = tmp_path / "nested"
+    (nested_dir / "output").mkdir(parents=True)
+    write_custom_module(nested_dir, "twinmod")
+    write_custom_module(nested_dir / "output", "twinmod")
+    with pytest.raises(BBOTError, match='a module named "twinmod" already exists'):
+        loader.add_module_dir(nested_dir)
+    assert "twinmod" not in loader.preloaded()
+
+    assert asked == [first_dir.resolve()]

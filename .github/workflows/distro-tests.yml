@@ -75,7 +75,10 @@ jobs:
           export BBOT_DISTRO_TESTS=true
           export UV_PYTHON_PREFERENCE=only-managed
           uv sync --group dev
-          uv run pytest --reruns 2 --exitfirst -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO .
+          uv run pytest -n $(uv run python bbot/test/worker_count.py) --dist loadgroup --reruns 2 --exitfirst -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO \
+            bbot/test/test_step_1/test_e2e.py \
+            bbot/test/test_step_1/test_depsinstaller.py \
+            bbot/test/test_step_1/test_command.py
       - name: Upload Debug Logs
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

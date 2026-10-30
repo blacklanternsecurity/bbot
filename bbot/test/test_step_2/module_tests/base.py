@@ -1,12 +1,15 @@
+import time
 import pytest
 import asyncio
 import logging
 import pytest_asyncio
+from contextlib import suppress
 
 from ...bbot_fixtures import *
 from bbot.scanner import Scanner
 from bbot.core.config.merge import deep_merge
 from bbot.core.helpers.misc import rand_string
+from bbot.test.worker import CONTAINER_READY_TIMEOUT, ORPHAN_CANCEL_TIMEOUT, _OOM_HINT
 
 log = logging.getLogger("bbot.test.modules")
 
@@ -126,7 +129,16 @@ class ModuleTestBase:
             self.log.debug(f"Cancelling {len(tasks)} orphaned tasks after {self.name}")
             for t in tasks:
                 t.cancel()
-            await asyncio.gather(*tasks, return_exceptions=True)
+            # Bounded: a task that absorbs its cancellation (an await shielded from
+            # it, whose resolver was itself cancelled) never completes, and an
+            # unbounded gather here then hangs the whole worker until the job
+            # limit. pytest-timeout cannot fire in fixture teardown.
+            _, pending = await asyncio.wait(tasks, timeout=ORPHAN_CANCEL_TIMEOUT)
+            if pending:
+                self.log.warning(
+                    f"{len(pending)} orphaned tasks did not exit within {ORPHAN_CANCEL_TIMEOUT}s "
+                    f"after {self.name}, abandoning them: {pending}"
+                )
 
     async def _execute_scan(self, module_test):
         """Execute the scan and collect events. Can be overridden by benchmark classes."""
@@ -178,18 +190,84 @@ class ModuleTestBase:
     async def _mock_http_wildcard(*args, **kwargs):
         return False
 
-    async def wait_for_port_open(self, port):
+    async def wait_for_port_open(self, port, timeout=CONTAINER_READY_TIMEOUT):
+        deadline = time.time() + timeout
         while not await self.is_port_open("localhost", port):
+            if time.time() > deadline:
+                raise RuntimeError(
+                    f"Port {port} did not open within {timeout}s, so the container never came up. {_OOM_HINT}"
+                )
             self.log.verbose(f"Waiting for port {port} to be open...")
             await asyncio.sleep(0.5)
         # allow an extra second for things to settle
         await asyncio.sleep(1)
 
-    async def is_port_open(self, host, port):
+    async def start_container(self, name, *args):
+        """Start a detached container, replacing any leftover of the same name.
+
+        A container the previous attempt failed to remove keeps its published
+        ports bound, so the retry's ``docker run`` fails and the test then waits
+        on a port nothing will ever listen on.
+        """
+        rm = await asyncio.create_subprocess_exec(
+            "docker",
+            "rm",
+            "-f",
+            name,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        await rm.communicate()
+
+        proc = await asyncio.create_subprocess_exec(
+            "docker",
+            "run",
+            "-d",
+            "--rm",
+            "--name",
+            name,
+            *args,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await proc.communicate()
+        if proc.returncode != 0:
+            raise RuntimeError(
+                f"Failed to start container {name} (exit {proc.returncode}): {stderr.decode(errors='replace').strip()}"
+            )
+        return stdout.decode(errors="replace").strip()
+
+    async def stop_container(self, name):
+        proc = await asyncio.create_subprocess_exec(
+            "docker",
+            "rm",
+            "-f",
+            name,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        await proc.communicate()
+
+    async def is_port_open(self, host, port, settle=0.5):
+        """Return True only once something is really listening behind ``port``.
+
+        docker publishes a port by binding it on the host at container create
+        time, so a bare connect succeeds while the containerized service is
+        still booting. The proxy then immediately EOFs that connection. Treat an
+        instant EOF as not-yet-listening; a connection that stays open, or one
+        that sends a banner, means the service is up.
+        """
+        writer = None
         try:
             reader, writer = await asyncio.open_connection(host, port)
-            writer.close()
-            await writer.wait_closed()
-            return True
+            try:
+                return await asyncio.wait_for(reader.read(1), timeout=settle) != b""
+            except asyncio.TimeoutError:
+                return True
         except (ConnectionRefusedError, OSError):
             return False
+        finally:
+            if writer is not None:
+                writer.close()
+                with suppress(ConnectionResetError, OSError):
+                    await writer.wait_closed()
