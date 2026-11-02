@@ -73,5 +73,4 @@ result = await self.helpers.asn.lookup("8.8.8.8")
 | [pydantic](https://docs.pydantic.dev/) | Preset/config validation, module config schemas (`BaseModuleConfig`) |
 | [ansible-runner](https://ansible-runner.readthedocs.io/) | Module dependency installation (`deps_apt`, `deps_ansible`) |
 | [yara-python](https://yara.readthedocs.io/) | Pattern matching in `excavate` (secret/credential extraction from HTTP responses) |
-| [deepdiff](https://zepworks.com/deepdiff/) | HTTP response comparison for web modules (baseline diffing, wildcard detection) |
 | [dnspython](https://dnspython.readthedocs.io/) | DNS record type constants and utilities (blastdns handles actual resolution) |
