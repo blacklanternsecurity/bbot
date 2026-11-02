@@ -214,9 +214,17 @@ class DNSBrute:
             nameservers = set(self.parent_helper.read_file(self._resolver_file_original))
             # exclude whatever the main DNS path is using, custom or system
             # this helps prevent rate-limiting which might cause BBOT's main dns queries to fail
-            nameservers.difference_update(self.parent_helper.dns.resolvers)
+            # compare by host, since our resolvers may carry a port (8.8.8.8:53) while the brute list is bare IPs
+            excluded_hosts = {self._resolver_host(r) for r in self.parent_helper.dns.resolvers}
+            nameservers = {n for n in nameservers if self._resolver_host(n) not in excluded_hosts}
             self._resolver_file = self.parent_helper.tempfile(nameservers, pipe=False)
         return self._resolver_file
+
+    def _resolver_host(self, resolver):
+        try:
+            return str(self.parent_helper.split_host_port(resolver)[0])
+        except ValueError:
+            return resolver
 
     def gen_random_subdomains(self, n=50):
         delimiters = (".", "-")

@@ -980,6 +980,20 @@ async def test_dns_helpers(bbot_scanner):
     resolver_file = await scan.helpers.dns.brute.resolver_file()
     assert set(scan.helpers.read_file(resolver_file)) == {"1.2.3.4", "4.3.2.1"}
 
+    # custom nameservers given with a port are matched by host against the bare-IP brute list
+    brute_nameservers = tempwordlist(["1.2.3.4", "8.8.4.4", "4.3.2.1", "8.8.8.8", "2001:4860:4860::8888"])
+    scan = bbot_scanner(
+        config={
+            "dns": {
+                "nameservers": ["8.8.8.8:53", "8.8.4.4:5353", "[2001:4860:4860::8888]:53"],
+                "brute_nameservers": brute_nameservers,
+            }
+        }
+    )
+    await scan._prep()
+    resolver_file = await scan.helpers.dns.brute.resolver_file()
+    assert set(scan.helpers.read_file(resolver_file)) == {"1.2.3.4", "4.3.2.1"}
+
     # with no custom nameservers, the system ones are used
     scan = bbot_scanner()
     await scan._prep()
