@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.mok4erma.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.585v72qg.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -806,6 +806,15 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="#test-servers-and-ports">
+<span class="md-ellipsis">
+      
+        Test servers and ports
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="#advanced-test-features">
 <span class="md-ellipsis">
       
@@ -1201,15 +1210,77 @@ uv<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>p
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">log</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">info(e</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">data)</span>  <span style="color: #8B949E; font-style: italic"># blue</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">log</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">debug(e</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">parent)</span>  <span style="color: #8B949E; font-style: italic"># grey (requires -d)</span>
 </code></pre></div>
+<h3 id="test-servers-and-ports">Test servers and ports</h3>
+<p><code>ModuleTestBase</code> starts a local HTTP server for every test, and the test registers canned responses on it with <code>module_test.set_expect_requests()</code>. A web module's test points <code>targets</code> at that server, which is why so many tests contain a <code>127.0.0.1</code> URL: it's the fixture, not a real host.</p>
+<p>Its port is no longer fixed. The suite runs under <code>pytest -n</code>, and <code>bbot/test/worker.py</code> offsets every base port by the worker index so the workers don't collide on one socket: the server is on 8888 under <code>gw0</code>, 8988 under <code>gw1</code>. So <code>targets = ["http://127.0.0.1:8888"]</code> names <code>gw0</code>'s server rather than your own, and the test reaches another worker's server or nothing at all, depending on how pytest distributed that run.</p>
+<p>Use <code>HTTPSERVER_URL</code>. It is <code>http://127.0.0.1:&lt;this worker's port&gt;</code>, built at import time from the same offset the fixture uses, so it always resolves to the server the test is actually talking to:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">bbot.test.worker</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">HTTPSERVER_URL</span>
+
+
+<span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">TestMyModule</span><span style="color: #E6EDF3">(ModuleTestBase):</span>
+    <span style="color: #E6EDF3">targets</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[HTTPSERVER_URL]</span>
+</code></pre></div>
+<p><code>/tmp/.bbot_test</code> has the same problem, since the first worker to finish deletes it. <code>BBOT_TEST_DIR</code> is the per-worker equivalent.</p>
+<table>
+<thead>
+<tr>
+<th>Constant</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>HTTPSERVER_URL</code></td>
+<td><code>http://127.0.0.1:&lt;port&gt;</code>, the usual value for <code>targets</code></td>
+</tr>
+<tr>
+<td><code>HTTPSERVER_SSL_URL</code></td>
+<td>the HTTPS equivalent</td>
+</tr>
+<tr>
+<td><code>HTTPSERVER_PORT</code>, <code>HTTPSERVER_SSL_PORT</code></td>
+<td>the bare ports, for building a URL or a regex</td>
+</tr>
+<tr>
+<td><code>HTTPSERVER_HOSTPORT</code>, <code>HTTPSERVER_SSL_HOSTPORT</code></td>
+<td><code>127.0.0.1:&lt;port&gt;</code>, no scheme</td>
+</tr>
+<tr>
+<td><code>LOCALHOST_URL</code>, <code>LOCALHOST_SSL_URL</code>, <code>LOCALHOST_HOSTPORT</code></td>
+<td>the <code>localhost</code> spellings, for when the Host header is what's under test</td>
+</tr>
+<tr>
+<td><code>HTTPSERVER_PORT_ALT</code></td>
+<td>a second port inside the same worker's block</td>
+</tr>
+<tr>
+<td><code>HTTPSERVER_ALLINTERFACES_PORT</code></td>
+<td>the <code>0.0.0.0</code> listener</td>
+</tr>
+<tr>
+<td><code>FASTAPI_URL</code>, <code>FASTAPI_PORT</code></td>
+<td>the FastAPI test app</td>
+</tr>
+<tr>
+<td><code>WEBSOCKET_PORT</code></td>
+<td>the websocket test server</td>
+</tr>
+<tr>
+<td><code>BBOT_TEST_DIR</code>, <code>BBOT_TEST_DIR_NAME</code></td>
+<td>the per-worker BBOT home, and its basename</td>
+</tr>
+</tbody>
+</table>
 <h3 id="advanced-test-features">Advanced test features</h3>
 <h4 id="http-request-handlers">HTTP request handlers</h4>
 <p>For dynamic HTTP responses, use <code>set_expect_requests_handler</code> with a custom handler function:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">import</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">re</span>
 <span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">werkzeug.wrappers</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">Response</span>
+<span style="color: #FF7B72">from</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">bbot.test.worker</span><span style="color: #6E7681"> </span><span style="color: #FF7B72">import</span> <span style="color: #E6EDF3">HTTPSERVER_URL</span>
 
 
 <span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">TestMyModule</span><span style="color: #E6EDF3">(ModuleTestBase):</span>
-    <span style="color: #E6EDF3">targets</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"http://127.0.0.1:8888"</span><span style="color: #E6EDF3">]</span>
+    <span style="color: #E6EDF3">targets</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[HTTPSERVER_URL]</span>
     <span style="color: #E6EDF3">modules_overrides</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"http"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"mymodule"</span><span style="color: #E6EDF3">]</span>
 
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">request_handler</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">request):</span>
@@ -1238,7 +1309,7 @@ uv<span style="color: #6E7681"> </span>run<span style="color: #6E7681"> </span>p
 </code></pre></div>
 <h4 id="other-class-attributes">Other class attributes</h4>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">TestMyModule</span><span style="color: #E6EDF3">(ModuleTestBase):</span>
-    <span style="color: #E6EDF3">targets</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"http://127.0.0.1:8888"</span><span style="color: #E6EDF3">]</span>  <span style="color: #8B949E; font-style: italic"># override default target</span>
+    <span style="color: #E6EDF3">targets</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[HTTPSERVER_URL]</span>  <span style="color: #8B949E; font-style: italic"># override default target</span>
     <span style="color: #E6EDF3">modules_overrides</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[</span><span style="color: #A5D6FF">"http"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">"mymodule"</span><span style="color: #E6EDF3">]</span>  <span style="color: #8B949E; font-style: italic"># control which modules are enabled</span>
     <span style="color: #E6EDF3">module_name</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #A5D6FF">"mymodule"</span>  <span style="color: #8B949E; font-style: italic"># if your class name doesn't match the module</span>
     <span style="color: #E6EDF3">config_overrides</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"modules"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"mymodule"</span><span style="color: #E6EDF3">:</span> <span style="color: #E6EDF3">{</span><span style="color: #A5D6FF">"option"</span><span style="color: #E6EDF3">:</span> <span style="color: #A5D6FF">"value"</span><span style="color: #E6EDF3">}}}</span>
