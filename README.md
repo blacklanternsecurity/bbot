@@ -404,6 +404,7 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/Stabl
         - [Lightfuzz](https://www.blacklanternsecurity.com/bbot/Stable/modules/lightfuzz)
         - [Webbrute](https://www.blacklanternsecurity.com/bbot/Stable/modules/webbrute)
     - **Migration**
+        - [3.0 → 3.1 Breaking Changes](https://www.blacklanternsecurity.com/bbot/Stable/migration/3.1_breaking_changes)
         - [2.x → 3.0 Breaking Changes](https://www.blacklanternsecurity.com/bbot/Stable/migration/3.0_breaking_changes)
     - **Misc**
         - [Contribution](https://www.blacklanternsecurity.com/bbot/Stable/contribution)
