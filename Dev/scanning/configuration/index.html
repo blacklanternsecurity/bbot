@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.robosc6t.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.o_et7awm.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1125,13 +1125,27 @@ Is the same as:
 <span style="color: #6E7681">  </span><span style="color: #7EE787">disable</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">false</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Speed up scan by not creating any new DNS events, and only resolving A and AAAA records</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">minimal</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">false</span>
-<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How many threads to use per resolver (best way to increase speed is to put more resolvers in /etc/resolv.conf)</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Nameservers to use instead of the system ones (empty = use system resolvers)</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">nameservers</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[]</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How many queries to keep in flight per resolver (best way to increase speed is to put more resolvers in /etc/resolv.conf)</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">threads</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">10</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How many DNS records to cache</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">cache_size</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">100000</span>
-<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How many concurrent DNS resolvers to use when brute-forcing</span>
-<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># (under the hood this is passed through directly to massdns -s)</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How many brute-force DNS queries to keep in flight at once</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">brute_threads</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">1000</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How many brute-force queries to keep in flight per resolver (the politeness bound)</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">brute_inflight_per_resolver</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">2</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Hard ceiling on brute-force DNS queries per second (0 = unlimited; backoff is automatic regardless)</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">brute_rate_limit</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">0</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Attempts per brute-force name before giving up (each retry lands on a different resolver)</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Only timeouts retry, not NXDOMAIN, so this costs traffic proportional to the failure rate</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">brute_retries</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">20</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Per-query timeout in seconds when brute-forcing, deliberately much shorter than dns.timeout</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Retrying elsewhere is cheaper than waiting; going below this starts shrinking the resolver pool</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">brute_timeout</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">0.5</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Reuse one socket per resolver instead of binding one per query, which keeps NAT/conntrack</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># state bounded by the resolver count rather than growing with query volume</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">brute_persistent_socket</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># nameservers to use for DNS brute-forcing</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># default is updated weekly and contains ~10K high-quality public servers</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">brute_nameservers</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt</span>
@@ -1486,7 +1500,7 @@ Is the same as:
 <tr>
 <td>modules.baddns.enabled_submodules</td>
 <td>list[str]</td>
-<td>A list of submodules to enable. Empty list (default) enables CNAME, TXT and MX Only</td>
+<td>A list of submodules to enable. Empty list (default) enables CNAME, MX, TXT and DELEGATION Only</td>
 <td>[]</td>
 </tr>
 <tr>
