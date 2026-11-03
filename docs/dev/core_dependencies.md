@@ -20,7 +20,7 @@ The shared blasthttp client is accessible at `self.helpers.blasthttp` and respec
 
 ## blastdns (BLS)
 
-[blastdns](https://github.com/blacklanternsecurity/blastdns) is a Rust-backed async DNS resolver. It powers all of BBOT's DNS resolution with built-in caching, retries, and per-resolver parallelism. BBOT spins up multiple workers per resolver in `/etc/resolv.conf`, so adding more resolvers directly speeds up scans.
+[blastdns](https://github.com/blacklanternsecurity/blastdns) is a Rust-backed async DNS resolver. It powers all of BBOT's DNS resolution with built-in caching, retries, and per-resolver parallelism. BBOT keeps up to `dns.threads` queries in flight per resolver in `/etc/resolv.conf`, up to `dns.max_concurrency` in total, so adding more resolvers speeds up scans until that total is reached.
 
 Accessed via `self.helpers.dns`:
 
