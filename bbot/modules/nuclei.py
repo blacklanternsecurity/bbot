@@ -329,7 +329,7 @@ class nuclei(BaseModule):
             self.scan.http_timeout,
         ]
 
-        if self.helpers.system_resolvers:
+        if self.helpers.dns.resolvers:
             command += ["-r", self.helpers.resolver_file]
 
         for hk, hv in self.scan.custom_http_headers.items():
