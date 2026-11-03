@@ -313,6 +313,7 @@ class DnsConfig(BaseModel):
     minimal: Optional[bool] = None
     nameservers: Optional[list[str]] = None
     threads: Optional[int] = None
+    max_concurrency: Optional[int] = None
     cache_size: Optional[int] = None
     brute_threads: Optional[int] = None
     brute_inflight_per_resolver: Optional[int] = None

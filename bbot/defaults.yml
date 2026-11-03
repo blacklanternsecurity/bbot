@@ -49,8 +49,10 @@ dns:
   minimal: false
   # Nameservers to use instead of the system ones (empty = use system resolvers)
   nameservers: []
-  # How many queries to keep in flight per resolver (best way to increase speed is to put more resolvers in /etc/resolv.conf)
-  threads: 10
+  # How many queries to keep in flight per resolver (adaptive pacing backs off if a resolver starts dropping queries)
+  threads: 50
+  # Ceiling on queries in flight across all resolvers, however many are configured
+  max_concurrency: 256
   # How many DNS records to cache
   cache_size: 100000
   # How many brute-force DNS queries to keep in flight at once
