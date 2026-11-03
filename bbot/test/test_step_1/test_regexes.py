@@ -1,3 +1,4 @@
+import time
 import pytest
 import traceback
 
@@ -424,6 +425,19 @@ async def test_regex_helper():
         "asdf.www.evilcorp.co.uk",
         "www.evilcorp.co.uk",
     }
+
+    # a hostname with hyphens in it is one hostname, not one per hyphen
+    extracted = await scan.extract_in_scope_hostnames("https://dev-api.evilcorp.com/ my-app-test.evilcorp.com")
+    assert extracted == {"dev-api.evilcorp.com", "my-app-test.evilcorp.com", "evilcorp.com"}
+    # the same name standing on its own elsewhere still counts
+    extracted = await scan.extract_in_scope_hostnames("dev-api.evilcorp.com api.evilcorp.com")
+    assert extracted == {"dev-api.evilcorp.com", "api.evilcorp.com", "evilcorp.com"}
+    # filtering stays linear in the number of matches, since a single page can hold thousands of subdomains
+    hostnames = {f"h{i}-dev-{i % 7}.evilcorp.com" for i in range(20000)}
+    start = time.time()
+    extracted = await scan.extract_in_scope_hostnames(" ".join(sorted(hostnames)))
+    assert time.time() - start < 5
+    assert extracted == hostnames | {"evilcorp.com"}
 
     scan = Scanner()
     await scan._prep()

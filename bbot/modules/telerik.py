@@ -277,7 +277,7 @@ class telerik(BaseModule):
 
     in_scope_only = True
 
-    deps_pip = ["badsecrets~=1.2.1"]
+    deps_pip = ["badsecrets~=1.3.0"]
 
     _module_threads = 5
 

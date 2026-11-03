@@ -6,10 +6,16 @@ import wordninja
 from pathlib import Path
 from contextlib import suppress
 from collections import OrderedDict
+from functools import lru_cache
 
 from .misc import tldextract, extract_words
 
 log = logging.getLogger("bbot.core.helpers.wordcloud")
+
+
+@lru_cache(maxsize=8)
+def _load_wordninja_model(wordlist_path):
+    return wordninja.LanguageModel(wordlist_path)
 
 
 class WordCloud(dict):
@@ -485,7 +491,7 @@ class DNSMutator(Mutator):
         super().__init__(*args, **kwargs)
         wordlist_dir = Path(__file__).parent.parent.parent / "wordlists"
         wordninja_dns_wordlist = wordlist_dir / "wordninja_dns.txt.gz"
-        self.model = wordninja.LanguageModel(wordninja_dns_wordlist)
+        self.model = _load_wordninja_model(wordninja_dns_wordlist)
 
     def mutations(self, words, max_mutations=None):
         if isinstance(words, str):

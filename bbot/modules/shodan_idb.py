@@ -129,8 +129,12 @@ class shodan_idb(BaseModule):
                     context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found {{event.type}}: {{event.pretty_string}}',
                 )
         for cpe in data.get("cpes", []):
+            technology = self.helpers.cpe_product(cpe)
+            if technology is None:
+                self.debug(f"Skipping CPE without a product: {cpe}")
+                continue
             await self.emit_event(
-                {"technology": cpe, "host": str(event.host)},
+                {"technology": technology, "cpe": cpe, "host": str(event.host)},
                 "TECHNOLOGY",
                 parent=event,
                 context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found {{event.type}}: {{event.pretty_string}}',

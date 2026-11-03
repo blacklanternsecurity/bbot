@@ -1,4 +1,5 @@
 import re
+import time
 from types import SimpleNamespace
 
 from blasthttp import HTTPStatusError
@@ -215,6 +216,24 @@ async def test_web_helpers(bbot_scanner, bbot_httpserver, blasthttp_mock):
     with open(filename2) as f:
         assert f.read() == download_content
 
+    # download respects cache_hrs when checking freshness
+    cached_file = scan1.helpers.cache_filename(url)
+    cached_file.write_text("stale")
+    two_days_ago = time.time() - 48 * 3600
+    os.utime(cached_file, (two_days_ago, two_days_ago))
+    filename = await scan1.helpers.download(url, cache_hrs=72)
+    assert Path(filename).read_text() == "stale"
+    filename = await scan1.helpers.download(url, cache_hrs=24)
+    assert Path(filename).read_text() == download_content
+
+    # with a custom filename, freshness is checked on that file, not the url's cache entry
+    assert scan1.helpers.is_cached(url, cache_hrs=24)
+    custom_file = BBOT_TEST_DIR / "bbot_download_cache_hrs_test_file"
+    custom_file.unlink(missing_ok=True)
+    filename = await scan1.helpers.download(url, filename=custom_file, cache_hrs=24)
+    assert filename == custom_file
+    assert custom_file.read_text() == download_content
+
     # beautifulsoup
     download_content = """
     <div>
@@ -343,7 +362,12 @@ async def test_web_interactsh(bbot_scanner, bbot_httpserver):
     assert response2.status_code == 200
     assert any(interactsh_domain2.endswith(f"{s}") for s in server_list)
 
-    await asyncio.sleep(10)
+    # poll until every asserted condition holds, capped at the old fixed budget
+    deadline = time.time() + 10
+    while time.time() < deadline:
+        if sync_correct_url and async_correct_url:
+            break
+        await asyncio.sleep(0.1)
 
     data_list = await interactsh_client.poll()
     data_list2 = await interactsh_client2.poll()
