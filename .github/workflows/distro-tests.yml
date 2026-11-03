@@ -74,6 +74,8 @@ jobs:
           export HOME="$(getent passwd $(whoami) | cut -d: -f6)"
           export BBOT_DISTRO_TESTS=true
           export UV_PYTHON_PREFERENCE=only-managed
+          uv python install 3.12
+          uv python pin 3.12
           uv sync --group dev
           uv run pytest -n $(uv run python bbot/test/worker_count.py) --dist loadgroup --reruns 2 --exitfirst -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO \
             bbot/test/test_step_1/test_e2e.py \
