@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.2zbmzpa7.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.lim9zer6.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1079,7 +1079,7 @@
 <ul>
 <li><strong><code>scope.search_distance</code></strong> (default <code>0</code>) is the big one. It controls how many hops out from your target BBOT is allowed to explore. At <code>0</code>, modules only act on in-scope events. Raise it and a single certificate full of affiliate names pulls in those hosts, then <em>their</em> subdomains, then <em>their</em> infrastructure, and scope balloons outward hop by hop until there's no natural stopping point. The config comment says it outright: don't change this unless you know what you're doing. (This is <em>not</em> the same as <code>dns.search_distance</code>, which only governs DNS resolution and is safer to adjust.)</li>
 <li><strong><code>web.spider_distance</code></strong> / <strong><code>web.spider_depth</code></strong> (default <code>0</code> / <code>1</code>). A <code>spider_distance</code> of <code>0</code> means no spidering at all. Raise it and the crawler follows links from links from links, and every URL it turns up feeds webbrute and lightfuzz. On a large site that loop is effectively unbounded.</li>
-<li><strong><code>dns.threads</code></strong> / <strong><code>dns.brute_threads</code></strong> (default <code>10</code> / <code>1000</code>) control DNS concurrency. Cranking them won't make your scan meaningfully faster (the real lever is adding more resolvers to <code>/etc/resolv.conf</code>); it'll just flood your nameservers and get you rate-limited.</li>
+<li><strong><code>dns.threads</code></strong> / <strong><code>dns.max_concurrency</code></strong> / <strong><code>dns.brute_threads</code></strong> (default <code>50</code> / <code>256</code> / <code>1000</code>) control DNS concurrency. <code>dns.threads</code> is how many queries BBOT keeps in flight per resolver, and <code>dns.max_concurrency</code> caps the total across all resolvers. Adaptive pacing backs off when a resolver starts dropping queries, but not when it merely slows down, so if your resolver struggles, lower <code>dns.threads</code> rather than raising anything.</li>
 <li><strong><code>dns.runaway_limit</code></strong> (default <code>5</code>) and <strong><code>dns.wildcard_disable</code></strong> (default <code>false</code>) are guardrails. <code>runaway_limit</code> stops BBOT from chasing a malicious chain of DNS records forever, and wildcard detection is the only thing keeping a <code>*.example.com</code> wildcard from spawning infinite bogus subdomains. Turning either off removes a safety net that's there for a reason.</li>
 </ul>
 <h2 id="scan-target">Scan Target</h2>

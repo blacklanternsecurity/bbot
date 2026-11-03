@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.2zbmzpa7.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.lim9zer6.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1151,15 +1151,16 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <p>Brute-forcing backs off on its own when resolvers start dropping queries, so raising this sets how fast BBOT will go when the resolvers can keep up, not how hard it will push regardless. If you need a firm ceiling as well, set <code>dns.brute_rate_limit</code> (queries per second, <code>0</code> for unlimited).</p>
 <p>To be gentler on individual resolvers rather than faster, lower <code>dns.brute_inflight_per_resolver</code> (default <code>2</code>). No resolver ever receives more than this at once, however large the resolver list.</p>
 <h3 id="speed-up-scans-with-more-dns-resolvers">Speed Up Scans with More DNS Resolvers</h3>
-<p>By far the most effective way to speed up a BBOT scan is to <strong>add more resolvers to <code>/etc/resolv.conf</code></strong>. BBOT's DNS resolver (blastdns) keeps multiple queries in flight per resolver (default: <code>10</code>, configurable via <code>dns.threads</code>), so more resolvers = more parallelism = faster scans.</p>
+<p>One of the most effective ways to speed up a BBOT scan is to <strong>add more resolvers to <code>/etc/resolv.conf</code></strong>. BBOT's DNS resolver (blastdns) keeps up to <code>dns.threads</code> queries in flight per resolver (default <code>50</code>), up to <code>dns.max_concurrency</code> in total (default <code>256</code>), so more resolvers = more parallelism = faster scans, until that total is reached.</p>
 <p>For OSINT, it's critical that every resolver is <strong>unfiltered</strong>. Specialized resolvers that try to block ads, malicious domains, etc. will intentionally omit results. Below is a sample <code>/etc/resolv.conf</code> with 11 unfiltered public resolvers:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code># ============================================================================
 # Sample /etc/resolv.conf for BBOT
 # ============================================================================
 #
-# BBOT's DNS engine (blastdns) automatically spins up ten workers per
-# resolver listed here.  Adding more resolvers = more parallelism =
-# faster scans.
+# BBOT's DNS engine (blastdns) keeps up to dns.threads (default 50)
+# queries in flight per resolver listed here, up to dns.max_concurrency
+# (default 256) in total.  Adding more resolvers = more parallelism =
+# faster scans, until that total is reached.
 #
 # To use: copy (or append) to /etc/resolv.conf, or point your
 # systemd-resolved / resolvconf config at these addresses.
