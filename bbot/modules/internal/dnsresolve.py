@@ -20,9 +20,8 @@ class DNSResolve(BaseInterceptModule):
         _name = "host"
         _type = "internal"
 
-    @property
-    def module_threads(self):
-        return self.dns_config.get("threads", 25)
+    # events resolved concurrently; separate from dns.threads, which caps blastdns queries per resolver
+    _module_threads = 25
 
     async def setup(self):
         self.dns_config = self.scan.config.get("dns", {})
@@ -50,6 +49,13 @@ class DNSResolve(BaseInterceptModule):
 
         return True
 
+    def incoming_lane(self, event):
+        # events whose host was already resolved upstream skip ahead of hosts still awaiting resolution
+        if not event.host:
+            return 0
+        dns_parent = self.find_dns_parent(event)
+        return 0 if dns_parent is not None and dns_parent is not event else 1
+
     async def filter_event(self, event):
         if (not event.host) or (event.type in ("IP_RANGE",)):
             return False, "event does not have host attribute"
@@ -65,25 +71,23 @@ class DNSResolve(BaseInterceptModule):
             non_minimal_rdtypes = self.non_minimal_rdtypes
 
         # first, we find or create the main DNS_NAME or IP_ADDRESS associated with this event
-        main_host_event, in_target, blacklisted, new_event = self.get_dns_parent(event)
+        main_host_event, new_event = self.get_dns_parent(event)
         original_tags = set(event.tags)
 
         # minimal resolution - first, we resolve A/AAAA records for scope purposes
-        if new_event or event is main_host_event:
-            await self.resolve_event(main_host_event, types=minimal_rdtypes)
-            # are any of its IPs in target scope or blacklisted?
-            in_target, blacklisted = self.check_scope(main_host_event)
-            if in_target and main_host_event.scope_distance > 0:
-                # when filter_ptrs is enabled, don't promote PTR-derived hostnames to in-scope
-                # this prevents rDNS results from triggering subdomain enumeration against unrelated domains
-                # (e.g. scanning 1.2.3.0/24 would otherwise enumerate every PTR parent like randomothercorp.com)
-                if self.filter_ptrs and "ptr" in main_host_event.tags:
-                    self.debug(f"Not making {main_host_event} in-scope: PTR-derived hostname (filter_ptrs=true)")
-                else:
-                    self.debug(
-                        f"Making {main_host_event} in-scope because it resolves to an in-scope resource (A/AAAA)"
-                    )
-                    main_host_event.scope_distance = 0
+        # done for every event, since a child can be handled before or alongside its parent (repeats are cache hits)
+        await self.resolve_event(main_host_event, types=minimal_rdtypes)
+        # are any of its IPs in target scope or blacklisted?
+        in_target, blacklisted = self.check_scope(main_host_event)
+        if in_target and main_host_event.scope_distance > 0:
+            # when filter_ptrs is enabled, don't promote PTR-derived hostnames to in-scope
+            # this prevents rDNS results from triggering subdomain enumeration against unrelated domains
+            # (e.g. scanning 1.2.3.0/24 would otherwise enumerate every PTR parent like randomothercorp.com)
+            if self.filter_ptrs and "ptr" in main_host_event.tags:
+                self.debug(f"Not making {main_host_event} in-scope: PTR-derived hostname (filter_ptrs=true)")
+            else:
+                self.debug(f"Making {main_host_event} in-scope because it resolves to an in-scope resource (A/AAAA)")
+                main_host_event.scope_distance = 0
 
         # abort if the event resolves to something blacklisted
         if blacklisted:
@@ -333,22 +337,25 @@ class DNSResolve(BaseInterceptModule):
                     except ValueError:
                         continue
 
+    def find_dns_parent(self, event):
+        """
+        Get the first DNS_NAME / IP_ADDRESS in an event's chain (including the event itself) with the same host, or None.
+        """
+        for parent in event.get_parents(include_self=True):
+            if parent.host == event.host and parent.type in ("IP_ADDRESS", "DNS_NAME", "DNS_NAME_UNRESOLVED"):
+                return parent
+
     def get_dns_parent(self, event):
         """
         Get the first parent DNS_NAME / IP_ADDRESS of an event. If one isn't found, create it.
 
-        Returns a 4-tuple of:
+        Returns a 2-tuple of:
         - the parent event
-        - whether the parent is in target
-        - whether the parent is blacklisted
         - whether the parent is a new event, i.e. it is newly created or is the current event
         """
-        for parent in event.get_parents(include_self=True):
-            if parent.host == event.host and parent.type in ("IP_ADDRESS", "DNS_NAME", "DNS_NAME_UNRESOLVED"):
-                blacklisted = any(t.startswith("dns-blacklisted-") for t in parent.tags)
-                in_target = any(t.startswith("dns-in-target-") for t in parent.tags)
-                new_event = parent is event
-                return parent, in_target, blacklisted, new_event
+        parent = self.find_dns_parent(event)
+        if parent is not None:
+            return parent, parent is event
         tags = set()
         if "seed" in event.tags:
             tags.add("seed")
@@ -361,8 +368,6 @@ class DNSResolve(BaseInterceptModule):
                 context="{event.parent.type} has host {event.type}: {event.host}",
                 tags=tags,
             ),
-            None,
-            None,
             True,
         )
 

@@ -19,6 +19,7 @@ import time
 from urllib.parse import urlparse
 
 import pytest
+from blasthttp import Headers
 
 from bbot.core.helpers.diff import (
     MAX_STRUCTURED_BODY_SIZE,
@@ -297,6 +298,44 @@ class TestJsonBodyComparison:
         """Untrusted bodies can be nested past the recursion limit; that must degrade, not crash."""
         nested = "[" * 5000 + "]" * 5000
         assert isinstance(parse_body(nested), _LineBody)
+
+
+class TestHeaderComparison:
+    @staticmethod
+    def compare(headers_1, headers_2, ignore=()):
+        comparer = HttpCompare("http://example.com/", None)
+        comparer.baseline_ignore_headers = list(ignore)
+        return comparer.compare_headers(Headers(headers_1), Headers(headers_2))
+
+    def test_identical_headers_match(self):
+        assert self.compare([("Server", "nginx")], [("Server", "nginx")]) == []
+
+    def test_name_case_is_ignored(self):
+        assert self.compare([("Server", "nginx")], [("SERVER", "nginx")]) == []
+
+    @pytest.mark.parametrize(
+        "headers_2, expected",
+        [
+            ([("Server", "apache")], ["server"]),
+            ([("Server", "nginx"), ("X-New", "1")], ["x-new"]),
+            ([], ["server"]),
+        ],
+        ids=["changed", "added", "removed"],
+    )
+    def test_difference_is_reported(self, headers_2, expected):
+        assert self.compare([("Server", "nginx")], headers_2) == expected
+
+    def test_repeated_header_compares_last_value(self):
+        assert self.compare([("Set-Cookie", "a=1"), ("Set-Cookie", "b=2")], [("Set-Cookie", "b=2")]) == []
+        assert self.compare([("Set-Cookie", "a=1"), ("Set-Cookie", "b=2")], [("Set-Cookie", "a=1")]) == ["set-cookie"]
+
+    def test_name_with_quote(self):
+        assert self.compare([("X-It's", "1")], [("X-It's", "2")]) == ["x-it's"]
+
+    def test_ignored_headers_are_skipped(self):
+        assert (
+            self.compare([("Date", "Mon"), ("Server", "a")], [("Date", "Tue"), ("Server", "a")], ignore=["date"]) == []
+        )
 
 
 class TestBaselineIntegration:

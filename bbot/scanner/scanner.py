@@ -340,6 +340,12 @@ class Scanner:
         Expands async seed types (e.g. ASN → IP ranges), evaluates preset conditions,
         creates the scan's output folder, loads its modules, and calls their .setup() methods.
         """
+        # build the DNS helper up front: blastdns validates dns.nameservers when the
+        # client is constructed, and a bad value should abort the scan here rather than
+        # surface later as a per-event error inside dnsresolve
+        if not self.config.get("dns", {}).get("disable", False):
+            self.helpers.dns
+
         # expand async seed types (e.g. ASN -> IP ranges)
         try:
             await self.preset.target.generate_children(helpers=self.helpers)
@@ -420,7 +426,7 @@ class Scanner:
                 self.debug(
                     f"Setting intercept module {intercept_module.name}._incoming_event_queue to previous intercept module {prev_intercept_module.name}.outgoing_event_queue"
                 )
-                interqueue = asyncio.Queue()
+                interqueue = intercept_module.make_intercept_queue()
                 intercept_module._incoming_event_queue = interqueue
                 prev_intercept_module._outgoing_event_queue = interqueue
 
@@ -1333,9 +1339,24 @@ class Scanner:
         if dns_yara_rules is not None:
             for match in await self.helpers.run_in_executor_cpu(dns_yara_rules.match, data=s):
                 for string in match.strings:
-                    for instance in string.instances:
-                        matches.add(str(instance))
+                    matches.update(self.yara_hostnames(string.instances))
         return matches
+
+    @staticmethod
+    def yara_hostnames(instances):
+        """
+        Hostnames from one string of the DNS yara rules, without the fragments that start partway through a label.
+
+        Yara reports a match at every offset the pattern can start from, and a word boundary sits on both sides of a hyphen,
+        so "dv-api.evilcorp.com" also yields "-api.evilcorp.com" and "api.evilcorp.com". A match whose first
+        character continues a label of a longer match is one of those.
+        """
+        instances = [(i.offset, i.matched_data.decode("utf-8", errors="ignore")) for i in instances]
+        # every offset that continues a label of some match, collected in one pass so this stays linear
+        mid_label = set()
+        for offset, hostname in instances:
+            mid_label.update(offset + j for j in range(1, len(hostname)) if hostname[j - 1] != ".")
+        return {hostname for offset, hostname in instances if offset not in mid_label}
 
     @property
     def json(self):
