@@ -9,7 +9,6 @@ class dnscommonsrv(subdomain_enum):
     flags = ["safe", "subdomain-enum", "active"]
     meta = {"description": "Check for common SRV records", "created_date": "2022-05-15", "author": "@TheTechromancer"}
     dedup_strategy = "lowest_parent"
-    deps_common = ["massdns"]
 
     class Config(BaseModuleConfig):
         max_depth: int = Field(2, description="The maximum subdomain depth to brute-force SRV records")
@@ -34,7 +33,7 @@ class dnscommonsrv(subdomain_enum):
     async def handle_event(self, event):
         query = self.make_query(event)
         self.verbose(f'Brute-forcing {self.num_srvs:,} SRV records for "{query}"')
-        for hostname in await self.helpers.dns.brute(self, query, common_srvs, type="SRV"):
+        for hostname in await self.helpers.dns.brute(query, common_srvs, type="SRV"):
             await self.emit_event(
                 hostname,
                 "DNS_NAME",

@@ -2024,8 +2024,11 @@ class FINDING(ClosestHostEvent):
         parts.append(f"Confidence: [{self.data['confidence']}]")
         parts.append(self.data["description"])
         url = self.data.get("url", "")
+        host = self.data.get("host", "")
         if url and url not in self.data["description"]:
             parts.append(f"({url})")
+        elif host and not url and host not in self.data["description"]:
+            parts.append(f"Host: [{host}]")
         cves = self.data.get("cves", [])
         if cves:
             parts.append(f"[{', '.join(cves)}]")
