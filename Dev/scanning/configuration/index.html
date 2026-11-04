@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.lim9zer6.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.95j4si_4.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1127,8 +1127,10 @@ Is the same as:
 <span style="color: #6E7681">  </span><span style="color: #7EE787">minimal</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">false</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Nameservers to use instead of the system ones (empty = use system resolvers)</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">nameservers</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[]</span>
-<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How many queries to keep in flight per resolver (best way to increase speed is to put more resolvers in /etc/resolv.conf)</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">threads</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">10</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How many queries to keep in flight per resolver (adaptive pacing backs off if a resolver starts dropping queries)</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">threads</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">50</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Ceiling on queries in flight across all resolvers, however many are configured</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">max_concurrency</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">256</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How many DNS records to cache</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">cache_size</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">100000</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How many brute-force DNS queries to keep in flight at once</span>
@@ -3019,7 +3021,7 @@ Is the same as:
 <td>modules.trufflehog.version</td>
 <td>VersionStr</td>
 <td>trufflehog version</td>
-<td>3.99.7</td>
+<td>3.99.8</td>
 </tr>
 <tr>
 <td>modules.urlscan.urls</td>
