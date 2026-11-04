@@ -703,3 +703,50 @@ class annotated_legacy_mod(BaseModule):
     with pytest.raises(BBOTError) as excinfo:
         MODULE_LOADER.preload_module(annotated_mod)
     assert "no longer supported" in str(excinfo.value)
+
+
+@pytest.mark.asyncio
+async def test_batch_worker_no_lost_wakeup(bbot_scanner):
+    """An event queued while finish() runs (batch of only FINISHED) must still wake the batch worker."""
+    handled = []
+    in_finish = asyncio.Event()
+
+    class SlowFinishBatch(BaseModule):
+        watched_events = ["IP_ADDRESS"]
+        batch_size = 10
+        _name = "slow_finish_batch"
+
+        async def handle_batch(self, *events):
+            handled.extend(str(e.data) for e in events)
+
+        async def finish(self):
+            in_finish.set()
+            await asyncio.sleep(0.5)
+
+    scan = bbot_scanner("127.0.0.1")
+    await scan._prep()
+    await scan._set_status("RUNNING")
+    module = SlowFinishBatch(scan)
+
+    def in_scope_ip(ip):
+        event = scan.make_event(ip, parent=scan.root_event)
+        event.scope_distance = 0
+        return event
+
+    module.start()
+    try:
+        await module.queue_event(scan.make_event("FINISHED", "FINISHED", dummy=True))
+        await asyncio.wait_for(in_finish.wait(), timeout=5)
+        # queued while finish() is running, so the worker is not waiting on the condition
+        await module.queue_event(in_scope_ip("127.0.0.2"))
+
+        async def wait_handled():
+            while "127.0.0.2" not in handled:
+                await asyncio.sleep(0.1)
+
+        await asyncio.wait_for(wait_handled(), timeout=10)
+    finally:
+        await module._cleanup()
+        for task in module._tasks:
+            task.cancel()
+        await scan._cleanup()
