@@ -4116,8 +4116,9 @@ class Test_Lightfuzz_filter_event_try_bypasses(ModuleTestBase):
 
 
 class _NowafplsFuzzTestBase(ModuleTestBase):
-    """Shared setup: dummy module emits a WAF-tagged POSTPARAM WEB_PARAMETER, and the mocked
-    endpoint's callback records every POST body so tests can assert on what actually fired.
+    """Shared setup: dummy module emits a WAF-tagged WEB_PARAMETER (``param_type``, POSTPARAM by
+    default), and the mocked endpoint's callback records every POST body and GET URL so tests can
+    assert on what actually fired.
 
     Subclasses set ``bypass_works`` and ``avoid_wafs`` — the callback maps unpadded/padded
     payloads to responses based on ``bypass_works``, giving the helper a real verdict to
@@ -4128,6 +4129,7 @@ class _NowafplsFuzzTestBase(ModuleTestBase):
     # when False the endpoint answers the malicious payload normally, i.e. nothing is gating it
     waf_blocks = True
     avoid_wafs = "try_bypasses"
+    param_type = "POSTPARAM"
 
     class DummyModule(BaseModule):
         watched_events = ["DNS_NAME"]
@@ -4147,7 +4149,7 @@ class _NowafplsFuzzTestBase(ModuleTestBase):
             param = self.scan.make_event(
                 {
                     "host": "nowafpls-fuzz.test",
-                    "type": "POSTPARAM",
+                    "type": self.param_type,
                     "name": "q",
                     "original_value": "hello",
                     "url": "http://nowafpls-fuzz.test/",
@@ -4186,6 +4188,7 @@ class _NowafplsFuzzTestBase(ModuleTestBase):
 
         await module_test.mock_dns({"nowafpls-fuzz.test": {"A": ["127.0.0.1"]}})
         self.post_bodies: list[bytes] = []
+        self.get_urls: list[str] = []
         bypass = self.bypass_works
         blocks = self.waf_blocks
 
@@ -4195,6 +4198,8 @@ class _NowafplsFuzzTestBase(ModuleTestBase):
                 body = body.encode()
             if request.method == "POST":
                 self.post_bodies.append(body)
+            elif request.method == "GET":
+                self.get_urls.append(request.url)
             # Baseline (benign) is always accepted.
             # Malicious payload without pad is WAF-blocked (403).
             # Padded malicious is accepted iff bypass_works.
@@ -4207,7 +4212,9 @@ class _NowafplsFuzzTestBase(ModuleTestBase):
             return MockResponse(status_code=200, text="Welcome to the application")
 
         module_test.blasthttp_mock.add_callback(callback=cb)
-        module_test.scan.modules["dummy_module"] = self.DummyModule(module_test.scan)
+        dummy = self.DummyModule(module_test.scan)
+        dummy.param_type = self.param_type
+        module_test.scan.modules["dummy_module"] = dummy
 
 
 class Test_Nowafpls_try_bypasses_bypassable(_NowafplsFuzzTestBase):
@@ -4279,6 +4286,25 @@ class Test_Nowafpls_try_bypasses_no_interference(_NowafplsFuzzTestBase):
         )
         # nothing is gating the payload, so there is nothing to pad around
         assert not padded, f"No padding should be applied when nothing is gating the payload. Got: {padded[:3]}"
+
+
+class Test_Nowafpls_try_bypasses_no_interference_getparam(_NowafplsFuzzTestBase):
+    """try_bypasses + no interference on a GET parameter: padding is body-only and the probe only
+    clears the POST body, so lightfuzz must not fire fuzz payloads in the query string of a
+    WAF-tagged host, even though nothing in this mock would block them."""
+
+    waf_blocks = False
+    avoid_wafs = "try_bypasses"
+    param_type = "GETPARAM"
+
+    def check(self, module_test, events):
+        from urllib.parse import parse_qs, urlparse
+
+        queried = [u for u in self.get_urls if "q" in parse_qs(urlparse(u).query)]
+        # the module-level baseline still sends the original value, so the skip is observable
+        assert queried, f"Expected the baseline GET for the parameter. GET URLs: {self.get_urls[:10]}"
+        fuzzed = [u for u in queried if parse_qs(urlparse(u).query)["q"] != ["hello"]]
+        assert not fuzzed, f"No GET fuzz probes should reach a WAF-tagged host. Got: {fuzzed[:5]}"
 
 
 class Test_Nowafpls_never_still_pads(_NowafplsFuzzTestBase):
