@@ -360,8 +360,8 @@ class lightfuzz(BaseModule):
                 try:
                     original_type = event.data["type"]
 
-                    # On WAF-bypassable hosts (try_bypasses mode), GET-firing passes just hit the WAF
-                    # (padding is body-only). Skip the native GET-side pass and try_post_as_get.
+                    # On WAF-tagged hosts (try_bypasses mode), only body-carrying probes can be padded,
+                    # so skip the native GET-side pass and try_post_as_get whatever the probe verdict.
                     in_bypass_mode = "waf" in event.tags and self.avoid_wafs == "try_bypasses"
 
                     # Fire the canonical baseline once per WEB_PARAMETER so excavate can mine the
@@ -418,9 +418,9 @@ class lightfuzz(BaseModule):
                 self.warning(f"Interactsh failure: {e}")
 
     async def finish(self):
-        if self.interactsh_instance:
-            self.debug("finish(): sleeping 5s before final interactsh poll")
-            await self.helpers.sleep(5)
+        if self.interactsh_instance and self.interactsh_subdomain_tags:
+            self.debug("finish(): settling before final interactsh poll")
+            await self.interactsh_instance.settle()
             try:
                 results = await self.interactsh_instance.poll()
                 self.debug(f"finish(): interactsh poll returned {len(results)} interaction(s)")
@@ -451,8 +451,8 @@ class lightfuzz(BaseModule):
                 self.debug(f"Skipping {event.type} (avoid_wafs=always). URL: {url}")
                 return False
             if self.avoid_wafs == "try_bypasses":
-                # The "waf" tag comes from the CDN/WAF provider's identity, not from observed
-                # blocking, so ask nowafpls what the host actually does with a payload.
+                # nowafpls confirms the WAF blocks an unpadded payload before trusting that padding
+                # gets one through; without an observed block, a padded pass proves nothing.
                 result = await self.helpers.nowafpls.is_bypassable(event)
                 if result.status == BypassResult.STATUS_BLOCKED:
                     return False, f"WAF blocked the payload and body padding did not help ({result.summary})"
@@ -466,7 +466,8 @@ class lightfuzz(BaseModule):
                 if result.status == BypassResult.STATUS_BYPASSED and not self._post_capable(event):
                     # padding is body-only, so a GET/COOKIE/HEADER probe has no bypass to apply
                     return False, "WAF is bypassable via body padding, but this event has no POST-style probe"
-                # STATUS_NO_INTERFERENCE: nothing is gating the payload, so fuzz normally
+                # STATUS_NO_INTERFERENCE: the POST body wasn't gated, so POST-style probes run unpadded.
+                # It says nothing about other channels, so handle_event still skips GET/COOKIE/HEADER.
             # avoid_wafs == "never": fall through and fuzz raw
 
         # Skip WEB_PARAMETERs on static-asset URLs (pdf, doc, xml, etc.) — fuzzing them is pointless

@@ -3,7 +3,7 @@ from typing import Union
 from pathlib import Path
 from bbot.errors import WordlistError
 from bbot.modules.base import BaseModule
-from bbot.core.config.models import BaseModuleConfig, Field
+from bbot.core.config.models import BaseModuleConfig, Field, VersionStr
 
 # key: <common-protocol-name> value: <legba-protocol-plugin-name>
 # List with `legba -L`
@@ -61,7 +61,7 @@ class legba(BaseModule):
         )
         concurrency: int = Field(3, description="Number of concurrent workers, gets overridden for SSH")
         rate_limit: int = Field(3, description="Limit the number of requests per second, gets overridden for SSH")
-        version: str = Field("1.1.1", description="legba version")
+        version: VersionStr = Field("1.1.1", description="legba version")
 
     deps_ansible = [
         {

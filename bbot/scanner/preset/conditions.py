@@ -1,4 +1,6 @@
+import copy
 import logging
+from contextlib import suppress
 
 from bbot.errors import *
 
@@ -11,11 +13,43 @@ class ConditionEvaluator:
     def __init__(self, preset):
         self.preset = preset
 
+    def _snapshot(self):
+        # conditions see a read-only, deep-copied data snapshot of the preset, never the live object:
+        # a template resolves preset.<field> via item access, so reads keep working, but there are no
+        # methods or nested live objects (core, module_loader, scan) to call.
+        preset = self.preset
+        config = copy.deepcopy(preset.config)
+        snapshot = {
+            "config": config,
+            "modules": sorted(preset.modules),
+            "scan_modules": list(preset.scan_modules),
+            "output_modules": list(preset.output_modules),
+            "internal_modules": list(preset.internal_modules),
+            "exclude_modules": sorted(preset.exclude_modules),
+            "flags": sorted(preset.flags),
+            "require_flags": sorted(preset.require_flags),
+            "exclude_flags": sorted(preset.exclude_flags),
+            "module_dirs": sorted(str(d) for d in preset.module_dirs),
+            "scan_name": preset.scan_name,
+            "name": preset.name,
+            "description": preset.description,
+            "verbose": preset.verbose,
+            "debug": preset.debug,
+            "silent": preset.silent,
+            "force_start": preset.force_start,
+        }
+        # available only once the preset is baked (which it is when conditions run); stringify to data
+        for attr in ("target", "whitelist", "blacklist", "seeds"):
+            with suppress(Exception):
+                snapshot[attr] = str(getattr(preset, attr))
+        return snapshot
+
     @property
     def context(self):
+        snapshot = self._snapshot()
         return {
-            "preset": self.preset,
-            "config": self.preset.config,
+            "preset": snapshot,
+            "config": snapshot["config"],
             "abort": self.abort,
             "warn": self.warn,
         }
@@ -41,11 +75,11 @@ class ConditionEvaluator:
 
     @property
     def jinja_env(self):
-        from jinja2.sandbox import SandboxedEnvironment
+        from jinja2.sandbox import ImmutableSandboxedEnvironment
 
         global JINJA_ENV
         if JINJA_ENV is None:
-            JINJA_ENV = SandboxedEnvironment()
+            JINJA_ENV = ImmutableSandboxedEnvironment()
         return JINJA_ENV
 
     def check_condition(self, condition_str, context):

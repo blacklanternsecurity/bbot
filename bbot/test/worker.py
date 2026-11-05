@@ -48,6 +48,13 @@ def worker_dir(base=BASE_BBOT_TEST_DIR):
     return Path(f"{base}_{worker}") if worker else Path(base)
 
 
+# Dependency installs are keyed on bbot_home, so a per-worker home makes every
+# worker reinstall all ~126 modules' deps from scratch. Point the install-once
+# dirs at one shared location; scan output and temp files stay per-worker.
+BBOT_TEST_SHARED_DIR = Path(f"{BASE_BBOT_TEST_DIR}_shared")
+BBOT_TEST_TOOLS_DIR = BBOT_TEST_SHARED_DIR / "tools"
+
+
 HTTPSERVER_PORT = worker_port(8888)
 HTTPSERVER_SSL_PORT = worker_port(9999)
 HTTPSERVER_ALLINTERFACES_PORT = worker_port(5556)
@@ -82,6 +89,10 @@ BBOT_TEST_DIR_NAME = BBOT_TEST_DIR.name
 CONTAINER_READY_TIMEOUT = int(os.environ.get("BBOT_TEST_CONTAINER_TIMEOUT", "180"))
 
 _OOM_HINT = "A container that exits with code 137 was OOM-killed; it competes with the other test workers for memory."
+
+# A cancelled task that never completes would otherwise block fixture teardown
+# forever, and pytest-timeout does not cover teardown under timeout_func_only.
+ORPHAN_CANCEL_TIMEOUT = int(os.environ.get("BBOT_TEST_ORPHAN_TIMEOUT", "60"))
 
 
 async def wait_for_container(name, connect, timeout=CONTAINER_READY_TIMEOUT):

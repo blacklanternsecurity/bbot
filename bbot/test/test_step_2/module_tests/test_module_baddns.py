@@ -66,7 +66,7 @@ def _max_level(values, levels):
 # Modules that wrap CNAME findings and may use variables for severity/confidence.
 # When a field uses a variable instead of a literal, its max is bounded by
 # CNAME's max for that field.
-CNAME_DERIVED_MODULES = {"references", "txt", "wildcard", "mtasts"}
+CNAME_DERIVED_MODULES = {"references", "txt", "wildcard", "mtasts", "delegation"}
 
 
 def test_baddns_max_severity_confidence():
@@ -196,7 +196,7 @@ class TestBaddns_cname_signature(BaseTestBaddns):
             return HTTPSERVER_HOSTPORT
 
         expect_args = {"method": "GET", "uri": "/"}
-        respond_args = {"response_data": "<h1>Oops! We couldn&#8217;t find that page.</h1>", "status": 200}
+        respond_args = {"response_data": "error code: 1001", "status": 409}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
         await module_test.mock_dns(
@@ -212,3 +212,94 @@ class TestBaddns_cname_signature(BaseTestBaddns):
             "Failed to emit FINDING"
         )
         assert any("baddns-cname" in e.tags for e in events), "Failed to add baddns tag"
+
+
+class BaseTestBaddnsDelegation(ModuleTestBase):
+    module_name = "baddns"
+    modules_overrides = ["baddns"]
+    targets = ["bad.dns"]
+    config_overrides = {
+        "dns": {"minimal": False},
+        "modules": {"baddns": {"enabled_submodules": ["DELEGATION"]}},
+    }
+
+    async def dispatchWHOIS(x):
+        return None
+
+    async def setup_after_prep(self, module_test):
+        from baddns.lib.whoismanager import WhoisManager
+
+        await module_test.mock_dns(self.mock_data)
+        module_test.monkeypatch.setattr(WhoisManager, "dispatchWHOIS", self.dispatchWHOIS)
+
+
+class TestBaddns_delegation(BaseTestBaddnsDelegation):
+    mock_data = {
+        "bad.dns": {"A": ["127.0.0.1"]},
+        "_acme-challenge.bad.dns": {"CNAME": ["baddns.azurewebsites.net."]},
+        "_dmarc.bad.dns": {"CNAME": ["baddns.trydiscourse.com."]},
+        "selector1._domainkey.bad.dns": {"CNAME": ["baddns.us-east-1.elasticbeanstalk.com."]},
+        "_NXDOMAIN": [
+            "baddns.azurewebsites.net",
+            "baddns.trydiscourse.com",
+            "baddns.us-east-1.elasticbeanstalk.com",
+        ],
+    }
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING"]
+        descriptions = [e.data["description"] for e in findings]
+        assert any("Dangling ACME delegation [_acme-challenge.bad.dns]" in d for d in descriptions), (
+            "Failed to emit ACME delegation FINDING"
+        )
+        assert any("Dangling DMARC delegation [_dmarc.bad.dns]" in d for d in descriptions), (
+            "Failed to emit DMARC delegation FINDING"
+        )
+        assert any("Dangling DKIM delegation [selector1._domainkey.bad.dns]" in d for d in descriptions), (
+            "Failed to emit DKIM delegation FINDING"
+        )
+        assert all(e.data["severity"] == "HIGH" for e in findings), "Delegation findings must be HIGH severity"
+        assert all("baddns-delegation" in e.tags for e in findings), "Failed to add baddns tag"
+
+
+class TestBaddns_delegation_wildcard(BaseTestBaddnsDelegation):
+    """A wildcard answers for every probed label, so only a label pointing somewhere else is a real delegation."""
+
+    mock_data = {
+        "bad.dns": {"A": ["127.0.0.1"]},
+        "_acme-challenge.bad.dns": {"CNAME": ["baddns.trydiscourse.com."]},
+        r"regex:.*\.bad\.dns$": {"CNAME": ["wildcard.azurewebsites.net."]},
+        "_NXDOMAIN": ["baddns.trydiscourse.com", "wildcard.azurewebsites.net"],
+    }
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING"]
+        descriptions = [e.data["description"] for e in findings]
+        assert any("Dangling ACME delegation [_acme-challenge.bad.dns]" in d for d in descriptions), (
+            "Label pointing off the wildcard must still be reported"
+        )
+        assert not any("Dangling DMARC delegation" in d for d in descriptions), (
+            "Wildcard-covered labels must not be reported"
+        )
+        assert not any("Dangling DKIM delegation" in d for d in descriptions), (
+            "Wildcard-covered labels must not be reported"
+        )
+
+
+class TestBaddns_delegation_generic(BaseTestBaddnsDelegation):
+    """A CNAME to a name that simply doesn't exist is routine here, so only claimable outcomes count."""
+
+    mock_data = {
+        "bad.dns": {"A": ["127.0.0.1"]},
+        "_acme-challenge.bad.dns": {"CNAME": ["baddns.azurewebsites.net."]},
+        "_dmarc.bad.dns": {"CNAME": ["gone.unknown-vendor.net."]},
+        "_NXDOMAIN": ["baddns.azurewebsites.net", "gone.unknown-vendor.net"],
+    }
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING"]
+        descriptions = [e.data["description"] for e in findings]
+        assert any("Dangling ACME delegation [_acme-challenge.bad.dns]" in d for d in descriptions), (
+            "Label matching a service signature must be reported"
+        )
+        assert not any("DMARC" in d for d in descriptions), "GENERIC delegation findings must be suppressed"

@@ -209,6 +209,9 @@ class BBOTArgs:
         if self.parsed.no_proxy:
             args_preset.core.merge_custom({"web": {"http_proxy_exclude": self.parsed.no_proxy}})
 
+        if self.parsed.custom_nameservers:
+            args_preset.core.merge_custom({"dns": {"nameservers": self.parsed.custom_nameservers}})
+
         if self.parsed.custom_headers:
             args_preset.core.merge_custom({"web": {"http_headers": self.parsed.custom_headers}})
 
@@ -337,7 +340,12 @@ class BBOTArgs:
             action="store_true",
             help="Run scan even in the case of condition violations or failed module setups",
         )
-        scan.add_argument("-y", "--yes", action="store_true", help="Skip scan confirmation prompt")
+        scan.add_argument(
+            "-y",
+            "--yes",
+            action="store_true",
+            help="Skip confirmation prompts (including trusting custom module folders)",
+        )
         scan.add_argument(
             "--fast-mode",
             action="store_true",
@@ -433,6 +441,13 @@ class BBOTArgs:
             metavar="HOST",
         )
         misc.add_argument(
+            "--custom-nameservers",
+            nargs="+",
+            default=[],
+            help="Use these nameservers instead of the system ones (e.g. 1.1.1.1 8.8.8.8:53)",
+            metavar="NAMESERVER",
+        )
+        misc.add_argument(
             "-H",
             "--custom-headers",
             nargs="+",
@@ -455,9 +470,6 @@ class BBOTArgs:
         return p
 
     def sanitize_args(self):
-        # silent implies -y
-        if self.parsed.silent:
-            self.parsed.yes = True
         # chain_lists allows either comma-separated or space-separated lists
         self.parsed.modules = chain_lists(self.parsed.modules)
         self.parsed.exclude_modules = chain_lists(self.parsed.exclude_modules)
