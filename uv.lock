@@ -189,7 +189,6 @@ dependencies = [
     { name = "blasthttp" },
     { name = "cachetools" },
     { name = "cloudcheck" },
-    { name = "dnspython" },
     { name = "idna" },
     { name = "jinja2" },
     { name = "lxml" },
@@ -263,7 +262,6 @@ requires-dist = [
     { name = "blasthttp", specifier = ">=0.10.1,<0.11" },
     { name = "cachetools", specifier = ">=5.3.2,<8.0.0" },
     { name = "cloudcheck", specifier = ">=11.2.0,<12" },
-    { name = "dnspython", specifier = ">=2.7.0,<2.9.0" },
     { name = "idna", specifier = ">=3.4,<4" },
     { name = "jinja2", specifier = ">=3.1.3,<4" },
     { name = "lxml", specifier = ">=4.9.2,<7.0.0" },
@@ -1009,11 +1007,11 @@ wheels = [
 
 [[package]]
 name = "dnspython"
-version = "2.8.0"
+version = "2.9.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/8c/8b/57666417c0f90f08bcafa776861060426765fdb422eb10212086fb811d26/dnspython-2.8.0.tar.gz", hash = "sha256:181d3c6996452cb1189c4046c61599b84a5a86e099562ffde77d26984ff26d0f", size = 368251, upload-time = "2025-09-07T18:58:00.022Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/91/21/7fcd6780f61e9756aafaea760560509bb4111375daa2e23c1be7a89f33f1/dnspython-2.9.1.tar.gz", hash = "sha256:9a6d30e55f8dc63e6052597666112bff0586b95a2474a9deda03afbbf820d37a", size = 455302, upload-time = "2026-10-29T18:05:12.156Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ba/5a/18ad964b0086c6e62e2e7500f7edc89e3faa45033c71c1893d34eed2b2de/dnspython-2.8.0-py3-none-any.whl", hash = "sha256:01d9bbc4a2d76bf0db7c1f729812ded6d912bd318d3b1cf81d30c0f845dbf3af", size = 331094, upload-time = "2025-09-07T18:57:58.071Z" },
+    { url = "https://files.pythonhosted.org/packages/61/55/f90405bbbbd3dd8f788e92cec2d39964f5c09783f0570fc35f3bb3381485/dnspython-2.9.1-py3-none-any.whl", hash = "sha256:7c81caf8de1ed57b8cfc7e0ad4f528a0b8ceace473c7eb946df195dc9def751f", size = 360364, upload-time = "2026-10-29T18:05:10.206Z" },
 ]
 
 [[package]]
