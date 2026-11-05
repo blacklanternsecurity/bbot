@@ -1001,6 +1001,47 @@ async def test_dns_helpers(bbot_scanner):
 
 
 @pytest.mark.asyncio
+async def test_dns_brute_draws_resolvers_per_scan(bbot_scanner, monkeypatch):
+    """A scan draws dns.brute_max_resolvers resolvers at random, once, and every run shares them."""
+    from bbot.core.helpers.dns import brute as brute_module
+
+    drawn = []
+
+    class FakeClient:
+        def __init__(self, resolvers, config):
+            drawn.append(resolvers)
+
+    monkeypatch.setattr(brute_module, "Client", FakeClient)
+
+    pool = [f"10.0.{i // 256}.{i % 256}" for i in range(1000)]
+    scan = bbot_scanner(config={"dns": {"brute_nameservers": tempwordlist(pool), "brute_max_resolvers": 50}})
+    await scan._prep()
+    client = await scan.helpers.dns.brute.client()
+    assert await scan.helpers.dns.brute.client() is client
+    assert [len(d) for d in drawn] == [50]
+    assert set(drawn[0]) <= set(pool)
+
+    # another scan makes its own draw
+    scan = bbot_scanner(config={"dns": {"brute_nameservers": tempwordlist(pool), "brute_max_resolvers": 50}})
+    await scan._prep()
+    await scan.helpers.dns.brute.client()
+    assert len(drawn[-1]) == 50
+    assert set(drawn[-1]) != set(drawn[0])
+
+    # the shipped default draws 600
+    scan = bbot_scanner(config={"dns": {"brute_nameservers": tempwordlist(pool)}})
+    await scan._prep()
+    await scan.helpers.dns.brute.client()
+    assert len(drawn[-1]) == 600
+
+    # 0 means the whole list
+    scan = bbot_scanner(config={"dns": {"brute_nameservers": tempwordlist(pool), "brute_max_resolvers": 0}})
+    await scan._prep()
+    await scan.helpers.dns.brute.client()
+    assert sorted(drawn[-1]) == sorted(pool)
+
+
+@pytest.mark.asyncio
 async def test_dns_brute_client_config(bbot_scanner, monkeypatch):
     """Every dns.brute_* option has to reach the blastdns client.
 
