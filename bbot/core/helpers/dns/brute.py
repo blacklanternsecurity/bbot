@@ -35,6 +35,7 @@ class DNSBrute:
         self.timeout = self.dns_config.get("brute_timeout", 0.5)
         self.persistent_socket = self.dns_config.get("brute_persistent_socket", True)
         self.nameservers_url = self.dns_config.get("brute_nameservers", self._nameservers_url)
+        self.max_resolvers = self.dns_config.get("brute_max_resolvers", 600)
         self.devops_mutations = list(self.parent_helper.word_cloud.devops_mutations)
         self.digit_regex = self.parent_helper.re.compile(r"\d+")
         self._resolver_file = None
@@ -61,13 +62,17 @@ class DNSBrute:
         """The blastdns client used for brute-forcing, built on first use.
 
         Construction is deferred because the resolver list has to be downloaded
-        first, and blastdns takes its resolvers at construction time.
+        first, and blastdns takes its resolvers at construction time. The list is
+        sampled once per scan, so the pacing the client learns carries across runs.
         """
         async with self.client_lock:
             if self._client is None:
                 resolver_file = await self.resolver_file()
                 resolvers = list(self.parent_helper.read_file(resolver_file))
-                self.log.verbose(f"Starting brute-force DNS client with {len(resolvers):,} resolvers")
+                total = len(resolvers)
+                if self.max_resolvers and total > self.max_resolvers:
+                    resolvers = random.sample(resolvers, self.max_resolvers)
+                self.log.verbose(f"Starting brute-force DNS client with {len(resolvers):,} of {total:,} resolvers")
                 self._client = Client(
                     resolvers,
                     ClientConfig(
