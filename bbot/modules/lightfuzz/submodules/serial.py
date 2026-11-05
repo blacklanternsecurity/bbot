@@ -6,6 +6,11 @@ import struct
 from .base import BaseLightfuzz
 from bbot.errors import HttpCompareError
 
+# enough leading bytes to break every magic header we send (java `AC ED`, dotnet `00 01 00 00`,
+# pickle `80 04`) without disturbing the payload's length or trailing bytes
+MAGIC_HEADER_LENGTH = 4
+HEADER_SCRAMBLE_DELTA = 0x55
+
 
 class _PickleOOB:
     """Pickle-RCE canary: __reduce__ makes the deserializing process resolve
@@ -161,7 +166,6 @@ class serial(BaseLightfuzz):
     }
 
     SERIALIZATION_ERRORS = [
-        "invalid user",
         "cannot cast java.lang.string",
         "dump format error",
         "java.io.optionaldataexception",
@@ -172,6 +176,16 @@ class serial(BaseLightfuzz):
         "Internal Error",
         "Internal Server Error",
     ]
+
+    # Baseline statuses that can represent an application-level failure to interpret the
+    # payload, the only kind a deserializer could resolve. 3xx is not an error, 404 is
+    # routing, 401/403/429 are policy, and 5xx above 500 is upstream infrastructure.
+    ERROR_RESOLUTION_BASELINE_STATUSES = (500,)
+    # Rounds of the interleaved trial a candidate must survive.
+    ERROR_RESOLUTION_TRIAL_ROUNDS = 2
+    # Distinct parameters per host allowed to produce Error Resolution findings. Beyond
+    # this the signal is systemic to the host rather than specific to any parameter.
+    ERROR_RESOLUTION_HOST_PARAM_CAP = 5
 
     @property
     def general_error_yara_rules(self):
@@ -207,12 +221,55 @@ class serial(BaseLightfuzz):
         """Extract the language family from a payload name (e.g. 'java_base64_string_error' -> 'java')."""
         return payload_name.split("_")[0]
 
-    async def confirm_baseline(self, control_payload, cookies):
-        """Re-send the control payload to confirm the baseline error state is stable (not transient)."""
-        confirmation = await self.standard_probe(self.event.data["type"], cookies, control_payload)
-        if confirmation is None:
+    @staticmethod
+    def corrupt_payload(payload, encoding):
+        """Return a twin of ``payload``: same encoding, length and trailing bytes, scrambled magic
+        header. Parses like the original, deserializes under nothing. None if no twin can be built."""
+        if not payload:
             return None
-        return getattr(confirmation, "status_code", None)
+        if encoding == "php_raw":
+            # PHP serialized data leads with a single type character
+            return f"z{payload[1:]}" if payload[0] != "z" else f"q{payload[1:]}"
+        try:
+            data = bytes.fromhex(payload) if encoding == "hex" else base64.b64decode(payload)
+        except ValueError:
+            return None
+        header_length = min(MAGIC_HEADER_LENGTH, len(data))
+        if not header_length:
+            return None
+        corrupted = bytes((b + HEADER_SCRAMBLE_DELTA) % 256 for b in data[:header_length]) + data[header_length:]
+        if encoding == "hex":
+            return corrupted.hex().upper() if payload.isupper() else corrupted.hex()
+        return base64.b64encode(corrupted).decode()
+
+    async def error_resolution_trial(self, payload, control_payload, encoding, cookies, resolved_status):
+        """Sample payload/twin/control together for several rounds, requiring the payload to
+        resolve the error and both negatives to preserve it every time.
+
+        The twin parses like the payload but deserializes under nothing, so a twin that also
+        resolves the error proves the outcome is independent of the payload's content.
+        Interleaving the arms keeps the comparison within one window of server state.
+        """
+        twin = self.corrupt_payload(payload, encoding)
+        if twin is None:
+            return False
+        for round_number in range(self.ERROR_RESOLUTION_TRIAL_ROUNDS):
+            if round_number:
+                await self.lightfuzz.helpers.sleep(0.5)
+            for probe, arm, should_resolve in (
+                (payload, "payload", True),
+                (twin, "scrambled-header twin", False),
+                (control_payload, "control", False),
+            ):
+                response = await self.standard_probe(self.event.data["type"], cookies, probe)
+                status = getattr(response, "status_code", None)
+                if status is None:
+                    self.debug(f"trial round {round_number}: no response for {arm}, inconclusive")
+                    return False
+                if (status == resolved_status) is not should_resolve:
+                    self.debug(f"trial round {round_number}: {arm} returned {status}, discarding")
+                    return False
+        return True
 
     async def fuzz(self):
         cookies = self.event.data.get("assigned_cookies", {})
@@ -239,22 +296,24 @@ class serial(BaseLightfuzz):
                 return
 
         try:
-            http_compare_hex = self.compare_baseline(self.event.data["type"], control_payload_hex, cookies)
-            http_compare_base64 = self.compare_baseline(self.event.data["type"], control_payload_base64, cookies)
-            http_compare_php_raw = self.compare_baseline(self.event.data["type"], control_payload_php_raw, cookies)
+            http_compare_hex = await self.compare_baseline(self.event.data["type"], control_payload_hex, cookies)
+            http_compare_base64 = await self.compare_baseline(self.event.data["type"], control_payload_base64, cookies)
+            http_compare_php_raw = await self.compare_baseline(
+                self.event.data["type"], control_payload_php_raw, cookies
+            )
         except HttpCompareError as e:
             self.debug(f"HttpCompareError encountered: {e}")
             return
 
         # Map each payload set to its control payload for baseline confirmation
         payload_sets = [
-            (base64_serialization_payloads, http_compare_base64, control_payload_base64),
-            (hex_serialization_payloads, http_compare_hex, control_payload_hex),
-            (php_raw_serialization_payloads, http_compare_php_raw, control_payload_php_raw),
+            (base64_serialization_payloads, http_compare_base64, control_payload_base64, "base64"),
+            (hex_serialization_payloads, http_compare_hex, control_payload_hex, "hex"),
+            (php_raw_serialization_payloads, http_compare_php_raw, control_payload_php_raw, "php_raw"),
         ]
 
         # Proceed with payload probes
-        for payload_set, payload_baseline, control_payload in payload_sets:
+        for payload_set, payload_baseline, control_payload, encoding in payload_sets:
             for payload_type, payload in payload_set.items():
                 try:
                     matches_baseline, diff_reasons, reflection, response = await self.compare_probe(
@@ -279,40 +338,18 @@ class serial(BaseLightfuzz):
                     self.debug(f"Status code {status_code} not in (200, 500), skipping")
                     continue
 
-                baseline_status = payload_baseline.baseline.status_code
-                # Skip Error Resolution if baseline uses a non-standard HTTP status code (>511).
-                # Non-standard codes (e.g. 512 from GlobalProtect) are application-specific
-                # and don't reliably indicate an error state that deserialization could "resolve".
-                if baseline_status > 511:
-                    self.debug(
-                        f"Baseline status {baseline_status} is non-standard (>511), skipping Error Resolution for {payload_type}"
-                    )
-                    continue
-
-                # Skip inherently unstable baselines: 429 (rate limit) and 403 (often WAF challenge pages)
-                # flip between error and success unpredictably, producing false positives.
-                if baseline_status in (403, 429):
-                    self.debug(
-                        f"Baseline status {baseline_status} is transient (WAF/rate-limit), "
-                        f"skipping Error Resolution for {payload_type}"
-                    )
-                    continue
-
                 general_error_matches = await self.lightfuzz.helpers.yara.match(
                     self.general_error_yara_rules, response.text
                 )
+                baseline_status = payload_baseline.baseline.status_code
                 if (
                     status_code == 200
                     and "code" in diff_reasons
+                    and baseline_status in self.ERROR_RESOLUTION_BASELINE_STATUSES
                     and not general_error_matches  # ensure the 200 is not actually an error
                 ):
-                    # Confirm the baseline error state is stable by re-sending the control payload.
-                    # If the control also returns 200 now, the original error was transient.
-                    confirmation_status = await self.confirm_baseline(control_payload, cookies)
-                    if confirmation_status == 200:
-                        self.debug(
-                            f"Baseline confirmation returned 200 for {payload_type}, original error was transient, skipping"
-                        )
+                    if not await self.error_resolution_trial(payload, control_payload, encoding, cookies, status_code):
+                        self.debug(f"{payload_type} failed the Error Resolution trial, skipping")
                         continue
 
                     def get_title(text):
@@ -329,7 +366,7 @@ class serial(BaseLightfuzz):
                             "name": "Possible Unsafe Deserialization",
                             "severity": "HIGH",
                             "confidence": "LOW",
-                            "description": f"POSSIBLE Unsafe Deserialization. {self.metadata()} Technique: [Error Resolution (Baseline: [{payload_baseline.baseline.status_code}] {baseline_title} -> Probe: [{status_code}] {probe_title})] Serialization Payload: [{payload_type}]",
+                            "description": f"POSSIBLE Unsafe Deserialization. {self.metadata()} Technique: [Error Resolution (Baseline: [{baseline_status}] {baseline_title} -> Probe: [{status_code}] {probe_title})] Serialization Payload: [{payload_type}]",
                             "_technique": "error_resolution",
                             "_language": self.payload_language(payload_type),
                         }
@@ -354,15 +391,21 @@ class serial(BaseLightfuzz):
                             )
                             break
 
-        # Final safety net: if Error Resolution findings span multiple language families, discard them.
-        # A real deserialization vuln only deserializes one language's format.
+        # Final safety net, tracked per host: a sink deserializes one language's format, and a
+        # host whose hits span several families (or too many parameters) is producing noise.
         error_resolution_results = [r for r in self.results if r.get("_technique") == "error_resolution"]
         if error_resolution_results:
-            languages = set(r["_language"] for r in error_resolution_results)
-            if len(languages) > 1:
-                self.debug(
-                    f"Error Resolution findings span multiple language families ({languages}), discarding as false positives"
-                )
+            state = self.lightfuzz.submodule_state.setdefault("serial", {})
+            host_state = state.setdefault(str(self.event.host), {"languages": set(), "parameters": set()})
+            host_state["languages"].update(r["_language"] for r in error_resolution_results)
+            host_state["parameters"].add(self.parameter_name)
+            discard_reason = None
+            if len(host_state["languages"]) > 1:
+                discard_reason = f"host hit multiple language families ({sorted(host_state['languages'])})"
+            elif len(host_state["parameters"]) > self.ERROR_RESOLUTION_HOST_PARAM_CAP:
+                discard_reason = f"host exceeded {self.ERROR_RESOLUTION_HOST_PARAM_CAP} Error Resolution parameters"
+            if discard_reason:
+                self.verbose(f"Discarding Error Resolution findings: {discard_reason}")
                 self.results = [r for r in self.results if r.get("_technique") != "error_resolution"]
 
         # Clean up internal metadata keys before results are emitted

@@ -7,7 +7,7 @@ import asyncio
 import logging
 from pathlib import Path
 import multiprocessing as mp
-from functools import partial
+from functools import partial, lru_cache
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
 from . import misc
@@ -15,6 +15,7 @@ from .asn import ASNHelper
 from .dns import DNSHelper
 from .web import WebHelper
 from .diff import HttpCompare
+from .nowafpls import NowafplsHelper
 from .regex import RegexHelper
 from .wordcloud import WordCloud
 from .interactsh import Interactsh
@@ -28,6 +29,13 @@ from bbot.scanner.target import BaseTarget
 log = logging.getLogger("bbot.core.helpers")
 
 _PR_SET_PDEATHSIG = 1
+
+
+@lru_cache(maxsize=2)
+def _shared_cloudcheck(ssl_verify):
+    from cloudcheck import CloudCheck
+
+    return CloudCheck(verify_ssl=ssl_verify)
 
 
 def _pool_worker_init():
@@ -77,16 +85,19 @@ class ConfigAwareHelper:
     from . import regexes
     from . import validators
     from .files import tempfile, feed_pipe, _feed_pipe, tempfile_tail
-    from .cache import cache_get, cache_put, cache_filename, is_cached
+    from .cache import cache_get, cache_put, cache_filename, is_cached, is_fresh
     from .command import run, run_live, _spawn_proc, _prepare_command_kwargs
 
     def __init__(self, preset):
         self.preset = preset
         self.bbot_home = self.preset.bbot_home
-        self.cache_dir = self.bbot_home / "cache"
-        self.temp_dir = self.bbot_home / "temp"
-        self.tools_dir = self.bbot_home / "tools"
-        self.lib_dir = self.bbot_home / "lib"
+        # deps_home is bbot_home unless BBOT_SHARED_DEPS_DIR redirects the install-once
+        # dirs elsewhere; see BBOTCore.deps_home.
+        self.deps_home = self.preset.deps_home
+        self.cache_dir = self.deps_home / "cache"
+        self.tools_dir = self.deps_home / "tools"
+        self.lib_dir = self.deps_home / "lib"
+        self.temp_dir = self.deps_home / "temp"
         self.scans_dir = self.bbot_home / "scans"
         self.wordlist_dir = Path(__file__).parent.parent.parent / "wordlists"
         self.current_dir = Path.cwd()
@@ -116,6 +127,7 @@ class ConfigAwareHelper:
         self._asn = None
         self._cloudcheck = None
         self._asn = None
+        self._nowafpls = None
         self.config_aware_validators = self.validators.Validators(self)
         self.depsinstaller = DepsInstaller(self)
         self.word_cloud = WordCloud(self)
@@ -153,11 +165,15 @@ class ConfigAwareHelper:
     @property
     def cloudcheck(self):
         if self._cloudcheck is None:
-            from cloudcheck import CloudCheck
-
             ssl_verify = self.web_config.get("ssl_verify_infrastructure", True)
-            self._cloudcheck = CloudCheck(verify_ssl=ssl_verify)
+            self._cloudcheck = _shared_cloudcheck(ssl_verify)
         return self._cloudcheck
+
+    @property
+    def nowafpls(self):
+        if self._nowafpls is None:
+            self._nowafpls = NowafplsHelper(self)
+        return self._nowafpls
 
     def bloom_filter(self, size):
         from .bloom import BloomFilter
@@ -262,8 +278,13 @@ class ConfigAwareHelper:
 
     def run_in_executor_cpu(self, callback, *args, **kwargs):
         """
-        Run short CPU-bound work that releases the GIL in a dedicated thread pool,
-        separate from I/O so it never queues behind long-running network calls.
+        Run short CPU-bound work in a dedicated thread pool, separate from I/O so it
+        never queues behind long-running network calls.
+
+        This is a thread pool, so it only buys parallelism for work that releases the
+        GIL (yara). Pure-Python work still runs one call at a time and competes with
+        the event loop for the GIL, so keep it short. Anything long-running and
+        GIL-bound belongs in run_in_executor_mp() instead.
 
         Examples:
             Execute callback:
@@ -275,7 +296,12 @@ class ConfigAwareHelper:
     async def run_in_executor_mp(self, callback, *args, **kwargs):
         """
         Same as run_in_executor_io() except with a process pool executor.
-        Use only in cases where callback is CPU-bound.
+
+        Use for CPU-bound work that holds the GIL long enough to stall the event loop,
+        or that needs crash/hang isolation from hostile input. Arguments and return
+        values are pickled, so prefer plain data over objects with big object graphs.
+        Workers are recycled periodically, so this is a poor fit for very high rates of
+        very short tasks.
 
         Includes a timeout (default 300s) to prevent indefinite hangs if a child process dies or the pool enters a broken state.
         On timeout, the entire pool is terminated and replaced so that stuck workers cannot accumulate and starve the scan.

@@ -2,7 +2,7 @@ import json
 from urllib.parse import urlparse
 
 from bbot.modules.base import BaseModule
-from bbot.core.config.models import BaseModuleConfig, Field
+from bbot.core.config.models import BaseModuleConfig, Field, VersionStr
 
 
 class trajan(BaseModule):
@@ -17,7 +17,7 @@ class trajan(BaseModule):
 
     # Configuration options
     class Config(BaseModuleConfig):
-        version: str = Field("1.0.0", description="Trajan version to download and use")
+        version: VersionStr = Field("1.0.0", description="Trajan version to download and use")
         github_token: str = Field(
             "", description="GitHub API token for rate-limiting and private repo access", sensitive=True
         )

@@ -2,6 +2,7 @@ import asyncio
 from contextlib import suppress
 from radixtarget import host_size_key
 
+from bbot.core.helpers.url import max_path_param_repeats
 from bbot.modules.base import BaseInterceptModule
 
 
@@ -104,6 +105,17 @@ class ScanIngress(BaseInterceptModule):
                 )
                 event.add_tag("blacklisted")
 
+        # reject degenerate URL paths, which servers generate in unbounded numbers
+        parsed_url = getattr(event, "parsed_url", None)
+        if parsed_url is not None and self.scan.url_max_path_param_repeats > 0:
+            repeats = max_path_param_repeats(parsed_url)
+            if repeats >= self.scan.url_max_path_param_repeats:
+                self.debug(
+                    f"Blacklisting {event} because its path repeats a parameter {repeats:,} times "
+                    f"(url_max_path_param_repeats={self.scan.url_max_path_param_repeats:,})"
+                )
+                event.add_tag("blacklisted")
+
         # main scan blacklist
         host_filterable = getattr(event, "host_filterable", None)
         event_blacklisted = False
@@ -197,6 +209,19 @@ class ScanEgress(BaseInterceptModule):
     async def handle_event(self, event, **kwargs):
         abort_if = kwargs.pop("abort_if", None)
         on_success_callback = kwargs.pop("on_success_callback", None)
+
+        # drop open ports and URLs on CDN/WAF hosts, unless the port is allowed or was explicitly targeted
+        if (
+            self.scan.cdn_port_filter
+            and event.type in ("OPEN_TCP_PORT", "URL_UNVERIFIED", "URL")
+            and event.port not in self.scan.cdn_allowed_ports
+            and not self.scan.cdn_tags.isdisjoint(event.tags)
+            and not any(
+                "seed" in p.tags and p.host == event.host and p.port == event.port
+                for p in event.get_parents(include_self=True)
+            )
+        ):
+            return False, f"port {event.port} is not allowed on CDN/WAF hosts (cdn_port_filter)"
 
         # mark omitted event types
         # we could do this all in the output module's filter_event(), but we mark it here permanently so the events' .get_parent() can factor in the omission, and skip over omitted parents

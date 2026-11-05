@@ -60,10 +60,12 @@ class medusa(BaseModule):
         },
         {
             # The git repo will be copied because during build, files and subfolders get created. That prevents the Ansible git module to cache the repo.
+            # remote_src keeps the copy local; without it every file round-trips through the controller.
             "name": "Copy medusa repo",
             "copy": {
                 "src": "#{BBOT_TEMP}/medusa/gitrepo/",
                 "dest": "#{BBOT_TEMP}/medusa/workdir/",
+                "remote_src": True,
             },
         },
         {

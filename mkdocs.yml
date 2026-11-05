@@ -39,6 +39,7 @@ nav:
     - Lightfuzz: modules/lightfuzz.md
     - Webbrute: modules/webbrute.md
   - Migration:
+    - 3.0 → 3.1 Breaking Changes: migration/3.1_breaking_changes.md
     - 2.x → 3.0 Breaking Changes: migration/3.0_breaking_changes.md
   - Misc:
     - Contribution: contribution.md

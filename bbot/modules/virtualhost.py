@@ -68,9 +68,6 @@ class virtualhost(BaseModule):
     async def _response_similarity(self, text_a, text_b, normalization_filter=None):
         """
         Compute simhash similarity between two response bodies.
-        Runs in the CPU thread pool: simhash work is short and the input is
-        truncated to ~3KB inside compute_simhash, so the process-pool overhead
-        (pickle + IPC + worker lifecycle) costs more than the work itself.
         """
         kwargs = {}
         if normalization_filter is not None:

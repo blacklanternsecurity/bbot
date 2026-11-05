@@ -1,8 +1,9 @@
-description: Detect technologies via Nuclei, and FingerprintX
+description: Detect technologies via Nuclei, FingerprintX, and favicon hashes
 
 modules:
   - nuclei
   - fingerprintx
+  - favicon
 
 config:
   modules:

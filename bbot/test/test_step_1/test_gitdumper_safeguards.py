@@ -6,6 +6,7 @@ recurse without bound on the unfixed code.
 """
 
 import pytest
+from unittest.mock import MagicMock
 
 from ..bbot_fixtures import *  # noqa: F401, F403
 
@@ -137,5 +138,74 @@ async def test_download_object_detects_cycles(bbot_scanner, tmp_path, monkeypatc
         assert len(catfile_calls) <= 2, (
             f"download_object did not detect cycle (called catfile {len(catfile_calls)} times)"
         )
+    finally:
+        await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_recursive_dir_list_rejects_cross_origin_folders(bbot_scanner, monkeypatch):
+    """Folder links pointing to a different origin must be skipped."""
+    scan = bbot_scanner("evilcorp.com", modules=["gitdumper"])
+    await scan._prep()
+    try:
+        gitdumper = scan.modules["gitdumper"]
+        requested_urls = []
+
+        async def tracking_request(url, **kwargs):
+            requested_urls.append(str(url))
+            return None
+
+        monkeypatch.setattr(gitdumper.helpers, "request", tracking_request)
+
+        listing_html = """<html><body>
+            <a href="objects/">objects/</a>
+            <a href="http://evil.test:9999/steal/">steal/</a>
+            <a href="http://169.254.169.254/latest/meta-data/">meta/</a>
+            <a href="HEAD">HEAD</a>
+        </body></html>"""
+
+        fake_response = MagicMock()
+        fake_response.url = "http://example.com/.git/"
+        fake_response.text = listing_html
+        fake_response.status_code = 200
+
+        await gitdumper.recursive_dir_list(fake_response)
+
+        assert any("example.com/.git/objects/" in u for u in requested_urls), (
+            "legitimate subdirectory was not followed"
+        )
+        assert not any("evil.test" in u for u in requested_urls), "cross-origin folder link was followed"
+        assert not any("169.254" in u for u in requested_urls), "metadata endpoint was followed"
+    finally:
+        await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_recursive_dir_list_caps_depth(bbot_scanner, monkeypatch):
+    """recursive_dir_list must stop at the configured max depth."""
+    scan = bbot_scanner("evilcorp.com", modules=["gitdumper"])
+    await scan._prep()
+    try:
+        gitdumper = scan.modules["gitdumper"]
+        depth_counter = [0]
+
+        async def infinite_listing(url, **kwargs):
+            depth_counter[0] += 1
+            resp = MagicMock()
+            resp.url = str(url)
+            resp.text = '<html><body><a href="deeper/">deeper/</a></body></html>'
+            resp.status_code = 200
+            return resp
+
+        monkeypatch.setattr(gitdumper.helpers, "request", infinite_listing)
+
+        fake_response = MagicMock()
+        fake_response.url = "http://example.com/.git/"
+        fake_response.text = '<html><body><a href="level1/">level1/</a></body></html>'
+        fake_response.status_code = 200
+
+        await gitdumper.recursive_dir_list(fake_response, _max_depth=5)
+
+        assert depth_counter[0] <= 5, f"recursed {depth_counter[0]} levels, expected max 5"
     finally:
         await scan._cleanup()

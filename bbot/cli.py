@@ -6,7 +6,7 @@ import sys
 import logging
 import multiprocessing
 from bbot.errors import *
-from bbot import __version__
+from bbot import __full_version__
 from bbot.logger import log_to_stderr
 from bbot.core.helpers.misc import chain_lists
 
@@ -16,7 +16,7 @@ if multiprocessing.current_process().name == "MainProcess":
     no_color = "--no-color" in sys.argv or bool(os.environ.get("NO_COLOR", ""))
     if no_color:
         os.environ["NO_COLOR"] = "1"
-    silent = "-s" in sys.argv or "--silent" in sys.argv
+    silent = "-S" in sys.argv or "--silent" in sys.argv
 
     if not silent:
         o = "" if no_color else "\033[1;38;5;208m"
@@ -27,13 +27,37 @@ if multiprocessing.current_process().name == "MainProcess":
  {o}|  ___ <{e}|  __ <| |  | | | |
  {o}| |___) {e}| |__) | |__| | | |
  {o}|______/{e}|_____/ \____/  |_|
- {o}BIGHUGE{e} BLS OSINT TOOL {__version__}
+ {o}BIGHUGE{e} BLS OSINT TOOL {__full_version__}
 
 www.blacklanternsecurity.com/bbot
 """
         print(ascii_art, file=sys.stderr)
 
 scan_name = ""
+
+
+def stdin_is_tty():
+    # In some environments (e.g. tests) stdin may be closed or not support isatty(). Treat those cases as non-interactive.
+    try:
+        return sys.stdin.isatty()
+    except (ValueError, io.UnsupportedOperation):
+        return False
+
+
+def confirm(question, refusal, options):
+    """
+    Ask a yes/no question, which --yes answers. Returns None if it can't be asked (--silent hides it,
+    or there's no terminal), after printing `refusal` as an error.
+    """
+    if options.yes:
+        return True
+    if options.silent or not stdin_is_tty():
+        reason = "--silent hides the prompt" if options.silent else "there's no terminal to ask"
+        log_to_stderr(f"{refusal} ({reason}); re-run with --yes to proceed.", level="ERROR")
+        return None
+    # write the question to stderr (not via input()'s stdout prompt) so it isn't swallowed by `> out` / `| jq`
+    log_to_stderr(f"{question} [y/N] ", level="WARNING")
+    return input().strip().lower() in ("y", "yes")
 
 
 async def _main():
@@ -54,6 +78,27 @@ async def _main():
     try:
         # start by creating a default scan preset
         preset = Preset(_log=True, name="bbot_cli_main")
+
+        # ask before anything in a custom module dir is read, since even validating a module executes code
+        def confirm_module_dir(module_dir, module_names, notes):
+            # written directly to stderr, since queued log messages could land after the input() prompt
+            log_to_stderr(f'About to load and validate custom modules from "{module_dir}"', level="HUGEWARNING")
+            log_to_stderr(f"  Modules in this folder: {', '.join(module_names) or '(none)'}", level="WARNING")
+            for note in notes:
+                log_to_stderr(f"  {note}", level="WARNING")
+            log_to_stderr(
+                "Custom modules are Python code that runs with your privileges. "
+                "Even validating a malicious module can result in code execution.",
+                level="WARNING",
+            )
+            return confirm(
+                "Do you trust this folder?",
+                "Refusing to load custom modules without confirmation",
+                preset.args.parsed,
+            )
+
+        preset.module_loader.confirm_module_dir = confirm_module_dir
+
         # parse command line arguments and merge into preset
         try:
             preset.parse_args()
@@ -83,7 +128,7 @@ async def _main():
 
         # --version
         if options.version:
-            print(__version__)
+            print(__full_version__)
             sys.exit(0)
             return
 
@@ -101,20 +146,14 @@ async def _main():
             for p in reset_paths:
                 log.warning(f"  {p}")
             log.warning("A backup of each existing file will be saved with a .bak extension.")
-            try:
-                stdin_is_tty = sys.stdin.isatty()
-            except (ValueError, io.UnsupportedOperation):
-                stdin_is_tty = False
-            if not options.yes:
-                if not stdin_is_tty:
-                    log.error("Refusing to reset config without confirmation; re-run with --yes to proceed.")
-                    sys.exit(1)
-                    return
-                answer = input("Continue? [y/N] ").strip().lower()
-                if answer not in ("y", "yes"):
-                    log.info("Aborted. No changes made.")
-                    sys.exit(0)
-                    return
+            answer = confirm("Continue?", "Refusing to reset config without confirmation", options)
+            if answer is None:
+                sys.exit(1)
+                return
+            if not answer:
+                log.info("Aborted. No changes made.")
+                sys.exit(0)
+                return
             backups = preset.module_loader.reset_config_files(reset_labels)
             log.success("Regenerated config files from current defaults.")
             for b in backups:
@@ -290,13 +329,7 @@ async def _main():
         if not options.dry_run:
             log.trace(f"Command: {' '.join(sys.argv)}")
 
-            # In some environments (e.g. tests) stdin may be closed or not support isatty(). Treat those cases as non-interactive.
-            try:
-                stdin_is_tty = sys.stdin.isatty()
-            except (ValueError, io.UnsupportedOperation):
-                stdin_is_tty = False
-
-            if stdin_is_tty:
+            if stdin_is_tty():
                 # warn if any targets belong directly to a cloud provider
                 if not scan.preset.strict_scope:
                     from cloudcheck import CloudCheckError
@@ -334,7 +367,8 @@ async def _main():
                         f"INVASIVE modules enabled: {','.join(invasive_modules)}. These may be intrusive or destructive. To exclude, use -ef invasive"
                     )
 
-                if not options.yes:
+                # only a pause, not a safety check, so it's skipped when --silent would hide it
+                if not options.yes and not options.silent:
                     log.hugesuccess(f"Scan ready. Press enter to execute {scan.name}")
                     input()
 
@@ -409,6 +443,9 @@ async def _main():
         log.trace(traceback.format_exc())
 
     finally:
+        # the trust prompt belongs to this CLI run, not to the shared module loader
+        with suppress(BaseException):
+            preset.module_loader.confirm_module_dir = None
         # save word cloud
         with suppress(BaseException):
             scan.helpers.word_cloud.save()

@@ -2,7 +2,7 @@
 Intercept-pipeline throughput benchmarks.
 
 Measures how fast events flow through BBOT's intercept chain (dnsresolve,
-cloudcheck, speculate, portfilter, excavate). Single-threaded modules in
+cloudcheck, speculate, excavate). Single-threaded modules in
 this chain bound overall scan throughput, so changes there are most easily
 observed here.
 

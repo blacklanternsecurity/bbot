@@ -16,7 +16,7 @@ class Slack(WebhookOutputModule):
         webhook_url: str = Field("", description="Slack webhook URL", sensitive=True)
         event_types: list[str] = Field(["FINDING"], description="Types of events to send")
         min_severity: str = Field("LOW", description="Only allow FINDING events of this severity or higher")
-        retries: int = Field(10, description="Number of times to retry sending the message before skipping the event")
+        retries: int | None = Field(None, deprecated=True, description="No longer used")
 
     content_key = "text"
 

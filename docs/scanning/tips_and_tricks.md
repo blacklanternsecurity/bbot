@@ -38,16 +38,20 @@ bbot -t evilcorp.com -m baddns -c modules.baddns.module_threads=20
 
 ### Boost DNS Brute-force Speed
 
-If you have a fast internet connection or are running BBOT from a cloud VM, you can speed up subdomain enumeration by cranking the threads for `massdns`. The default is `1000`, which is about 1MB/s of DNS traffic:
+If you have a fast internet connection or are running BBOT from a cloud VM, you can speed up subdomain enumeration by raising how many brute-force queries stay in flight. The default is `1000`, which is roughly 1MB/s of DNS traffic:
 
 ```bash
-# massdns with 5000 resolvers, about 5MB/s
+# about 5MB/s
 bbot -t evilcorp.com -f subdomain-enum -c dns.brute_threads=5000
 ```
 
+Brute-forcing backs off on its own when resolvers start dropping queries, so raising this sets how fast BBOT will go when the resolvers can keep up, not how hard it will push regardless. If you need a firm ceiling as well, set `dns.brute_rate_limit` (queries per second, `0` for unlimited).
+
+To be gentler on individual resolvers rather than faster, lower `dns.brute_inflight_per_resolver` (default `2`). No resolver ever receives more than this at once, however large the resolver list.
+
 ### Speed Up Scans with More DNS Resolvers
 
-By far the most effective way to speed up a BBOT scan is to **add more resolvers to `/etc/resolv.conf`**. BBOT's DNS resolver (blastdns) spins up multiple threads per resolver (default: `10`, configurable via `dns.threads`), so more resolvers = more parallelism = faster scans.
+One of the most effective ways to speed up a BBOT scan is to **add more resolvers to `/etc/resolv.conf`**. BBOT's DNS resolver (blastdns) keeps up to `dns.threads` queries in flight per resolver (default `50`), up to `dns.max_concurrency` in total (default `256`), so more resolvers = more parallelism = faster scans, until that total is reached.
 
 For OSINT, it's critical that every resolver is **unfiltered**. Specialized resolvers that try to block ads, malicious domains, etc. will intentionally omit results. Below is a sample `/etc/resolv.conf` with 11 unfiltered public resolvers:
 
@@ -89,35 +93,44 @@ If you need custom settings, the spider is controlled with three config values:
 bbot -t www.evilcorp.com -m http -c web.spider_distance=3 web.spider_depth=5
 ```
 
-### Exclude CDNs from Port Scan
+### CDN/WAF Port Filtering
 
-Use `--exclude-cdn` to filter out unwanted open ports from CDNs and WAFs, e.g. Cloudflare. You can also customize the criteria by setting `modules.portfilter.cdn_tags`. By default, only open ports with `cdn-*` tags are filtered, but you can include all cloud providers by setting `cdn_tags` to `cdn,cloud`:
+CDNs and WAFs like Cloudflare answer on many ports (e.g. 2052-2096, 8080, 8443) for every host behind them. Port sources like `shodan_idb` and `portscan` report these as open, but they rarely lead anywhere useful, and probing them wastes a lot of time. By default, BBOT drops open ports and URLs on hosts tagged `cdn` or `waf` unless the port is 80 or 443.
+
+Ports you explicitly target are never filtered. For example, `-t www.evilcorp.com:8443` keeps that port and anything discovered on it, even if the host is behind a CDN.
+
+To turn the filter off and keep every port:
 
 ```bash
-bbot -t evilcorp.com --exclude-cdn -c modules.portfilter.cdn_tags=cdn,cloud
+bbot -t evilcorp.com --allow-cdn-ports
 ```
 
-Additionally, you can customize the allowed ports by setting `modules.portscan.allowed_cdn_ports`.
+You can also customize which tags count as a CDN/WAF, and which ports are allowed on them:
 
 ```bash
-bbot -t evilcorp.com --exclude-cdn -c modules.portfilter.allowed_cdn_ports=80,443,8443
+bbot -t evilcorp.com -c cdn_port_filter.tags=[cdn,waf,cloud] cdn_port_filter.allowed_ports=[80,443,8443]
 ```
 
 Example preset:
 
-```yaml title="skip_cdns.yml"
-modules:
-  - portfilter
-
+```yaml title="cdn_ports.yml"
 config:
-  modules:
-    portfilter:
-      cdn_tags: cdn-,cloud-
-      allowed_cdn_ports: 80,443,8443
+  cdn_port_filter:
+    # set to false to keep every port (same as --allow-cdn-ports)
+    enabled: true
+    # hosts with any of these tags are considered CDN/WAF hosts
+    tags:
+      - cdn
+      - waf
+    # ports that are still allowed on CDN/WAF hosts
+    allowed_ports:
+      - 80
+      - 443
+      - 8443
 ```
 
 ```bash
-bbot -t evilcorp.com -p skip_cdns.yml
+bbot -t evilcorp.com -p cdn_ports.yml
 ```
 
 ### Custom HTTP Proxy

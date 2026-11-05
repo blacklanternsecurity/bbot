@@ -20,7 +20,7 @@ class MySQL(SQLTemplate):
             10, description="Number of times to retry connecting to the database (1 second between retries)"
         )
 
-    deps_pip = ["sqlmodel", "aiomysql"]
+    deps_pip = ["sqlmodel[asyncio]", "aiomysql"]
     protocol = "mysql+aiomysql"
 
     async def create_database(self):

@@ -10,7 +10,7 @@ modules:
 config:
   modules:
     baddns:
-      enabled_submodules: [CNAME, NS, MX, TXT, references, DMARC, SPF, MTA-STS, WILDCARD]
+      enabled_submodules: [CNAME, NS, MX, TXT, references, DMARC, SPF, MTA-STS, WILDCARD, DELEGATION]
       min_severity: INFO
       min_confidence: UNKNOWN
     baddns_zone:

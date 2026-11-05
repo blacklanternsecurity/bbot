@@ -215,7 +215,9 @@ class TestCensys_IP(ModuleTestBase):
 
         # Check TECHNOLOGY events from software
         assert any(
-            e.type == "TECHNOLOGY" and e.data["technology"] == "cpe:2.3:a:apache:tomcat:9.0.50:*:*:*:*:*:*:*"
+            e.type == "TECHNOLOGY"
+            and e.data["technology"] == "tomcat"
+            and e.data["cpe"] == "cpe:2.3:a:apache:tomcat:9.0.50:*:*:*:*:*:*:*"
             for e in events
         ), "Failed to detect Apache Tomcat technology with CPE"
         assert any(e.type == "TECHNOLOGY" and e.data["technology"] == "java" for e in events), (
