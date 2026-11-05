@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-Branch-based benchmark comparison tool for BBOT performance tests.
+Benchmark comparison tool for BBOT performance tests.
 
-This script takes two git branches, runs benchmarks on each, and generates
-a comparison report showing performance differences between them.
+This script takes two git revisions, runs benchmarks on each in its own
+temporary worktree, and generates a comparison report showing performance
+differences between them. The caller's checkout is never modified.
 """
 
 import sys
@@ -11,6 +12,7 @@ import json
 import argparse
 import subprocess
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Dict, List, Any, Tuple
 
@@ -27,17 +29,25 @@ def run_command(cmd: List[str], cwd: Path = None, capture_output: bool = True) -
         raise
 
 
-def get_current_branch() -> str:
-    """Get the current git branch name."""
-    result = run_command(["git", "branch", "--show-current"])
-    return result.stdout.strip()
+def resolve_commit(rev: str, repo_path: Path) -> str:
+    """Resolve a git revision (branch, tag, SHA, HEAD^1, ...) to a full commit SHA."""
+    return run_command(["git", "rev-parse", "--verify", f"{rev}^{{commit}}"], cwd=repo_path).stdout.strip()
+
+
+@contextmanager
+def worktree(commit: str, repo_path: Path, path: Path):
+    """Check out a commit into a temporary detached worktree, removing it afterwards."""
+    run_command(["git", "worktree", "add", "--detach", str(path), commit], cwd=repo_path)
+    try:
+        yield path
+    finally:
+        run_command(["git", "worktree", "remove", "--force", str(path)], cwd=repo_path)
 
 
 def run_benchmarks(output_file: Path, repo_path: Path = None) -> bool:
     """Run benchmarks and save results to JSON file.
 
-    Returns True if benchmark JSON was written (even if some tests failed),
-    False only if benchmarks truly didn't produce any data.
+    Returns True only if pytest passed and wrote benchmark JSON.
     """
     print(f"Running benchmarks, saving to {output_file}")
 
@@ -365,13 +375,15 @@ def generate_report(current_data: Dict, base_data: Dict, current_branch: str, ba
     if not base_data:
         report = f"""## 🚀 Performance Benchmark Report
 
-> Results for **{current_branch}**.
+> ℹ️ **No baseline benchmark data available**
+>
+> Showing current results for **{current_branch}** only.
 
 """
         current_benchmarks = current_data.get("benchmarks", [])
         if current_benchmarks:
             report += f"""<details>
-<summary>📊 Results ({current_branch}) - Click to expand</summary>
+<summary>📊 Current Results ({current_branch}) - Click to expand</summary>
 
 {generate_benchmark_table(current_benchmarks, "Results")}
 </details>"""
@@ -400,7 +412,13 @@ def generate_report(current_data: Dict, base_data: Dict, current_branch: str, ba
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run BBOT performance benchmarks and report the results")
+    parser = argparse.ArgumentParser(description="Compare BBOT benchmark performance between two git revisions")
+    parser.add_argument("--base", required=True, help="Baseline git revision (branch, tag, SHA, HEAD^1, ...)")
+    parser.add_argument("--current", required=True, help="Git revision to compare against the baseline")
+    parser.add_argument("--base-label", help="Name shown for the baseline in the report (default: --base)")
+    parser.add_argument(
+        "--current-label", help="Name shown for the current revision in the report (default: --current)"
+    )
     parser.add_argument("--output", type=Path, help="Output markdown file (default: stdout)")
     parser.add_argument("--keep-results", action="store_true", help="Keep intermediate JSON files")
 
@@ -408,39 +426,44 @@ def main():
 
     repo_path = Path.cwd()
 
-    try:
-        branch = get_current_branch()
-    except subprocess.CalledProcessError:
-        branch = "HEAD"
+    # Resolve up front so relative revisions like HEAD^1 refer to the caller's checkout
+    sides = {}
+    for side, rev, label in (("base", args.base, args.base_label), ("current", args.current, args.current_label)):
+        sha = resolve_commit(rev, repo_path)
+        sides[side] = (sha, f"{label or rev} ({sha[:9]})")
 
+    results = {}
     with tempfile.TemporaryDirectory() as temp_dir:
-        results_file = Path(temp_dir) / "results.json"
+        temp_path = Path(temp_dir)
+        for side, (sha, name) in sides.items():
+            print(f"\n=== Running benchmarks on {side}: {name} ===")
+            results_file = temp_path / f"{side}_results.json"
+            with worktree(sha, repo_path, temp_path / side) as path:
+                ok = run_benchmarks(results_file, path)
+            results[side] = load_benchmark_data(results_file) if ok else {}
 
-        print(f"\n=== Running benchmarks on {branch} ===")
-        if not run_benchmarks(results_file, repo_path):
-            print("Benchmarks produced no data")
-            return 1
+    print("\n=== Generating comparison report ===")
+    report = generate_report(results["current"], results["base"], sides["current"][1], sides["base"][1])
 
-        data = load_benchmark_data(results_file)
-        if not data:
-            print(f"No benchmark data in {results_file}")
-            return 1
+    if args.output:
+        with open(args.output, "w") as f:
+            f.write(report)
+        print(f"Report written to {args.output}")
+    else:
+        print("\n" + "=" * 80)
+        print(report)
 
-        report = generate_report(data, {}, branch, None)
+    if args.keep_results:
+        for side, data in results.items():
+            if data:
+                with open(f"{side}_benchmark_results.json", "w") as f:
+                    json.dump(data, f, indent=2)
+        print("Benchmark result files saved.")
 
-        if args.output:
-            with open(args.output, "w") as f:
-                f.write(report)
-            print(f"Report written to {args.output}")
-        else:
-            print("\n" + "=" * 80)
-            print(report)
-
-        if args.keep_results:
-            with open("benchmark_results.json", "w") as f:
-                json.dump(data, f, indent=2)
-            print("Benchmark result files saved.")
-
+    failed = [side for side, data in results.items() if not data]
+    if failed:
+        print(f"Benchmarks failed on: {', '.join(failed)}")
+        return 1
     return 0
 
 
