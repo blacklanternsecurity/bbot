@@ -466,7 +466,7 @@ class BBOTArgs:
         misc.add_argument(
             "--user-agent",
             "-ua",
-            help="Set the user-agent for HTTP requests (third-party API calls send BBOT/<version>)",
+            help="Set the user-agent for HTTP requests (most API calls send BBOT/<version>)",
         )
         misc.add_argument(
             "--user-agent-suffix", "-uas", help="Suffix to append to the user-agent", metavar="SUFFIX", default=None

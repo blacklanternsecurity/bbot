@@ -148,7 +148,7 @@ Misc:
   --custom-yara-rules, -cy CUSTOM_YARA_RULES
                         Add custom yara rules to excavate
   --user-agent, -ua USER_AGENT
-                        Set the user-agent for HTTP requests (third-party API calls send BBOT/<version>)
+                        Set the user-agent for HTTP requests (most API calls send BBOT/<version>)
   --user-agent-suffix, -uas SUFFIX
                         Suffix to append to the user-agent
 

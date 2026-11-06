@@ -209,7 +209,7 @@ If the server fetches the injected URL, the resulting DNS or HTTP interaction is
 | Value | Behavior |
 |---|---|
 | `always` | Skip WAF-protected targets entirely |
-| `try_bypasses` (default) | Ask the `nowafpls` helper whether the WAF blocks payloads in the request body, and whether padding the body gets past it. POST body and JSON parameters are fuzzed with padding if it does, unpadded if the WAF isn't blocking them, and skipped otherwise. GET, cookie and header parameters are always skipped, since they have no body to pad. |
+| `try_bypasses` (default) | Ask the `nowafpls` helper whether the WAF blocks payloads in the request body, and whether padding the body gets past it. POST body and JSON parameters are fuzzed with padding if it does, unpadded if the WAF isn't blocking them, and skipped otherwise. Cookie and header parameters are skipped, since they have no body to pad. GET parameters are skipped too, unless `try_get_as_post` is on (as in `lightfuzz-heavy` and `lightfuzz-xss`), in which case they are retested as POST bodies and handled like POST parameters above. |
 | `never` | Fuzz WAF-protected targets as-is |
 
 ## Presets
@@ -275,7 +275,7 @@ A focused preset for XSS hunting only. Demonstrates how to build a single-submod
 |---|---|
 | **Submodules** | `xss` only |
 | **Companion modules** | `paramminer_getparams`, `reflected_parameters` |
-| **POST fuzzing** | Disabled |
+| **POST fuzzing** | Enabled, and `try_get_as_post` is on (GET params retested as POST) |
 | **Query string collapsing** | Off |
 | **WAF avoidance** | Try bypasses (`avoid_wafs: try_bypasses`) |
 
