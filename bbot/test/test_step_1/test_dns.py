@@ -1001,6 +1001,47 @@ async def test_dns_helpers(bbot_scanner):
 
 
 @pytest.mark.asyncio
+async def test_dns_brute_draws_resolvers_per_scan(bbot_scanner, monkeypatch):
+    """A scan draws dns.brute_max_resolvers resolvers at random, once, and every run shares them."""
+    from bbot.core.helpers.dns import brute as brute_module
+
+    drawn = []
+
+    class FakeClient:
+        def __init__(self, resolvers, config):
+            drawn.append(resolvers)
+
+    monkeypatch.setattr(brute_module, "Client", FakeClient)
+
+    pool = [f"10.0.{i // 256}.{i % 256}" for i in range(1000)]
+    scan = bbot_scanner(config={"dns": {"brute_nameservers": tempwordlist(pool), "brute_max_resolvers": 50}})
+    await scan._prep()
+    client = await scan.helpers.dns.brute.client()
+    assert await scan.helpers.dns.brute.client() is client
+    assert [len(d) for d in drawn] == [50]
+    assert set(drawn[0]) <= set(pool)
+
+    # another scan makes its own draw
+    scan = bbot_scanner(config={"dns": {"brute_nameservers": tempwordlist(pool), "brute_max_resolvers": 50}})
+    await scan._prep()
+    await scan.helpers.dns.brute.client()
+    assert len(drawn[-1]) == 50
+    assert set(drawn[-1]) != set(drawn[0])
+
+    # the shipped default draws 600
+    scan = bbot_scanner(config={"dns": {"brute_nameservers": tempwordlist(pool)}})
+    await scan._prep()
+    await scan.helpers.dns.brute.client()
+    assert len(drawn[-1]) == 600
+
+    # 0 means the whole list
+    scan = bbot_scanner(config={"dns": {"brute_nameservers": tempwordlist(pool), "brute_max_resolvers": 0}})
+    await scan._prep()
+    await scan.helpers.dns.brute.client()
+    assert sorted(drawn[-1]) == sorted(pool)
+
+
+@pytest.mark.asyncio
 async def test_dns_brute_client_config(bbot_scanner, monkeypatch):
     """Every dns.brute_* option has to reach the blastdns client.
 
@@ -1079,18 +1120,62 @@ async def test_dns_brute_client_config(bbot_scanner, monkeypatch):
     await scan._prep()
 
 
+def test_dns_client_config(bbot_scanner, monkeypatch):
+    """dns.threads and dns.max_concurrency reach the main blastdns client, and the total is capped."""
+    from bbot.core.helpers.dns import dns as dns_module
+
+    captured = {}
+
+    class FakeClient:
+        def __init__(self, resolvers, config):
+            captured["config"] = config
+
+    monkeypatch.setattr(dns_module, "Client", FakeClient)
+    nameservers = ["1.1.1.1", "8.8.8.8"]
+
+    scan = bbot_scanner(config={"dns": {"nameservers": nameservers, "threads": 7, "max_concurrency": 123}})
+    dns = scan.helpers.dns
+    assert captured["config"].max_inflight_per_resolver == 7
+    assert captured["config"].max_concurrency == 123
+    assert dns.concurrency == 14
+
+    # the total never exceeds dns.max_concurrency, however many resolvers there are
+    scan = bbot_scanner(config={"dns": {"nameservers": nameservers, "threads": 100, "max_concurrency": 150}})
+    assert scan.helpers.dns.concurrency == 150
+
+    # shipped defaults: 50 in flight per resolver, 256 in total
+    scan = bbot_scanner(config={"dns": {"nameservers": nameservers}})
+    dns = scan.helpers.dns
+    assert captured["config"].max_inflight_per_resolver == 50
+    assert captured["config"].max_concurrency == 256
+    assert dns.concurrency == 100
+
+
 @pytest.mark.asyncio
 async def test_dnsresolve_module_threads(bbot_scanner):
-    """dnsresolve's worker count is its own module_threads, not dns.threads."""
-    scan = bbot_scanner("evilcorp.com", config={"dns": {"threads": 3}})
-    await scan._prep()
-    assert scan.modules["dnsresolve"].module_threads == 25
+    """dnsresolve runs half as many workers as the DNS client has slots (at least 10), unless overridden."""
+    nameservers = ["1.1.1.1", "8.8.8.8"]
 
-    scan = bbot_scanner(
-        "evilcorp.com", config={"dns": {"threads": 3}, "modules": {"dnsresolve": {"module_threads": 50}}}
-    )
+    scan = bbot_scanner("evilcorp.com", config={"dns": {"nameservers": nameservers, "threads": 50}})
     await scan._prep()
     assert scan.modules["dnsresolve"].module_threads == 50
+
+    scan = bbot_scanner(
+        "evilcorp.com", config={"dns": {"nameservers": nameservers, "threads": 50, "max_concurrency": 60}}
+    )
+    await scan._prep()
+    assert scan.modules["dnsresolve"].module_threads == 30
+
+    scan = bbot_scanner("evilcorp.com", config={"dns": {"nameservers": nameservers, "threads": 3}})
+    await scan._prep()
+    assert scan.modules["dnsresolve"].module_threads == 10
+
+    scan = bbot_scanner(
+        "evilcorp.com",
+        config={"dns": {"nameservers": nameservers, "threads": 3}, "modules": {"dnsresolve": {"module_threads": 7}}},
+    )
+    await scan._prep()
+    assert scan.modules["dnsresolve"].module_threads == 7
 
 
 @pytest.mark.asyncio

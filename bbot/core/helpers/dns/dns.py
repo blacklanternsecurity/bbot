@@ -45,7 +45,8 @@ class DNSHelper:
         # config
         self.timeout = self.dns_config.get("timeout", 5)
         self.retries = self.dns_config.get("retries", 5)
-        self.threads = self.dns_config.get("threads", 5)
+        self.threads = self.dns_config.get("threads", 50)
+        self.max_concurrency = self.dns_config.get("max_concurrency", 256)
         self.cache_size = self.dns_config.get("cache_size", 10000)
         self.abort_threshold = self.dns_config.get("abort_threshold", 50)
         # how many consecutive DNS resolution hops we allow before tagging an event as runaway
@@ -63,7 +64,8 @@ class DNSHelper:
             self.resolvers = list(self.system_resolvers)
 
         self.log.debug(
-            f"Starting BlastDNS client with {self.threads} queries in flight per resolver, "
+            f"Starting BlastDNS client with {self.threads} queries in flight per resolver "
+            f"({self.concurrency:,} total), "
             f"{self.retries} retries, {self.cache_size} cache size, "
             f"and {self.timeout} second timeout"
         )
@@ -74,6 +76,7 @@ class DNSHelper:
                     request_timeout_ms=self.timeout * 1000,
                     max_retries=self.retries,
                     max_inflight_per_resolver=self.threads,
+                    max_concurrency=self.max_concurrency,
                     cache_capacity=self.cache_size,
                 ),
             )
@@ -115,6 +118,11 @@ class DNSHelper:
         # method-level dedup caches for is_wildcard / is_wildcard_domain
         self._is_wildcard_cache = LFUCache(maxsize=1000)
         self._is_wildcard_domain_cache = LFUCache(maxsize=1000)
+
+    @property
+    def concurrency(self):
+        """How many queries the client can have in flight at once, across all resolvers."""
+        return min(self.threads * len(self.resolvers), self.max_concurrency)
 
     # ------------------------------------------------------------------
     # Resolution -- thin pass-throughs to blastdns. Anything more complex
