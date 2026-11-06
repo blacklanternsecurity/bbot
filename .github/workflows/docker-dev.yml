@@ -1,0 +1,21 @@
+name: docker dev
+
+on:
+  push:
+    branches: [dev]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-dev
+  cancel-in-progress: true
+
+jobs:
+  image:
+    permissions:
+      contents: read
+      packages: write
+    uses: blacklanternsecurity/release-workflows/.github/workflows/docker-dev.yml@c53c202eedeb26a86088936363e6cb06ce99ac15 # v1.0.0
+    with:
+      image: ${{ github.repository }}

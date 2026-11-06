@@ -15,10 +15,14 @@ _A BBOT scan in real-time - visualization with [VivaGraphJS](https://github.com/
 pipx install bbot
 
 # bleeding edge (dev branch)
-pipx install --pip-args '\--pre' bbot
+pipx install git+https://github.com/blacklanternsecurity/bbot@dev
 ```
 
-_For more installation methods, including [Docker](https://hub.docker.com/r/blacklanternsecurity/bbot), see [Getting Started](https://www.blacklanternsecurity.com/bbot/Stable/)_
+Installing `dev` from git can build dependencies from source, which may need a [Rust toolchain](https://rustup.rs).
+
+_For more installation methods, including Docker ([Docker Hub](https://hub.docker.com/r/blacklanternsecurity/bbot) for releases, [GHCR](https://github.com/blacklanternsecurity/bbot/pkgs/container/bbot) for `dev`), see [Getting Started](https://www.blacklanternsecurity.com/bbot/Stable/)_
+
+> **Docker Hub `dev` tags are frozen.** `blacklanternsecurity/bbot:dev` and `:dev-full` on Docker Hub no longer update. Use `ghcr.io/blacklanternsecurity/bbot:dev` instead.
 
 > **Upgrading from 2.x?** BBOT 3.0 contains breaking changes to the CLI, presets, modules, events, and Python API. See the [2.x → 3.0 Migration Guide](https://www.blacklanternsecurity.com/bbot/Stable/migration/3.0_breaking_changes/) ([source](docs/migration/3.0_breaking_changes.md)) before upgrading.
 
