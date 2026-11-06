@@ -213,7 +213,7 @@ When BBOT is used as a Python library, there is no prompt; it logs a warning for
 
 ### Conditions
 
-Sometimes, you might need to add custom logic to a preset. BBOT supports this via `conditions`. The `conditions` attribute allows you to specify a list of custom conditions that will be evaluated before the scan starts. This is useful for performing last-minute sanity checks, or changing the behavior of the scan based on custom criteria.
+Sometimes, you might need to add custom logic to a preset. BBOT supports this via `conditions`. The `conditions` attribute allows you to specify a list of custom conditions that will be evaluated before the scan starts. This is useful for last-minute sanity checks, like warning about or aborting on a risky combination of settings.
 
 ```yaml title="my_preset.yml"
 description: Abort if nuclei templates aren't specified

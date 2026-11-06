@@ -763,7 +763,6 @@ Enumerate subdomains via APIs, brute-force
     
     config:
       dns:
-        threads: 25
         brute_threads: 1000
       # put your API keys here
       # modules:

@@ -2,7 +2,7 @@
 
 Normally, [Presets](presets.md) are used to configure a scan. However, there may be cases where you want to change BBOT's global defaults so a certain option is always set, even if it's not specified in a preset.
 
-BBOT has a YAML config at `~/.config/bbot/bbot.yml`. This is the first config that BBOT loads, so it's a good place to put default settings like `http_proxy`, `max_threads`, or `http_user_agent`. **API keys** and other sensitive values go in a companion file at `~/.config/bbot/secrets.yml`.
+BBOT has a YAML config at `~/.config/bbot/bbot.yml`. This is the first config that BBOT loads, so it's a good place to put default settings like `web.http_proxy`, `web.user_agent`, or `dns.threads`. **API keys** and other sensitive values go in a companion file at `~/.config/bbot/secrets.yml`.
 
 For a list of all possible config options, see:
 
@@ -131,7 +131,7 @@ dns:
   # state bounded by the resolver count rather than growing with query volume
   brute_persistent_socket: true
   # nameservers to use for DNS brute-forcing
-  # default is updated weekly and contains ~10K high-quality public servers
+  # default is updated weekly and contains ~5K high-quality public servers
   brute_nameservers: https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt
   # How many of those to draw at random, once per scan (0 = all of them)
   # The dead ones in the draw are dropped at startup, and every brute-force run in the scan shares the rest
