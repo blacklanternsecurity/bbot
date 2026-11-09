@@ -6,7 +6,9 @@ readme = "README.md"
 license = "AGPL-3.0"
 requires-python = ">=3.11,<3.16"
 authors = [
-    { name = "TheTechromancer" },
+    { name = "Black Lantern Security", email = "info@blacklanternsecurity.com" },
+]
+maintainers = [
     { name = "Paul Mueller" },
 ]
 keywords = ["python", "cli", "automation", "osint", "threat-intel", "intelligence", "neo4j", "scanner", "python-library", "hacking", "recursion", "pentesting", "recon", "command-line-tool", "bugbounty", "subdomains", "security-tools", "subdomain-scanner", "osint-framework", "attack-surface", "subdomain-enumeration", "osint-tool"]

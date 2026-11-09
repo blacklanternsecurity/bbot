@@ -442,7 +442,7 @@ Some of the best BBOT modules were written by the community. BBOT is being const
 
 We welcome contributions. Not just code, but ideas too! If you have an idea for a new feature, please let us know in [Discussions](https://github.com/blacklanternsecurity/bbot/discussions). If you want to get your hands dirty, see [Contribution](https://www.blacklanternsecurity.com/bbot/Stable/contribution/). There you can find setup instructions and a simple tutorial on how to write a BBOT module. We also have extensive [Developer Documentation](https://www.blacklanternsecurity.com/bbot/Stable/dev/).
 
-Thanks to these amazing people for contributing to BBOT! :heart:
+BBOT is built and maintained by [Black Lantern Security](https://github.com/blacklanternsecurity). Thanks to these amazing people for contributing to BBOT! :heart:
 
 <p align="center">
 <a href="https://github.com/blacklanternsecurity/bbot/graphs/contributors">
@@ -452,7 +452,7 @@ Thanks to these amazing people for contributing to BBOT! :heart:
 
 Special thanks to:
 
-- @TheTechromancer for creating BBOT
+- @TheTechromancer for his mass contributions to BBOT
 - @liquidsec for his extensive work on BBOT's web hacking features, including [badsecrets](https://github.com/blacklanternsecurity/badsecrets) and [baddns](https://github.com/blacklanternsecurity/baddns)
 - Steve Micallef (@smicallef) for creating Spiderfoot
 - @kerrymilan for his Neo4j and Ansible expertise
