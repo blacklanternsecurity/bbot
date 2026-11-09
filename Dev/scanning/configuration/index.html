@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.6jju2qbd.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.qob900l6.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1151,6 +1151,9 @@ Is the same as:
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># nameservers to use for DNS brute-forcing</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># default is updated weekly and contains ~10K high-quality public servers</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">brute_nameservers</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How many of those to draw at random, once per scan (0 = all of them)</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># The dead ones in the draw are dropped at startup, and every brute-force run in the scan shares the rest</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">brute_max_resolvers</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">600</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How far away from the main target to explore via DNS resolution (independent of scope.search_distance)</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># This is safe to change</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">search_distance</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">1</span>
