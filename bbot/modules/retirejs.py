@@ -3,7 +3,7 @@ from enum import IntEnum
 from typing import Literal
 from bbot.modules.base import BaseModule
 from pydantic import Field, field_validator
-from bbot.core.config.models import BaseModuleConfig
+from bbot.core.config.models import BaseModuleConfig, VersionStr
 
 
 class RetireJSSeverity(IntEnum):
@@ -32,8 +32,8 @@ class retirejs(BaseModule):
     }
 
     class Config(BaseModuleConfig):
-        version: str = Field("5.3.0", description="retire.js version")
-        node_version: str = Field("18.19.1", description="Node.js version to install locally")
+        version: VersionStr = Field("5.3.0", description="retire.js version")
+        node_version: VersionStr = Field("18.19.1", description="Node.js version to install locally")
         severity: Literal["none", "low", "medium", "high", "critical"] = Field(
             "medium", description="Minimum severity level to report (none, low, medium, high, critical)"
         )

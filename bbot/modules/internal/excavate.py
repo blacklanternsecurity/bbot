@@ -36,11 +36,38 @@ def find_subclasses(obj, base_class):
     >>> find_subclasses(locals(), A)
     [<class '__main__.B'>, <class '__main__.C'>]
     """
-    subclasses = []
-    for name, member in inspect.getmembers(obj):
-        if inspect.isclass(member) and issubclass(member, base_class) and member is not base_class:
-            subclasses.append(member)
-    return subclasses
+    subclasses = {}
+    for namespace in _member_namespaces(obj):
+        for name, member in namespace.items():
+            if inspect.isclass(member) and issubclass(member, base_class) and member is not base_class:
+                subclasses.setdefault(name, member)
+    return [subclasses[name] for name in sorted(subclasses)]
+
+
+def _snapshot(mapping):
+    # a live module's setup() may be assigning attributes while we read it
+    while True:
+        try:
+            return dict(mapping)
+        except RuntimeError:
+            continue
+
+
+def _member_namespaces(obj):
+    """Yield the namespaces of ``obj`` without invoking attribute descriptors.
+
+    ``inspect.getmembers`` getattrs every name, which fires properties such as
+    ``BaseModule.memory_usage``. That walks the module's ``__dict__`` and blows
+    up with "dictionary changed size during iteration" when the module it is
+    reading is concurrently running its own ``setup()``.
+    """
+    if not isinstance(obj, type):
+        instance_dict = getattr(obj, "__dict__", None)
+        if isinstance(instance_dict, dict):
+            yield _snapshot(instance_dict)
+    classes = obj.__mro__ if isinstance(obj, type) else type(obj).__mro__
+    for cls in classes:
+        yield _snapshot(vars(cls))
 
 
 def _pick_select_value(options_html):
@@ -360,10 +387,14 @@ class ExcavateRule:
         yara_rule_settings = YaraRuleSettings(description, tags, emit_match, severity, confidence)
         yara_results = {}
         for h in r.strings:
-            yara_results[h.identifier.lstrip("$")] = sorted(
-                {i.matched_data.decode("utf-8", errors="ignore") for i in h.instances}
-            )
+            yara_results[h.identifier.lstrip("$")] = sorted(self.match_strings(h))
         await self.process(yara_results, event, yara_rule_settings, discovery_context)
+
+    def match_strings(self, string):
+        """
+        The distinct text a yara string matched. Override when some matches shouldn't count.
+        """
+        return {i.matched_data.decode("utf-8", errors="ignore") for i in string.instances}
 
     async def process(self, yara_results, event, yara_rule_settings, discovery_context):
         """
@@ -1349,6 +1380,9 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             super().__init__(excavate)
             self.yara_rules.update(excavate.scan.dns_yara_rules_uncompiled)
 
+        def match_strings(self, string):
+            return self.excavate.scan.yara_hostnames(string.instances)
+
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
             for identifier in yara_results.keys():
                 for domain_str in yara_results[identifier]:
@@ -1444,11 +1478,11 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         self.yara_preprocess_dict = {}
         self.custom_yara_imports = []
 
-        modules_WEB_PARAMETER = [
-            module_name
-            for module_name, module in self.scan.modules.items()
-            if "WEB_PARAMETER" in module.watched_events
-        ]
+        # snapshot: setup_modules() pops failed modules from scan.modules while
+        # these setups run concurrently, so iterating the live dict can raise
+        scan_modules = list(self.scan.modules.values())
+
+        modules_WEB_PARAMETER = [module.name for module in scan_modules if "WEB_PARAMETER" in module.watched_events]
 
         self.parameter_extraction = bool(modules_WEB_PARAMETER)
         self.speculate_params = self.config.get("speculate_params", False)
@@ -1458,7 +1492,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         self.max_form_bytes = int(self.config.get("max_form_bytes", 262144))
         self.long_redirect_threshold = int(self.config.get("long_redirect_threshold", 2048))
 
-        for module in self.scan.modules.values():
+        for module in scan_modules:
             if not str(module).startswith("_"):
                 ExcavateRules = find_subclasses(module, ExcavateRule)
                 for e in ExcavateRules:

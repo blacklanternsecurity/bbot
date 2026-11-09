@@ -1,4 +1,5 @@
 import asyncio
+import fcntl
 import json
 import os
 import shutil
@@ -6,11 +7,12 @@ import yaml
 from pathlib import Path
 from typing import Literal
 from collections import Counter
+from contextlib import suppress
 
 from pydantic import field_validator
 
 from bbot.modules.base import BaseModule
-from bbot.core.config.models import BaseModuleConfig, Field
+from bbot.core.config.models import BaseModuleConfig, Field, VersionStr
 
 
 class nuclei(BaseModule):
@@ -24,7 +26,7 @@ class nuclei(BaseModule):
     }
 
     class Config(BaseModuleConfig):
-        version: str = Field("3.11.1", description="nuclei version")
+        version: VersionStr = Field("3.11.1", description="nuclei version")
         tags: str = Field("", description="execute a subset of templates that contain the provided tags")
         templates: str = Field("", description="template or template directory paths to include in the scan")
         severity: str = Field("", description="Filter based on severity field available in the template.")
@@ -41,6 +43,13 @@ class nuclei(BaseModule):
             ),
         )
         etags: str = Field("", description="tags to exclude from the scan")
+        etypes: str = Field(
+            "",
+            description=(
+                "protocol types to exclude from the scan, comma-separated "
+                "(dns, file, http, headless, tcp, workflow, ssl, websocket, whois, code, javascript)"
+            ),
+        )
         exclude_severity: str = Field("", description="Filter out templates with the given severities")
         include_tags: str = Field(
             "", description="tags to run even though nuclei excludes them by default (e.g. dos, fuzz, bruteforce)"
@@ -125,18 +134,8 @@ class nuclei(BaseModule):
         self.profiles_dir = self.nuclei_templates_dir / "profiles"
         self.nuclei_config_dir.mkdir(parents=True, exist_ok=True)
         self.nuclei_cache_dir.mkdir(parents=True, exist_ok=True)
-        await self._update_templates()
-        # nuclei writes its version marker before the tarball finishes extracting,
-        # so a killed update can leave the marker pointing at an empty dir and
-        # every subsequent run reports "up-to-date." Verify and repair once.
-        if not self._templates_installed():
-            self.warning("Nuclei templates appear incomplete; wiping isolated state and re-downloading")
-            shutil.rmtree(self.nuclei_state_dir, ignore_errors=True)
-            self.nuclei_config_dir.mkdir(parents=True, exist_ok=True)
-            self.nuclei_cache_dir.mkdir(parents=True, exist_ok=True)
-            await self._update_templates()
-            if not self._templates_installed():
-                return False, "Failed to install nuclei templates after retry"
+        if not await self._ensure_templates():
+            return False, "Failed to install nuclei templates after retry"
         self.proxy = self.scan.web_config.get("http_proxy", "")
         self.mode = self.config.get("mode")
         self.ratelimit = self.config.get("ratelimit")
@@ -152,6 +151,9 @@ class nuclei(BaseModule):
         self.etags = self.config.get("etags")
         if self.etags:
             self.info(f"Excluding the following nuclei tags: [{self.etags}]")
+        self.etypes = self.config.get("etypes")
+        if self.etypes:
+            self.info(f"Excluding the following nuclei protocol types: [{self.etypes}]")
         self.severity = self.config.get("severity")
         if self.mode != "severe" and self.severity != "":
             self.info(f"Limiting nuclei templates to the following severities: [{self.severity}]")
@@ -323,6 +325,8 @@ class nuclei(BaseModule):
             "-stats-json",
             "-retries",
             self.retries,
+            "-timeout",
+            self.scan.http_timeout,
         ]
 
         if self.helpers.dns.resolvers:
@@ -356,6 +360,9 @@ class nuclei(BaseModule):
 
         if self.new_templates:
             command.append("-new-templates")
+
+        if self.etypes:
+            command += ["-exclude-type", self.etypes]
 
         if self.scan.config.get("interactsh_disable") is True:
             self.info("Disabling interactsh in accordance with global settings")
@@ -516,7 +523,61 @@ class nuclei(BaseModule):
             self.helpers.cache_put(cache_key, json.dumps(summary))
         return summary
 
-    async def _update_templates(self):
+    async def _ensure_templates(self):
+        # 13k+ template files extract into one shared dir. Concurrent updaters
+        # (xdist workers, parallel scans) fight over the same tree and each
+        # re-does the other's work, so serialize on a lock beside it. A waiter
+        # that finds the tree already populated skips its own redundant update.
+        # The corruption repair below wipes the tree, so it has to run under the
+        # same lock: wiping while another worker is mid-extract destroys its
+        # output and makes it fail too.
+        uncontended = await self.helpers.run_in_executor_io(self._acquire_template_lock)
+        try:
+            if not uncontended and self._templates_installed():
+                self.info("Nuclei templates already up-to-date")
+                return True
+            outcome = await self._run_template_update()
+            if self._templates_installed():
+                return True
+            # A download that never produced files is a fetch failure, not the
+            # stale-marker corruption the wipe exists to repair. Wiping and
+            # re-downloading just doubles the requests against a source that is
+            # already failing, so only repair when the update claimed success.
+            if outcome == "failure":
+                return False
+            # nuclei writes its version marker before the tarball finishes
+            # extracting, so a killed update can leave the marker pointing at an
+            # empty dir and every subsequent run reports "up-to-date."
+            self.warning("Nuclei templates appear incomplete; wiping isolated state and re-downloading")
+            shutil.rmtree(self.nuclei_state_dir, ignore_errors=True)
+            self.nuclei_config_dir.mkdir(parents=True, exist_ok=True)
+            self.nuclei_cache_dir.mkdir(parents=True, exist_ok=True)
+            await self._run_template_update()
+            return self._templates_installed()
+        finally:
+            self._release_template_lock()
+
+    def _acquire_template_lock(self):
+        lock_path = self.helpers.tools_dir / "nuclei-templates.lock"
+        self._template_lock_file = open(lock_path, "w")
+        try:
+            fcntl.flock(self._template_lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return True
+        except OSError:
+            fcntl.flock(self._template_lock_file, fcntl.LOCK_EX)
+            return False
+
+    def _release_template_lock(self):
+        lock_file = getattr(self, "_template_lock_file", None)
+        if lock_file is None:
+            return
+        self._template_lock_file = None
+        with suppress(OSError):
+            fcntl.flock(lock_file, fcntl.LOCK_UN)
+        with suppress(OSError):
+            lock_file.close()
+
+    async def _run_template_update(self):
         self.info("Updating Nuclei templates")
         # shield so an outer cancel can't kill the subprocess mid-extract and
         # corrupt the templates dir
@@ -533,6 +594,7 @@ class nuclei(BaseModule):
             self.info("Nuclei templates already up-to-date")
         else:
             self.warning(f"Failure while updating nuclei templates: {update_results.stderr or '<no stderr>'}")
+        return outcome
 
     # nuclei's success messaging has drifted across releases (installed / updated /
     # downloaded). Match any of them so a future rename doesn't silently downgrade

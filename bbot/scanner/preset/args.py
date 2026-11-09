@@ -340,7 +340,12 @@ class BBOTArgs:
             action="store_true",
             help="Run scan even in the case of condition violations or failed module setups",
         )
-        scan.add_argument("-y", "--yes", action="store_true", help="Skip scan confirmation prompt")
+        scan.add_argument(
+            "-y",
+            "--yes",
+            action="store_true",
+            help="Skip confirmation prompts (including trusting custom module folders)",
+        )
         scan.add_argument(
             "--fast-mode",
             action="store_true",
@@ -465,9 +470,6 @@ class BBOTArgs:
         return p
 
     def sanitize_args(self):
-        # silent implies -y
-        if self.parsed.silent:
-            self.parsed.yes = True
         # chain_lists allows either comma-separated or space-separated lists
         self.parsed.modules = chain_lists(self.parsed.modules)
         self.parsed.exclude_modules = chain_lists(self.parsed.exclude_modules)

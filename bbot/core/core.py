@@ -65,20 +65,34 @@ class BBOTCore:
         return Path(self.config["home"]).expanduser().resolve()
 
     @property
+    def deps_home(self):
+        """
+        Install state, downloaded tools and libs are keyed on content, not on the scan,
+        so concurrent scans can share them. BBOT_SHARED_DEPS_DIR points them at one
+        location while everything scan-specific stays under home.
+        """
+        shared = os.environ.get("BBOT_SHARED_DEPS_DIR", "").strip()
+        if shared:
+            return Path(shared).expanduser().resolve()
+        return self.home
+
+    @property
     def cache_dir(self):
-        return self.home / "cache"
+        return self.deps_home / "cache"
 
     @property
     def tools_dir(self):
-        return self.home / "tools"
+        return self.deps_home / "tools"
 
     @property
     def temp_dir(self):
-        return self.home / "temp"
+        # BBOT_TEMP is the scratch dir for dependency builds and is baked into the
+        # module hash, so it belongs with the other install-once dirs.
+        return self.deps_home / "temp"
 
     @property
     def lib_dir(self):
-        return self.home / "lib"
+        return self.deps_home / "lib"
 
     @property
     def scans_dir(self):

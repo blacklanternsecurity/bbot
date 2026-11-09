@@ -1,4 +1,5 @@
 import sys
+import math
 from contextlib import suppress
 
 from blastdns import DNSResult
@@ -20,8 +21,11 @@ class DNSResolve(BaseInterceptModule):
         _name = "host"
         _type = "internal"
 
-    # events resolved concurrently; separate from dns.threads, which caps blastdns queries per resolver
-    _module_threads = 25
+    @property
+    def _module_threads(self):
+        # each event averages 2-4 queries in flight, so half the DNS client's slots keeps it full
+        # without queueing other modules' lookups behind a backlog
+        return max(10, math.ceil(self.helpers.dns.concurrency / 2))
 
     async def setup(self):
         self.dns_config = self.scan.config.get("dns", {})

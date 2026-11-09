@@ -6,9 +6,44 @@ from bbot.errors import ExcavateError
 from bbot.modules.internal.excavate import ExcavateRule, split_yara_rules
 
 from pathlib import Path
+import threading
 import time
 import yara
 from bbot.test.worker import HTTPSERVER_PORT, HTTPSERVER_URL, LOCALHOST_URL
+
+
+class TestExcavateHyphenatedHostnames(ModuleTestBase):
+    targets = [f"{HTTPSERVER_URL}/", "test.notreal"]
+    modules_overrides = ["excavate", "http"]
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"},
+            respond_args={"response_data": "<p>dev-api.test.notreal and my-app-test.test.notreal</p>"},
+        )
+
+    async def setup_after_prep(self, module_test):
+        # every name resolves, so a made-up one would survive to the output
+        await module_test.mock_dns(
+            {
+                h: {"A": ["127.0.0.1"]}
+                for h in (
+                    "test.notreal",
+                    "dev-api.test.notreal",
+                    "api.test.notreal",
+                    "my-app-test.test.notreal",
+                    "app-test.test.notreal",
+                    "test.test.notreal",
+                )
+            }
+        )
+
+    def check(self, module_test, events):
+        hostnames = {e.data for e in events if e.type == "DNS_NAME" and str(e.module) == "excavate"}
+        assert {"dev-api.test.notreal", "my-app-test.test.notreal"} <= hostnames
+        for fragment in ("api.test.notreal", "app-test.test.notreal", "test.test.notreal"):
+            assert fragment not in hostnames, f"excavate made up {fragment} from part of a hyphenated name"
+        assert not any("DNS_NAME -" in e.discovery_context for e in events)
 
 
 class TestExcavate(ModuleTestBase):
@@ -2334,6 +2369,55 @@ class TestContentDedupWithURLEvents(ModuleTestBase):
             "Both duplicate-content URLs were processed — content dedup failed for URL events"
         )
         assert len(consumer._content_dup_tracker) > 0, "Content dedup tracker should have entries"
+
+
+@pytest.mark.asyncio
+async def test_excavate_find_subclasses_does_not_touch_descriptors():
+    """excavate.setup() introspects sibling modules while their own setup() is
+    still assigning attributes. Reading through getattr fires BaseModule's
+    memory_usage property, which walks __dict__ and raises "dictionary changed
+    size during iteration" when it loses that race."""
+    from bbot.core.helpers.misc import get_size
+    from bbot.modules.internal.excavate import find_subclasses
+
+    class Sibling:
+        class SomeRule(ExcavateRule):
+            pass
+
+        def __init__(self):
+            for i in range(50):
+                setattr(self, f"attr{i}", i)
+
+        @property
+        def memory_usage(self):
+            return get_size(self, max_depth=3, seen=set())
+
+    sibling = Sibling()
+    assert [c.__name__ for c in find_subclasses(sibling, ExcavateRule)] == ["SomeRule"]
+
+    stop = []
+    errors = []
+
+    def concurrent_setup():
+        i = 0
+        while not stop:
+            setattr(sibling, f"cfg{i}", i)
+            delattr(sibling, f"cfg{i}")
+            i += 1
+
+    churn = threading.Thread(target=concurrent_setup, daemon=True)
+    churn.start()
+    try:
+        for _ in range(3000):
+            try:
+                assert find_subclasses(sibling, ExcavateRule) == [Sibling.SomeRule]
+            except RuntimeError as e:
+                errors.append(e)
+    finally:
+        stop.append(True)
+        churn.join(timeout=5)
+
+    assert not errors, f"find_subclasses raced against a concurrent setup(): {errors[0]}"
 
 
 class TestExcavateLongRedirect(ModuleTestBase):

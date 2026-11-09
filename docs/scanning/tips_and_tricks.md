@@ -51,7 +51,7 @@ To be gentler on individual resolvers rather than faster, lower `dns.brute_infli
 
 ### Speed Up Scans with More DNS Resolvers
 
-By far the most effective way to speed up a BBOT scan is to **add more resolvers to `/etc/resolv.conf`**. BBOT's DNS resolver (blastdns) keeps multiple queries in flight per resolver (default: `10`, configurable via `dns.threads`), so more resolvers = more parallelism = faster scans.
+One of the most effective ways to speed up a BBOT scan is to **add more resolvers to `/etc/resolv.conf`**. BBOT's DNS resolver (blastdns) keeps up to `dns.threads` queries in flight per resolver (default `50`), up to `dns.max_concurrency` in total (default `256`), so more resolvers = more parallelism = faster scans, until that total is reached.
 
 For OSINT, it's critical that every resolver is **unfiltered**. Specialized resolvers that try to block ads, malicious domains, etc. will intentionally omit results. Below is a sample `/etc/resolv.conf` with 11 unfiltered public resolvers:
 
