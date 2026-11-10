@@ -31,6 +31,7 @@
 - CPE-derived technologies are named by product, with the CPE kept in a new `cpe` field ([#3535](https://github.com/blacklanternsecurity/bbot/pull/3535)).
 - In-scope events are no longer tagged `affiliate` ([#3524](https://github.com/blacklanternsecurity/bbot/pull/3524)).
 - FINDING text output shows the host when it isn't otherwise present.
+- FINDING has an optional `port` for findings that aren't on a URL, such as a TLS or TCP service. It's part of the event's identity and shown as `host:port` in text output, and legba and medusa findings now keep their port ([#3629](https://github.com/blacklanternsecurity/bbot/pull/3629)).
 - `HTTP_RESPONSE` events carry `url_extension` ([#3406](https://github.com/blacklanternsecurity/bbot/pull/3406)).
 - `ClosestHostEvent` keeps its inherited port, and the port is restored from JSON ([#3462](https://github.com/blacklanternsecurity/bbot/pull/3462)).
 - `download()` respects `cache_hrs` in its freshness check ([#3563](https://github.com/blacklanternsecurity/bbot/pull/3563)).
@@ -72,7 +73,7 @@
 **Notable improvements:**
 
 - telerik overhaul: native RAU and DialogHandler crypto, and exploitable RAU detected without uploading a file ([#3333](https://github.com/blacklanternsecurity/bbot/pull/3333)).
-- nuclei: nine new template-selection options, new `nuclei-recommended` and `nuclei-new` presets, budget mode fixed (a budget of 10 now means about 15 requests per host, down from 134), and budget mode's template index cached ([#3479](https://github.com/blacklanternsecurity/bbot/pull/3479)).
+- nuclei: nine new template-selection options, new `nuclei-recommended` and `nuclei-new` presets, budget mode fixed (a budget of 10 now means about 15 requests per host, down from 134), and budget mode's template index cached ([#3479](https://github.com/blacklanternsecurity/bbot/pull/3479)). Results are parented to the URL, or the host and port, that nuclei actually scanned, so findings on sibling subdomains or on several ports of one host are no longer merged or mislabeled ([#3629](https://github.com/blacklanternsecurity/bbot/pull/3629)).
 - excavate: long redirect detection ([#3481](https://github.com/blacklanternsecurity/bbot/pull/3481)), relative URLs resolved against `<base href>` ([#3522](https://github.com/blacklanternsecurity/bbot/pull/3522)), and hostnames no longer extracted from partway through a hyphenated label ([#3590](https://github.com/blacklanternsecurity/bbot/pull/3590)).
 - lightfuzz: positive confirmation required for code-change findings ([#3357](https://github.com/blacklanternsecurity/bbot/pull/3357)), tighter serial error resolution ([#3427](https://github.com/blacklanternsecurity/bbot/pull/3427)), unbounded queue growth from parameter re-discovery fixed ([#3405](https://github.com/blacklanternsecurity/bbot/pull/3405)), baseline URLs counted against spider distance ([#3523](https://github.com/blacklanternsecurity/bbot/pull/3523)), raw Cookie header read in the sqli cookie test ([#3498](https://github.com/blacklanternsecurity/bbot/pull/3498)), and WAF gating comments corrected ([#3608](https://github.com/blacklanternsecurity/bbot/pull/3608)).
 - dnsdumpster converted to the authenticated API ([#3458](https://github.com/blacklanternsecurity/bbot/pull/3458)).
