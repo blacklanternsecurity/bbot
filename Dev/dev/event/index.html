@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.6arkddrg.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.kirh_uj7.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1101,15 +1101,7 @@ If you need to modify an existing event, use <code>update_event()</code> instead
 </ul>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/event/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2370</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2371</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2372</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2373</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2374</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2375</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2376</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2377</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2378</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2378</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2379</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2380</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2381</span>
@@ -1203,7 +1195,15 @@ If you need to modify an existing event, use <code>update_event()</code> instead
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2469</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2470</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2471</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2472</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">make_event</span><span style="color: #E6EDF3">(</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2472</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2473</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2474</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2475</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2476</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2477</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2478</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2479</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2480</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">make_event</span><span style="color: #E6EDF3">(</span>
     <span style="color: #E6EDF3">data,</span>
     <span style="color: #E6EDF3">event_type</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
     <span style="color: #E6EDF3">parent</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
@@ -1359,15 +1359,7 @@ if required keys are missing. Make sure to validate the JSON input beforehand.</
 </details>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/core/event/base.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2475</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2476</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2477</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2478</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2479</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2480</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2481</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2482</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2483</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2483</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2484</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2485</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2486</span>
@@ -1440,7 +1432,15 @@ if required keys are missing. Make sure to validate the JSON input beforehand.</
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2553</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2554</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2555</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2556</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">event_from_json</span><span style="color: #E6EDF3">(j):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2556</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2557</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2558</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2559</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2560</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2561</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2562</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2563</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">2564</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">event_from_json</span><span style="color: #E6EDF3">(j):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Creates an event object from a JSON dictionary.</span>
 
