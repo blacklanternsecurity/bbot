@@ -98,7 +98,7 @@
 
 #### Dependencies
 
-- blastdns 2.0.4 ([#3612](https://github.com/blacklanternsecurity/bbot/pull/3612), [#3631](https://github.com/blacklanternsecurity/bbot/pull/3631)), blasthttp 0.10.1, baddns 2.5.0, badsecrets 1.3.0 ([#3526](https://github.com/blacklanternsecurity/bbot/pull/3526)), cloudcheck 11.2.0 ([#3559](https://github.com/blacklanternsecurity/bbot/pull/3559)), radixtarget 4.3.0 ([#3558](https://github.com/blacklanternsecurity/bbot/pull/3558)), pycryptodome 4.2.0 ([#3542](https://github.com/blacklanternsecurity/bbot/pull/3542), [#3597](https://github.com/blacklanternsecurity/bbot/pull/3597)).
+- blastdns 2.0.4 ([#3612](https://github.com/blacklanternsecurity/bbot/pull/3612), [#3631](https://github.com/blacklanternsecurity/bbot/pull/3631)), blasthttp 0.10.1, baddns 2.5.0, badsecrets 1.3.0 ([#3526](https://github.com/blacklanternsecurity/bbot/pull/3526)), cloudcheck 11.2.0 ([#3559](https://github.com/blacklanternsecurity/bbot/pull/3559)), radixtarget 4.3.1 ([#3558](https://github.com/blacklanternsecurity/bbot/pull/3558), [#3617](https://github.com/blacklanternsecurity/bbot/pull/3617)), pycryptodome 4.3.0 ([#3542](https://github.com/blacklanternsecurity/bbot/pull/3542), [#3597](https://github.com/blacklanternsecurity/bbot/pull/3597), [#3620](https://github.com/blacklanternsecurity/bbot/pull/3620)).
 - `deepdiff`, `cachebox` and `orderly-set` removed ([#3604](https://github.com/blacklanternsecurity/bbot/pull/3604)).
 - `pyjwt`, `lxml` and `socksio` removed, and `xmltojson` replaced by `xmltodict` ([#3627](https://github.com/blacklanternsecurity/bbot/pull/3627)).
 - trufflehog 3.97.0 to 3.99.8 ([#3605](https://github.com/blacklanternsecurity/bbot/pull/3605)).
