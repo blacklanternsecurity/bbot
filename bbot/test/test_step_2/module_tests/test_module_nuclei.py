@@ -624,25 +624,25 @@ class TestNucleiCustomHeaders(TestNucleiManual):
 
 
 def nuclei_jsonl(template_id, severity, host, port, url, matched_at, protocol="http", tags=("misc",)):
-    """One line of `nuclei -jsonl` output, in the shape nuclei 3.x emits it."""
-    return json.dumps(
-        {
-            "template-id": template_id,
-            "info": {
-                "name": template_id,
-                "author": ["test"],
-                "tags": None if tags is None else list(tags),
-                "severity": severity,
-            },
-            "type": protocol,
-            "host": host,
-            "port": str(port),
-            "url": url,
-            "matched-at": matched_at,
-            "ip": "127.0.0.1",
-            "matcher-status": True,
-        }
-    )
+    """One line of `nuclei -jsonl` output, in the shape nuclei 3.x emits it. ssl results have no url, so pass None."""
+    result = {
+        "template-id": template_id,
+        "info": {
+            "name": template_id,
+            "author": ["test"],
+            "tags": None if tags is None else list(tags),
+            "severity": severity,
+        },
+        "type": protocol,
+        "host": host,
+        "port": str(port),
+        "matched-at": matched_at,
+        "ip": "127.0.0.1",
+        "matcher-status": True,
+    }
+    if url is not None:
+        result["url"] = url
+    return json.dumps(result)
 
 
 @pytest.fixture
@@ -760,3 +760,59 @@ async def test_nuclei_untagged_template_does_not_break_the_batch(nuclei_module):
     ]
     _, emitted = await run_nuclei_batch(nuclei_module, [url], nuclei_output)
     assert [e.data["url"] for e in emitted] == [url, f"{url}admin"]
+
+
+async def test_nuclei_ssl_results_on_two_ports_are_not_collapsed(nuclei_module):
+    """ssl templates report host:port and no URL, so each result is matched to the batch URL on its own port."""
+    urls = ["https://evilcorp.com/", "https://evilcorp.com:8443/"]
+    nuclei_output = [
+        nuclei_jsonl("self-signed-ssl", "low", "evilcorp.com", port, None, f"evilcorp.com:{port}", protocol="ssl")
+        for port in (443, 8443)
+    ]
+    batch, emitted = await run_nuclei_batch(nuclei_module, urls, nuclei_output)
+    assert [(e.port, e.data["url"]) for e in emitted] == [(443, urls[0]), (8443, urls[1])]
+    assert [e.parent for e in emitted] == [batch[urls[0]], batch[urls[1]]]
+    assert len({e.id for e in emitted}) == 2
+
+
+async def test_nuclei_network_result_on_another_port_keeps_its_port(nuclei_module):
+    """A network result on a port with no batch URL carries that port, rather than its parent's URL."""
+    url = "https://evilcorp.com/"
+    nuclei_output = [
+        nuclei_jsonl("exposed-redis", "high", "evilcorp.com", 6379, "evilcorp.com:6379", "evilcorp.com:6379", "tcp")
+    ]
+    batch, emitted = await run_nuclei_batch(nuclei_module, [url], nuclei_output)
+    assert len(emitted) == 1
+    finding = emitted[0]
+    assert finding.parent is batch[url]
+    assert "url" not in finding.data
+    assert (finding.port, finding.netloc) == (6379, "evilcorp.com:6379")
+
+
+class TestNucleiNetworkPorts(ModuleTestBase):
+    """A network template that matches on several ports yields one FINDING per port, each carrying its port."""
+
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http", "nuclei"]
+    config_overrides = {"interactsh_disable": True, "modules": {"nuclei": {"mode": "manual"}}}
+    redis_ports = (6379, 6380)
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"}, respond_args={"response_data": "<html>alive</html>"}
+        )
+        module = module_test.scan.modules["nuclei"]
+
+        # exposed-redis declares `port: 6379,6380`, and nuclei reports matched-at as host:port
+        async def fake_run_process_live(command, input=None, **kwargs):
+            for url in input:
+                host = module_test.scan.helpers.urlparse(url).hostname
+                for port in self.redis_ports:
+                    netloc = f"{host}:{port}"
+                    yield nuclei_jsonl("exposed-redis", "high", host, port, netloc, netloc, protocol="tcp")
+
+        module.run_process_live = fake_run_process_live
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING" and "exposed-redis" in e.data["description"]]
+        assert sorted(e.port for e in findings) == list(self.redis_ports), [(e.data, e.port) for e in findings]
