@@ -1,6 +1,6 @@
 [![bbot_banner](https://github.com/user-attachments/assets/f02804ce-9478-4f1e-ac4d-9cf5620a3214)](https://github.com/blacklanternsecurity/bbot)
 
-[![Python Version](https://img.shields.io/badge/python-3.10+-FF8400)](https://www.python.org) [![License](https://img.shields.io/badge/license-AGPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![PyPi Downloads](https://static.pepy.tech/personalized-badge/bbot?right_color=orange&left_color=grey)](https://pepy.tech/project/bbot) [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot) [![Discord](https://img.shields.io/discord/859164869970362439)](https://discord.com/invite/PZqkgxu5SA)
+[![Python Version](https://img.shields.io/badge/python-3.11+-FF8400)](https://www.python.org) [![License](https://img.shields.io/badge/license-AGPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![PyPi Downloads](https://static.pepy.tech/personalized-badge/bbot?right_color=orange&left_color=grey)](https://pepy.tech/project/bbot) [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot) [![Discord](https://img.shields.io/discord/859164869970362439)](https://discord.com/invite/PZqkgxu5SA)
 
 ### **BEE·bot** is a multipurpose scanner inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot), built to automate your **Recon**, **Bug Bounties**, and **ASM**!
 
@@ -19,6 +19,8 @@ pipx install --pip-args '\--pre' bbot
 ```
 
 _For more installation methods, including [Docker](https://hub.docker.com/r/blacklanternsecurity/bbot), see [Getting Started](https://www.blacklanternsecurity.com/bbot/Stable/)_
+
+> **Upgrading from 3.0?** See the [3.0 → 3.1 Migration Guide](https://www.blacklanternsecurity.com/bbot/Stable/migration/3.1_breaking_changes/) ([source](docs/migration/3.1_breaking_changes.md)) for changes that can affect existing presets, configs, custom modules, and output.
 
 > **Upgrading from 2.x?** BBOT 3.0 contains breaking changes to the CLI, presets, modules, events, and Python API. See the [2.x → 3.0 Migration Guide](https://www.blacklanternsecurity.com/bbot/Stable/migration/3.0_breaking_changes/) ([source](docs/migration/3.0_breaking_changes.md)) before upgrading.
 
@@ -56,7 +58,6 @@ output_modules:
 
 config:
   dns:
-    threads: 25
     brute_threads: 1000
   # put your API keys here
   # modules:

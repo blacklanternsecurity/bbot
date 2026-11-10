@@ -202,6 +202,16 @@ Injects URLs pointing to unique Interactsh subdomains as parameter values. Three
 
 If the server fetches the injected URL, the resulting DNS or HTTP interaction is detected out-of-band via Interactsh. HTTP interactions are CONFIRMED confidence (the server made a full HTTP request), while DNS-only interactions are MEDIUM confidence (DNS resolution occurred, but the server may not have completed the request). Requires Interactsh to be enabled (it is by default).
 
+## WAF Handling
+
+`avoid_wafs` controls what lightfuzz does with targets tagged `waf`:
+
+| Value | Behavior |
+|---|---|
+| `always` | Skip WAF-protected targets entirely |
+| `try_bypasses` (default) | Ask the `nowafpls` helper whether the WAF blocks payloads in the request body, and whether padding the body gets past it. POST body and JSON parameters are fuzzed with padding if it does, unpadded if the WAF isn't blocking them, and skipped otherwise. Cookie and header parameters are skipped, since they have no body to pad. GET parameters are skipped too, unless `try_get_as_post` is on (as in `lightfuzz-heavy` and `lightfuzz-xss`), in which case they are retested as POST bodies and handled like POST parameters above. |
+| `never` | Fuzz every parameter on WAF-protected targets, whatever the probe finds. POST body and JSON parameters are still padded where `nowafpls` finds padding gets past the WAF. |
+
 ## Presets
 
 Lightfuzz comes with pre-defined presets. Unless you really know BBOT inside and out, we recommend using one of them. This is because Lightfuzz needs to change several important BBOT settings to work correctly, including:
@@ -220,7 +230,7 @@ The most minimal option. Best for running alongside larger scans with minimal ov
 | **Submodules** | `path`, `sqli`, `xss` only |
 | **Companion modules** | None |
 | **POST fuzzing** | Disabled |
-| **WAF avoidance** | On |
+| **WAF avoidance** | On (`avoid_wafs: always`): WAF-protected targets are skipped |
 
 ### `-p lightfuzz`
 
@@ -231,7 +241,7 @@ The default starting point. If you're not sure which to use, start here.
 | **Submodules** | All 9 (`cmdi`, `crypto`, `path`, `serial`, `sqli`, `ssti`, `xss`, `esi`, `ssrf`) |
 | **Companion modules** | `badsecrets`, `hunt`, `reflected_parameters` |
 | **POST fuzzing** | Disabled, but `try_post_as_get` is on (POST params retested as GET) |
-| **WAF avoidance** | On |
+| **WAF avoidance** | Try bypasses (`avoid_wafs: try_bypasses`): see [WAF Handling](#waf-handling) |
 
 ### `-p lightfuzz-heavy`
 
@@ -250,7 +260,7 @@ Everything in `lightfuzz-heavy`, plus:
 
 | Added setting | Value |
 |---|---|
-| **WAF avoidance** | Off — WAF-protected targets are fuzzed |
+| **WAF avoidance** | Off (`avoid_wafs: never`): every parameter on WAF-protected targets is fuzzed, and request bodies are still padded where padding gets past the WAF |
 | **Query string collapsing** | Off — each unique parameter-value pair is fuzzed individually instead of deduplicating by parameter name |
 | **Force common headers** | On — headers like `X-Forwarded-For` are fuzzed even if not observed on the target |
 | **Speculate params** | On — potential parameters are extracted from JSON/XML response bodies |
@@ -265,8 +275,9 @@ A focused preset for XSS hunting only. Demonstrates how to build a single-submod
 |---|---|
 | **Submodules** | `xss` only |
 | **Companion modules** | `paramminer_getparams`, `reflected_parameters` |
-| **POST fuzzing** | Disabled |
+| **POST fuzzing** | Enabled, and `try_get_as_post` is on (GET params retested as POST) |
 | **Query string collapsing** | Off |
+| **WAF avoidance** | Try bypasses (`avoid_wafs: try_bypasses`) |
 
 ### Spider Preset
 

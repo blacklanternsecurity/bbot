@@ -4,7 +4,7 @@
 - `Fatal error from pip prevented installation.`
 - `ERROR: No matching distribution found for bbot`
 
-If you get errors like the above, it's probably because your Python version is too old. BBOT requires Python 3.10+.
+If you get errors like the above, it's probably because your Python version is too old. BBOT requires Python 3.11+.
 
 ```bash
 # install a newer version of python
