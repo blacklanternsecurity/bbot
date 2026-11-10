@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.1qll933g.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.252yo9f5.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -767,6 +767,15 @@
 </li>
 </ul>
 </nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#waf-handling">
+<span class="md-ellipsis">
+      
+        WAF Handling
+      
+    </span>
+</a>
 </li>
 <li class="md-nav__item">
 <a class="md-nav__link" href="#presets">
@@ -1549,6 +1558,30 @@
 <li><code>TAG.interactsh-domain</code> — bare domain (for cases where the server prepends a scheme)</li>
 </ul>
 <p>If the server fetches the injected URL, the resulting DNS or HTTP interaction is detected out-of-band via Interactsh. HTTP interactions are CONFIRMED confidence (the server made a full HTTP request), while DNS-only interactions are MEDIUM confidence (DNS resolution occurred, but the server may not have completed the request). Requires Interactsh to be enabled (it is by default).</p>
+<h2 id="waf-handling">WAF Handling</h2>
+<p><code>avoid_wafs</code> controls what lightfuzz does with targets tagged <code>waf</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>always</code></td>
+<td>Skip WAF-protected targets entirely</td>
+</tr>
+<tr>
+<td><code>try_bypasses</code> (default)</td>
+<td>Ask the <code>nowafpls</code> helper whether the WAF blocks payloads in the request body, and whether padding the body gets past it. POST body and JSON parameters are fuzzed with padding if it does, unpadded if the WAF isn't blocking them, and skipped otherwise. Cookie and header parameters are skipped, since they have no body to pad. GET parameters are skipped too, unless <code>try_get_as_post</code> is on (as in <code>lightfuzz-heavy</code> and <code>lightfuzz-xss</code>), in which case they are retested as POST bodies and handled like POST parameters above.</td>
+</tr>
+<tr>
+<td><code>never</code></td>
+<td>Fuzz every parameter on WAF-protected targets, whatever the probe finds. POST body and JSON parameters are still padded where <code>nowafpls</code> finds padding gets past the WAF.</td>
+</tr>
+</tbody>
+</table>
 <h2 id="presets">Presets</h2>
 <p>Lightfuzz comes with pre-defined presets. Unless you really know BBOT inside and out, we recommend using one of them. This is because Lightfuzz needs to change several important BBOT settings to work correctly, including:</p>
 <ul>
@@ -1580,7 +1613,7 @@
 </tr>
 <tr>
 <td><strong>WAF avoidance</strong></td>
-<td>On</td>
+<td>On (<code>avoid_wafs: always</code>): WAF-protected targets are skipped</td>
 </tr>
 </tbody>
 </table>
@@ -1608,7 +1641,7 @@
 </tr>
 <tr>
 <td><strong>WAF avoidance</strong></td>
-<td>On</td>
+<td>Try bypasses (<code>avoid_wafs: try_bypasses</code>): see <a href="#waf-handling">WAF Handling</a></td>
 </tr>
 </tbody>
 </table>
@@ -1652,7 +1685,7 @@
 <tbody>
 <tr>
 <td><strong>WAF avoidance</strong></td>
-<td>Off — WAF-protected targets are fuzzed</td>
+<td>Off (<code>avoid_wafs: never</code>): every parameter on WAF-protected targets is fuzzed, and request bodies are still padded where padding gets past the WAF</td>
 </tr>
 <tr>
 <td><strong>Query string collapsing</strong></td>
@@ -1689,11 +1722,15 @@
 </tr>
 <tr>
 <td><strong>POST fuzzing</strong></td>
-<td>Disabled</td>
+<td>Enabled, and <code>try_get_as_post</code> is on (GET params retested as POST)</td>
 </tr>
 <tr>
 <td><strong>Query string collapsing</strong></td>
 <td>Off</td>
+</tr>
+<tr>
+<td><strong>WAF avoidance</strong></td>
+<td>Try bypasses (<code>avoid_wafs: try_bypasses</code>)</td>
 </tr>
 </tbody>
 </table>

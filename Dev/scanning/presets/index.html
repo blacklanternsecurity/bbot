@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.1qll933g.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.252yo9f5.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1297,7 +1297,7 @@ bbot<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>
 <p>When BBOT is used as a Python library, there is no prompt; it logs a warning for each custom module folder instead.</p>
 <p><code>module_dirs</code> only works at the top level of a preset. Setting it as a config option (in <code>bbot.yml</code>, under <code>config:</code> in a preset, or with <code>-c module_dirs=...</code>) is deprecated and ignored, and logs a warning at scan start.</p>
 <h3 id="conditions">Conditions</h3>
-<p>Sometimes, you might need to add custom logic to a preset. BBOT supports this via <code>conditions</code>. The <code>conditions</code> attribute allows you to specify a list of custom conditions that will be evaluated before the scan starts. This is useful for performing last-minute sanity checks, or changing the behavior of the scan based on custom criteria.</p>
+<p>Sometimes, you might need to add custom logic to a preset. BBOT supports this via <code>conditions</code>. The <code>conditions</code> attribute allows you to specify a list of custom conditions that will be evaluated before the scan starts. This is useful for last-minute sanity checks, like warning about or aborting on a risky combination of settings.</p>
 <div class="highlight" style="background: #0d1117"><span class="filename">my_preset.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Abort if nuclei templates aren't specified</span>
 
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>

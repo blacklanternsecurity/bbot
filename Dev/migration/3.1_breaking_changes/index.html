@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.1qll933g.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.252yo9f5.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -560,6 +560,15 @@
     </label>
 <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
 <li class="md-nav__item">
+<a class="md-nav__link" href="#python">
+<span class="md-ellipsis">
+      
+        Python
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="#config-and-presets">
 <span class="md-ellipsis">
       
@@ -637,6 +646,15 @@
 <nav aria-label="Modules" class="md-nav">
 <ul class="md-nav__list">
 <li class="md-nav__item">
+<a class="md-nav__link" href="#lightfuzz-probes-waf-protected-hosts-instead-of-skipping-them">
+<span class="md-ellipsis">
+      
+        lightfuzz probes WAF-protected hosts instead of skipping them
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="#dnsdumpster-requires-an-api-key">
 <span class="md-ellipsis">
       
@@ -659,6 +677,15 @@
 <span class="md-ellipsis">
       
         wayback checks hosts before emitting URLs
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#api-requests-identify-as-bbot">
+<span class="md-ellipsis">
+      
+        API requests identify as BBOT
       
     </span>
 </a>
@@ -1139,6 +1166,9 @@
 <p>BBOT 3.1 is a minor release, but it includes a handful of changes that can affect existing presets, configs, custom modules, and anything that consumes scan output. This page lists them so you can check your setup before upgrading.</p>
 <p>If a change is missing here, please open an issue.</p>
 <hr/>
+<h2 id="python">Python</h2>
+<p>BBOT 3.1 requires Python 3.11 or newer, and Python 3.10 is no longer supported. On 3.10, <code>pip install --upgrade bbot</code> doesn't fail; it stays on the latest 3.0 release, so upgrade Python first. Python 3.15 is now supported.</p>
+<hr/>
 <h2 id="config-and-presets">Config and Presets</h2>
 <h3 id="custom-module-folders-module_dirs">Custom module folders (<code>module_dirs</code>)</h3>
 <p><code>module_dirs</code> is now only honored as a top-level preset key, loaded with <code>-p</code>:</p>
@@ -1233,12 +1263,41 @@
 </div>
 <hr/>
 <h2 id="modules">Modules</h2>
+<h3 id="lightfuzz-probes-waf-protected-hosts-instead-of-skipping-them"><code>lightfuzz</code> probes WAF-protected hosts instead of skipping them</h3>
+<p>In 3.0, lightfuzz skipped every host tagged <code>waf</code>. In 3.1, <code>modules.lightfuzz.avoid_wafs</code> defaults to <code>try_bypasses</code>: lightfuzz sends each WAF-tagged host a test payload in a POST body, first unpadded and then padded (the nowafpls technique). It fuzzes the host only if that probe gets past the WAF: either the padding gets the payload through, or the WAF didn't block it even unpadded. Even then, only request-body parameters are fuzzed. The <code>lightfuzz</code>, <code>lightfuzz-heavy</code>, <code>lightfuzz-max</code>, and <code>lightfuzz-xss</code> presets also enable the <code>nowafpls</code> module, which runs the same probe on every WAF-tagged host and emits a <code>FINDING</code> when padding gets through. Expect more traffic to WAF-fronted targets after upgrading. See <a href="../../modules/lightfuzz/#waf-handling">WAF Handling</a>.</p>
+<table>
+<thead>
+<tr>
+<th>3.0</th>
+<th>3.1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>the top-level <code>avoid_wafs</code> (default <code>true</code>) controlled lightfuzz</td>
+<td>no longer read</td>
+</tr>
+<tr>
+<td><code>modules.lightfuzz.avoid_wafs</code> was ignored</td>
+<td>controls lightfuzz: <code>always</code> (skip), <code>never</code> (fuzz whatever the probe finds, still padding request bodies where padding gets through), or <code>try_bypasses</code> (default); <code>true</code> / <code>false</code> still work as <code>always</code> / <code>never</code></td>
+</tr>
+<tr>
+<td><code>lightfuzz-max</code> still skipped WAF-tagged hosts</td>
+<td><code>lightfuzz-max</code> sets <code>never</code> and fuzzes them whatever the probe finds, still padding POST and JSON bodies where padding gets through</td>
+</tr>
+</tbody>
+</table>
+<p><code>lightfuzz-light</code> still skips WAF-tagged hosts. To keep the 3.0 behavior with the other presets, set <code>avoid_wafs</code> to <code>always</code> and exclude nowafpls:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>lightfuzz<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.lightfuzz.avoid_wafs<span style="color: #FF7B72; font-weight: bold">=</span>always<span style="color: #6E7681"> </span>-em<span style="color: #6E7681"> </span>nowafpls
+</code></pre></div>
 <h3 id="dnsdumpster-requires-an-api-key"><code>dnsdumpster</code> requires an API key</h3>
 <p>dnsdumpster no longer has a keyless mode. Set <code>modules.dnsdumpster.api_key</code>, or the module is disabled at setup.</p>
 <h3 id="waf_bypass-only-targets-scan-targets-by-default"><code>waf_bypass</code> only targets scan targets by default</h3>
 <p><code>modules.waf_bypass.scan_targets_only</code> now defaults to <code>true</code>, so bypasses are only attempted against hosts named in the scan's targets or seeds. Set it to <code>false</code> for the old behavior.</p>
 <h3 id="wayback-checks-hosts-before-emitting-urls"><code>wayback</code> checks hosts before emitting URLs</h3>
 <p>With <code>urls: true</code>, wayback now probes each host once and drops URLs on hosts that don't respond. Expect fewer, but live, URLs from wayback.</p>
+<h3 id="api-requests-identify-as-bbot">API requests identify as BBOT</h3>
+<p>Modules that query third-party APIs through BBOT's API request helper now send <code>User-Agent: BBOT/&lt;version&gt;</code> instead of the scan's user agent, so <code>web.user_agent</code> and <code>web.user_agent_suffix</code> no longer apply to those requests. Not every module uses the helper yet, so some third-party requests still send <code>web.user_agent</code>; don't rely on <code>BBOT/&lt;version&gt;</code> for allowlisting. Requests to your targets still use <code>web.user_agent</code>.</p>
 <hr/>
 <h2 id="event-output">Event Output</h2>
 <h3 id="cpe-based-technology-names">CPE-based technology names</h3>
