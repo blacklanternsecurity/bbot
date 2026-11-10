@@ -249,13 +249,15 @@ class nuclei(BaseModule):
         temp_target = self.helpers.make_target()
         for e in events:
             temp_target.add(e.url, e)
+        events_by_url = {e.url: e for e in events}
         nuclei_input = [e.url for e in events]
-        async for severity, template, tags, host, url, name, extracted_results in self.execute_nuclei(nuclei_input):
-            # this is necessary because sometimes nuclei is inconsistent about the data returned in the host field
-            cleaned_host = temp_target.get(host)
-            parent_event = self.correlate_event(events, cleaned_host)
-
+        async for severity, template, tags, host, input_url, url, name, extracted_results in self.execute_nuclei(
+            nuclei_input
+        ):
+            # http templates echo back the exact URL we sent; other protocols only give us the host
+            parent_event = events_by_url.get(input_url) or temp_target.get(host)
             if not parent_event:
+                self.verbose(f"Failed to correlate nuclei result for {host}")
                 continue
 
             if url == "":
@@ -302,14 +304,6 @@ class nuclei(BaseModule):
                     parent_event,
                     context=f"{{module}} scanned {url} and identified {severity.lower()} {{event.type}}: {description_string}",
                 )
-
-    def correlate_event(self, events, host):
-        for event in events:
-            if host in event:
-                return event
-        self.verbose(f"Failed to correlate nuclei result for {host}. Possible parent events:")
-        for event in events:
-            self.verbose(f" - {event.url}")
 
     async def execute_nuclei(self, nuclei_input):
         command = [
@@ -405,8 +399,10 @@ class nuclei(BaseModule):
                         )
                         name = info.get("name", "")
                     severity = info.get("severity", "").upper()
-                    tags = info.get("tags", [])
+                    # nuclei writes "tags": null for a template without tags
+                    tags = info.get("tags") or []
                     host = j.get("host", "")
+                    input_url = j.get("url", "")
                     url = j.get("matched-at", "")
                     if not self.helpers.is_url(url):
                         url = ""
@@ -414,7 +410,7 @@ class nuclei(BaseModule):
                     extracted_results = j.get("extracted-results", [])
 
                     if template and name and severity:
-                        yield (severity, template, tags, host, url, name, extracted_results)
+                        yield (severity, template, tags, host, input_url, url, name, extracted_results)
                     else:
                         self.debug("Nuclei result missing one or more required elements, not reporting. JSON: ({j})")
         finally:
