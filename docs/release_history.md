@@ -10,6 +10,7 @@
     - `module_dirs` only works as a top-level preset key, and BBOT asks before loading each custom module folder. Runs without a terminal need `-y`, and `-S` no longer implies it.
     - Preset `conditions` are read-only: they can warn or abort, but can't modify the preset.
     - dnsdumpster requires an API key, and waf_bypass only tests scan targets by default.
+    - lightfuzz now probes WAF-tagged hosts with nowafpls instead of skipping them, and fuzzes one only if the probe gets past the WAF. For the old behavior, set `modules.lightfuzz.avoid_wafs: always` and pass `-em nowafpls`.
 
 #### Highlights
 
