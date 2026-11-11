@@ -41,21 +41,24 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libmagic1
 
-    # Generate benchmark comparison report using our branch-based script
+    # HEAD is the PR merge commit and HEAD^1 its base, so the two runs differ only by
+    # the PR's changes. Both commits are present on fork PRs too, unlike the head branch.
     - name: Generate benchmark comparison report
       env:
-        BASE_REF: ${{ github.base_ref }}
-        HEAD_REF: ${{ github.head_ref }}
+        BASE_LABEL: ${{ github.base_ref }}
+        CURRENT_LABEL: ${{ github.head_ref }}
       run: |
         uv run python bbot/scripts/benchmark_report.py \
-          --base "$BASE_REF" \
-          --current "$HEAD_REF" \
+          --base HEAD^1 \
+          --current HEAD \
+          --base-label "$BASE_LABEL" \
+          --current-label "$CURRENT_LABEL" \
           --output benchmark_report.md \
           --keep-results
-      continue-on-error: true
 
     # Upload benchmark results as artifacts
     - name: Upload benchmark results
+      if: ${{ !cancelled() }}
       uses: actions/upload-artifact@v7
       with:
         name: benchmark-results
@@ -71,7 +74,7 @@ jobs:
     # attempt fails the whole job with a 403. The report is still in the uploaded
     # artifact either way.
     - name: Comment benchmark results on PR
-      if: github.event.pull_request.head.repo.full_name == github.repository
+      if: ${{ !cancelled() && github.event.pull_request.head.repo.full_name == github.repository }}
       uses: actions/github-script@v9
       with:
         script: |

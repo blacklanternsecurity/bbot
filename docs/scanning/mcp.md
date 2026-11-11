@@ -55,6 +55,8 @@ Each tool is defined by one file in `bbot/mcp/capabilities/`. That file **is a B
 | port_scan              | active        | loud     | 2         | Find open TCP ports across hosts or network ranges, and identify what service is listening on each.                               |
 | waf_bypass             | mixed         | loud     | 47        | Find the unprotected origin behind an organization's WAF by reaching its content directly through sibling IPs.                    |
 | web_brute              | active        | loud     | 2         | Brute-force a web server for directories and files that exist but are not linked from anywhere.                                   |
+| yara_scan              | mixed         | loud     | 44        | Discover a domain's subdomains, crawl their web content, and match everything fetched against a custom YARA rule you provide.     |
+| yara_scan_targets      | active        | normal   | 1         | Match the web content of the exact targets you give (and nothing else) against a custom YARA rule you provide.                    |
 <!-- END BBOT MCP CAPABILITIES -->
 
 Three things come from the file itself:

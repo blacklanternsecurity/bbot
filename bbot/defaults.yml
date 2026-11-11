@@ -49,8 +49,10 @@ dns:
   minimal: false
   # Nameservers to use instead of the system ones (empty = use system resolvers)
   nameservers: []
-  # How many queries to keep in flight per resolver (best way to increase speed is to put more resolvers in /etc/resolv.conf)
-  threads: 10
+  # How many queries to keep in flight per resolver (adaptive pacing backs off if a resolver starts dropping queries)
+  threads: 50
+  # Ceiling on queries in flight across all resolvers, however many are configured
+  max_concurrency: 256
   # How many DNS records to cache
   cache_size: 100000
   # How many brute-force DNS queries to keep in flight at once
@@ -71,6 +73,9 @@ dns:
   # nameservers to use for DNS brute-forcing
   # default is updated weekly and contains ~10K high-quality public servers
   brute_nameservers: https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt
+  # How many of those to draw at random, once per scan (0 = all of them)
+  # The dead ones in the draw are dropped at startup, and every brute-force run in the scan shares the rest
+  brute_max_resolvers: 600
   # How far away from the main target to explore via DNS resolution (independent of scope.search_distance)
   # This is safe to change
   search_distance: 1

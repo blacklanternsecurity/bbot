@@ -1,7 +1,7 @@
 # Project information
 site_name: BBOT Docs
 site_url: https://blacklanternsecurity.github.io/bbot/
-site_author: TheTechromancer
+site_author: Black Lantern Security
 site_description: >-
   OSINT automation for hackers
 # Repository
@@ -40,6 +40,7 @@ nav:
     - Lightfuzz: modules/lightfuzz.md
     - Webbrute: modules/webbrute.md
   - Migration:
+    - 3.0 → 3.1 Breaking Changes: migration/3.1_breaking_changes.md
     - 2.x → 3.0 Breaking Changes: migration/3.0_breaking_changes.md
   - Misc:
     - Contribution: contribution.md
