@@ -467,6 +467,25 @@ async def test_events(events, helpers):
         dummy=True,
     )
     assert test_vuln4.data_human == "Severity: [INFO] Confidence: [HIGH] asdf (http://www.evilcorp.com/admin)"
+    # a finding that isn't on a URL can carry its own port, which is part of its identity
+    port_finding = {
+        "host": "evilcorp.com",
+        "severity": "HIGH",
+        "confidence": "HIGH",
+        "description": "asdf",
+        "name": "Test",
+    }
+    test_vuln5 = scan.make_event({**port_finding, "port": "6379"}, "FINDING", parent=scan.root_event)
+    test_vuln6 = scan.make_event({**port_finding, "port": 6380}, "FINDING", parent=scan.root_event)
+    assert test_vuln5.data["port"] == 6379
+    assert (test_vuln5.port, test_vuln5.netloc) == (6379, "evilcorp.com:6379")
+    assert test_vuln5.data_human == "Severity: [HIGH] Confidence: [HIGH] asdf Host: [evilcorp.com:6379]"
+    assert test_vuln5.id != test_vuln6.id
+    from bbot.core.event import event_from_json
+
+    assert event_from_json(test_vuln5.json()).port == 6379
+    with pytest.raises(ValidationError, match=".*port.*"):
+        scan.make_event({**port_finding, "port": "ssh"}, "FINDING", dummy=True)
     # must have severity
     with pytest.raises(ValidationError, match=".*validation error.*\nseverity\n.*Field required.*"):
         test_vuln = scan.make_event({"host": "evilcorp.com", "description": "asdf"}, "FINDING", dummy=True)

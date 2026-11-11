@@ -249,24 +249,34 @@ class nuclei(BaseModule):
         temp_target = self.helpers.make_target()
         for e in events:
             temp_target.add(e.url, e)
+        events_by_url = {e.url: e for e in events}
+        events_by_hostport = {(str(e.host), e.port): e for e in events}
         nuclei_input = [e.url for e in events]
-        async for severity, template, tags, host, url, name, extracted_results in self.execute_nuclei(nuclei_input):
-            # this is necessary because sometimes nuclei is inconsistent about the data returned in the host field
-            cleaned_host = temp_target.get(host)
-            parent_event = self.correlate_event(events, cleaned_host)
-
+        async for severity, template, tags, host, port, input_url, url, name, extracted_results in self.execute_nuclei(
+            nuclei_input
+        ):
+            # http templates echo back the exact URL we sent; ssl and network templates only report host and port
+            parent_event = (
+                events_by_url.get(input_url) or events_by_hostport.get((host, port)) or temp_target.get(host)
+            )
             if not parent_event:
+                self.verbose(f"Failed to correlate nuclei result for {host}")
                 continue
 
-            if url == "":
+            # a result without a URL of its own (ssl, network) only takes its parent's if they share a port
+            if not url and port in (None, parent_event.port):
                 url = parent_event.url
+            scanned = url or self.helpers.make_netloc(parent_event.host, port)
 
             if severity == "INFO" and "tech" in tags:
+                technology = {"technology": str(name).lower(), "host": str(parent_event.host)}
+                if url:
+                    technology["url"] = url
                 await self.emit_event(
-                    {"technology": str(name).lower(), "url": url, "host": str(parent_event.host)},
+                    technology,
                     "TECHNOLOGY",
                     parent_event,
-                    context=f"{{module}} scanned {url} and identified {{event.type}}: {str(name).lower()}",
+                    context=f"{{module}} scanned {scanned} and identified {{event.type}}: {str(name).lower()}",
                 )
                 continue
 
@@ -274,42 +284,24 @@ class nuclei(BaseModule):
             if len(extracted_results) > 0:
                 description_string += f" Extracted Data: [{','.join(extracted_results)}]"
 
-            if severity in ["INFO", "UNKNOWN"]:
-                await self.emit_event(
-                    {
-                        "host": str(parent_event.host),
-                        "url": url,
-                        "description": description_string,
-                        "name": f"Nuclei Vuln - {name}",
-                        "severity": "INFO",
-                        "confidence": "HIGH",
-                    },
-                    "FINDING",
-                    parent_event,
-                    context=f"{{module}} scanned {url} and identified {{event.type}}: {description_string}",
-                )
+            finding = {
+                "host": str(parent_event.host),
+                "description": description_string,
+                "name": f"Nuclei Vuln - {name}",
+                "severity": "INFO" if severity in ("INFO", "UNKNOWN") else severity,
+                "confidence": "HIGH",
+            }
+            if url:
+                finding["url"] = url
             else:
-                await self.emit_event(
-                    {
-                        "severity": severity,
-                        "host": str(parent_event.host),
-                        "url": url,
-                        "description": description_string,
-                        "name": f"Nuclei Vuln - {name}",
-                        "confidence": "HIGH",
-                    },
-                    "FINDING",
-                    parent_event,
-                    context=f"{{module}} scanned {url} and identified {severity.lower()} {{event.type}}: {description_string}",
-                )
-
-    def correlate_event(self, events, host):
-        for event in events:
-            if host in event:
-                return event
-        self.verbose(f"Failed to correlate nuclei result for {host}. Possible parent events:")
-        for event in events:
-            self.verbose(f" - {event.url}")
+                finding["port"] = port
+            severity_str = "" if finding["severity"] == "INFO" else f"{severity.lower()} "
+            await self.emit_event(
+                finding,
+                "FINDING",
+                parent_event,
+                context=f"{{module}} scanned {scanned} and identified {severity_str}{{event.type}}: {description_string}",
+            )
 
     async def execute_nuclei(self, nuclei_input):
         command = [
@@ -405,8 +397,12 @@ class nuclei(BaseModule):
                         )
                         name = info.get("name", "")
                     severity = info.get("severity", "").upper()
-                    tags = info.get("tags", [])
+                    # nuclei writes "tags": null for a template without tags
+                    tags = info.get("tags") or []
                     host = j.get("host", "")
+                    port = j.get("port", "")
+                    port = int(port) if str(port).isdigit() else None
+                    input_url = j.get("url", "")
                     url = j.get("matched-at", "")
                     if not self.helpers.is_url(url):
                         url = ""
@@ -414,7 +410,7 @@ class nuclei(BaseModule):
                     extracted_results = j.get("extracted-results", [])
 
                     if template and name and severity:
-                        yield (severity, template, tags, host, url, name, extracted_results)
+                        yield (severity, template, tags, host, port, input_url, url, name, extracted_results)
                     else:
                         self.debug("Nuclei result missing one or more required elements, not reporting. JSON: ({j})")
         finally:

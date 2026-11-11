@@ -2015,6 +2015,8 @@ class FINDING(ClosestHostEvent):
 
     class _data_validator(BaseModel):
         host: Optional[str] = None
+        # for findings that aren't on a URL, e.g. a TLS or TCP service
+        port: Optional[int] = None
         severity: str
         name: str
         description: str
@@ -2026,8 +2028,13 @@ class FINDING(ClosestHostEvent):
         archive_url: Optional[str] = None
         _validate_url = field_validator("url")(validators.validate_url)
         _validate_host = field_validator("host")(validators.validate_host)
+        _validate_port = field_validator("port")(validators.validate_port)
         _validate_severity = field_validator("severity")(validators.validate_severity)
         _validate_confidence = field_validator("confidence")(validators.validate_confidence)
+
+    @property
+    def port(self):
+        return self.data.get("port") or super().port
 
     def _pretty_string(self):
         severity = self.data["severity"]
@@ -2052,7 +2059,8 @@ class FINDING(ClosestHostEvent):
         if url and url not in self.data["description"]:
             parts.append(f"({url})")
         elif host and not url and host not in self.data["description"]:
-            parts.append(f"Host: [{host}]")
+            port = self.data.get("port")
+            parts.append(f"Host: [{make_netloc(host, port) if port else host}]")
         cves = self.data.get("cves", [])
         if cves:
             parts.append(f"[{', '.join(cves)}]")
