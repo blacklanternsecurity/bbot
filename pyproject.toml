@@ -79,6 +79,7 @@ dev = [
     "pytest-benchmark>=4,<6",
     "pytest-xdist>=3.6,<4",
     "baddns~=2.5.0",
+    "pillow>=11,<14",
     "ruff==0.17.3",
 ]
 docs = [
