@@ -135,6 +135,5 @@ lint.ignore = ["E402", "E711", "E713", "E721", "E741", "F403", "F405", "E501"]
 constraint-dependencies = ["virtualenv>=21.7.13"]
 
 [tool.uv.sources]
-# TEMPORARY: blasthttp 1.0 is unreleased (blacklanternsecurity/blasthttp#128); local checkout of the
-# local-browser-build branch (d6e5188), whose tree matches 1.0-connection-profiles at 368cde0
-blasthttp = { path = "../blasthttp-1.0" }
+# TEMPORARY: blasthttp 1.0 is unreleased (blacklanternsecurity/blasthttp#128); remove before merging into dev.
+blasthttp = { git = "https://github.com/blacklanternsecurity/blasthttp", branch = "1.0-connection-profiles" }

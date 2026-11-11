@@ -254,7 +254,7 @@ requires-dist = [
     { name = "asndb", specifier = ">=1.1.0" },
     { name = "beautifulsoup4", specifier = ">=4.12.2,<5" },
     { name = "blastdns", specifier = ">=2.0.4,<2.1" },
-    { name = "blasthttp", directory = "../blasthttp-1.0" },
+    { name = "blasthttp", git = "https://github.com/blacklanternsecurity/blasthttp?branch=1.0-connection-profiles" },
     { name = "cachetools", specifier = ">=5.3.2,<8.0.0" },
     { name = "cloudcheck", specifier = ">=11.2.0,<12" },
     { name = "idna", specifier = ">=3.4,<4" },
@@ -413,17 +413,8 @@ wheels = [
 
 [[package]]
 name = "blasthttp"
-source = { directory = "../blasthttp-1.0" }
-
-[package.metadata]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "maturin", specifier = ">=1.10" },
-    { name = "pytest", specifier = ">=8" },
-    { name = "pytest-asyncio", specifier = ">=0.23" },
-    { name = "ruff", specifier = "==0.17.3" },
-]
+version = "1.0.0"
+source = { git = "https://github.com/blacklanternsecurity/blasthttp?branch=1.0-connection-profiles#1a6a1bd740e3c82035a98b52a5579e3407a78daa" }
 
 [[package]]
 name = "cachetools"
