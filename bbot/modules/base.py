@@ -958,7 +958,6 @@ class BaseModule:
             return filter_result, reason
 
         if self.skip_browser_only_hosts and event.host and self.helpers.web.is_browser_only(event.host):
-            self.critical(f"BROWSERDBG {self.name} SKIPPING browser-only host {event.host}: {event.data}")
             return False, "its host can only be loaded by a browser"
 
         # the browser renders pages; an image or a JSON file isn't one
@@ -1410,7 +1409,6 @@ class BaseModule:
         # a form posting itself somewhere isn't a page to visit, and reloading the same page isn't a discovery
         if method == "GET" and target != visit.response.url:
             # no spider-danger: like an HTTP redirect, following it doesn't count as spidering
-            self.critical(f"BROWSERDBG {self.name} EMITTING js-redirect destination: {url} -> {target}")
             await self.emit_event(
                 target,
                 "URL_UNVERIFIED",

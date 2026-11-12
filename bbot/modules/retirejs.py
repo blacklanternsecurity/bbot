@@ -131,9 +131,7 @@ class retirejs(BaseModule):
     async def handle_event(self, event):
         # the browser may already have loaded this script for a page
         js_file = event.prefetched_response
-        if js_file is not None:
-            self.critical(f"BROWSERDBG retirejs USING PREFETCHED script (no request): {event.url}")
-        else:
+        if js_file is None:
             js_file = await self.helpers.request(event.url, browser_fallback=True)
         if js_file:
             js_file_body = js_file.text

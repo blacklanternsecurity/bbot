@@ -725,7 +725,6 @@ class WebHelper:
             new_headers.append((name, value))
         if not cookie_sent and clearance.cookies:
             new_headers.append(("Cookie", "; ".join(f"{k}={v}" for k, v in clearance.cookies.items())))
-        log.critical(f"BROWSERDBG applied browser clearance to request: url={url} cookies={sorted(clearance.cookies)}")
         return new_headers
 
     async def get_past_challenge(self, url, response, request_kwargs=None):
@@ -740,13 +739,7 @@ class WebHelper:
         Returns the response that got through, or `response` if nothing did.
         """
         browser = self.parent_helper.browser
-        log.critical(
-            f"BROWSERDBG get_past_challenge() called: url={url} status={response.status_code} conclusion={response.conclusion} fallback_enabled={self.browser_fallback} browser_usable={browser.usable}"
-        )
         if not self.browser_fallback or not browser.usable:
-            log.critical(
-                f"BROWSERDBG get_past_challenge() SKIPPED (browser fallback off or browser unusable): url={url}"
-            )
             if not self.browser_fallback:
                 self.unopened_urls.add(url)
             return response
@@ -760,9 +753,6 @@ class WebHelper:
             log.debug(f"Not asking the browser about {url}: it couldn't get past {host} before")
             return response
         sent_with = self._clearances.get(host)
-        log.critical(
-            f"BROWSERDBG get_past_challenge() waiting for host lock: host={host} have_clearance={sent_with is not None}"
-        )
         # what the browser got loading this URL, if it got past the challenge
         browser_response = None
         async with self._challenge_locks.lock(host):
@@ -770,64 +760,35 @@ class WebHelper:
             # unless another request already got a fresh clearance while this one was out, get one
             if clearance is sent_with and self._clearance_counts.get(host, 0) < MAX_CLEARANCES_PER_HOST:
                 self._clearance_counts[host] = self._clearance_counts.get(host, 0) + 1
-                log.critical(
-                    f"BROWSERDBG asking BROWSER for clearance: host={host} attempt={self._clearance_counts[host]}/{MAX_CLEARANCES_PER_HOST} url={url}"
-                )
                 clearance = await browser.clearance(url)
                 if clearance is not None:
                     browser_response = clearance.response
                 if clearance is None or not clearance.cookies:
                     # nothing to hand off (e.g. past the challenge, the site itself is down)
-                    log.critical(
-                        f"BROWSERDBG clearance has NOTHING TO HAND OFF: url={url} got_clearance={clearance is not None} browser_status={getattr(browser_response, 'status_code', None)}"
-                    )
                     clearance = None
                     self._clearances.pop(host, None)
                 else:
                     self._clearances[host] = clearance
-            elif clearance is sent_with:
-                log.critical(
-                    f"BROWSERDBG NOT asking browser again: host={host} solves so far={self._clearance_counts.get(host, 0)} (max {MAX_CLEARANCES_PER_HOST})"
-                )
             if clearance is not None and clearance is not sent_with:
-                log.critical(
-                    f"BROWSERDBG RETRYING with blasthttp + browser clearance: url={url} cookies={sorted(clearance.cookies)}"
-                )
                 retried = await self.request(url, **request_kwargs)
-                log.critical(
-                    f"BROWSERDBG blasthttp retry result: url={url} status={getattr(retried, 'status_code', None)} conclusion={getattr(retried, 'conclusion', None)} attempts={getattr(retried, 'attempts', None)}"
-                )
                 if retried is not None and retried.conclusion[0] != "needs_browser":
                     log.verbose(f"The browser's cookies got blasthttp past the challenge at {host}")
-                    log.critical(f"BROWSERDBG HANDOFF SUCCEEDED: host={host} url={url}")
                     return retried
                 # the cookies alone don't get blasthttp through; don't keep sending them
                 if self._clearances.get(host) is clearance:
                     self._clearances.pop(host)
-                log.critical(f"BROWSERDBG HANDOFF FAILED, dropped clearance: host={host} url={url}")
         if not plain_get:
-            log.critical(
-                f"BROWSERDBG not a plain GET, no browser response: url={url} method={request_kwargs.get('method', 'GET')}"
-            )
+            return response
         elif browser_response is not None and browser_response.conclusion[0] != "needs_browser":
             # the browser already loaded this URL while getting past the challenge; no need to load it again
-            log.critical(
-                f"BROWSERDBG using the BROWSER'S CLEARANCE LOAD as the response: url={url} status={browser_response.status_code}"
-            )
             return browser_response
         elif self.is_unpassable(host):
             # the clearance just loaded this host in the browser and got the same challenge
             log.debug(f"Not fetching {url} in the browser: it couldn't get past {host}")
         else:
-            log.critical(f"BROWSERDBG falling back to BROWSER FETCH: url={url}")
             fetched = await browser.fetch(url)
             if fetched is not None and fetched.conclusion[0] != "needs_browser":
-                log.critical(f"BROWSERDBG BROWSER FETCH SUCCEEDED: url={url} status={fetched.status_code}")
                 return fetched
-            log.critical(
-                f"BROWSERDBG BROWSER FETCH did not get through: url={url} result={getattr(fetched, 'conclusion', None)}"
-            )
-        log.critical(f"BROWSERDBG get_past_challenge() GAVE UP, returning original challenge response: url={url}")
         return response
 
     def record_conclusion(self, response, by_browser=False):
@@ -849,8 +810,6 @@ class WebHelper:
         if not host:
             return
         if verdict == "reached":
-            if self._host_states.get(host) == "browser_only":
-                log.critical(f"BROWSERDBG host went from BROWSER_ONLY to REACHED: {host} url={response.url}")
             self._host_states[host] = "reached"
         elif by_browser and self._host_states.get(host) != "reached":
             if self._host_states.get(host) != "unpassable":
@@ -859,7 +818,6 @@ class WebHelper:
         elif host not in self._host_states:
             self._host_states[host] = "browser_only"
             log.verbose(f"{host} can only be loaded by a browser ({vendor} challenge)")
-            log.critical(f"BROWSERDBG host marked BROWSER_ONLY: {host} ({vendor} challenge) url={response.url}")
 
     def browser_hint(self):
         """A suggestion to turn the browser on, if it would have opened URLs the scan couldn't."""

@@ -307,15 +307,10 @@ class DepsInstaller:
         try:
             for name, feature in self.OPTIONAL_CORE_FEATURES.items():
                 if not self._feature_enabled(feature):
-                    log.critical(f"BROWSERDBG core feature {name!r} is OFF, not installing its dependencies")
                     continue
-                log.critical(f"BROWSERDBG core feature {name!r} is ON, installing/checking its dependencies")
                 deps = self._feature_deps(feature)
                 if not await self._install_deps(name, deps, kind="core feature"):
-                    log.critical(f"BROWSERDBG core feature {name!r} dependency install FAILED")
                     failed.append(name)
-                else:
-                    log.critical(f"BROWSERDBG core feature {name!r} dependencies OK")
             for m in self._install_order(modules):
                 # abort if module name is unknown
                 if m not in self.all_modules_preloaded and self.deps_behavior != "disable":

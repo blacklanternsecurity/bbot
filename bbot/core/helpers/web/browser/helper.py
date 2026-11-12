@@ -90,10 +90,8 @@ class RedirectHold:
             return
         current = await self.helper._to_response(self.document, self.document.url)
         if current.conclusion[0] == "needs_browser":
-            log.critical(f"BROWSERDBG redirect LET THROUGH (challenge page): {current.url} -> {request.url}")
             await route.fallback()
             return
-        log.critical(f"BROWSERDBG redirect HELD: {current.url} -> {request.method} {request.url}")
         if self.target is None:
             self.target = (request.method, request.url)
         self.caught.set()
@@ -198,22 +196,16 @@ class BrowserHelper:
         `BrowserVisit`, or None if the page couldn't be loaded.
         """
         self._check_enabled()
-        log.critical(f"BROWSERDBG visit() called: url={url} consumer={consumer}")
         if consumer is not None:
             visit = self._collect(url, consumer)
             if visit is not None:
-                log.critical(f"BROWSERDBG visit() CACHE HIT: url={url} consumer={consumer}")
                 return visit
         future = self._inflight.get(url)
         if future is None:
-            log.critical(
-                f"BROWSERDBG visit() FRESH LOAD: url={url} consumer={consumer} artifacts={self._enabled_artifacts()}"
-            )
             future = asyncio.get_running_loop().create_future()
             self._inflight[url] = future
             try:
                 visit = await self._with_retry(self._visit, url)
-                log.critical(f"BROWSERDBG visit() FRESH LOAD DONE: url={url} result={self._describe_visit(visit)}")
                 future.set_result(visit)
             except BaseException as e:
                 future.set_exception(e)
@@ -222,26 +214,10 @@ class BrowserHelper:
                 self._inflight.pop(url, None)
             self._cache_visit(url, visit)
         else:
-            log.critical(f"BROWSERDBG visit() WAITING on in-progress load: url={url} consumer={consumer}")
             visit = await asyncio.shield(future)
-            log.critical(
-                f"BROWSERDBG visit() got in-progress load: url={url} consumer={consumer} result={self._describe_visit(visit)}"
-            )
         if consumer is not None:
             self._collect(url, consumer)
         return visit
-
-    @staticmethod
-    def _describe_visit(visit):
-        # BROWSERDBG: temporary
-        if visit is None:
-            return "None"
-        r = visit.response
-        return (
-            f"status={r.status_code} final_url={r.url} conclusion={r.conclusion} title={visit.title!r} "
-            f"dom_len={len(visit.dom) if visit.dom else None} "
-            f"screenshot_bytes={len(visit.screenshot) if visit.screenshot else None} network={len(visit.network)}"
-        )
 
     async def fetch(self, url):
         """
@@ -250,12 +226,7 @@ class BrowserHelper:
         any response, including one the browser would otherwise download.
         """
         self._check_enabled()
-        log.critical(f"BROWSERDBG fetch() called: url={url}")
-        result = await self._with_retry(self._fetch, url)
-        log.critical(
-            f"BROWSERDBG fetch() returned: url={url} status={getattr(result, 'status_code', None)} conclusion={getattr(result, 'conclusion', None)} bytes={len(result.content) if result is not None else None}"
-        )
-        return result
+        return await self._with_retry(self._fetch, url)
 
     async def clearance(self, url):
         """
@@ -263,15 +234,9 @@ class BrowserHelper:
         if the browser couldn't get past it.
         """
         self._check_enabled()
-        log.critical(f"BROWSERDBG clearance() called: url={url}")
-        result = await self._with_retry(self._clearance, url)
-        log.critical(
-            f"BROWSERDBG clearance() returned: url={url} cookies={sorted(result.cookies) if result else None} user_agent={result.user_agent if result else None!r}"
-        )
-        return result
+        return await self._with_retry(self._clearance, url)
 
     async def shutdown(self):
-        log.critical(f"BROWSERDBG shutdown() called: instance={'yes' if self._instance else 'none'}")
         if self._idle_task is not None:
             self._idle_task.cancel()
             with suppress(BaseException):
@@ -299,7 +264,6 @@ class BrowserHelper:
                 visit.network.append(await self._network_entry(response))
             if "dom" in artifacts:
                 visit.dom = await page.content()
-                log.critical(f"BROWSERDBG captured DOM: url={url} chars={len(visit.dom)}")
             if "screenshot" in artifacts:
                 try:
                     await asyncio.wait_for(
@@ -312,11 +276,6 @@ class BrowserHelper:
                     )
                     await page.evaluate("window.stop()")
                 visit.screenshot = await page.screenshot()
-                log.critical(f"BROWSERDBG captured SCREENSHOT: url={url} bytes={len(visit.screenshot)}")
-            if "network" in artifacts:
-                log.critical(
-                    f"BROWSERDBG captured NETWORK: url={url} requests={len(visit.network)} with_body={sum(1 for n in visit.network if n['response'] is not None)} urls={[(n['url'], n['resource_type'], n['response'] is not None) for n in visit.network][:20]}"
-                )
             return visit
 
     def _enabled_artifacts(self):
@@ -331,9 +290,6 @@ class BrowserHelper:
         if visit is None or not self._consumers:
             return
         self._visits[url] = [visit, set(self._consumers)]
-        log.critical(
-            f"BROWSERDBG cached visit: url={url} waiting_consumers={sorted(self._consumers)} cache_size={len(self._visits)}"
-        )
         while len(self._visits) > VISIT_CACHE_SIZE:
             self._visits.pop(next(iter(self._visits)))
 
@@ -343,12 +299,8 @@ class BrowserHelper:
             return None
         visit, waiting = entry
         waiting.discard(consumer)
-        log.critical(
-            f"BROWSERDBG consumer collected visit: url={url} consumer={consumer} still_waiting={sorted(waiting)}"
-        )
         if not waiting:
             self._visits.pop(url, None)
-            log.critical(f"BROWSERDBG visit dropped from cache (all consumers collected): url={url}")
         return visit
 
     # -- fetches --
@@ -357,11 +309,7 @@ class BrowserHelper:
         # its own page rather than a fetch() from another one: no CORS or CSP limits, redirects that cross origins
         # are followed, and a response the browser would download still comes back
         async with self._page(url) as page:
-            log.critical(f"BROWSERDBG fetch LOADING in its own page: url={url}")
             document, _ = await self._open(page, url)
-            log.critical(
-                f"BROWSERDBG fetch LOADED: url={url} final_url={getattr(document, 'url', None)} status={getattr(document, 'status_code', None)} bytes={len(document.content) if document is not None else None}"
-            )
             return document
 
     async def _clearance(self, url):
@@ -369,14 +317,8 @@ class BrowserHelper:
         async with self._page(url) as page:
             document, _ = await self._open(page, url)
             if document is None or document.conclusion[0] == "needs_browser":
-                log.critical(
-                    f"BROWSERDBG clearance FAILED: url={url} conclusion={getattr(document, 'conclusion', None)}"
-                )
                 return None
             cookies = {c["name"]: c["value"] for c in await page.context.cookies([url])}
-            log.critical(
-                f"BROWSERDBG clearance cookies from context: url={url} cookies={ {k: v[:12] + '...' for k, v in cookies.items()} }"
-            )
             user_agent = await page.evaluate("() => navigator.userAgent")
             return Clearance(cookies=cookies, user_agent=user_agent, response=document)
 
@@ -401,19 +343,14 @@ class BrowserHelper:
 
     async def _new_page(self, instance, host):
         instance.pages_opened += 1
-        log.critical(
-            f"BROWSERDBG opening page #{instance.pages_opened} on this browser (active={instance.active}, recycle_after={self.recycle_after})"
-        )
         return await host.context.new_page()
 
     async def _close_page(self, instance, page):
-        log.critical(f"BROWSERDBG closing page: {page.url}")
         try:
             await asyncio.wait_for(page.close(), timeout=10)
         except Exception:
             # a page that won't close means the browser is in a bad state; replace it
             log.verbose("Browser page failed to close; restarting the browser")
-            log.critical(f"BROWSERDBG page FAILED TO CLOSE, retiring browser: {page.url}")
             self._retire(instance)
 
     async def _open(self, page, url):
@@ -438,12 +375,10 @@ class BrowserHelper:
                 documents.put_nowait(response)
 
         page.on("response", on_response)
-        log.critical(f"BROWSERDBG navigating: url={url} timeout={self.page_timeout}s")
         error = None
         try:
             await self._navigate(page, url, hold)
         except Exception as e:
-            log.critical(f"BROWSERDBG navigation raised: url={url} error={e!r} have_document={not documents.empty()}")
             error = e
             if documents.empty():
                 log.debug(f"Browser failed to load {url}: {e}")
@@ -453,20 +388,13 @@ class BrowserHelper:
         if error is not None and 300 <= main.status_code < 400:
             log.debug(f"Browser failed to load {url} after a redirect to {main.headers.get('location')}: {error}")
             return None
-        log.critical(
-            f"BROWSERDBG main document: url={url} final_url={main.url} status={main.status_code} conclusion={main.conclusion}"
-        )
         deadline = time.monotonic() + CHALLENGE_TIMEOUT
         reloaded = False
         # a solved challenge navigates to the real page, so keep taking main documents until one isn't a challenge
         while main.conclusion[0] == "needs_browser":
             remaining = deadline - time.monotonic()
-            log.critical(
-                f"BROWSERDBG CHALLENGE detected ({main.conclusion[1]}), waiting for it to clear: url={url} remaining={remaining:.1f}s"
-            )
             if remaining <= 0:
                 log.verbose(f"Browser could not get past the {main.conclusion[1]} challenge at {url}")
-                log.critical(f"BROWSERDBG CHALLENGE NOT CLEARED in {CHALLENGE_TIMEOUT}s: url={url}")
                 break
             try:
                 wait = remaining if reloaded else min(remaining, CHALLENGE_RELOAD_AFTER)
@@ -474,7 +402,6 @@ class BrowserHelper:
             except asyncio.TimeoutError:
                 if not reloaded:
                     reloaded = True
-                    log.critical(f"BROWSERDBG challenge page sat still, RELOADING: url={url}")
                     with suppress(Exception):
                         await page.reload(wait_until="load", timeout=self.page_timeout * 1000)
                 continue
@@ -482,9 +409,6 @@ class BrowserHelper:
                 await page.wait_for_load_state("load", timeout=self.page_timeout * 1000)
             documents.put_nowait(next_document)
             main = await self._latest_document(documents, url)
-            log.critical(
-                f"BROWSERDBG next main document after challenge: url={url} final_url={main.url} status={main.status_code} conclusion={main.conclusion}"
-            )
         with suppress(Exception):
             await page.wait_for_load_state("networkidle", timeout=SETTLE_TIMEOUT * 1000)
         self.parent_helper.web.record_conclusion(main, by_browser=True)
@@ -504,7 +428,6 @@ class BrowserHelper:
             goto.result()
             return
         # a redirect caught before the page finished loading means it never will: its document is already complete
-        log.critical(f"BROWSERDBG redirect held before load finished, not waiting for it: url={url}")
         goto.cancel()
         with suppress(BaseException):
             await goto
@@ -560,7 +483,6 @@ class BrowserHelper:
         origin = f"{parsed.scheme}://{parsed.netloc}"
         host = instance.hosts.get(origin)
         if host is None:
-            log.critical(f"BROWSERDBG creating context for origin {origin} (contexts open: {len(instance.hosts)})")
             context = await instance.browser.new_context(
                 ignore_https_errors=not self.verify_certs, viewport={"width": VIEWPORT[0], "height": VIEWPORT[1]}
             )
@@ -578,14 +500,12 @@ class BrowserHelper:
         idle = [origin for origin, host in instance.hosts.items() if host.active == 0 and origin != keep]
         for origin in idle[: max(0, len(instance.hosts) - self.max_pages)]:
             host = instance.hosts.pop(origin)
-            log.critical(f"BROWSERDBG evicting context for origin {origin}")
             with suppress(Exception):
                 await asyncio.wait_for(host.context.close(), timeout=10)
 
     async def _route(self, route):
         request = route.request
         if self.parent_helper.preset.blacklisted(request.url):
-            log.critical(f"BROWSERDBG BLOCKED blacklisted request: {request.url}")
             await route.abort("blockedbyclient")
             return
         # scan-level custom headers and cookies, only for in-scope URLs (as with blasthttp)
@@ -607,7 +527,6 @@ class BrowserHelper:
             instance = self._instance
             if instance is not None and instance.pages_opened >= self.recycle_after:
                 log.verbose(f"Restarting the browser after {instance.pages_opened:,} pages")
-                log.critical(f"BROWSERDBG RECYCLING browser after {instance.pages_opened} pages")
                 self._retire(instance)
                 instance = None
             if instance is None or not instance.alive:
@@ -617,8 +536,6 @@ class BrowserHelper:
             return instance
 
     async def _launch(self):
-        log.critical(f"BROWSERDBG LAUNCHING browser (engine={self.engine.name})")
-        launch_started = time.monotonic()
         try:
             browser = await self.engine.launch()
         except Exception as e:
@@ -629,13 +546,9 @@ class BrowserHelper:
         if self._idle_task is None:
             self._idle_task = asyncio.create_task(self._idle_loop())
         log.verbose(f"Launched the browser ({self.engine.name})")
-        log.critical(
-            f"BROWSERDBG LAUNCHED browser in {time.monotonic() - launch_started:.1f}s (engine={self.engine.name})"
-        )
         return instance
 
     def _on_disconnected(self, instance):
-        log.critical(f"BROWSERDBG browser DISCONNECTED (closing_on_purpose={instance.closing})")
         instance.alive = False
         if self._instance is instance:
             self._instance = None
@@ -643,7 +556,6 @@ class BrowserHelper:
             self._record_crash("crashed")
 
     def _record_crash(self, what):
-        log.critical(f"BROWSERDBG CRASH recorded: {what} (recent crashes: {len(self._crashes) + 1})")
         now = time.monotonic()
         self._crash_count += 1
         self._crashes = [t for t in self._crashes if now - t < CRASH_WINDOW] + [now]
@@ -658,7 +570,6 @@ class BrowserHelper:
 
     def _retire(self, instance):
         """Stop giving out this browser; it's closed once its open pages finish."""
-        log.critical(f"BROWSERDBG retiring browser (active pages: {instance.active})")
         instance.closing = True
         if self._instance is instance:
             self._instance = None
@@ -668,7 +579,6 @@ class BrowserHelper:
             task.add_done_callback(self._closing_tasks.discard)
 
     async def _close_instance(self, instance):
-        log.critical(f"BROWSERDBG closing browser instance (pages opened: {instance.pages_opened})")
         instance.closing = True
         instance.alive = False
         with suppress(Exception):
@@ -681,7 +591,6 @@ class BrowserHelper:
             idle_for = time.monotonic() - self._last_used
             if instance is not None and instance.active == 0 and idle_for >= self.idle_timeout:
                 log.verbose(f"Shutting down the browser after {int(idle_for)}s unused")
-                log.critical(f"BROWSERDBG IDLE SHUTDOWN after {int(idle_for)}s unused")
                 async with self._launch_lock:
                     if self._instance is instance and instance.active == 0:
                         self._instance = None
@@ -698,15 +607,9 @@ class BrowserHelper:
                 return await asyncio.wait_for(operation(url), timeout=OPERATION_TIMEOUT)
             except asyncio.TimeoutError:
                 log.verbose(f"Browser timed out on {url}")
-                log.critical(
-                    f"BROWSERDBG OPERATION TIMED OUT after {OPERATION_TIMEOUT}s: {operation.__name__} url={url}"
-                )
                 return None
             except (*self.engine.errors, BrowserError) as e:
                 browser_died = self._crash_count > crashes_before or self._instance is None
-                log.critical(
-                    f"BROWSERDBG operation error: {operation.__name__} url={url} attempt={attempt} browser_died={browser_died} error={e!r}"
-                )
                 if browser_died and attempt == 1:
                     log.verbose(f"Browser died while loading {url}; retrying")
                     continue

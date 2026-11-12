@@ -225,13 +225,7 @@ class http(BaseModule):
         response = result.response
         self.helpers.web.record_conclusion(response)
         if response.conclusion[0] == "needs_browser":
-            self.critical(
-                f"BROWSERDBG http got a CHALLENGE, handing to browser fallback: {result.url} conclusion={response.conclusion}"
-            )
             response = await self.helpers.web.get_past_challenge(result.url, response, {"follow_redirects": False})
-            self.critical(
-                f"BROWSERDBG http after browser fallback: {result.url} status={response.status} conclusion={response.conclusion}"
-            )
         return await self._process_response(result.url, response, parent_event)
 
     async def _process_response(self, request_url, response, parent_event):
@@ -322,9 +316,6 @@ class http(BaseModule):
         for event in events:
             prefetched = getattr(event, "prefetched_response", None)
             if prefetched is not None:
-                self.critical(
-                    f"BROWSERDBG http USING PREFETCHED response (no request): {event.url} status={prefetched.status}"
-                )
                 await self._process_response(event.url, prefetched, event)
                 continue
             urls, url_hash = self.make_url_metadata(event)
