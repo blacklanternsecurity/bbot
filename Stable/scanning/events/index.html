@@ -6,21 +6,21 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <meta content="OSINT automation for hackers" name="description"/>
-<meta content="TheTechromancer" name="author"/>
+<meta content="Black Lantern Security" name="author"/>
 <link href="https://blacklanternsecurity.github.io/bbot/Stable/scanning/events/" rel="canonical"/>
 <link href="../presets_list/" rel="prev"/>
 <link href="../output/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.7.7" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.8.0" name="generator"/>
 <title>Events - BBOT Docs</title>
-<link href="../../assets/stylesheets/main.ec1eaa64.min.css" rel="stylesheet"/>
-<link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/main.57a0d79d.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/palette.fb2fffe2.min.css" rel="stylesheet"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.50duc_cb.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.7rsnpsc0.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -591,6 +591,18 @@
           </label>
 <ul class="md-nav__list" data-md-scrollfix="">
 <li class="md-nav__item">
+<a class="md-nav__link" href="../../migration/3.1_breaking_changes/">
+<span class="md-ellipsis">
+    
+  
+    3.0 → 3.1 Breaking Changes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../../migration/3.0_breaking_changes/">
 <span class="md-ellipsis">
     
@@ -1084,7 +1096,8 @@ event type      event data          source module    tags
 <span style="color: #6E7681">  </span><span style="color: #7EE787">"tags"</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"a-record"</span><span style="color: #E6EDF3">,</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"aaaa-record"</span><span style="color: #E6EDF3">,</span>
-<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"cdn-akamai"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"akamai"</span><span style="color: #E6EDF3">,</span>
+<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"cdn"</span><span style="color: #E6EDF3">,</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"cname-record"</span><span style="color: #E6EDF3">,</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"in-scope"</span><span style="color: #E6EDF3">,</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"subdomain"</span>
@@ -1160,10 +1173,10 @@ event type      event data          source module    tags
 </tr>
 <tr>
 <td>DNS_NAME</td>
-<td>57</td>
-<td>39</td>
-<td>anubisdb, asset_inventory, azure_tenant, baddns, baddns_zone, bevigil, bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_hetzner, bucket_microsoft, bufferoverrun, builtwith, c99, censys_dns, certspotter, chaos, credshed, crt, crt_db, dehashed, dnsbimi, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, emailformat, fullhunt, github_codesearch, github_usersearch, hackertarget, hunterio, leakix, myssl, nmap_xml, oauth, otx, pgp, portscan, rapiddns, securitytrails, securitytxt, shodan_dns, shodan_idb, skymem, speculate, subdomaincenter, subdomainradar, subdomains, trickest, urlscan, viewdns, virustotal, wayback</td>
-<td>anubisdb, azure_tenant, bevigil, bufferoverrun, builtwith, c99, censys_dns, censys_ip, certspotter, chaos, crt, crt_db, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnsresolve, fullhunt, hackertarget, hunterio, leakix, myssl, ntlm, oauth, otx, rapiddns, securitytrails, shodan_dns, shodan_idb, speculate, sslcert, subdomaincenter, subdomainradar, trickest, urlscan, viewdns, virustotal, wayback</td>
+<td>59</td>
+<td>41</td>
+<td>anubisdb, asset_inventory, azure_tenant, baddns, baddns_zone, bevigil, bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_hetzner, bucket_microsoft, bufferoverrun, builtwith, c99, censys_dns, certspotter, chaos, credshed, crt, crt_db, dehashed, dnsbimi, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnstlsrpt, emailformat, fullhunt, github_codesearch, github_usersearch, hackertarget, hunterio, leakix, myssl, nmap_xml, oauth, otilabs, otx, pgp, portscan, rapiddns, scanmalware, securitytrails, securitytxt, shodan_dns, shodan_idb, skymem, speculate, subdomaincenter, subdomainradar, subdomains, trickest, urlscan, viewdns, virustotal, wayback</td>
+<td>anubisdb, azure_tenant, bevigil, bufferoverrun, builtwith, c99, censys_dns, censys_ip, certspotter, chaos, crt, crt_db, dnsbrute, dnsbrute_mutations, dnscaa, dnscommonsrv, dnsdumpster, dnsresolve, fullhunt, hackertarget, hunterio, leakix, myssl, ntlm, oauth, otilabs, otx, rapiddns, scanmalware, securitytrails, shodan_dns, shodan_idb, speculate, sslcert, subdomaincenter, subdomainradar, trickest, urlscan, viewdns, virustotal, wayback</td>
 </tr>
 <tr>
 <td>DNS_NAME_UNRESOLVED</td>
@@ -1196,9 +1209,9 @@ event type      event data          source module    tags
 <tr>
 <td>FINDING</td>
 <td>2</td>
-<td>38</td>
+<td>41</td>
 <td>asset_inventory, web_report</td>
-<td>ajaxpro, aspnet_bin_exposure, azure_tenant, baddns, baddns_direct, baddns_zone, badsecrets, bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_hetzner, bucket_microsoft, bypass403, dotnetnuke, generic_ssrf, git, gitlab_onprem, graphql_introspection, host_header, hunt, legba, lightfuzz, medusa, newsletters, ntlm, nuclei, reflected_parameters, retirejs, shodan_enterprise, shodan_idb, speculate, telerik, trajan, trufflehog, url_manipulation, waf_bypass, wayback</td>
+<td>ajaxpro, aspnet_bin_exposure, azure_tenant, baddns, baddns_direct, baddns_zone, badsecrets, bucket_amazon, bucket_digitalocean, bucket_firebase, bucket_google, bucket_hetzner, bucket_microsoft, bypass403, dotnetnuke, excavate, generic_ssrf, git, gitlab_onprem, graphql_introspection, host_header, hunt, js_unpacker, legba, lightfuzz, medusa, newsletters, nowafpls, ntlm, nuclei, reflected_parameters, retirejs, shodan_enterprise, shodan_idb, speculate, telerik, trajan, trufflehog, url_manipulation, waf_bypass, wayback</td>
 </tr>
 <tr>
 <td>GEOLOCATION</td>
@@ -1216,10 +1229,10 @@ event type      event data          source module    tags
 </tr>
 <tr>
 <td>HTTP_RESPONSE</td>
-<td>18</td>
-<td>4</td>
-<td>ajaxpro, asset_inventory, badsecrets, dotnetnuke, excavate, filedownload, gitlab_onprem, host_header, newsletters, nmap_xml, ntlm, paramminer_cookies, paramminer_getparams, paramminer_headers, speculate, sslcert, telerik, trufflehog</td>
-<td>http, lightfuzz, virtualhost, wayback</td>
+<td>20</td>
+<td>5</td>
+<td>ajaxpro, asset_inventory, badsecrets, dotnetnuke, excavate, favicon, filedownload, gitlab_onprem, host_header, js_unpacker, newsletters, nmap_xml, ntlm, paramminer_cookies, paramminer_getparams, paramminer_headers, speculate, sslcert, telerik, trufflehog</td>
+<td>http, js_unpacker, lightfuzz, virtualhost, wayback</td>
 </tr>
 <tr>
 <td>IP_ADDRESS</td>
@@ -1244,9 +1257,9 @@ event type      event data          source module    tags
 </tr>
 <tr>
 <td>OPEN_TCP_PORT</td>
-<td>5</td>
+<td>4</td>
 <td>6</td>
-<td>asset_inventory, fingerprintx, http, nmap_xml, portfilter</td>
+<td>asset_inventory, fingerprintx, http, nmap_xml</td>
 <td>asset_inventory, censys_ip, portscan, shodan_enterprise, shodan_idb, speculate</td>
 </tr>
 <tr>
@@ -1308,15 +1321,15 @@ event type      event data          source module    tags
 <tr>
 <td>TECHNOLOGY</td>
 <td>4</td>
-<td>9</td>
+<td>10</td>
 <td>asset_inventory, gitlab_onprem, trajan, web_report</td>
-<td>ajaxpro, badsecrets, censys_ip, dotnetnuke, gitlab_onprem, gowitness, nuclei, shodan_enterprise, shodan_idb</td>
+<td>ajaxpro, badsecrets, censys_ip, dotnetnuke, favicon, gitlab_onprem, gowitness, nuclei, shodan_enterprise, shodan_idb</td>
 </tr>
 <tr>
 <td>URL</td>
 <td>25</td>
 <td>2</td>
-<td>ajaxpro, aspnet_bin_exposure, asset_inventory, baddns_direct, bypass403, generic_ssrf, git, gowitness, graphql_introspection, http, iis_shortnames, lightfuzz, ntlm, nuclei, portfilter, robots, speculate, telerik, url_manipulation, virtualhost, waf_bypass, wafw00f, wayback, web_report, webbrute</td>
+<td>ajaxpro, aspnet_bin_exposure, asset_inventory, baddns_direct, bypass403, generic_ssrf, git, gowitness, graphql_introspection, http, iis_shortnames, lightfuzz, nowafpls, ntlm, nuclei, robots, speculate, telerik, url_manipulation, virtualhost, waf_bypass, wafw00f, wayback, web_report, webbrute</td>
 <td>gowitness, http</td>
 </tr>
 <tr>
@@ -1328,10 +1341,10 @@ event type      event data          source module    tags
 </tr>
 <tr>
 <td>URL_UNVERIFIED</td>
-<td>9</td>
-<td>19</td>
-<td>code_repository, filedownload, http, oauth, portfilter, retirejs, social, speculate, trajan</td>
-<td>azure_tenant, bevigil, bucket_file_enum, censys_ip, dnsbimi, dnscaa, dnstlsrpt, dockerhub, excavate, fingerprintx, github_codesearch, gowitness, hunterio, robots, securitytxt, urlscan, wayback, webbrute, webbrute_shortnames</td>
+<td>8</td>
+<td>20</td>
+<td>code_repository, filedownload, http, oauth, retirejs, social, speculate, trajan</td>
+<td>azure_tenant, bevigil, bucket_file_enum, censys_ip, dnsbimi, dnscaa, dnstlsrpt, dockerhub, excavate, fingerprintx, github_codesearch, gowitness, hunterio, js_unpacker, robots, securitytxt, urlscan, wayback, webbrute, webbrute_shortnames</td>
 </tr>
 <tr>
 <td>USERNAME</td>
@@ -1395,8 +1408,8 @@ event type      event data          source module    tags
 <div class="md-dialog" data-md-component="dialog">
 <div class="md-dialog__inner md-typeset"></div>
 </div>
-<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
-<script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
+<script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
 <script src="../../javascripts/tablesort.js"></script>
 <script src="../../javascripts/tablesort.min.js"></script>
 <script src="../../javascripts/vega@5.js"></script>

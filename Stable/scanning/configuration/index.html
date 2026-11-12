@@ -6,21 +6,21 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <meta content="OSINT automation for hackers" name="description"/>
-<meta content="TheTechromancer" name="author"/>
+<meta content="Black Lantern Security" name="author"/>
 <link href="https://blacklanternsecurity.github.io/bbot/Stable/scanning/configuration/" rel="canonical"/>
 <link href="../advanced/" rel="prev"/>
 <link href="../scan_sanity/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.7.7" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.8.0" name="generator"/>
 <title>Configuration - BBOT Docs</title>
-<link href="../../assets/stylesheets/main.ec1eaa64.min.css" rel="stylesheet"/>
-<link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/main.57a0d79d.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/palette.fb2fffe2.min.css" rel="stylesheet"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.50duc_cb.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.7rsnpsc0.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -609,6 +609,18 @@
           </label>
 <ul class="md-nav__list" data-md-scrollfix="">
 <li class="md-nav__item">
+<a class="md-nav__link" href="../../migration/3.1_breaking_changes/">
+<span class="md-ellipsis">
+    
+  
+    3.0 → 3.1 Breaking Changes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="../../migration/3.0_breaking_changes/">
 <span class="md-ellipsis">
     
@@ -1027,7 +1039,7 @@
 <article class="md-content__inner md-typeset">
 <h1 id="configuration-overview">Configuration Overview</h1>
 <p>Normally, <a href="../presets/">Presets</a> are used to configure a scan. However, there may be cases where you want to change BBOT's global defaults so a certain option is always set, even if it's not specified in a preset.</p>
-<p>BBOT has a YAML config at <code>~/.config/bbot/bbot.yml</code>. This is the first config that BBOT loads, so it's a good place to put default settings like <code>http_proxy</code>, <code>max_threads</code>, or <code>http_user_agent</code>. <strong>API keys</strong> and other sensitive values go in a companion file at <code>~/.config/bbot/secrets.yml</code>.</p>
+<p>BBOT has a YAML config at <code>~/.config/bbot/bbot.yml</code>. This is the first config that BBOT loads, so it's a good place to put default settings like <code>web.http_proxy</code>, <code>web.user_agent</code>, or <code>dns.threads</code>. <strong>API keys</strong> and other sensitive values go in a companion file at <code>~/.config/bbot/secrets.yml</code>.</p>
 <p>For a list of all possible config options, see:</p>
 <ul>
 <li><a href="#global-config-options">Global Options</a></li>
@@ -1113,16 +1125,35 @@ Is the same as:
 <span style="color: #6E7681">  </span><span style="color: #7EE787">disable</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">false</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Speed up scan by not creating any new DNS events, and only resolving A and AAAA records</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">minimal</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">false</span>
-<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How many threads to use per resolver (best way to increase speed is to put more resolvers in /etc/resolv.conf)</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">threads</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">10</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Nameservers to use instead of the system ones (empty = use system resolvers)</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">nameservers</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[]</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How many queries to keep in flight per resolver (adaptive pacing backs off if a resolver starts dropping queries)</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">threads</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">50</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Ceiling on queries in flight across all resolvers, however many are configured</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">max_concurrency</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">256</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How many DNS records to cache</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">cache_size</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">100000</span>
-<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How many concurrent DNS resolvers to use when brute-forcing</span>
-<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># (under the hood this is passed through directly to massdns -s)</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How many brute-force DNS queries to keep in flight at once</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">brute_threads</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">1000</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How many brute-force queries to keep in flight per resolver (the politeness bound)</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">brute_inflight_per_resolver</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">2</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Hard ceiling on brute-force DNS queries per second (0 = unlimited; backoff is automatic regardless)</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">brute_rate_limit</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">0</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Attempts per brute-force name before giving up (each retry lands on a different resolver)</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Only timeouts retry, not NXDOMAIN, so this costs traffic proportional to the failure rate</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">brute_retries</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">20</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Per-query timeout in seconds when brute-forcing, deliberately much shorter than dns.timeout</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Retrying elsewhere is cheaper than waiting; going below this starts shrinking the resolver pool</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">brute_timeout</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">0.5</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Reuse one socket per resolver instead of binding one per query, which keeps NAT/conntrack</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># state bounded by the resolver count rather than growing with query volume</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">brute_persistent_socket</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># nameservers to use for DNS brute-forcing</span>
-<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># default is updated weekly and contains ~10K high-quality public servers</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># default is updated weekly and contains ~5K high-quality public servers</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">brute_nameservers</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How many of those to draw at random, once per scan (0 = all of them)</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># The dead ones in the draw are dropped at startup, and every brute-force run in the scan shares the rest</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">brute_max_resolvers</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">600</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># How far away from the main target to explore via DNS resolution (independent of scope.search_distance)</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># This is safe to change</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">search_distance</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">1</span>
@@ -1200,6 +1231,12 @@ Is the same as:
 <span style="color: #6E7681">  </span><span style="color: #7EE787">ssl_verify_target</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">false</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Whether to verify SSL certificates for non-target traffic (APIs, wordlist downloads, etc.)</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">ssl_verify_infrastructure</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># nowafpls WAF-bypass body padding sizes, tried largest first.</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># The probe steps down a rung only when the origin explicitly rejects the size with a 413;</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># 1 MiB is exactly nginx's default client_max_body_size, hence the 128 KiB fallback.</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">nowafpls_padding_sizes</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #79C0FF">1048576</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">131072</span><span style="color: #E6EDF3">]</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Payload the nowafpls probe uses to detect whether the WAF is interfering at all</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">nowafpls_payload</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"&lt;script&gt;alert(1)&lt;/script&gt;"</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Maximum HTTP requests per second (0 = unlimited)</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># Applies globally across all blasthttp consumers (http probing, web brute, etc.)</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">http_rate_limit</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">0</span>
@@ -1231,9 +1268,6 @@ Is the same as:
 
 <span style="color: #8B949E; font-style: italic">### ADVANCED OPTIONS ###</span>
 
-<span style="color: #8B949E; font-style: italic"># Load BBOT modules from these custom paths</span>
-<span style="color: #7EE787">module_dirs</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[]</span>
-
 <span style="color: #8B949E; font-style: italic"># maximum runtime in seconds for each module's handle_event() is 60 minutes</span>
 <span style="color: #8B949E; font-style: italic"># when the timeout is reached, the offending handle_event() will be cancelled and the module will move on to the next event</span>
 <span style="color: #7EE787">module_handle_event_timeout</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">3600</span>
@@ -1257,6 +1291,21 @@ Is the same as:
 <span style="color: #7EE787">url_querystring_remove</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span>
 <span style="color: #8B949E; font-style: italic"># When query string is retained, by default collapse parameter values down to a single value per parameter</span>
 <span style="color: #7EE787">url_querystring_collapse</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span>
+<span style="color: #8B949E; font-style: italic"># Reject URLs whose path repeats the same path parameter this many times (e.g. a session id appended on every redirect)</span>
+<span style="color: #7EE787">url_max_path_param_repeats</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">10</span>
+
+<span style="color: #8B949E; font-style: italic"># Drop open ports and URLs on CDN/WAF hosts unless the port is allowed or was explicitly targeted</span>
+<span style="color: #8B949E; font-style: italic"># CDN edges answer on many ports (e.g. Cloudflare's 2052-2096, 8080, 8443) that rarely lead anywhere useful</span>
+<span style="color: #7EE787">cdn_port_filter</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">enabled</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># hosts with any of these tags are considered CDN/WAF hosts</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">tags</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">cdn</span>
+<span style="color: #6E7681">    </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">waf</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># ports that are still allowed on CDN/WAF hosts</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">allowed_ports</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">80</span>
+<span style="color: #6E7681">    </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">443</span>
 
 <span style="color: #8B949E; font-style: italic"># Completely ignore URLs with these extensions</span>
 <span style="color: #7EE787">url_extension_blacklist</span><span style="color: #E6EDF3">:</span>
@@ -1456,7 +1505,7 @@ Is the same as:
 <tr>
 <td>modules.baddns.enabled_submodules</td>
 <td>list[str]</td>
-<td>A list of submodules to enable. Empty list (default) enables CNAME, TXT and MX Only</td>
+<td>A list of submodules to enable. Empty list (default) enables CNAME, MX, TXT and DELEGATION Only</td>
 <td>[]</td>
 </tr>
 <tr>
@@ -1586,6 +1635,12 @@ Is the same as:
 <td>False</td>
 </tr>
 <tr>
+<td>modules.favicon.signatures_url</td>
+<td>str</td>
+<td>URL of the nuclei favicon-detect template to load favicon signatures from</td>
+<td>https://raw.githubusercontent.com/projectdiscovery/nuclei-templates/main/http/technologies/favicon-detect.yaml</td>
+</tr>
+<tr>
 <td>modules.filedownload.extensions</td>
 <td>list[str]</td>
 <td>File extensions to download</td>
@@ -1611,7 +1666,7 @@ Is the same as:
 </tr>
 <tr>
 <td>modules.fingerprintx.version</td>
-<td>str</td>
+<td>VersionStr</td>
 <td>fingerprintx version</td>
 <td>1.1.4</td>
 </tr>
@@ -1683,7 +1738,7 @@ Is the same as:
 </tr>
 <tr>
 <td>modules.gowitness.version</td>
-<td>str</td>
+<td>VersionStr</td>
 <td>Gowitness version</td>
 <td>3.1.1</td>
 </tr>
@@ -1791,7 +1846,7 @@ Is the same as:
 </tr>
 <tr>
 <td>modules.legba.version</td>
-<td>str</td>
+<td>VersionStr</td>
 <td>legba version</td>
 <td>1.1.1</td>
 </tr>
@@ -1803,9 +1858,9 @@ Is the same as:
 </tr>
 <tr>
 <td>modules.lightfuzz.avoid_wafs</td>
-<td>bool</td>
-<td>Avoid running against confirmed WAFs, which are likely to block lightfuzz requests</td>
-<td>True</td>
+<td>Literal['always', 'never', 'try_bypasses']</td>
+<td>How to handle WAF-tagged targets. 'always' skips them entirely; 'never' fuzzes them regardless, still padding request bodies where padding gets through; 'try_bypasses' (default) asks nowafpls whether body padding gets through, and fuzzes with padding when it does.</td>
+<td>try_bypasses</td>
 </tr>
 <tr>
 <td>modules.lightfuzz.disable_post</td>
@@ -1830,6 +1885,12 @@ Is the same as:
 <td>bool</td>
 <td>Force emit commonly exploitable parameters that may be difficult to detect</td>
 <td>False</td>
+</tr>
+<tr>
+<td>modules.lightfuzz.max_baseline_generations</td>
+<td>int</td>
+<td>Stop emitting baseline responses once a parameter is this many lightfuzz generations deep, bounding excavate feedback loops.</td>
+<td>10</td>
 </tr>
 <tr>
 <td>modules.lightfuzz.try_get_as_post</td>
@@ -1910,6 +1971,30 @@ Is the same as:
 <td></td>
 </tr>
 <tr>
+<td>modules.nuclei.etypes</td>
+<td>str</td>
+<td>protocol types to exclude from the scan, comma-separated (dns, file, http, headless, tcp, workflow, ssl, websocket, whois, code, javascript)</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.nuclei.exclude_ids</td>
+<td>str</td>
+<td>Exclude templates with the given IDs</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.nuclei.exclude_severity</td>
+<td>str</td>
+<td>Filter out templates with the given severities</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.nuclei.include_tags</td>
+<td>str</td>
+<td>tags to run even though nuclei excludes them by default (e.g. dos, fuzz, bruteforce)</td>
+<td></td>
+</tr>
+<tr>
 <td>modules.nuclei.mode</td>
 <td>Literal['manual', 'technology', 'severe', 'budget']</td>
 <td>manual | technology | severe | budget. Technology: Only activate based on technology events that match nuclei tags (nuclei -as mode). Manual (DEFAULT): Fully manual settings. Severe: Only critical and high severity templates without intrusive. Budget: Limit Nuclei to a specified number of HTTP requests</td>
@@ -1920,6 +2005,30 @@ Is the same as:
 <td>int</td>
 <td>Max time in seconds to spend handling each batch of events</td>
 <td>21600</td>
+</tr>
+<tr>
+<td>modules.nuclei.new_templates</td>
+<td>bool</td>
+<td>Only run templates added in the latest templates release</td>
+<td>False</td>
+</tr>
+<tr>
+<td>modules.nuclei.new_templates_versions</td>
+<td>str</td>
+<td>Only run templates added in the given templates releases, e.g. 'v10.4.8,v10.4.9'</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.nuclei.profile</td>
+<td>str</td>
+<td>nuclei template profile to run (built-in profile id, or path to a profile file)</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.nuclei.protocol_types</td>
+<td>str</td>
+<td>Only run templates of the given protocol types (http, dns, ssl, tcp, javascript, etc.)</td>
+<td></td>
 </tr>
 <tr>
 <td>modules.nuclei.ratelimit</td>
@@ -1952,6 +2061,18 @@ Is the same as:
 <td></td>
 </tr>
 <tr>
+<td>modules.nuclei.template_condition</td>
+<td>str</td>
+<td><code>expression to filter templates by, e.g. "epss_score&gt;=0.1 &amp;&amp; max_request&lt;=3"</code></td>
+<td></td>
+</tr>
+<tr>
+<td>modules.nuclei.template_ids</td>
+<td>str</td>
+<td>Only run templates with the given IDs (wildcards allowed)</td>
+<td></td>
+</tr>
+<tr>
 <td>modules.nuclei.templates</td>
 <td>str</td>
 <td>template or template directory paths to include in the scan</td>
@@ -1959,7 +2080,7 @@ Is the same as:
 </tr>
 <tr>
 <td>modules.nuclei.version</td>
-<td>str</td>
+<td>VersionStr</td>
 <td>nuclei version</td>
 <td>3.11.1</td>
 </tr>
@@ -2109,7 +2230,7 @@ Is the same as:
 </tr>
 <tr>
 <td>modules.retirejs.node_version</td>
-<td>str</td>
+<td>VersionStr</td>
 <td>Node.js version to install locally</td>
 <td>18.19.1</td>
 </tr>
@@ -2121,7 +2242,7 @@ Is the same as:
 </tr>
 <tr>
 <td>modules.retirejs.version</td>
-<td>str</td>
+<td>VersionStr</td>
 <td>retire.js version</td>
 <td>5.3.0</td>
 </tr>
@@ -2156,16 +2277,40 @@ Is the same as:
 <td>True</td>
 </tr>
 <tr>
-<td>modules.telerik.exploit_RAU_crypto</td>
+<td>modules.telerik.custom_secrets</td>
+<td>Optional[str]</td>
+<td>Path to a file with additional Telerik hash/encryption keys to spray, one per line.</td>
+<td>None</td>
+</tr>
+<tr>
+<td>modules.telerik.include_machinekeys</td>
 <td>bool</td>
-<td>Attempt to confirm any RAU AXD detections are vulnerable</td>
+<td>Also spray ASP.NET machineKey values (thousands of keys, much slower).</td>
 <td>False</td>
 </tr>
 <tr>
 <td>modules.telerik.include_subdirs</td>
 <td>bool</td>
-<td>Include subdirectories in the scan (off by default)</td>
+<td>Probe every discovered subdirectory instead of only the site root.</td>
 <td>False</td>
+</tr>
+<tr>
+<td>modules.telerik.probe_dialoghandler_oracle</td>
+<td>bool</td>
+<td>After DialogHandler detection, probe for CVE-2017-9248 oracle-vulnerable state.</td>
+<td>True</td>
+</tr>
+<tr>
+<td>modules.telerik.rau_confirm_version</td>
+<td>bool</td>
+<td>WARNING: writes a benign 1-byte file to the target's C:\windows\temp\ on success. Iterates candidate Telerik versions with default keys; the version that uploads is the installed one, which also confirms RCE.</td>
+<td>False</td>
+</tr>
+<tr>
+<td>modules.telerik.try_known_keys</td>
+<td>bool</td>
+<td>After DialogHandler detection, spray known Telerik hash/encryption keys (via badsecrets).</td>
+<td>True</td>
 </tr>
 <tr>
 <td>modules.url_manipulation.allow_redirects</td>
@@ -2250,6 +2395,12 @@ Is the same as:
 <td>int</td>
 <td>CIDR mask (24-31) used for neighbor enumeration when search_ip_neighbors is true</td>
 <td>28</td>
+</tr>
+<tr>
+<td>modules.waf_bypass.scan_targets_only</td>
+<td>bool</td>
+<td>Only attempt bypasses against WAF-protected hosts that were explicitly specified as scan targets</td>
+<td>True</td>
 </tr>
 <tr>
 <td>modules.waf_bypass.search_ip_neighbors</td>
@@ -2534,6 +2685,18 @@ Is the same as:
 <td>True</td>
 </tr>
 <tr>
+<td>modules.dnsdumpster.api_key</td>
+<td>str | list[str]</td>
+<td>DNSDumpster API key</td>
+<td></td>
+</tr>
+<tr>
+<td>modules.dnsdumpster.max_pages</td>
+<td>int</td>
+<td>Maximum result pages to request per domain</td>
+<td>10</td>
+</tr>
+<tr>
 <td>modules.dnstlsrpt.emit_emails</td>
 <td>bool</td>
 <td>Emit EMAIL_ADDRESS events</td>
@@ -2702,6 +2865,12 @@ Is the same as:
 <td></td>
 </tr>
 <tr>
+<td>modules.otilabs.api_key</td>
+<td>str | list[str]</td>
+<td>RapidAPI key subscribed to the OTI Labs Domain Intelligence API</td>
+<td></td>
+</tr>
+<tr>
 <td>modules.otx.api_key</td>
 <td>str | list[str]</td>
 <td>OTX API key</td>
@@ -2712,18 +2881,6 @@ Is the same as:
 <td>list[str]</td>
 <td>PGP key servers to search</td>
 <td><code>['https://keyserver.ubuntu.com/pks/lookup?fingerprint=on&amp;op=vindex&amp;search=&lt;query&gt;', 'http://the.earth.li:11371/pks/lookup?fingerprint=on&amp;op=vindex&amp;search=&lt;query&gt;', 'https://pgpkeys.eu/pks/lookup?search=&lt;query&gt;&amp;op=index', 'https://pgp.mit.edu/pks/lookup?search=&lt;query&gt;&amp;op=index']</code></td>
-</tr>
-<tr>
-<td>modules.portfilter.allowed_cdn_ports</td>
-<td>str</td>
-<td>Comma-separated list of ports that are allowed to be scanned for CDNs</td>
-<td>80,443</td>
-</tr>
-<tr>
-<td>modules.portfilter.cdn_tags</td>
-<td>str</td>
-<td>Comma-separated list of tags to skip, e.g. 'cdn,waf'</td>
-<td>cdn,waf</td>
 </tr>
 <tr>
 <td>modules.postman.api_key</td>
@@ -2766,12 +2923,6 @@ Is the same as:
 <td>bool</td>
 <td>Only query in-scope IPs. If False, will query up to distance 1.</td>
 <td>True</td>
-</tr>
-<tr>
-<td>modules.shodan_idb.retries</td>
-<td>Optional[int]</td>
-<td>How many times to retry API requests (e.g. after a 429 error). Overrides the global web.api_retries setting.</td>
-<td>None</td>
 </tr>
 <tr>
 <td>modules.subdomainradar.api_key</td>
@@ -2835,7 +2986,7 @@ Is the same as:
 </tr>
 <tr>
 <td>modules.trajan.version</td>
-<td>str</td>
+<td>VersionStr</td>
 <td>Trajan version to download and use</td>
 <td>1.0.0</td>
 </tr>
@@ -2871,9 +3022,9 @@ Is the same as:
 </tr>
 <tr>
 <td>modules.trufflehog.version</td>
-<td>str</td>
+<td>VersionStr</td>
 <td>trufflehog version</td>
-<td>3.96.0</td>
+<td>3.99.8</td>
 </tr>
 <tr>
 <td>modules.urlscan.urls</td>
@@ -2960,12 +3111,6 @@ Is the same as:
 <td>LOW</td>
 </tr>
 <tr>
-<td>modules.discord.retries</td>
-<td>int</td>
-<td>Number of times to retry sending the message before skipping the event</td>
-<td>10</td>
-</tr>
-<tr>
 <td>modules.discord.webhook_url</td>
 <td>str</td>
 <td>Discord webhook URL</td>
@@ -2976,6 +3121,12 @@ Is the same as:
 <td>str</td>
 <td>Elastic password</td>
 <td>bbotislife</td>
+</tr>
+<tr>
+<td>modules.elastic.ssl_verify</td>
+<td>bool | None</td>
+<td>Verify SSL certificates (Elastic usually serves a self-signed cert; set to null to use the global web.ssl_verify_infrastructure setting)</td>
+<td>False</td>
 </tr>
 <tr>
 <td>modules.elastic.timeout</td>
@@ -3176,12 +3327,6 @@ Is the same as:
 <td>LOW</td>
 </tr>
 <tr>
-<td>modules.slack.retries</td>
-<td>int</td>
-<td>Number of times to retry sending the message before skipping the event</td>
-<td>10</td>
-</tr>
-<tr>
 <td>modules.slack.webhook_url</td>
 <td>str</td>
 <td>Slack webhook URL</td>
@@ -3284,12 +3429,6 @@ Is the same as:
 <td>LOW</td>
 </tr>
 <tr>
-<td>modules.teams.retries</td>
-<td>int</td>
-<td>Number of times to retry sending the message before skipping the event</td>
-<td>10</td>
-</tr>
-<tr>
 <td>modules.teams.webhook_url</td>
 <td>str</td>
 <td>Teams webhook URL</td>
@@ -3350,6 +3489,12 @@ Is the same as:
 <td></td>
 </tr>
 <tr>
+<td>modules.webhook.ssl_verify</td>
+<td>bool | None</td>
+<td>Verify SSL certificates (defaults to the global web.ssl_verify_infrastructure setting)</td>
+<td>None</td>
+</tr>
+<tr>
 <td>modules.webhook.timeout</td>
 <td>int</td>
 <td>HTTP timeout</td>
@@ -3402,6 +3547,12 @@ Is the same as:
 <td>str</td>
 <td>Include custom Yara rules</td>
 <td></td>
+</tr>
+<tr>
+<td>modules.excavate.long_redirect_threshold</td>
+<td>int</td>
+<td>Minimum number of bytes following the end of the HTML document for a 3xx response to be reported as a long redirection response. Set to 0 to disable the check.</td>
+<td>2048</td>
 </tr>
 <tr>
 <td>modules.excavate.max_form_bytes</td>
@@ -3465,8 +3616,8 @@ Is the same as:
 <div class="md-dialog" data-md-component="dialog">
 <div class="md-dialog__inner md-typeset"></div>
 </div>
-<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
-<script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
+<script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
 <script src="../../javascripts/tablesort.js"></script>
 <script src="../../javascripts/tablesort.min.js"></script>
 <script src="../../javascripts/vega@5.js"></script>

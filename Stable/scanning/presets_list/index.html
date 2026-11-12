@@ -6,21 +6,21 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <meta content="OSINT automation for hackers" name="description"/>
-<meta content="TheTechromancer" name="author"/>
+<meta content="Black Lantern Security" name="author"/>
 <link href="https://blacklanternsecurity.github.io/bbot/Stable/scanning/presets_list/" rel="canonical"/>
 <link href="../presets/" rel="prev"/>
 <link href="../events/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.7.7" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.8.0" name="generator"/>
 <title>List of Presets - BBOT Docs</title>
-<link href="../../assets/stylesheets/main.ec1eaa64.min.css" rel="stylesheet"/>
-<link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/main.57a0d79d.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/palette.fb2fffe2.min.css" rel="stylesheet"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.50duc_cb.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.7rsnpsc0.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -499,6 +499,24 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="#nuclei-new">
+<span class="md-ellipsis">
+      
+        nuclei-new
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#nuclei-recommended">
+<span class="md-ellipsis">
+      
+        nuclei-recommended
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="#nuclei-technology">
 <span class="md-ellipsis">
       
@@ -874,6 +892,18 @@
 
           </label>
 <ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../migration/3.1_breaking_changes/">
+<span class="md-ellipsis">
+    
+  
+    3.0 → 3.1 Breaking Changes
+  
+
+    
+  </span>
+</a>
+</li>
 <li class="md-nav__item">
 <a class="md-nav__link" href="../../migration/3.0_breaking_changes/">
 <span class="md-ellipsis">
@@ -1306,7 +1336,7 @@
 <span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">baddns</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">      </span><span style="color: #7EE787">enabled_submodules</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #79C0FF">CNAME</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">MX</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">TXT</span><span style="color: #E6EDF3">]</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">enabled_submodules</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #79C0FF">CNAME</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">MX</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">TXT</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">DELEGATION</span><span style="color: #E6EDF3">]</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">min_severity</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">LOW</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">min_confidence</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">MEDIUM</span>
 </code></pre></div>
@@ -1328,7 +1358,7 @@
 <span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">baddns</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">      </span><span style="color: #7EE787">enabled_submodules</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #79C0FF">CNAME</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">NS</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">MX</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">TXT</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">references</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">DMARC</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">SPF</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">MTA-STS</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">WILDCARD</span><span style="color: #E6EDF3">]</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">enabled_submodules</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #79C0FF">CNAME</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">NS</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">MX</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">TXT</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">references</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">DMARC</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">SPF</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">MTA-STS</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">WILDCARD</span><span style="color: #E6EDF3">,</span><span style="color: #6E7681"> </span><span style="color: #79C0FF">DELEGATION</span><span style="color: #E6EDF3">]</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">min_severity</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">INFO</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">min_confidence</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">UNKNOWN</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">baddns_zone</span><span style="color: #E6EDF3">:</span>
@@ -1393,7 +1423,7 @@
 <span style="color: #6E7681">    </span><span style="color: #7EE787">webbrute_shortnames</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">find_subwords</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">telerik</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">      </span><span style="color: #7EE787">exploit_RAU_crypto</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">rau_confirm_version</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span><span style="color: #6E7681"> </span><span style="color: #8B949E; font-style: italic"># Identify the exact Telerik version by uploading a benign 1-byte file</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">include_subdirs</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span><span style="color: #6E7681"> </span><span style="color: #8B949E; font-style: italic"># Run against every directory, not the default first received URL per-host</span>
 </code></pre></div>
 </details>
@@ -1468,6 +1498,7 @@
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">retirejs</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">robots</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">wayback</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">js_unpacker</span>
 
 <span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
@@ -1516,10 +1547,10 @@
 </details>
 <p>Modules: <a href="" title="">0</a></p>
 <h2 id="lightfuzz"><strong>lightfuzz</strong></h2>
-<p>Default fuzzing: all 9 submodules (cmdi, crypto, path, serial, sqli, ssti, xss, esi, ssrf) plus companion modules (badsecrets, hunt, reflected_parameters). POST fuzzing disabled but try_post_as_get enabled, so POST params are retested as GET. Skips confirmed WAFs.</p>
+<p>Default fuzzing: all 9 submodules (cmdi, crypto, path, serial, sqli, ssti, xss, esi, ssrf) plus companion modules (badsecrets, hunt, reflected_parameters). POST fuzzing disabled but try_post_as_get enabled, so POST params are retested as GET. On WAF-tagged hosts, only request-body parameters are fuzzed, and only if the WAF doesn't block them or nowafpls body padding gets them past it.</p>
 <details class="note">
 <summary><code>lightfuzz.yml</code></summary>
-<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/lightfuzz.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"Default</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">fuzzing:</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">all</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">9</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">submodules</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">(cmdi,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">crypto,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">path,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">serial,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">sqli,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">ssti,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">xss,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">esi,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">ssrf)</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">plus</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">companion</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">modules</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">(badsecrets,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">hunt,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">reflected_parameters).</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">POST</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">fuzzing</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">disabled</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">but</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">try_post_as_get</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">enabled,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">so</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">POST</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">params</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">are</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">retested</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">as</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">GET.</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">Skips</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">confirmed</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">WAFs."</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/lightfuzz.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"Default</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">fuzzing:</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">all</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">9</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">submodules</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">(cmdi,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">crypto,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">path,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">serial,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">sqli,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">ssti,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">xss,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">esi,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">ssrf)</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">plus</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">companion</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">modules</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">(badsecrets,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">hunt,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">reflected_parameters).</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">POST</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">fuzzing</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">disabled</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">but</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">try_post_as_get</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">enabled,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">so</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">POST</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">params</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">are</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">retested</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">as</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">GET.</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">On</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">WAF-tagged</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">hosts,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">only</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">request-body</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">parameters</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">are</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">fuzzed,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">and</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">only</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">if</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">the</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">WAF</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">doesn't</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">block</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">them</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">or</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">nowafpls</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">body</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">padding</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">gets</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">them</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">past</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">it."</span>
 
 <span style="color: #7EE787">include</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">lightfuzz-light</span>
@@ -1527,6 +1558,7 @@
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">badsecrets</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">hunt</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">nowafpls</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">reflected_parameters</span>
 
 <span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
@@ -1534,15 +1566,16 @@
 <span style="color: #6E7681">    </span><span style="color: #7EE787">lightfuzz</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">enabled_submodules</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #79C0FF">cmdi</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">crypto</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">path</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">serial</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">sqli</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">ssti</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">xss</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">esi</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">ssrf</span><span style="color: #E6EDF3">]</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">try_post_as_get</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">avoid_wafs</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">try_bypasses</span>
 </code></pre></div>
 </details>
 <p>Category: web</p>
 <p>Modules: <a href="" title="">0</a></p>
 <h2 id="lightfuzz-heavy"><strong>lightfuzz-heavy</strong></h2>
-<p>Aggressive fuzzing: everything in lightfuzz, plus paramminer brute-force parameter discovery (headers, GET params, cookies), POST request fuzzing enabled, try_get_as_post enabled (GET params retested as POST), and robots.txt parsing. Still skips confirmed WAFs.</p>
+<p>Aggressive fuzzing: everything in lightfuzz, plus paramminer brute-force parameter discovery (headers, GET params, cookies), POST request fuzzing enabled, try_get_as_post enabled (GET params retested as POST), and robots.txt parsing. On WAF-tagged hosts, only request-body parameters are fuzzed, and only if the WAF doesn't block them or nowafpls body padding gets them past it.</p>
 <details class="note">
 <summary><code>lightfuzz-heavy.yml</code></summary>
-<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/lightfuzz-heavy.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"Aggressive</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">fuzzing:</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">everything</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">in</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">lightfuzz,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">plus</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">paramminer</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">brute-force</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">parameter</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">discovery</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">(headers,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">GET</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">params,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">cookies),</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">POST</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">request</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">fuzzing</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">enabled,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">try_get_as_post</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">enabled</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">(GET</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">params</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">retested</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">as</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">POST),</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">and</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">robots.txt</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">parsing.</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">Still</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">skips</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">confirmed</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">WAFs."</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/lightfuzz-heavy.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"Aggressive</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">fuzzing:</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">everything</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">in</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">lightfuzz,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">plus</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">paramminer</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">brute-force</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">parameter</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">discovery</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">(headers,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">GET</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">params,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">cookies),</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">POST</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">request</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">fuzzing</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">enabled,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">try_get_as_post</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">enabled</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">(GET</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">params</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">retested</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">as</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">POST),</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">and</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">robots.txt</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">parsing.</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">On</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">WAF-tagged</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">hosts,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">only</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">request-body</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">parameters</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">are</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">fuzzed,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">and</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">only</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">if</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">the</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">WAF</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">doesn't</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">block</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">them</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">or</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">nowafpls</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">body</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">padding</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">gets</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">them</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">past</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">it."</span>
 
 <span style="color: #7EE787">include</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">lightfuzz</span>
@@ -1577,7 +1610,6 @@
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">lightfuzz</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">portfilter</span>
 
 <span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">url_querystring_remove</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">False</span><span style="color: #6E7681"> </span><span style="color: #8B949E; font-style: italic"># don't strip off the querystring (BBOT normally does this; but lightfuzz needs it)</span>
@@ -1586,7 +1618,7 @@
 <span style="color: #6E7681">    </span><span style="color: #7EE787">lightfuzz</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">enabled_submodules</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #79C0FF">path</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">sqli</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">xss</span><span style="color: #E6EDF3">]</span><span style="color: #6E7681"> </span><span style="color: #8B949E; font-style: italic"># only look for the most common vulnerabilities</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">disable_post</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span><span style="color: #6E7681"> </span><span style="color: #8B949E; font-style: italic"># don't send POST requests (less aggressive)</span>
-<span style="color: #6E7681">      </span><span style="color: #7EE787">avoid_wafs</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">avoid_wafs</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">always</span>
 
 <span style="color: #7EE787">conditions</span><span style="color: #E6EDF3">:</span>
 <span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">|</span>
@@ -1613,7 +1645,7 @@
 <span style="color: #6E7681">    </span><span style="color: #7EE787">lightfuzz</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">force_common_headers</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span><span style="color: #6E7681"> </span><span style="color: #8B949E; font-style: italic"># Fuzz common headers like X-Forwarded-For even if they're not observed on the target</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">enabled_submodules</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #79C0FF">cmdi</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">crypto</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">path</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">serial</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">sqli</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">ssti</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">xss</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">esi</span><span style="color: #E6EDF3">,</span><span style="color: #79C0FF">ssrf</span><span style="color: #E6EDF3">]</span>
-<span style="color: #6E7681">      </span><span style="color: #7EE787">avoid_wafs</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">False</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">avoid_wafs</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">never</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">excavate</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">speculate_params</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span><span style="color: #6E7681"> </span><span style="color: #8B949E; font-style: italic"># speculate potential parameters extracted from JSON/XML web responses</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">wayback</span><span style="color: #E6EDF3">:</span>
@@ -1625,17 +1657,17 @@
 <p>Category: web</p>
 <p>Modules: <a href="" title="">0</a></p>
 <h2 id="lightfuzz-xss"><strong>lightfuzz-xss</strong></h2>
-<p>XSS-only: enables only the xss submodule with paramminer_getparams and reflected_parameters. POST disabled, no query string collapsing. Example of a focused single-submodule preset.</p>
+<p>XSS-only: enables only the xss submodule with paramminer_getparams and reflected_parameters. POST fuzzing enabled and try_get_as_post retests every discovered GET parameter as POST, so the nowafpls body-padding bypass gets a chance on WAF-tagged targets (a padded-POST XSS is triggerable from an attacker-controlled form).</p>
 <details class="note">
 <summary><code>lightfuzz-xss.yml</code></summary>
-<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/lightfuzz-xss.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"XSS-only:</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">enables</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">only</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">the</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">xss</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">submodule</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">with</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">paramminer_getparams</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">and</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">reflected_parameters.</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">POST</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">disabled,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">no</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">query</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">string</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">collapsing.</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">Example</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">of</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">a</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">focused</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">single-submodule</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">preset."</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/web/lightfuzz-xss.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">"XSS-only:</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">enables</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">only</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">the</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">xss</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">submodule</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">with</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">paramminer_getparams</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">and</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">reflected_parameters.</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">POST</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">fuzzing</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">enabled</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">and</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">try_get_as_post</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">retests</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">every</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">discovered</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">GET</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">parameter</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">as</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">POST,</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">so</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">the</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">nowafpls</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">body-padding</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">bypass</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">gets</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">a</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">chance</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">on</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">WAF-tagged</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">targets</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">(a</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">padded-POST</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">XSS</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">is</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">triggerable</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">from</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">an</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">attacker-controlled</span><span style="color: #79C0FF"> </span><span style="color: #A5D6FF">form)."</span>
 
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">lightfuzz</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">nowafpls</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">paramminer_getparams</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">reflected_parameters</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">portfilter</span>
 
 <span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">url_querystring_remove</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">False</span>
@@ -1643,7 +1675,8 @@
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">lightfuzz</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">      </span><span style="color: #7EE787">enabled_submodules</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">[</span><span style="color: #79C0FF">xss</span><span style="color: #E6EDF3">]</span>
-<span style="color: #6E7681">      </span><span style="color: #7EE787">disable_post</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">try_get_as_post</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">True</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">avoid_wafs</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">try_bypasses</span>
 
 <span style="color: #7EE787">conditions</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">|</span>
@@ -1663,7 +1696,6 @@
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">nuclei</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">portfilter</span>
 
 <span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
@@ -1701,7 +1733,6 @@
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">nuclei</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">portfilter</span>
 
 <span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
@@ -1730,7 +1761,6 @@
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">nuclei</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">robots</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">urlscan</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">portfilter</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">wayback</span>
 
 <span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
@@ -1755,6 +1785,56 @@
 </details>
 <p>Category: nuclei</p>
 <p>Modules: <a href="" title="">0</a></p>
+<h2 id="nuclei-new"><strong>nuclei-new</strong></h2>
+<p>Run nuclei scans against all discovered targets, using only the templates added in the latest nuclei-templates release</p>
+<details class="note">
+<summary><code>nuclei-new.yml</code></summary>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/nuclei/nuclei-new.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Run nuclei scans against all discovered targets, using only the templates added in the latest nuclei-templates release</span>
+
+<span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">nuclei</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">nuclei</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">new_templates</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">directory_only</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span><span style="color: #6E7681"> </span><span style="color: #8B949E; font-style: italic"># Do not run nuclei on individual non-directory URLs</span>
+
+<span style="color: #7EE787">conditions</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">|</span>
+<span style="color: #6E7681">    </span><span style="color: #79C0FF; font-weight: bold">{% if config.web.spider_distance != 0 %}</span>
+<span style="color: #6E7681">      </span><span style="color: #79C0FF; font-weight: bold">{{ warn("Running nuclei with spider enabled is generally not recommended. Consider removing 'spider' preset.") }}</span>
+<span style="color: #6E7681">    </span><span style="color: #79C0FF; font-weight: bold">{% endif %}</span>
+</code></pre></div>
+</details>
+<p>Category: nuclei</p>
+<p>Modules: <a href="" title="">0</a></p>
+<h2 id="nuclei-recommended"><strong>nuclei-recommended</strong></h2>
+<p>Run nuclei scans against all discovered targets, using ProjectDiscovery's curated "recommended" template profile</p>
+<details class="note">
+<summary><code>nuclei-recommended.yml</code></summary>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/nuclei/nuclei-recommended.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Run nuclei scans against all discovered targets, using ProjectDiscovery's curated "recommended" template profile</span>
+
+<span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">nuclei</span>
+
+<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">nuclei</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">profile</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">recommended</span>
+<span style="color: #6E7681">      </span><span style="color: #7EE787">directory_only</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span><span style="color: #6E7681"> </span><span style="color: #8B949E; font-style: italic"># Do not run nuclei on individual non-directory URLs</span>
+
+<span style="color: #7EE787">conditions</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #E6EDF3">|</span>
+<span style="color: #6E7681">    </span><span style="color: #79C0FF; font-weight: bold">{% if config.web.spider_distance != 0 %}</span>
+<span style="color: #6E7681">      </span><span style="color: #79C0FF; font-weight: bold">{{ warn("Running nuclei with spider enabled is generally not recommended. Consider removing 'spider' preset.") }}</span>
+<span style="color: #6E7681">    </span><span style="color: #79C0FF; font-weight: bold">{% endif %}</span>
+</code></pre></div>
+</details>
+<p>Category: nuclei</p>
+<p>Modules: <a href="" title="">0</a></p>
 <h2 id="nuclei-technology"><strong>nuclei-technology</strong></h2>
 <p>Run nuclei scans against all discovered targets, running templates which match discovered technologies</p>
 <details class="note">
@@ -1764,7 +1844,6 @@
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">http</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">nuclei</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">portfilter</span>
 
 <span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
@@ -1892,7 +1971,6 @@
 
 <span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">dns</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">    </span><span style="color: #7EE787">threads</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">25</span>
 <span style="color: #6E7681">    </span><span style="color: #7EE787">brute_threads</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">1000</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># put your API keys here</span>
 <span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># modules:</span>
@@ -1906,14 +1984,15 @@
 </details>
 <p>Modules: <a href="" title="">0</a></p>
 <h2 id="tech-detect"><strong>tech-detect</strong></h2>
-<p>Detect technologies via Nuclei, and FingerprintX</p>
+<p>Detect technologies via Nuclei, FingerprintX, and favicon hashes</p>
 <details class="note">
 <summary><code>tech-detect.yml</code></summary>
-<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/tech-detect.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Detect technologies via Nuclei, and FingerprintX</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">~/.bbot/presets/tech-detect.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">description</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">Detect technologies via Nuclei, FingerprintX, and favicon hashes</span>
 
 <span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">nuclei</span>
 <span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">fingerprintx</span>
+<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">favicon</span>
 
 <span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
@@ -2214,8 +2293,8 @@
 <td>js-audit</td>
 <td>web</td>
 <td>Hunt for leaked credentials and vulnerable libraries in client-side JavaScript</td>
-<td>6</td>
-<td>badsecrets, http, retirejs, robots, trufflehog, wayback</td>
+<td>7</td>
+<td>badsecrets, http, js_unpacker, retirejs, robots, trufflehog, wayback</td>
 </tr>
 <tr>
 <td>kitchen-sink</td>
@@ -2227,65 +2306,79 @@
 <tr>
 <td>lightfuzz</td>
 <td>web</td>
-<td>Default fuzzing: all 9 submodules (cmdi, crypto, path, serial, sqli, ssti, xss, esi, ssrf) plus companion modules (badsecrets, hunt, reflected_parameters). POST fuzzing disabled but try_post_as_get enabled, so POST params are retested as GET. Skips confirmed WAFs.</td>
+<td>Default fuzzing: all 9 submodules (cmdi, crypto, path, serial, sqli, ssti, xss, esi, ssrf) plus companion modules (badsecrets, hunt, reflected_parameters). POST fuzzing disabled but try_post_as_get enabled, so POST params are retested as GET. On WAF-tagged hosts, only request-body parameters are fuzzed, and only if the WAF doesn't block them or nowafpls body padding gets them past it.</td>
 <td>6</td>
-<td>badsecrets, http, hunt, lightfuzz, portfilter, reflected_parameters</td>
+<td>badsecrets, http, hunt, lightfuzz, nowafpls, reflected_parameters</td>
 </tr>
 <tr>
 <td>lightfuzz-heavy</td>
 <td>web</td>
-<td>Aggressive fuzzing: everything in lightfuzz, plus paramminer brute-force parameter discovery (headers, GET params, cookies), POST request fuzzing enabled, try_get_as_post enabled (GET params retested as POST), and robots.txt parsing. Still skips confirmed WAFs.</td>
+<td>Aggressive fuzzing: everything in lightfuzz, plus paramminer brute-force parameter discovery (headers, GET params, cookies), POST request fuzzing enabled, try_get_as_post enabled (GET params retested as POST), and robots.txt parsing. On WAF-tagged hosts, only request-body parameters are fuzzed, and only if the WAF doesn't block them or nowafpls body padding gets them past it.</td>
 <td>8</td>
-<td>badsecrets, http, hunt, lightfuzz, portfilter, reflected_parameters, robots, wayback</td>
+<td>badsecrets, http, hunt, lightfuzz, nowafpls, reflected_parameters, robots, wayback</td>
 </tr>
 <tr>
 <td>lightfuzz-light</td>
 <td>web</td>
 <td>Minimal fuzzing: only path traversal, SQLi, and XSS submodules. No POST requests. No companion modules. Safest option for running alongside larger scans with minimal overhead.</td>
-<td>3</td>
-<td>http, lightfuzz, portfilter</td>
+<td>2</td>
+<td>http, lightfuzz</td>
 </tr>
 <tr>
 <td>lightfuzz-max</td>
 <td>web</td>
 <td>Maximum fuzzing: everything in lightfuzz-heavy, plus the heavy paramminer variant (1-3 letter brute-force on GET params, case mutation on case-sensitive backends, recycle_words on all paramminer modules), WAF targets are no longer skipped, each unique parameter-value pair is fuzzed individually (no collapsing), common headers like X-Forwarded-For are fuzzed even if not observed, and potential parameters are speculated from JSON/XML response bodies. Significantly increases scan time.</td>
 <td>8</td>
-<td>badsecrets, http, hunt, lightfuzz, portfilter, reflected_parameters, robots, wayback</td>
+<td>badsecrets, http, hunt, lightfuzz, nowafpls, reflected_parameters, robots, wayback</td>
 </tr>
 <tr>
 <td>lightfuzz-xss</td>
 <td>web</td>
-<td>XSS-only: enables only the xss submodule with paramminer_getparams and reflected_parameters. POST disabled, no query string collapsing. Example of a focused single-submodule preset.</td>
+<td>XSS-only: enables only the xss submodule with paramminer_getparams and reflected_parameters. POST fuzzing enabled and try_get_as_post retests every discovered GET parameter as POST, so the nowafpls body-padding bypass gets a chance on WAF-tagged targets (a padded-POST XSS is triggerable from an attacker-controlled form).</td>
 <td>5</td>
-<td>http, lightfuzz, paramminer_getparams, portfilter, reflected_parameters</td>
+<td>http, lightfuzz, nowafpls, paramminer_getparams, reflected_parameters</td>
 </tr>
 <tr>
 <td>nuclei</td>
 <td>nuclei</td>
 <td>Run nuclei scans against all discovered targets</td>
-<td>3</td>
-<td>http, nuclei, portfilter</td>
+<td>2</td>
+<td>http, nuclei</td>
 </tr>
 <tr>
 <td>nuclei-budget</td>
 <td>nuclei</td>
 <td>Run nuclei scans against all discovered targets, using budget mode to look for low hanging fruit with greatly reduced number of requests</td>
-<td>3</td>
-<td>http, nuclei, portfilter</td>
+<td>2</td>
+<td>http, nuclei</td>
 </tr>
 <tr>
 <td>nuclei-heavy</td>
 <td>nuclei</td>
 <td>Run nuclei scans against all discovered targets, allowing for spidering, against ALL URLs, and with additional discovery modules.</td>
-<td>6</td>
-<td>http, nuclei, portfilter, robots, urlscan, wayback</td>
+<td>5</td>
+<td>http, nuclei, robots, urlscan, wayback</td>
+</tr>
+<tr>
+<td>nuclei-new</td>
+<td>nuclei</td>
+<td>Run nuclei scans against all discovered targets, using only the templates added in the latest nuclei-templates release</td>
+<td>2</td>
+<td>http, nuclei</td>
+</tr>
+<tr>
+<td>nuclei-recommended</td>
+<td>nuclei</td>
+<td>Run nuclei scans against all discovered targets, using ProjectDiscovery's curated "recommended" template profile</td>
+<td>2</td>
+<td>http, nuclei</td>
 </tr>
 <tr>
 <td>nuclei-technology</td>
 <td>nuclei</td>
 <td>Run nuclei scans against all discovered targets, running templates which match discovered technologies</td>
-<td>3</td>
-<td>http, nuclei, portfilter</td>
+<td>2</td>
+<td>http, nuclei</td>
 </tr>
 <tr>
 <td>paramminer</td>
@@ -2325,9 +2418,9 @@
 <tr>
 <td>tech-detect</td>
 <td></td>
-<td>Detect technologies via Nuclei, and FingerprintX</td>
-<td>2</td>
-<td>fingerprintx, nuclei</td>
+<td>Detect technologies via Nuclei, FingerprintX, and favicon hashes</td>
+<td>3</td>
+<td>favicon, fingerprintx, nuclei</td>
 </tr>
 <tr>
 <td>virtualhost</td>
@@ -2425,8 +2518,8 @@
 <div class="md-dialog" data-md-component="dialog">
 <div class="md-dialog__inner md-typeset"></div>
 </div>
-<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
-<script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
+<script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
 <script src="../../javascripts/tablesort.js"></script>
 <script src="../../javascripts/tablesort.min.js"></script>
 <script src="../../javascripts/vega@5.js"></script>

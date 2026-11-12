@@ -6,21 +6,21 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <meta content="OSINT automation for hackers" name="description"/>
-<meta content="TheTechromancer" name="author"/>
+<meta content="Black Lantern Security" name="author"/>
 <link href="https://blacklanternsecurity.github.io/bbot/Stable/scanning/tips_and_tricks/" rel="canonical"/>
 <link href="../output/" rel="prev"/>
 <link href="../advanced/" rel="next"/>
 <link href="../../favicon.png" rel="icon"/>
-<meta content="mkdocs-1.6.1, mkdocs-material-9.7.7" name="generator"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.8.0" name="generator"/>
 <title>Tips and Tricks - BBOT Docs</title>
-<link href="../../assets/stylesheets/main.ec1eaa64.min.css" rel="stylesheet"/>
-<link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/main.57a0d79d.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/palette.fb2fffe2.min.css" rel="stylesheet"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.50duc_cb.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.7rsnpsc0.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -440,10 +440,10 @@
 </a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="#exclude-cdns-from-port-scan">
+<a class="md-nav__link" href="#cdnwaf-port-filtering">
 <span class="md-ellipsis">
       
-        Exclude CDNs from Port Scan
+        CDN/WAF Port Filtering
       
     </span>
 </a>
@@ -693,6 +693,18 @@
 
           </label>
 <ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../migration/3.1_breaking_changes/">
+<span class="md-ellipsis">
+    
+  
+    3.0 → 3.1 Breaking Changes
+  
+
+    
+  </span>
+</a>
+</li>
 <li class="md-nav__item">
 <a class="md-nav__link" href="../../migration/3.0_breaking_changes/">
 <span class="md-ellipsis">
@@ -1132,20 +1144,23 @@
 bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>baddns<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.baddns.module_threads<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">20</span>
 </code></pre></div>
 <h3 id="boost-dns-brute-force-speed">Boost DNS Brute-force Speed</h3>
-<p>If you have a fast internet connection or are running BBOT from a cloud VM, you can speed up subdomain enumeration by cranking the threads for <code>massdns</code>. The default is <code>1000</code>, which is about 1MB/s of DNS traffic:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># massdns with 5000 resolvers, about 5MB/s</span>
+<p>If you have a fast internet connection or are running BBOT from a cloud VM, you can speed up subdomain enumeration by raising how many brute-force queries stay in flight. The default is <code>1000</code>, which is roughly 1MB/s of DNS traffic:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># about 5MB/s</span>
 bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>dns.brute_threads<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">5000</span>
 </code></pre></div>
+<p>Brute-forcing backs off on its own when resolvers start dropping queries, so raising this sets how fast BBOT will go when the resolvers can keep up, not how hard it will push regardless. If you need a firm ceiling as well, set <code>dns.brute_rate_limit</code> (queries per second, <code>0</code> for unlimited).</p>
+<p>To be gentler on individual resolvers rather than faster, lower <code>dns.brute_inflight_per_resolver</code> (default <code>2</code>). No resolver ever receives more than this at once, however large the resolver list.</p>
 <h3 id="speed-up-scans-with-more-dns-resolvers">Speed Up Scans with More DNS Resolvers</h3>
-<p>By far the most effective way to speed up a BBOT scan is to <strong>add more resolvers to <code>/etc/resolv.conf</code></strong>. BBOT's DNS resolver (blastdns) spins up multiple threads per resolver (default: <code>10</code>, configurable via <code>dns.threads</code>), so more resolvers = more parallelism = faster scans.</p>
+<p>One of the most effective ways to speed up a BBOT scan is to <strong>add more resolvers to <code>/etc/resolv.conf</code></strong>. BBOT's DNS resolver (blastdns) keeps up to <code>dns.threads</code> queries in flight per resolver (default <code>50</code>), up to <code>dns.max_concurrency</code> in total (default <code>256</code>), so more resolvers = more parallelism = faster scans, until that total is reached.</p>
 <p>For OSINT, it's critical that every resolver is <strong>unfiltered</strong>. Specialized resolvers that try to block ads, malicious domains, etc. will intentionally omit results. Below is a sample <code>/etc/resolv.conf</code> with 11 unfiltered public resolvers:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code># ============================================================================
 # Sample /etc/resolv.conf for BBOT
 # ============================================================================
 #
-# BBOT's DNS engine (blastdns) automatically spins up ten workers per
-# resolver listed here.  Adding more resolvers = more parallelism =
-# faster scans.
+# BBOT's DNS engine (blastdns) keeps up to dns.threads (default 50)
+# queries in flight per resolver listed here, up to dns.max_concurrency
+# (default 256) in total.  Adding more resolvers = more parallelism =
+# faster scans, until that total is reached.
 #
 # To use: copy (or append) to /etc/resolv.conf, or point your
 # systemd-resolved / resolvconf config at these addresses.
@@ -1200,11 +1215,14 @@ nameserver 74.82.42.42
 # nameserver 2620:fe::fe:10         # Quad9 (unfiltered)
 # nameserver 2001:470:20::2         # Hurricane Electric
 </code></pre></div>
-<p>Copy this to <code>/etc/resolv.conf</code> (or append the <code>nameserver</code> lines to your existing config). With all 11 resolvers at the default 10 threads each, blastdns will run 110 workers in parallel instead of the typical 10-30 you get from a default OS config.</p>
+<p>Copy this to <code>/etc/resolv.conf</code> (or append the <code>nameserver</code> lines to your existing config). At the default 50 queries per resolver, five or six resolvers already reach the 256 total, so if you add more, raise <code>dns.max_concurrency</code> to match.</p>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
 <p>If your system uses <code>systemd-resolved</code> or <code>resolvconf</code>, you may need to configure the upstream forwarders there instead of editing <code>/etc/resolv.conf</code> directly.</p>
 </div>
+<p>You can also skip <code>/etc/resolv.conf</code> and give BBOT its resolvers directly. <code>--custom-nameservers</code> (or <code>dns.nameservers</code> in your config) replaces the system resolvers for that scan:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-f<span style="color: #6E7681"> </span>subdomain-enum<span style="color: #6E7681"> </span>--custom-nameservers<span style="color: #6E7681"> </span><span style="color: #A5D6FF">8</span>.8.8.8<span style="color: #6E7681"> </span><span style="color: #A5D6FF">1</span>.1.1.1<span style="color: #6E7681"> </span><span style="color: #A5D6FF">9</span>.9.9.10<span style="color: #6E7681"> </span><span style="color: #A5D6FF">64</span>.6.64.6<span style="color: #6E7681"> </span><span style="color: #A5D6FF">74</span>.82.42.42
+</code></pre></div>
 <h3 id="web-spider">Web Spider</h3>
 <p>The web spider is great for finding juicy data like subdomains, email addresses, and javascript secrets buried in webpages. However since it can lengthen the duration of a scan, it's disabled by default. To enable it, use one of the built-in spider presets:</p>
 <ul>
@@ -1229,24 +1247,31 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #8B949E; font-style: italic"># custom spider settings on the command line</span>
 bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>www.evilcorp.com<span style="color: #6E7681"> </span>-m<span style="color: #6E7681"> </span>http<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>web.spider_distance<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">3</span><span style="color: #6E7681"> </span>web.spider_depth<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">5</span>
 </code></pre></div>
-<h3 id="exclude-cdns-from-port-scan">Exclude CDNs from Port Scan</h3>
-<p>Use <code>--exclude-cdn</code> to filter out unwanted open ports from CDNs and WAFs, e.g. Cloudflare. You can also customize the criteria by setting <code>modules.portfilter.cdn_tags</code>. By default, only open ports with <code>cdn-*</code> tags are filtered, but you can include all cloud providers by setting <code>cdn_tags</code> to <code>cdn,cloud</code>:</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>--exclude-cdn<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.portfilter.cdn_tags<span style="color: #FF7B72; font-weight: bold">=</span>cdn,cloud
+<h3 id="cdnwaf-port-filtering">CDN/WAF Port Filtering</h3>
+<p>CDNs and WAFs like Cloudflare answer on many ports (e.g. 2052-2096, 8080, 8443) for every host behind them. Port sources like <code>shodan_idb</code> and <code>portscan</code> report these as open, but they rarely lead anywhere useful, and probing them wastes a lot of time. By default, BBOT drops open ports and URLs on hosts tagged <code>cdn</code> or <code>waf</code> unless the port is 80 or 443.</p>
+<p>Ports you explicitly target are never filtered. For example, <code>-t www.evilcorp.com:8443</code> keeps that port and anything discovered on it, even if the host is behind a CDN.</p>
+<p>To turn the filter off and keep every port:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>--allow-cdn-ports
 </code></pre></div>
-<p>Additionally, you can customize the allowed ports by setting <code>modules.portscan.allowed_cdn_ports</code>.</p>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>--exclude-cdn<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>modules.portfilter.allowed_cdn_ports<span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #A5D6FF">80</span>,443,8443
+<p>You can also customize which tags count as a CDN/WAF, and which ports are allowed on them:</p>
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-c<span style="color: #6E7681"> </span>cdn_port_filter.tags<span style="color: #FF7B72; font-weight: bold">=[</span>cdn,waf,cloud<span style="color: #FF7B72; font-weight: bold">]</span><span style="color: #6E7681"> </span>cdn_port_filter.allowed_ports<span style="color: #FF7B72; font-weight: bold">=[</span><span style="color: #A5D6FF">80</span>,443,8443<span style="color: #FF7B72; font-weight: bold">]</span>
 </code></pre></div>
 <p>Example preset:</p>
-<div class="highlight" style="background: #0d1117"><span class="filename">skip_cdns.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">portfilter</span>
-
-<span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">  </span><span style="color: #7EE787">modules</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">    </span><span style="color: #7EE787">portfilter</span><span style="color: #E6EDF3">:</span>
-<span style="color: #6E7681">      </span><span style="color: #7EE787">cdn_tags</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">cdn-,cloud-</span>
-<span style="color: #6E7681">      </span><span style="color: #7EE787">allowed_cdn_ports</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">80,443,8443</span>
+<div class="highlight" style="background: #0d1117"><span class="filename">cdn_ports.yml</span><pre style="line-height: 125%;"><span></span><code><span style="color: #7EE787">config</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">cdn_port_filter</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">    </span><span style="color: #8B949E; font-style: italic"># set to false to keep every port (same as --allow-cdn-ports)</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">enabled</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span>
+<span style="color: #6E7681">    </span><span style="color: #8B949E; font-style: italic"># hosts with any of these tags are considered CDN/WAF hosts</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">tags</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">cdn</span>
+<span style="color: #6E7681">      </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">waf</span>
+<span style="color: #6E7681">    </span><span style="color: #8B949E; font-style: italic"># ports that are still allowed on CDN/WAF hosts</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">allowed_ports</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6E7681">      </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">80</span>
+<span style="color: #6E7681">      </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">443</span>
+<span style="color: #6E7681">      </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">8443</span>
 </code></pre></div>
-<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>skip_cdns.yml
+<div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>cdn_ports.yml
 </code></pre></div>
 <h3 id="custom-http-proxy">Custom HTTP Proxy</h3>
 <p>Web pentesters may appreciate BBOT's ability to quickly populate Burp Suite site maps for all subdomains in a target. If your scan includes gowitness, this will capture the traffic as if you manually visited each website in your browser -- including auxiliary web resources and javascript API calls. To accomplish this, set the <code>web.http_proxy</code> config option like so:</p>
@@ -1328,8 +1353,8 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <div class="md-dialog" data-md-component="dialog">
 <div class="md-dialog__inner md-typeset"></div>
 </div>
-<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
-<script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "Stable", "provider": "mike"}}</script>
+<script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
 <script src="../../javascripts/tablesort.js"></script>
 <script src="../../javascripts/tablesort.min.js"></script>
 <script src="../../javascripts/vega@5.js"></script>
