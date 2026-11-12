@@ -43,6 +43,6 @@ repos:
       - id: ruff-format
 
   - repo: https://github.com/abravalheri/validate-pyproject
-    rev: v0.23
+    rev: v0.27
     hooks:
       - id: validate-pyproject
