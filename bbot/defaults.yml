@@ -47,16 +47,35 @@ dns:
   disable: false
   # Speed up scan by not creating any new DNS events, and only resolving A and AAAA records
   minimal: false
-  # How many threads to use per resolver (best way to increase speed is to put more resolvers in /etc/resolv.conf)
-  threads: 10
+  # Nameservers to use instead of the system ones (empty = use system resolvers)
+  nameservers: []
+  # How many queries to keep in flight per resolver (adaptive pacing backs off if a resolver starts dropping queries)
+  threads: 50
+  # Ceiling on queries in flight across all resolvers, however many are configured
+  max_concurrency: 256
   # How many DNS records to cache
   cache_size: 100000
-  # How many concurrent DNS resolvers to use when brute-forcing
-  # (under the hood this is passed through directly to massdns -s)
+  # How many brute-force DNS queries to keep in flight at once
   brute_threads: 1000
+  # How many brute-force queries to keep in flight per resolver (the politeness bound)
+  brute_inflight_per_resolver: 2
+  # Hard ceiling on brute-force DNS queries per second (0 = unlimited; backoff is automatic regardless)
+  brute_rate_limit: 0
+  # Attempts per brute-force name before giving up (each retry lands on a different resolver)
+  # Only timeouts retry, not NXDOMAIN, so this costs traffic proportional to the failure rate
+  brute_retries: 20
+  # Per-query timeout in seconds when brute-forcing, deliberately much shorter than dns.timeout
+  # Retrying elsewhere is cheaper than waiting; going below this starts shrinking the resolver pool
+  brute_timeout: 0.5
+  # Reuse one socket per resolver instead of binding one per query, which keeps NAT/conntrack
+  # state bounded by the resolver count rather than growing with query volume
+  brute_persistent_socket: true
   # nameservers to use for DNS brute-forcing
-  # default is updated weekly and contains ~10K high-quality public servers
+  # default is updated weekly and contains ~5K high-quality public servers
   brute_nameservers: https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt
+  # How many of those to draw at random, once per scan (0 = all of them)
+  # The dead ones in the draw are dropped at startup, and every brute-force run in the scan shares the rest
+  brute_max_resolvers: 600
   # How far away from the main target to explore via DNS resolution (independent of scope.search_distance)
   # This is safe to change
   search_distance: 1
@@ -134,6 +153,12 @@ web:
   ssl_verify_target: false
   # Whether to verify SSL certificates for non-target traffic (APIs, wordlist downloads, etc.)
   ssl_verify_infrastructure: true
+  # nowafpls WAF-bypass body padding sizes, tried largest first.
+  # The probe steps down a rung only when the origin explicitly rejects the size with a 413;
+  # 1 MiB is exactly nginx's default client_max_body_size, hence the 128 KiB fallback.
+  nowafpls_padding_sizes: [1048576, 131072]
+  # Payload the nowafpls probe uses to detect whether the WAF is interfering at all
+  nowafpls_payload: "<script>alert(1)</script>"
   # Maximum HTTP requests per second (0 = unlimited)
   # Applies globally across all blasthttp consumers (http probing, web brute, etc.)
   http_rate_limit: 0
@@ -165,9 +190,6 @@ deps:
 
 ### ADVANCED OPTIONS ###
 
-# Load BBOT modules from these custom paths
-module_dirs: []
-
 # maximum runtime in seconds for each module's handle_event() is 60 minutes
 # when the timeout is reached, the offending handle_event() will be cancelled and the module will move on to the next event
 module_handle_event_timeout: 3600
@@ -191,6 +213,21 @@ python: True
 url_querystring_remove: True
 # When query string is retained, by default collapse parameter values down to a single value per parameter
 url_querystring_collapse: True
+# Reject URLs whose path repeats the same path parameter this many times (e.g. a session id appended on every redirect)
+url_max_path_param_repeats: 10
+
+# Drop open ports and URLs on CDN/WAF hosts unless the port is allowed or was explicitly targeted
+# CDN edges answer on many ports (e.g. Cloudflare's 2052-2096, 8080, 8443) that rarely lead anywhere useful
+cdn_port_filter:
+  enabled: true
+  # hosts with any of these tags are considered CDN/WAF hosts
+  tags:
+    - cdn
+    - waf
+  # ports that are still allowed on CDN/WAF hosts
+  allowed_ports:
+    - 80
+    - 443
 
 # Completely ignore URLs with these extensions
 url_extension_blacklist:

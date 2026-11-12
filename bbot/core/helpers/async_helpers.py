@@ -4,6 +4,7 @@ import random
 import asyncio
 import logging
 import functools
+import itertools
 from contextlib import suppress
 from cachetools import keys, LRUCache
 from contextlib import asynccontextmanager
@@ -18,6 +19,25 @@ class ShuffleQueue(asyncio.Queue):
 
     def _get(self):
         return self._queue.popleft()
+
+
+class LaneQueue(asyncio.PriorityQueue):
+    """
+    A queue divided into lanes, where items in a lower lane are always dequeued before items in a higher one.
+
+    `lane_fn` assigns each item its lane (an int). Items within the same lane are dequeued in FIFO order.
+    """
+
+    def __init__(self, lane_fn, maxsize=0):
+        self._lane_fn = lane_fn
+        self._sequence = itertools.count()
+        super().__init__(maxsize)
+
+    def _put(self, item):
+        super()._put((self._lane_fn(item), next(self._sequence), item))
+
+    def _get(self):
+        return super()._get()[-1]
 
 
 class _Lock(asyncio.Lock):

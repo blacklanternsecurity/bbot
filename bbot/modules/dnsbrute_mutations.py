@@ -9,7 +9,7 @@ class dnsbrute_mutations(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     meta = {
-        "description": "Brute-force subdomains with massdns + target-specific mutations",
+        "description": "Brute-force subdomains with target-specific mutations",
         "author": "@TheTechromancer",
         "created_date": "2024-04-25",
     }
@@ -17,7 +17,6 @@ class dnsbrute_mutations(BaseModule):
     class Config(BaseModuleConfig):
         max_mutations: int = Field(100, description="Maximum number of target-specific mutations to try per subdomain")
 
-    deps_common = ["massdns"]
     _qsize = 10000
 
     async def setup(self):
@@ -43,7 +42,10 @@ class dnsbrute_mutations(BaseModule):
 
     async def get_parent_event(self, subdomain):
         start = time.time()
-        parent_host = await self.helpers.run_in_executor_cpu(self.helpers.closest_match, subdomain, self.parent_events)
+        # pass the hostnames only; the dict values are events, which are expensive to pickle
+        parent_host = await self.helpers.run_in_executor_mp(
+            self.helpers.closest_match, subdomain, list(self.parent_events)
+        )
         elapsed = time.time() - start
         self.trace(f"{subdomain}: got closest match among {len(self.parent_events):,} parent events in {elapsed:.2f}s")
         return self.parent_events[parent_host]
@@ -123,7 +125,7 @@ class dnsbrute_mutations(BaseModule):
                         self.info(
                             f"Trying {len(mutations):,} mutations against {domain} ({i + 1}/{len(trimmed_found)})"
                         )
-                        results = await self.helpers.dns.brute(self, query, mutations)
+                        results = await self.helpers.dns.brute(query, mutations)
                         try:
                             mutation_run = self._mutation_run_counter[domain]
                         except KeyError:

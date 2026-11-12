@@ -355,3 +355,59 @@ class TestUnarchiveTraversalCheck(ModuleTestBase):
         # (mainline 7-Zip always does, which is exactly where the zip case is a no-op)
         if self.results["symlink_7z_is_link"]:
             assert not self.results["symlink_7z"], "Symlink 7z was not rejected"
+
+
+class TestUnarchiveSymlinkExtraction(ModuleTestBase):
+    """Symlinks are rejected after extraction, regardless of how 7-Zip lists them."""
+
+    targets = ["blacklanternsecurity.com"]
+    modules_overrides = ["unarchive"]
+
+    async def setup_after_prep(self, module_test):
+        m = module_test.scan.modules["unarchive"]
+        temp_path = Path(BBOT_TEST_DIR) / "unarchive_symlink"
+        module_test.scan.helpers.rm_rf(temp_path, ignore_errors=True)
+        temp_path.mkdir(parents=True)
+
+        def make_zip(name, create_system=None):
+            path = temp_path / f"{name}.zip"
+            with zipfile.ZipFile(path, "w") as zf:
+                zf.writestr("normal.txt", "safe content")
+                if create_system is not None:
+                    info = zipfile.ZipInfo("evil_link")
+                    info.create_system = create_system
+                    info.external_attr = 0o120777 << 16  # S_IFLNK | 0o777
+                    zf.writestr(info, "normal.txt")
+            return path
+
+        safe_zip = make_zip("safe")
+        # FAT/DOS host with a unix symlink mode: newer 7-Zip lists this as a hex
+        # value with no "l" mode character, but still extracts it as a symlink
+        fat_symlink_zip = make_zip("fat_symlink", create_system=0)
+        unix_symlink_zip = make_zip("unix_symlink", create_system=3)
+
+        def has_symlink(output_dir):
+            return any(p.is_symlink() for p in output_dir.rglob("*"))
+
+        self.results = {}
+        for name, path in (("safe", safe_zip), ("fat_symlink", fat_symlink_zip)):
+            output_dir = temp_path / f"{name}_out"
+            self.results[name] = (await m.extract_file(path, output_dir), has_symlink(output_dir))
+
+        # bypass the listing check so the post-extraction check is exercised on any 7-Zip version
+        async def listing_check_passes(*args, **kwargs):
+            return True
+
+        m._check_archive_safe = listing_check_passes
+        output_dir = temp_path / "unix_symlink_out"
+        self.results["unix_symlink"] = (
+            await m.extract_file(unix_symlink_zip, output_dir),
+            has_symlink(output_dir),
+        )
+
+    def check(self, module_test, events):
+        assert self.results["safe"] == (True, False), "Safe zip was not extracted"
+        for name in ("fat_symlink", "unix_symlink"):
+            extracted, symlink_left = self.results[name]
+            assert not extracted, f"{name} zip was not rejected"
+            assert not symlink_left, f"{name} zip left a symlink on disk"

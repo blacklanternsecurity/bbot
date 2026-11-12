@@ -22,42 +22,6 @@ DEP_DOCKER = [
     },
 ]
 
-DEP_MASSDNS = [
-    {
-        "name": "install dev tools",
-        "package": {"name": ["gcc", "git", "make"], "state": "present"},
-        "become": True,
-        "ignore_errors": True,
-    },
-    {
-        "name": "Download massdns source code",
-        "git": {
-            "repo": "https://github.com/blechschmidt/massdns.git",
-            "dest": "#{BBOT_TEMP}/massdns",
-            "single_branch": True,
-            "version": "master",
-        },
-    },
-    {
-        "name": "Build massdns (Linux)",
-        "command": {"chdir": "#{BBOT_TEMP}/massdns", "cmd": "make", "creates": "#{BBOT_TEMP}/massdns/bin/massdns"},
-        "when": "ansible_facts['system'] == 'Linux'",
-    },
-    {
-        "name": "Build massdns (non-Linux)",
-        "command": {
-            "chdir": "#{BBOT_TEMP}/massdns",
-            "cmd": "make nolinux",
-            "creates": "#{BBOT_TEMP}/massdns/bin/massdns",
-        },
-        "when": "ansible_facts['system'] != 'Linux'",
-    },
-    {
-        "name": "Install massdns",
-        "copy": {"src": "#{BBOT_TEMP}/massdns/bin/massdns", "dest": "#{BBOT_TOOLS}/", "mode": "u+x,g+x,o+x"},
-    },
-]
-
 DEP_CHROMIUM = [
     {
         "name": "Install Chromium (Non-Debian)",
@@ -232,7 +196,7 @@ DEP_JAVA = [
     },
 ]
 
-# shared module dependencies -- massdns, chromium, etc.
+# shared module dependencies -- chromium, java, etc.
 SHARED_DEPS = {}
 for var, val in list(locals().items()):
     if var.startswith("DEP_") and isinstance(val, list):

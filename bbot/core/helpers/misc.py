@@ -1441,6 +1441,23 @@ def search_dict_by_key(key, d):
             yield from search_dict_by_key(key, v)
 
 
+_PLACEHOLDER_REGEX = re.compile(r"#\{(\w+)\}")
+
+
+def _search_format_dict(d, replacements):
+    # replacements travels by reference; re-splatting it at each node rebuilds
+    # the whole mapping once per node, making the walk O(nodes * replacements).
+    if isinstance(d, dict):
+        return {k: _search_format_dict(v, replacements) for k, v in d.items()}
+    elif isinstance(d, list):
+        return [_search_format_dict(v, replacements) for v in d]
+    elif isinstance(d, str):
+        if "#{" not in d:
+            return d
+        return _PLACEHOLDER_REGEX.sub(lambda m: replacements.get(m.group(1), m.group(0)), d)
+    return d
+
+
 def search_format_dict(d, **kwargs):
     """Recursively format string values in a dictionary or list using the provided keyword arguments.
 
@@ -1455,15 +1472,7 @@ def search_format_dict(d, **kwargs):
         >>> search_format_dict({"test": "#{name} is awesome"}, name="keanu")
         {"test": "keanu is awesome"}
     """
-    if isinstance(d, dict):
-        return {k: search_format_dict(v, **kwargs) for k, v in d.items()}
-    elif isinstance(d, list):
-        return [search_format_dict(v, **kwargs) for v in d]
-    elif isinstance(d, str):
-        for find, replace in kwargs.items():
-            find = "#{" + str(find) + "}"
-            d = d.replace(find, replace)
-    return d
+    return _search_format_dict(d, kwargs)
 
 
 def search_dict_values(d, *regexes):
@@ -2611,6 +2620,36 @@ def weighted_shuffle(items, weights):
     keyed = [(rand() ** (1.0 / w), item) for item, w in zip(items, weights)]
     keyed.sort(key=lambda x: x[0], reverse=True)
     return [item for _, item in keyed]
+
+
+cpe_field_regex = re.compile(r"(?<!\\):")
+
+
+def cpe_product(cpe):
+    """
+    Get the product name from a CPE, either a 2.2 URI or a 2.3 formatted string.
+
+    Returns None if the string isn't a CPE or doesn't name a product.
+
+    Examples:
+        >>> cpe_product("cpe:/a:jquery:jquery:3.5.1")
+        'jquery'
+        >>> cpe_product("cpe:2.3:a:apache:tomcat:9.0.50:*:*:*:*:*:*:*")
+        'tomcat'
+    """
+    if cpe.startswith("cpe:2.3:"):
+        # 2.3 escapes literal colons with a backslash
+        fields = [f.replace("\\", "") for f in cpe_field_regex.split(cpe[len("cpe:2.3:") :])]
+    elif cpe.startswith("cpe:/"):
+        fields = cpe[len("cpe:/") :].split(":")
+    else:
+        return None
+    # fields are part, vendor, product, version, ...
+    product = fields[2].lower() if len(fields) > 2 else ""
+    # "*" and "-" mean ANY and N/A
+    if product in ("", "*", "-"):
+        return None
+    return product
 
 
 def parse_port_string(port_string):
