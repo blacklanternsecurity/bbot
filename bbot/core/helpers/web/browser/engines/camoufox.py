@@ -179,6 +179,9 @@ class CamoufoxEngine(BrowserEngine):
             "exclude_addons": [DefaultAddons.UBO],
             "i_know_what_im_doing": True,
             "firefox_user_prefs": FIREFOX_PREFS,
+            # Camoufox isolates every evaluate from the page's own scripts; this lets a module that needs to see
+            # their state opt in per call, with page.evaluate("mw:...")
+            "main_world_eval": True,
         }
         if self._http_proxy:
             kwargs["proxy"] = {"server": self._http_proxy, "bypass": ",".join(self._http_proxy_exclude)}

@@ -142,6 +142,7 @@ class BrowserHelper:
     Examples:
         >>> visit = await self.helpers.browser.visit("https://evilcorp.com", consumer=self.name)
         >>> response = await self.helpers.browser.fetch("https://evilcorp.com/robots.txt")
+        >>> context = await self.helpers.browser.new_context(bypass_csp=True)
     """
 
     # the browser engine in use; see engines/base.py for what an engine provides
@@ -235,6 +236,54 @@ class BrowserHelper:
         """
         self._check_enabled()
         return await self._with_retry(self._clearance, url)
+
+    async def new_context(self, **options):
+        """
+        A fresh Playwright context on the scan's browser, for a module that drives pages itself. `options` are
+        Playwright's `new_context()` options.
+
+        Its requests follow the same rules as every other browser request: the scan's blacklist, and its custom
+        headers and cookies for in-scope URLs. A route the module adds runs ahead of those rules, so it should end in
+        `route.fallback()`, and fetch through `route_fetch()` if it changes a response.
+
+        It holds one of the browser's page slots (`web.browser_max_pages`) until it's closed.
+        """
+        self._check_enabled()
+        await self._page_slots.acquire()
+        try:
+            instance = await self._get_instance()
+            context = await self._new_context(instance, **options)
+        except BaseException:
+            self._page_slots.release()
+            raise
+        instance.active += 1
+
+        def on_page(_):
+            instance.pages_opened += 1
+
+        # also fires if the browser dies, so the slot is never lost
+        def on_close(_):
+            instance.active -= 1
+            self._last_used = time.monotonic()
+            self._page_slots.release()
+            if instance.closing and instance.active == 0:
+                self._retire(instance)
+
+        context.on("page", on_page)
+        context.on("close", on_close)
+        return context
+
+    async def route_fetch(self, route, headers=None, **options):
+        """
+        `route.fetch()` under the scan's blacklist and custom headers and cookies, for a module's route handler that
+        changes a response. Returns None if the blacklist forbids the request.
+        """
+        request = route.request
+        if self.parent_helper.preset.blacklisted(request.url):
+            return None
+        headers = headers if headers is not None else request.headers
+        headers = self._scan_headers(request.url, headers) or headers
+        return await route.fetch(headers=headers, **options)
 
     async def shutdown(self):
         if self._idle_task is not None:
@@ -483,17 +532,24 @@ class BrowserHelper:
         origin = f"{parsed.scheme}://{parsed.netloc}"
         host = instance.hosts.get(origin)
         if host is None:
-            context = await instance.browser.new_context(
-                ignore_https_errors=not self.verify_certs, viewport={"width": VIEWPORT[0], "height": VIEWPORT[1]}
-            )
-            await context.route("**/*", self._route)
-            host = _Host(context)
+            host = _Host(await self._new_context(instance))
             instance.hosts[origin] = host
             await self._evict_hosts(instance, keep=origin)
         else:
             # most recently used last
             instance.hosts[origin] = instance.hosts.pop(origin)
         return instance, host
+
+    async def _new_context(self, instance, **options):
+        """A context on `instance`, its requests routed through the scan's blacklist, headers and cookies."""
+        options = {
+            "ignore_https_errors": not self.verify_certs,
+            "viewport": {"width": VIEWPORT[0], "height": VIEWPORT[1]},
+            **options,
+        }
+        context = await instance.browser.new_context(**options)
+        await context.route("**/*", self._route)
+        return context
 
     async def _evict_hosts(self, instance, keep):
         # keep at most max_pages origins' contexts open, skipping any in use and the one just opened
@@ -508,17 +564,26 @@ class BrowserHelper:
         if self.parent_helper.preset.blacklisted(request.url):
             await route.abort("blockedbyclient")
             return
-        # scan-level custom headers and cookies, only for in-scope URLs (as with blasthttp)
-        if (self._custom_headers or self._custom_cookies) and self.parent_helper.preset.in_target(request.url):
-            headers = dict(request.headers)
-            for k, v in self._custom_headers.items():
-                headers.setdefault(k.lower(), str(v))
-            if self._custom_cookies:
-                cookies = "; ".join(f"{k}={v}" for k, v in self._custom_cookies.items())
-                headers["cookie"] = f"{headers['cookie']}; {cookies}" if headers.get("cookie") else cookies
+        headers = self._scan_headers(request.url, request.headers)
+        if headers is not None:
             await route.continue_(headers=headers)
             return
         await route.continue_()
+
+    def _scan_headers(self, url, headers):
+        """
+        `headers` plus the scan's custom headers and cookies, which are only sent to in-scope URLs (as with
+        blasthttp). None if there's nothing to add.
+        """
+        if not (self._custom_headers or self._custom_cookies) or not self.parent_helper.preset.in_target(url):
+            return None
+        headers = {k.lower(): v for k, v in headers.items()}
+        for k, v in self._custom_headers.items():
+            headers.setdefault(k.lower(), str(v))
+        if self._custom_cookies:
+            cookies = "; ".join(f"{k}={v}" for k, v in self._custom_cookies.items())
+            headers["cookie"] = f"{headers['cookie']}; {cookies}" if headers.get("cookie") else cookies
+        return headers
 
     async def _get_instance(self):
         async with self._launch_lock:

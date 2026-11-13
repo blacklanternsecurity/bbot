@@ -46,7 +46,7 @@ bbot_code_dir = Path(__file__).parent.parent
 # Bump when the preloader's output schema or validation rules change. Folded
 # into the per-module cache_key so stale entries from older bbot versions get
 # rebuilt instead of silently bypassing new checks.
-PRELOAD_CACHE_VERSION = 3
+PRELOAD_CACHE_VERSION = 4
 
 
 _UNEVALUATED = object()
@@ -770,6 +770,7 @@ class ModuleLoader:
         deps_apt = []
         deps_common = []
         browser_artifacts = []
+        uses_browser = False
         companion_of = []
         ansible_tasks = []
         config = {}
@@ -913,6 +914,9 @@ class ModuleLoader:
                         if any(target.id == "_disable_auto_module_deps" for target in class_attr.targets):
                             if type(class_attr.value.value) == bool:
                                 disable_auto_module_deps = class_attr.value.value
+                        elif any(target.id == "uses_browser" for target in class_attr.targets):
+                            if type(class_attr.value.value) == bool:
+                                uses_browser = class_attr.value.value
 
         # Reject the pre-3.0 options/options_desc dict format. Those dicts are
         # silently ignored by the new loader: defaults disappear and setting
@@ -965,6 +969,7 @@ class ModuleLoader:
             "sudo": len(deps_apt) > 0,
             "disable_auto_module_deps": disable_auto_module_deps,
             "browser_artifacts": browser_artifacts,
+            "uses_browser": uses_browser or bool(browser_artifacts),
             "companion_of": companion_of,
         }
         ansible_task_list = list(ansible_tasks)

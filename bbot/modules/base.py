@@ -66,7 +66,9 @@ class BaseModule:
 
         accept_url_special (bool): Accept "special" URLs not typically distributed to web modules, e.g. JS URLs. Default is False.
 
-        browser_artifacts (List): What this module needs from the browser, e.g. ["screenshot"]. Declaring any makes the module depend on the browser and limits its URL events to web pages, so the scan won't start unless `web.enable_browser` is on. Empty list by default.
+        browser_artifacts (List): What this module needs from the browser's shared page loads, e.g. ["screenshot"]. Declaring any implies `uses_browser`. Empty list by default.
+
+        uses_browser (bool): The module depends on the browser, either through `browser_artifacts` or by driving pages itself with `self.helpers.browser.new_context()`. Its URL events are limited to web pages on hosts the browser can get past, and the scan won't start unless `web.enable_browser` is on. Default is False.
 
         companion_of (List): Modules this module exists to serve, e.g. ["screenshot"]. It's enabled automatically
             alongside any of them unless its `auto_enable` option is false, and a scan that enables it without any of
@@ -123,6 +125,7 @@ class BaseModule:
     accept_url_special = False
     skip_browser_only_hosts = False
     browser_artifacts = []
+    uses_browser = False
     companion_of = []
     _avoid_duplicate_content = False
     _module_threads = 1
@@ -960,12 +963,13 @@ class BaseModule:
         if self.skip_browser_only_hosts and event.host and self.helpers.web.is_browser_only(event.host):
             return False, "its host can only be loaded by a browser"
 
+        uses_browser = self.uses_browser or self.browser_artifacts
         # the browser renders pages; an image or a JSON file isn't one
-        if self.browser_artifacts and event.type == "URL":
+        if uses_browser and event.type == "URL":
             content_type = event.content_type
             if content_type not in BROWSER_PAGE_TYPES:
                 return False, f"it isn't a web page ({content_type or 'no content type, and not HTML'})"
-        if self.browser_artifacts and event.host and self.helpers.web.is_unpassable(event.host):
+        if uses_browser and event.host and self.helpers.web.is_unpassable(event.host):
             return False, "the browser couldn't get past its host's protection"
 
         # custom filtering

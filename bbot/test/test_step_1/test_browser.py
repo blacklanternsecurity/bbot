@@ -101,6 +101,8 @@ async def test_browser_disabled(bbot_scanner):
         await browser.visit("http://127.0.0.1:8888/")
     with pytest.raises(BrowserError, match="web.enable_browser"):
         await browser.fetch("http://127.0.0.1:8888/")
+    with pytest.raises(BrowserError, match="web.enable_browser"):
+        await browser.new_context()
     await scan._cleanup()
 
 
@@ -300,6 +302,80 @@ async def test_browser_crash_recovery(bbot_scanner, bbot_httpserver):
     assert len(browser._crashes) == 3
     assert not browser.usable
     assert await browser.visit(bbot_httpserver.url_for("/fourth")) is None
+
+    await scan._cleanup()
+    assert await no_browser_processes()
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
+async def test_browser_new_context(bbot_scanner, bbot_httpserver):
+    serve(bbot_httpserver)
+    scan = await browser_scan(bbot_scanner, http_headers={"X-Bbot-Test": "bbot-test-value"})
+    browser = scan.helpers.browser
+    free_slots = browser._page_slots._value
+
+    # a lent context holds a page slot and keeps the browser from being shut down or recycled under it
+    context = await browser.new_context(bypass_csp=True)
+    instance = browser._instance
+    assert browser._page_slots._value == free_slots - 1
+    assert instance.active == 1
+
+    # a module's own route that falls back still goes through the scan's blacklist and custom headers
+    fell_back = []
+
+    async def module_route(route):
+        fell_back.append(route.request.url)
+        await route.fallback()
+
+    await context.route("**/*", module_route)
+    pages_opened = instance.pages_opened
+    page = await context.new_page()
+    assert instance.pages_opened == pages_opened + 1
+    await page.goto(bbot_httpserver.url_for("/lent"))
+    assert await page.title() == "js page"
+    assert "http://localhost:8888/blocked.png" in fell_back
+    assert "/blocked.png" not in requested_paths(bbot_httpserver)
+    request = next(request for request, _ in bbot_httpserver.log if request.path == "/lent")
+    assert request.headers.get("X-Bbot-Test") == "bbot-test-value"
+
+    # a route that fetches a response to change it does so under the same rules
+    refused = []
+
+    async def rewriting_route(route):
+        response = await browser.route_fetch(route, headers={**route.request.headers, "x-module": "1"})
+        if response is None:
+            refused.append(route.request.url)
+            await route.abort()
+            return
+        body = await response.body()
+        await route.fulfill(response=response, body=body.replace(b"js page", b"rewritten page"))
+
+    page = await context.new_page()
+    await page.route("**/*", rewriting_route)
+    await page.goto(bbot_httpserver.url_for("/rewritten"))
+    assert await page.title() == "rewritten page"
+    assert refused == ["http://localhost:8888/blocked.png"]
+    assert "/blocked.png" not in requested_paths(bbot_httpserver)
+    request = next(request for request, _ in bbot_httpserver.log if request.path == "/rewritten")
+    assert request.headers.get("X-Bbot-Test") == "bbot-test-value"
+    assert request.headers.get("X-Module") == "1"
+
+    # closing it gives the slot back
+    await context.close()
+    assert browser._page_slots._value == free_slots
+    assert instance.active == 0
+
+    # so does the browser dying while one is out
+    context = await browser.new_context()
+    assert browser._page_slots._value == free_slots - 1
+    for process in browser_processes():
+        process.kill()
+    for _ in range(50):
+        if browser._page_slots._value == free_slots:
+            break
+        await asyncio.sleep(0.1)
+    assert browser._page_slots._value == free_slots
 
     await scan._cleanup()
     assert await no_browser_processes()

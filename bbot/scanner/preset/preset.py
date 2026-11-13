@@ -513,7 +513,7 @@ class Preset(metaclass=BasePreset):
                 module_type = preloaded.get("type", "scan")
                 if flag in module_flags:
                     # a flag that happens to cover a browser module isn't a request for the browser, so leave it out
-                    if browser_off and preloaded.get("browser_artifacts", []):
+                    if browser_off and preloaded.get("uses_browser", False):
                         skipped_browser_modules.add(module)
                         continue
                     self.log_debug(f'Enabling module "{module}" because it has flag "{flag}"')
@@ -583,7 +583,7 @@ class Preset(metaclass=BasePreset):
         # modules that only work through the browser can't run without it, when explicitly asked for
         if browser_off:
             browser_modules = sorted(
-                m for m in baked_preset.modules if baked_preset.preloaded_module(m).get("browser_artifacts", [])
+                m for m in baked_preset.modules if baked_preset.preloaded_module(m).get("uses_browser", False)
             )
             if browser_modules:
                 plural = len(browser_modules) > 1

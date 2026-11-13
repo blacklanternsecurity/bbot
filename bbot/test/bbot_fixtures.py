@@ -34,7 +34,7 @@ DEFAULT_PRESET = Preset()
 available_modules = [
     m
     for m in DEFAULT_PRESET.module_loader.configs(type="scan")
-    if not DEFAULT_PRESET.module_loader.preloaded()[m].get("browser_artifacts", [])
+    if not DEFAULT_PRESET.module_loader.preloaded()[m].get("uses_browser", False)
 ]
 available_output_modules = [
     m
