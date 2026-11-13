@@ -92,6 +92,139 @@ Enumerate Git repositories, Docker images, etc.
 
 Modules: [0]("")
 
+## **domino**
+
+Run domino with all but the most benign rules, utilize the spider to find additional endpoints
+
+??? note "`domino.yml`"
+    ```yaml title="~/.bbot/presets/web/domino.yml"
+    description: Run domino with all but the most benign rules, utilize the spider to find additional endpoints
+    
+    include:
+      - spider
+    
+    modules:
+      - http
+      - domino
+    
+    config:
+      web:
+        # DOMino scans in the scan's browser, which is off by default
+        enable_browser: true
+      modules:
+        domino:
+          rules:
+            - xss-basic
+            - xss-onclick-getparam
+            - xss-onclick-hash
+            - xss-referer
+            - xss-windowname
+            - xss-interaction
+            - xss-postmessage
+            - xss-js
+            - get-parameter-discovery
+            - prototype-pollution
+            - remote-include
+            - remote-include-get-parameters
+            - jquery
+            - eval
+            - transform
+            - get-parameter-transform
+            - html-injection
+    ```
+
+Category: web
+
+Modules: [0]("")
+
+## **domino-heavy**
+
+Run domino with all rules on a target, and use spider and wayback to find as many endpoints as possible
+
+??? note "`domino-heavy.yml`"
+    ```yaml title="~/.bbot/presets/web/domino-heavy.yml"
+    description: Run domino with all rules on a target, and use spider and wayback to find as many endpoints as possible
+    
+    include:
+      - spider
+    
+    modules:
+      - http
+      - domino
+      - wayback
+    
+    config:
+      web:
+        # DOMino scans in the scan's browser, which is off by default
+        enable_browser: true
+      modules:
+        domino:
+          rules:
+            - reflection
+            - xss-basic
+            - xss-onclick-getparam
+            - xss-onclick-hash
+            - xss-referer
+            - xss-windowname
+            - xss-interaction
+            - xss-postmessage
+            - xss-js
+            - get-parameter-discovery
+            - get-parameter-reflection
+            - transform
+            - get-parameter-transform
+            - html-injection
+            - jquery
+            - eval
+            - hash-decode
+            - postmessage
+            - remote-include
+            - remote-include-get-parameters
+            - prototype-pollution
+          suppress_parameter_discovery_reports: False
+        wayback:
+          urls: True
+    ```
+
+Category: web
+
+Modules: [0]("")
+
+## **domino-light**
+
+Run domino with a minimal set of rules to only alert on confirmed vulnerabilities
+
+??? note "`domino-light.yml`"
+    ```yaml title="~/.bbot/presets/web/domino-light.yml"
+    description: Run domino with a minimal set of rules to only alert on confirmed vulnerabilities
+    
+    modules:
+      - http
+      - domino
+    
+    config:
+      web:
+        # DOMino scans in the scan's browser, which is off by default
+        enable_browser: true
+      modules:
+        domino:
+          rules:
+            - xss-basic
+            - xss-onclick-getparam
+            - xss-onclick-hash
+            - xss-referer
+            - xss-windowname
+            - xss-interaction
+            - xss-postmessage
+            - xss-js
+            - prototype-pollution
+            - remote-include
+    ```
+
+Category: web
+
+Modules: [0]("")
+
 ## **dotnet-audit**
 
 Comprehensive scan for all IIS/.NET specific modules and module settings
@@ -251,6 +384,7 @@ Everything everywhere all at once
       - webbrute
       - web-screenshots
       - baddns-heavy
+      - domino-heavy
     
     config:
       modules:
@@ -1077,12 +1211,15 @@ Here is a the same data, but in a table:
 | baddns-heavy       |            | Run all baddns modules and submodules.                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | 3           | baddns, baddns_direct, baddns_zone                                                                 |
 | cloud-enum         |            | Enumerate cloud resources such as storage buckets, etc.                                                                                                                                                                                                                                                                                                                                                                                                                                                 | 0           |                                                                                                    |
 | code-enum          |            | Enumerate Git repositories, Docker images, etc.                                                                                                                                                                                                                                                                                                                                                                                                                                                         | 0           |                                                                                                    |
+| domino             | web        | Run domino with all but the most benign rules, utilize the spider to find additional endpoints                                                                                                                                                                                                                                                                                                                                                                                                          | 2           | domino, http                                                                                       |
+| domino-heavy       | web        | Run domino with all rules on a target, and use spider and wayback to find as many endpoints as possible                                                                                                                                                                                                                                                                                                                                                                                                 | 3           | domino, http, wayback                                                                              |
+| domino-light       | web        | Run domino with a minimal set of rules to only alert on confirmed vulnerabilities                                                                                                                                                                                                                                                                                                                                                                                                                       | 2           | domino, http                                                                                       |
 | dotnet-audit       | web        | Comprehensive scan for all IIS/.NET specific modules and module settings                                                                                                                                                                                                                                                                                                                                                                                                                                | 8           | ajaxpro, aspnet_bin_exposure, badsecrets, dotnetnuke, http, telerik, webbrute, webbrute_shortnames |
 | email-enum         |            | Enumerate email addresses from APIs, web crawling, etc.                                                                                                                                                                                                                                                                                                                                                                                                                                                 | 0           |                                                                                                    |
 | fast               |            | Scan only the provided targets as fast as possible - no extra discovery                                                                                                                                                                                                                                                                                                                                                                                                                                 | 0           |                                                                                                    |
 | iis-shortnames     | web        | Recursively enumerate IIS shortnames                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | 0           |                                                                                                    |
 | js-audit           | web        | Hunt for leaked credentials and vulnerable libraries in client-side JavaScript                                                                                                                                                                                                                                                                                                                                                                                                                          | 7           | badsecrets, http, js_unpacker, retirejs, robots, trufflehog, wayback                               |
-| kitchen-sink       |            | Everything everywhere all at once                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | 7           | baddns, baddns_direct, baddns_zone, http, hunt, reflected_parameters, webbrute                     |
+| kitchen-sink       |            | Everything everywhere all at once                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | 9           | baddns, baddns_direct, baddns_zone, domino, http, hunt, reflected_parameters, wayback, webbrute    |
 | lightfuzz          | web        | Default fuzzing: all 9 submodules (cmdi, crypto, path, serial, sqli, ssti, xss, esi, ssrf) plus companion modules (badsecrets, hunt, reflected_parameters). POST fuzzing disabled but try_post_as_get enabled, so POST params are retested as GET. On WAF-tagged hosts, only request-body parameters are fuzzed, and only if the WAF doesn't block them or nowafpls body padding gets them past it.                                                                                                     | 6           | badsecrets, http, hunt, lightfuzz, nowafpls, reflected_parameters                                  |
 | lightfuzz-heavy    | web        | Aggressive fuzzing: everything in lightfuzz, plus paramminer brute-force parameter discovery (headers, GET params, cookies), POST request fuzzing enabled, try_get_as_post enabled (GET params retested as POST), and robots.txt parsing. On WAF-tagged hosts, only request-body parameters are fuzzed, and only if the WAF doesn't block them or nowafpls body padding gets them past it.                                                                                                              | 8           | badsecrets, http, hunt, lightfuzz, nowafpls, reflected_parameters, robots, wayback                 |
 | lightfuzz-light    | web        | Minimal fuzzing: only path traversal, SQLi, and XSS submodules. No POST requests. No companion modules. Safest option for running alongside larger scans with minimal overhead.                                                                                                                                                                                                                                                                                                                         | 2           | http, lightfuzz                                                                                    |

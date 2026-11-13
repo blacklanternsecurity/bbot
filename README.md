@@ -225,6 +225,7 @@ include:
   - webbrute
   - web-screenshots
   - baddns-heavy
+  - domino-heavy
 
 config:
   modules:

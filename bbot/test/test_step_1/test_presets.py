@@ -1342,7 +1342,7 @@ def test_preset_dnsresolve_required_by_dns_name_consumers():
 
 
 def test_preset_browser_modules_require_enable_browser():
-    """A scan that asks for a module needing the browser (one with browser_artifacts) won't start unless it's on."""
+    """A scan that asks for a module needing the browser (uses_browser) won't start unless it's on."""
     with pytest.raises(
         ValidationError,
         match=r"Module screenshot requires the browser, but `web.enable_browser` is false\. "
@@ -1352,6 +1352,10 @@ def test_preset_browser_modules_require_enable_browser():
 
     with pytest.raises(ValidationError, match=r"Modules browser_dom, screenshot require the browser"):
         Scanner(modules=["screenshot", "browser_dom"])
+
+    # as does one that drives the browser itself rather than taking artifacts from shared page loads
+    with pytest.raises(ValidationError, match=r"Module domino requires the browser"):
+        Scanner(modules=["domino"])
 
     # with the browser enabled, they're fine
     scan = Scanner(modules=["screenshot"], config={"web": {"enable_browser": True}})
