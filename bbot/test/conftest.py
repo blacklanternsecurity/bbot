@@ -13,6 +13,7 @@ from werkzeug.wrappers import Response
 from bbot.test.worker import (
     BBOT_TEST_DIR,
     BBOT_TEST_SHARED_DIR,
+    BBOT_TEST_TOOLS_DIR,
     HTTPSERVER_ALLINTERFACES_PORT,
     HTTPSERVER_PORT,
     HTTPSERVER_SSL_PORT,
@@ -416,19 +417,23 @@ def pytest_sessionstart(session):
 
 
 def link_browser_install():
-    """Point the test home's browser install dir at one that outlives the session."""
+    """Point the tests' browser install dir (in the shared tools dir) at one that outlives the session."""
     from bbot.core.helpers.web.browser import BrowserHelper
 
     install_dirname = BrowserHelper.engine_class.install_dirname
     persistent = BROWSER_INSTALL_CACHE / install_dirname
     persistent.mkdir(parents=True, exist_ok=True)
-    link = BBOT_TEST_DIR / "tools" / install_dirname
+    link = BBOT_TEST_TOOLS_DIR / install_dirname
+    # every xdist process runs this against the same shared dir, so an existing link is left alone
+    if link.is_symlink() and link.readlink() == persistent:
+        return
     link.parent.mkdir(parents=True, exist_ok=True)
     if link.is_symlink():
         link.unlink()
     elif link.exists():
         shutil.rmtree(link)
-    link.symlink_to(persistent, target_is_directory=True)
+    with suppress(FileExistsError):
+        link.symlink_to(persistent, target_is_directory=True)
 
 
 def pytest_collection_modifyitems(config, items):
