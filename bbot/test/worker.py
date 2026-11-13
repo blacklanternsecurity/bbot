@@ -4,17 +4,28 @@ Ports and the home directory are process-global, so under ``pytest -n`` each
 worker needs its own: otherwise the servers collide on one port, and whichever
 worker finishes first deletes the home directory out from under the rest.
 
-Serial runs have no ``PYTEST_XDIST_WORKER`` and keep the original values.
+Serial runs have no ``PYTEST_XDIST_WORKER`` and keep the original ports.
+
+The directories are also per test run, since runs from other checkouts may be
+going at the same time, and each deletes its own when it finishes.
 """
 
 import os
+import re
+import shutil
 from contextlib import suppress
 from pathlib import Path
+
+import psutil
 
 # Wider than the number of distinct base ports, so worker blocks cannot overlap.
 WORKER_PORT_STRIDE = 100
 
-BASE_BBOT_TEST_DIR = Path("/tmp/.bbot_test")
+# The controller's pid, set before it starts any xdist workers, which inherit it
+RUN_ID = os.environ.setdefault("BBOT_TEST_RUN_ID", str(os.getpid()))
+BASE_BBOT_TEST_DIR = Path(f"/tmp/.bbot_test_{RUN_ID}")
+# a run's home, its workers' homes, and its shared dir
+_RUN_DIR_REGEX = re.compile(r"^\.bbot_test_(\d+)(?:_gw\d+|_shared)?$")
 
 
 def worker_id():
@@ -53,6 +64,14 @@ def worker_dir(base=BASE_BBOT_TEST_DIR):
 # dirs at one shared location; scan output and temp files stay per-worker.
 BBOT_TEST_SHARED_DIR = Path(f"{BASE_BBOT_TEST_DIR}_shared")
 BBOT_TEST_TOOLS_DIR = BBOT_TEST_SHARED_DIR / "tools"
+
+
+def remove_stale_test_dirs(parent=BASE_BBOT_TEST_DIR.parent):
+    """Remove the directories of earlier runs that ended without cleaning up, e.g. killed ones."""
+    for path in parent.glob(".bbot_test_*"):
+        match = _RUN_DIR_REGEX.match(path.name)
+        if match and not psutil.pid_exists(int(match.group(1))):
+            shutil.rmtree(path, ignore_errors=True)
 
 
 HTTPSERVER_PORT = worker_port(8888)

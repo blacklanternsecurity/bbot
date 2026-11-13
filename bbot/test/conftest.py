@@ -16,6 +16,7 @@ from bbot.test.worker import (
     HTTPSERVER_ALLINTERFACES_PORT,
     HTTPSERVER_PORT,
     HTTPSERVER_SSL_PORT,
+    remove_stale_test_dirs,
     worker_id,
 )
 
@@ -68,9 +69,9 @@ root_logger.addHandler(debug_handler)
 with open(Path(__file__).parent / "test.conf") as _f:
     test_config = yaml.safe_load(_f) or {}
 
-# Give each xdist worker its own BBOT home. test.conf carries the serial default;
-# under -n the workers would otherwise share caches, scan output and temp files,
-# and the sessionfinish cleanup below would delete a directory still in use.
+# Give each xdist worker its own BBOT home, unique to this run. Under -n the workers
+# would otherwise share caches, scan output and temp files, and the sessionfinish
+# cleanup below would delete a directory still in use.
 test_config["home"] = str(BBOT_TEST_DIR)
 
 # Deps install once into a shared dir instead of once per worker. Scan output stays
@@ -398,6 +399,11 @@ def proxy_server():
     # Stop the server.
     server.shutdown()
     server_thread.join()
+
+
+def pytest_sessionstart(session):
+    if not worker_id():
+        remove_stale_test_dirs()
 
 
 def pytest_collection_modifyitems(config, items):
