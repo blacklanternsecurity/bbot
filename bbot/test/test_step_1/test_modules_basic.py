@@ -201,6 +201,9 @@ async def test_modules_basic_checks(events, blasthttp_mock):
     assert all_preloaded["baddns"]["deps"]["pip"]
     assert all_preloaded["portscan"]["deps"]["common"]
     assert all_preloaded["gowitness"]["deps"]["ansible"]
+    # git is a core dependency; the git_clone module should not require sudo.
+    assert all_preloaded["git_clone"]["deps"]["apt"] == []
+    assert all_preloaded["git_clone"]["sudo"] is False
 
     all_flags = set()
 

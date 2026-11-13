@@ -322,6 +322,7 @@ class DnsConfig(BaseModel):
     brute_timeout: Optional[float] = None
     brute_persistent_socket: Optional[bool] = None
     brute_nameservers: Optional[str] = None
+    brute_max_resolvers: Optional[int] = None
     search_distance: Optional[int] = None
     runaway_limit: Optional[int] = None
     timeout: Optional[int] = None
