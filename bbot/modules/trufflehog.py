@@ -53,8 +53,6 @@ class trufflehog(BaseModule):
         self.verified = self.config.get("only_verified", True)
         self.concurrency = self.config.get("concurrency", 8)
         self.collapse_duplicates = self.config.get("collapse_duplicates", True)
-        # (host, detector, secret, verified) for every HTTP response secret already reported
-        self.reported_secrets = set()
 
         self.deleted_forks = self.config.get("deleted_forks", False)
         self.github_token = ""
@@ -88,6 +86,15 @@ class trufflehog(BaseModule):
             if "unarchived-folder" in event.tags:
                 return False, "Not accepting unarchived-folder events"
         return True
+
+    def _outgoing_dedup_hash(self, event):
+        # a secret repeated across a host's pages is one finding, so the page URL is left out.
+        # only HTTP responses collapse; a repo, file or document is its own leak
+        if self.collapse_duplicates and event.parent.type == "HTTP_RESPONSE":
+            return hash(
+                (self.name, event.host, event.data["name"], event.data["confidence"], event.data["description"])
+            )
+        return super()._outgoing_dedup_hash(event)
 
     async def handle_event(self, event):
         description = ""
@@ -125,14 +132,6 @@ class trufflehog(BaseModule):
             verified,
             source_metadata,
         ) in self.execute_trufflehog(module, path=path, stdin_data=stdin_data):
-            # only HTTP responses collapse per host; a repo, file or document is its own leak
-            if self.collapse_duplicates and event.type == "HTTP_RESPONSE":
-                # the decoder is left out: the same secret found plain and HTML-encoded is still one secret
-                secret_key = (host, detector_name, raw_result, rawv2_result, verified)
-                if secret_key in self.reported_secrets:
-                    self.debug(f"Already reported {detector_name} secret on {host}: {raw_result}")
-                    continue
-                self.reported_secrets.add(secret_key)
             verified_str = "Verified" if verified else "Possible"
             confidence = "CONFIRMED" if verified else "MEDIUM"
             data = {
