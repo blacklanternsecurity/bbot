@@ -1,0 +1,95 @@
+name: publish
+
+on:
+  push:
+    branches: [stable]
+
+permissions: {}
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    uses: blacklanternsecurity/release-workflows/.github/workflows/release-check.yml@c53c202eedeb26a86088936363e6cb06ce99ac15 # v1.0.0
+    secrets:
+      BLS_RELEASE_PRIVATE_KEY: ${{ secrets.BLS_RELEASE_PRIVATE_KEY }}
+    with:
+      image: ${{ github.repository }}
+
+  tests:
+    needs: check
+    if: needs.check.outputs.release == 'true'
+    permissions:
+      contents: read
+      pull-requests: read
+    uses: ./.github/workflows/tests.yml
+    secrets:
+      BBOT_IO_API_KEY: ${{ secrets.BBOT_IO_API_KEY }}
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  build:
+    needs: tests
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+      - run: uv build
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  docker:
+    needs: [check, tests]
+    if: needs.check.outputs.release == 'true'
+    permissions:
+      contents: read
+    uses: blacklanternsecurity/release-workflows/.github/workflows/docker.yml@c53c202eedeb26a86088936363e6cb06ce99ac15 # v1.0.0
+    with:
+      image: ${{ github.repository }}
+      version: ${{ needs.check.outputs.version }}
+      major: ${{ needs.check.outputs.major }}
+      minor: ${{ needs.check.outputs.minor }}
+      description: true
+    secrets:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+
+  pypi:
+    needs: [build, docker]
+    runs-on: ubuntu-24.04
+    environment: release
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: dist
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          skip-existing: true
+
+  release:
+    needs: [check, docker, pypi]
+    if: needs.check.outputs.release == 'true'
+    permissions:
+      contents: read
+    uses: blacklanternsecurity/release-workflows/.github/workflows/publish.yml@c53c202eedeb26a86088936363e6cb06ce99ac15 # v1.0.0
+    secrets:
+      BLS_RELEASE_PRIVATE_KEY: ${{ secrets.BLS_RELEASE_PRIVATE_KEY }}
+    with:
+      tag: ${{ needs.check.outputs.tag }}
+      version: ${{ needs.check.outputs.version }}
+      images: ${{ needs.docker.outputs.images }}
