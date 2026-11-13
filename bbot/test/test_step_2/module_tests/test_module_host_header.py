@@ -28,7 +28,7 @@ class TestHost_Header(ModuleTestBase):
             return Response(f"Alive, host is: {subdomain_tag}.{self.fake_host}", status=200)
 
         # Host Header Overrides
-        subdomain_tag_overrides = extract_subdomain_tag(request.headers["X-Forwarded-For"])
+        subdomain_tag_overrides = extract_subdomain_tag(request.headers.get("X-Forwarded-For", ""))
         if subdomain_tag_overrides:
             return Response(f"Alive, host is: {subdomain_tag}.{self.fake_host}", status=200)
 

@@ -49,9 +49,8 @@ class FastShutdownHTTPServer(HTTPServer):
         empty-body hash from that check, so an empty miss is the only constant that
         does not make every miss URL collide as duplicate content.
 
-        The accumulated assertion is dropped with it. bbot's httpserver fixtures
-        call clear() before check_assertions(), so no-handler assertions were
-        discarded unread and never failed a test.
+        Unmatched requests are normal during brute-force tests, so they must
+        not add assertions. Teardown checks real assertions and handler errors.
         """
         return Response("", self.no_handler_status_code)
 
@@ -156,6 +155,14 @@ def stop_server(server):
         time.sleep(0.005)
 
 
+def check_httpserver_errors(server):
+    """Check HTTP handler failures and explicit assertions before cleanup."""
+    try:
+        server.check()  # check_assertions() and check_handler_errors()
+    finally:
+        server.clear()
+
+
 @pytest.fixture
 def bbot_httpserver():
     server = FastShutdownHTTPServer(host="127.0.0.1", port=HTTPSERVER_PORT, threaded=True)
@@ -163,11 +170,8 @@ def bbot_httpserver():
 
     yield server
 
-    server.clear()
     stop_server(server)  # Ensure the server is fully stopped
-
-    server.check_assertions()
-    server.clear()
+    check_httpserver_errors(server)
 
 
 @pytest.fixture
@@ -182,11 +186,8 @@ def bbot_httpserver_ssl():
 
     yield server
 
-    server.clear()
     stop_server(server)  # Ensure the server is fully stopped
-
-    server.check_assertions()
-    server.clear()
+    check_httpserver_errors(server)
 
 
 def _should_mock(host):
@@ -289,11 +290,9 @@ def bbot_httpserver_allinterfaces():
 
     yield server
 
-    server.clear()
     if server.is_running():
         server.stop()
-    server.check_assertions()
-    server.clear()
+    check_httpserver_errors(server)
 
 
 class Interactsh_mock:
