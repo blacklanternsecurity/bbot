@@ -1,10 +1,15 @@
+import os
+import subprocess
 from pathlib import Path
 from unittest.mock import patch
 
 from bbot.test.worker import (
     BASE_BBOT_TEST_DIR,
+    BBOT_TEST_SHARED_DIR,
+    RUN_ID,
     WORKER_PORT_STRIDE,
     _worker_index,
+    remove_stale_test_dirs,
     worker_dir,
     worker_id,
     worker_port,
@@ -83,3 +88,24 @@ def test_worker_dir_is_unique_per_worker():
             seen.add(d)
     with _env("gw2"):
         assert worker_dir("/tmp/.bbot_example") == Path("/tmp/.bbot_example_gw2")
+
+
+def test_dirs_are_unique_to_the_run():
+    # xdist workers inherit the controller's run id, so a run's processes share it and no other run does
+    assert os.environ["BBOT_TEST_RUN_ID"] == RUN_ID
+    assert BASE_BBOT_TEST_DIR.name == f".bbot_test_{RUN_ID}"
+    assert BBOT_TEST_SHARED_DIR.name == f".bbot_test_{RUN_ID}_shared"
+
+
+def test_remove_stale_test_dirs(tmp_path):
+    exited = subprocess.Popen(["true"])
+    exited.wait()
+    dead, alive = exited.pid, os.getpid()
+    stale = [f".bbot_test_{dead}", f".bbot_test_{dead}_gw3", f".bbot_test_{dead}_shared"]
+    # a running test run's, and the fixed paths an older checkout may be using right now
+    kept = [f".bbot_test_{alive}", f".bbot_test_{alive}_shared", ".bbot_test", ".bbot_test_shared", ".bbot_test_gw0"]
+    for name in stale + kept:
+        (tmp_path / name / "cache").mkdir(parents=True)
+
+    remove_stale_test_dirs(tmp_path)
+    assert sorted(p.name for p in tmp_path.iterdir()) == sorted(kept)
