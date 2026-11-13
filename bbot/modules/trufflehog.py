@@ -19,6 +19,10 @@ class trufflehog(BaseModule):
         config: str = Field("", description="File path or URL to YAML trufflehog config")
         only_verified: bool = Field(True, description="Only report credentials that have been verified")
         concurrency: int = Field(8, description="Number of concurrent workers")
+        collapse_duplicates: bool = Field(
+            True,
+            description="Report each secret found in HTTP responses once per host, rather than once for every page it appears on",
+        )
         deleted_forks: bool = Field(
             False,
             description="Scan for deleted github forks. WARNING: This is SLOW. For a smaller repository, this process can take 20 minutes. For a larger repository, it could take hours.",
@@ -48,6 +52,7 @@ class trufflehog(BaseModule):
     async def setup(self):
         self.verified = self.config.get("only_verified", True)
         self.concurrency = self.config.get("concurrency", 8)
+        self.collapse_duplicates = self.config.get("collapse_duplicates", True)
 
         self.deleted_forks = self.config.get("deleted_forks", False)
         self.github_token = ""
@@ -82,6 +87,15 @@ class trufflehog(BaseModule):
                 return False, "Not accepting unarchived-folder events"
         return True
 
+    def _outgoing_dedup_hash(self, event):
+        # a secret repeated across a host's pages is one finding, so the page URL is left out.
+        # only HTTP responses collapse; a repo, file or document is its own leak
+        if self.collapse_duplicates and event.parent.type == "HTTP_RESPONSE":
+            return hash(
+                (self.name, event.host, event.data["name"], event.data["confidence"], event.data["description"])
+            )
+        return super()._outgoing_dedup_hash(event)
+
     async def handle_event(self, event):
         description = ""
         if isinstance(event.data, dict):
@@ -109,7 +123,7 @@ class trufflehog(BaseModule):
         if event.type == "CODE_REPOSITORY":
             host = event.host
         else:
-            host = str(event.parent.host)
+            host = event.parent.host
         async for (
             decoder_name,
             detector_name,
@@ -124,8 +138,9 @@ class trufflehog(BaseModule):
                 "name": f"TruffleHog - {detector_name}",
                 "description": f"{verified_str} Secret Found. Detector Type: [{detector_name}] Decoder Type: [{decoder_name}] Details: [{source_metadata}]",
             }
+            # without a host, FINDING inherits host, url and path from the nearest parent (e.g. a downloaded file)
             if host:
-                data["host"] = host
+                data["host"] = str(host)
             if event.type == "HTTP_RESPONSE":
                 url = event.data.get("url", "")
                 if url:
