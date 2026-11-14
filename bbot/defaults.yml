@@ -229,6 +229,10 @@ cdn_port_filter:
     - 80
     - 443
 
+# Let active modules scan hosts that resolve to loopback (127.0.0.0/8, ::1, 0.0.0.0), i.e. the machine BBOT runs on
+# Loopback addresses in the target are always allowed
+allow_loopback: false
+
 # Completely ignore URLs with these extensions
 url_extension_blacklist:
   # images

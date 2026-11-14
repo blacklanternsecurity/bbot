@@ -491,6 +491,9 @@ class BBOTConfig(BaseModel):
     # CDN/WAF port filtering
     cdn_port_filter: Optional[CdnPortFilterConfig] = None
 
+    # let active modules scan hosts that resolve to loopback
+    allow_loopback: Optional[bool] = None
+
     # Parameter handling
     parameter_blacklist: Optional[list[str]] = None
     parameter_blacklist_prefixes: Optional[list[str]] = None
