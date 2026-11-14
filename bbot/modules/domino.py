@@ -18,6 +18,8 @@ class domino(browser_vulns):
         "created_date": "2025-04-08",
         "author": "@liquidsec",
     }
+    # the page's DOM and the scripts it loaded, to tell which pages run the same code
+    browser_artifacts = ["dom", "network"]
     # DOMino drives pages in the scan's browser, through self.helpers.browser.new_context()
     uses_browser = True
     # TEMPORARY: DOMino's shared-browser support is unreleased; pin the d0m1n0 release instead before merging into dev

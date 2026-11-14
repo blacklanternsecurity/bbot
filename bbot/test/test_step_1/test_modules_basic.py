@@ -205,7 +205,8 @@ async def test_modules_basic_checks(events, blasthttp_mock):
     assert all_preloaded["robots"]["browser_artifacts"] == []
     # browser_artifacts implies uses_browser; a module that drives pages itself declares it directly
     assert all_preloaded["screenshot"]["uses_browser"] is True
-    assert all_preloaded["domino"]["browser_artifacts"] == []
+    # declared in the module itself, since preloading doesn't see what it inherits from its template
+    assert all_preloaded["domino"]["browser_artifacts"] == ["dom", "network"]
     assert all_preloaded["domino"]["uses_browser"] is True
     assert all_preloaded["robots"]["uses_browser"] is False
 
