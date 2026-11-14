@@ -254,9 +254,7 @@ class browser_vulns(BaseModule):
 
     async def report(self):
         if self.pages_seen:
-            self.info(
-                f"Analyzed {len(self.analyzed):,} of {self.pages_seen:,} pages; the rest ran the same code as one of them"
-            )
+            self.info(f"Analyzed {len(self.analyzed):,} distinct sets of page code across {self.pages_seen:,} pages")
 
     async def emit_finding(self, event, url, name, description, severity, confidence, context):
         await self.emit_event(
