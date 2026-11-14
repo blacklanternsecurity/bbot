@@ -396,6 +396,19 @@ async def test_browser_new_context(bbot_scanner, bbot_httpserver):
         await asyncio.sleep(0.1)
     assert browser._page_slots._value == free_slots
 
+    # a driver that exited is noticed by the next context lent, which gets a new browser
+    await (await browser.new_context()).close()
+    first = browser._instance
+    for process in driver_processes():
+        process.kill()
+    context = await browser.new_context()
+    assert browser._instance is not first and not first.alive
+    page = await context.new_page()
+    await page.goto(bbot_httpserver.url_for("/after"))
+    assert await page.title() == "js page"
+    await context.close()
+    assert browser._page_slots._value == free_slots
+
     await scan._cleanup()
     assert await no_browser_processes()
 

@@ -253,8 +253,16 @@ class BrowserHelper:
         self._check_enabled()
         await self._page_slots.acquire()
         try:
-            instance = await self._get_instance()
-            context = await self._new_context(instance, **options)
+            for attempt in (1, 2):
+                crashes_before = self._crash_count
+                try:
+                    instance = await self._get_instance()
+                    context = await self._new_context(instance, **options)
+                    break
+                except Exception as e:
+                    # a browser that died is relaunched once
+                    if attempt == 2 or not await self._died(e, crashes_before):
+                        raise
         except BaseException:
             self._page_slots.release()
             raise
