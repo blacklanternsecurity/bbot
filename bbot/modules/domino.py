@@ -2,14 +2,14 @@ from domino.DOMino import Domino
 from domino.lib.errors import DominoError
 
 from bbot.errors import BrowserError
-from bbot.modules.base import BaseModule
+from bbot.modules.templates.browser_vulns import browser_vulns
 from bbot.core.config.models import BaseModuleConfig, Field
 
 # the longest DOMino may spend on one URL
 SCAN_TIMEOUT = 120
 
 
-class domino(BaseModule):
+class domino(browser_vulns):
     watched_events = ["URL"]
     produced_events = ["FINDING"]
     flags = ["active", "safe"]
@@ -40,18 +40,6 @@ class domino(BaseModule):
             return False, str(e)
         return True
 
-    def _incoming_dedup_hash(self, event):
-        # pages with the same body are the same page to DOMino
-        body_hash = event.data.get("hash", {}).get("body_sha256", "")
-        if body_hash:
-            return hash((event.host, body_hash)), f"body_sha256={body_hash}"
-        return hash(event), ""
-
-    async def filter_event(self, event):
-        if "status-200" not in event.tags:
-            return False, "it isn't a 200"
-        return True
-
     async def handle_event(self, event):
         url = event.url
         domino = Domino(
@@ -80,16 +68,12 @@ class domino(BaseModule):
             interactions = result.get("interactions", [])
             interactions_string = f" Interactions: [{','.join(interactions)}]" if interactions else ""
             detection_url = result.get("detection_url") or url
-            await self.emit_event(
-                {
-                    "name": rule_name,
-                    "description": f"{result['description']}.{details_string} Detection URL: [{detection_url}]{interactions_string}",
-                    "host": str(event.host),
-                    "url": detection_url,
-                    "severity": result.get("severity", "medium").upper(),
-                    "confidence": "CONFIRMED",
-                },
-                "FINDING",
+            await self.emit_finding(
                 event,
+                url=detection_url,
+                name=rule_name,
+                description=f"{result['description']}.{details_string} Detection URL: [{detection_url}]{interactions_string}",
+                severity=result.get("severity", "medium").upper(),
+                confidence="CONFIRMED",
                 context=f"{{module}} ran DOMino on {url} and found {{event.type}}: {rule_name}",
             )
