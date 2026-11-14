@@ -1,0 +1,106 @@
+# Maps each CodeQL query to its test fixtures.
+# "should_find" = files that MUST produce at least one result
+# "should_not_find" = files that MUST produce zero results
+#
+# The test harness enforces that every query has an entry here.
+
+dom_xss.ql:
+  should_find:
+    - dom_xss_innerhtml.js
+    - dom_xss_document_write.js
+    - dom_xss_jquery_html.js
+    - dom_xss_jquery_append.js
+    - dom_xss_outerhtml.js
+    - dom_xss_decoded_search.js
+  should_not_find:
+    - dom_xss_encoded_search_safe.js
+    - dom_xss_innerhtml_safe.js
+    - dom_xss_document_write_safe.js
+    - dom_xss_jquery_html_safe.js
+    - dom_xss_sanitized.js
+    - stored_xss_localstorage.js
+    - stored_xss_cookie.js
+
+dom_xss_stored.ql:
+  should_find:
+    - stored_xss_localstorage.js
+    - stored_xss_cookie.js
+  should_not_find:
+    - dom_xss_innerhtml_safe.js
+    - dom_xss_sanitized.js
+
+eval_injection.ql:
+  should_find:
+    - eval_injection.js
+    - eval_injection_function.js
+    - eval_injection_settimeout.js
+    - eval_injection_decoded_pathname.js
+  should_not_find:
+    - eval_injection_safe.js
+    - eval_injection_xhr.js
+
+client_side_redirect.ql:
+  should_find:
+    - open_redirect.js
+    - open_redirect_window_open.js
+    - open_redirect_decoded_search.js
+  should_not_find:
+    - open_redirect_safe.js
+
+postmessage_misuse.ql:
+  should_find:
+    - postmessage_no_origin_check.js
+  should_not_find:
+    - postmessage_origin_checked.js
+
+postmessage_star.ql:
+  should_find:
+    - postmessage_star.js
+  should_not_find:
+    - postmessage_origin_checked.js
+
+prototype_pollution.ql:
+  should_find:
+    - prototype_pollution.js
+    - prototype_pollution_decoded_search.js
+  should_not_find:
+    - prototype_pollution_safe.js
+    - prototype_pollution_library.js
+
+exception_xss.ql:
+  should_find:
+    - exception_xss.js
+  should_not_find:
+    - exception_xss_safe.js
+
+cors_misconfiguration.ql:
+  should_find:
+    - cors_reflected_origin.js
+  should_not_find:
+    - cors_safe.js
+
+angular_security.ql:
+  should_find:
+    - angular_disable_sce.js
+    - angular_insecure_whitelist.js
+  should_not_find:
+    - angular_safe.js
+
+unsafe_jquery_plugin.ql:
+  should_find:
+    - unsafe_jquery_plugin.js
+  should_not_find:
+    - unsafe_jquery_plugin_safe.js
+
+# Original hand-written queries
+dom-xss-jquery-contains.ql:
+  should_find:
+    - dom_xss_jquery_contains.js
+  should_not_find:
+    - dom_xss_jquery_id_selector_safe.js
+
+xmlhttprequest-to-eval.ql:
+  should_find:
+    - eval_injection_xhr.js
+  should_not_find:
+    - eval_injection_safe.js

@@ -1,0 +1,15 @@
+description: Discover client-side web vulnerabilities using CodeQL. Limit to "error" level findings, and skip scripts from out-of-scope hosts.
+
+modules:
+  - http
+  - codeql
+
+config:
+  url_querystring_remove: False
+  web:
+    # CodeQL analyzes pages loaded in the scan's browser, which is off by default
+    enable_browser: true
+  modules:
+    codeql:
+      mode: in_scope
+      min_severity: error
