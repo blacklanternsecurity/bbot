@@ -46,6 +46,8 @@ module DomXssConfig implements DataFlow::ConfigSig {
   }
 
   predicate isBarrier(DataFlow::Node node) {
+    isUrlBarrier(node)
+    or
     // DOMPurify.sanitize()
     exists(DataFlow::CallNode call |
       call.getCalleeName() = "sanitize" and

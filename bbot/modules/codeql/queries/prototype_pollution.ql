@@ -59,6 +59,8 @@ module PrototypePollutionConfig implements DataFlow::ConfigSig {
   }
 
   predicate isBarrier(DataFlow::Node node) {
+    isUrlBarrier(node)
+    or
     // JSON.parse is NOT a barrier (it's actually part of the attack chain)
     // but sanitization functions are
     exists(DataFlow::CallNode call |

@@ -43,6 +43,8 @@ module ClientSideRedirectConfig implements DataFlow::ConfigSig {
   }
 
   predicate isBarrier(DataFlow::Node node) {
+    isUrlBarrier(node)
+    or
     exists(DataFlow::MethodCallNode call |
       call.getMethodName() = "startsWith" and
       node = call
