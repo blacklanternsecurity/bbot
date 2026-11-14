@@ -1,0 +1,1 @@
+function Login(o){var n=o.location.search.split("next=")[1];n&&(window.location.href=decodeURIComponent(n))}function go(o){o.location.assign(/redirect=([^&]*)/.exec(o.location.href)[1])}function reload(o){window.location.assign(o.location.pathname)}

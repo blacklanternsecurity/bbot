@@ -1,0 +1,1 @@
+!function(n){var a={};for(var r in a[Math.random()]=window.name,a)n(r)}(jQuery);

@@ -1,0 +1,1 @@
+!function(){var o=/url=(https?:\/\/.+)/.exec(location);location.href=o?o[1]:"/"}();

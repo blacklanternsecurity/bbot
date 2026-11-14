@@ -1,0 +1,1 @@
+window.name&&location.assign(window.name);

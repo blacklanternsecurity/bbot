@@ -1,0 +1,1 @@
+window.addEventListener("message",(function(e){var a,t=document.createElement("iframe"),n={element:t};document.body.appendChild(t);try{a=JSON.parse(e.data)}catch(e){return}switch(a.type){case"page-load":n.element.scrollIntoView();break;case"load-channel":n.element.src=a.url}}),!1);

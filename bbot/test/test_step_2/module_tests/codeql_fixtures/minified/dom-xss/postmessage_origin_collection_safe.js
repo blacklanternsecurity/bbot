@@ -1,0 +1,1 @@
+!function(){var e=window.ALLOWED_ORIGINS,n=new Set(["https://one.example.com","https://two.example.com"]);window.addEventListener("message",(function(n){e.includes(n.origin)&&(document.getElementById("a").innerHTML=n.data)})),window.addEventListener("message",(function(e){n.has(e.origin)&&(document.getElementById("b").innerHTML=e.data)}))}();

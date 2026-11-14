@@ -1,0 +1,1 @@
+!function(){var e=new URLSearchParams(location.search).get("tpl"),a=document.createRange().createContextualFragment(e);document.body.appendChild(a)}();

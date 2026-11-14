@@ -1,0 +1,1 @@
+angular.module("otherApp").config(["$sceDelegateProvider",function(e){e.trustedResourceUrlList(["**"])}]);

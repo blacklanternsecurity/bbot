@@ -1,0 +1,1 @@
+!function(){var e={appId:window.APP_ID,version:"5.2.7"};parent.postMessage({type:"sdk:info",config:e},"*"),parent.postMessage({type:"resize",height:document.body.scrollHeight},"*")}();

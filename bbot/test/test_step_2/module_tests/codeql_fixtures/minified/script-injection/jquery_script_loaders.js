@@ -1,0 +1,1 @@
+!function(e){var a=new URLSearchParams(location.search);e.getScript(a.get("module")),e.globalEval(a.get("snippet"))}(jQuery);

@@ -1,0 +1,1 @@
+!function(e){var t=new URLSearchParams(location.search).get("action"),o=document.getElementById("go");o.setAttribute("onclick",t),e("#help").attr("onmouseover",location.hash.slice(1)),o.onclick=t}(jQuery);

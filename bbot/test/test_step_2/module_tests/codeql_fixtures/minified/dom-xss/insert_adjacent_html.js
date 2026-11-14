@@ -1,0 +1,1 @@
+!function(){var e=new URLSearchParams(location.search);document.getElementById("recent").insertAdjacentHTML("beforeend","<li>"+e.get("item")+"</li>")}();

@@ -9,14 +9,12 @@ from bbot.core.config.models import BaseModuleConfig, Field
 from bbot.modules.templates.browser_vulns import browser_vulns
 
 QUERIES_DIR = Path(__file__).parent / "queries"
-# GitHub's default JavaScript security queries, run alongside ours. The bundle ships them compiled, so setup() doesn't.
-GITHUB_QUERIES = "codeql/javascript-queries:codeql-suites/javascript-code-scanning.qls"
 # the longest one CodeQL step (building a page's database, or querying it) may take
 CODEQL_TIMEOUT = 600
 # CodeQL's severities, lowest first, and the FINDING severity each one becomes
 SEVERITIES = {"note": "INFO", "recommendation": "LOW", "warning": "MEDIUM", "error": "HIGH"}
 # a code location in a CodeQL message: [["label"|"relative:///page.html:3:15:3:27"]]
-MESSAGE_LOCATION = re.compile(r'\[\["[^"]*"\|"relative:///([^:"]+):(\d+):(\d+):\d+:(\d+)"\]\]')
+MESSAGE_LOCATION = re.compile(r'\[\["([^"]*)"\|"relative:///([^:"]+):(\d+):(\d+):\d+:(\d+)"\]\]')
 # the page's DOM, in the source root CodeQL builds its database from
 PAGE_FILE = "page.html"
 # longest code snippet shown in a finding
@@ -158,13 +156,13 @@ class codeql(browser_vulns):
         return False
 
     async def run_queries(self, database, queries=None):
-        """Run queries on a database (ours and GitHub's by default), and return their results as dicts."""
+        """Run queries on a database (all of them by default), and return their results as dicts."""
         output = Path(database).parent / "results.csv"
         result = await self.codeql(
             "database",
             "analyze",
             database,
-            *(queries or [*self.queries, GITHUB_QUERIES]),
+            *(queries or self.queries),
             "--format=csv",
             f"--output={output}",
         )
@@ -193,16 +191,17 @@ class codeql(browser_vulns):
         source = None
         location = MESSAGE_LOCATION.search(result["message"])
         if location:
-            file_name, line, column, end_column = location.groups()
+            _, file_name, line, column, end_column = location.groups()
             source = (
                 self.snippet(source_root / file_name, int(line), int(column), int(end_column)),
                 origins.get(file_name),
             )
-        message = MESSAGE_LOCATION.sub("", result["message"]).strip() or result["description"]
+        # each code reference becomes its label: [["the page's URL"|"relative:///..."]] reads "the page's URL"
+        message = MESSAGE_LOCATION.sub(lambda m: m.group(1), result["message"]).strip() or result["description"]
         return (result["name"], result["severity"], source, sink, message)
 
     def describe(self, page_url, source, sink, message):
-        """`Source: [...] | Sink: [...] (Line N) in <script>`, or CodeQL's message when it has no code to show."""
+        """`<message> Source: [...] | Sink: [...] (Line N) in <script>`, where the sink always names where it is."""
         parts = []
         sink_snippet, sink_origin, sink_line = sink
         if source and source[0]:
@@ -211,24 +210,31 @@ class codeql(browser_vulns):
             if source_origin != sink_origin:
                 label += f" in {source_origin or page_url}"
             parts.append(label)
-        if sink_snippet:
-            label = f"Sink: [{sink_snippet}]"
-            if sink_line is not None:
-                label += f" (Line {sink_line})"
-            parts.append(f"{label} in {sink_origin or page_url}")
-        return " | ".join(parts) if parts else message
+        # a finding without a source, like a misconfiguration, is just a place in the code
+        name = "Sink" if source else "Location"
+        label = f"{name}: [{sink_snippet}]" if sink_snippet else f"{name}:"
+        if sink_line is not None:
+            label += f" (Line {sink_line})"
+        parts.append(f"{label} in {sink_origin or page_url}")
+        return f"{message} {' | '.join(parts)}"
 
     @staticmethod
     def snippet(file_path, line, column, end_column):
-        """The code at a location, or None if there's nothing worth showing."""
+        """
+        The code at a location: its line, or on a long line the code there, widened around anything too short to
+        read on its own (a minified `e`). None if the file can't be read.
+        """
         try:
-            lines = Path(file_path).read_text().splitlines()
-            text = lines[line - 1].strip()
+            text = Path(file_path).read_text().splitlines()[line - 1]
         except (OSError, IndexError):
             return None
-        if len(text) > SNIPPET_MAX:
-            text = lines[line - 1][column - 1 : end_column].strip()
-        if len(text) > SNIPPET_MAX:
-            text = text[: SNIPPET_MAX - 3] + "..."
-        # a lone bracket or keyword says nothing about the flow
-        return text if len(text.strip("{}()[];, ")) > 3 else None
+        if len(text.strip()) <= SNIPPET_MAX:
+            return text.strip()
+        start, end = column - 1, end_column
+        context = max(0, (SNIPPET_MAX // 2) - (end - start) // 2)
+        if end - start < SNIPPET_MAX:
+            start, end = max(0, start - context), end + context
+        snippet = text[start:end].strip()
+        if len(snippet) > SNIPPET_MAX:
+            snippet = snippet[: SNIPPET_MAX - 3] + "..."
+        return snippet

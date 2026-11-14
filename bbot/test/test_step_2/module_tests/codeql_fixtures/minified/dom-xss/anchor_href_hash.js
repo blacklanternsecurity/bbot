@@ -1,0 +1,1 @@
+document.getElementById("backLink").href=location.hash.slice(1);

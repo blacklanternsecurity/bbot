@@ -1,0 +1,1 @@
+window.addEventListener("message",(function(e){e.data&&e.data.redirect&&(window.location.href=e.data.redirect)}));

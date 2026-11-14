@@ -1,0 +1,1 @@
+!function(){var t=new URLSearchParams(location.search).get("title");d3.select("#chart-title").html(t),d3.selectAll(".label").attr("class","label active").html((function(){return"<b>"+t+"</b>"})),d3.select("#caption").text(t)}();

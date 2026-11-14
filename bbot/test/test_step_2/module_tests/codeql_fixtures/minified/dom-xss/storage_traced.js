@@ -1,0 +1,1 @@
+!function(){var e=new URLSearchParams(location.search);e.has("name")&&localStorage.setItem("displayName",e.get("name"));var a=localStorage.getItem("displayName");document.getElementById("greeting").innerHTML="Welcome back, "+a}();

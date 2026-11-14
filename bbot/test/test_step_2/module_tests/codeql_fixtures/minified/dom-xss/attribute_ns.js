@@ -1,0 +1,1 @@
+!function(){var t=JSON.parse(decodeURIComponent(window.location.search.substr(1)));document.getElementById("logo-link").setAttributeNS("http://www.w3.org/1999/xlink","href",t.p)}();

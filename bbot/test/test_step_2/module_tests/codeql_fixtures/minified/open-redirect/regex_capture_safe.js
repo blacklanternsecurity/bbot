@@ -1,0 +1,1 @@
+!function(){var o=/^([a-z]+:)/.exec(window.location.href)[1];window.location.href=o+"//example.com/";var e=/(.*)/.exec(window.location.href)[1];window.location.href=e}();

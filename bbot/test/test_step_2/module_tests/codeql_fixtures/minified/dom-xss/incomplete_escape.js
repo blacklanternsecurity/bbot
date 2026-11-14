@@ -1,0 +1,1 @@
+!function(){var e=new URLSearchParams(location.search).get("q");document.getElementById("results").innerHTML="Results for "+e.replace("<","&lt;")}();

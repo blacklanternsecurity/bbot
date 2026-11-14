@@ -1,0 +1,1 @@
+!function(){var e=document.createElement("a");e.textContent="Continue",e.href=new URLSearchParams(location.search).get("next"),document.body.appendChild(e)}();

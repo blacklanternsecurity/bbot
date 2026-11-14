@@ -1,0 +1,1 @@
+angular.module("app").controller("SearchCtrl",["$scope","$compile",function(a,e){var l=new URLSearchParams(location.search).get("expr");a.$eval(l),e("<div>"+l+"</div>")(a),a.$eval("total = 0")}]);

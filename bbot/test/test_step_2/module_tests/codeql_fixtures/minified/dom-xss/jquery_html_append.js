@@ -1,0 +1,1 @@
+!function(e){var t=new URLSearchParams(location.search);e("#title").html(t.get("title")),e("body").append("<div>"+t.get("q")+"</div>")}(jQuery);

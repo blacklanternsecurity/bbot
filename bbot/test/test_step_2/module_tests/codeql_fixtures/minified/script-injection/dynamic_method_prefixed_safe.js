@@ -1,0 +1,1 @@
+!function(){var a=new URLSearchParams(location.search);window["handle"+a.get("event")](a.get("arg"))}();

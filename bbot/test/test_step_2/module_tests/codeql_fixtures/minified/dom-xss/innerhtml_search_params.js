@@ -1,0 +1,1 @@
+!function(){var e=new URLSearchParams(window.location.search).get("search");document.getElementById("searchMessage").innerHTML="0 results for '"+e+"'"}();

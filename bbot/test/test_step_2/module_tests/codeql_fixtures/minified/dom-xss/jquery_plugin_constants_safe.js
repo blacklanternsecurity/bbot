@@ -1,0 +1,1 @@
+!function(e){e.fn.badge=function(n){var a=e.extend({label:""},n);return this.each((function(){e(this).html("<span>"+a.label+"</span>")}))},e(".new").badge({label:"New!"})}(jQuery);

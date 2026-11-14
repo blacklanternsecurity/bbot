@@ -1,0 +1,1 @@
+!function(){var e=decodeURIComponent(location.pathname.split("/").pop());document.querySelector("h1").innerHTML=e.replace(/-/g," ")}();

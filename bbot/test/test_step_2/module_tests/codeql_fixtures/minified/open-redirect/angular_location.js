@@ -1,0 +1,1 @@
+angular.module("app").controller("LoginCtrl",["$location","$window",function(o,n){var a=o.search().next;a&&(n.location.href=a)}]);

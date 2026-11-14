@@ -1,0 +1,1 @@
+!function(){var e=JSON.parse(new URLSearchParams(location.search).get("opts")),a=Object.assign({},e),o=Object.assign({},{a:1},e),r=new URLSearchParams(location.search),n={};n[r.get("key")]=r.get("value");var t=function e(a){var o={};for(var r in a)o[r]="object"==typeof a[r]&&null!==a[r]?e(a[r]):a[r];return o}({theme:{color:"blue",size:12}});console.log(a,o,n,t)}();

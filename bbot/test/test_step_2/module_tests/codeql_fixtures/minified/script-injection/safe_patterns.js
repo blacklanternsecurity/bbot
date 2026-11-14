@@ -1,0 +1,1 @@
+(function(){var action=new URLSearchParams(location.search).get("action");setTimeout((function(){console.log(action)}),1e3),eval("1 + 1");var data=JSON.parse(decodeURIComponent(location.hash.slice(1)));console.log(data),eval(location.href);var script=document.createElement("script");script.src="/static/js/"+encodeURIComponent(action)+".js",document.head.appendChild(script)})();

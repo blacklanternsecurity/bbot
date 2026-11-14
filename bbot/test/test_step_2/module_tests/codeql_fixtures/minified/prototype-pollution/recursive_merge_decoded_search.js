@@ -1,0 +1,1 @@
+!function e(o,n){return Object.keys(n).forEach((function(t){n[t]&&"object"==typeof n[t]?(o[t]=o[t]||{},e(o[t],n[t])):o[t]=n[t]})),o}({},JSON.parse(decodeURIComponent(location.search.substring(1))));

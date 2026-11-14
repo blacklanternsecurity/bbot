@@ -1,0 +1,1 @@
+window.onmessage=function(e){var n=e.data;n&&"render"===n.action&&(document.getElementById("widget").innerHTML=n.html)};

@@ -1,0 +1,1 @@
+!function(){var o=decodeURIComponent(location.hash.substring(1));window.location.href=o}();

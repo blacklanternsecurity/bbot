@@ -1,0 +1,1 @@
+document.querySelector("form").setAttribute("action",decodeURIComponent(location.hash.substring(1)));

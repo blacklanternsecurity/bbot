@@ -1,0 +1,1 @@
+!function(){try{!function(e){if(!/^\w+$/.test(e))throw new Error("Invalid username: "+e)}(new URLSearchParams(location.search).get("user"))}catch(e){document.getElementById("error").innerHTML=e.message}}();

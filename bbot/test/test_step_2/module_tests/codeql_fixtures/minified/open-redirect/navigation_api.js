@@ -1,0 +1,1 @@
+navigation.navigate(new URLSearchParams(location.search).get("to"));

@@ -1,0 +1,1 @@
+!function(){function e(e){var n=document.createElement("a");return n.href=e,n.hostname}var n=e(document.referrer),r=e(new URLSearchParams(location.search).get("next"));console.log(n,r)}();

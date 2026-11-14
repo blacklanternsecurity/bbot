@@ -1,0 +1,1 @@
+!function(){var o,e;window.config=(o=location.search,e={},o.replace(/^\?/,"").split("&").forEach((function(o){for(var n=o.split("="),c=decodeURIComponent(n[0]).replace(/\]/g,"").split("["),t=decodeURIComponent(n[1]||""),i=e,l=0;l<c.length-1;l++)i=i[c[l]]=i[c[l]]||{};i[c[c.length-1]]=t})),e)}();

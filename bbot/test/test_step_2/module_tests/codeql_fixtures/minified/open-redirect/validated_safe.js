@@ -1,0 +1,1 @@
+!function(){var o=new URLSearchParams(location.search).get("next"),n=new URL(o,location.origin);n.origin===location.origin&&(location.href=n.href);-1!==["/home","/account"].indexOf(o)&&(location.href=o)}();

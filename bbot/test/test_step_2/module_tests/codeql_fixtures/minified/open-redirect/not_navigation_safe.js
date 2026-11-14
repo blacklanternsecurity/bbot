@@ -1,0 +1,1 @@
+!function(){var e=new URLSearchParams(location.search).get("next"),n=document.createElement("a");n.href=document.referrer;var t="Return to "+n.hostname;t=t.replace(e,"");var r=Object.assign({},{next:e}),a=new XMLHttpRequest;a.open("GET","/track?to="+encodeURIComponent(e)),a.send();var o={href:e};console.log(t,r,o)}();

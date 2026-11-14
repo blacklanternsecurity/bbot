@@ -1,0 +1,1 @@
+sessionStorage.getItem("token")?location.href=location.pathname:location.href="/login?return="+encodeURIComponent(location.pathname),"?next"===location.search&&(window.location=location.pathname+"?page=2");

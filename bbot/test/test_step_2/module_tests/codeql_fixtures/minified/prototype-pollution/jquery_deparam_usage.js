@@ -1,0 +1,1 @@
+!function(){var o=deparam(location.search.substring(1));o.debug&&console.log(o)}();

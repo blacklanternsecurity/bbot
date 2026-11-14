@@ -1,0 +1,1 @@
+document.getElementById("preview").srcdoc=new URLSearchParams(location.search).get("preview");

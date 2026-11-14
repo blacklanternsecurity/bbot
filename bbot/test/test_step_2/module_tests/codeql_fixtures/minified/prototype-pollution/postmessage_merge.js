@@ -1,0 +1,1 @@
+!function(){var n={color:"blue"};function e(n,t){for(var o in t)t[o]instanceof Object?n[o]=e(n[o]||{},t[o]):n[o]=t[o];return n}window.addEventListener("message",(function(t){e(n,t.data)}))}();
