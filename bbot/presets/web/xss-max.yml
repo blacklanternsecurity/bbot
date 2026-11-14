@@ -1,0 +1,21 @@
+description: "Maximum XSS: DOMino and CodeQL test every page in the browser, lightfuzz fuzzes every parameter for XSS (GET parameters retried as POST), and the rendered DOM and unpacked JavaScript feed parameter and link discovery. Also hunts the JavaScript for verified secrets and vulnerable libraries."
+
+include:
+  - domino-heavy
+  - codeql-heavy
+  - lightfuzz-xss
+  - js-audit
+
+modules:
+  # the DOM after scripts run, so excavate finds parameters and links that only exist then
+  - browser_dom
+  # flags parameter names commonly used for XSS
+  - hunt
+
+config:
+  modules:
+    trufflehog:
+      only_verified: true
+    wayback:
+      # archived parameters, for lightfuzz to try
+      parameters: true
