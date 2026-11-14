@@ -6,16 +6,32 @@ from blastdns import DNSResult
 
 from bbot.errors import ValidationError
 from bbot.core.helpers.misc import cached_ip_address
+from bbot.core.config.models import BaseModuleConfig, Field
 from bbot.core.helpers.dns.helpers import all_rdtypes, extract_targets, record_to_text
 from bbot.modules.base import BaseInterceptModule, BaseModule
 
 
+def is_loopback(host):
+    """Whether `host` is an address that reaches the machine connecting to it: 127.0.0.0/8, ::1, 0.0.0.0 or ::."""
+    try:
+        ip = cached_ip_address(host)
+    except ValueError:
+        return False
+    ip = getattr(ip, "ipv4_mapped", None) or ip
+    return ip.is_loopback or ip.is_unspecified
+
+
 class DNSResolve(BaseInterceptModule):
     watched_events = ["*"]
-    produced_events = ["DNS_NAME", "IP_ADDRESS", "IP_RANGE", "RAW_DNS_RECORD"]
+    produced_events = ["DNS_NAME", "IP_ADDRESS", "IP_RANGE", "RAW_DNS_RECORD", "FINDING"]
     meta = {"description": "Perform DNS resolution", "created_date": "2022-04-08", "author": "@TheTechromancer"}
     _priority = 1
     scope_distance_modifier = None
+
+    class Config(BaseModuleConfig):
+        loopback_finding: bool = Field(
+            True, description="Report in-scope hosts that resolve to loopback, which active modules skip"
+        )
 
     class HostModule(BaseModule):
         _name = "host"
@@ -43,6 +59,9 @@ class DNSResolve(BaseInterceptModule):
         self._emit_raw_records = None
 
         self.filter_ptrs = self.dns_config.get("filter_ptrs", True)
+
+        self.allow_loopback = self.scan.config.get("allow_loopback", False)
+        self.loopback_finding = self.config.get("loopback_finding", True)
 
         self.host_module = self.HostModule(self.scan)
         self.children_emitted = set()
@@ -96,6 +115,8 @@ class DNSResolve(BaseInterceptModule):
         # abort if the event resolves to something blacklisted
         if blacklisted:
             return False, "it has a blacklisted DNS record"
+
+        await self.check_loopback(main_host_event, new_event)
 
         # DNS resolution for hosts that aren't IPs
         if not event_is_ip:
@@ -162,6 +183,35 @@ class DNSResolve(BaseInterceptModule):
         # transfer scope distance to event
         event.scope_distance = main_host_event.scope_distance
         event._resolved_hosts = main_host_event.resolved_hosts
+        if "loopback" in main_host_event.tags:
+            event.add_tag("loopback")
+
+    async def check_loopback(self, event, new_event):
+        """
+        Tag `event` "loopback" if its host is or resolves to a loopback address, which active modules then skip, since
+        scanning it would scan the machine BBOT runs on. Addresses in the target, and `allow_loopback`, are exempt.
+        """
+        if self.allow_loopback:
+            return
+        hosts = (event.host, *event.resolved_hosts)
+        loopback = sorted({str(h) for h in hosts if is_loopback(h) and not self.scan.in_target(h)})
+        if not loopback:
+            return
+        event.add_tag("loopback")
+        # an SSRF filter that trusts the target's domain would let this name through to the server's own loopback
+        if new_event and self.loopback_finding and event.scope_distance == 0 and not self.helpers.is_ip(event.host):
+            await self.emit_event(
+                {
+                    "host": str(event.host),
+                    "name": "Loopback DNS Record",
+                    "description": f"Resolves to loopback ({', '.join(loopback)}), possible SSRF filter bypass",
+                    "severity": "INFO",
+                    "confidence": "CONFIRMED",
+                },
+                "FINDING",
+                parent=event,
+                context=f"{{module}} found {event.host} resolves to loopback: {{event.type}}",
+            )
 
     async def handle_wildcard_event(self, event):
         rdtypes = tuple(event.raw_dns_records)
