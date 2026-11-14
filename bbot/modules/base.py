@@ -892,6 +892,9 @@ class BaseModule:
             return True, "its type is FINISHED"
         if self.errored:
             return False, "module is in error state"
+        # active modules don't touch the machine BBOT runs on (dnsresolve tags hosts that resolve to it)
+        if "loopback" in event.tags and "active" in self.flags:
+            return False, "its host resolves to loopback (pass --allow-loopback to scan it)"
         # exclude non-watched types
         watched_events = self.get_watched_events()
         event_type_watched = any(t in watched_events for t in ("*", event.type))
