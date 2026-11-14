@@ -210,11 +210,19 @@ class browser_vulns(BaseModule):
         return visit, scripts, fingerprint
 
     def page_scripts(self, visit):
-        """The scripts the page loaded, as {url: code}."""
+        """
+        The scripts the page itself loaded, as {url: code}. A frame's scripts run in the frame's own page, so
+        they're left out, and found when that page is visited.
+        """
         scripts = {}
         for request in visit.network:
             response = request["response"]
-            if request["resource_type"] == "script" and response is not None and response.text.strip():
+            if (
+                request["resource_type"] == "script"
+                and request["main_frame"]
+                and response is not None
+                and response.text.strip()
+            ):
                 scripts.setdefault(request["url"], response.text)
         return scripts
 
