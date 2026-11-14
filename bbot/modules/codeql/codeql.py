@@ -31,6 +31,8 @@ class codeql(browser_vulns):
         "created_date": "2025-03-05",
         "author": "@liquidsec",
     }
+    # the page as it stands after its scripts ran, and the scripts it loaded
+    browser_artifacts = ["dom", "network"]
     # the bundle ships the CLI with the JavaScript library at the version built for it
     deps_apt = ["zstd"]
     deps_ansible = [
