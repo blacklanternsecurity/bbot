@@ -13,6 +13,8 @@ FIXTURES_DIR = Path(__file__).parent / "codeql_fixtures"
 MANIFEST = yaml.safe_load((FIXTURES_DIR / "MANIFEST.yml").read_text())
 
 DOM_XSS = "DOM-based Cross-Site Scripting (XSS)"
+# GitHub's query for it
+GITHUB_XSS = "Client-side cross-site scripting"
 
 # an inline script and an event handler that write the URL fragment into the page, and an external script
 PAGE = """<html><head><title>codeql test</title></head><body>
@@ -62,14 +64,16 @@ class TestCodeQL(ModuleTestBase):
 
     def check(self, module_test, events):
         findings = [e for e in events if e.type == "FINDING"]
+        pages = {f"{HTTPSERVER_URL}/", f"{HTTPSERVER_URL}/same", f"{HTTPSERVER_URL}/other"}
+        # nothing in the clean page, from our queries or GitHub's
+        assert all(f.data["url"] in pages for f in findings), [f.data for f in findings]
+        assert GITHUB_XSS in {f.data["name"] for f in findings}
+        findings = [f for f in findings if f.data["name"] == DOM_XSS]
         # the inline script, the event handler and the external script, each reported once
         assert len(findings) == 3, [f.data for f in findings]
-        pages = {f"{HTTPSERVER_URL}/", f"{HTTPSERVER_URL}/same", f"{HTTPSERVER_URL}/other"}
         for finding in findings:
-            assert finding.data["name"] == DOM_XSS
             assert finding.data["severity"] == "HIGH"
             assert finding.data["confidence"] == "MEDIUM"
-            assert finding.data["url"] in pages
         descriptions = sorted(f.data["description"] for f in findings)
         page_url = findings[0].data["url"]
         assert descriptions == sorted(
@@ -83,7 +87,7 @@ class TestCodeQL(ModuleTestBase):
         # pages running the same code are analyzed once, so only the vulnerable and the clean code were
         module = module_test.scan.modules["codeql"]
         assert len(module.analyzed) == 2
-        assert sorted(len(findings) for findings in module.analyzed.values()) == [0, 3]
+        assert sorted(bool(findings) for findings in module.analyzed.values()) == [False, True]
 
 
 class TestCodeQLQueries(ModuleTestBase):
