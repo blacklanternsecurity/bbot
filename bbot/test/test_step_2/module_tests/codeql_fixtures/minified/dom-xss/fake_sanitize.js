@@ -1,0 +1,1 @@
+!function(){var e=new URLSearchParams(location.search).get("name");document.getElementById("name").innerHTML=e.trim()}();

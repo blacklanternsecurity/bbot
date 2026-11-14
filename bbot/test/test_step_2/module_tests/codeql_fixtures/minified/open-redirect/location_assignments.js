@@ -1,0 +1,1 @@
+!function(){var a=new URLSearchParams(location.search),o=a.get("next");(a.has("a")&&(window.location=o),a.has("b")&&(location.href=o),a.has("c")&&(document.location=o),a.has("d")&&window.location.replace(o),a.has("e")&&location.assign(o),a.has("f")&&(top.location.href=o),a.has("g")&&window.open(o),a.has("h"))&&(window.location.href=o)}();

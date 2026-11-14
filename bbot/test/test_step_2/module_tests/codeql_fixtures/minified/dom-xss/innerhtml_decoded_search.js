@@ -1,0 +1,1 @@
+!function(){var e=location.search.substring(1);document.getElementById("greeting").innerHTML=decodeURIComponent(e)}();

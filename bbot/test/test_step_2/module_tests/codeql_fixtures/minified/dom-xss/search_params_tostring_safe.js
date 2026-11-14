@@ -1,0 +1,1 @@
+!function(){var e=new URLSearchParams(location.search);e.delete("page"),document.getElementById("next").innerHTML='<a href="?'+e.toString()+'">next</a>',document.getElementById("prev").innerHTML='<a href="?'+e+'">previous</a>'}();

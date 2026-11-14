@@ -1,0 +1,1 @@
+!function(){var e=document.getElementById("comment");document.getElementById("preview").innerHTML=e.value,$("#title").html($("#title-input").val());var t=document.querySelector("h1").textContent;document.getElementById("crumb").innerHTML="<b>"+t+"</b>"}();

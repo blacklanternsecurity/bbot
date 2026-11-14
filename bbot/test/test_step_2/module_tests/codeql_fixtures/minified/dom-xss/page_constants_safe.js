@@ -1,0 +1,1 @@
+!function(){var e=new URLSearchParams("view=grid&sort=name");document.getElementById("view").innerHTML=e.get("view"),document.write("<h1>Hello World</h1>");var t=localStorage.getItem("theme");document.getElementById("theme").innerHTML="Theme: "+t;var n=document.cookie.split("username=")[1];document.getElementById("profile").innerHTML=n}();

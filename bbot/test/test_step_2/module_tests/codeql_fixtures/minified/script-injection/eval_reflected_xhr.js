@@ -1,0 +1,1 @@
+(function(){var xhr=new XMLHttpRequest;xhr.onreadystatechange=function(){4===this.readyState&&200===this.status&&(eval("var searchResultsObj = "+this.responseText),displaySearchResults(searchResultsObj))},xhr.open("GET","/search-results"+window.location.search),xhr.send()})();

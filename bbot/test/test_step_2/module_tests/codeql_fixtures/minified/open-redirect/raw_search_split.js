@@ -1,0 +1,1 @@
+!function(){var n=location.search.split("next=")[1];n&&(window.location.href=n)}();

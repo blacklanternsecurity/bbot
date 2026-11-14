@@ -1,0 +1,1 @@
+!function(){var e,r,n,o=(e=new RegExp("[?&]"+"error"+"=([^&#]*)").exec(window.location.search))&&decodeURIComponent(e[1].replace(/\+/g," "));o&&(r=document.getElementById("errors"),n=o,r.innerHTML='<p class="error">'+n+"</p>")}();

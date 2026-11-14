@@ -1,0 +1,1 @@
+angular.module("myApp").config(["$sceProvider",function(e){e.enabled(!1)}]);

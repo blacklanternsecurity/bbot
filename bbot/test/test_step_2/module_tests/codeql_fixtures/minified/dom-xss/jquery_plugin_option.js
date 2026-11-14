@@ -1,0 +1,1 @@
+!function(t){t.fn.tooltip=function(n){var e=t.extend({content:""},n);return this.each((function(){t(this).html(e.content)}))},t(".help").tooltip({content:new URLSearchParams(location.search).get("tip")})}(jQuery);

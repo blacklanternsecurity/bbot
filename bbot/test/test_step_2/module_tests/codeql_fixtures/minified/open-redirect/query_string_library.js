@@ -1,0 +1,1 @@
+"#a"===location.hash&&(location.href=queryString.parse(location.search).next),"#b"===location.hash&&(location.href=queryString.extract(location.search));

@@ -1,0 +1,1 @@
+!function(){var e=new URLSearchParams(location.search),a={display:{},privacy:{}},c=e.get("section"),n=e.get("key");a[c][n]=e.get("value"),a[c][n+"_enabled"]=!0}();

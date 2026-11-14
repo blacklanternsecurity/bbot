@@ -1,0 +1,1 @@
+(function(){var code=location.hash.substring(1);eval(code)})();

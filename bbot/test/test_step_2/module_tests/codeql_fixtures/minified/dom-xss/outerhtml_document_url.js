@@ -1,0 +1,1 @@
+!function(){var e=document.URL,n=e.indexOf("msg=");if(-1!==n){var d=decodeURIComponent(e.substring(n+4));document.getElementById("banner").outerHTML="<div>"+d+"</div>"}}();

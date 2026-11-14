@@ -1,0 +1,1 @@
+!function(){var a=new URLSearchParams(location.search).get("q");a&&(document.cookie="lastSearch="+a+"; path=/");var e=document.cookie.match(/lastSearch=([^;]*)/);e&&(document.getElementById("last").innerHTML="Last search: "+e[1])}();

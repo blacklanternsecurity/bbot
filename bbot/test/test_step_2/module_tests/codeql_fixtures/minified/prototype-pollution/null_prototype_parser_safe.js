@@ -1,0 +1,1 @@
+!function(){var e=Object.create(null);location.search.slice(1).split("&").forEach((function(n){for(var t=n.split("="),o=decodeURIComponent(t[0]).split("."),c=e,l=0;l<o.length-1;l++)c=c[o[l]]=c[o[l]]||Object.create(null);c[o[o.length-1]]=decodeURIComponent(t[1]||"")})),window.query=e}();

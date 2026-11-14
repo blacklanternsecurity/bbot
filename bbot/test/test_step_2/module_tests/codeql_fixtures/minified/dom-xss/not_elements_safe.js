@@ -1,0 +1,1 @@
+!function(){var o=decodeURIComponent(location.hash.slice(1)),n=new function(o,n){this.status=o,this.data=n}(404,o),t={src:o,href:o};console.log(n,t)}();

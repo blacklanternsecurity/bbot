@@ -1,0 +1,1 @@
+!function(){var a=new URLSearchParams(location.search),c=a.get("callback");window[c](a.get("arg"))}();

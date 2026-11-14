@@ -1,0 +1,1 @@
+!function(){var a=new URLSearchParams(location.search).get("url"),t=window.APP_DIR||"app";a.startsWith("https://example.com/"+t)&&(location.href=a)}();

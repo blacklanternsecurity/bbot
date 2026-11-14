@@ -1,0 +1,1 @@
+window.addEventListener("message",(function(e){document.getElementById("ads").innerHTML=e.data}));

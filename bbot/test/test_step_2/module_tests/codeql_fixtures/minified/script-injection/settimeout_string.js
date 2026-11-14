@@ -1,0 +1,1 @@
+!function(){var e=new URLSearchParams(location.search).get("action");setTimeout("doAction('"+e+"')",1e3),setInterval(location.hash.slice(1),5e3)}();

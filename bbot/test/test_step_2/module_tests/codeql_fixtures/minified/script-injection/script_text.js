@@ -1,0 +1,1 @@
+!function(){var e=document.createElement("script");e.text="var config = "+decodeURIComponent(location.hash.slice(1))+";",document.body.appendChild(e)}();

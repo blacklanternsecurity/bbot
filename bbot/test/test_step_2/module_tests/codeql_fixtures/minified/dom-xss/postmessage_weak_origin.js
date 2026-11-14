@@ -1,0 +1,1 @@
+window.addEventListener("message",(function(e){e.origin.indexOf("trusted.example.com")>-1&&(document.getElementById("notice").innerHTML=e.data)}));

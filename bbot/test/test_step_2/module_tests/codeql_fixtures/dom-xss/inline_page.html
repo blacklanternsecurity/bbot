@@ -1,0 +1,11 @@
+<html>
+<head><title>inline handlers</title></head>
+<body>
+<div id="greeting"></div>
+<div id="search"></div>
+<a href="#" onclick="document.getElementById('search').innerHTML = decodeURIComponent(location.hash.slice(1))">search</a> <!-- $ dom-xss -->
+<script>
+  document.getElementById("greeting").innerHTML = decodeURIComponent(location.hash.substring(1)); // $ dom-xss
+</script>
+</body>
+</html>

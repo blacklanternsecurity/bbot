@@ -1,0 +1,1 @@
+parent.postMessage("ready","*"),(window.opener||window.parent).postMessage("[sdk]ready","*"),parent.postMessage({type:"loaded",ok:!0},"*"),parent.postMessage(location.href,"https://partner.example.com"),window.opener.postMessage({token:localStorage.getItem("access_token")},location.origin);

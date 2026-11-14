@@ -1,0 +1,1 @@
+!function e(n,r){for(var t in r)"object"==typeof r[t]&&null!==r[t]?(n[t]||(n[t]={}),e(n[t],r[t])):n[t]=r[t];return n}({theme:"light"},JSON.parse(new URLSearchParams(location.search).get("config")));

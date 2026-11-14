@@ -1,0 +1,1 @@
+!function(){var t=new URLSearchParams(location.search).get("next");t&&t.startsWith("/")&&!t.startsWith("//")&&(location.href=t)}();

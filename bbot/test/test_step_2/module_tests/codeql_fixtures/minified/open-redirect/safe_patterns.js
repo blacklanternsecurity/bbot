@@ -1,0 +1,1 @@
+!function(){var o=new URLSearchParams(location.search).get("q");location.href="/search?q="+encodeURIComponent(o),location.href="/dashboard",location.hash=o,location.href=document.referrer,location.href=location.href.split("#")[0],location.replace(location.origin+"/home")}();

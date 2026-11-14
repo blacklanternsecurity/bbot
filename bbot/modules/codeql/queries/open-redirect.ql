@@ -1,0 +1,27 @@
+/**
+ * @name Client-side open redirect
+ * @description Input an attacker controls becomes the location the page navigates to, including javascript: URLs.
+ * @kind problem
+ * @problem.severity warning
+ * @security-severity 6.1
+ * @precision high
+ * @id bbot/open-redirect
+ * @tags security
+ *       external/cwe/cwe-601
+ */
+
+import javascript
+import Inputs
+import Sinks
+import Barriers
+
+/** Sending the page elsewhere needs the attacker to choose the start of the URL. */
+predicate navigation(DataFlow::Node node, InputState state) { navigationSink(node) and state.controlsStart() }
+
+predicate barrier(DataFlow::Node node) { urlBarrier(node) or afterFixedHost(node) }
+
+module NavigationFlow = InputFlow<navigation/2, barrier/1>;
+
+from DataFlow::Node source, DataFlow::Node sink
+where NavigationFlow::flow(source, sink)
+select sink, "Text from $@ becomes the location the page goes to.", source, inputName(source)

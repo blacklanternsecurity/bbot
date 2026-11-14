@@ -1,0 +1,1 @@
+!function(){var e=new URLSearchParams(window.location.search).get("search");e&&document.write('<img src="/resources/images/tracker.gif?searchTerms='+e+'">')}();

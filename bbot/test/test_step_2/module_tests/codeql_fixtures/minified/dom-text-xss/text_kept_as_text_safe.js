@@ -1,0 +1,1 @@
+!function(){var t=document.getElementById("comment");function e(t){this.value=t}document.getElementById("preview").textContent=t.value,$("#title").text($("#title-input").val()),function(t){if("object"==typeof t)$(t)}($("textarea").val()),e.prototype.toString=function(){return String(this.value)},document.getElementById("option").innerHTML=new e("<b>bold</b>").toString()}();

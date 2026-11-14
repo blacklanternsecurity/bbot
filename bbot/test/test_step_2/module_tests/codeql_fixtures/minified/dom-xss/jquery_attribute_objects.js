@@ -1,0 +1,1 @@
+!function(a){var e=location.search.substr(1);a("<a>",{href:e,text:"Continue"}).appendTo("body"),a("#back").attr({href:e}),a("<img>",{src:e}).appendTo("body")}(jQuery);

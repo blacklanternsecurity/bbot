@@ -1,0 +1,1 @@
+$(window).on("message",(function(t){$("#chat").html(t.originalEvent.data.text)}));

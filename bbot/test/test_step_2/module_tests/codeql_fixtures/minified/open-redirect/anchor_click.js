@@ -1,0 +1,1 @@
+!function(){var e=document.createElement("a");e.href=new URLSearchParams(location.search).get("download"),e.click()}();

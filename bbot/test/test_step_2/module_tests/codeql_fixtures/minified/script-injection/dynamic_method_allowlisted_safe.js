@@ -1,0 +1,1 @@
+!function(){var o={open:function(){},close:function(){}},n=new URLSearchParams(location.search).get("do");Object.prototype.hasOwnProperty.call(o,n)&&o[n]()}();

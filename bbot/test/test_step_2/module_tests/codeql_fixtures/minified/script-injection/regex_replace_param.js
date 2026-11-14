@@ -1,0 +1,1 @@
+!function(){var n=document.location.search.replace(/.*\bfoo\s*=\s*([^;]*).*/,"$1");new Function(n)()}();

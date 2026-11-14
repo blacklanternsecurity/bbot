@@ -1,0 +1,1 @@
+!function(){var o=window.opener||window.parent,n={type:"oauth-callback",url:window.location.href};o.postMessage(n,"*"),window.close()}();

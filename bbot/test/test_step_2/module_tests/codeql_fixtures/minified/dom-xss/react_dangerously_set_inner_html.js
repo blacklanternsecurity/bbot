@@ -1,0 +1,1 @@
+!function(){var e=new URLSearchParams(location.search).get("bio");ReactDOM.render(React.createElement((function(){return React.createElement("div",{className:"bio",dangerouslySetInnerHTML:{__html:e}})})),document.getElementById("root"))}();

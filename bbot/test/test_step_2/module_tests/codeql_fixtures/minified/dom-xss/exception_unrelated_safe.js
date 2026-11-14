@@ -1,0 +1,1 @@
+!function(){try{JSON.parse(decodeURIComponent(location.hash.substring(1)))}catch(t){document.getElementById("a").textContent="Error: "+t.message}try{loadSettings()}catch(t){document.getElementById("b").innerHTML="Couldn't load settings: "+t.message}}();
