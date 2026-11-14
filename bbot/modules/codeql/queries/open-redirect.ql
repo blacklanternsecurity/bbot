@@ -23,5 +23,8 @@ predicate barrier(DataFlow::Node node) { urlBarrier(node) or afterFixedHost(node
 module NavigationFlow = InputFlow<navigation/2, barrier/1>;
 
 from DataFlow::Node source, DataFlow::Node sink
-where NavigationFlow::flow(source, sink)
+where
+  NavigationFlow::flow(source, sink) and
+  // a path can start with //evil.example, but routers navigate with the page's own path all the time
+  not pathInput(source)
 select sink, "Text from $@ becomes the location the page goes to.", source, inputName(source)
