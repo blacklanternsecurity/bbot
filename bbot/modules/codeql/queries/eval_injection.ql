@@ -45,6 +45,8 @@ module EvalInjectionConfig implements DataFlow::ConfigSig {
     )
   }
 
+  predicate isBarrier(DataFlow::Node node) { isUrlBarrier(node) }
+
   predicate isAdditionalFlowStep(DataFlow::Node pred, DataFlow::Node succ) {
     // Propagate taint through string concatenation
     exists(BinaryExpr binop |

@@ -10,6 +10,8 @@ from bbot.core.config.models import BaseModuleConfig, Field
 from bbot.modules.templates.browser_vulns import browser_vulns
 
 QUERIES_DIR = Path(__file__).parent / "queries"
+# GitHub's default JavaScript security queries, run alongside ours. The bundle ships them compiled, so setup() doesn't.
+GITHUB_QUERIES = "codeql/javascript-queries:codeql-suites/javascript-code-scanning.qls"
 # the longest one CodeQL step (building a page's database, or querying it) may take
 CODEQL_TIMEOUT = 600
 # CodeQL's severities, lowest first, and the FINDING severity each one becomes
@@ -196,10 +198,15 @@ class codeql(browser_vulns):
         return False
 
     async def run_queries(self, database, queries=None):
-        """Run the queries (all of them by default) on a database, and return their results as dicts."""
+        """Run queries on a database (ours and GitHub's by default), and return their results as dicts."""
         output = Path(database).parent / "results.csv"
         result = await self.codeql(
-            "database", "analyze", database, *(queries or self.queries), "--format=csv", f"--output={output}"
+            "database",
+            "analyze",
+            database,
+            *(queries or [*self.queries, GITHUB_QUERIES]),
+            "--format=csv",
+            f"--output={output}",
         )
         if result.returncode != 0:
             self.warning(f"CodeQL couldn't query the database (exit {result.returncode}): {result.stderr[-500:]}")

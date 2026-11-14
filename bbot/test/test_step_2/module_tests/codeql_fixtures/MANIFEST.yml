@@ -12,8 +12,16 @@ dom_xss.ql:
     - dom_xss_jquery_append.js
     - dom_xss_outerhtml.js
     - dom_xss_decoded_search.js
+    - dom_xss_search_params_foreach.js
+    - dom_xss_search_params_iterate.js
+    - dom_xss_search_params_entries.js
+    - dom_xss_search_params_entries_iterator.js
+    - dom_xss_search_params_getall.js
+    - dom_xss_search_params_url.js
   should_not_find:
     - dom_xss_encoded_search_safe.js
+    - dom_xss_search_params_tostring_safe.js
+    - dom_xss_search_params_literal_safe.js
     - dom_xss_innerhtml_safe.js
     - dom_xss_document_write_safe.js
     - dom_xss_jquery_html_safe.js
