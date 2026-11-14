@@ -31,6 +31,7 @@ class domino(browser_vulns):
         )
 
     async def setup(self):
+        await super().setup()
         self.rules = self.config.get("rules")
         self.suppress_parameter_discovery_reports = self.config.get("suppress_parameter_discovery_reports", True)
         # load the rules once, which also checks the configured ones exist
@@ -42,24 +43,21 @@ class domino(browser_vulns):
 
     async def handle_event(self, event):
         url = event.url
-        domino = Domino(
-            url,
-            logger=self.log,
-            json_mode=True,
-            selected_rules=self.rules,
-            rules_preload_data=self.preloaded_rules,
-            browser_engine=self.helpers.browser.engine.name,
-        )
-        try:
-            results = await self.helpers.wait_for(domino.run(self.helpers.browser), timeout=SCAN_TIMEOUT)
-        except TimeoutError:
-            self.warning(f"DOMino timed out after {SCAN_TIMEOUT}s on {url}")
+        page = await self.page_code(event)
+        if page is None:
             return
+        fingerprint = page[2]
+        # what DOMino finds depends on the server as well as the code, so pages are only skipped within one host
+        try:
+            results, first = await self.analyze_once((str(event.host), fingerprint), lambda: self.run_domino(url))
         except (BrowserError, *self.helpers.browser.engine.errors) as e:
             self.verbose(f"Browser error while scanning {url}: {e}")
             return
+        if not first:
+            self.debug(f"Skipping {url}: DOMino already ran on a page on {event.host} with the same code")
+            return
 
-        for result in results or []:
+        for result in results:
             rule_name = result["rule_name"]
             if self.suppress_parameter_discovery_reports and "GET Parameter Access" in rule_name:
                 continue
@@ -77,3 +75,20 @@ class domino(browser_vulns):
                 confidence="CONFIRMED",
                 context=f"{{module}} ran DOMino on {url} and found {{event.type}}: {rule_name}",
             )
+
+    async def run_domino(self, url):
+        """DOMino's results for `url`, or none if it ran out of time."""
+        domino = Domino(
+            url,
+            logger=self.log,
+            json_mode=True,
+            selected_rules=self.rules,
+            rules_preload_data=self.preloaded_rules,
+            browser_engine=self.helpers.browser.engine.name,
+        )
+        try:
+            return await self.helpers.wait_for(domino.run(self.helpers.browser), timeout=SCAN_TIMEOUT) or []
+        except TimeoutError:
+            # an empty result, so pages with the same code are skipped rather than timing out too
+            self.warning(f"DOMino timed out after {SCAN_TIMEOUT}s on {url}")
+            return []
