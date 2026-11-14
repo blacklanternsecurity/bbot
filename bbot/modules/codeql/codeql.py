@@ -1,11 +1,9 @@
 import csv
 import re
 import tempfile
-from hashlib import sha256
 from pathlib import Path
 from typing import Literal
 
-from bbot.core.helpers.async_helpers import NamedLock
 from bbot.core.config.models import BaseModuleConfig, Field
 from bbot.modules.templates.browser_vulns import browser_vulns
 
@@ -16,16 +14,6 @@ GITHUB_QUERIES = "codeql/javascript-queries:codeql-suites/javascript-code-scanni
 CODEQL_TIMEOUT = 600
 # CodeQL's severities, lowest first, and the FINDING severity each one becomes
 SEVERITIES = {"note": "INFO", "recommendation": "LOW", "warning": "MEDIUM", "error": "HIGH"}
-# <script> types the browser runs; any other type holds data
-SCRIPT_TYPES = {
-    "",
-    "module",
-    "text/javascript",
-    "application/javascript",
-    "text/ecmascript",
-    "application/ecmascript",
-    "application/x-javascript",
-}
 # a code location in a CodeQL message: [["label"|"relative:///page.html:3:15:3:27"]]
 MESSAGE_LOCATION = re.compile(r'\[\["[^"]*"\|"relative:///([^:"]+):(\d+):(\d+):\d+:(\d+)"\]\]')
 # the page's DOM, in the source root CodeQL builds its database from
@@ -43,8 +31,6 @@ class codeql(browser_vulns):
         "created_date": "2025-03-05",
         "author": "@liquidsec",
     }
-    # the page as it stands after its scripts ran, and the scripts it loaded
-    browser_artifacts = ["dom", "network"]
     # the bundle ships the CLI with the JavaScript library at the version built for it
     deps_apt = ["zstd"]
     deps_ansible = [
@@ -77,6 +63,7 @@ class codeql(browser_vulns):
         )
 
     async def setup(self):
+        await super().setup()
         self.mode = self.config.get("mode", "in_scope")
         self.min_severity = list(SEVERITIES).index(self.config.get("min_severity", "error"))
         self.suppress_duplicates = self.config.get("suppress_duplicates", True)
@@ -84,9 +71,6 @@ class codeql(browser_vulns):
         # where CodeQL keeps its compiled queries
         self.codeql_cache = self.helpers.cache_dir / "codeql"
         self.queries = sorted(str(q) for q in QUERIES_DIR.glob("*.ql"))
-        # the findings for each set of code already analyzed, by its fingerprint
-        self.analyzed = {}
-        self.analysis_lock = NamedLock()
         self.reported = set()
         # compiled once, so pages don't each wait on it, and a broken install fails here
         result = await self.codeql("query", "compile", *self.queries)
@@ -96,21 +80,13 @@ class codeql(browser_vulns):
 
     async def handle_event(self, event):
         url = event.url
-        visit = await self.browser_visit(event)
-        if visit is None or not visit.dom:
+        page = await self.page_code(event)
+        if page is None:
             return
-        if visit.response.conclusion[0] == "needs_browser":
-            self.debug(f"Skipping {url}: the browser couldn't get past its challenge")
-            return
-        scripts = self.page_scripts(visit)
-        fingerprint = self.code_fingerprint(visit.dom, scripts)
-        async with self.analysis_lock.lock(fingerprint):
-            findings = self.analyzed.get(fingerprint)
-            if findings is None:
-                findings = await self.analyze_page(visit.dom, scripts)
-                self.analyzed[fingerprint] = findings
-            else:
-                self.debug(f"Already analyzed the same code as {url}'s")
+        visit, scripts, fingerprint = page
+        findings, first = await self.analyze_once(fingerprint, lambda: self.analyze_page(visit.dom, scripts))
+        if not first:
+            self.debug(f"Already analyzed a page with the same code as {url}")
 
         for finding in findings:
             if self.suppress_duplicates:
@@ -130,37 +106,12 @@ class codeql(browser_vulns):
 
     def page_scripts(self, visit):
         """The scripts the page loaded that `mode` includes, as {url: code}."""
-        scripts = {}
         if self.mode == "dom_only":
-            return scripts
-        for request in visit.network:
-            response = request["response"]
-            if request["resource_type"] != "script" or response is None or not response.text.strip():
-                continue
-            script_url = request["url"]
-            if self.mode == "in_scope" and not self.scan.in_scope(script_url):
-                continue
-            scripts.setdefault(script_url, response.text)
+            return {}
+        scripts = super().page_scripts(visit)
+        if self.mode == "in_scope":
+            scripts = {url: script for url, script in scripts.items() if self.scan.in_scope(url)}
         return scripts
-
-    def code_fingerprint(self, dom, scripts):
-        """
-        A hash of the code CodeQL would analyze for a page: its inline scripts, event handler attributes and
-        javascript: URLs, and its scripts. Pages that differ only in their markup or text share one.
-        """
-        code = []
-        soup = self.helpers.beautifulsoup(dom, "html.parser")
-        for tag in soup.find_all(True):
-            if tag.name == "script" and not tag.get("src") and tag.get("type", "").strip().lower() in SCRIPT_TYPES:
-                code.append(tag.get_text())
-            for name, value in tag.attrs.items():
-                if isinstance(value, list):
-                    value = " ".join(value)
-                if name.lower().startswith("on") or value.strip().lower().startswith("javascript:"):
-                    code.append(f"{name}={value}")
-        for script_url, script in scripts.items():
-            code.append(f"{script_url}\n{script}")
-        return sha256("\0".join(code).encode()).hexdigest()
 
     async def analyze_page(self, dom, scripts):
         """CodeQL's findings for a page, each as (name, severity, source, sink, message)."""
