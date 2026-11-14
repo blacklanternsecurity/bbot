@@ -62,12 +62,63 @@ class codeql(browser_vulns):
         suppress_duplicates: bool = Field(
             True, description="Report each finding once, rather than on every page with the same code"
         )
+        # scripts nearly every site loads from someone else: large, slow to analyze, and never the target's own code
+        skip_hosts: list[str] = Field(
+            [
+                # tag managers and analytics
+                "googletagmanager.com",
+                "google-analytics.com",
+                "googleoptimize.com",
+                "segment.com",
+                "segment.io",
+                "mixpanel.com",
+                "amplitude.com",
+                "hotjar.com",
+                "clarity.ms",
+                "newrelic.com",
+                "nr-data.net",
+                "cloudflareinsights.com",
+                "mc.yandex.ru",
+                "assets.adobedtm.com",
+                # ads and their pixels
+                "googlesyndication.com",
+                "googleadservices.com",
+                "doubleclick.net",
+                "amazon-adsystem.com",
+                "criteo.com",
+                "criteo.net",
+                "taboola.com",
+                "outbrain.com",
+                "ads-twitter.com",
+                "bat.bing.com",
+                "connect.facebook.net",
+                "snap.licdn.com",
+                "analytics.tiktok.com",
+                # social widgets
+                "platform.twitter.com",
+                "s.pinimg.com",
+                # consent, chat and captcha widgets
+                "cookielaw.org",
+                "onetrust.com",
+                "cookiebot.com",
+                "intercom.io",
+                "intercomcdn.com",
+                "hs-scripts.com",
+                "hs-analytics.net",
+                "zdassets.com",
+                "recaptcha.net",
+                "gstatic.com",
+                "hcaptcha.com",
+            ],
+            description="Out-of-scope hosts (and their subdomains) whose scripts aren't analyzed in 'all' mode: tag managers, analytics, ads and widgets, which are slow to analyze and never the target's own code",
+        )
 
     async def setup(self):
         await super().setup()
         self.mode = self.config.get("mode", "in_scope")
         self.min_severity = list(SEVERITIES).index(self.config.get("min_severity", "error"))
         self.suppress_duplicates = self.config.get("suppress_duplicates", True)
+        self.skip_hosts = set(self.config.get("skip_hosts") or [])
         self.codeql_bin = self.helpers.tools_dir / "codeql" / "codeql"
         # where CodeQL keeps its compiled queries
         self.codeql_cache = self.helpers.cache_dir / "codeql"
@@ -111,8 +162,13 @@ class codeql(browser_vulns):
             return {}
         scripts = super().page_scripts(visit)
         if self.mode == "in_scope":
-            scripts = {url: script for url, script in scripts.items() if self.scan.in_scope(url)}
-        return scripts
+            return {url: script for url, script in scripts.items() if self.scan.in_scope(url)}
+        return {url: script for url, script in scripts.items() if self.scan.in_scope(url) or not self.skipped(url)}
+
+    def skipped(self, url):
+        """Whether `url` is on one of `skip_hosts`, or a subdomain of one."""
+        host = self.helpers.urlparse(url).hostname or ""
+        return any(parent in self.skip_hosts for parent in self.helpers.domain_parents(host, include_self=True))
 
     async def analyze_page(self, dom, scripts):
         """CodeQL's findings for a page, each as (name, severity, source, sink, message)."""

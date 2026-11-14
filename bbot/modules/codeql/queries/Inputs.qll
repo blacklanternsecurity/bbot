@@ -122,6 +122,9 @@ private DataFlow::SourceNode domElement(DataFlow::TypeTracker t) {
 /** Gets a reference to an element: one the page looks up, creates, or finds from another. */
 DataFlow::SourceNode domElement() { result = domElement(DataFlow::TypeTracker::end()) }
 
+/** Holds if `node` reads the page's path. */
+predicate pathInput(DataFlow::Node node) { node = pageLocation().getAPropertyRead("pathname") }
+
 /** Holds if `node` reads the page's URL, or a part of it, in `state`. */
 predicate urlInput(DataFlow::Node node, InputState state) {
   state = TUrl() and
@@ -137,7 +140,7 @@ predicate urlInput(DataFlow::Node node, InputState state) {
   // a path can start with the attacker's //evil.example. Only the page's own: routing code passes copies of it
   // around constantly, between its own functions.
   state = TUrlPart() and
-  node = pageLocation().getAPropertyRead("pathname")
+  pathInput(node)
 }
 
 /** Gets a function that handles the messages other windows post to this one. */

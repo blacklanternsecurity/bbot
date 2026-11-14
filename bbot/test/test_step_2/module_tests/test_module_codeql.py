@@ -2,6 +2,7 @@ import collections
 import re
 import tempfile
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -121,6 +122,28 @@ class TestCodeQL(ModuleTestBase):
         module = module_test.scan.modules["codeql"]
         assert len(module.analyzed) == 2
         assert sorted(bool(findings) for findings in module.analyzed.values()) == [False, True]
+
+
+class TestCodeQLThirdPartyHosts(ModuleTestBase):
+    """Analyzing every script leaves out those from listed third-party hosts, unless they're in scope."""
+
+    pytestmark = pytest.mark.browser
+    module_name = "codeql"
+    targets = [HTTPSERVER_URL]
+    config_overrides = {
+        "web": {"enable_browser": True},
+        "modules": {"codeql": {"mode": "all", "skip_hosts": ["googletagmanager.com", "127.0.0.1"]}},
+    }
+
+    def check(self, module_test, events):
+        def script(url):
+            return {"url": url, "resource_type": "script", "main_frame": True, "response": SimpleNamespace(text="1;")}
+
+        in_scope = f"{HTTPSERVER_URL}/app.js"
+        listed = "https://www.googletagmanager.com/gtm.js?id=GTM-TEST"
+        unlisted = "https://cdn.example.org/lib.js"
+        visit = SimpleNamespace(network=[script(in_scope), script(listed), script(unlisted)])
+        assert sorted(module_test.module.page_scripts(visit)) == sorted([in_scope, unlisted])
 
 
 class TestCodeQLQueries(ModuleTestBase):
