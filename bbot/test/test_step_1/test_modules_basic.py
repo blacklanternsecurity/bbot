@@ -201,6 +201,9 @@ async def test_modules_basic_checks(events, blasthttp_mock):
     assert all_preloaded["baddns"]["deps"]["pip"]
     assert all_preloaded["portscan"]["deps"]["common"]
     assert all_preloaded["fingerprintx"]["deps"]["ansible"]
+    # git is a core dependency; the git_clone module should not require sudo.
+    assert all_preloaded["git_clone"]["deps"]["apt"] == []
+    assert all_preloaded["git_clone"]["sudo"] is False
     assert all_preloaded["screenshot"]["browser_artifacts"] == ["screenshot"]
     assert all_preloaded["robots"]["browser_artifacts"] == []
     # browser_artifacts implies uses_browser; a module that drives pages itself declares it directly
