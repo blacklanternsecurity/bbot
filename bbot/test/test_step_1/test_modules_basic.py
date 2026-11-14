@@ -203,6 +203,9 @@ async def test_modules_basic_checks(events, blasthttp_mock):
     # declared in the module itself, since preloading doesn't see what it inherits from its template
     assert all_preloaded["codeql"]["browser_artifacts"] == ["dom", "network"]
     assert all_preloaded["fingerprintx"]["deps"]["ansible"]
+    # git is a core dependency; the git_clone module should not require sudo.
+    assert all_preloaded["git_clone"]["deps"]["apt"] == []
+    assert all_preloaded["git_clone"]["sudo"] is False
     assert all_preloaded["screenshot"]["browser_artifacts"] == ["screenshot"]
     assert all_preloaded["robots"]["browser_artifacts"] == []
 
