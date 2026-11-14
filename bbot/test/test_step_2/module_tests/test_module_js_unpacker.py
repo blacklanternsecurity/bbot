@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from .base import ModuleTestBase
 from bbot.modules.js_unpacker import DeanEdwardsUnpacker, ObfuscatorIOUnpacker
 from bbot.test.worker import HTTPSERVER_PORT, HTTPSERVER_URL
@@ -277,3 +279,26 @@ def test_obfuscator_io_reduces_rotation_amount():
 
     assert "x('bbb')" in ObfuscatorIOUnpacker._deobfuscate(body(amount))
     assert "x('aaa')" in ObfuscatorIOUnpacker._deobfuscate(body(3 * 10**15))
+
+
+def test_obfuscator_io_rotation_lookup_on_big_scripts():
+    """A big script's rotation is found, or found missing, without backtracking through its every function."""
+    # two-argument functions that push and shift, but aren't the rotation
+    functions = "(function(e,t){var n=[];n.push(e);n.shift();if(t){return{a:1}}})(x,1);" * 400
+    rotation = "(function(_0x1,_0x2){while(--_0x2){_0x1['push'](_0x1['shift']());}}(_0xabcd,0x1));"
+    accessor = "var _0xacc=function(_0x1,_0x2){_0x1=_0x1-0x0;var r=_0xabcd[_0x1];return r;};x(_0xacc('0x0'));"
+
+    def body(*parts):
+        return "var _0xabcd=['aaa','bbb','ccc'];" + "".join(parts) + accessor
+
+    assert "x('aaa')" in ObfuscatorIOUnpacker._deobfuscate(body(functions))
+    assert "x('bbb')" in ObfuscatorIOUnpacker._deobfuscate(body(functions, rotation))
+
+
+def test_unpacker_regex_gives_up(monkeypatch):
+    """A regex that backtracks badly on a page's code stops at the timeout rather than running on."""
+    monkeypatch.setattr("bbot.modules.js_unpacker.REGEX_TIMEOUT", 0.5)
+    # the packer's header, then calls that never end in .split('|')
+    body = "eval(function(p,a,c,k,e,d){" + "}('a',1,1,'b' " * 1000
+    with pytest.raises(TimeoutError):
+        DeanEdwardsUnpacker._decode(body)
