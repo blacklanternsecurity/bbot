@@ -52,8 +52,9 @@ class BrowserVisit:
     title: str = ""
     dom: str = None
     screenshot: bytes = None
-    # every response the page received: {"url", "status", "method", "resource_type", "response"}, where "response"
-    # is a blasthttp Response for text resources fetched with GET (see NETWORK_BODY_TYPES), otherwise None
+    # every response the page received: {"url", "status", "method", "resource_type", "main_frame", "response"}, where
+    # "main_frame" is whether the page itself made the request, rather than a frame inside it, and "response" is a
+    # blasthttp Response for text resources fetched with GET (see NETWORK_BODY_TYPES), otherwise None
     network: list = field(default_factory=list)
     # where the page tried to send itself (a script or meta refresh), as (method, url); the page was kept instead
     redirect: tuple = None
@@ -442,11 +443,17 @@ class BrowserHelper:
 
     async def _network_entry(self, response):
         request = response.request
+        try:
+            main_frame = request.frame.parent_frame is None
+        except self.engine.errors:
+            # a service worker's requests belong to no frame
+            main_frame = False
         entry = {
             "url": response.url,
             "status": response.status,
             "method": request.method,
             "resource_type": request.resource_type,
+            "main_frame": main_frame,
             "response": None,
         }
         if request.method == "GET" and request.resource_type in NETWORK_BODY_TYPES:

@@ -29,7 +29,12 @@ JS_PAGE = """<html><head><title>js page</title></head><body>
 <img src="/pixel.png">
 <img src="http://localhost:8888/blocked.png">
 <script>document.getElementById("x").textContent = "built by js"</script>
+<script src="/page.js"></script>
+<iframe src="/frame"></iframe>
 </body></html>"""
+
+# a page inside JS_PAGE's frame, with a script of its own
+FRAME_PAGE = """<html><body><script src="/frame.js"></script></body></html>"""
 
 # shaped like a Cloudflare managed challenge: blasthttp concludes needs_browser, and the page's script clears it
 CHALLENGE_PAGE = """<html><head><title>Just a moment...</title></head><body><script>
@@ -56,6 +61,10 @@ def serve(httpserver):
             )
         if request.path == "/binary":
             return Response(bytes(range(256)), content_type="application/octet-stream")
+        if request.path == "/frame":
+            return Response(FRAME_PAGE, content_type="text/html")
+        if request.path.endswith(".js"):
+            return Response("window.loaded = true;", content_type="application/javascript")
         if request.path.endswith(".png") or request.path == "/favicon.ico":
             return Response(b"", status=404)
         return Response(JS_PAGE, content_type="text/html")
@@ -152,6 +161,11 @@ async def test_browser_visit(bbot_scanner, bbot_httpserver):
     assert pixel["resource_type"] == "image"
     # only text resources keep their response
     assert pixel["response"] is None
+    # each request says whether the page itself made it, or a frame inside it
+    assert pixel["main_frame"] is True
+    assert network[bbot_httpserver.url_for("/page.js")]["main_frame"] is True
+    assert network[bbot_httpserver.url_for("/frame")]["main_frame"] is False
+    assert network[bbot_httpserver.url_for("/frame.js")]["main_frame"] is False
 
     # blacklisted hosts are never contacted, even for a page's subresources
     assert "/blocked.png" not in requested_paths(bbot_httpserver)
