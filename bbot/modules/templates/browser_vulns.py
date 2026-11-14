@@ -167,13 +167,12 @@ class browser_vulns(BaseModule):
     """
     A module that loads web pages in the scan's browser and reports the client-side vulnerabilities it finds in them.
 
-    Pages running the same code are analyzed once: see `page_code()` and `analyze_once()`.
+    Pages running the same code are analyzed once: see `page_code()` and `analyze_once()`. Modules declare
+    `browser_artifacts = ["dom", "network"]` themselves, since module preloading reads only the module's own file.
     """
 
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    # the page as it stands after its scripts ran, and the scripts it loaded
-    browser_artifacts = ["dom", "network"]
 
     async def setup(self):
         # the result for each code fingerprint analyzed
