@@ -91,11 +91,15 @@ class Event(BBOTBaseModel, table=True):
     resolved_hosts: List = Field(default=[], sa_type=JSON)
     dns_children: dict = Field(default={}, sa_type=JSON)
     web_spider_distance: Optional[int] = None
+    archive_url: Optional[str] = None
+    reemit_source: Optional[str] = None
+    envelopes: Optional[str] = None
     scope_distance: int = Field(default=10, index=True)
     scan: str = Field(index=True)
     timestamp: float = Field(index=True)
     inserted_at: float = Field(default_factory=utc_now_timestamp)
     parent: str = Field(index=True)
+    parent_uuid: Optional[str] = Field(default=None, index=True)
     tags: List = Field(default=[], sa_type=JSON)
     host_metadata: dict = Field(default={}, sa_type=JSON)
     module: str = Field(index=True)

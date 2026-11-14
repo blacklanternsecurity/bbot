@@ -84,6 +84,9 @@ class Event(BBOTBaseModel):
     resolved_hosts: Optional[List] = None
     dns_children: Optional[dict] = None
     web_spider_distance: Optional[int] = None
+    archive_url: Optional[str] = None
+    reemit_source: Optional[str] = None
+    envelopes: Optional[str] = None
     scope_distance: int = 10
     scan: Annotated[str, "indexed"]
     timestamp: Annotated[float, "indexed"]
