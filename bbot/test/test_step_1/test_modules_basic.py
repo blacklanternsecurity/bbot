@@ -200,6 +200,8 @@ async def test_modules_basic_checks(events, blasthttp_mock):
     assert type(all_preloaded["dnsbrute"]["config"]["max_depth"]) == int
     assert all_preloaded["baddns"]["deps"]["pip"]
     assert all_preloaded["portscan"]["deps"]["common"]
+    # declared in the module itself, since preloading doesn't see what it inherits from its template
+    assert all_preloaded["codeql"]["browser_artifacts"] == ["dom", "network"]
     assert all_preloaded["fingerprintx"]["deps"]["ansible"]
     assert all_preloaded["screenshot"]["browser_artifacts"] == ["screenshot"]
     assert all_preloaded["robots"]["browser_artifacts"] == []
