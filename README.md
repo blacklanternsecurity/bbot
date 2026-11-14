@@ -225,6 +225,7 @@ include:
   - webbrute
   - web-screenshots
   - baddns-heavy
+  - codeql-heavy
 
 config:
   modules:

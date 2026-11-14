@@ -92,6 +92,87 @@ Enumerate Git repositories, Docker images, etc.
 
 Modules: [0]("")
 
+## **codeql**
+
+Discover client-side web vulnerabilities using CodeQL. Limit to "error" level findings, and skip scripts from out-of-scope hosts.
+
+??? note "`codeql.yml`"
+    ```yaml title="~/.bbot/presets/web/codeql.yml"
+    description: Discover client-side web vulnerabilities using CodeQL. Limit to "error" level findings, and skip scripts from out-of-scope hosts.
+    
+    modules:
+      - http
+      - codeql
+    
+    config:
+      url_querystring_remove: False
+      web:
+        # CodeQL analyzes pages loaded in the scan's browser, which is off by default
+        enable_browser: true
+      modules:
+        codeql:
+          mode: in_scope
+          min_severity: error
+    ```
+
+Category: web
+
+Modules: [0]("")
+
+## **codeql-heavy**
+
+Discover client-side web vulnerabilities using CodeQL. Limit to "error" and "warning" level findings, and include scripts from out-of-scope hosts.
+
+??? note "`codeql-heavy.yml`"
+    ```yaml title="~/.bbot/presets/web/codeql-heavy.yml"
+    description: Discover client-side web vulnerabilities using CodeQL. Limit to "error" and "warning" level findings, and include scripts from out-of-scope hosts.
+    
+    modules:
+      - http
+      - codeql
+    
+    config:
+      url_querystring_remove: False
+      web:
+        # CodeQL analyzes pages loaded in the scan's browser, which is off by default
+        enable_browser: true
+      modules:
+        codeql:
+          mode: all
+          min_severity: warning
+    ```
+
+Category: web
+
+Modules: [0]("")
+
+## **codeql-light**
+
+Discover client-side web vulnerabilities using CodeQL. Limit to "error" level findings, and only analyze the page itself, not the scripts it loads.
+
+??? note "`codeql-light.yml`"
+    ```yaml title="~/.bbot/presets/web/codeql-light.yml"
+    description: Discover client-side web vulnerabilities using CodeQL. Limit to "error" level findings, and only analyze the page itself, not the scripts it loads.
+    
+    modules:
+      - http
+      - codeql
+    
+    config:
+      url_querystring_remove: False
+      web:
+        # CodeQL analyzes pages loaded in the scan's browser, which is off by default
+        enable_browser: true
+      modules:
+        codeql:
+          mode: dom_only
+          min_severity: error
+    ```
+
+Category: web
+
+Modules: [0]("")
+
 ## **dotnet-audit**
 
 Comprehensive scan for all IIS/.NET specific modules and module settings
@@ -251,6 +332,7 @@ Everything everywhere all at once
       - webbrute
       - web-screenshots
       - baddns-heavy
+      - codeql-heavy
     
     config:
       modules:
@@ -1077,12 +1159,15 @@ Here is a the same data, but in a table:
 | baddns-heavy       |            | Run all baddns modules and submodules.                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | 3           | baddns, baddns_direct, baddns_zone                                                                 |
 | cloud-enum         |            | Enumerate cloud resources such as storage buckets, etc.                                                                                                                                                                                                                                                                                                                                                                                                                                                 | 0           |                                                                                                    |
 | code-enum          |            | Enumerate Git repositories, Docker images, etc.                                                                                                                                                                                                                                                                                                                                                                                                                                                         | 0           |                                                                                                    |
+| codeql             | web        | Discover client-side web vulnerabilities using CodeQL. Limit to "error" level findings, and skip scripts from out-of-scope hosts.                                                                                                                                                                                                                                                                                                                                                                       | 2           | codeql, http                                                                                       |
+| codeql-heavy       | web        | Discover client-side web vulnerabilities using CodeQL. Limit to "error" and "warning" level findings, and include scripts from out-of-scope hosts.                                                                                                                                                                                                                                                                                                                                                      | 2           | codeql, http                                                                                       |
+| codeql-light       | web        | Discover client-side web vulnerabilities using CodeQL. Limit to "error" level findings, and only analyze the page itself, not the scripts it loads.                                                                                                                                                                                                                                                                                                                                                     | 2           | codeql, http                                                                                       |
 | dotnet-audit       | web        | Comprehensive scan for all IIS/.NET specific modules and module settings                                                                                                                                                                                                                                                                                                                                                                                                                                | 8           | ajaxpro, aspnet_bin_exposure, badsecrets, dotnetnuke, http, telerik, webbrute, webbrute_shortnames |
 | email-enum         |            | Enumerate email addresses from APIs, web crawling, etc.                                                                                                                                                                                                                                                                                                                                                                                                                                                 | 0           |                                                                                                    |
 | fast               |            | Scan only the provided targets as fast as possible - no extra discovery                                                                                                                                                                                                                                                                                                                                                                                                                                 | 0           |                                                                                                    |
 | iis-shortnames     | web        | Recursively enumerate IIS shortnames                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | 0           |                                                                                                    |
 | js-audit           | web        | Hunt for leaked credentials and vulnerable libraries in client-side JavaScript                                                                                                                                                                                                                                                                                                                                                                                                                          | 7           | badsecrets, http, js_unpacker, retirejs, robots, trufflehog, wayback                               |
-| kitchen-sink       |            | Everything everywhere all at once                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | 7           | baddns, baddns_direct, baddns_zone, http, hunt, reflected_parameters, webbrute                     |
+| kitchen-sink       |            | Everything everywhere all at once                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | 8           | baddns, baddns_direct, baddns_zone, codeql, http, hunt, reflected_parameters, webbrute             |
 | lightfuzz          | web        | Default fuzzing: all 9 submodules (cmdi, crypto, path, serial, sqli, ssti, xss, esi, ssrf) plus companion modules (badsecrets, hunt, reflected_parameters). POST fuzzing disabled but try_post_as_get enabled, so POST params are retested as GET. On WAF-tagged hosts, only request-body parameters are fuzzed, and only if the WAF doesn't block them or nowafpls body padding gets them past it.                                                                                                     | 6           | badsecrets, http, hunt, lightfuzz, nowafpls, reflected_parameters                                  |
 | lightfuzz-heavy    | web        | Aggressive fuzzing: everything in lightfuzz, plus paramminer brute-force parameter discovery (headers, GET params, cookies), POST request fuzzing enabled, try_get_as_post enabled (GET params retested as POST), and robots.txt parsing. On WAF-tagged hosts, only request-body parameters are fuzzed, and only if the WAF doesn't block them or nowafpls body padding gets them past it.                                                                                                              | 8           | badsecrets, http, hunt, lightfuzz, nowafpls, reflected_parameters, robots, wayback                 |
 | lightfuzz-light    | web        | Minimal fuzzing: only path traversal, SQLi, and XSS submodules. No POST requests. No companion modules. Safest option for running alongside larger scans with minimal overhead.                                                                                                                                                                                                                                                                                                                         | 2           | http, lightfuzz                                                                                    |
