@@ -34,6 +34,8 @@ FONT_TIMEOUT = 30
 # stop using the browser for the rest of the scan if it dies this often
 MAX_CRASHES = 3
 CRASH_WINDOW = 600
+# how long a browser that may have died gets to open a context before it's treated as dead
+HEALTH_CHECK_TIMEOUT = 30
 # finished visits held for modules that haven't collected theirs yet
 VISIT_CACHE_SIZE = 100
 # a page's requests whose bodies are kept, so modules can use them without fetching them again
@@ -604,6 +606,9 @@ class BrowserHelper:
         try:
             browser = await self.engine.launch()
         except Exception as e:
+            if not isinstance(e, self.engine.errors):
+                # not the browser failing but Playwright's driver (see _died), so the next launch starts a new one
+                await self.engine.stop()
             self._record_crash(f"failed to launch: {e}")
             raise BrowserError(f"Failed to launch the browser: {e}") from e
         instance = _Instance(browser)
@@ -673,13 +678,40 @@ class BrowserHelper:
             except asyncio.TimeoutError:
                 log.verbose(f"Browser timed out on {url}")
                 return None
-            except (*self.engine.errors, BrowserError) as e:
-                browser_died = self._crash_count > crashes_before or self._instance is None
+            except Exception as e:
+                browser_died = await self._died(e, crashes_before)
+                if not browser_died and not isinstance(e, (*self.engine.errors, BrowserError)):
+                    raise
                 if browser_died and attempt == 1:
                     log.verbose(f"Browser died while loading {url}; retrying")
                     continue
                 log.debug(f"Browser error on {url}: {e}")
                 return None
+
+    async def _died(self, error, crashes_before):
+        """Whether the browser died during an operation that failed with `error`."""
+        if self._crash_count > crashes_before or self._instance is None:
+            return True
+        if isinstance(error, (*self.engine.errors, BrowserError)):
+            return False
+        # once Playwright's driver exits, every call fails with a plain Exception and the browser never reports a
+        # disconnect, so any other error is checked against a fresh context, which also lets a bug surface as one
+        instance = self._instance
+        try:
+            context = await asyncio.wait_for(instance.browser.new_context(), timeout=HEALTH_CHECK_TIMEOUT)
+        except Exception:
+            async with self._launch_lock:
+                # once, however many operations it failed
+                if instance.alive:
+                    instance.alive = False
+                    if self._instance is instance:
+                        self._instance = None
+                    self._record_crash("stopped answering")
+                    await self.engine.stop()
+            return True
+        with suppress(Exception):
+            await context.close()
+        return False
 
     def _check_enabled(self):
         if not self.enabled:

@@ -7,6 +7,7 @@ import asyncio
 import platform
 import threading
 import datetime
+from contextlib import suppress
 
 import psutil
 from werkzeug.wrappers import Response
@@ -68,6 +69,24 @@ def requested_paths(httpserver):
 
 def browser_processes():
     return [p for p in psutil.Process(os.getpid()).children(recursive=True) if "camoufox" in p.name()]
+
+
+def driver_processes():
+    """Playwright's driver, which runs the browser for BBOT. Node renames its process, so it's found by its arguments."""
+    drivers = []
+    for process in psutil.Process(os.getpid()).children(recursive=True):
+        # a killed one is a zombie until it's reaped, and a zombie's arguments can't be read
+        with suppress(psutil.Error):
+            if "run-driver" in process.cmdline():
+                drivers.append(process)
+    return drivers
+
+
+def exited(process):
+    try:
+        return process.status() == psutil.STATUS_ZOMBIE
+    except psutil.NoSuchProcess:
+        return True
 
 
 async def no_browser_processes():
@@ -376,6 +395,38 @@ async def test_browser_new_context(bbot_scanner, bbot_httpserver):
             break
         await asyncio.sleep(0.1)
     assert browser._page_slots._value == free_slots
+
+    await scan._cleanup()
+    assert await no_browser_processes()
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
+async def test_browser_driver_recovery(bbot_scanner, bbot_httpserver):
+    serve(bbot_httpserver)
+    scan = await browser_scan(bbot_scanner)
+    browser = scan.helpers.browser
+    assert await browser.visit(bbot_httpserver.url_for("/")) is not None
+    first = browser._instance
+    browsers = browser_processes()
+    drivers = driver_processes()
+    assert browsers and drivers
+
+    # nothing reports the driver exiting; the next page finds the browser dead, and relaunches it on a new driver
+    for process in drivers:
+        process.kill()
+    visit = await browser.visit(bbot_httpserver.url_for("/again"))
+    assert visit is not None and visit.response.status_code == 200
+    assert not first.alive
+    assert len(browser._crashes) == 1
+    assert browser.usable
+
+    # the old browser exits with its driver
+    for _ in range(100):
+        if all(exited(process) for process in browsers):
+            break
+        await asyncio.sleep(0.1)
+    assert all(exited(process) for process in browsers)
 
     await scan._cleanup()
     assert await no_browser_processes()
