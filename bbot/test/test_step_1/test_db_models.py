@@ -90,4 +90,50 @@ def test_pydantic_models(events, bbot_scanner):
     assert set([e.type for e in event_set_pydantic]) == {"IP_ADDRESS", "DNS_NAME"}
 
 
+def test_event_models_keep_all_json_fields(bbot_scanner):
+    scan = bbot_scanner("evilcorp.com", config={"dns": {"minimal": True}})
+    dns = scan.make_event("www.evilcorp.com", "DNS_NAME", parent=scan.root_event)
+    response = {
+        "url": "https://www.evilcorp.com/app.js",
+        "method": "GET",
+        "status_code": 200,
+        "raw_header": "HTTP/1.1 200 OK\r\n\r\n",
+        "archive_url": "https://web.archive.org/web/2020/https://www.evilcorp.com/app.js",
+    }
+    wayback = scan.make_event(response, "HTTP_RESPONSE", parent=dns, tags=["from-wayback"])
+    unpacked_data = {k: v for k, v in response.items() if k != "archive_url"}
+    unpacked = scan.make_event(unpacked_data, "HTTP_RESPONSE", parent=wayback, tags=["from-wayback"])
+    unpacked.reemit_source = "js_unpacker"
+    param_data = {
+        "host": "www.evilcorp.com",
+        "url": "https://www.evilcorp.com/?q=1",
+        "name": "q",
+        "type": "GETPARAM",
+        "original_value": "1",
+        "description": "d",
+    }
+    param = scan.make_event(param_data, "WEB_PARAMETER", parent=dns)
+
+    models = [Event]
+    try:
+        from bbot.models.sql import Event as SQLEvent
+
+        models.append(SQLEvent)
+    except ImportError:  # sqlmodel is only installed alongside the SQL output modules
+        pass
+
+    for event in (wayback, unpacked, param):
+        event_json = event.json()
+        for model in models:
+            dumped = model(**event_json).model_dump(exclude_none=True)
+            assert not set(event_json) - set(dumped), f"{model.__module__} dropped fields from {event.type}"
+
+    assert Event(**unpacked.json()).reemit_source == "js_unpacker"
+    assert Event(**wayback.json()).archive_url == response["archive_url"]
+    assert Event(**unpacked.json()).parent_uuid == wayback.uuid
+    # a reemitted response's id depends on reemit_source, so it must survive the round trip
+    rebuilt = BaseEvent.from_json(Event(**unpacked.json()).model_dump(exclude_none=True))
+    assert rebuilt.id == unpacked.id != wayback.id
+
+
 # TODO: SQL
