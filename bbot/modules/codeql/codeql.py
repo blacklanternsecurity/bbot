@@ -1,4 +1,5 @@
 import csv
+import os
 import re
 import tempfile
 from pathlib import Path
@@ -139,11 +140,17 @@ class codeql(browser_vulns):
     async def create_database(self, source_root, database):
         """Build a CodeQL database from the code in `source_root`. Returns whether it worked."""
         result = await self.codeql(
-            "database", "create", database, "--language=javascript", f"--source-root={source_root}"
+            "database",
+            "create",
+            database,
+            "--language=javascript",
+            f"--source-root={source_root}",
+            # the extractor otherwise skips any file that looks minified, which is most of what sites serve
+            env=dict(os.environ, CODEQL_EXTRACTOR_JAVASCRIPT_ALLOW_MINIFIED_FILES="true"),
         )
         if result.returncode == 0:
             return True
-        # minified or empty code can leave CodeQL nothing to extract
+        # empty pages leave CodeQL nothing to extract
         if "did not detect any code" in result.stderr or "could not process any of it" in result.stderr:
             self.debug("CodeQL found no code to analyze")
         else:
@@ -168,9 +175,9 @@ class codeql(browser_vulns):
         with open(output, newline="") as f:
             return [dict(zip(fields, row)) for row in csv.reader(f) if len(row) == len(fields)]
 
-    async def codeql(self, *args):
+    async def codeql(self, *args, **kwargs):
         command = [self.codeql_bin, *args, f"--common-caches={self.codeql_cache}"]
-        return await self.run_process(command, idle_timeout=CODEQL_TIMEOUT, _log_stderr=False)
+        return await self.run_process(command, idle_timeout=CODEQL_TIMEOUT, _log_stderr=False, **kwargs)
 
     def to_finding(self, result, source_root, origins):
         sink_file = result["file"].lstrip("/")
