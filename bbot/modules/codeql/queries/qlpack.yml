@@ -1,0 +1,4 @@
+name: bbot/javascript-security
+version: 0.1.0
+dependencies:
+  codeql/javascript-all: "*"

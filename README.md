@@ -226,6 +226,7 @@ include:
   - web-screenshots
   - baddns-heavy
   - domino-heavy
+  - codeql-heavy
 
 config:
   modules:
