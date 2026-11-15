@@ -228,6 +228,9 @@ include:
   - domino-heavy
   - codeql-heavy
 
+modules:
+  - access_bypass
+
 config:
   modules:
     dnsbrute:

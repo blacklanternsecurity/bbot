@@ -11,6 +11,12 @@ from urllib.parse import urlparse
 _TITLE_REGEX = re.compile(r"<title[^>]*>(.*?)</title>", re.IGNORECASE | re.DOTALL)
 
 
+def extract_title(body):
+    """The page's <title>, or "" if it has none."""
+    match = _TITLE_REGEX.search(body or "")
+    return match.group(1).strip() if match else ""
+
+
 def response_to_event_dict(response, url_input, method="GET"):
     """Convert a blasthttp.Response into the dict format HTTP_RESPONSE events expect.
 
@@ -50,9 +56,7 @@ def response_to_event_dict(response, url_input, method="GET"):
     title = ""
     if not decode_error:
         body = response.body
-        title_match = _TITLE_REGEX.search(body)
-        if title_match:
-            title = title_match.group(1).strip()
+        title = extract_title(body)
 
     j = {
         "url": response.url,

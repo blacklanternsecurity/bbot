@@ -203,6 +203,7 @@ class ConfigAwareHelper:
         json=None,
         timeout=10,
         on_baseline_ready=None,
+        baseline_url_2=None,
     ):
         return HttpCompare(
             url,
@@ -216,6 +217,7 @@ class ConfigAwareHelper:
             data=data,
             json=json,
             on_baseline_ready=on_baseline_ready,
+            baseline_url_2=baseline_url_2,
         )
 
     def temp_filename(self, extension=None):
