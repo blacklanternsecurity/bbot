@@ -1,4 +1,6 @@
 import pytest
+import time
+
 from werkzeug.wrappers import Response
 
 from .base import ModuleTestBase
@@ -259,10 +261,16 @@ class TestHTTP_url_metadata(ModuleTestBase):
         )
 
 
-class TestHTTP_429_max_retries(ModuleTestBase):
+class TestHTTP_429_give_up(ModuleTestBase):
+    """A site that answers nothing but 429 for `rate_limit_give_up` seconds is given up on, and its URLs dropped."""
+
     targets = [HTTPSERVER_URL]
+    module_name = "http"
     modules_overrides = ["http"]
-    config_overrides = {"web": {"429_sleep_interval": 1, "429_max_sleep_interval": 1}}
+    config_overrides = {
+        "web": {"429_sleep_interval": 1, "429_max_sleep_interval": 1},
+        "modules": {"http": {"rate_limit_give_up": 3}},
+    }
 
     async def setup_after_prep(self, module_test):
         self.request_count = 0
@@ -273,7 +281,7 @@ class TestHTTP_429_max_retries(ModuleTestBase):
 
         module_test.httpserver.expect_request("/").respond_with_handler(handler)
 
-    def check(self, module_test, events):
+    async def check(self, module_test, events):
         assert self.request_count >= 2, "Expected at least one retry before giving up"
         assert not any(e.type == "URL" and "status-429" in e.tags for e in events), (
             "Exhausted 429 retries should not emit a URL event"
@@ -281,6 +289,63 @@ class TestHTTP_429_max_retries(ModuleTestBase):
         assert not any(e.type == "HTTP_RESPONSE" and e.data.get("status_code") == 429 for e in events), (
             "Exhausted 429 retries should not emit an HTTP_RESPONSE event"
         )
+        module = module_test.module
+        assert module._rate_limits["127.0.0.1"].gave_up
+        # and a URL found later on the same site isn't tried
+        later = module_test.scan.make_event(f"{HTTPSERVER_URL}/later", "URL_UNVERIFIED", dummy=True)
+        assert (await module.filter_event(later))[0] is False
+
+
+class TestHTTP_429_test_request(ModuleTestBase):
+    """
+    A 429 pauses the whole site and holds its URLs. When the pause ends, one of them goes out to test whether the site
+    is still rate limiting, and the rest follow once one gets through.
+    """
+
+    paths = ["/a", "/b", "/c", "/d"]
+    targets = [f"{HTTPSERVER_URL}{path}" for path in paths]
+    module_name = "http"
+    modules_overrides = ["http"]
+    # one request per URL, so each 429 the server sends is one the module saw
+    config_overrides = {"web": {"429_sleep_interval": 1, "429_max_sleep_interval": 1, "http_retries": 0}}
+    # the site rate limits for this long after its first request
+    limited_for = 2.5
+
+    async def setup_after_prep(self, module_test):
+        self.requests = []
+
+        def handler(request):
+            now = time.monotonic()
+            if not self.requests:
+                self.first = now
+            if now - self.first < self.limited_for:
+                self.requests.append((now, 429))
+                return Response("rate limited", status=429, headers={"Retry-After": "1"})
+            self.requests.append((now, 200))
+            return Response("<html><body>OK</body></html>")
+
+        for path in self.paths:
+            module_test.httpserver.expect_request(path).respond_with_handler(handler)
+
+    def check(self, module_test, events):
+        # every URL got through in the end
+        urls = {e.parsed_url.path for e in events if e.type == "URL" and "status-200" in e.tags}
+        assert urls == set(self.paths)
+        assert not any(e.type == "URL" and "status-429" in e.tags for e in events)
+
+        # after the first requests, the site only saw one test request per pause
+        limited = [t for t, status in self.requests if status == 429]
+        tests = [t for t in limited if t - limited[0] > 0.5]
+        assert tests, "expected a test request that was still rate limited"
+        for previous, test in zip([limited[0]] + tests, tests):
+            assert test - previous >= 0.8, f"test requests {test - previous:.2f}s apart"
+
+        # sites are registered domains, counting shared hosts' customers as sites of their own
+        site = module_test.module._site
+        assert site("www.evilcorp.com") == site("app.evilcorp.com") == "evilcorp.com"
+        assert site("www.evilcorp.co.uk") == "evilcorp.co.uk"
+        assert site("evilcorp.herokuapp.com") != site("othercorp.herokuapp.com")
+        assert site("127.0.0.1") == "127.0.0.1"
 
 
 class TestHTTP_BrowserOnlyHost(ModuleTestBase):

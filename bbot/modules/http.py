@@ -3,6 +3,7 @@ from http.cookies import SimpleCookie
 from urllib.parse import urlparse
 
 import blasthttp
+import tldextract
 
 from bbot.core.helpers.web.web import iter_batch_results
 from bbot.core.helpers.web.response_event import response_to_event_dict
@@ -49,6 +50,9 @@ class http(BaseModule):
         in_scope_only: bool = Field(True, description="Only visit web resources that are in scope.")
         max_response_size: int = Field(5242880, description="Max response size in bytes")
         store_responses: bool = Field(False, description="Save raw HTTP responses to scan folder")
+        rate_limit_give_up: int = Field(
+            1800, description="Drop a site's URLs once it has answered nothing but 429 for this many seconds"
+        )
 
     scope_distance_modifier = 2
     _shuffle_incoming_queue = False
@@ -63,12 +67,11 @@ class http(BaseModule):
         self.store_responses = self.config.get("store_responses", False)
         self.client = self.helpers.blasthttp
         self.waf_yara_rule = self.helpers.yara.compile_strings(self.helpers.get_waf_strings(), nocase=True)
-        self._host_cooldowns = {}
-        self._deferred_events = []
-        self._429_retry_counts = {}
-        self._max_429_retries = 3
+        # {site: _RateLimit} for each site answering 429
+        self._rate_limits = {}
         self._429_default_interval = self.scan.web_config.get("429_sleep_interval", 30)
         self._429_max_interval = self.scan.web_config.get("429_max_sleep_interval", 60)
+        self._rate_limit_give_up = self.config.get("rate_limit_give_up", 1800)
         self._wakeup_target = 0
         return True
 
@@ -84,6 +87,11 @@ class http(BaseModule):
 
         if "spider-max" in event.tags:
             return False, "event exceeds spidering limits"
+
+        if self._rate_limits:
+            limit = self._rate_limits.get(self._site(event.host))
+            if limit is not None and limit.gave_up:
+                return False, "its site answered nothing but 429 for too long"
 
         # scope filtering
         in_scope_only = self.config.get("in_scope_only", True)
@@ -126,7 +134,7 @@ class http(BaseModule):
 
     @property
     def finished(self):
-        if self._deferred_events:
+        if any(limit.held or limit.probe is not None for limit in self._rate_limits.values()):
             return False
         return super().finished
 
@@ -136,12 +144,15 @@ class http(BaseModule):
             return False, "429 retry"
         return super().is_incoming_duplicate(event, add=add)
 
-    def _host_is_cooled_down(self, host):
-        return time.monotonic() < self._host_cooldowns.get(host, 0)
-
-    def _set_host_cooldown(self, host, seconds):
-        resume_time = time.monotonic() + seconds
-        self._host_cooldowns[host] = max(self._host_cooldowns.get(host, 0), resume_time)
+    def _site(self, host):
+        """
+        The site `host` belongs to, which shares its rate limit: its registered domain, so a CDN limiting one subdomain
+        is limiting all of them, but a customer of a shared host (e.g. herokuapp.com) is a site of its own.
+        """
+        host = str(host)
+        if self.helpers.is_ip(host):
+            return host
+        return tldextract.extract(host, include_psl_private_domains=True).top_domain_under_public_suffix or host
 
     def _parse_retry_after(self, response):
         for k, v in response.headers.items():
@@ -154,46 +165,81 @@ class http(BaseModule):
                 break
         return self._429_default_interval
 
-    def _defer_event(self, event):
-        if event not in self._deferred_events:
-            self._deferred_events.append(event)
-            return True
-        return False
-
-    async def _flush_deferred(self):
-        if not self._deferred_events or self.incoming_event_queue is False:
-            return
-        still_deferred = []
-        flushed = 0
-        earliest_resume = None
+    def _rate_limited(self, event, response):
+        """Hold `event` after a 429, and pause its site, or give up on the site if it's been answering 429 too long."""
+        site = self._site(event.host)
         now = time.monotonic()
-        for event in self._deferred_events:
-            host = str(event.host)
-            resume_time = self._host_cooldowns.get(host, 0)
-            if now >= resume_time:
-                event._429_retry = True
-                self.incoming_event_queue.put_nowait(event)
-                flushed += 1
-            else:
-                still_deferred.append(event)
-                if earliest_resume is None or resume_time < earliest_resume:
-                    earliest_resume = resume_time
-        self._deferred_events = still_deferred
-        # prune expired cooldowns
-        self._host_cooldowns = {h: t for h, t in self._host_cooldowns.items() if t > now}
-        if flushed:
+        limit = self._rate_limits.get(site)
+        if limit is None:
+            limit = self._rate_limits[site] = _RateLimit(now)
+            self.info(f"{site} is rate limiting (429), holding its URLs until it stops")
+        elif limit.gave_up:
+            # the other request of a test from an OPEN_TCP_PORT event
+            return
+        limit.resume = max(limit.resume, now + self._parse_retry_after(response))
+        if event is limit.probe:
+            limit.probe = None
+            if now - limit.since >= self._rate_limit_give_up:
+                self.warning(
+                    f"{site} has answered nothing but 429 for {int(now - limit.since) // 60} minutes, giving up on "
+                    f"its {len(limit.held) + 1:,} remaining URLs"
+                )
+                limit.gave_up = True
+                limit.held.clear()
+                return
+            self.verbose(f"{site} is still rate limiting (429)")
+        # an OPEN_TCP_PORT event makes two requests
+        if event not in limit.held:
+            limit.held.append(event)
+
+    def _recovered(self, site):
+        """Release the URLs held for `site`, now that a test request got through."""
+        limit = self._rate_limits.pop(site)
+        self.info(f"{site} stopped rate limiting, resuming {len(limit.held):,} URLs")
+        self._requeue(limit.held)
+
+    def _requeue(self, events):
+        if self.incoming_event_queue is False:
+            return
+        for event in events:
+            # past the incoming dedup, which has already seen it
+            event._429_retry = True
+            self.incoming_event_queue.put_nowait(event)
+
+    async def _send_probes(self):
+        """Send one held URL from each site whose pause is over, to test whether it's still rate limiting."""
+        if self.incoming_event_queue is False:
+            return
+        now = time.monotonic()
+        probes = []
+        for limit in self._rate_limits.values():
+            if limit.held and limit.probe is None and not limit.gave_up and now >= limit.resume:
+                limit.probe = limit.held.pop(0)
+                probes.append(limit.probe)
+        if probes:
+            self._requeue(probes)
             async with self.event_received:
                 self.event_received.notify()
-        if still_deferred and earliest_resume is not None:
-            if not self._wakeup_target or earliest_resume < self._wakeup_target:
-                delay = max(0.1, earliest_resume - time.monotonic())
-                self._wakeup_target = earliest_resume
-                self.helpers.create_task(self._deferred_wakeup(delay))
+        self._schedule_probes()
 
-    async def _deferred_wakeup(self, delay):
+    def _schedule_probes(self):
+        """Wake up to send test requests when the earliest pause ends."""
+        waiting = [
+            limit.resume
+            for limit in self._rate_limits.values()
+            if limit.held and limit.probe is None and not limit.gave_up
+        ]
+        if not waiting:
+            return
+        earliest = min(waiting)
+        if not self._wakeup_target or earliest < self._wakeup_target:
+            self._wakeup_target = earliest
+            self.helpers.create_task(self._wakeup(max(0.1, earliest - time.monotonic())))
+
+    async def _wakeup(self, delay):
         await self.helpers.sleep(delay)
         self._wakeup_target = 0
-        await self._flush_deferred()
+        await self._send_probes()
 
     def _build_headers(self):
         """Build list of (name, value) header tuples from scan config."""
@@ -313,16 +359,26 @@ class http(BaseModule):
         # Reverse index: each paired probe URL → its (host, port) key
         paired_probe_urls = {}
 
+        # sites whose test request is in this batch
+        probed = set()
+
         for event in events:
             prefetched = getattr(event, "prefetched_response", None)
             if prefetched is not None:
                 await self._process_response(event.url, prefetched, event)
                 continue
+            if self._rate_limits:
+                site = self._site(event.host)
+                limit = self._rate_limits.get(site)
+                if limit is not None:
+                    if event is limit.probe:
+                        probed.add(site)
+                    else:
+                        # its site is rate limiting: only the test request goes out
+                        if not limit.gave_up:
+                            limit.held.append(event)
+                        continue
             urls, url_hash = self.make_url_metadata(event)
-            host = str(event.host)
-            if self._host_is_cooled_down(host):
-                self._defer_event(event)
-                continue
             for url in urls:
                 stdin[url] = event
                 if event.type == "OPEN_TCP_PORT":
@@ -340,12 +396,7 @@ class http(BaseModule):
                 paired_probe_urls[schemes["https"]] = key
 
         if not stdin:
-            if self._deferred_events:
-                earliest = min(self._host_cooldowns.get(str(e.host), 0) for e in self._deferred_events)
-                if not self._wakeup_target or earliest < self._wakeup_target:
-                    delay = max(0.1, earliest - time.monotonic())
-                    self._wakeup_target = earliest
-                    self.helpers.create_task(self._deferred_wakeup(delay))
+            self._schedule_probes()
             return
 
         headers = self._build_headers()
@@ -381,29 +432,10 @@ class http(BaseModule):
 
         async for result in iter_batch_results(self.client.request_batch_stream(configs, concurrency=self.threads)):
             if result.success and result.response is not None and result.response.status == 429:
-                url = result.url
-                host = urlparse(url).hostname
-                parent_event = stdin[url]
-                event_key = self._incoming_dedup_hash(parent_event)
-                retry_count = self._429_retry_counts.get(event_key, 0)
-                if retry_count >= self._max_429_retries:
-                    self.warning(f"429 from {url} after {self._max_429_retries} retries, giving up")
-                    self._429_retry_counts.pop(event_key, None)
-                    continue
-                retry_after = self._parse_retry_after(result.response)
-                self._set_host_cooldown(host, retry_after)
-                if self._defer_event(parent_event):
-                    self._429_retry_counts[event_key] = retry_count + 1
-                self.verbose(
-                    f"429 from {host} ({url}), cooling down {retry_after}s (attempt {retry_count + 1}/{self._max_429_retries})"
-                )
+                self._rate_limited(stdin[result.url], result.response)
                 continue
 
-            # Non-429 response -- clear any retry tracking for this URL
             _retry_parent = stdin.get(result.url)
-            if _retry_parent is not None:
-                self._429_retry_counts.pop(self._incoming_dedup_hash(_retry_parent), None)
-
             key = paired_probe_urls.get(result.url)
             if key is None:
                 # Non-paired URL -- emit immediately
@@ -433,5 +465,23 @@ class http(BaseModule):
         for key, result in deferred_https.items():
             await self._process_result(result, stdin[result.url])
 
-        if self._deferred_events:
-            await self._flush_deferred()
+        # a test request that got anything but a 429 means its site has recovered
+        for site in probed:
+            limit = self._rate_limits.get(site)
+            if limit is not None and limit.probe is not None:
+                self._recovered(site)
+        self._schedule_probes()
+
+
+class _RateLimit:
+    """A site answering 429. Its URLs are held, and once its pause is over, one of them goes out to test it."""
+
+    def __init__(self, now):
+        # when it started answering 429
+        self.since = now
+        # when the next test request can go out
+        self.resume = now
+        self.held = []
+        # the event whose request is the test, while it's out
+        self.probe = None
+        self.gave_up = False
