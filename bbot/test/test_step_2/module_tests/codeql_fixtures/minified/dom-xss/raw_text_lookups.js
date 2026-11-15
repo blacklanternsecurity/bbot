@@ -1,0 +1,1 @@
+!function(){var e=decodeURIComponent(location.hash.slice(1));document.getElementsByTagName("title")[0].innerHTML=e.replace("<","&lt;"),document.querySelector("style").innerHTML=e,document.querySelectorAll("textarea")[0].innerHTML=e,document.getElementsByTagName("div")[0].innerHTML=e}();

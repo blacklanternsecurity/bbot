@@ -70,23 +70,43 @@ private predicate attributeWrite(DataFlow::SourceNode element, string name, Data
     (
       call.getMethodName() = ["attr", "prop"] and
       call.getReceiver().getALocalSource() = element and
-      attribute = call.getArgument(0).getALocalSource().(DataFlow::ObjectLiteralNode).getAPropertyWrite()
+      attribute =
+        call.getArgument(0).getALocalSource().(DataFlow::ObjectLiteralNode).getAPropertyWrite()
       or
       call.getMethodName() = "$" and
       call = element and
-      attribute = call.getArgument(1).getALocalSource().(DataFlow::ObjectLiteralNode).getAPropertyWrite()
+      attribute =
+        call.getArgument(1).getALocalSource().(DataFlow::ObjectLiteralNode).getAPropertyWrite()
     ) and
     name = attribute.getPropertyName().toLowerCase() and
     node = attribute.getRhs()
   )
 }
 
-/** Holds if `element` is made as a `tag` element: by createElement, or by jQuery from markup like "<a>". */
+/**
+ * Holds if `element` is a `tag` element: made by createElement, or by jQuery from markup like "<a>", or found by its
+ * tag name, like getElementsByTagName("title")[0].
+ */
 private predicate knownTag(DataFlow::SourceNode element, string tag) {
   element = createdElement(tag)
   or
+  exists(DataFlow::MethodCallNode lookup |
+    tag = lookup.getArgument(0).getStringValue().toLowerCase() and
+    tag.regexpMatch("[a-z][a-z0-9]*")
+  |
+    lookup.getMethodName() = ["getElementsByTagName", "querySelectorAll"] and
+    (element = lookup.getAPropertyRead() or element = lookup.getAMethodCall("item"))
+    or
+    lookup.getMethodName() = "querySelector" and element = lookup
+  )
+  or
   exists(JQuery::MethodCall create | create = element and create.getMethodName() = "$" |
-    tag = create.getArgument(0).getStringValue().regexpCapture("\\s*<([a-zA-Z0-9]+)[\\s/>].*", 1).toLowerCase()
+    tag =
+      create
+          .getArgument(0)
+          .getStringValue()
+          .regexpCapture("\\s*<([a-zA-Z0-9]+)[\\s/>].*", 1)
+          .toLowerCase()
   )
 }
 
@@ -100,11 +120,14 @@ private predicate jsxComponent(DataFlow::SourceNode element) {
   element.asExpr().(JsxElement).getName().regexpMatch("[A-Z].*")
 }
 
-/** Holds if `node` is text a jQuery `$()` call can't read as HTML: a selector starting with "#". */
-private predicate idSelector(DataFlow::Node node) {
+/**
+ * Holds if `node` is text a jQuery `$()` call reads as a selector, never HTML: it starts with fixed text other than "<",
+ * like "#" or ".module-". jQuery before 1.9 read HTML anywhere in it (CVE-2012-6708, which retirejs reports).
+ */
+private predicate selectorText(DataFlow::Node node) {
   exists(StringOps::ConcatenationRoot root |
     root = node and
-    root.getFirstLeaf().getStringValue().regexpMatch("\\s*#.*")
+    root.getFirstLeaf().getStringValue().regexpMatch("\\s*[^\\s<].*")
   )
 }
 
@@ -115,19 +138,35 @@ private DataFlow::SourceNode d3Selection() {
   result = d3Selection().getAMethodCall(_)
 }
 
+/** Elements whose content is never parsed as markup, so HTML written into one is only ever text, or a script's code. */
+private string rawTextTag() {
+  result =
+    [
+      "script", "style", "textarea", "title", "xmp", "iframe", "noembed", "noframes", "noscript",
+      "plaintext"
+    ]
+}
+
+/** Holds if `element` is one whose content is never parsed as markup. */
+private predicate rawText(DataFlow::SourceNode element) { knownTag(element, rawTextTag()) }
+
 /** Holds if `node` is written into the page as HTML. */
 predicate htmlSink(DataFlow::Node node) {
   exists(DataFlow::PropWrite write |
     write.getPropertyName() = ["innerHTML", "outerHTML", "srcdoc"] and
     node = write.getRhs() and
-    // a script element's content is code, not markup
-    not write.getBase().getALocalSource() = createdElement("script")
+    // outerHTML is parsed where the element stands, so only innerHTML is safe in one whose content isn't markup
+    not (write.getPropertyName() = "innerHTML" and rawText(write.getBase().getALocalSource()))
   )
   or
   exists(DataFlow::MethodCallNode call |
     call.getMethodName() = "insertAdjacentHTML" and node = call.getArgument(1)
     or
-    call.getMethodName() = ["createContextualFragment", "setHTMLUnsafe"] and node = call.getArgument(0)
+    call.getMethodName() = "createContextualFragment" and node = call.getArgument(0)
+    or
+    call.getMethodName() = "setHTMLUnsafe" and
+    node = call.getArgument(0) and
+    not rawText(call.getReceiver().getALocalSource())
     or
     call.getMethodName() = ["write", "writeln"] and
     (
@@ -140,7 +179,7 @@ predicate htmlSink(DataFlow::Node node) {
   or
   exists(JQuery::MethodCall call |
     call.interpretsArgumentAsHtml(node) and
-    not (call.getMethodName() = "$" and idSelector(node))
+    not (call.getMethodName() = "$" and selectorText(node))
   )
   or
   // d3: selection.html(value), or a function returning it
@@ -150,15 +189,28 @@ predicate htmlSink(DataFlow::Node node) {
     node = call.getArgument(0).getAFunctionValue().getAReturn()
   )
   or
-  // React: { dangerouslySetInnerHTML: { __html: value } }
+  // React: { dangerouslySetInnerHTML: { __html: value } }, unless it's for an element whose content isn't markup
   exists(DataFlow::ObjectLiteralNode props, DataFlow::ObjectLiteralNode html |
     props.getAPropertyWrite("dangerouslySetInnerHTML").getRhs().getALocalSource() = html and
-    node = html.getAPropertyWrite("__html").getRhs()
+    node = html.getAPropertyWrite("__html").getRhs() and
+    not exists(DataFlow::MethodCallNode create |
+      create.getMethodName() = "createElement" and
+      create.getArgument(0).getStringValue() = rawTextTag()
+    |
+      props.flowsTo(create.getArgument(1))
+      or
+      // copied first: Object.assign({}, props), or a compiled spread
+      exists(DataFlow::InvokeNode copy |
+        props.flowsTo(copy.getAnArgument()) and copy.flowsTo(create.getArgument(1))
+      )
+    )
   )
 }
 
 /** The attributes that make an element load or follow a URL, where a javascript: URL runs as code. */
-private string urlAttribute() { result = ["href", "src", "action", "formaction", "data", "xlink:href"] }
+private string urlAttribute() {
+  result = ["href", "src", "action", "formaction", "data", "xlink:href"]
+}
 
 /**
  * Holds if `node` is the URL of a link, form, frame or object in the page, which runs a javascript: URL when it's
@@ -182,7 +234,10 @@ predicate scriptUrlSink(DataFlow::Node node) {
 /** Holds if `node` becomes the location the page navigates to. */
 predicate navigationSink(DataFlow::Node node) {
   // location = url
-  node = [DOM::documentRef(), otherWindow(), DataFlow::globalObjectRef()].getAPropertyWrite("location").getRhs()
+  node =
+    [DOM::documentRef(), otherWindow(), DataFlow::globalObjectRef()]
+        .getAPropertyWrite("location")
+        .getRhs()
   or
   exists(Assignment assign |
     assign.getLhs().(GlobalVarAccess).getName() = "location" and
@@ -193,7 +248,10 @@ predicate navigationSink(DataFlow::Node node) {
   or
   node = locationObject().getAMethodCall(["assign", "replace"]).getArgument(0)
   or
-  node = [DataFlow::globalVarRef("open"), otherWindow().getAPropertyRead("open")].getACall().getArgument(0)
+  node =
+    [DataFlow::globalVarRef("open"), otherWindow().getAPropertyRead("open")]
+        .getACall()
+        .getArgument(0)
   or
   // the Navigation API
   node = DataFlow::globalVarRef("navigation").getAMethodCall("navigate").getArgument(0)
@@ -212,12 +270,16 @@ predicate codeSink(DataFlow::Node node) {
   node = DataFlow::globalVarRef("Function").getAnInvocation().getAnArgument()
   or
   exists(DataFlow::CallNode call |
-    call = DataFlow::globalVarRef(["setTimeout", "setInterval", "setImmediate", "execScript"]).getACall() and
+    call =
+      DataFlow::globalVarRef(["setTimeout", "setInterval", "setImmediate", "execScript"]).getACall() and
     node = call.getArgument(0) and
     not node.getALocalSource() instanceof DataFlow::FunctionNode
   )
   or
-  node = createdElement("script").getAPropertyWrite(["text", "textContent", "innerText", "innerHTML"]).getRhs()
+  node =
+    createdElement("script")
+        .getAPropertyWrite(["text", "textContent", "innerText", "innerHTML"])
+        .getRhs()
   or
   node = JQuery::dollar().getAMemberCall("globalEval").getArgument(0)
   or

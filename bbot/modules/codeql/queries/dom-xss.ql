@@ -20,9 +20,13 @@ import Barriers
 predicate html(DataFlow::Node node, InputState state) { htmlSink(node) and state.isDecoded() }
 
 /** A javascript: URL needs the attacker to choose the start of the URL. */
-predicate scriptUrl(DataFlow::Node node, InputState state) { scriptUrlSink(node) and state.controlsStart() }
+predicate scriptUrl(DataFlow::Node node, InputState state) {
+  scriptUrlSink(node) and state.controlsStart()
+}
 
-predicate scriptUrlBarrier(DataFlow::Node node) { urlBarrier(node) or afterFixedHost(node) }
+predicate scriptUrlBarrier(DataFlow::Node node) {
+  urlBarrier(node) or afterFixedHost(node) or notJavascriptUrl(node)
+}
 
 module HtmlFlow = InputFlow<html/2, htmlBarrier/1>;
 
@@ -32,5 +36,8 @@ from DataFlow::Node source, DataFlow::Node sink, string what
 where
   HtmlFlow::flow(source, sink) and what = "is written into the page as HTML"
   or
-  ScriptUrlFlow::flow(source, sink) and what = "becomes a URL that can run a javascript: URL"
+  ScriptUrlFlow::flow(source, sink) and
+  // a path starts with "/", so it's never a javascript: URL
+  not pathInput(source) and
+  what = "becomes a URL that can run a javascript: URL"
 select sink, "Text from $@ " + what + ".", source, inputName(source)
