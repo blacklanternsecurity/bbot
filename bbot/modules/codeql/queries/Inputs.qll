@@ -46,7 +46,8 @@ InputState controlled() { result = TControlled() }
 DataFlow::SourceNode otherWindow() {
   result = DataFlow::globalVarRef(["top", "parent", "opener"])
   or
-  result = DataFlow::globalObjectRef().getAPropertyRead(["top", "parent", "opener", "contentWindow"])
+  result =
+    DataFlow::globalObjectRef().getAPropertyRead(["top", "parent", "opener", "contentWindow"])
   or
   result.(DataFlow::PropRead).getPropertyName() = "contentWindow"
 }
@@ -87,21 +88,26 @@ private DataFlow::SourceNode domElement(DataFlow::TypeTracker t) {
     result =
       DOM::documentRef()
           .getAMethodCall([
-              "getElementById", "querySelector", "createElement", "createElementNS", "elementFromPoint"
+              "getElementById", "querySelector", "createElement", "createElementNS",
+              "elementFromPoint"
             ])
     or
-    result = DOM::documentRef().getAPropertyRead(["body", "head", "documentElement", "activeElement"])
+    result =
+      DOM::documentRef().getAPropertyRead(["body", "head", "documentElement", "activeElement"])
     or
     result = domElement().getAMethodCall(["querySelector", "closest", "cloneNode", "appendChild"])
     or
-    result = domElement().getAPropertyRead(["parentNode", "parentElement", "firstElementChild", "lastElementChild"])
+    result =
+      domElement()
+          .getAPropertyRead(["parentNode", "parentElement", "firstElementChild", "lastElementChild"])
     or
     // an item of a collection the page looks up
     exists(DataFlow::MethodCallNode all |
       all =
         [DOM::documentRef(), domElement()]
             .getAMethodCall([
-                "querySelectorAll", "getElementsByTagName", "getElementsByClassName", "getElementsByName"
+                "querySelectorAll", "getElementsByTagName", "getElementsByClassName",
+                "getElementsByName"
               ])
     |
       result = all.getAPropertyRead() or
@@ -111,9 +117,10 @@ private DataFlow::SourceNode domElement(DataFlow::TypeTracker t) {
     or
     result = DataFlow::globalVarRef("event").getAPropertyRead(["target", "currentTarget"])
     or
-    result = any(DataFlow::FunctionNode handler | handler = domElement().getAMethodCall("addEventListener").getArgument(1).getAFunctionValue())
-          .getParameter(0)
-          .getAPropertyRead(["target", "currentTarget"])
+    result =
+      any(DataFlow::FunctionNode handler |
+        handler = domElement().getAMethodCall("addEventListener").getArgument(1).getAFunctionValue()
+      ).getParameter(0).getAPropertyRead(["target", "currentTarget"])
   )
   or
   exists(DataFlow::TypeTracker t2 | result = domElement(t2).track(t2, t))
@@ -229,7 +236,9 @@ predicate attackerInput(DataFlow::Node node, InputState state) {
   controlledInput(node) and state = TControlled()
   or
   // AngularJS's $location: the whole URL, and its decoded parameters and fragment
-  exists(DataFlow::MethodCallNode call | call = node and call = injected("$location").getAMethodCall(_) |
+  exists(DataFlow::MethodCallNode call |
+    call = node and call = injected("$location").getAMethodCall(_)
+  |
     call.getMethodName() = ["url", "absUrl"] and call.getNumArgument() = 0 and state = TUrl()
     or
     call.getMethodName() = "search" and call.getNumArgument() <= 1 and state = TControlled()
@@ -261,12 +270,24 @@ private predicate capturesParameter(DataFlow::Node pattern) {
   not exists(regexSource(pattern))
 }
 
+/**
+ * Holds if `start` is where a "?" or "#" was found, so the substring from it starts with that "?" or "#": still a query
+ * string or fragment as the URL has them.
+ */
+private predicate keepsDelimiter(DataFlow::Node start) {
+  exists(DataFlow::MethodCallNode find | find = start.getALocalSource() |
+    find.getMethodName() = ["indexOf", "lastIndexOf"] and
+    find.getArgument(0).getStringValue() = ["?", "#"]
+  )
+}
+
 /** Holds if `node2` is text taken out of the URL at `node1` from a point the attacker chooses. */
 private predicate extractsUrlPart(DataFlow::Node node1, DataFlow::Node node2) {
   exists(DataFlow::MethodCallNode call | node1 = call.getReceiver() and node2 = call |
-    // a substring that doesn't start at 0
+    // a substring that doesn't start at 0, or at a "?" or "#" it keeps
     call.getMethodName() = ["substring", "substr", "slice"] and
-    not call.getArgument(0).getIntValue() = 0
+    not call.getArgument(0).getIntValue() = 0 and
+    not keepsDelimiter(call.getArgument(0))
     or
     call.getMethodName() = "replace" and
     call.getArgument(0).getStringValue() = ["#", "?"] and
@@ -379,7 +400,8 @@ predicate inputStep(DataFlow::Node node1, InputState state1, DataFlow::Node node
   or
   // query string libraries: queryString.parse(location.search) decodes, queryString.extract() doesn't
   exists(DataFlow::MethodCallNode call |
-    not call.getReceiver() = DataFlow::globalVarRef(["JSON", "Date", "Number", "Math", "Intl", "BigInt", "URL"]) and
+    not call.getReceiver() =
+      DataFlow::globalVarRef(["JSON", "Date", "Number", "Math", "Intl", "BigInt", "URL"]) and
     node1 = call.getArgument(0) and
     node2 = call
   |
@@ -428,12 +450,15 @@ private predicate storageWrite(DataFlow::Node value, string storage, string key)
 }
 
 /** Gets an XMLHttpRequest the page makes, as a node referring to it. */
-private DataFlow::SourceNode xhr() { result = DataFlow::globalVarRef("XMLHttpRequest").getAnInstantiation() }
+private DataFlow::SourceNode xhr() {
+  result = DataFlow::globalVarRef("XMLHttpRequest").getAnInstantiation()
+}
 
 /** Gets a reference to `request` inside a handler for its response. */
 private DataFlow::Node responseHandlerThis(DataFlow::SourceNode request) {
   exists(DataFlow::FunctionNode handler |
-    handler = request.getAPropertyWrite(["onreadystatechange", "onload"]).getRhs().getAFunctionValue()
+    handler =
+      request.getAPropertyWrite(["onreadystatechange", "onload"]).getRhs().getAFunctionValue()
     or
     handler = request.getAMethodCall("addEventListener").getArgument(1).getAFunctionValue()
   |
@@ -444,7 +469,13 @@ private DataFlow::Node responseHandlerThis(DataFlow::SourceNode request) {
 /** Gets the name of the cookie `write` sets: the text before its first "=". */
 private string cookieName(DataFlow::PropWrite write) {
   write = DOM::documentRef().getAPropertyWrite("cookie") and
-  result = write.getRhs().(StringOps::ConcatenationRoot).getFirstLeaf().getStringValue().regexpCapture("\\s*([^=;\\s]+)\\s*=.*", 1)
+  result =
+    write
+        .getRhs()
+        .(StringOps::ConcatenationRoot)
+        .getFirstLeaf()
+        .getStringValue()
+        .regexpCapture("\\s*([^=;\\s]+)\\s*=.*", 1)
 }
 
 /** Holds if `read` names cookie `name`, in a string or regular expression the page reads the cookies with. */
@@ -457,7 +488,8 @@ private predicate readsCookieNamed(DataFlow::Node read, string name) {
     (
       pattern.getStringValue().regexpCapture("\\s*([^=;\\s]+)\\s*=?.*", 1) = name
       or
-      pattern.(RegExpLiteral).getValue().regexpCapture("[^A-Za-z0-9_-]*([A-Za-z0-9_-]+)=.*", 1) = name
+      pattern.(RegExpLiteral).getValue().regexpCapture("[^A-Za-z0-9_-]*([A-Za-z0-9_-]+)=.*", 1) =
+        name
     )
   )
 }
@@ -494,7 +526,6 @@ predicate secondOrderStep(DataFlow::Node node1, DataFlow::Node node2) {
   )
   or
   cookieStep(node1, node2)
-
   or
   // errors that quote what failed to parse (V8's JSON.parse, Firefox's URL), wherever they're caught
   exists(DataFlow::InvokeNode parse |
@@ -508,7 +539,9 @@ predicate secondOrderStep(DataFlow::Node node1, DataFlow::Node node2) {
   or
   // an error built from the input, and its message once caught
   exists(DataFlow::NewNode error |
-    error = DataFlow::globalVarRef(["Error", "TypeError", "RangeError", "SyntaxError"]).getAnInstantiation() and
+    error =
+      DataFlow::globalVarRef(["Error", "TypeError", "RangeError", "SyntaxError"])
+          .getAnInstantiation() and
     node1 = error.getArgument(0) and
     node2 = error
   )
@@ -523,7 +556,8 @@ predicate secondOrderStep(DataFlow::Node node1, DataFlow::Node node2) {
 /** Holds if `node2` is the parameter of a jQuery plugin the page defines, and `node1` what a call passes to it. */
 private predicate jqueryPluginArgument(DataFlow::Node node1, DataFlow::Node node2) {
   exists(string name, DataFlow::FunctionNode plugin, JQuery::MethodCall call, int i |
-    plugin = JQuery::dollar().getAPropertyRead("fn").getAPropertyWrite(name).getRhs().getAFunctionValue() and
+    plugin =
+      JQuery::dollar().getAPropertyRead("fn").getAPropertyWrite(name).getRhs().getAFunctionValue() and
     call.getMethodName() = name and
     node1 = call.getArgument(i) and
     node2 = plugin.getParameter(i)
@@ -570,7 +604,8 @@ predicate pageCodeStep(DataFlow::Node node1, DataFlow::Node node2) {
   )
   or
   exists(DataFlow::CallNode call |
-    call = DataFlow::globalVarRef("Object").getAMemberCall(["keys", "entries", "getOwnPropertyNames"]) and
+    call =
+      DataFlow::globalVarRef("Object").getAMemberCall(["keys", "entries", "getOwnPropertyNames"]) and
     node1 = call.getArgument(0) and
     not node1.getALocalSource() instanceof DataFlow::ObjectLiteralNode and
     node2 = call

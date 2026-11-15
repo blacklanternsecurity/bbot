@@ -1,0 +1,1 @@
+!function(){var o=decodeURIComponent(location.hash.slice(1));$(".module-"+o).show(),$('a[data-id="'+o+'"] span.extension').hide(),$("<div>"+o+"</div>").appendTo("body"),$("  <p>"+o).appendTo("body"),$(o).appendTo("body")}();

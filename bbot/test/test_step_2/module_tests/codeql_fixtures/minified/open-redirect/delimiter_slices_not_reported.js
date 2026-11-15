@@ -1,0 +1,1 @@
+function parsePath(r){var a=r||"/",e="",s="",h=a.indexOf("#");-1!==h&&(s=a.substr(h),a=a.substr(0,h));var t=a.indexOf("?");return-1!==t&&(e=a.substr(t),a=a.substr(0,t)),{pathname:a,search:e,hash:s}}var here=parsePath(location.search+location.hash);location.replace(here.search+here.hash);var url=location.href;location.href=url.substr(url.indexOf("#")+1);

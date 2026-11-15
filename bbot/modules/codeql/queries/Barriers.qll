@@ -154,7 +154,9 @@ private predicate fixesHost(string prefix) {
 private predicate precedes(StringOps::ConcatenationLeaf before, StringOps::ConcatenationLeaf leaf) {
   before = leaf.getPreviousLeaf()
   or
-  exists(StringOps::ConcatenationLeaf between | precedes(between, leaf) and before = between.getPreviousLeaf())
+  exists(StringOps::ConcatenationLeaf between |
+    precedes(between, leaf) and before = between.getPreviousLeaf()
+  )
 }
 
 /** Holds if `node` is concatenated after text that already fixes the URL's host. */
@@ -209,4 +211,198 @@ predicate urlBarrier(DataFlow::Node node) {
   node = DataFlow::MakeBarrierGuard<HostPrefixCheck>::getABarrierNode()
   or
   node = DataFlow::MakeBarrierGuard<OriginCheck>::getABarrierNode()
+}
+
+/**
+ * Holds if a URL that starts with `value` can't be a javascript: URL: there's text in it, and it isn't, or isn't on its
+ * way to, "javascript:".
+ */
+bindingset[value]
+private predicate startsUrl(string value) {
+  exists(string start | start = value.regexpReplaceAll("[\\s\\x00-\\x1f]", "").toLowerCase() |
+    start != "" and
+    not start.matches("javascript:%") and
+    not "javascript:".matches(start + "%")
+  )
+}
+
+/** Gets the text `node` is known to hold: a constant, or a variable set to one. */
+private string knownValue(DataFlow::Node node) {
+  result = node.getStringValue()
+  or
+  not exists(node.getStringValue()) and result = node.getALocalSource().getStringValue()
+}
+
+/**
+ * Holds if `node` is concatenated after something that already starts the URL, so it can't make a javascript: URL:
+ * text that does, or a value the page made, like a base URL, that isn't known to be empty.
+ */
+predicate afterUrlStart(DataFlow::Node node) {
+  exists(StringOps::ConcatenationLeaf before | precedes(before, node) |
+    forex(string value | value = knownValue(before) | startsUrl(value))
+    or
+    not exists(knownValue(before)) and
+    not before.mayHaveStringValue("")
+  )
+}
+
+/**
+ * Gets what a check of `argument` checks: the argument itself, the variable it sets (check(url = input)), or the value
+ * it makes a string ("" + url).
+ */
+private Expr checkedBy(Expr argument) {
+  result = argument
+  or
+  result = argument.stripParens().(AssignExpr).getLhs()
+  or
+  result = argument.stripParens().(AssignExpr).getRhs()
+  or
+  result = argument.stripParens().(AddExpr).getAnOperand()
+}
+
+/**
+ * Holds if regular expression `source` looks for a javascript: scheme, with or without anything between its letters:
+ * /^javascript:/i, or React's /^[\u0000-\u001F ]*j[\r\n\t]*a.../i.
+ */
+bindingset[source]
+private predicate findsJavascriptScheme(string source) {
+  source
+      .regexpMatch("(?is).*j.{0,12}a.{0,12}v.{0,12}a.{0,12}s.{0,12}c.{0,12}r.{0,12}i.{0,12}p.{0,12}t.{0,12}:.*")
+}
+
+/** A regular expression test for a javascript: scheme. Whichever way it comes out, the page acts on the answer. */
+private class JavascriptSchemeCheck extends DataFlow::MethodCallNode {
+  JavascriptSchemeCheck() {
+    this.getMethodName() = "test" and
+    findsJavascriptScheme(regexSource(this.getReceiver()))
+  }
+
+  predicate blocksExpr(boolean outcome, Expr e) {
+    outcome = [true, false] and
+    e = checkedBy(this.getArgument(0).asExpr())
+  }
+}
+
+/**
+ * Holds if `test` compares the protocol `protocol` reads with fixed ones, none of them javascript:.
+ * url.protocol === "https:", ["http:", "https:"].includes(url.protocol).
+ */
+private predicate comparesProtocol(Expr test, DataFlow::PropRead protocol) {
+  protocol.getPropertyName() = "protocol" and
+  (
+    exists(EqualityTest equality | equality = test |
+      equality.getAnOperand() = protocol.asExpr() and
+      equality.getAnOperand().getStringValue().toLowerCase() != "javascript:"
+    )
+    or
+    exists(MethodCallExpr includes, ArrayExpr allowed | includes = test |
+      includes.getMethodName() = "includes" and
+      includes.getArgument(0) = protocol.asExpr() and
+      includes.getReceiver().getUnderlyingValue() = allowed and
+      forex(Expr scheme | scheme = allowed.getAnElement() |
+        scheme.getStringValue().toLowerCase() != "javascript:"
+      )
+    )
+  )
+}
+
+/** Holds if `protocol` is switched on, and each case is a fixed protocol other than javascript:. */
+private predicate switchesOnProtocol(DataFlow::PropRead protocol) {
+  protocol.getPropertyName() = "protocol" and
+  exists(SwitchStmt switch | protocol.flowsToExpr(switch.getExpr()) |
+    forex(Case case | case = switch.getACase() and exists(case.getExpr()) |
+      case.getExpr().getStringValue().toLowerCase() != "javascript:"
+    )
+  )
+}
+
+/** Holds if `node` is a URL made from `value`: new URL(value), or new URL(value, base). */
+private predicate urlFrom(DataFlow::Node node, DataFlow::Node value) {
+  exists(DataFlow::NewNode url | url = DataFlow::globalVarRef("URL").getAnInstantiation() |
+    url.flowsTo(node) and value = url.getArgument(0)
+  )
+}
+
+/** A check of a URL's protocol against fixed ones: url.protocol === "https:", or of new URL(url).protocol. */
+private class ProtocolCheck extends DataFlow::Node {
+  DataFlow::PropRead protocol;
+  boolean allowed;
+
+  ProtocolCheck() {
+    comparesProtocol(this.asExpr(), protocol) and
+    if this.asExpr() instanceof EqualityTest
+    then allowed = this.asExpr().(EqualityTest).getPolarity()
+    else allowed = true
+  }
+
+  predicate blocksExpr(boolean outcome, Expr e) {
+    outcome = allowed and
+    (
+      e = protocol.getBase().asExpr()
+      or
+      exists(DataFlow::Node value | urlFrom(protocol.getBase(), value) |
+        e = checkedBy(value.asExpr())
+      )
+    )
+  }
+}
+
+/** Holds if `node` is `f`'s first parameter, or a URL made from it. */
+private predicate fromParameter(DataFlow::Node node, Function f) {
+  exists(DataFlow::ParameterNode parameter |
+    parameter = DataFlow::parameterNode(f.getParameter(0))
+  |
+    node.getALocalSource() = parameter
+    or
+    exists(DataFlow::Node value | urlFrom(node, value) and value.getALocalSource() = parameter)
+  )
+}
+
+/**
+ * Holds if `f` checks the protocol of the URL it's given against fixed ones, itself or through a function it passes
+ * it to, and can return something falsy when it isn't one.
+ */
+private predicate validatesProtocol(Function f) {
+  // null, false, undefined, or what a minifier makes of them (!1, void 0)
+  f.getAReturnedExpr().analyze().getTheBooleanValue() = false and
+  (
+    exists(DataFlow::PropRead protocol |
+      protocol.getPropertyName() = "protocol" and
+      fromParameter(protocol.getBase(), f)
+    |
+      comparesProtocol(_, protocol) or switchesOnProtocol(protocol)
+    )
+    or
+    exists(DataFlow::CallNode call |
+      validatesProtocol(call.getACallee()) and
+      fromParameter(call.getArgument(0), f)
+    )
+  )
+}
+
+/** A call to a function that checks a URL's protocol, given the URL: if (!isSafeUrl(url)) return. */
+private class ProtocolValidation extends DataFlow::CallNode {
+  ProtocolValidation() { validatesProtocol(this.getACallee()) }
+
+  predicate blocksExpr(boolean outcome, Expr e) {
+    outcome = true and e = checkedBy(this.getArgument(0).asExpr())
+  }
+}
+
+/** Holds if `node` can't be a javascript: URL: something else starts the URL, or it was checked for one. */
+predicate notJavascriptUrl(DataFlow::Node node) {
+  afterUrlStart(node)
+  or
+  node = DataFlow::MakeBarrierGuard<JavascriptSchemeCheck>::getABarrierNode()
+  or
+  node = DataFlow::MakeBarrierGuard<ProtocolCheck>::getABarrierNode()
+  or
+  node = DataFlow::MakeBarrierGuard<ProtocolValidation>::getABarrierNode()
+  or
+  // check(url = input) && use(url), as a minifier writes a checked call's argument: a guard only covers later reads
+  exists(DataFlow::CallNode check, SsaExplicitDefinition def |
+    (check instanceof ProtocolValidation or check instanceof JavascriptSchemeCheck) and
+    def.getDef() = check.getArgument(0).asExpr().stripParens() and
+    node = DataFlow::ssaDefinitionNode(def)
+  )
 }
