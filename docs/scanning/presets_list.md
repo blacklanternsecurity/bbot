@@ -263,6 +263,8 @@ Run domino with all rules on a target, and use spider and wayback to find as man
             - remote-include-get-parameters
             - prototype-pollution
           suppress_parameter_discovery_reports: False
+          # also test the GET parameters other modules find, like form fields
+          web_parameters: True
         wayback:
           urls: True
     ```

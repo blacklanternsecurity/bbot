@@ -1,6 +1,9 @@
 import asyncio
+import re
+from urllib.parse import parse_qs
 
 import pytest
+from werkzeug.wrappers import Response
 
 from .base import ModuleTestBase
 from bbot.test.worker import HTTPSERVER_URL
@@ -91,3 +94,74 @@ class TestDominoTimeBudget(ModuleTestBase):
     def check(self, module_test, events):
         findings = [e for e in events if e.type == "FINDING"]
         assert [finding.data["name"] for finding in findings] == ["Dom-Based XSS"]
+
+
+# a search whose results page fetches the results and evals them, which the server writes with " escaped but not \\
+SEARCH_JS = """function search(path) {
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            eval('var results = ' + this.responseText);
+            document.getElementById('term').innerText = results.searchTerm;
+        }
+    };
+    xhr.open("GET", path + window.location.search);
+    xhr.send();
+}"""
+
+SEARCH_FORM = """<form action=/ method=GET><input type=text name=search><button type=submit>Search</button></form>"""
+
+
+def search_handler(request):
+    query = parse_qs(request.query_string.decode(), keep_blank_values=True)
+    if request.path == "/search.js":
+        return Response(SEARCH_JS, content_type="application/javascript")
+    if request.path == "/search-results":
+        term = query.get("search", [""])[0].replace('"', '\\"')
+        return Response('{"searchTerm":"' + term + '"}', content_type="application/json")
+    page = "<html><head><title>search</title></head><body>"
+    if "search" in query:
+        page += "<span id=term></span><script src='/search.js'></script><script>search('search-results')</script>"
+    return Response(page + SEARCH_FORM + "</body></html>", content_type="text/html")
+
+
+class TestDominoWebParameters(ModuleTestBase):
+    """With web_parameters, a GET parameter excavate finds in a form is tested by name"""
+
+    pytestmark = pytest.mark.browser
+    targets = [f"{HTTPSERVER_URL}/"]
+    modules_overrides = ["http", "domino"]
+    # neither rule's own made-up parameters reach the code that evals the results
+    config_overrides = {
+        "excavate": True,
+        "web": {"enable_browser": True},
+        "modules": {"domino": {"rules": ["eval", "xss-js"], "web_parameters": True}},
+    }
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests_handler(expect_args=re.compile("/.*"), request_handler=search_handler)
+
+    def check(self, module_test, events):
+        assert module_test.scan.modules["excavate"].parameter_extraction
+        findings = {e.data["name"]: e.data for e in events if e.type == "FINDING"}
+        assert "User Input in Eval()" in findings
+        breakout = findings["Dom-Based XSS via direct Javascript"]
+        assert breakout["severity"] == "HIGH"
+        assert "AAAFFF" in breakout["description"]
+        # a FINDING's url loses its query, so the parameter shows in the detection URL in its description
+        assert "Detection URL: [http://127.0.0.1" in breakout["description"]
+        assert "/?search=" in breakout["description"]
+
+
+class TestDominoWebParametersOff(TestDominoWebParameters):
+    """Without web_parameters, domino doesn't turn on parameter extraction, and the parameter goes untested"""
+
+    config_overrides = {
+        "excavate": True,
+        "web": {"enable_browser": True},
+        "modules": {"domino": {"rules": ["eval", "xss-js"]}},
+    }
+
+    def check(self, module_test, events):
+        assert not module_test.scan.modules["excavate"].parameter_extraction
+        assert not [e for e in events if e.type in ("FINDING", "WEB_PARAMETER")]

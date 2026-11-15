@@ -222,7 +222,7 @@ rule akamai_bot_manager_url
             if not self.urls:
                 self.hugewarning("parameters option requires urls to be enabled. Please add modules.wayback.urls=True")
                 return False
-            consumers = [m for m, mod in self.scan.modules.items() if "WEB_PARAMETER" in mod.watched_events]
+            consumers = [m for m, mod in self.scan.modules.items() if "WEB_PARAMETER" in mod.get_watched_events()]
             if not consumers:
                 self.warning("Disabling parameter extraction because no modules consume WEB_PARAMETER events")
                 self.parameters = False
