@@ -558,10 +558,13 @@ async def test_browser_busy_kept(bbot_scanner, bbot_httpserver, monkeypatch):
     assert await browser._died(RuntimeError("no answer"), browser._crash_count) is None
     assert browser._instance is instance and instance.alive and not browser._crashes
 
-    # one that has opened nothing for longer than PROGRESS_WINDOW is frozen, and replaced, even if it still closes pages
+    # one that has opened nothing for longer than PROGRESS_WINDOW is frozen, and replaced, even if it still closes
+    # pages and contexts
     page = await next(iter(instance.hosts.values())).context.new_page()
+    lent = await browser.new_context()
     instance.last_progress -= 120
     await browser._close_page(instance, page)
+    await lent.close()
     await browser._check_responsive()
     assert not instance.alive and len(browser._crashes) == 1
     assert await browser.visit(bbot_httpserver.url_for("/again")) is not None
