@@ -5,8 +5,10 @@ from bbot.errors import BrowserError
 from bbot.modules.templates.browser_vulns import browser_vulns
 from bbot.core.config.models import BaseModuleConfig, Field
 
-# the longest DOMino may spend on one URL
+# the longest DOMino may spend on one URL, after which it stops and reports what it found
 SCAN_TIMEOUT = 120
+# how long DOMino gets past SCAN_TIMEOUT to close its pages, before it's cut off with nothing
+STOP_GRACE = 30
 
 
 class domino(browser_vulns):
@@ -79,7 +81,7 @@ class domino(browser_vulns):
             )
 
     async def run_domino(self, url):
-        """DOMino's results for `url`, or none if it ran out of time."""
+        """DOMino's results for `url`, which are the ones it made in time if it ran out, or none if it didn't stop."""
         domino = Domino(
             url,
             logger=self.log,
@@ -87,10 +89,16 @@ class domino(browser_vulns):
             selected_rules=self.rules,
             rules_preload_data=self.preloaded_rules,
             browser_engine=self.helpers.browser.engine.name,
+            time_budget=SCAN_TIMEOUT,
         )
         try:
-            return await self.helpers.wait_for(domino.run(self.helpers.browser), timeout=SCAN_TIMEOUT) or []
+            results = (
+                await self.helpers.wait_for(domino.run(self.helpers.browser), timeout=SCAN_TIMEOUT + STOP_GRACE) or []
+            )
         except TimeoutError:
             # an empty result, so pages with the same code are skipped rather than timing out too
-            self.warning(f"DOMino timed out after {SCAN_TIMEOUT}s on {url}")
+            self.warning(f"DOMino didn't stop within {STOP_GRACE}s of its {SCAN_TIMEOUT}s on {url}")
             return []
+        if domino.ran_out_of_time:
+            self.warning(f"DOMino ran out of time after {SCAN_TIMEOUT}s on {url}, with {len(results)} findings")
+        return results

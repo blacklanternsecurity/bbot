@@ -1,3 +1,6 @@
+import asyncio
+import sys
+
 import pytest
 
 from .base import ModuleTestBase
@@ -58,3 +61,32 @@ class TestDomino(ModuleTestBase):
         module = module_test.scan.modules["domino"]
         assert module.pages_seen == 3
         assert len(module.analyzed) == 2
+
+
+class TestDominoTimeBudget(ModuleTestBase):
+    """DOMino stops when it runs out of time, and the module reports what it found before then"""
+
+    pytestmark = pytest.mark.browser
+    module_name = "domino"
+    targets = [f"{HTTPSERVER_URL}/"]
+    modules_overrides = ["http", "domino"]
+    config_overrides = {"web": {"enable_browser": True}, "modules": {"domino": {"rules": ["xss-basic"]}}}
+
+    async def setup_after_prep(self, module_test):
+        from domino.lib import inputs
+
+        module_test.set_expect_requests({"uri": "/"}, {"response_data": VULNERABLE_PAGE, "content_type": "text/html"})
+        module_test.monkeypatch.setattr(sys.modules[type(module_test.module).__module__], "SCAN_TIMEOUT", 30)
+        load = inputs.Hash.load
+
+        # xss-basic's last input never finishes loading, after the hash payload before it found the XSS
+        async def stuck_svg_payload(self, page=None, referer=None):
+            if "svg" in self.param_value:
+                await asyncio.Event().wait()
+            return await load(self, page, referer)
+
+        module_test.monkeypatch.setattr(inputs.Hash, "load", stuck_svg_payload)
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING"]
+        assert [finding.data["name"] for finding in findings] == ["Dom-Based XSS"]
