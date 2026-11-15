@@ -1,5 +1,4 @@
 import asyncio
-import sys
 
 import pytest
 
@@ -70,13 +69,15 @@ class TestDominoTimeBudget(ModuleTestBase):
     module_name = "domino"
     targets = [f"{HTTPSERVER_URL}/"]
     modules_overrides = ["http", "domino"]
-    config_overrides = {"web": {"enable_browser": True}, "modules": {"domino": {"rules": ["xss-basic"]}}}
+    config_overrides = {
+        "web": {"enable_browser": True},
+        "modules": {"domino": {"rules": ["xss-basic"], "time_budget": 30}},
+    }
 
     async def setup_after_prep(self, module_test):
         from domino.lib import inputs
 
         module_test.set_expect_requests({"uri": "/"}, {"response_data": VULNERABLE_PAGE, "content_type": "text/html"})
-        module_test.monkeypatch.setattr(sys.modules[type(module_test.module).__module__], "SCAN_TIMEOUT", 30)
         load = inputs.Hash.load
 
         # xss-basic's last input never finishes loading, after the hash payload before it found the XSS
