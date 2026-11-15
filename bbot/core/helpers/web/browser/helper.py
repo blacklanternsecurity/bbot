@@ -45,7 +45,7 @@ CRASH_WINDOW = 600
 HEALTH_CHECK_TIMEOUT = 30
 # a browser that stops answering holds its page slots forever, so a wait for one this long checks on it
 SLOT_CHECK_AFTER = 60
-# a browser that finished any work this recently is busy, not frozen, so a failed health check doesn't replace it
+# a browser that opened a page or context this recently is busy, not frozen, so a failed health check doesn't replace it
 PROGRESS_WINDOW = 60
 # finished visits held for modules that haven't collected theirs yet
 VISIT_CACHE_SIZE = 100
@@ -144,7 +144,7 @@ class _Instance:
         self.closing = False
         # how to give back each page slot held by a context lent to a module
         self.lent = set()
-        # when it last finished something: launching, or opening or closing a page or context
+        # when it last opened a page or context, or launched. Closing doesn't count: a frozen browser can still close
         self.last_progress = time.monotonic()
 
 
@@ -295,7 +295,6 @@ class BrowserHelper:
                 return
             instance.lent.discard(release)
             instance.active -= 1
-            instance.last_progress = time.monotonic()
             self._last_used = time.monotonic()
             self._page_slots.release()
             if instance.closing and instance.active == 0:
@@ -444,7 +443,6 @@ class BrowserHelper:
     async def _close_page(self, instance, page):
         try:
             await asyncio.wait_for(page.close(), timeout=10)
-            instance.last_progress = time.monotonic()
         except Exception:
             # a page that won't close means the browser is in a bad state; replace it
             log.verbose("Browser page failed to close; restarting the browser")
@@ -795,13 +793,13 @@ class BrowserHelper:
     async def _failed_check(self, instance, what, error):
         """
         After a health check fails with `error`, replace the browser, unless the check only ran out of time and the
-        browser has finished work in the last PROGRESS_WINDOW seconds: then it's busy, not frozen. A check that
-        fails with an error means the browser or its driver is gone. Returns whether it was replaced.
+        browser has opened a page or context in the last PROGRESS_WINDOW seconds: then it's busy, not frozen. A check
+        that fails with an error means the browser or its driver is gone. Returns whether it was replaced.
         """
         idle_for = time.monotonic() - instance.last_progress
         if isinstance(error, asyncio.TimeoutError) and idle_for < PROGRESS_WINDOW:
             log.verbose(
-                f"The browser {what}, and failed a health check ({_describe(error)}), but finished work "
+                f"The browser {what}, and failed a health check ({_describe(error)}), but opened a page "
                 f"{idle_for:.0f}s ago, so it's busy rather than frozen; keeping it"
             )
             return False
