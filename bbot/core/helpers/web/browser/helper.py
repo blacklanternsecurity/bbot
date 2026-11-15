@@ -21,6 +21,13 @@ from .engines.camoufox import CamoufoxEngine
 
 log = logging.getLogger("bbot.core.helpers.web.browser")
 
+
+def _describe(error):
+    """An error's type and the first line of its message, for a log line."""
+    message = str(error).strip().splitlines()[0][:150] if str(error).strip() else ""
+    return f"{type(error).__name__}: {message}" if message else type(error).__name__
+
+
 # a challenge page reloads itself once it's solved; how long to wait for that
 CHALLENGE_TIMEOUT = 30
 # some only set their cookies and don't reload; how long to wait before reloading for them
@@ -38,6 +45,8 @@ CRASH_WINDOW = 600
 HEALTH_CHECK_TIMEOUT = 30
 # a browser that stops answering holds its page slots forever, so a wait for one this long checks on it
 SLOT_CHECK_AFTER = 60
+# a browser that finished any work this recently is busy, not frozen, so a failed health check doesn't replace it
+PROGRESS_WINDOW = 60
 # finished visits held for modules that haven't collected theirs yet
 VISIT_CACHE_SIZE = 100
 # a page's requests whose bodies are kept, so modules can use them without fetching them again
@@ -135,6 +144,8 @@ class _Instance:
         self.closing = False
         # how to give back each page slot held by a context lent to a module
         self.lent = set()
+        # when it last finished something: launching, or opening or closing a page or context
+        self.last_progress = time.monotonic()
 
 
 class BrowserHelper:
@@ -424,11 +435,14 @@ class BrowserHelper:
 
     async def _new_page(self, instance, host):
         instance.pages_opened += 1
-        return await host.context.new_page()
+        page = await host.context.new_page()
+        instance.last_progress = time.monotonic()
+        return page
 
     async def _close_page(self, instance, page):
         try:
             await asyncio.wait_for(page.close(), timeout=10)
+            instance.last_progress = time.monotonic()
         except Exception:
             # a page that won't close means the browser is in a bad state; replace it
             log.verbose("Browser page failed to close; restarting the browser")
@@ -586,6 +600,7 @@ class BrowserHelper:
             **options,
         }
         context = await instance.browser.new_context(**options)
+        instance.last_progress = time.monotonic()
         try:
             await context.route("**/*", self._route)
         except BaseException:
@@ -724,7 +739,8 @@ class BrowserHelper:
                 return None
             except Exception as e:
                 browser_died = await self._died(e, crashes_before)
-                if not browser_died and not isinstance(e, (*self.engine.errors, BrowserError)):
+                # a browser too busy to tell leaves the error as one more failed page
+                if browser_died is False and not isinstance(e, (*self.engine.errors, BrowserError)):
                     raise
                 if browser_died and attempt == 1:
                     log.verbose(f"Browser died while loading {url}; retrying")
@@ -733,7 +749,10 @@ class BrowserHelper:
                 return None
 
     async def _died(self, error, crashes_before):
-        """Whether the browser died during an operation that failed with `error`."""
+        """
+        Whether the browser died during an operation that failed with `error`, or None if it's too busy to tell: it
+        didn't open a test context in time, but is still finishing other work.
+        """
         if self._crash_count > crashes_before or self._instance is None:
             return True
         if isinstance(error, (*self.engine.errors, BrowserError)):
@@ -743,9 +762,10 @@ class BrowserHelper:
         instance = self._instance
         try:
             context = await asyncio.wait_for(instance.browser.new_context(), timeout=HEALTH_CHECK_TIMEOUT)
-        except Exception:
-            await self._abandon(instance, "stopped answering")
-            return True
+        except Exception as e:
+            return (
+                True if await self._failed_check(instance, f"stopped answering after {_describe(error)}", e) else None
+            )
         with suppress(Exception):
             await context.close()
         return False
@@ -767,8 +787,24 @@ class BrowserHelper:
                 finally:
                     with suppress(Exception):
                         await asyncio.wait_for(context.close(), timeout=10)
-            except Exception:
-                await self._abandon(instance, "stopped opening pages")
+            except Exception as e:
+                await self._failed_check(instance, "stopped opening pages", e)
+
+    async def _failed_check(self, instance, what, error):
+        """
+        After a health check fails with `error`, replace the browser, unless the check only ran out of time and the
+        browser has finished work in the last PROGRESS_WINDOW seconds: then it's busy, not frozen. A check that
+        fails with an error means the browser or its driver is gone. Returns whether it was replaced.
+        """
+        idle_for = time.monotonic() - instance.last_progress
+        if isinstance(error, asyncio.TimeoutError) and idle_for < PROGRESS_WINDOW:
+            log.verbose(
+                f"The browser {what}, and failed a health check ({_describe(error)}), but finished work "
+                f"{idle_for:.0f}s ago, so it's busy rather than frozen; keeping it"
+            )
+            return False
+        await self._abandon(instance, f"{what} (health check: {_describe(error)})")
+        return True
 
     async def _abandon(self, instance, what):
         """
