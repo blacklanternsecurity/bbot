@@ -1308,6 +1308,8 @@ Maximum XSS: DOMino and CodeQL test every page in the browser, lightfuzz fuzzes 
         wayback:
           # archived parameters, for lightfuzz to try
           parameters: true
+          # but not archived copies of dead pages, which are slow to fetch and carry archive.org's own scripts
+          archive: false
     ```
 
 Category: web
