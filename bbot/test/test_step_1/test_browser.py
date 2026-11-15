@@ -372,6 +372,43 @@ async def test_browser_driver_recovery(bbot_scanner, bbot_httpserver):
 
 @pytest.mark.browser
 @pytest.mark.asyncio
+async def test_browser_hang_recovery(bbot_scanner, bbot_httpserver, monkeypatch):
+    serve(bbot_httpserver)
+    monkeypatch.setattr("bbot.core.helpers.web.browser.helper.SLOT_CHECK_AFTER", 2)
+    monkeypatch.setattr("bbot.core.helpers.web.browser.helper.HEALTH_CHECK_TIMEOUT", 2)
+    scan = await browser_scan(bbot_scanner, browser_max_pages=1)
+    browser = scan.helpers.browser
+    assert await browser.visit(bbot_httpserver.url_for("/")) is not None
+    first = browser._instance
+
+    # a browser that stops answering: every call to it waits, and nothing reports an error or a disconnect
+    frozen = browser_processes()
+    for process in frozen:
+        process.suspend()
+    try:
+        # this visit waits on it, holding the only page slot
+        stuck = asyncio.create_task(browser.visit(bbot_httpserver.url_for("/stuck")))
+        await asyncio.sleep(0.5)
+        # the next waits for that slot, finds the browser no longer opens pages, and replaces it
+        visit = await asyncio.wait_for(browser.visit(bbot_httpserver.url_for("/again")), timeout=120)
+        assert visit is not None and visit.response.status_code == 200
+        assert not first.alive
+        assert len(browser._crashes) == 1
+        assert browser.usable
+        # and the visit that was waiting on the old browser gets the new one
+        stuck = await asyncio.wait_for(stuck, timeout=120)
+        assert stuck is not None and stuck.response.status_code == 200
+    finally:
+        for process in frozen:
+            with suppress(psutil.Error):
+                process.resume()
+
+    await scan._cleanup()
+    assert await no_browser_processes()
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
 async def test_browser_recycle_and_idle(bbot_scanner, bbot_httpserver):
     serve(bbot_httpserver)
     scan = await browser_scan(bbot_scanner, browser_recycle_after=2, browser_idle_timeout=1)
