@@ -1,0 +1,1 @@
+"object"!=typeof JSON&&(JSON={}),JSON.parse=function(text){return eval("("+text+")")},window.addEventListener("message",(function(t){var e=JSON.parse(t.data);document.title=e.title}));
