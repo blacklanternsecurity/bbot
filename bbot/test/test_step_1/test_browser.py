@@ -570,6 +570,27 @@ async def test_browser_busy_kept(bbot_scanner, bbot_httpserver, monkeypatch):
 
 @pytest.mark.browser
 @pytest.mark.asyncio
+async def test_browser_driver_options(bbot_scanner, bbot_httpserver):
+    """Playwright's driver treats a promise nothing handles as a warning rather than exiting, taking every page with it"""
+    serve(bbot_httpserver)
+    node_options = os.environ.get("NODE_OPTIONS")
+    scan = await browser_scan(bbot_scanner)
+    assert await scan.helpers.browser.visit(bbot_httpserver.url_for("/")) is not None
+    driver_options = []
+    for process in psutil.Process().children(recursive=True):
+        # other processes may have exited, leaving zombies
+        with suppress(psutil.Error):
+            if "run-driver" in " ".join(process.cmdline()):
+                driver_options.append(process.environ().get("NODE_OPTIONS", ""))
+    assert driver_options
+    assert all("--unhandled-rejections=warn" in options for options in driver_options)
+    # only the driver gets it
+    assert os.environ.get("NODE_OPTIONS") == node_options
+    await scan._cleanup()
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
 async def test_browser_recycle_and_idle(bbot_scanner, bbot_httpserver):
     serve(bbot_httpserver)
     scan = await browser_scan(bbot_scanner, browser_recycle_after=2, browser_idle_timeout=1)
