@@ -263,11 +263,25 @@ predicate navigationSink(DataFlow::Node node) {
   )
 }
 
+/**
+ * Holds if `node` is in a JSON.parse polyfill (json2.js): a function installed as JSON.parse only when the browser has
+ * none of its own, which no current browser lacks.
+ */
+private predicate inJsonParsePolyfill(DataFlow::Node node) {
+  exists(DataFlow::PropWrite install, ConditionGuardNode guard, TypeofExpr check |
+    install = DataFlow::globalVarRef("JSON").getAPropertyWrite("parse") and
+    node.getContainer().getEnclosingContainer*() = install.getRhs().getAFunctionValue().getFunction() and
+    check.getOperand().(PropAccess).getPropertyName() = "parse" and
+    guard.getTest() = check.getParentExpr*() and
+    guard.dominates(install.getBasicBlock())
+  )
+}
+
 /** Holds if `node` is run as code. */
 predicate codeSink(DataFlow::Node node) {
-  node = DataFlow::globalVarRef("eval").getACall().getArgument(0)
+  node = DataFlow::globalVarRef("eval").getACall().getArgument(0) and not inJsonParsePolyfill(node)
   or
-  node = DataFlow::globalVarRef("Function").getAnInvocation().getAnArgument()
+  node = DataFlow::globalVarRef("Function").getAnInvocation().getAnArgument() and not inJsonParsePolyfill(node)
   or
   exists(DataFlow::CallNode call |
     call =
