@@ -121,13 +121,38 @@ private predicate jsxComponent(DataFlow::SourceNode element) {
 }
 
 /**
- * Holds if `node` is text a jQuery `$()` call reads as a selector, never HTML: it starts with fixed text other than "<",
- * like "#" or ".module-". jQuery before 1.9 read HTML anywhere in it (CVE-2012-6708, which retirejs reports).
+ * Holds if the page whose code is in `folder` includes jQuery older than 1.9 (`old` is true), or 1.9 or later (false),
+ * told apart by the regex `$()` tests its string with. The module writes each page's code into a folder of its own.
+ */
+private predicate jqueryVersion(Folder folder, boolean old) {
+  exists(RegExpLiteral re, string text |
+    re.getFile().getParentContainer() = folder and text = re.getRawValue()
+  |
+    // 1.4 to 1.8: HTML anywhere after other text
+    (exists(text.indexOf("[^<]*(<[\\w\\W]+>)")) or exists(text.indexOf("[^#<]*(<[\\w\\W]+>)"))) and
+    old = true
+    or
+    // 1.9 on: only HTML at the start
+    (exists(text.indexOf("^(?:(<[\\w\\W]+>)")) or exists(text.indexOf("^(?:\\s*(<[\\w\\W]+>)"))) and
+    old = false
+  )
+}
+
+/**
+ * Holds if `node` is text a jQuery `$()` call reads as a selector, never HTML: it starts with "#", or with other fixed
+ * text than "<", like ".module-", on a page running only jQuery 1.9 or later. Older versions read HTML anywhere after
+ * that text (CVE-2012-6708), and a page whose jQuery isn't among its code may run one of them.
  */
 private predicate selectorText(DataFlow::Node node) {
-  exists(StringOps::ConcatenationRoot root |
-    root = node and
-    root.getFirstLeaf().getStringValue().regexpMatch("\\s*[^\\s<].*")
+  exists(StringOps::ConcatenationRoot root, string prefix |
+    root = node and prefix = root.getFirstLeaf().getStringValue()
+  |
+    prefix.regexpMatch("\\s*#.*")
+    or
+    prefix.regexpMatch("\\s*[^\\s<].*") and
+    exists(Folder page | page = node.getFile().getParentContainer() |
+      jqueryVersion(page, false) and not jqueryVersion(page, true)
+    )
   )
 }
 
