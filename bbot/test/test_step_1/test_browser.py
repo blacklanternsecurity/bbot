@@ -501,6 +501,8 @@ async def test_browser_hang_recovery(bbot_scanner, bbot_httpserver, monkeypatch)
     serve(bbot_httpserver)
     monkeypatch.setattr("bbot.core.helpers.web.browser.helper.SLOT_CHECK_AFTER", 2)
     monkeypatch.setattr("bbot.core.helpers.web.browser.helper.HEALTH_CHECK_TIMEOUT", 2)
+    # how long since its last finished page a browser that fails a health check counts as frozen rather than busy
+    monkeypatch.setattr("bbot.core.helpers.web.browser.helper.PROGRESS_WINDOW", 3)
     scan = await browser_scan(bbot_scanner, browser_max_pages=1)
     browser = scan.helpers.browser
     assert await browser.visit(bbot_httpserver.url_for("/")) is not None
@@ -527,6 +529,40 @@ async def test_browser_hang_recovery(bbot_scanner, bbot_httpserver, monkeypatch)
         for process in frozen:
             with suppress(psutil.Error):
                 process.resume()
+
+    await scan._cleanup()
+    assert await no_browser_processes()
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
+async def test_browser_busy_kept(bbot_scanner, bbot_httpserver, monkeypatch):
+    """A browser too busy to pass a health check in time, but still finishing work, is kept; a frozen one isn't"""
+    serve(bbot_httpserver)
+    monkeypatch.setattr("bbot.core.helpers.web.browser.helper.HEALTH_CHECK_TIMEOUT", 1)
+    scan = await browser_scan(bbot_scanner)
+    browser = scan.helpers.browser
+    assert await browser.visit(bbot_httpserver.url_for("/")) is not None
+    instance = browser._instance
+    new_context = instance.browser.new_context
+
+    # its test contexts open too late for the health checks
+    async def slow_new_context(**options):
+        await asyncio.sleep(3)
+        return await new_context(**options)
+
+    monkeypatch.setattr(instance.browser, "new_context", slow_new_context)
+
+    # but it just finished a page, so it's busy: kept, and an error it can't account for is just a failed page
+    await browser._check_responsive()
+    assert await browser._died(RuntimeError("no answer"), browser._crash_count) is None
+    assert browser._instance is instance and instance.alive and not browser._crashes
+
+    # one that has finished nothing for longer than PROGRESS_WINDOW is frozen, and replaced
+    instance.last_progress -= 120
+    await browser._check_responsive()
+    assert not instance.alive and len(browser._crashes) == 1
+    assert await browser.visit(bbot_httpserver.url_for("/again")) is not None
 
     await scan._cleanup()
     assert await no_browser_processes()

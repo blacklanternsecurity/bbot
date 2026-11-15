@@ -93,6 +93,8 @@ class domino(browser_vulns):
             rules_preload_data=self.preloaded_rules,
             browser_engine=self.helpers.browser.engine.name,
             time_budget=self.time_budget,
+            # one of the browser's pages always left for everything else that uses it
+            max_concurrency=max(1, self.helpers.browser.max_pages - 1),
         )
         try:
             results = (
