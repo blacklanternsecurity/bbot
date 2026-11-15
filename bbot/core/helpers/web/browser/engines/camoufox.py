@@ -3,11 +3,16 @@ Camoufox (https://camoufox.com): a Firefox build that spoofs its fingerprint in 
 driven through Playwright.
 """
 
+import os
 import platform
 from contextlib import suppress
 
 from bbot.errors import BrowserError
 from .base import VIEWPORT, BrowserEngine
+
+# Node exits on a promise nothing handles, and in Playwright's driver that takes every page in the browser with it,
+# as a route.fetch() whose context closes underneath it does. With this, it's a warning, and only that request fails.
+DRIVER_NODE_OPTIONS = "--unhandled-rejections=warn"
 
 CAMOUFOX_PIP = "camoufox==0.5.8"
 # the browser build that camoufox 0.5.8 is pinned to (browser-pin.json in the package)
@@ -147,7 +152,16 @@ class CamoufoxEngine(BrowserEngine):
         from playwright.async_api import async_playwright
 
         if self._playwright is None:
-            self._playwright = await async_playwright().start()
+            # the driver takes its environment from ours as it starts, so DRIVER_NODE_OPTIONS goes in only for that
+            node_options = os.environ.get("NODE_OPTIONS")
+            os.environ["NODE_OPTIONS"] = " ".join(filter(None, [node_options, DRIVER_NODE_OPTIONS]))
+            try:
+                self._playwright = await async_playwright().start()
+            finally:
+                if node_options is None:
+                    os.environ.pop("NODE_OPTIONS", None)
+                else:
+                    os.environ["NODE_OPTIONS"] = node_options
         # a Camoufox server started elsewhere (`python -m camoufox server`)
         if self.ws_endpoint:
             return await self._playwright.firefox.connect(self.ws_endpoint)
