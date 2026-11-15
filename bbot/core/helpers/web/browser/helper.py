@@ -133,6 +133,8 @@ class _Instance:
         self.active = 0
         self.alive = True
         self.closing = False
+        # how to give back each page slot held by a context lent to a module
+        self.lent = set()
 
 
 class BrowserHelper:
@@ -255,7 +257,7 @@ class BrowserHelper:
         It holds one of the browser's page slots (`web.browser_max_pages`) until it's closed.
         """
         self._check_enabled()
-        await self._page_slots.acquire()
+        await self._acquire_slot()
         try:
             for attempt in (1, 2):
                 crashes_before = self._crash_count
@@ -275,16 +277,20 @@ class BrowserHelper:
         def on_page(_):
             instance.pages_opened += 1
 
-        # also fires if the browser dies, so the slot is never lost
-        def on_close(_):
+        # once, when it closes, or the browser dies, or is abandoned (see _abandon)
+        def release():
+            if release not in instance.lent:
+                return
+            instance.lent.discard(release)
             instance.active -= 1
             self._last_used = time.monotonic()
             self._page_slots.release()
             if instance.closing and instance.active == 0:
                 self._retire(instance)
 
+        instance.lent.add(release)
         context.on("page", on_page)
-        context.on("close", on_close)
+        context.on("close", lambda _: release())
         return context
 
     async def route_fetch(self, route, headers=None, **options):
@@ -778,6 +784,9 @@ class BrowserHelper:
                 self._instance = None
             self._record_crash(what)
             await self.engine.stop()
+            # a stopped driver closes no contexts, so the slots lent to modules are given back here
+            for release in list(instance.lent):
+                release()
 
     def _check_enabled(self):
         if not self.enabled:

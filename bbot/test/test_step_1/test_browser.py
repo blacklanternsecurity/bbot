@@ -429,6 +429,42 @@ async def test_browser_new_context(bbot_scanner, bbot_httpserver):
 
 @pytest.mark.browser
 @pytest.mark.asyncio
+async def test_browser_hang_with_lent_context(bbot_scanner, bbot_httpserver, monkeypatch):
+    serve(bbot_httpserver)
+    monkeypatch.setattr("bbot.core.helpers.web.browser.helper.SLOT_CHECK_AFTER", 2)
+    monkeypatch.setattr("bbot.core.helpers.web.browser.helper.HEALTH_CHECK_TIMEOUT", 2)
+    scan = await browser_scan(bbot_scanner, browser_max_pages=1)
+    browser = scan.helpers.browser
+
+    # a module holds the only page slot when the browser stops answering
+    held = await browser.new_context()
+    first = browser._instance
+    frozen = browser_processes()
+    for process in frozen:
+        process.suspend()
+    try:
+        # the next module to ask waits for that slot, finds the browser no longer opens pages, and gets a new one
+        context = await asyncio.wait_for(browser.new_context(), timeout=120)
+        assert not first.alive and browser._instance is not first
+        page = await context.new_page()
+        await page.goto(bbot_httpserver.url_for("/after"))
+        assert await page.title() == "js page"
+        # the first module's context went with the old browser, and closing it doesn't give its slot back twice
+        with suppress(Exception):
+            await held.close()
+        await context.close()
+        assert browser._page_slots._value == 1
+    finally:
+        for process in frozen:
+            with suppress(psutil.Error):
+                process.resume()
+
+    await scan._cleanup()
+    assert await no_browser_processes()
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
 async def test_browser_driver_recovery(bbot_scanner, bbot_httpserver):
     serve(bbot_httpserver)
     scan = await browser_scan(bbot_scanner)
