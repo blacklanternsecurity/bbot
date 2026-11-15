@@ -1,4 +1,4 @@
-// Since jQuery 1.9, $() reads a string as HTML only when it starts with "<", so these are selectors
+// This page runs jQuery 3. Since 1.9, $() reads a string as HTML only when it starts with "<", so these are selectors
 (function () {
   var section = decodeURIComponent(location.hash.slice(1));
   $(".module-" + section).show();

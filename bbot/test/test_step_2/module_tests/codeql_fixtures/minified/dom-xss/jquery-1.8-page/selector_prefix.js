@@ -1,0 +1,1 @@
+$(window).on("hashchange",(function(){var o=decodeURIComponent(window.location.hash.slice(1));$("section.blog-list h2:contains("+o+")").get(0).scrollIntoView(),$(".module-"+o).show(),$("#"+o).addClass("highlight")}));
