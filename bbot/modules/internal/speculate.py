@@ -49,7 +49,7 @@ class speculate(BaseInternalModule):
 
     async def setup(self):
         scan_modules = [m for m in self.scan.modules.values() if m._type == "scan"]
-        self.open_port_consumers = any("OPEN_TCP_PORT" in m.watched_events for m in scan_modules)
+        self.open_port_consumers = any("OPEN_TCP_PORT" in m.get_watched_events() for m in scan_modules)
         # only consider active portscanners (still speculate if only passive ones are enabled)
         self.portscanner = next(
             (m for m in self.scan.modules.values() if "portscan" in m.flags and "active" in m.flags),

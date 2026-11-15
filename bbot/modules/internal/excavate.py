@@ -1482,7 +1482,9 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         # these setups run concurrently, so iterating the live dict can raise
         scan_modules = list(self.scan.modules.values())
 
-        modules_WEB_PARAMETER = [module.name for module in scan_modules if "WEB_PARAMETER" in module.watched_events]
+        modules_WEB_PARAMETER = [
+            module.name for module in scan_modules if "WEB_PARAMETER" in module.get_watched_events()
+        ]
 
         self.parameter_extraction = bool(modules_WEB_PARAMETER)
         self.speculate_params = self.config.get("speculate_params", False)

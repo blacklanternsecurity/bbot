@@ -437,6 +437,36 @@ async def test_modules_basic_perdomainonly(bbot_scanner, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_modules_basic_dynamic_watched_events(bbot_scanner):
+    """Modules that serve the scan's consumers of an event type go by what each one's get_watched_events() reports"""
+    from bbot.modules.base import BaseModule
+
+    class dummy(BaseModule):
+        _name = "dummy"
+        watched_events = ["URL"]
+        consume = False
+
+        def get_watched_events(self):
+            if self.consume:
+                return {"URL", "WEB_PARAMETER", "OPEN_TCP_PORT"}
+            return {"URL"}
+
+    for consume in (True, False):
+        scan = bbot_scanner("evilcorp.com", config={"excavate": True, "speculate": True})
+        await scan._prep()
+        module = dummy(scan)
+        module.consume = consume
+        scan.modules["dummy"] = module
+        excavate = scan.modules["excavate"]
+        speculate = scan.modules["speculate"]
+        await excavate.setup()
+        await speculate.setup()
+        assert excavate.parameter_extraction is consume
+        assert speculate.open_port_consumers is consume
+        await scan._cleanup()
+
+
+@pytest.mark.asyncio
 async def test_modules_basic_setup_deps(bbot_scanner):
     from bbot.modules.base import BaseModule
 
