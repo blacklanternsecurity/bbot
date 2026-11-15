@@ -287,6 +287,7 @@ class BrowserHelper:
 
         def on_page(_):
             instance.pages_opened += 1
+            instance.last_progress = time.monotonic()
 
         # once, when it closes, or the browser dies, or is abandoned (see _abandon)
         def release():
@@ -294,6 +295,7 @@ class BrowserHelper:
                 return
             instance.lent.discard(release)
             instance.active -= 1
+            instance.last_progress = time.monotonic()
             self._last_used = time.monotonic()
             self._page_slots.release()
             if instance.closing and instance.active == 0:
