@@ -146,6 +146,39 @@ class TestCodeQLThirdPartyHosts(ModuleTestBase):
         assert sorted(module_test.module.page_scripts(visit)) == sorted([in_scope, unlisted])
 
 
+class TestCodeQLMergedResult(ModuleTestBase):
+    """A sink reached from several sources comes back as one result, its message a line for each, and reads once."""
+
+    pytestmark = pytest.mark.browser
+    module_name = "codeql"
+    targets = [HTTPSERVER_URL]
+    config_overrides = {"web": {"enable_browser": True}}
+
+    def check(self, module_test, events):
+        module = module_test.module
+        line = 'Text from [["the page\'s URL"|"relative:///app.js:1:9:1:21"]] becomes the location the page goes to.'
+        result = {
+            "name": "Client-side open redirect",
+            "description": "Input an attacker controls becomes the location the page navigates to.",
+            "severity": "warning",
+            "message": f"{line}\n{line.replace('1:9:1:21', '1:37:1:51')}",
+            "file": "/app.js",
+            "line": "2",
+            "column": "17",
+            "end_line": "2",
+            "end_column": "22",
+        }
+        with tempfile.TemporaryDirectory() as root:
+            Path(root, "app.js").write_text(
+                "var a = location.hash.slice(1), b = location.search.slice(1);\nlocation.href = a || b;\n"
+            )
+            _, _, source, sink, message = module.to_finding(result, Path(root), {"app.js": f"{HTTPSERVER_URL}/app.js"})
+        assert message == "Text from the page's URL becomes the location the page goes to."
+        description = module.describe(f"{HTTPSERVER_URL}/", source, sink, message)
+        assert description.startswith(f"{message} Source: [")
+        assert description.count("becomes the location") == 1
+
+
 class TestCodeQLQueries(ModuleTestBase):
     """Every query reports exactly the fixture lines marked with its class, and the same in each minified copy."""
 

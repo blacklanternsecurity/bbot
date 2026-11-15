@@ -245,7 +245,9 @@ class codeql(browser_vulns):
             int(result["line"]) if sink_origin else None,
         )
         source = None
-        location = MESSAGE_LOCATION.search(result["message"])
+        # a sink reached from several sources is one result, its message a line for each; the first is reported
+        first_message = result["message"].splitlines()[0] if result["message"] else ""
+        location = MESSAGE_LOCATION.search(first_message)
         if location:
             _, file_name, line, column, end_column = location.groups()
             source = (
@@ -253,7 +255,7 @@ class codeql(browser_vulns):
                 origins.get(file_name),
             )
         # each code reference becomes its label: [["the page's URL"|"relative:///..."]] reads "the page's URL"
-        message = MESSAGE_LOCATION.sub(lambda m: m.group(1), result["message"]).strip() or result["description"]
+        message = MESSAGE_LOCATION.sub(lambda m: m.group(1), first_message).strip() or result["description"]
         return (result["name"], result["severity"], source, sink, message)
 
     def describe(self, page_url, source, sink, message):
