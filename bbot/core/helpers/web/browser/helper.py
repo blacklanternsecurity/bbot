@@ -36,6 +36,8 @@ MAX_CRASHES = 3
 CRASH_WINDOW = 600
 # how long a browser that may have died gets to open a context before it's treated as dead
 HEALTH_CHECK_TIMEOUT = 30
+# a browser that stops answering holds its page slots forever, so a wait for one this long checks on it
+SLOT_CHECK_AFTER = 60
 # finished visits held for modules that haven't collected theirs yet
 VISIT_CACHE_SIZE = 100
 # a page's requests whose bodies are kept, so modules can use them without fetching them again
@@ -131,6 +133,8 @@ class _Instance:
         self.active = 0
         self.alive = True
         self.closing = False
+        # how to give back each page slot held by a context lent to a module
+        self.lent = set()
 
 
 class BrowserHelper:
@@ -170,6 +174,7 @@ class BrowserHelper:
 
         self._page_slots = asyncio.Semaphore(self.max_pages)
         self._launch_lock = asyncio.Lock()
+        self._check_lock = asyncio.Lock()
         self.engine = self.engine_class(parent_helper)
         self._instance = None
         self._idle_task = None
@@ -252,7 +257,7 @@ class BrowserHelper:
         It holds one of the browser's page slots (`web.browser_max_pages`) until it's closed.
         """
         self._check_enabled()
-        await self._page_slots.acquire()
+        await self._acquire_slot()
         try:
             for attempt in (1, 2):
                 crashes_before = self._crash_count
@@ -272,16 +277,20 @@ class BrowserHelper:
         def on_page(_):
             instance.pages_opened += 1
 
-        # also fires if the browser dies, so the slot is never lost
-        def on_close(_):
+        # once, when it closes, or the browser dies, or is abandoned (see _abandon)
+        def release():
+            if release not in instance.lent:
+                return
+            instance.lent.discard(release)
             instance.active -= 1
             self._last_used = time.monotonic()
             self._page_slots.release()
             if instance.closing and instance.active == 0:
                 self._retire(instance)
 
+        instance.lent.add(release)
         context.on("page", on_page)
-        context.on("close", on_close)
+        context.on("close", lambda _: release())
         return context
 
     async def route_fetch(self, route, headers=None, **options):
@@ -386,7 +395,8 @@ class BrowserHelper:
 
     @asynccontextmanager
     async def _page(self, url):
-        async with self._page_slots:
+        await self._acquire_slot()
+        try:
             instance, host = await self._host(url)
             page = await self._new_page(instance, host)
             host.active += 1
@@ -400,6 +410,17 @@ class BrowserHelper:
                 await self._close_page(instance, page)
                 if instance.closing and instance.active == 0:
                     await self._close_instance(instance)
+        finally:
+            self._page_slots.release()
+
+    async def _acquire_slot(self):
+        """Take a page slot, checking on the browser each time the wait for one runs SLOT_CHECK_AFTER seconds."""
+        while True:
+            try:
+                await asyncio.wait_for(self._page_slots.acquire(), timeout=SLOT_CHECK_AFTER)
+                return
+            except asyncio.TimeoutError:
+                await self._check_responsive()
 
     async def _new_page(self, instance, host):
         instance.pages_opened += 1
@@ -565,7 +586,13 @@ class BrowserHelper:
             **options,
         }
         context = await instance.browser.new_context(**options)
-        await context.route("**/*", self._route)
+        try:
+            await context.route("**/*", self._route)
+        except BaseException:
+            # including a cancel, so the context isn't left open
+            with suppress(Exception):
+                await asyncio.wait_for(context.close(), timeout=10)
+            raise
         return context
 
     async def _evict_hosts(self, instance, keep):
@@ -692,6 +719,8 @@ class BrowserHelper:
                 return await asyncio.wait_for(operation(url), timeout=OPERATION_TIMEOUT)
             except asyncio.TimeoutError:
                 log.verbose(f"Browser timed out on {url}")
+                # the page may be at fault, or the browser may have stopped answering
+                await self._check_responsive()
                 return None
             except Exception as e:
                 browser_died = await self._died(e, crashes_before)
@@ -715,18 +744,49 @@ class BrowserHelper:
         try:
             context = await asyncio.wait_for(instance.browser.new_context(), timeout=HEALTH_CHECK_TIMEOUT)
         except Exception:
-            async with self._launch_lock:
-                # once, however many operations it failed
-                if instance.alive:
-                    instance.alive = False
-                    if self._instance is instance:
-                        self._instance = None
-                    self._record_crash("stopped answering")
-                    await self.engine.stop()
+            await self._abandon(instance, "stopped answering")
             return True
         with suppress(Exception):
             await context.close()
         return False
+
+    async def _check_responsive(self):
+        """
+        Replace the browser if it no longer opens pages. One that stops answering raises no errors and reports no
+        disconnect: every call to it just waits, holding its page slot.
+        """
+        instance = self._instance
+        # one check at a time; the others keep waiting
+        if instance is None or not instance.alive or self._check_lock.locked():
+            return
+        async with self._check_lock:
+            try:
+                context = await asyncio.wait_for(instance.browser.new_context(), timeout=HEALTH_CHECK_TIMEOUT)
+                try:
+                    await asyncio.wait_for(context.new_page(), timeout=HEALTH_CHECK_TIMEOUT)
+                finally:
+                    with suppress(Exception):
+                        await asyncio.wait_for(context.close(), timeout=10)
+            except Exception:
+                await self._abandon(instance, "stopped opening pages")
+
+    async def _abandon(self, instance, what):
+        """
+        Give up on a browser that has stopped answering, and stop its driver, which fails every call still waiting
+        on it. Nothing else will, since it never reports a disconnect.
+        """
+        async with self._launch_lock:
+            # once, however many operations found it
+            if not instance.alive:
+                return
+            instance.alive = False
+            if self._instance is instance:
+                self._instance = None
+            self._record_crash(what)
+            await self.engine.stop()
+            # a stopped driver closes no contexts, so the slots lent to modules are given back here
+            for release in list(instance.lent):
+                release()
 
     def _check_enabled(self):
         if not self.enabled:
