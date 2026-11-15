@@ -537,7 +537,7 @@ async def test_browser_hang_recovery(bbot_scanner, bbot_httpserver, monkeypatch)
 @pytest.mark.browser
 @pytest.mark.asyncio
 async def test_browser_busy_kept(bbot_scanner, bbot_httpserver, monkeypatch):
-    """A browser too busy to pass a health check in time, but still finishing work, is kept; a frozen one isn't"""
+    """A browser too busy to pass a health check in time, but still opening pages, is kept; a frozen one isn't"""
     serve(bbot_httpserver)
     monkeypatch.setattr("bbot.core.helpers.web.browser.helper.HEALTH_CHECK_TIMEOUT", 1)
     scan = await browser_scan(bbot_scanner)
@@ -553,13 +553,15 @@ async def test_browser_busy_kept(bbot_scanner, bbot_httpserver, monkeypatch):
 
     monkeypatch.setattr(instance.browser, "new_context", slow_new_context)
 
-    # but it just finished a page, so it's busy: kept, and an error it can't account for is just a failed page
+    # but it just opened a page, so it's busy: kept, and an error it can't account for is just a failed page
     await browser._check_responsive()
     assert await browser._died(RuntimeError("no answer"), browser._crash_count) is None
     assert browser._instance is instance and instance.alive and not browser._crashes
 
-    # one that has finished nothing for longer than PROGRESS_WINDOW is frozen, and replaced
+    # one that has opened nothing for longer than PROGRESS_WINDOW is frozen, and replaced, even if it still closes pages
+    page = await next(iter(instance.hosts.values())).context.new_page()
     instance.last_progress -= 120
+    await browser._close_page(instance, page)
     await browser._check_responsive()
     assert not instance.alive and len(browser._crashes) == 1
     assert await browser.visit(bbot_httpserver.url_for("/again")) is not None
