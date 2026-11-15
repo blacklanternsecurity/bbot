@@ -3,7 +3,6 @@ from http.cookies import SimpleCookie
 from urllib.parse import urlparse
 
 import blasthttp
-import tldextract
 
 from bbot.core.helpers.web.web import iter_batch_results
 from bbot.core.helpers.web.response_event import response_to_event_dict
@@ -27,7 +26,7 @@ class http(BaseModule):
         max_response_size: int = Field(5242880, description="Max response size in bytes")
         store_responses: bool = Field(False, description="Save raw HTTP responses to scan folder")
         rate_limit_give_up: int = Field(
-            1800, description="Drop a site's URLs once it has answered nothing but 429 for this many seconds"
+            1800, description="Drop a host's URLs once it has answered nothing but 429 for this many seconds"
         )
 
     scope_distance_modifier = 2
@@ -43,7 +42,7 @@ class http(BaseModule):
         self.store_responses = self.config.get("store_responses", False)
         self.client = self.helpers.blasthttp
         self.waf_yara_rule = self.helpers.yara.compile_strings(self.helpers.get_waf_strings(), nocase=True)
-        # {site: _RateLimit} for each site answering 429
+        # {host: _RateLimit} for each host answering 429
         self._rate_limits = {}
         self._429_default_interval = self.scan.web_config.get("429_sleep_interval", 30)
         self._429_max_interval = self.scan.web_config.get("429_max_sleep_interval", 60)
@@ -65,9 +64,9 @@ class http(BaseModule):
             return False, "event exceeds spidering limits"
 
         if self._rate_limits:
-            limit = self._rate_limits.get(self._site(event.host))
+            limit = self._rate_limits.get(str(event.host))
             if limit is not None and limit.gave_up:
-                return False, "its site answered nothing but 429 for too long"
+                return False, "its host answered nothing but 429 for too long"
 
         # scope filtering
         in_scope_only = self.config.get("in_scope_only", True)
@@ -120,16 +119,6 @@ class http(BaseModule):
             return False, "429 retry"
         return super().is_incoming_duplicate(event, add=add)
 
-    def _site(self, host):
-        """
-        The site `host` belongs to, which shares its rate limit: its registered domain, so a CDN limiting one subdomain
-        is limiting all of them, but a customer of a shared host (e.g. herokuapp.com) is a site of its own.
-        """
-        host = str(host)
-        if self.helpers.is_ip(host):
-            return host
-        return tldextract.extract(host, include_psl_private_domains=True).top_domain_under_public_suffix or host
-
     def _parse_retry_after(self, response):
         for k, v in response.headers.items():
             if k.lower() == "retry-after":
@@ -142,13 +131,13 @@ class http(BaseModule):
         return self._429_default_interval
 
     def _rate_limited(self, event, response):
-        """Hold `event` after a 429, and pause its site, or give up on the site if it's been answering 429 too long."""
-        site = self._site(event.host)
+        """Hold `event` after a 429, and pause its host, or give up on the host if it's been answering 429 too long."""
+        host = str(event.host)
         now = time.monotonic()
-        limit = self._rate_limits.get(site)
+        limit = self._rate_limits.get(host)
         if limit is None:
-            limit = self._rate_limits[site] = _RateLimit(now)
-            self.info(f"{site} is rate limiting (429), holding its URLs until it stops")
+            limit = self._rate_limits[host] = _RateLimit(now)
+            self.info(f"{host} is rate limiting (429), holding its URLs until it stops")
         elif limit.gave_up:
             # the other request of a test from an OPEN_TCP_PORT event
             return
@@ -157,21 +146,21 @@ class http(BaseModule):
             limit.probe = None
             if now - limit.since >= self._rate_limit_give_up:
                 self.warning(
-                    f"{site} has answered nothing but 429 for {int(now - limit.since) // 60} minutes, giving up on "
+                    f"{host} has answered nothing but 429 for {int(now - limit.since) // 60} minutes, giving up on "
                     f"its {len(limit.held) + 1:,} remaining URLs"
                 )
                 limit.gave_up = True
                 limit.held.clear()
                 return
-            self.verbose(f"{site} is still rate limiting (429)")
+            self.verbose(f"{host} is still rate limiting (429)")
         # an OPEN_TCP_PORT event makes two requests
         if event not in limit.held:
             limit.held.append(event)
 
-    def _recovered(self, site):
-        """Release the URLs held for `site`, now that a test request got through."""
-        limit = self._rate_limits.pop(site)
-        self.info(f"{site} stopped rate limiting, resuming {len(limit.held):,} URLs")
+    def _recovered(self, host):
+        """Release the URLs held for `host`, now that a test request got through."""
+        limit = self._rate_limits.pop(host)
+        self.info(f"{host} stopped rate limiting, resuming {len(limit.held):,} URLs")
         self._requeue(limit.held)
 
     def _requeue(self, events):
@@ -183,7 +172,7 @@ class http(BaseModule):
             self.incoming_event_queue.put_nowait(event)
 
     async def _send_probes(self):
-        """Send one held URL from each site whose pause is over, to test whether it's still rate limiting."""
+        """Send one held URL from each host whose pause is over, to test whether it's still rate limiting."""
         if self.incoming_event_queue is False:
             return
         now = time.monotonic()
@@ -319,18 +308,18 @@ class http(BaseModule):
         # Reverse index: each paired probe URL → its (host, port) key
         paired_probe_urls = {}
 
-        # sites whose test request is in this batch
+        # hosts whose test request is in this batch
         probed = set()
 
         for event in events:
             if self._rate_limits:
-                site = self._site(event.host)
-                limit = self._rate_limits.get(site)
+                host = str(event.host)
+                limit = self._rate_limits.get(host)
                 if limit is not None:
                     if event is limit.probe:
-                        probed.add(site)
+                        probed.add(host)
                     else:
-                        # its site is rate limiting: only the test request goes out
+                        # its host is rate limiting: only the test request goes out
                         if not limit.gave_up:
                             limit.held.append(event)
                         continue
@@ -421,16 +410,16 @@ class http(BaseModule):
         for key, result in deferred_https.items():
             await self._process_result(result, stdin[result.url])
 
-        # a test request that got anything but a 429 means its site has recovered
-        for site in probed:
-            limit = self._rate_limits.get(site)
+        # a test request that got anything but a 429 means its host has recovered
+        for host in probed:
+            limit = self._rate_limits.get(host)
             if limit is not None and limit.probe is not None:
-                self._recovered(site)
+                self._recovered(host)
         self._schedule_probes()
 
 
 class _RateLimit:
-    """A site answering 429. Its URLs are held, and once its pause is over, one of them goes out to test it."""
+    """A host answering 429. Its URLs are held, and once its pause is over, one of them goes out to test it."""
 
     def __init__(self, now):
         # when it started answering 429

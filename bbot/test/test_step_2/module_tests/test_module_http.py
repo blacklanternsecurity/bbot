@@ -1,4 +1,5 @@
 import time
+from types import SimpleNamespace
 
 from werkzeug.wrappers import Response
 
@@ -261,7 +262,7 @@ class TestHTTP_url_metadata(ModuleTestBase):
 
 
 class TestHTTP_429_give_up(ModuleTestBase):
-    """A site that answers nothing but 429 for `rate_limit_give_up` seconds is given up on, and its URLs dropped."""
+    """A host that answers nothing but 429 for `rate_limit_give_up` seconds is given up on, and its URLs dropped."""
 
     targets = [HTTPSERVER_URL]
     module_name = "http"
@@ -290,14 +291,14 @@ class TestHTTP_429_give_up(ModuleTestBase):
         )
         module = module_test.module
         assert module._rate_limits["127.0.0.1"].gave_up
-        # and a URL found later on the same site isn't tried
+        # and a URL found later on the same host isn't tried
         later = module_test.scan.make_event(f"{HTTPSERVER_URL}/later", "URL_UNVERIFIED", dummy=True)
         assert (await module.filter_event(later))[0] is False
 
 
 class TestHTTP_429_test_request(ModuleTestBase):
     """
-    A 429 pauses the whole site and holds its URLs. When the pause ends, one of them goes out to test whether the site
+    A 429 pauses the whole host and holds its URLs. When the pause ends, one of them goes out to test whether the host
     is still rate limiting, and the rest follow once one gets through.
     """
 
@@ -307,7 +308,7 @@ class TestHTTP_429_test_request(ModuleTestBase):
     modules_overrides = ["http"]
     # one request per URL, so each 429 the server sends is one the module saw
     config_overrides = {"web": {"429_sleep_interval": 1, "429_max_sleep_interval": 1, "http_retries": 0}}
-    # the site rate limits for this long after its first request
+    # the host rate limits for this long after its first request
     limited_for = 2.5
 
     async def setup_after_prep(self, module_test):
@@ -332,16 +333,17 @@ class TestHTTP_429_test_request(ModuleTestBase):
         assert urls == set(self.paths)
         assert not any(e.type == "URL" and "status-429" in e.tags for e in events)
 
-        # after the first requests, the site only saw one test request per pause
+        # after the first requests, the host only saw one test request per pause
         limited = [t for t, status in self.requests if status == 429]
         tests = [t for t in limited if t - limited[0] > 0.5]
         assert tests, "expected a test request that was still rate limited"
         for previous, test in zip([limited[0]] + tests, tests):
             assert test - previous >= 0.8, f"test requests {test - previous:.2f}s apart"
 
-        # sites are registered domains, counting shared hosts' customers as sites of their own
-        site = module_test.module._site
-        assert site("www.evilcorp.com") == site("app.evilcorp.com") == "evilcorp.com"
-        assert site("www.evilcorp.co.uk") == "evilcorp.co.uk"
-        assert site("evilcorp.herokuapp.com") != site("othercorp.herokuapp.com")
-        assert site("127.0.0.1") == "127.0.0.1"
+        # a 429 pauses only its own host, not the other subdomains of its domain
+        module = module_test.module
+        www = module_test.scan.make_event("http://www.evilcorp.com/", "URL_UNVERIFIED", dummy=True)
+        module._rate_limited(www, SimpleNamespace(headers={}))
+        assert "www.evilcorp.com" in module._rate_limits
+        assert "app.evilcorp.com" not in module._rate_limits
+        assert "evilcorp.com" not in module._rate_limits
