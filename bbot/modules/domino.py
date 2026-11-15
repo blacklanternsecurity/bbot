@@ -26,7 +26,8 @@ class domino(browser_vulns):
     uses_browser = True
     # TEMPORARY: DOMino's shared-browser support is unreleased; pin the d0m1n0 release instead before merging into dev
     deps_pip = ["d0m1n0 @ git+https://github.com/blacklanternsecurity/DOMino@bbot-shared-browser"]
-    _module_threads = 2
+    # one URL at a time: DOMino alone wants more of the browser's pages than there are, and each URL has a time budget
+    _module_threads = 1
 
     class Config(BaseModuleConfig):
         rules: list[str] | None = Field(None, description="Rules to run. All of them by default.")
