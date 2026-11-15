@@ -94,9 +94,11 @@ class codeql(browser_vulns):
                 "connect.facebook.net",
                 "snap.licdn.com",
                 "analytics.tiktok.com",
-                # social widgets
+                # social widgets and embedded players
                 "platform.twitter.com",
                 "s.pinimg.com",
+                "youtube.com",
+                "youtube-nocookie.com",
                 # consent, chat and captcha widgets
                 "cookielaw.org",
                 "onetrust.com",
