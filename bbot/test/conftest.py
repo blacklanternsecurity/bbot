@@ -163,15 +163,22 @@ def check_httpserver_errors(server):
         server.clear()
 
 
+def serve_and_check(server):
+    """Yield the started server, then stop it and fail on its assertions and handler errors.
+
+    The httpserver fixtures `yield from` this, so test_httpserver_teardown.py tests their real teardown.
+    """
+    yield server
+    if server.is_running():
+        stop_server(server)
+    check_httpserver_errors(server)
+
+
 @pytest.fixture
 def bbot_httpserver():
     server = FastShutdownHTTPServer(host="127.0.0.1", port=HTTPSERVER_PORT, threaded=True)
     server.start()
-
-    yield server
-
-    stop_server(server)  # Ensure the server is fully stopped
-    check_httpserver_errors(server)
+    yield from serve_and_check(server)
 
 
 @pytest.fixture
@@ -183,11 +190,7 @@ def bbot_httpserver_ssl():
     context.load_cert_chain(certfile, keyfile)
     server = FastShutdownHTTPServer(host="127.0.0.1", port=HTTPSERVER_SSL_PORT, ssl_context=context, threaded=True)
     server.start()
-
-    yield server
-
-    stop_server(server)  # Ensure the server is fully stopped
-    check_httpserver_errors(server)
+    yield from serve_and_check(server)
 
 
 def _should_mock(host):
@@ -287,12 +290,7 @@ def blasthttp_mock():
 def bbot_httpserver_allinterfaces():
     server = FastShutdownHTTPServer(host="0.0.0.0", port=HTTPSERVER_ALLINTERFACES_PORT, threaded=True)
     server.start()
-
-    yield server
-
-    if server.is_running():
-        server.stop()
-    check_httpserver_errors(server)
+    yield from serve_and_check(server)
 
 
 class Interactsh_mock:
