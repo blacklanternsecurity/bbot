@@ -16,7 +16,7 @@ jobs:
       contents: read
       actions: read
       pull-requests: read
-    uses: blacklanternsecurity/release-workflows/.github/workflows/release-check.yml@c53c202eedeb26a86088936363e6cb06ce99ac15 # v1.0.0
+    uses: blacklanternsecurity/release-workflows/.github/workflows/release-check.yml@3fe35ff9c43f61c98bd8c93182686b6be97d2759 # v1.3.0
     secrets:
       BLS_RELEASE_PRIVATE_KEY: ${{ secrets.BLS_RELEASE_PRIVATE_KEY }}
     with:
@@ -28,7 +28,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
-    uses: ./.github/workflows/tests.yml
+    uses: ./.github/workflows/tests.yml # zizmor: ignore[self-repository]
     secrets:
       BBOT_IO_API_KEY: ${{ secrets.BBOT_IO_API_KEY }}
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -55,16 +55,13 @@ jobs:
     if: needs.check.outputs.release == 'true'
     permissions:
       contents: read
-    uses: blacklanternsecurity/release-workflows/.github/workflows/docker.yml@c53c202eedeb26a86088936363e6cb06ce99ac15 # v1.0.0
+    uses: blacklanternsecurity/release-workflows/.github/workflows/docker.yml@3fe35ff9c43f61c98bd8c93182686b6be97d2759 # v1.3.0
     with:
       image: ${{ github.repository }}
       version: ${{ needs.check.outputs.version }}
       major: ${{ needs.check.outputs.major }}
       minor: ${{ needs.check.outputs.minor }}
       description: true
-    secrets:
-      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-      DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
 
   pypi:
     needs: [build, docker]
@@ -77,7 +74,7 @@ jobs:
         with:
           name: dist
           path: dist
-      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           skip-existing: true
 
@@ -86,7 +83,7 @@ jobs:
     if: needs.check.outputs.release == 'true'
     permissions:
       contents: read
-    uses: blacklanternsecurity/release-workflows/.github/workflows/publish.yml@c53c202eedeb26a86088936363e6cb06ce99ac15 # v1.0.0
+    uses: blacklanternsecurity/release-workflows/.github/workflows/publish.yml@3fe35ff9c43f61c98bd8c93182686b6be97d2759 # v1.3.0
     secrets:
       BLS_RELEASE_PRIVATE_KEY: ${{ secrets.BLS_RELEASE_PRIVATE_KEY }}
     with:
