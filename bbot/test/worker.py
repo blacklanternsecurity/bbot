@@ -21,7 +21,8 @@ import psutil
 # Wider than the number of distinct base ports, so worker blocks cannot overlap.
 WORKER_PORT_STRIDE = 100
 
-# The controller's pid, set before it starts any xdist workers, which inherit it
+# The controller's pid. The root conftest.py imports this module in the xdist controller
+# before it starts any workers, so they inherit it.
 RUN_ID = os.environ.setdefault("BBOT_TEST_RUN_ID", str(os.getpid()))
 BASE_BBOT_TEST_DIR = Path(f"/tmp/.bbot_test_{RUN_ID}")
 # a run's home, its workers' homes, and its shared dir

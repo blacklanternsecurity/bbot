@@ -91,8 +91,8 @@ def test_worker_dir_is_unique_per_worker():
 
 
 def test_dirs_are_unique_to_the_run():
-    # xdist workers inherit the controller's run id, so a run's processes share it and no other run does
-    assert os.environ["BBOT_TEST_RUN_ID"] == RUN_ID
+    # the run id is the controller's pid, and the controller is each xdist worker's parent
+    assert RUN_ID == str(os.getppid() if worker_id() else os.getpid())
     assert BASE_BBOT_TEST_DIR.name == f".bbot_test_{RUN_ID}"
     assert BBOT_TEST_SHARED_DIR.name == f".bbot_test_{RUN_ID}_shared"
 

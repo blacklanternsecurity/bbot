@@ -16,8 +16,6 @@ from bbot.test.worker import (
     HTTPSERVER_ALLINTERFACES_PORT,
     HTTPSERVER_PORT,
     HTTPSERVER_SSL_PORT,
-    remove_stale_test_dirs,
-    worker_id,
 )
 
 from bbot.core import CORE
@@ -401,11 +399,6 @@ def proxy_server():
     server_thread.join()
 
 
-def pytest_sessionstart(session):
-    if not worker_id():
-        remove_stale_test_dirs()
-
-
 def pytest_collection_modifyitems(config, items):
     """Pin docker-backed tests to one xdist worker.
 
@@ -551,14 +544,11 @@ def pytest_sessionfinish(session, exitstatus):
     # every worker still running.
     shutil.rmtree(BBOT_TEST_DIR, ignore_errors=True)
     # The preload cache is saved into the shared dir at exit, and worker processes can
-    # exit after the controller below has removed it, so no process may save it.
+    # exit after the controller has removed it (in the root conftest.py), so no process may save it.
     import atexit
     from bbot.core.modules import MODULE_LOADER
 
     atexit.unregister(MODULE_LOADER.save_preload_cache)
-    # the xdist controller finishes last, after every worker is done with the shared deps
-    if not worker_id():
-        shutil.rmtree(BBOT_TEST_SHARED_DIR, ignore_errors=True)
 
     # Ensure stdout/stderr are blocking before pytest writes summaries
     try:
