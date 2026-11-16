@@ -24,6 +24,7 @@ config:
         - xss-interaction
         - xss-postmessage
         - xss-js
+        - template-injection
         - get-parameter-discovery
         - get-parameter-reflection
         - transform
