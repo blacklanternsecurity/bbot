@@ -163,5 +163,5 @@ bbot -m http --custom-yara-rules=substack.yara -t http://www.blacklanternsecurit
 We get the following result. Note that the finding now contains the actual title tag that was identified with the regex.
 
 ```
-[FINDING] {"description": "Custom Yara Rule [ContainsTitle] with description: [Contains an HTML title] Matched via identifier [title_value] and extracted [<title>Black Lantern Security</title>]", "host": "www.blacklanternsecurity.com", "url": "https://www.blacklanternsecurity.com/"}	excavate	(cdn-github, cdn-ip)
+[FINDING] {"description": "Custom Yara Rule [ContainsTitle] with description: [Contains an HTML title] Matched via identifier [title_value] and extracted [<title>Black Lantern Security</title>]", "host": "www.blacklanternsecurity.com", "url": "https://www.blacklanternsecurity.com/"}	excavate	(cdn, github)
 ```

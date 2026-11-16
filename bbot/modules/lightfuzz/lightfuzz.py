@@ -42,8 +42,8 @@ class lightfuzz(BaseModule):
             "try_bypasses",
             description=(
                 "How to handle WAF-tagged targets. 'always' skips them entirely; 'never' fuzzes them "
-                "raw; 'try_bypasses' (default) asks nowafpls whether body padding gets through, "
-                "and fuzzes with padding when it does."
+                "regardless, still padding request bodies where padding gets through; 'try_bypasses' "
+                "(default) asks nowafpls whether body padding gets through, and fuzzes with padding when it does."
             ),
         )
         emit_baseline_responses: bool = Field(
@@ -468,7 +468,7 @@ class lightfuzz(BaseModule):
                     return False, "WAF is bypassable via body padding, but this event has no POST-style probe"
                 # STATUS_NO_INTERFERENCE: the POST body wasn't gated, so POST-style probes run unpadded.
                 # It says nothing about other channels, so handle_event still skips GET/COOKIE/HEADER.
-            # avoid_wafs == "never": fall through and fuzz raw
+            # avoid_wafs == "never": fuzz regardless; prepare_request still pads bodies when bypassable
 
         # Skip WEB_PARAMETERs on static-asset URLs (pdf, doc, xml, etc.) — fuzzing them is pointless
         if event.type == "WEB_PARAMETER":
