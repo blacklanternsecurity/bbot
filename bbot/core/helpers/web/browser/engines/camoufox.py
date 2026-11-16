@@ -42,8 +42,15 @@ CAMOUFOX_PLATFORMS = [
     ),
 ]
 
-# Firefox prefs set on every launch. Its built-in list of HTTPS-only domains would rewrite their http:// loads
-FIREFOX_PREFS = {"network.stricttransportsecurity.preloadlist": False}
+# Firefox prefs set on every launch
+FIREFOX_PREFS = {
+    # its built-in list of HTTPS-only domains would rewrite their http:// loads
+    "network.stricttransportsecurity.preloadlist": False,
+    # a closed context's idle connections stay open for minutes (115s HTTP/1.1, 170s HTTP/2), so a host whose pages
+    # get many contexts would see them pile up; close them after 5s idle
+    "network.http.keep-alive.timeout": 5,
+    "network.http.http2.timeout": 5,
+}
 
 # appended to camoufox.cfg, which Firefox runs with full privileges at startup. Once any page on a host sends
 # Strict-Transport-Security, Firefox rewrites every later http:// load of that host, on any port and in every
