@@ -160,7 +160,7 @@ class BrowserHelper:
     Examples:
         >>> visit = await self.helpers.browser.visit("https://evilcorp.com", consumer=self.name)
         >>> response = await self.helpers.browser.fetch("https://evilcorp.com/robots.txt")
-        >>> context = await self.helpers.browser.new_context(bypass_csp=True)
+        >>> context = await self.helpers.browser.new_context()
     """
 
     # the browser engine in use; see engines/base.py for what an engine provides
@@ -262,8 +262,8 @@ class BrowserHelper:
         Playwright's `new_context()` options.
 
         Its requests follow the same rules as every other browser request: the scan's blacklist, and its custom
-        headers and cookies for in-scope URLs. A route the module adds runs ahead of those rules, so it should end in
-        `route.fallback()`, and fetch through `route_fetch()` if it changes a response.
+        headers and cookies for in-scope URLs. A route the module adds runs ahead of those rules, so it should hand
+        requests on with `route.fallback()` rather than answer them itself.
 
         It holds one of the browser's page slots (`web.browser_max_pages`) until it's closed.
         """
@@ -304,18 +304,6 @@ class BrowserHelper:
         context.on("page", on_page)
         context.on("close", lambda _: release())
         return context
-
-    async def route_fetch(self, route, headers=None, **options):
-        """
-        `route.fetch()` under the scan's blacklist and custom headers and cookies, for a module's route handler that
-        changes a response. Returns None if the blacklist forbids the request.
-        """
-        request = route.request
-        if self.parent_helper.preset.blacklisted(request.url):
-            return None
-        headers = headers if headers is not None else request.headers
-        headers = self._scan_headers(request.url, headers) or headers
-        return await route.fetch(headers=headers, **options)
 
     async def shutdown(self):
         if self._idle_task is not None:

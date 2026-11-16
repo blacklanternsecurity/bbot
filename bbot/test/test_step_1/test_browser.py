@@ -349,7 +349,7 @@ async def test_browser_new_context(bbot_scanner, bbot_httpserver):
     free_slots = browser._page_slots._value
 
     # a lent context holds a page slot and keeps the browser from being shut down or recycled under it
-    context = await browser.new_context(bypass_csp=True)
+    context = await browser.new_context(extra_http_headers={"X-Lent-Option": "1"})
     instance = browser._instance
     assert browser._page_slots._value == free_slots - 1
     assert instance.active == 1
@@ -371,28 +371,8 @@ async def test_browser_new_context(bbot_scanner, bbot_httpserver):
     assert "/blocked.png" not in requested_paths(bbot_httpserver)
     request = next(request for request, _ in bbot_httpserver.log if request.path == "/lent")
     assert request.headers.get("X-Bbot-Test") == "bbot-test-value"
-
-    # a route that fetches a response to change it does so under the same rules
-    refused = []
-
-    async def rewriting_route(route):
-        response = await browser.route_fetch(route, headers={**route.request.headers, "x-module": "1"})
-        if response is None:
-            refused.append(route.request.url)
-            await route.abort()
-            return
-        body = await response.body()
-        await route.fulfill(response=response, body=body.replace(b"js page", b"rewritten page"))
-
-    page = await context.new_page()
-    await page.route("**/*", rewriting_route)
-    await page.goto(bbot_httpserver.url_for("/rewritten"))
-    assert await page.title() == "rewritten page"
-    assert refused == ["http://localhost:8888/blocked.png"]
-    assert "/blocked.png" not in requested_paths(bbot_httpserver)
-    request = next(request for request, _ in bbot_httpserver.log if request.path == "/rewritten")
-    assert request.headers.get("X-Bbot-Test") == "bbot-test-value"
-    assert request.headers.get("X-Module") == "1"
+    # and the options it was opened with apply
+    assert request.headers.get("X-Lent-Option") == "1"
 
     # closing it gives the slot back
     await context.close()
