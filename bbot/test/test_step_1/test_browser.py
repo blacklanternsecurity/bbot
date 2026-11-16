@@ -540,6 +540,50 @@ async def test_browser_one_context_per_origin(bbot_scanner):
     assert await no_browser_processes()
 
 
+@pytest.mark.browser
+@pytest.mark.asyncio
+async def test_browser_closes_idle_connections(bbot_scanner, bbot_httpserver):
+    """A closed context's idle connections close within seconds, even to a server that would keep them open."""
+    page = b"<html><title>keep-alive</title></html>"
+    open_connections = set()
+
+    async def keep_alive(reader, writer):
+        open_connections.add(writer)
+        try:
+            while await reader.readuntil(b"\r\n\r\n"):
+                writer.write(
+                    b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: %d\r\n\r\n%s" % (len(page), page)
+                )
+                await writer.drain()
+        except (asyncio.IncompleteReadError, ConnectionError):
+            pass
+        finally:
+            open_connections.discard(writer)
+            writer.close()
+
+    server = await asyncio.start_server(keep_alive, "127.0.0.1", 0)
+    port = server.sockets[0].getsockname()[1]
+    bbot_httpserver.expect_request("/").respond_with_data(
+        "<html><title>other</title></html>", content_type="text/html"
+    )
+    scan = await browser_scan(bbot_scanner, browser_max_pages=1)
+    browser = scan.helpers.browser
+    try:
+        visit = await browser.visit(f"http://127.0.0.1:{port}/")
+        assert visit.title == "keep-alive"
+        # with one page allowed, another origin closes this one's context
+        await browser.visit(bbot_httpserver.url_for("/"))
+        for _ in range(20):
+            if not open_connections:
+                break
+            await asyncio.sleep(0.5)
+        assert not open_connections, f"{len(open_connections)} connections still open 10s after their context closed"
+    finally:
+        await scan._cleanup()
+        server.close()
+    assert await no_browser_processes()
+
+
 def make_cert(name, issuer=None):
     """A certificate for `name` and its key, signed by `issuer` (a cert and key) or self-signed as a CA."""
     key = ec.generate_private_key(ec.SECP256R1())
