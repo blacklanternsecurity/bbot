@@ -26,7 +26,7 @@ class http(BaseModule):
         max_response_size: int = Field(5242880, description="Max response size in bytes")
         store_responses: bool = Field(False, description="Save raw HTTP responses to scan folder")
         rate_limit_give_up: int = Field(
-            1800, description="Drop a host's URLs once it has answered nothing but 429 for this many seconds"
+            600, description="Drop a host:port's URLs once it has answered nothing but 429 for this many seconds"
         )
 
     scope_distance_modifier = 2
@@ -42,12 +42,11 @@ class http(BaseModule):
         self.store_responses = self.config.get("store_responses", False)
         self.client = self.helpers.blasthttp
         self.waf_yara_rule = self.helpers.yara.compile_strings(self.helpers.get_waf_strings(), nocase=True)
-        # {host: _RateLimit} for each host answering 429
-        self._rate_limits = {}
-        self._429_default_interval = self.scan.web_config.get("429_sleep_interval", 30)
-        self._429_max_interval = self.scan.web_config.get("429_max_sleep_interval", 60)
-        self._rate_limit_give_up = self.config.get("rate_limit_give_up", 1800)
-        self._wakeup_target = 0
+        # {host:port: [(url, event)]} held while that host:port answers 429
+        self._held = {}
+        # host:ports that answered nothing but 429 for too long
+        self._gave_up = set()
+        self._rate_limit_give_up = self.config.get("rate_limit_give_up", 600)
         return True
 
     async def filter_event(self, event):
@@ -63,10 +62,8 @@ class http(BaseModule):
         if "spider-max" in event.tags:
             return False, "event exceeds spidering limits"
 
-        if self._rate_limits:
-            limit = self._rate_limits.get(str(event.host))
-            if limit is not None and limit.gave_up:
-                return False, "its host answered nothing but 429 for too long"
+        if self._gave_up and self._netloc(event) in self._gave_up:
+            return False, "its host:port answered nothing but 429 for too long"
 
         # scope filtering
         in_scope_only = self.config.get("in_scope_only", True)
@@ -107,104 +104,46 @@ class http(BaseModule):
         urls, url_hash = self.make_url_metadata(event)
         return url_hash
 
-    @property
-    def finished(self):
-        if any(limit.held or limit.probe is not None for limit in self._rate_limits.values()):
-            return False
-        return super().finished
+    def _netloc(self, event):
+        return self.helpers.make_netloc(event.host, event.port)
 
-    def is_incoming_duplicate(self, event, add=False):
-        if getattr(event, "_429_retry", False):
-            event._429_retry = False
-            return False, "429 retry"
-        return super().is_incoming_duplicate(event, add=add)
+    async def _drain(self, netloc, pause):
+        """
+        Send the URLs held for `netloc` once it stops answering 429.
 
-    def _parse_retry_after(self, response):
-        for k, v in response.headers.items():
-            if k.lower() == "retry-after":
-                try:
-                    seconds = max(1, int(v))
-                    return min(seconds, self._429_max_interval)
-                except ValueError:
-                    pass
-                break
-        return self._429_default_interval
-
-    def _rate_limited(self, event, response):
-        """Hold `event` after a 429, and pause its host, or give up on the host if it's been answering 429 too long."""
-        host = str(event.host)
-        now = time.monotonic()
-        limit = self._rate_limits.get(host)
-        if limit is None:
-            limit = self._rate_limits[host] = _RateLimit(now)
-            self.info(f"{host} is rate limiting (429), holding its URLs until it stops")
-        elif limit.gave_up:
-            # the other request of a test from an OPEN_TCP_PORT event
-            return
-        limit.resume = max(limit.resume, now + self._parse_retry_after(response))
-        if event is limit.probe:
-            limit.probe = None
-            if now - limit.since >= self._rate_limit_give_up:
-                self.warning(
-                    f"{host} has answered nothing but 429 for {int(now - limit.since) // 60} minutes, giving up on "
-                    f"its {len(limit.held) + 1:,} remaining URLs"
-                )
-                limit.gave_up = True
-                limit.held.clear()
-                return
-            self.verbose(f"{host} is still rate limiting (429)")
-        # an OPEN_TCP_PORT event makes two requests
-        if event not in limit.held:
-            limit.held.append(event)
-
-    def _recovered(self, host):
-        """Release the URLs held for `host`, now that a test request got through."""
-        limit = self._rate_limits.pop(host)
-        self.info(f"{host} stopped rate limiting, resuming {len(limit.held):,} URLs")
-        self._requeue(limit.held)
-
-    def _requeue(self, events):
-        if self.incoming_event_queue is False:
-            return
-        for event in events:
-            # past the incoming dedup, which has already seen it
-            event._429_retry = True
-            self.incoming_event_queue.put_nowait(event)
-
-    async def _send_probes(self):
-        """Send one held URL from each host whose pause is over, to test whether it's still rate limiting."""
-        if self.incoming_event_queue is False:
-            return
-        now = time.monotonic()
-        probes = []
-        for limit in self._rate_limits.values():
-            if limit.held and limit.probe is None and not limit.gave_up and now >= limit.resume:
-                limit.probe = limit.held.pop(0)
-                probes.append(limit.probe)
-        if probes:
-            self._requeue(probes)
-            async with self.event_received:
-                self.event_received.notify()
-        self._schedule_probes()
-
-    def _schedule_probes(self):
-        """Wake up to send test requests when the earliest pause ends."""
-        waiting = [
-            limit.resume
-            for limit in self._rate_limits.values()
-            if limit.held and limit.probe is None and not limit.gave_up
-        ]
-        if not waiting:
-            return
-        earliest = min(waiting)
-        if not self._wakeup_target or earliest < self._wakeup_target:
-            self._wakeup_target = earliest
-            self.helpers.create_task(self._wakeup(max(0.1, earliest - time.monotonic())))
-
-    async def _wakeup(self, delay):
-        await self.helpers.sleep(delay)
-        self._wakeup_target = 0
-        await self._send_probes()
+        One goes out first, then twice as many each time none get a 429, and half as many after one does.
+        """
+        held = self._held[netloc]
+        window = 1
+        last_ok = time.monotonic()
+        self.info(f"{netloc} is rate limiting (429), holding its URLs until it stops")
+        try:
+            while True:
+                await self.helpers.sleep(pause)
+                if self.errored:
+                    break
+                if not held:
+                    self.info(f"{netloc} stopped rate limiting")
+                    break
+                urls = dict(held[:window])
+                del held[:window]
+                # blasthttp's own retries would ignore Retry-After
+                pause = await self._request(urls, retries=0)
+                if not pause:
+                    window *= 2
+                    last_ok = time.monotonic()
+                    continue
+                window = max(1, window // 2)
+                limited_for = time.monotonic() - last_ok
+                if limited_for >= self._rate_limit_give_up:
+                    self.warning(
+                        f"{netloc} has answered nothing but 429 for {int(limited_for):,} seconds, giving up on its "
+                        f"{len(held):,} URLs"
+                    )
+                    self._gave_up.add(netloc)
+                    break
+        finally:
+            del self._held[netloc]
 
     def _build_headers(self):
         """Build list of (name, value) header tuples from scan config."""
@@ -303,35 +242,36 @@ class http(BaseModule):
 
     async def handle_batch(self, *events):
         stdin = {}
+        for event in events:
+            held = self._held.get(self._netloc(event))
+            urls, url_hash = self.make_url_metadata(event)
+            for url in urls:
+                if held is None:
+                    stdin[url] = event
+                else:
+                    # its host:port is rate limiting, so its drain sends it
+                    held.append((url, event))
+        if stdin:
+            await self._request(stdin, self.scan.http_retries)
+
+    async def _request(self, stdin, retries):
+        """
+        Visit each URL in `stdin` ({url: event}) and emit what it finds.
+
+        URLs answered with 429 are held for their host:port. Returns the longest pause those 429s asked for, or 0.
+        """
         # Track dual-scheme probes from OPEN_TCP_PORT: {(host, port): {"http": url, "https": url}}
         port_probes = {}
         # Reverse index: each paired probe URL → its (host, port) key
         paired_probe_urls = {}
 
-        # hosts whose test request is in this batch
-        probed = set()
-
-        for event in events:
-            if self._rate_limits:
-                host = str(event.host)
-                limit = self._rate_limits.get(host)
-                if limit is not None:
-                    if event is limit.probe:
-                        probed.add(host)
-                    else:
-                        # its host is rate limiting: only the test request goes out
-                        if not limit.gave_up:
-                            limit.held.append(event)
-                        continue
-            urls, url_hash = self.make_url_metadata(event)
-            for url in urls:
-                stdin[url] = event
-                if event.type == "OPEN_TCP_PORT":
-                    key = (event.host, event.port)
-                    if key not in port_probes:
-                        port_probes[key] = {}
-                    scheme = "https" if url.startswith("https://") else "http"
-                    port_probes[key][scheme] = url
+        for url, event in stdin.items():
+            if event.type == "OPEN_TCP_PORT":
+                key = (event.host, event.port)
+                if key not in port_probes:
+                    port_probes[key] = {}
+                scheme = "https" if url.startswith("https://") else "http"
+                port_probes[key][scheme] = url
 
         # Only ports with BOTH schemes are subject to suppression — single-scheme
         # OPEN_TCP_PORT probes (rare, but possible) stream through normally.
@@ -340,14 +280,9 @@ class http(BaseModule):
                 paired_probe_urls[schemes["http"]] = key
                 paired_probe_urls[schemes["https"]] = key
 
-        if not stdin:
-            self._schedule_probes()
-            return
-
         headers = self._build_headers()
         proxy = self.scan.http_proxy or None
         timeout = self.scan.http_timeout
-        retries = self.scan.http_retries
 
         configs = []
         for url in stdin:
@@ -375,9 +310,23 @@ class http(BaseModule):
                 return
             await self._process_result(result, stdin[result.url])
 
+        longest = 0
         async for result in iter_batch_results(self.client.request_batch_stream(configs, concurrency=self.threads)):
             if result.success and result.response is not None and result.response.status == 429:
-                self._rate_limited(stdin[result.url], result.response)
+                event = stdin[result.url]
+                netloc = self._netloc(event)
+                if netloc in self._gave_up:
+                    continue
+                retry_after = self._get_retry_after(result.response) or self._429_sleep_interval
+                pause = min(retry_after, self._429_max_sleep_interval)
+                longest = max(longest, pause)
+                held = self._held.get(netloc)
+                if held is None:
+                    held = self._held[netloc] = []
+                    drain = self.run_task(self._drain(netloc, pause), f"{self.name}._drain({netloc})")
+                    # in _tasks, so killing the module or stopping the scan cancels it
+                    self._tasks.append(self.helpers.create_task(drain))
+                held.append((result.url, event))
                 continue
 
             _retry_parent = stdin.get(result.url)
@@ -409,24 +358,4 @@ class http(BaseModule):
         # Stream ended -- any leftover https had no http result, so emit unconditionally
         for key, result in deferred_https.items():
             await self._process_result(result, stdin[result.url])
-
-        # a test request that got anything but a 429 means its host has recovered
-        for host in probed:
-            limit = self._rate_limits.get(host)
-            if limit is not None and limit.probe is not None:
-                self._recovered(host)
-        self._schedule_probes()
-
-
-class _RateLimit:
-    """A host answering 429. Its URLs are held, and once its pause is over, one of them goes out to test it."""
-
-    def __init__(self, now):
-        # when it started answering 429
-        self.since = now
-        # when the next test request can go out
-        self.resume = now
-        self.held = []
-        # the event whose request is the test, while it's out
-        self.probe = None
-        self.gave_up = False
+        return longest
