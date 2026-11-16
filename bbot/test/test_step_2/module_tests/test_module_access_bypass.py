@@ -117,6 +117,59 @@ class TestAccessBypass_extension_routing(ModuleTestBase):
         )
 
 
+class TestAccessBypass_extension_routing_page_changes(ModuleTestBase):
+    """A page that changes partway through the probes changes without the extension too, so it isn't routing"""
+
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http", "access_bypass"]
+    module_name = "access_bypass"
+    body = "<html><title>t</title><body><p>Hello null!</p></body></html>"
+    body_changed = "<html><title>t</title><body><p>Hello AAAAAAAAAAAAAA!</p></body></html>"
+
+    async def setup_after_prep(self, module_test):
+        rand_string = module_test.scan.modules["access_bypass"].rand_string
+        changed = []
+
+        def handler(request):
+            if request.query_string.decode() == f"{rand_string}=.jpg":
+                changed.append(True)
+            return Response(self.body_changed if changed else self.body, content_type="text/html")
+
+        module_test.set_expect_requests_handler(expect_args=re.compile("/.*"), request_handler=handler)
+
+    def check(self, module_test, events):
+        assert not [e for e in events if e.type == "FINDING"]
+
+
+class TestAccessBypass_block_lifts(ModuleTestBase):
+    """A block that lifts partway through makes the URL itself answer, so what got through then isn't a bypass"""
+
+    targets = [f"{HTTPSERVER_URL}/test"]
+    modules_overrides = ["access_bypass", "http"]
+    module_name = "access_bypass"
+    config_overrides = {"modules": {"access_bypass": {"enabled_submodules": ["path"]}}}
+
+    async def setup_after_prep(self, module_test):
+        lifted = []
+
+        def bypass(request):
+            lifted.append(True)
+            return Response("alive")
+
+        def page(request):
+            # the URL itself, not the mutations of it that also land here
+            if lifted and request.environ.get("REQUEST_URI") == "/test":
+                return Response("public page")
+            return Response("blocked", status=403)
+
+        module_test.set_expect_requests_handler(expect_args="/test..;/", request_handler=bypass)
+        module_test.set_expect_requests_handler(expect_args="/test", request_handler=page)
+        module_test.httpserver.no_handler_status_code = 403
+
+    def check(self, module_test, events):
+        assert not [e for e in events if e.type == "FINDING"]
+
+
 class TestAccessBypass_xff(ModuleTestBase):
     """T1.1: an IP-spoofing header turns a 406 into a 200."""
 

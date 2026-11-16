@@ -46,7 +46,9 @@ class auth(BaseAccessBypass):
             return False
         if not has_content(response, reasons):
             return False
-        return not await self.access_bypass.is_waf_response(response)
+        if await self.access_bypass.is_waf_response(response):
+            return False
+        return not await self.block_lifted()
 
     async def run_apigw(self, baseline):
         for sentinel in apigw_sentinels:
