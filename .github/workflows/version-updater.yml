@@ -53,12 +53,20 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           latest=$(gh api "repos/$REPO/releases/latest" --jq '.tag_name')
+          latest=${latest#v}
+          # The version goes into sed and the PR title: accept only a plain version string.
+          if [[ ! "$latest" =~ ^[0-9A-Za-z.+-]+$ ]]; then
+            echo "::error::latest release of $REPO has an unexpected tag; not updating"
+            exit 1
+          fi
+          # A random delimiter, so a line in the upstream release notes can't end the value early.
+          delim=$(openssl rand -hex 16)
           {
-            echo "latest_version=${latest#v}"
+            echo "latest_version=$latest"
             echo "current_version=$(grep -m 1 -oP '(?<=Field\(")[^"]*' "bbot/modules/$MODULE.py")"
-            echo "release_notes<<EOF"
+            echo "release_notes<<$delim"
             gh api "repos/$REPO/releases/latest" --jq '.body'
-            echo "EOF"
+            echo "$delim"
           } >> "$GITHUB_ENV"
       - name: Update version
         id: update-version

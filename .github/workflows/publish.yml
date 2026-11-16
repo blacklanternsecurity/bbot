@@ -51,7 +51,8 @@ jobs:
           if-no-files-found: error
 
   docker:
-    needs: [check, tests]
+    # After build: no image is pushed for a version whose package didn't build.
+    needs: [check, tests, build]
     if: needs.check.outputs.release == 'true'
     permissions:
       contents: read
@@ -62,6 +63,11 @@ jobs:
       major: ${{ needs.check.outputs.major }}
       minor: ${{ needs.check.outputs.minor }}
       description: true
+    # docker.yml logs in from a release-environment job, which receives an environment secret only
+    # when the caller maps it by name (as check and release do for BLS_RELEASE_PRIVATE_KEY).
+    secrets:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
 
   pypi:
     needs: [build, docker]
