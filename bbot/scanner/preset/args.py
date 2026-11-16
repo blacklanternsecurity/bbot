@@ -463,7 +463,11 @@ class BBOTArgs:
         )
         misc.add_argument("--custom-yara-rules", "-cy", help="Add custom yara rules to excavate")
 
-        misc.add_argument("--user-agent", "-ua", help="Set the user-agent for all HTTP requests")
+        misc.add_argument(
+            "--user-agent",
+            "-ua",
+            help="Set the user-agent for HTTP requests (most API calls send BBOT/<version>)",
+        )
         misc.add_argument(
             "--user-agent-suffix", "-uas", help="Suffix to append to the user-agent", metavar="SUFFIX", default=None
         )

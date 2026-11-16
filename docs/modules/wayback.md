@@ -34,6 +34,7 @@ Before emission, URLs go through several cleanup steps:
 - **URL collapsing** - Groups of similar URLs (e.g. pagination, search results) are deduplicated based on the `garbage_threshold` setting
 - **HTTP/HTTPS deduplication** - When both `http://` and `https://` variants exist, only the HTTPS version is kept
 - **Blacklist filtering** - URLs containing known CDN/WAF paths (e.g. `_Incapsula_Resource`, `/cdn-cgi/`) are filtered out
+- **Dead-host filtering** - Each host is probed once over HTTP, and URLs on hosts that don't answer are dropped. Any response counts as alive; only connection failures and timeouts don't. With `archive` enabled, those URLs are still used for archive retrieval.
 
 ### Parameter Extraction (`parameters: True`)
 

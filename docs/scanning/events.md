@@ -85,7 +85,8 @@ These attributes allow us to construct a visual graph of events (e.g. in [Neo4j]
   "tags": [
     "a-record",
     "aaaa-record",
-    "cdn-akamai",
+    "akamai",
+    "cdn",
     "cname-record",
     "in-scope",
     "subdomain"

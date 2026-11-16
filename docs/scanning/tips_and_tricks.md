@@ -59,10 +59,16 @@ For OSINT, it's critical that every resolver is **unfiltered**. Specialized reso
 --8<-- "docs/data/resolv-sample.conf"
 ```
 
-Copy this to `/etc/resolv.conf` (or append the `nameserver` lines to your existing config). With all 11 resolvers at the default 10 threads each, blastdns will run 110 workers in parallel instead of the typical 10-30 you get from a default OS config.
+Copy this to `/etc/resolv.conf` (or append the `nameserver` lines to your existing config). At the default 50 queries per resolver, five or six resolvers already reach the 256 total, so if you add more, raise `dns.max_concurrency` to match.
 
 !!! tip
     If your system uses `systemd-resolved` or `resolvconf`, you may need to configure the upstream forwarders there instead of editing `/etc/resolv.conf` directly.
+
+You can also skip `/etc/resolv.conf` and give BBOT its resolvers directly. `--custom-nameservers` (or `dns.nameservers` in your config) replaces the system resolvers for that scan:
+
+```bash
+bbot -t evilcorp.com -f subdomain-enum --custom-nameservers 8.8.8.8 1.1.1.1 9.9.9.10 64.6.64.6 74.82.42.42
+```
 
 ### Web Spider
 

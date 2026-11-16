@@ -71,7 +71,7 @@ dns:
   # state bounded by the resolver count rather than growing with query volume
   brute_persistent_socket: true
   # nameservers to use for DNS brute-forcing
-  # default is updated weekly and contains ~10K high-quality public servers
+  # default is updated weekly and contains ~5K high-quality public servers
   brute_nameservers: https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt
   # How many of those to draw at random, once per scan (0 = all of them)
   # The dead ones in the draw are dropped at startup, and every brute-force run in the scan shares the rest

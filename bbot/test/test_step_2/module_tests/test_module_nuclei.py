@@ -3,6 +3,7 @@ from .base import ModuleTestBase
 from bbot.test.worker import HTTPSERVER_URL, BBOT_TEST_DIR, BBOT_TEST_TOOLS_DIR
 
 import copy
+import json
 import fcntl
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -620,3 +621,198 @@ class TestNucleiCustomHeaders(TestNucleiManual):
         assert first_run_detect
         # the second one requires different headers, so we shouldn't find it
         assert not second_run_detect
+
+
+def nuclei_jsonl(template_id, severity, host, port, url, matched_at, protocol="http", tags=("misc",)):
+    """One line of `nuclei -jsonl` output, in the shape nuclei 3.x emits it. ssl results have no url, so pass None."""
+    result = {
+        "template-id": template_id,
+        "info": {
+            "name": template_id,
+            "author": ["test"],
+            "tags": None if tags is None else list(tags),
+            "severity": severity,
+        },
+        "type": protocol,
+        "host": host,
+        "port": str(port),
+        "matched-at": matched_at,
+        "ip": "127.0.0.1",
+        "matcher-status": True,
+    }
+    if url is not None:
+        result["url"] = url
+    return json.dumps(result)
+
+
+@pytest.fixture
+async def nuclei_module():
+    from bbot.scanner import Scanner
+
+    scan = Scanner("evilcorp.com", modules=["nuclei"], config={"interactsh_disable": True})
+    await scan._prep()
+    yield scan.modules["nuclei"]
+    await scan._cleanup()
+
+
+async def run_nuclei_batch(module, urls, nuclei_output):
+    """Send one batch of URL events through handle_batch, with nuclei's output canned.
+
+    Returns {url: batch event} and the events nuclei emitted.
+    """
+
+    async def fake_run_process_live(command, input=None, **kwargs):
+        for line in nuclei_output:
+            yield line
+
+    emitted = []
+
+    async def capture(event, **kwargs):
+        emitted.append(event)
+
+    module.run_process_live = fake_run_process_live
+    module.queue_outgoing_event = capture
+    scan = module.scan
+    batch = {url: scan.make_event(url, "URL", parent=scan.root_event, tags=["status-200"]) for url in urls}
+    await module.handle_batch(*batch.values())
+    return batch, emitted
+
+
+async def test_nuclei_correlates_results_to_their_own_host(nuclei_module):
+    """A result is parented to the batch URL on its own host, whatever order the batch is in."""
+    urls = [
+        "https://evilcorp.com/privacy/",
+        "https://ucollect.evilcorp.com/",
+        "https://staging.ucollect.evilcorp.com/",
+    ]
+    mismatches = []
+    for order in (urls, urls[::-1]):
+        nuclei_output = [nuclei_jsonl("fastly-debug-digest", "low", url.split("/")[2], 443, url, url) for url in order]
+        batch, emitted = await run_nuclei_batch(nuclei_module, order, nuclei_output)
+        assert len(emitted) == len(order)
+        for event in emitted:
+            expected = batch[event.data["url"]]
+            if event.parent is not expected or event.host != expected.host:
+                mismatches.append(f"{event.data['url']} -> host={event.host} parent={event.parent.url}")
+    assert not mismatches, "results attributed to the wrong batch URL:\n" + "\n".join(mismatches)
+
+
+async def test_nuclei_correlates_results_by_port(nuclei_module):
+    """When a host is in the batch on several ports, a result is parented to the URL nuclei scanned."""
+    ports = {"https://evilcorp.com/": 443, "https://evilcorp.com:8443/": 8443}
+    urls = list(ports)
+    mismatches = []
+    for order in (urls, urls[::-1]):
+        nuclei_output = [
+            nuclei_jsonl("exposed-panel", "medium", "evilcorp.com", ports[url], url, f"{url}admin") for url in order
+        ]
+        batch, emitted = await run_nuclei_batch(nuclei_module, order, nuclei_output)
+        assert len(emitted) == len(order)
+        for event in emitted:
+            scanned = event.data["url"].removesuffix("admin")
+            if event.parent is not batch[scanned]:
+                mismatches.append(f"{event.data['url']} -> parent={event.parent.url}")
+    assert not mismatches, "results attributed to the wrong port:\n" + "\n".join(mismatches)
+
+
+async def test_nuclei_sibling_technologies_are_not_collapsed(nuclei_module):
+    """The same technology on two subdomains is two TECHNOLOGY events, not one deduped onto the apex."""
+    urls = ["https://evilcorp.com/", "https://contact.evilcorp.com/s/", "https://support.evilcorp.com/"]
+    nuclei_output = [
+        nuclei_jsonl("tech-detect", "info", url.split("/")[2], 443, url, url, tags=("tech",)) for url in urls[1:]
+    ]
+    _, emitted = await run_nuclei_batch(nuclei_module, urls, nuclei_output)
+    assert sorted(str(e.host) for e in emitted) == ["contact.evilcorp.com", "support.evilcorp.com"]
+    # BBOT dedupes on event id, so a shared id means one of the two never leaves the module
+    assert len({e.id for e in emitted}) == 2
+
+
+async def test_nuclei_skips_results_outside_the_batch(nuclei_module):
+    """A result for a host that no batch URL covers is dropped rather than attached to an unrelated parent."""
+    urls = ["https://evilcorp.com/"]
+    nuclei_output = [
+        nuclei_jsonl("exposed-panel", "medium", "okta.com", 443, "https://okta.com/", "https://okta.com/")
+    ]
+    _, emitted = await run_nuclei_batch(nuclei_module, urls, nuclei_output)
+    assert emitted == []
+
+
+async def test_nuclei_network_results_on_sibling_subdomains_are_not_collapsed(nuclei_module):
+    """A network template that hits two subdomains yields a FINDING on each, even with their apex in the batch."""
+    urls = ["https://evilcorp.com/", "https://contact.evilcorp.com/", "https://support.evilcorp.com/"]
+    # network templates report matched-at (and url) as host:port rather than a URL
+    nuclei_output = [
+        nuclei_jsonl("ssh-weak-algo", "medium", host, 22, f"{host}:22", f"{host}:22", protocol="javascript")
+        for host in ("contact.evilcorp.com", "support.evilcorp.com")
+    ]
+    batch, emitted = await run_nuclei_batch(nuclei_module, urls, nuclei_output)
+    assert sorted(str(e.host) for e in emitted) == ["contact.evilcorp.com", "support.evilcorp.com"]
+    assert all(e.parent is batch[f"https://{e.host}/"] for e in emitted)
+    assert len({e.id for e in emitted}) == 2
+
+
+async def test_nuclei_untagged_template_does_not_break_the_batch(nuclei_module):
+    """nuclei writes `tags: null` for a template without tags, and the results after it must still be emitted."""
+    url = "https://evilcorp.com/"
+    nuclei_output = [
+        nuclei_jsonl("custom-untagged", "info", "evilcorp.com", 443, url, url, tags=None),
+        nuclei_jsonl("exposed-panel", "medium", "evilcorp.com", 443, url, f"{url}admin"),
+    ]
+    _, emitted = await run_nuclei_batch(nuclei_module, [url], nuclei_output)
+    assert [e.data["url"] for e in emitted] == [url, f"{url}admin"]
+
+
+async def test_nuclei_ssl_results_on_two_ports_are_not_collapsed(nuclei_module):
+    """ssl templates report host:port and no URL, so each result is matched to the batch URL on its own port."""
+    urls = ["https://evilcorp.com/", "https://evilcorp.com:8443/"]
+    nuclei_output = [
+        nuclei_jsonl("self-signed-ssl", "low", "evilcorp.com", port, None, f"evilcorp.com:{port}", protocol="ssl")
+        for port in (443, 8443)
+    ]
+    batch, emitted = await run_nuclei_batch(nuclei_module, urls, nuclei_output)
+    assert [(e.port, e.data["url"]) for e in emitted] == [(443, urls[0]), (8443, urls[1])]
+    assert [e.parent for e in emitted] == [batch[urls[0]], batch[urls[1]]]
+    assert len({e.id for e in emitted}) == 2
+
+
+async def test_nuclei_network_result_on_another_port_keeps_its_port(nuclei_module):
+    """A network result on a port with no batch URL carries that port, rather than its parent's URL."""
+    url = "https://evilcorp.com/"
+    nuclei_output = [
+        nuclei_jsonl("exposed-redis", "high", "evilcorp.com", 6379, "evilcorp.com:6379", "evilcorp.com:6379", "tcp")
+    ]
+    batch, emitted = await run_nuclei_batch(nuclei_module, [url], nuclei_output)
+    assert len(emitted) == 1
+    finding = emitted[0]
+    assert finding.parent is batch[url]
+    assert "url" not in finding.data
+    assert (finding.port, finding.netloc) == (6379, "evilcorp.com:6379")
+
+
+class TestNucleiNetworkPorts(ModuleTestBase):
+    """A network template that matches on several ports yields one FINDING per port, each carrying its port."""
+
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http", "nuclei"]
+    config_overrides = {"interactsh_disable": True, "modules": {"nuclei": {"mode": "manual"}}}
+    redis_ports = (6379, 6380)
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"}, respond_args={"response_data": "<html>alive</html>"}
+        )
+        module = module_test.scan.modules["nuclei"]
+
+        # exposed-redis declares `port: 6379,6380`, and nuclei reports matched-at as host:port
+        async def fake_run_process_live(command, input=None, **kwargs):
+            for url in input:
+                host = module_test.scan.helpers.urlparse(url).hostname
+                for port in self.redis_ports:
+                    netloc = f"{host}:{port}"
+                    yield nuclei_jsonl("exposed-redis", "high", host, port, netloc, netloc, protocol="tcp")
+
+        module.run_process_live = fake_run_process_live
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING" and "exposed-redis" in e.data["description"]]
+        assert sorted(e.port for e in findings) == list(self.redis_ports), [(e.data, e.port) for e in findings]
