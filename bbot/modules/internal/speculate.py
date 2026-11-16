@@ -178,8 +178,14 @@ class speculate(BaseInternalModule):
             event_tags.append("spider-danger")
         if event_is_url or event_has_url:
             url = event.url
-            # only emit the url if it's not already in the event's history
-            if not any(e.type == "URL_UNVERIFIED" and e.url == url for e in event.get_parents()):
+            # only emit the url if it's not already in the event's history. A response for a page in its history with
+            # a different query string, like a lightfuzz baseline of one of that page's parameters, is that page again
+            if event.type == "HTTP_RESPONSE":
+                page = url.split("?")[0]
+                known = any(e.type == "URL_UNVERIFIED" and e.url.split("?")[0] == page for e in event.get_parents())
+            else:
+                known = any(e.type == "URL_UNVERIFIED" and e.url == url for e in event.get_parents())
+            if not known:
                 await self.emit_event(
                     url,
                     "URL_UNVERIFIED",
