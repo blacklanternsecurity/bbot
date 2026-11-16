@@ -50,6 +50,9 @@ FIREFOX_PREFS = {
     # get many contexts would see them pile up; close them after 5s idle
     "network.http.keep-alive.timeout": 5,
     "network.http.http2.timeout": 5,
+    # WebSockets go straight to HTTP/1.1: trying HTTP/2 first can open a connection the browser then abandons, which a
+    # server that waits for a request before answering never closes
+    "network.http.http2.websockets": False,
 }
 
 # appended to camoufox.cfg, which Firefox runs with full privileges at startup. Once any page on a host sends
