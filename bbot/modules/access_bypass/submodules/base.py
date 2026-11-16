@@ -68,6 +68,8 @@ class BaseAccessBypass:
         self.parsed_url = event.parsed_url
         self.base_url = f"{self.parsed_url.scheme}://{self.parsed_url.netloc}"
         self.results = []
+        # whether the URL itself has stopped being blocked: see block_lifted()
+        self._block_lifted = None
 
     def applies(self):
         return self.event.http_status in self.trigger_status_codes
@@ -133,7 +135,20 @@ class BaseAccessBypass:
         if probe.sibling_url and await self.is_catch_all(probe):
             self.access_bypass.debug(f"Rejecting {probe.label}: the same mutation succeeds on a nonexistent path")
             return False
+        if await self.block_lifted():
+            self.access_bypass.debug(f"Rejecting {probe.label}: {self.event.url} itself now answers with a 2xx")
+            return False
         return await self.confirm(probe, response)
+
+    async def block_lifted(self):
+        """
+        Whether the URL itself now answers with a 2xx. A block that lifts partway through, like a rate limit or a bot
+        check, would make every probe after it look like a bypass. Asked once, when a probe first gets through.
+        """
+        if self._block_lifted is None:
+            response = await self.helpers.request(self.event.url, follow_redirects=self.follow_redirects)
+            self._block_lifted = response is not None and is_allowed_status(response.status_code)
+        return self._block_lifted
 
     async def is_catch_all(self, probe):
         """Whether the mutation reaches nothing special: a nonexistent sibling path gets the same treatment.

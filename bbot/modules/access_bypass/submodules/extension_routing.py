@@ -37,4 +37,19 @@ class extension_routing(BaseAccessBypass):
                 self.access_bypass.debug("Ignoring positive result due to presence of parameter name in result")
                 continue
             if match is False and str(response.status_code).startswith("2") and "body" in reasons:
+                if await self.page_changed(path, rand_string):
+                    self.access_bypass.debug(f"Rejecting {url}: the page changes without the extension too")
+                    continue
                 self.add_result(await self.describe(f"Modified URL: {url}", reasons, response), confidence="LOW")
+
+    async def page_changed(self, path, rand_string):
+        """
+        Whether the page now differs from its baseline with the same parameter and no extension in it: content that
+        changes over time, or a block that starts partway through, rather than routing by extension.
+        """
+        control = f"{self.base_url}/{path}?{rand_string}={self.helpers.rand_string(6)}"
+        try:
+            match, reasons, _, response = await self.compare_helper.compare(control, allow_redirects=True)
+        except HttpCompareError:
+            return True
+        return response is None or (match is False and "body" in reasons)
