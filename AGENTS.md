@@ -64,7 +64,7 @@ class TestMyModule(ModuleTestBase):
     targets = [HTTPSERVER_URL]
 ```
 
-`/tmp/.bbot_test` has the same problem, since the first worker to finish deletes it. `BBOT_TEST_DIR` is the per-worker equivalent.
+A fixed BBOT home like `/tmp/.bbot_test` has the same problem, since the first worker to finish deletes it, and so would another test run going at the same time. `BBOT_TEST_DIR` is this worker's own home, inside a directory unique to the test run.
 
 | Constant | What it is |
 |---|---|
