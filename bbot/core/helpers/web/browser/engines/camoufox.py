@@ -202,7 +202,8 @@ class CamoufoxEngine(BrowserEngine):
             # uBlock Origin would hide requests (and page content) the scan cares about
             "exclude_addons": [DefaultAddons.UBO],
             "i_know_what_im_doing": True,
-            "firefox_user_prefs": FIREFOX_PREFS,
+            # a copy: Camoufox adds the launch's fingerprint to the prefs it's given, which would carry into the next
+            "firefox_user_prefs": dict(FIREFOX_PREFS),
             # Camoufox isolates every evaluate from the page's own scripts; this lets a module that needs to see
             # their state opt in per call, with page.evaluate("mw:...")
             "main_world_eval": True,
