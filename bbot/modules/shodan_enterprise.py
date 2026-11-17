@@ -5,9 +5,10 @@ from bbot.core.config.models import BaseModuleConfig, Field
 
 
 class shodan_enterprise(BaseModule):
-    """Shodan Enterprise API integration. Batches IPs through a search prefilter, then looks up each known host.
+    """Shodan Enterprise API integration. Batches IPs through a count prefilter, then looks up each known host.
 
-    Set ``search_prefilter: false`` to look up every IP directly without spending query credits.
+    The prefilter uses /shodan/host/count, which spends no query credits. Set ``search_prefilter: false``
+    to skip it and look up every IP directly.
     """
 
     watched_events = ["IP_ADDRESS"]
@@ -30,12 +31,12 @@ class shodan_enterprise(BaseModule):
         search_prefilter: bool = Field(
             True,
             description=(
-                "Use a batched search to find which IPs Shodan knows before looking them up "
-                "individually. Far fewer requests; costs query credits."
+                "Use a batched count query (no query credits) to find which IPs Shodan knows "
+                "before looking them up individually. If false, every IP is looked up."
             ),
         )
         search_chunk_size: int = Field(
-            100, description="IPs per batched search query (hard ceiling is ~800 before the URL is rejected)"
+            100, description="IPs per batched count query (hard ceiling is ~800 before the URL is rejected)"
         )
         concurrency: int = Field(
             4, description="Max in-flight API requests. The rate limit, not this, is usually the constraint."
@@ -43,16 +44,20 @@ class shodan_enterprise(BaseModule):
 
     in_scope_only = True
 
-    # IPs are buffered in handle_batch() until a full batch is worth querying
     _batch_size = 100
 
     base_url = "https://api.shodan.io"
 
-    # consecutive failed search chunks before the prefilter is disabled for the scan
+    # consecutive failed count queries before the prefilter is disabled for the scan
     _max_search_failures = 2
 
-    # NIST CVSS score -> severity
-    severity_map = {"NONE": 0.0, "LOW": 0.1, "MEDIUM": 4.0, "HIGH": 7.0, "CRITICAL": 9.0}
+    # NIST CVSS score -> severity, as in shodan_idb; below 0.1 or unknown is INFO
+    _cvss_severity_thresholds = (
+        (9.0, "CRITICAL"),
+        (7.0, "HIGH"),
+        (4.0, "MEDIUM"),
+        (0.1, "LOW"),
+    )
 
     async def setup(self):
         self.api_key = self.config.get("api_key", "")
@@ -67,12 +72,7 @@ class shodan_enterprise(BaseModule):
         self._next_slot = 0.0
         self._min_interval = 1.0 / self.requests_per_second
 
-        # Shodan is queried at most once per address per scan
-        self._pending = []
-        self._seen = set()
-        self._parents = {}
-
-        # search chunks that failed in a row
+        # count queries that failed in a row
         self._search_failures = 0
 
         if not self.config.get("in_scope_only", True):
@@ -122,7 +122,7 @@ class shodan_enterprise(BaseModule):
 
     @staticmethod
     def _error_text(response):
-        """Shodan's error message, trimmed, with the API key never echoed back."""
+        """Shodan's error message, trimmed."""
         body = (getattr(response, "text", "") or "").strip().replace("\n", " ")
         return body[:200] if body else "<empty body>"
 
@@ -130,119 +130,68 @@ class shodan_enterprise(BaseModule):
     def _host_url(self, ip):
         return f"{self.base_url}/shodan/host/{self.helpers.quote(ip)}?key={{api_key}}"
 
-    def _search_url(self, query, page):
-        # minify=false: the default strips cpe, http.components and vulns
-        return (
-            f"{self.base_url}/shodan/host/search"
-            f"?key={{api_key}}&minify=false&page={page}&query={self.helpers.quote(query)}"
-        )
+    def _count_url(self, ips):
+        # an ip facet as large as the chunk lists every known IP in one answer
+        query = self.helpers.quote("ip:" + ",".join(ips))
+        facets = self.helpers.quote(f"ip:{len(ips)}")
+        return f"{self.base_url}/shodan/host/count?key={{api_key}}&query={query}&facets={facets}"
 
     async def handle_batch(self, *events):
-        """Buffer incoming IPs and query once there are batch_size of them; finish() drains the rest."""
-        for event in events:
-            ip = str(event.data)
-            if ip in self._seen:
-                continue
-            self._seen.add(ip)
-            self._pending.append(ip)
-            self._parents[ip] = event
+        """Count query to find known IPs, then a full lookup of each."""
+        # incoming events are already deduplicated by the base module
+        parents = {str(event.data): event for event in events}
+        ips = list(parents)
 
-        if len(self._pending) >= self.batch_size:
-            await self._drain()
-
-    async def finish(self):
-        await self._drain()
-
-    async def _drain(self):
-        batch, self._pending = self._pending, []
-        if not batch:
-            return
-        try:
-            await self._process(batch)
-        finally:
-            # release the events, and the graph above them, once the batch is emitted
-            for ip in batch:
-                self._parents.pop(ip, None)
-
-    async def _process(self, ips):
-        """Batched search to find known IPs, then a full lookup of each."""
-        if self.search_prefilter:
-            known = await self._search_known_ips(ips)
+        # a count plus a lookup costs more than the lookup alone
+        if self.search_prefilter and len(ips) > 1:
+            known = await self._known_ips(ips)
             skipped = len(ips) - len(known)
-            searches = -(-len(ips) // self.search_chunk_size)  # ceil
+            counts = -(-len(ips) // self.search_chunk_size)  # ceil
             self.info(
                 f"Shodan knows {len(known):,} of {len(ips):,} IPs; "
-                f"{searches:,} search(es) + {len(known):,} lookup(s) "
+                f"{counts:,} count query(ies) + {len(known):,} lookup(s) "
                 f"instead of {len(ips):,} lookups ({skipped:,} skipped)"
             )
         else:
-            known = list(ips)
+            known = ips
 
-        if not known:
-            return
-
-        # the search index withholds some UDP banners, so the per-IP lookup is what completes the result
-        lookups = (self._lookup_and_emit(ip) for ip in known)
+        # the count query only says which IPs are known; banners, vulns and hostnames come from the lookup
+        lookups = (self._lookup_and_emit(ip, parents[ip]) for ip in known)
         async for _ in self.helpers.as_completed(lookups, max_concurrent=self.concurrency):
             pass
 
-    async def _search_known_ips(self, ips):
-        """Return the IPs Shodan knows about, one search per search_chunk_size IPs.
+    async def _known_ips(self, ips):
+        """Return the IPs Shodan knows about, one count query per search_chunk_size IPs.
 
-        A chunk whose search fails is returned whole, so a failure costs speed, never findings.
+        A chunk whose count query fails is returned whole, so a failure costs speed, never findings.
         After _max_search_failures failed chunks in a row the prefilter is disabled for the scan.
         """
         known = []
         for start in range(0, len(ips), self.search_chunk_size):
             chunk = ips[start : start + self.search_chunk_size]
-            query = "ip:" + ",".join(chunk)
-            chunk_set = set(chunk)
-            found = set()
-            failed = False
-            rate_limited = False
-            page = 1
+            body, status_code = await self._get_json(self._count_url(chunk), f"count of {len(chunk)} IPs")
 
-            while True:
-                body, status_code = await self._get_json(self._search_url(query, page), f"search of {len(chunk)} IPs")
-                if body is None:
-                    if self.errored:
-                        return known
-                    # fall back to direct lookups of the whole chunk
-                    self.verbose(f"Search failed for a chunk of {len(chunk)} IPs; falling back to direct lookups")
-                    found = chunk_set
-                    # a rate limit does not count toward disabling the prefilter
-                    rate_limited = status_code == 429
-                    failed = not rate_limited
-                    break
-
-                matches = body.get("matches") or []
-                for match in matches:
-                    ip = match.get("ip_str")
-                    if ip in chunk_set:
-                        found.add(ip)
-
-                # every page costs a query credit, so stop once the whole chunk is accounted for
-                if found == chunk_set:
-                    break
-
-                total = body.get("total")
-                if len(matches) < 100 or (isinstance(total, int) and page * 100 >= total):
-                    break
-                page += 1
-
-            known.extend(ip for ip in chunk if ip in found)
-
-            if rate_limited:
-                continue
-            if not failed:
+            if body is not None:
+                facets = (body.get("facets") or {}).get("ip") or []
+                found = {str(facet.get("value")) for facet in facets if isinstance(facet, dict)}
+                known.extend(ip for ip in chunk if ip in found)
                 self._search_failures = 0
                 continue
 
+            if self.errored:
+                return known
+            # fall back to direct lookups of the whole chunk
+            self.verbose(f"Count query failed for a chunk of {len(chunk)} IPs; falling back to direct lookups")
+            known.extend(chunk)
+
+            # a rate limit does not count toward disabling the prefilter
+            if status_code == 429:
+                continue
             self._search_failures += 1
             if self._search_failures >= self._max_search_failures:
                 self.warning(
-                    f"Search failed {self._search_failures} times in a row; disabling search_prefilter for the "
-                    "rest of the scan and querying every IP directly. Slower, same results."
+                    f"Count query failed {self._search_failures} times in a row; disabling search_prefilter for "
+                    "the rest of the scan and querying every IP directly. Slower, same results."
                 )
                 self.search_prefilter = False
                 known.extend(ips[start + self.search_chunk_size :])
@@ -250,7 +199,7 @@ class shodan_enterprise(BaseModule):
 
         return known
 
-    async def _lookup_and_emit(self, ip):
+    async def _lookup_and_emit(self, ip, event):
         """Look up the full host record and emit its events."""
         host, _ = await self._get_json(self._host_url(ip), ip)
         if host is None:
@@ -258,13 +207,9 @@ class shodan_enterprise(BaseModule):
         if not host.get("data") and not host.get("hostnames"):
             self.debug(f"No Shodan data about {ip}")
             return
-        await self._emit_host(ip, host)
+        await self._emit_host(ip, host, event)
 
-    async def _emit_host(self, ip, host):
-        event = self._parents.get(ip)
-        if event is None:
-            return
-
+    async def _emit_host(self, ip, host, event):
         await self._emit_hostnames(ip, host, event)
 
         # TECHNOLOGY has no port, so emit each one once, from the first banner that reports it
@@ -355,15 +300,14 @@ class shodan_enterprise(BaseModule):
         service = f" on {port}/{transport}" if port is not None and transport else ""
 
         for cve, vuln_data in (data.get("vulns") or {}).items():
-            cvss = vuln_data.get("cvss", 0)
-            severity = max(
-                (level for level, threshold in self.severity_map.items() if cvss >= threshold),
-                key=lambda x: self.severity_map[x],
-            )
+            score = self._cvss_score(vuln_data)
+            # FINDING rejects anything but INFO..CRITICAL, so an unscored CVE is INFO rather than dropped
+            severity = self._cvss_to_severity(score) or "INFO"
+            cvss = f" (CVSS {score:.1f})" if score is not None else ""
             vuln = {
                 "name": "Shodan - Possible Vulnerabilities",
                 "severity": severity,
-                "description": f"{cve}{service}",
+                "description": f"{cve}{service}{cvss}",
                 "confidence": "LOW",
                 "cves": [cve],
             }
@@ -375,3 +319,27 @@ class shodan_enterprise(BaseModule):
                 tags=[],
                 context=f"{{module}} queried Shodan API for {ip} and found FINDING {cve}{service}",
             )
+
+    @staticmethod
+    def _cvss_score(vuln_data):
+        """The first numeric score of cvss_v3, cvss and cvss_v2, or None."""
+        if not isinstance(vuln_data, dict):
+            return None
+        for key in ("cvss_v3", "cvss", "cvss_v2"):
+            value = vuln_data.get(key)
+            if value is None:
+                continue
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return None
+        return None
+
+    @classmethod
+    def _cvss_to_severity(cls, score):
+        if score is None:
+            return None
+        for threshold, label in cls._cvss_severity_thresholds:
+            if score >= threshold:
+                return label
+        return None
