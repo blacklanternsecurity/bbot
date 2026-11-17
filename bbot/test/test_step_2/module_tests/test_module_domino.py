@@ -199,3 +199,38 @@ class TestDominoWebParametersOff(TestDominoWebParameters):
     def check(self, module_test, events):
         assert not module_test.scan.modules["excavate"].parameter_extraction
         assert not [e for e in events if e.type in ("FINDING", "WEB_PARAMETER")]
+
+
+# a page whose script calls a JSON API and a results page, each with a parameter
+FETCHING_PAGE = """<html><head><title>fetching</title></head><body><script>
+fetch("/api/items?q=books");
+fetch("/results?search=books");
+</script></body></html>"""
+
+
+class TestDominoBrowserParameters(ModuleTestBase):
+    """Of the parameters a page's scripts send, DOMino tests the ones whose endpoint answered with a page"""
+
+    pytestmark = pytest.mark.browser
+    targets = [f"{HTTPSERVER_URL}/"]
+    modules_overrides = ["http", "browser_dom", "domino"]
+    config_overrides = {
+        "web": {"enable_browser": True},
+        "modules": {"domino": {"rules": ["get-parameter-reflection"], "web_parameters": True}},
+    }
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests({"uri": "/"}, {"response_data": FETCHING_PAGE, "content_type": "text/html"})
+        module_test.set_expect_requests(
+            {"uri": "/api/items"}, {"response_data": '{"items": []}', "content_type": "application/json"}
+        )
+        module_test.set_expect_requests(
+            {"uri": "/results"}, {"response_data": "<html><body>results</body></html>", "content_type": "text/html"}
+        )
+
+    def check(self, module_test, events):
+        captured = {e.data["name"] for e in events if e.type == "WEB_PARAMETER" and str(e.module) == "browser_dom"}
+        assert {"q", "search"} <= captured
+        tested = {name for _, name in module_test.scan.modules["domino"].tested_parameters}
+        assert "search" in tested
+        assert "q" not in tested, "DOMino loaded a JSON API's parameter as a page"

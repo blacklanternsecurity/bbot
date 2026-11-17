@@ -4,6 +4,7 @@ from domino.DOMino import Domino
 from domino.lib.errors import DominoError
 
 from bbot.errors import BrowserError
+from bbot.modules.base import BROWSER_PAGE_TYPES
 from bbot.modules.templates.browser_vulns import browser_vulns
 from bbot.core.config.models import BaseModuleConfig, Field
 
@@ -82,6 +83,11 @@ class domino(browser_vulns):
         if event.type == "WEB_PARAMETER":
             if event.data.get("type") != "GETPARAM":
                 return False, "DOMino only tests GET parameters"
+            # a parameter seen in a page's own request knows what its endpoint answered with, and DOMino loads only
+            # pages
+            content_type = event.data.get("content_type")
+            if content_type and content_type.split(";")[0].strip().lower() not in BROWSER_PAGE_TYPES:
+                return False, f"its endpoint answers with {content_type}, not a page"
             return True
         return await super().filter_event(event)
 
@@ -178,6 +184,4 @@ class domino(browser_vulns):
             # an empty result, so pages with the same code are skipped rather than timing out too
             self.warning(f"DOMino didn't stop within {STOP_GRACE}s of its {self.time_budget}s on {url}")
             return []
-        if domino.ran_out_of_time:
-            self.warning(f"DOMino ran out of time after {self.time_budget}s on {url}, with {len(results)} findings")
         return results
