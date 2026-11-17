@@ -96,6 +96,40 @@ class TestDominoTimeBudget(ModuleTestBase):
         assert [finding.data["name"] for finding in findings] == ["Dom-Based XSS"]
 
 
+class TestDominoOneLine(ModuleTestBase):
+    """A finding's description is one line, however many lines DOMino's details and interactions span"""
+
+    pytestmark = pytest.mark.browser
+    module_name = "domino"
+    targets = [f"{HTTPSERVER_URL}/"]
+    modules_overrides = ["http", "domino"]
+    config_overrides = {"web": {"enable_browser": True}, "modules": {"domino": {"rules": ["xss-basic"]}}}
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests({"uri": "/"}, {"response_data": VULNERABLE_PAGE, "content_type": "text/html"})
+
+        async def multi_line_results(url, parameters=None):
+            return [
+                {
+                    "rule_name": "Dom-Based XSS",
+                    "description": "Detects confirmed execution\nfrom DOM XSS payloads",
+                    "severity": "high",
+                    "details": ["JavaScript alert()\n    was executed"],
+                    "interactions": ['Clicked element: <form id="f">\n    <input name="q">\n</form>'],
+                    "detection_url": f"{HTTPSERVER_URL}/?q=x",
+                }
+            ]
+
+        module_test.monkeypatch.setattr(module_test.scan.modules["domino"], "run_domino", multi_line_results)
+
+    def check(self, module_test, events):
+        findings = [e.data for e in events if e.type == "FINDING"]
+        assert len(findings) == 1
+        description = findings[0]["description"]
+        assert "\n" not in description
+        assert 'Interactions: [Clicked element: <form id="f"> <input name="q"> </form>]' in description
+
+
 # a search whose results page fetches the results and evals them, which the server writes with " escaped but not \\
 SEARCH_JS = """function search(path) {
     var xhr = new XMLHttpRequest();
