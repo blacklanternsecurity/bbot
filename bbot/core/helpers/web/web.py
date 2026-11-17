@@ -91,6 +91,11 @@ class WebHelper:
         self._user_agent = f"{ua} {ua_suffix}".strip()
         self._custom_headers = self.web_config.get("http_headers", {})
         self._custom_cookies = self.web_config.get("http_cookies", {})
+        # parameter names, and prefixes of them, that are trackers and framework noise rather than input worth testing
+        self.parameter_blacklist = {p.lower() for p in self.config.get("parameter_blacklist", None) or []}
+        self.parameter_blacklist_prefixes = tuple(
+            p.lower() for p in self.config.get("parameter_blacklist_prefixes", None) or []
+        )
         self._wildcard_cache = LRUCache(maxsize=50000)
         self._wildcard_locks = NamedLock(max_size=50000)
         # host -> "reached" or "browser_only", from blasthttp's verdict on each response
@@ -105,6 +110,18 @@ class WebHelper:
         self._clearances = {}
         self._clearance_counts = {}
         self._challenge_locks = NamedLock(max_size=10000)
+
+    def parameter_blacklisted(self, name):
+        """
+        Whether `name` is a parameter the scan leaves alone: in `parameter_blacklist`, or starting with one of
+        `parameter_blacklist_prefixes`.
+
+        Examples:
+            >>> self.helpers.web.parameter_blacklisted("utm_source")
+            True
+        """
+        name = name.lower()
+        return name in self.parameter_blacklist or name.startswith(self.parameter_blacklist_prefixes)
 
     @property
     def client(self):
