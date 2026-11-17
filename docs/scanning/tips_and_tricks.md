@@ -38,16 +38,20 @@ bbot -t evilcorp.com -m baddns -c modules.baddns.module_threads=20
 
 ### Boost DNS Brute-force Speed
 
-If you have a fast internet connection or are running BBOT from a cloud VM, you can speed up subdomain enumeration by cranking the threads for `massdns`. The default is `1000`, which is about 1MB/s of DNS traffic:
+If you have a fast internet connection or are running BBOT from a cloud VM, you can speed up subdomain enumeration by raising how many brute-force queries stay in flight. The default is `1000`, which is roughly 1MB/s of DNS traffic:
 
 ```bash
-# massdns with 5000 resolvers, about 5MB/s
+# about 5MB/s
 bbot -t evilcorp.com -f subdomain-enum -c dns.brute_threads=5000
 ```
 
+Brute-forcing backs off on its own when resolvers start dropping queries, so raising this sets how fast BBOT will go when the resolvers can keep up, not how hard it will push regardless. If you need a firm ceiling as well, set `dns.brute_rate_limit` (queries per second, `0` for unlimited).
+
+To be gentler on individual resolvers rather than faster, lower `dns.brute_inflight_per_resolver` (default `2`). No resolver ever receives more than this at once, however large the resolver list.
+
 ### Speed Up Scans with More DNS Resolvers
 
-By far the most effective way to speed up a BBOT scan is to **add more resolvers to `/etc/resolv.conf`**. BBOT's DNS resolver (blastdns) spins up multiple threads per resolver (default: `10`, configurable via `dns.threads`), so more resolvers = more parallelism = faster scans.
+One of the most effective ways to speed up a BBOT scan is to **add more resolvers to `/etc/resolv.conf`**. BBOT's DNS resolver (blastdns) keeps up to `dns.threads` queries in flight per resolver (default `50`), up to `dns.max_concurrency` in total (default `256`), so more resolvers = more parallelism = faster scans, until that total is reached.
 
 For OSINT, it's critical that every resolver is **unfiltered**. Specialized resolvers that try to block ads, malicious domains, etc. will intentionally omit results. Below is a sample `/etc/resolv.conf` with 11 unfiltered public resolvers:
 
@@ -55,10 +59,16 @@ For OSINT, it's critical that every resolver is **unfiltered**. Specialized reso
 --8<-- "docs/data/resolv-sample.conf"
 ```
 
-Copy this to `/etc/resolv.conf` (or append the `nameserver` lines to your existing config). With all 11 resolvers at the default 10 threads each, blastdns will run 110 workers in parallel instead of the typical 10-30 you get from a default OS config.
+Copy this to `/etc/resolv.conf` (or append the `nameserver` lines to your existing config). At the default 50 queries per resolver, five or six resolvers already reach the 256 total, so if you add more, raise `dns.max_concurrency` to match.
 
 !!! tip
     If your system uses `systemd-resolved` or `resolvconf`, you may need to configure the upstream forwarders there instead of editing `/etc/resolv.conf` directly.
+
+You can also skip `/etc/resolv.conf` and give BBOT its resolvers directly. `--custom-nameservers` (or `dns.nameservers` in your config) replaces the system resolvers for that scan:
+
+```bash
+bbot -t evilcorp.com -f subdomain-enum --custom-nameservers 8.8.8.8 1.1.1.1 9.9.9.10 64.6.64.6 74.82.42.42
+```
 
 ### Web Spider
 

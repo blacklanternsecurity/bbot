@@ -7,19 +7,6 @@ class TestDnsbrute(ModuleTestBase):
     config_overrides = {"modules": {"dnsbrute": {"wordlist": str(subdomain_wordlist), "max_depth": 3}}}
 
     async def setup_after_prep(self, module_test):
-        old_run_live = module_test.scan.helpers.run_live
-
-        async def new_run_live(*command, check=False, text=True, **kwargs):
-            if "massdns" in command[:2]:
-                _input = [l async for l in kwargs["input"]]
-                if "asdf.blacklanternsecurity.com" in _input:
-                    yield """{"name": "asdf.blacklanternsecurity.com.", "type": "A", "class": "IN", "status": "NOERROR", "rx_ts": 1713974911725326170, "data": {"answers": [{"ttl": 86400, "type": "A", "class": "IN", "name": "asdf.blacklanternsecurity.com.", "data": "1.2.3.4."}]}, "flags": ["rd", "ra"], "resolver": "195.226.187.130:53", "proto": "UDP"}"""
-            else:
-                async for _ in old_run_live(*command, check=False, text=True, **kwargs):
-                    yield _
-
-        module_test.monkeypatch.setattr(module_test.scan.helpers, "run_live", new_run_live)
-
         await module_test.mock_dns(
             {
                 "blacklanternsecurity.com": {"A": ["4.3.2.1"]},
@@ -149,19 +136,6 @@ class TestDnsbruteMultiWordlist(ModuleTestBase):
     config_overrides = {"modules": {"dnsbrute": {"wordlist": [str(wordlist_1), str(wordlist_2)], "max_depth": 3}}}
 
     async def setup_after_prep(self, module_test):
-        old_run_live = module_test.scan.helpers.run_live
-
-        async def new_run_live(*command, check=False, text=True, **kwargs):
-            if "massdns" in command[:2]:
-                _input = [l async for l in kwargs["input"]]
-                if "asdf.blacklanternsecurity.com" in _input:
-                    yield """{"name": "asdf.blacklanternsecurity.com.", "type": "A", "class": "IN", "status": "NOERROR", "rx_ts": 1713974911725326170, "data": {"answers": [{"ttl": 86400, "type": "A", "class": "IN", "name": "asdf.blacklanternsecurity.com.", "data": "1.2.3.4."}]}, "flags": ["rd", "ra"], "resolver": "195.226.187.130:53", "proto": "UDP"}"""
-            else:
-                async for _ in old_run_live(*command, check=False, text=True, **kwargs):
-                    yield _
-
-        module_test.monkeypatch.setattr(module_test.scan.helpers, "run_live", new_run_live)
-
         await module_test.mock_dns(
             {
                 "blacklanternsecurity.com": {"A": ["4.3.2.1"]},
@@ -183,9 +157,8 @@ class TestDnsbruteMultiWordlist(ModuleTestBase):
 class TestDnsbruteCanaryCheck(ModuleTestBase):
     """Test that the canary check correctly aborts brute-forcing on wildcard domains.
 
-    Simulates a wildcard domain by making massdns return a result for every input
-    subdomain, including the canary subdomains. The canary check should detect
-    this and return no results.
+    Simulates a wildcard domain by resolving every name under it, canaries
+    included. The canary check should detect this and return no results.
     """
 
     module_name = "dnsbrute"
@@ -193,31 +166,11 @@ class TestDnsbruteCanaryCheck(ModuleTestBase):
     config_overrides = {"modules": {"dnsbrute": {"wordlist": str(subdomain_wordlist)}}}
 
     async def setup_after_prep(self, module_test):
-        old_run_live = module_test.scan.helpers.run_live
-
-        async def new_run_live(*command, check=False, text=True, **kwargs):
-            if "massdns" in command[:2]:
-                # simulate a wildcard domain: return a result for EVERY input subdomain
-                _input = [l async for l in kwargs["input"]]
-                for subdomain in _input:
-                    hostname = subdomain.strip()
-                    if hostname:
-                        yield (
-                            '{"name": "'
-                            + hostname
-                            + '.", "type": "A", "class": "IN", "status": "NOERROR", "data": {"answers": [{"ttl": 86400, "type": "A", "class": "IN", "name": "'
-                            + hostname
-                            + '.", "data": "1.2.3.4"}]}, "resolver": "195.226.187.130:53", "proto": "UDP"}'
-                        )
-            else:
-                async for _ in old_run_live(*command, check=False, text=True, **kwargs):
-                    yield _
-
-        module_test.monkeypatch.setattr(module_test.scan.helpers, "run_live", new_run_live)
-
         await module_test.mock_dns(
             {
                 "blacklanternsecurity.com": {"A": ["4.3.2.1"]},
+                # Resolve anything under the domain, so the random canaries hit too.
+                "regex:.*\\.blacklanternsecurity\\.com": {"A": ["1.2.3.4"]},
             }
         )
 

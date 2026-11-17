@@ -239,6 +239,10 @@ class Scanner:
             self.dispatcher = dispatcher
         self.dispatcher.set_scan(self)
 
+        # main loop polls fast when events are flowing, backs off when idle
+        self._main_loop_poll_min = 0.002
+        self._main_loop_poll_max = 0.1
+
         # scope distance
         self.scope_config = self.config.get("scope", {})
         self.scope_search_distance = max(0, int(self.scope_config.get("search_distance", 0)))
@@ -336,6 +340,12 @@ class Scanner:
         Expands async seed types (e.g. ASN → IP ranges), evaluates preset conditions,
         creates the scan's output folder, loads its modules, and calls their .setup() methods.
         """
+        # build the DNS helper up front: blastdns validates dns.nameservers when the
+        # client is constructed, and a bad value should abort the scan here rather than
+        # surface later as a per-event error inside dnsresolve
+        if not self.config.get("dns", {}).get("disable", False):
+            self.helpers.dns
+
         # expand async seed types (e.g. ASN -> IP ranges)
         try:
             await self.preset.target.generate_children(helpers=self.helpers)
@@ -383,10 +393,12 @@ class Scanner:
                 f.write(self.preset.to_yaml(redact_secrets=redact_secrets))
 
             # deprecated options are accepted but ignored, so make sure the user knows
-            for path in find_deprecated_config(
+            for path, message in find_deprecated_config(
                 self.preset.core.custom_config, self.preset.module_loader.config_schema
-            ):
-                self.hugewarning(f'Config option "{path}" is deprecated and will be ignored', trace=False)
+            ).items():
+                self.hugewarning(
+                    f'Config option "{path}" is deprecated and will be ignored. {message}'.strip(), trace=False
+                )
 
             # log scan overview
             start_msg = f"Scan seeded with {len(self.seeds.event_seeds):,} seed(s)"
@@ -414,7 +426,7 @@ class Scanner:
                 self.debug(
                     f"Setting intercept module {intercept_module.name}._incoming_event_queue to previous intercept module {prev_intercept_module.name}.outgoing_event_queue"
                 )
-                interqueue = asyncio.Queue()
+                interqueue = intercept_module.make_intercept_queue()
                 intercept_module._incoming_event_queue = interqueue
                 prev_intercept_module._outgoing_event_queue = interqueue
 
@@ -489,6 +501,7 @@ class Scanner:
             )
 
             # main scan loop
+            poll_interval = self._main_loop_poll_min
             while 1:
                 # abort if we're aborting
                 if self.aborting:
@@ -501,6 +514,7 @@ class Scanner:
                     for e in events:
                         yield e
                     if events:
+                        poll_interval = self._main_loop_poll_min
                         continue
 
                 # break if initialization finished and the scan is no longer active
@@ -509,8 +523,10 @@ class Scanner:
                     if not new_activity:
                         self._success = True
                         break
+                    poll_interval = self._main_loop_poll_min
 
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(poll_interval)
+                poll_interval = min(poll_interval * 2, self._main_loop_poll_max)
 
             self._success = True
 
@@ -1225,6 +1241,18 @@ class Scanner:
             self._dns_strings = dns_strings
         return self._dns_strings
 
+    def _generate_dns_regex_patterns(self, pattern):
+        """
+        Generates a list of DNS hostname regex source strings based on the provided pattern.
+
+        Args:
+            pattern (str):
+        Returns:
+            list[str]: A list of regex source strings.
+        """
+
+        return [f"{pattern}{re.escape(t)})" for t in self.dns_strings]
+
     def _generate_dns_regexes(self, pattern):
         """
         Generates a list of compiled DNS hostname regexes based on the provided pattern.
@@ -1237,10 +1265,9 @@ class Scanner:
         """
 
         dns_regexes = []
-        for t in self.dns_strings:
-            regex_pattern = re.compile(f"{pattern}{re.escape(t)})", re.I)
-            log.debug(f"Generated Regex [{regex_pattern.pattern}] for domain {t}")
-            dns_regexes.append(regex_pattern)
+        for regex_pattern in self._generate_dns_regex_patterns(pattern):
+            log.debug(f"Generated Regex [{regex_pattern}]")
+            dns_regexes.append(re.compile(regex_pattern, re.I))
         return dns_regexes
 
     @property
@@ -1262,10 +1289,10 @@ class Scanner:
     @property
     def dns_regexes_yara(self):
         """
-        Returns a list of DNS hostname regexes formatted specifically for compatibility with YARA rules.
+        Returns a list of DNS hostname regex source strings formatted specifically for compatibility with YARA rules.
         """
         if self._dns_regexes_yara is None:
-            self._dns_regexes_yara = self._generate_dns_regexes(r"(([a-z0-9-]+\.)*")
+            self._dns_regexes_yara = self._generate_dns_regex_patterns(r"(([a-z0-9-]+\.)*")
         return self._dns_regexes_yara
 
     @property
@@ -1273,7 +1300,7 @@ class Scanner:
         if self._dns_yara_rules_uncompiled is None:
             regexes_component_list = []
             for i, r in enumerate(self.dns_regexes_yara):
-                regexes_component_list.append(rf"$dns_name_{i} = /\b{r.pattern}/ nocase")
+                regexes_component_list.append(rf"$dns_name_{i} = /\b{r}/ nocase")
 
             # Chunk the regexes into groups of 10,000
             chunk_size = 10000
@@ -1312,9 +1339,24 @@ class Scanner:
         if dns_yara_rules is not None:
             for match in await self.helpers.run_in_executor_cpu(dns_yara_rules.match, data=s):
                 for string in match.strings:
-                    for instance in string.instances:
-                        matches.add(str(instance))
+                    matches.update(self.yara_hostnames(string.instances))
         return matches
+
+    @staticmethod
+    def yara_hostnames(instances):
+        """
+        Hostnames from one string of the DNS yara rules, without the fragments that start partway through a label.
+
+        Yara reports a match at every offset the pattern can start from, and a word boundary sits on both sides of a hyphen,
+        so "dv-api.evilcorp.com" also yields "-api.evilcorp.com" and "api.evilcorp.com". A match whose first
+        character continues a label of a longer match is one of those.
+        """
+        instances = [(i.offset, i.matched_data.decode("utf-8", errors="ignore")) for i in instances]
+        # every offset that continues a label of some match, collected in one pass so this stays linear
+        mid_label = set()
+        for offset, hostname in instances:
+            mid_label.update(offset + j for j in range(1, len(hostname)) if hostname[j - 1] != ".")
+        return {hostname for offset, hostname in instances if offset not in mid_label}
 
     @property
     def json(self):

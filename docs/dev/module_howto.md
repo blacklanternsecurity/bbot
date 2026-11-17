@@ -186,21 +186,25 @@ class MyModule(BaseModule):
             "ignore_errors": True,
         },
         {
-            "name": "Download massdns source code",
+            "name": "Download masscan source code",
             "git": {
-                "repo": "https://github.com/blechschmidt/massdns.git",
-                "dest": "#{BBOT_TEMP}/massdns",
+                "repo": "https://github.com/robertdavidgraham/masscan.git",
+                "dest": "#{BBOT_TEMP}/masscan",
                 "single_branch": True,
                 "version": "master",
             },
         },
         {
-            "name": "Build massdns",
-            "command": {"chdir": "#{BBOT_TEMP}/massdns", "cmd": "make", "creates": "#{BBOT_TEMP}/massdns/bin/massdns"},
+            "name": "Build masscan",
+            "command": {
+                "chdir": "#{BBOT_TEMP}/masscan",
+                "cmd": "make -j",
+                "creates": "#{BBOT_TEMP}/masscan/bin/masscan",
+            },
         },
         {
-            "name": "Install massdns",
-            "copy": {"src": "#{BBOT_TEMP}/massdns/bin/massdns", "dest": "#{BBOT_TOOLS}/", "mode": "u+x,g+x,o+x"},
+            "name": "Install masscan",
+            "copy": {"src": "#{BBOT_TEMP}/masscan/bin/masscan", "dest": "#{BBOT_TOOLS}/", "mode": "u+x,g+x,o+x"},
         },
     ]
 ```
@@ -214,3 +218,5 @@ If you have a custom module and you want to use it with BBOT, you can add its pa
 module_dirs:
   - /home/user/my_modules
 ```
+
+BBOT asks you to trust each custom module folder before loading it, and refuses folders anyone on the system can modify. See [Custom Modules](../scanning/presets.md#custom-modules) for details.

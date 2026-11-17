@@ -9,7 +9,7 @@ class dnsbrute(subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     meta = {
-        "description": "Brute-force subdomains with massdns + static wordlist",
+        "description": "Brute-force subdomains with a static wordlist",
         "author": "@TheTechromancer",
         "created_date": "2024-04-24",
     }
@@ -25,7 +25,6 @@ class dnsbrute(subdomain_enum):
             description="If True, brute-force hosts discovered by dnsbrute_mutations. The default (False) skips them because the static wordlist heavily overlaps with the mutation algorithm's own output.",
         )
 
-    deps_common = ["massdns"]
     reject_wildcards = "strict"
     dedup_strategy = "lowest_parent"
     _qsize = 10000
@@ -62,7 +61,7 @@ class dnsbrute(subdomain_enum):
     async def handle_event(self, event):
         query = self.make_query(event)
         self.info(f"Brute-forcing {self.wordlist_size:,} subdomains for {query} (source: {event.pretty_string})")
-        for hostname in await self.helpers.dns.brute(self, query, self.subdomain_list):
+        for hostname in await self.helpers.dns.brute(query, self.subdomain_list):
             await self.emit_event(
                 hostname,
                 "DNS_NAME",

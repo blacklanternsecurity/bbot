@@ -59,7 +59,7 @@ class BBOTConfigFiles:
                     f"Error parsing config at {filename}: expected a YAML mapping at the top level, "
                     f"got {type(conf).__name__}"
                 )
-            cli_silent = any(x in sys.argv for x in ("-s", "--silent"))
+            cli_silent = any(x in sys.argv for x in ("-S", "--silent"))
             if __name__ == "__main__" and not cli_silent:
                 log_to_stderr(f"Loaded {name} from {filename}")
             return conf

@@ -3,7 +3,6 @@ import logging
 import xmltodict
 from time import monotonic
 from itertools import islice
-from deepdiff import DeepDiff
 from contextlib import suppress
 from xml.parsers.expat import ExpatError
 from bbot.errors import HttpCompareError
@@ -153,7 +152,7 @@ class _BaselineSnapshot:
 
     The blasthttp Headers object is kept by reference (it survives
     Response GC independently) to preserve case-insensitive lookups and
-    duplicate-header semantics that DeepDiff relies on.
+    duplicate-header semantics that compare_headers() relies on.
     """
 
     __slots__ = ("status_code", "headers", "_text", "_spill_key", "_spill_store")
@@ -358,15 +357,11 @@ class HttpCompare:
                     with suppress(KeyError):
                         del headers[header]
 
-        ddiff = DeepDiff(headers_1, headers_2, ignore_order=True, view="tree", threshold_to_diff_deeper=0)
-
-        for k in ddiff.keys():
-            for x in list(ddiff[k]):
-                try:
-                    header_value = str(x).split("'")[1]
-                except (KeyError, IndexError):
-                    continue
-                differing_headers.append(header_value)
+        # Headers iterate as lower-cased unique names; indexing returns the last value of a repeated header
+        names_1, names_2 = set(headers_1), set(headers_2)
+        for name in sorted(names_1 | names_2):
+            if name not in names_1 or name not in names_2 or headers_1[name] != headers_2[name]:
+                differing_headers.append(name)
         return differing_headers
 
     @staticmethod

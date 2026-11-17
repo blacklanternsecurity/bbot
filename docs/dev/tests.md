@@ -140,6 +140,37 @@ def check(self, module_test, events):
         self.log.debug(e.parent)  # grey (requires -d)
 ```
 
+### Test servers and ports
+
+`ModuleTestBase` starts a local HTTP server for every test, and the test registers canned responses on it with `module_test.set_expect_requests()`. A web module's test points `targets` at that server, which is why so many tests contain a `127.0.0.1` URL: it's the fixture, not a real host.
+
+Its port is no longer fixed. The suite runs under `pytest -n`, and `bbot/test/worker.py` offsets every base port by the worker index so the workers don't collide on one socket: the server is on 8888 under `gw0`, 8988 under `gw1`. So `targets = ["http://127.0.0.1:8888"]` names `gw0`'s server rather than your own, and the test reaches another worker's server or nothing at all, depending on how pytest distributed that run.
+
+Use `HTTPSERVER_URL`. It is `http://127.0.0.1:<this worker's port>`, built at import time from the same offset the fixture uses, so it always resolves to the server the test is actually talking to:
+
+```python
+from bbot.test.worker import HTTPSERVER_URL
+
+
+class TestMyModule(ModuleTestBase):
+    targets = [HTTPSERVER_URL]
+```
+
+`/tmp/.bbot_test` has the same problem, since the first worker to finish deletes it. `BBOT_TEST_DIR` is the per-worker equivalent.
+
+| Constant | What it is |
+|---|---|
+| `HTTPSERVER_URL` | `http://127.0.0.1:<port>`, the usual value for `targets` |
+| `HTTPSERVER_SSL_URL` | the HTTPS equivalent |
+| `HTTPSERVER_PORT`, `HTTPSERVER_SSL_PORT` | the bare ports, for building a URL or a regex |
+| `HTTPSERVER_HOSTPORT`, `HTTPSERVER_SSL_HOSTPORT` | `127.0.0.1:<port>`, no scheme |
+| `LOCALHOST_URL`, `LOCALHOST_SSL_URL`, `LOCALHOST_HOSTPORT` | the `localhost` spellings, for when the Host header is what's under test |
+| `HTTPSERVER_PORT_ALT` | a second port inside the same worker's block |
+| `HTTPSERVER_ALLINTERFACES_PORT` | the `0.0.0.0` listener |
+| `FASTAPI_URL`, `FASTAPI_PORT` | the FastAPI test app |
+| `WEBSOCKET_PORT` | the websocket test server |
+| `BBOT_TEST_DIR`, `BBOT_TEST_DIR_NAME` | the per-worker BBOT home, and its basename |
+
 ### Advanced test features
 
 #### HTTP request handlers
@@ -149,10 +180,11 @@ For dynamic HTTP responses, use `set_expect_requests_handler` with a custom hand
 ```python
 import re
 from werkzeug.wrappers import Response
+from bbot.test.worker import HTTPSERVER_URL
 
 
 class TestMyModule(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = [HTTPSERVER_URL]
     modules_overrides = ["http", "mymodule"]
 
     def request_handler(self, request):
@@ -188,7 +220,7 @@ async def setup_before_prep(self, module_test):
 
 ```python
 class TestMyModule(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]  # override default target
+    targets = [HTTPSERVER_URL]  # override default target
     modules_overrides = ["http", "mymodule"]  # control which modules are enabled
     module_name = "mymodule"  # if your class name doesn't match the module
     config_overrides = {"modules": {"mymodule": {"option": "value"}}}

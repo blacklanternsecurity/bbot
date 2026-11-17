@@ -1,5 +1,3 @@
-import asyncio
-
 from .base import ModuleTestBase
 from bbot.test.worker import wait_for_container
 
@@ -20,19 +18,14 @@ class TestMongo(ModuleTestBase):
     skip_distro_tests = True
 
     async def setup_before_prep(self, module_test):
-        await asyncio.create_subprocess_exec(
-            "docker",
-            "run",
-            "--name",
+        await self.start_container(
             "bbot-test-mongo",
-            "--rm",
             "-e",
             "MONGO_INITDB_ROOT_USERNAME=bbot",
             "-e",
             "MONGO_INITDB_ROOT_PASSWORD=bbotislife",
             "-p",
             "27017:27017",
-            "-d",
             "mongo",
         )
         # Wait for port to be available
@@ -147,7 +140,4 @@ class TestMongo(ModuleTestBase):
             await events_collection.delete_many({})
             # Close the MongoDB connection
             await client.aclose()
-            process = await asyncio.create_subprocess_exec(
-                "docker", "stop", "bbot-test-mongo", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-            )
-            await process.communicate()
+            await self.stop_container("bbot-test-mongo")

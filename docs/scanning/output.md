@@ -73,10 +73,10 @@ The `csv` output module produces a CSV like this:
 
 | Event type | Event data              | IP Address | Source Module | Scope Distance | Event Tags                                                                                               |
 | ---------- | ----------------------- | ---------- | ------------- | -------------- | -------------------------------------------------------------------------------------------------------- |
-| DNS_NAME   | evilcorp.com            | 1.2.3.4    | TARGET        | 0              | a-record,cdn-github,distance-0,domain,in-scope,mx-record,ns-record,resolved,soa-record,target,txt-record |
-| DNS_NAME   | www.evilcorp.com        | 2.3.4.5    | certspotter   | 0              | a-record,aaaa-record,cdn-github,cname-record,distance-0,in-scope,resolved,subdomain                      |
-| URL        | http://www.evilcorp.com | 2.3.4.5    | http         | 0              | a-record,aaaa-record,cdn-github,cname-record,distance-0,in-scope,resolved,subdomain                      |
-| DNS_NAME   | admin.evilcorp.com      | 5.6.7.8    | otx           | 0              | a-record,aaaa-record,cloud-azure,cname-record,distance-0,in-scope,resolved,subdomain                     |
+| DNS_NAME   | evilcorp.com            | 1.2.3.4    | TARGET        | 0              | a-record,cdn,distance-0,domain,github,in-scope,mx-record,ns-record,resolved,soa-record,target,txt-record |
+| DNS_NAME   | www.evilcorp.com        | 2.3.4.5    | certspotter   | 0              | a-record,aaaa-record,cdn,cname-record,distance-0,github,in-scope,resolved,subdomain                      |
+| URL        | http://www.evilcorp.com | 2.3.4.5    | http         | 0              | a-record,aaaa-record,cdn,cname-record,distance-0,github,in-scope,resolved,subdomain                      |
+| DNS_NAME   | admin.evilcorp.com      | 5.6.7.8    | otx           | 0              | a-record,aaaa-record,azure,cloud,cname-record,distance-0,in-scope,resolved,subdomain                     |
 
 ### JSON
 
@@ -260,9 +260,9 @@ The `asset_inventory` module produces a CSV like this:
 
 | Host               | Provider    | IP(s)   | Status | Open Ports |
 | ------------------ | ----------- | ------- | ------ | ---------- |
-| evilcorp.com       | cdn-github  | 1.2.3.4 | Active | 80,443     |
-| www.evilcorp.com   | cdn-github  | 2.3.4.5 | Active | 22,80,443  |
-| admin.evilcorp.com | cloud-azure | 5.6.7.8 | N/A    |            |
+| evilcorp.com       | github      | 1.2.3.4 | Active | 80,443     |
+| www.evilcorp.com   | github      | 2.3.4.5 | Active | 22,80,443  |
+| admin.evilcorp.com | azure       | 5.6.7.8 | N/A    |            |
 
 ### SQLite
 
