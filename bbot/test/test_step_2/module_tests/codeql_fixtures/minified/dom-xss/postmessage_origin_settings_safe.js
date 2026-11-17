@@ -1,0 +1,1 @@
+var Settings={trustedUrl:"https://trusted.example.com"},TRUSTED="https://trusted.example.com";window.addEventListener("message",(function(e){e.origin===Settings.trustedUrl&&(document.getElementById("a").innerHTML=e.data)})),window.addEventListener("message",(function(e){e.origin===TRUSTED&&(document.getElementById("b").innerHTML=e.data)}));

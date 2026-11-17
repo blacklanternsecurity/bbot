@@ -186,6 +186,33 @@ private DataFlow::SourceNode messageEvent(DataFlow::FunctionNode handler) {
   )
 }
 
+/** Holds if `node` is something a message's sender can choose: the page's URL or window.name, or a message. */
+private predicate senderChosen(DataFlow::Node node) {
+  urlInput(node, _)
+  or
+  node = DataFlow::globalObjectRef().getAPropertyRead("name")
+  or
+  node = messageEvent(_).getAPropertyRead(_)
+}
+
+/** Holds if `node` is what a message's origin is compared with. */
+private predicate comparedWithOrigin(DataFlow::Node node) {
+  exists(EqualityTest test, DataFlow::PropRead origin |
+    origin.getPropertyName() = "origin" and
+    test.getAnOperand() = origin.asExpr() and
+    node.asExpr() = test.getAnOperand() and
+    node != origin
+  )
+}
+
+private module SenderChosenConfig implements DataFlow::ConfigSig {
+  predicate isSource(DataFlow::Node node) { senderChosen(node) }
+
+  predicate isSink(DataFlow::Node node) { comparedWithOrigin(node) }
+}
+
+private module SenderChosenFlow = TaintTracking::Global<SenderChosenConfig>;
+
 /** Holds if `node` is a value the handler compares with something the attacker can't choose. */
 private predicate strictlyCompared(DataFlow::Node node) {
   exists(EqualityTest test, Expr other |
@@ -198,6 +225,10 @@ private predicate strictlyCompared(DataFlow::Node node) {
     other.flow() = locationObject().getAPropertyRead("origin")
     or
     other.flow().(DataFlow::PropRead).getPropertyName() = "contentWindow"
+    or
+    // a string the page keeps, like an origin in its settings, that the sender can't choose
+    other.analyze().getAType().getTypeofTag() = "string" and
+    not SenderChosenFlow::flowToExpr(other)
   )
   or
   // a collection of origins; in a string, indexOf() and includes() would only find a substring
