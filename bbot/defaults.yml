@@ -358,6 +358,9 @@ parameter_blacklist:
   - __utmc
   - __utmz
   - _hjid
+  # ServiceNow cache busters
+  - sysparm_use_cache_buster
+  - uxpcb
 
 parameter_blacklist_prefixes:
   - TS01
