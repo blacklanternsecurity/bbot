@@ -213,7 +213,10 @@ class TestNucleiEnvIsolation(TestNucleiManual):
     async def setup_before_prep(self, module_test):
         await super().setup_before_prep(module_test)
         for k, v in self.leaky_env.items():
-            module_test.monkeypatch.setenv(k, v)
+            # set in check() instead: here it would reach the template install below, which GitHub
+            # rejects, and the unauthenticated retry is the rate-limited call CI's real token avoids
+            if k != "GITHUB_TOKEN":
+                module_test.monkeypatch.setenv(k, v)
 
     # XDG_{CONFIG,CACHE}_HOME are set by _nuclei_env() itself to our paths,
     # so they appear in env but must override (not echo back) the user's values.
@@ -221,6 +224,7 @@ class TestNucleiEnvIsolation(TestNucleiManual):
 
     def check(self, module_test, events):
         super().check(module_test, events)
+        module_test.monkeypatch.setenv("GITHUB_TOKEN", self.leaky_env["GITHUB_TOKEN"])
         nuclei = module_test.scan.modules["nuclei"]
         env = nuclei._nuclei_env()
         for k, v in self.leaky_env.items():
