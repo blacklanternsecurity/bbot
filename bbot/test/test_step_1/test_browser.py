@@ -584,6 +584,26 @@ async def test_browser_closes_idle_connections(bbot_scanner, bbot_httpserver):
     assert await no_browser_processes()
 
 
+@pytest.mark.browser
+@pytest.mark.asyncio
+async def test_browser_launch_prefs(bbot_scanner):
+    """Each launch gets BBOT's Firefox prefs plus its own fingerprint's, and none of an earlier launch's"""
+    scan = await browser_scan(bbot_scanner)
+    engine = scan.helpers.browser.engine
+    bbot_prefs = dict(camoufox.FIREFOX_PREFS)
+    try:
+        first = engine._launch_options()["firefox_user_prefs"]
+        second = engine._launch_options()["firefox_user_prefs"]
+        # Camoufox adds a launch's fingerprint to the prefs it's given, which mustn't reach BBOT's own
+        assert camoufox.FIREFOX_PREFS == bbot_prefs
+        assert first is not second
+        for prefs in (first, second):
+            assert prefs.items() >= bbot_prefs.items()
+            assert len(prefs) > len(bbot_prefs)
+    finally:
+        await scan._cleanup()
+
+
 def make_cert(name, issuer=None):
     """A certificate for `name` and its key, signed by `issuer` (a cert and key) or self-signed as a CA."""
     key = ec.generate_private_key(ec.SECP256R1())
