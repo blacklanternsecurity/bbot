@@ -213,7 +213,10 @@ class TestNucleiEnvIsolation(TestNucleiManual):
     async def setup_before_prep(self, module_test):
         await super().setup_before_prep(module_test)
         for k, v in self.leaky_env.items():
-            module_test.monkeypatch.setenv(k, v)
+            # set in check() instead: here it would reach the template install below, which GitHub
+            # rejects, and the unauthenticated retry is the rate-limited call CI's real token avoids
+            if k != "GITHUB_TOKEN":
+                module_test.monkeypatch.setenv(k, v)
 
     # XDG_{CONFIG,CACHE}_HOME are set by _nuclei_env() itself to our paths,
     # so they appear in env but must override (not echo back) the user's values.
@@ -221,6 +224,7 @@ class TestNucleiEnvIsolation(TestNucleiManual):
 
     def check(self, module_test, events):
         super().check(module_test, events)
+        module_test.monkeypatch.setenv("GITHUB_TOKEN", self.leaky_env["GITHUB_TOKEN"])
         nuclei = module_test.scan.modules["nuclei"]
         env = nuclei._nuclei_env()
         for k, v in self.leaky_env.items():
@@ -233,6 +237,17 @@ class TestNucleiEnvIsolation(TestNucleiManual):
         # HOME is intentionally NOT forwarded — nuclei must rely on the XDG
         # vars we set, not on the user's home dir.
         assert "HOME" not in env
+        # The template update is the one call that gets GITHUB_TOKEN, and only that.
+        update_env = nuclei._nuclei_update_env()
+        assert update_env["GITHUB_TOKEN"] == self.leaky_env["GITHUB_TOKEN"]
+        for k, v in self.leaky_env.items():
+            if k == "GITHUB_TOKEN":
+                continue
+            if k in self._xdg_overridden:
+                assert update_env.get(k) != v, f"{k} leaked user value into the template update env"
+            else:
+                assert k not in update_env, f"{k} leaked into the template update env"
+        assert "HOME" not in update_env
 
 
 def test_nuclei_classify_update_stderr():
@@ -384,6 +399,57 @@ async def test_nuclei_failed_download_does_not_wipe_and_refetch(tmp_path):
     assert installed is False, "a failed download must not report success"
     assert calls == [1], "a failed download must not trigger a second fetch"
     assert wiped == [], "a failed download must not wipe state that holds no corruption"
+
+
+TEMPLATES_INSTALLED = "[INF] Successfully installed nuclei-templates at /tmp/x"
+TEMPLATES_REJECTED_TOKEN = "[FTL] gh auth failed try unsetting GITHUB_TOKEN env variable"
+TEMPLATES_RATE_LIMITED = "[FTL] hit github ratelimit while downloading latest release"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "token, stderr_with_token, stderr_without_token, expected_tokens, expected_outcome",
+    [
+        # a working token: one authenticated update
+        ("ghp_valid", TEMPLATES_INSTALLED, None, ["ghp_valid"], "updated"),
+        # a rejected token: retry once without it, the update bbot ran before
+        ("ghp_expired", TEMPLATES_REJECTED_TOKEN, TEMPLATES_INSTALLED, ["ghp_expired", None], "updated"),
+        # no token: nothing to fall back from, so a failure stays one fetch
+        (None, None, TEMPLATES_RATE_LIMITED, [None], "failure"),
+    ],
+)
+async def test_nuclei_template_update_github_token(
+    monkeypatch, tmp_path, token, stderr_with_token, stderr_without_token, expected_tokens, expected_outcome
+):
+    """The template update looks up the latest nuclei-templates release through
+    GitHub's API, and without a token it gets the 60-requests-an-hour limit that
+    shared CI runners exhaust. It passes GITHUB_TOKEN when there is one. nuclei
+    won't download at all with a bad token, so a rejected token must fall back to
+    the unauthenticated update rather than fail setup.
+    """
+    from bbot.modules.nuclei import nuclei
+
+    mod = nuclei.__new__(nuclei)
+    mod.nuclei_config_dir = tmp_path / "config"
+    mod.nuclei_cache_dir = tmp_path / "cache"
+    mod.nuclei_templates_dir = tmp_path / "templates"
+    for name in ("info", "verbose", "warning", "success", "debug"):
+        setattr(mod, name, lambda *a, **kw: None)
+
+    seen = []
+
+    async def fake_run_process(command, env=None, **kwargs):
+        seen.append(env.get("GITHUB_TOKEN"))
+        return SimpleNamespace(stderr=stderr_with_token if "GITHUB_TOKEN" in env else stderr_without_token)
+
+    mod.run_process = fake_run_process
+    if token:
+        monkeypatch.setenv("GITHUB_TOKEN", token)
+    else:
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+
+    assert await mod._run_template_update() == expected_outcome
+    assert seen == expected_tokens
 
 
 def test_nuclei_budget_selection():

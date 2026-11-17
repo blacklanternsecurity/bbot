@@ -13,6 +13,9 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-24.04
+    # GITHUB_TOKEN is handed to the tests below, so keep it read-only.
+    permissions:
+      contents: read
     strategy:
       # if one python version fails, let the others finish
       fail-fast: false
@@ -37,6 +40,10 @@ jobs:
       - name: Run tests
         env:
           BBOT_IO_API_KEY: ${{ secrets.BBOT_IO_API_KEY }}
+          # nuclei's template download looks up the latest release through GitHub's
+          # API. Unauthenticated, that's 60 requests an hour per runner IP, which
+          # shared runners run out of and fail every nuclei test in the job.
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           uv run pytest -vv -n $(python bbot/test/worker_count.py) --dist loadgroup --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO --cov-config=bbot/test/coverage.cfg --cov-report xml:cov.xml --cov=bbot .
       - name: Upload Debug Logs
