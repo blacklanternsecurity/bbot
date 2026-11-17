@@ -1636,6 +1636,7 @@ class WEB_PARAMETER(DictHostEvent):
             self._data.pop("original_value", None)
             self._data.pop("additional_params", None)
             self._data.pop("assigned_cookies", None)
+            self._data.pop("assigned_headers", None)
             self._data.pop("same_param_values", None)
 
     @property
