@@ -1041,6 +1041,11 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             self.excavate.debug(f"Invalid URL [{url}]: {e}")
                             continue
 
+                        # a link's path never holds these: they come from template placeholders ({{...}}) and escaped links (\/)
+                        if any(c in parsed_url.path for c in "{}\\"):
+                            self.excavate.debug(f"Skipping parameter [{parameter_name}]: [{url}] isn't a link")
+                            continue
+
                         if not self.excavate.helpers.validate_parameter(parameter_name, parameter_type):
                             self.excavate.debug(f"blocked parameter [{parameter_name}] due to validation failure")
                             continue

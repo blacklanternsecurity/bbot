@@ -921,6 +921,24 @@ class TestExcavateParameterExtraction_getparam(ModuleTestBase):
         assert excavate_getparam_extraction, "Excavate failed to extract web parameter"
 
 
+class TestExcavateParameterExtraction_notalink(TestExcavateParameterExtraction_getparam):
+    """A template placeholder or a JSON-escaped link isn't a URL the page links to, so it yields no parameters."""
+
+    getparam_extract_html = r"""
+<html>
+<img ng-src="{{c.selected_image}}?t=small">
+<a href=\&quot;https:\/\/www.example.com\/webcast\/register.aspx?conf=1\&quot;>webcast</a>
+<a href="/real.php?keep=1">real</a>
+</html>
+    """
+
+    def check(self, module_test, events):
+        parameters = {e.data["name"]: e.data["url"] for e in events if e.type == "WEB_PARAMETER"}
+        assert "keep" in parameters, "Excavate failed to extract the real link's parameter"
+        assert "t" not in parameters, f"Excavate extracted a parameter from a template placeholder: {parameters['t']}"
+        assert "conf" not in parameters, f"Excavate extracted a parameter from an escaped link: {parameters['conf']}"
+
+
 class TestExcavateParameterExtraction_relativeurl(ModuleTestBase):
     targets = [f"{HTTPSERVER_URL}/"]
 
