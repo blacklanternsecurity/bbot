@@ -221,3 +221,59 @@ class TestBrowserDomParametersLightfuzz(ModuleTestBase):
         assert any(
             e.type == "FINDING" and "Possible Reflected XSS. Parameter: [q]" in e.data["description"] for e in events
         ), "lightfuzz didn't find the XSS behind the header, cookie and other parameter"
+
+
+# a search form and a link that only exist once the script runs: no name or path below is in the source as served
+RENDERED_PAGE = """<html><head><title>rendered</title></head><body><script>
+const form = document.createElement("form");
+form.setAttribute("action", "/sea" + "rch");
+form.setAttribute("method", "get");
+const term = document.createElement("input");
+term.setAttribute("name", "te" + "rm");
+term.setAttribute("value", "shoes");
+form.appendChild(term);
+const language = document.createElement("input");
+language.setAttribute("type", "hidden");
+language.setAttribute("name", "la" + "ng");
+language.setAttribute("value", "en");
+form.appendChild(language);
+document.body.appendChild(form);
+const link = document.createElement("a");
+link.setAttribute("href", "/it" + "em?i" + "d=" + (40 + 2) + "&re" + "f=home");
+document.body.appendChild(link);
+</script></body></html>"""
+
+
+class TestBrowserDomRenderedParameters(ModuleTestBase):
+    """Excavate finds the parameters of forms and links that only exist in the page browser_dom rendered"""
+
+    pytestmark = pytest.mark.browser
+    targets = [HTTPSERVER_URL]
+    # hunt tests parameters, which is what turns on excavate's parameter extraction
+    modules_overrides = ["http", "browser_dom", "hunt"]
+    config_overrides = {"web": {"enable_browser": True}, "excavate": True}
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests({"uri": "/"}, {"response_data": RENDERED_PAGE, "content_type": "text/html"})
+
+    def check(self, module_test, events):
+        parameters = {
+            e.data["name"]: e
+            for e in events
+            if e.type == "WEB_PARAMETER" and e.data["type"] == "GETPARAM" and str(e.module) == "excavate"
+        }
+
+        term = parameters["term"]
+        assert term.data["url"] == f"{HTTPSERVER_URL}/search"
+        assert term.data["original_value"] == "shoes"
+        assert term.data["additional_params"] == {"lang": "en"}
+
+        item = parameters["id"]
+        assert item.data["url"] == f"{HTTPSERVER_URL}/item"
+        assert item.data["original_value"] == "42"
+        assert item.data["additional_params"] == {"ref": "home"}
+
+        # both found in the page as the browser rendered it, not as it was served
+        for parameter in (term, item):
+            assert parameter.parent.type == "HTTP_RESPONSE"
+            assert "browser-dom" in parameter.parent.tags
