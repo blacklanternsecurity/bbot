@@ -136,12 +136,6 @@ class paramminer_headers(BaseModule):
         self.event_dict = {}
         self.already_checked = {}
 
-        # global parameter blacklist (shared with excavate) — known framework/CDN/tracker names
-        self.global_blacklist = {p.lower() for p in self.scan.config.get("parameter_blacklist", [])}
-        self.global_blacklist_prefixes = tuple(
-            p.lower() for p in self.scan.config.get("parameter_blacklist_prefixes", [])
-        )
-
         self.wl = {
             h.strip().lower() for h in self.helpers.read_file(self.wordlist_file) if len(h) > 0 and "%" not in h
         }
@@ -149,9 +143,7 @@ class paramminer_headers(BaseModule):
         # check against the boring list (if the option is set)
         if self.config.get("skip_boring_words", True):
             self.wl -= self.boring_words
-            self.wl -= self.global_blacklist
-            if self.global_blacklist_prefixes:
-                self.wl = {w for w in self.wl if not w.startswith(self.global_blacklist_prefixes)}
+            self.wl = {w for w in self.wl if not self.helpers.web.parameter_blacklisted(w)}
 
         self.extracted_words_master = set()
 
@@ -225,10 +217,7 @@ class paramminer_headers(BaseModule):
                 if self.config.get("skip_boring_words", True):
                     if parameter_name in self.boring_words:
                         return
-                    lower_name = parameter_name.lower()
-                    if lower_name in self.global_blacklist:
-                        return
-                    if self.global_blacklist_prefixes and lower_name.startswith(self.global_blacklist_prefixes):
+                    if self.helpers.web.parameter_blacklisted(parameter_name):
                         return
                 if parameter_name not in self.wl:  # Ensure it's not already in the wordlist
                     self.extracted_words_master.add(parameter_name)
