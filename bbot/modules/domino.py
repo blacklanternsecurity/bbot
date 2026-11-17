@@ -137,11 +137,15 @@ class domino(browser_vulns):
             interactions = result.get("interactions", [])
             interactions_string = f" Interactions: [{','.join(interactions)}]" if interactions else ""
             detection_url = result.get("detection_url") or url
+            description = (
+                f"{result['description']}.{details_string} Detection URL: [{detection_url}]{interactions_string}"
+            )
             await self.emit_finding(
                 event,
                 url=detection_url,
                 name=rule_name,
-                description=f"{result['description']}.{details_string} Detection URL: [{detection_url}]{interactions_string}",
+                # one line, whatever the page put into DOMino's details or interactions
+                description=" ".join(description.split()),
                 severity=result.get("severity", "medium").upper(),
                 confidence="CONFIRMED",
                 context=f"{{module}} ran DOMino on {url} and found {{event.type}}: {rule_name}",
