@@ -52,6 +52,28 @@ VISIT_CACHE_SIZE = 100
 # a page's requests whose bodies are kept, so modules can use them without fetching them again
 NETWORK_BODY_TYPES = {"document", "script", "stylesheet", "xhr", "fetch"}
 NETWORK_BODY_MAX = 5 * 1024 * 1024
+# requests the page's own code made, whose bodies, cookies and headers are kept as they were sent
+SENT_REQUEST_TYPES = {"xhr", "fetch"}
+# headers the browser adds to every request on its own, as opposed to ones the page's code sets
+BROWSER_HEADERS = {
+    "accept",
+    "accept-encoding",
+    "accept-language",
+    "cache-control",
+    "connection",
+    "content-length",
+    "content-type",
+    "cookie",
+    "dnt",
+    "host",
+    "origin",
+    "pragma",
+    "priority",
+    "referer",
+    "te",
+    "upgrade-insecure-requests",
+    "user-agent",
+}
 
 
 @dataclass
@@ -63,9 +85,12 @@ class BrowserVisit:
     title: str = ""
     dom: str = None
     screenshot: bytes = None
-    # every response the page received: {"url", "status", "method", "resource_type", "main_frame", "response"}, where
-    # "main_frame" is whether the page itself made the request, rather than a frame inside it, and "response" is a
-    # blasthttp Response for text resources fetched with GET (see NETWORK_BODY_TYPES), otherwise None
+    # every response the page received: {"url", "status", "method", "resource_type", "main_frame", "content_type",
+    # "response", "sent"}, where "main_frame" is whether the page itself made the request, rather than a frame inside
+    # it, "content_type" is the response's, "response" is a blasthttp Response for text resources fetched with GET
+    # (see NETWORK_BODY_TYPES), otherwise None, and "sent" is how a request the page's own code made was sent (see
+    # SENT_REQUEST_TYPES): {"body", "content_type", "cookies", "headers"}, the headers being only the ones the page set,
+    # otherwise None
     network: list = field(default_factory=list)
     # where the page tried to send itself (a script or meta refresh), as (method, url); the page was kept instead
     redirect: tuple = None
@@ -534,12 +559,32 @@ class BrowserHelper:
             "method": request.method,
             "resource_type": request.resource_type,
             "main_frame": main_frame,
+            "content_type": response.headers.get("content-type", ""),
             "response": None,
+            "sent": None,
         }
         if request.method == "GET" and request.resource_type in NETWORK_BODY_TYPES:
             converted = await self._to_response(response, response.url)
             if len(converted.content) <= NETWORK_BODY_MAX:
                 entry["response"] = converted
+        if request.resource_type in SENT_REQUEST_TYPES:
+            with suppress(self.engine.errors):
+                headers = await request.all_headers()
+                cookies = {}
+                for pair in headers.get("cookie", "").split(";"):
+                    name, _, value = pair.strip().partition("=")
+                    if name:
+                        cookies[name] = value
+                entry["sent"] = {
+                    "body": request.post_data,
+                    "content_type": headers.get("content-type", ""),
+                    "cookies": cookies,
+                    "headers": {
+                        name: value
+                        for name, value in headers.items()
+                        if name not in BROWSER_HEADERS and not name.startswith((":", "sec-"))
+                    },
+                }
         return entry
 
     async def _to_response(self, response, request_url):

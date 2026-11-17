@@ -621,19 +621,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             context="{module} found content past the end of the document on a {event.type} redirect, which browsers never display",
         )
 
-    def in_bl(self, value):
-        # Check if the value is in the blacklist or starts with a blacklisted prefix.
-        lower_value = value.lower()
-
-        if lower_value in self.parameter_blacklist:
-            return True
-
-        for bl_param_prefix in self.parameter_blacklist_prefixes:
-            if lower_value.startswith(bl_param_prefix):
-                return True
-
-        return False
-
     def _is_archived(self, event):
         """Check if an event represents archived wayback content."""
         return isinstance(event.data, dict) and "archive_url" in event.data
@@ -1053,7 +1040,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                         if not self.excavate.helpers.validate_parameter(parameter_name, parameter_type):
                             self.excavate.debug(f"blocked parameter [{parameter_name}] due to validation failure")
                             continue
-                        if self.excavate.in_bl(parameter_name) is not False:
+                        if self.excavate.helpers.web.parameter_blacklisted(parameter_name):
                             self.excavate.debug(f"blocked parameter [{parameter_name}] due to BL match")
                             continue
 
@@ -1518,11 +1505,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                     for rule_name, rule_content in excavateRule.yara_rules.items():
                         self.add_yara_rule(rule_name, rule_content, excavateRule)
 
-        self.parameter_blacklist = set(p.lower() for p in self.scan.config.get("parameter_blacklist", []))
-        self.parameter_blacklist_prefixes = set(
-            p.lower() for p in self.scan.config.get("parameter_blacklist_prefixes", [])
-        )
-
         self.custom_yara_rules = self.config.get("custom_yara_rules", "")
         if self.custom_yara_rules:
             if Path(self.custom_yara_rules).is_file():
@@ -1651,7 +1633,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                         regex_name,
                         additional_params,
                     ) in extract_params_url(event.parsed_url):
-                        if self.in_bl(parameter_name) is False:
+                        if not self.helpers.web.parameter_blacklisted(parameter_name):
                             await self.emit_web_parameter(
                                 host=self._event_host(event),
                                 param_type="GETPARAM",
@@ -1687,7 +1669,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             cookie_name, _, remainder = header_value.partition("=")
                             cookie_value = remainder.split(";")[0]
 
-                            if self.in_bl(cookie_name) is False:
+                            if not self.helpers.web.parameter_blacklisted(cookie_name):
                                 self.assigned_cookies[cookie_name] = cookie_value
                                 event_base = self._event_base_url(event)
                                 await self.emit_web_parameter(
@@ -1743,7 +1725,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                         regex_name,
                                         additional_params,
                                     ) in extract_params_location(header_value, self._event_base_url(event)):
-                                        if self.in_bl(parameter_name) is False:
+                                        if not self.helpers.web.parameter_blacklisted(parameter_name):
                                             await self.emit_web_parameter(
                                                 host=self._event_host(event),
                                                 param_type="GETPARAM",
