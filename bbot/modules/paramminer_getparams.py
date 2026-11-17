@@ -62,9 +62,7 @@ class paramminer_getparams(paramminer_headers):
                 extra |= {"".join(c) for c in itertools.product(chars, repeat=length)}
             # respect global blacklist + boring words on generated combos
             extra -= self.boring_words
-            extra -= self.global_blacklist
-            if self.global_blacklist_prefixes:
-                extra = {w for w in extra if not w.startswith(self.global_blacklist_prefixes)}
+            extra = {w for w in extra if not self.helpers.web.parameter_blacklisted(w)}
             self.wl |= extra
             self.debug(f"brute_short: added {len(extra)} 1-3 letter combinations")
         return result
