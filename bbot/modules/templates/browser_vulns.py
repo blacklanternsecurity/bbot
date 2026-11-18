@@ -205,9 +205,19 @@ class browser_vulns(BaseModule):
             self.debug(f"Skipping {event.url}: the browser couldn't get past its challenge")
             return None
         scripts = self.page_scripts(visit)
-        fingerprint = self.code_fingerprint(visit.dom, scripts)
+        fingerprint = self.code_fingerprint(visit.dom, scripts, served=visit.response.text)
         self.debug(f"Code fingerprint of {event.url}: {fingerprint}")
         return visit, scripts, fingerprint
+
+    def served_page(self, visit):
+        """
+        The page as the server sent it, if it had code that's gone once the page has loaded (a page that writes over
+        itself, or a script that removes itself), else None.
+        """
+        served = visit.response.text
+        if served == visit.dom or not set(self.inline_code(served)) - set(self.inline_code(visit.dom)):
+            return None
+        return served
 
     def page_scripts(self, visit):
         """
@@ -226,14 +236,10 @@ class browser_vulns(BaseModule):
                 scripts.setdefault(request["url"], response.text)
         return scripts
 
-    def code_fingerprint(self, dom, script_urls):
-        """
-        A hash of the code in a page: its inline scripts, event handler attributes and javascript: URLs, through
-        `normalize_code()`, and the URLs of its scripts, through `script_key()`. Pages built from the same template
-        share one, however their content differs.
-        """
+    def inline_code(self, html):
+        """The code in a page's HTML: its inline scripts, event handler attributes and javascript: URLs."""
         code = []
-        soup = self.helpers.beautifulsoup(dom, "html.parser")
+        soup = self.helpers.beautifulsoup(html, "html.parser")
         for tag in soup.find_all(True):
             if tag.name == "script" and not tag.get("src") and tag.get("type", "").strip().lower() in SCRIPT_TYPES:
                 code.append(normalize_code(tag.get_text()))
@@ -242,6 +248,19 @@ class browser_vulns(BaseModule):
                     value = " ".join(value)
                 if name.lower().startswith("on") or value.strip().lower().startswith("javascript:"):
                     code.append(f"{name}={normalize_code(value)}")
+        return code
+
+    def code_fingerprint(self, dom, script_urls, served=None):
+        """
+        A hash of the code in a page: its inline scripts, event handler attributes and javascript: URLs, through
+        `normalize_code()`, including any in the page as the server sent it (`served`) that's gone once it has loaded,
+        and the URLs of its scripts, through `script_key()`. Pages built from the same template share one, however
+        their content differs.
+        """
+        code = self.inline_code(dom)
+        if served and served != dom:
+            loaded = set(code)
+            code += [c for c in self.inline_code(served) if c not in loaded]
         code += sorted({script_key(url) for url in script_urls})
         return sha256("\0".join(code).encode()).hexdigest()
 
