@@ -1,8 +1,37 @@
 import time
+import psutil
+import contextlib
 from ..bbot_fixtures import *
 
 from bbot.test.worker import BBOT_TEST_DIR
 from subprocess import CalledProcessError
+
+
+@pytest.mark.asyncio
+async def test_command_timeout_stops_process_tree(bbot_scanner, tmp_path):
+    """A command that times out is stopped with every process it started, even one that ignores the first signal"""
+    scan = bbot_scanner()
+    await scan._prep()
+
+    async def run(command):
+        await scan.helpers.run(command, idle_timeout=1)
+
+    async def run_live(command):
+        async for _ in scan.helpers.run_live(command, idle_timeout=1):
+            pass
+
+    for runner in (run, run_live):
+        pidfile = tmp_path / runner.__name__
+        # a script's background child ignores SIGINT, and outlives the script unless it's stopped too
+        command = ["sh", "-c", f"sleep 600 & echo $! > {pidfile}; wait $!"]
+        with pytest.raises(asyncio.exceptions.TimeoutError):
+            await runner(command)
+        with contextlib.suppress(psutil.NoSuchProcess):
+            child = psutil.Process(int(pidfile.read_text()))
+            # a killed process can take a moment to go
+            with contextlib.suppress(psutil.TimeoutExpired):
+                child.wait(timeout=5)
+            assert child.status() == psutil.STATUS_ZOMBIE, f"{runner.__name__}() left the script's child running"
 
 
 @pytest.mark.asyncio

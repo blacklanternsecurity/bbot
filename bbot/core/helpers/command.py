@@ -1,14 +1,49 @@
 import os
+import psutil
 import asyncio
 import logging
 import contextlib
 import traceback
-from signal import SIGINT
+from signal import SIGINT, SIGTERM
 from subprocess import CompletedProcess, CalledProcessError, SubprocessError
 
 from .misc import smart_decode, smart_encode, which
 
 log = logging.getLogger("bbot.core.helpers.command")
+
+
+def signal_process_tree(proc, sig):
+    """
+    Send `sig` to `proc` and every process under it, and return those under it.
+
+    A signal to `proc` alone misses what it started, like the program a wrapper script runs, which then keeps going.
+    """
+    try:
+        descendants = psutil.Process(proc.pid).children(recursive=True)
+    except psutil.Error:
+        descendants = []
+    for process in (proc, *descendants):
+        with contextlib.suppress(Exception):
+            process.send_signal(sig)
+    return descendants
+
+
+async def stop_process(proc, sig=SIGTERM, grace=5):
+    """Stop `proc` and every process under it: `sig`, then SIGKILL for any still running `grace` seconds later."""
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + grace
+    descendants = signal_process_tree(proc, sig)
+    with contextlib.suppress(asyncio.TimeoutError):
+        await asyncio.wait_for(proc.wait(), timeout=grace)
+    alive = []
+    if descendants:
+        # they aren't our children, so psutil waits on them by polling, in a thread
+        remaining = max(0, deadline - loop.time())
+        _, alive = await asyncio.to_thread(psutil.wait_procs, descendants, timeout=remaining)
+    for process in (proc, *alive):
+        if process is not proc or proc.returncode is None:
+            with contextlib.suppress(Exception):
+                process.kill()
 
 
 async def run(self, *command, check=False, text=True, idle_timeout=None, **kwargs):
@@ -55,8 +90,8 @@ async def run(self, *command, check=False, text=True, idle_timeout=None, **kwarg
                     stdout, stderr = await asyncio.wait_for(proc.communicate(_input), timeout=idle_timeout)
                 else:
                     stdout, stderr = await proc.communicate(_input)
-            except asyncio.exceptions.TimeoutError:
-                proc.send_signal(SIGINT)
+            except (asyncio.exceptions.TimeoutError, asyncio.CancelledError):
+                await stop_process(proc, SIGINT)
                 raise
 
             # surface stderr
@@ -121,7 +156,7 @@ async def run_live(self, *command, check=False, text=True, idle_timeout=None, **
                     else:
                         line = await proc.stdout.readline()
                 except asyncio.exceptions.TimeoutError:
-                    proc.send_signal(SIGINT)
+                    await stop_process(proc, SIGINT)
                     raise
                 except ValueError as e:
                     command_str = " ".join(command)
@@ -159,17 +194,11 @@ async def run_live(self, *command, check=False, text=True, idle_timeout=None, **
                     log.warning(f"Stderr for run_live({command_str}):\n\t{stderr}")
         finally:
             proc_tracker.discard(proc)
-            # Kill the subprocess if it's still running (e.g. generator was cancelled/closed)
+            # Stop the subprocess if it's still running (e.g. generator was cancelled/closed)
             if proc.returncode is None:
-                with contextlib.suppress(Exception):
-                    proc.terminate()
-                try:
-                    await asyncio.wait_for(proc.wait(), timeout=5)
-                except (asyncio.TimeoutError, Exception):
-                    with contextlib.suppress(Exception):
-                        proc.kill()
-                if input_task is not None:
-                    input_task.cancel()
+                await stop_process(proc)
+            if input_task is not None:
+                input_task.cancel()
 
 
 async def _spawn_proc(self, *command, **kwargs):
