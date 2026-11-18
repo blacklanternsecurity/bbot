@@ -81,7 +81,9 @@ module HtmlResponseConfig implements DataFlow::ConfigSig {
 
   predicate isSink(DataFlow::Node node) { htmlSink(node) }
 
-  predicate isBarrier(DataFlow::Node node) { htmlBarrier(node) }
+  predicate isBarrier(DataFlow::Node node) { htmlBarrier(node) or sharedCode(node) }
+
+  predicate isAdditionalFlowStep(DataFlow::Node node1, DataFlow::Node node2) { iterationStep(node1, node2) }
 }
 
 module HtmlResponseFlow = TaintTracking::Global<HtmlResponseConfig>;
@@ -91,7 +93,9 @@ module CodeResponseConfig implements DataFlow::ConfigSig {
 
   predicate isSink(DataFlow::Node node) { codeSink(node) }
 
-  predicate isBarrier(DataFlow::Node node) { codeBarrier(node) }
+  predicate isBarrier(DataFlow::Node node) { codeBarrier(node) or sharedCode(node) }
+
+  predicate isAdditionalFlowStep(DataFlow::Node node1, DataFlow::Node node2) { iterationStep(node1, node2) }
 }
 
 module CodeResponseFlow = TaintTracking::Global<CodeResponseConfig>;

@@ -25,7 +25,11 @@ module ParameterConfig implements DataFlow::ConfigSig {
     scriptLoadSink(node)
   }
 
-  predicate isBarrier(DataFlow::Node node) { numeric(node) or encoded(node) }
+  predicate isBarrier(DataFlow::Node node) { numeric(node) or encoded(node) or sharedCode(node) }
+
+  predicate isAdditionalFlowStep(DataFlow::Node node1, DataFlow::Node node2) {
+    iterationStep(node1, node2)
+  }
 }
 
 module ParameterFlow = TaintTracking::Global<ParameterConfig>;

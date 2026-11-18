@@ -49,6 +49,10 @@ module LeakConfig implements DataFlow::ConfigSig {
   predicate isSource(DataFlow::Node node) { sensitive(node) }
 
   predicate isSink(DataFlow::Node node) { messageContent(_, node) }
+
+  predicate isBarrier(DataFlow::Node node) { sharedCode(node) }
+
+  predicate isAdditionalFlowStep(DataFlow::Node node1, DataFlow::Node node2) { iterationStep(node1, node2) }
 }
 
 module LeakFlow = TaintTracking::Global<LeakConfig>;

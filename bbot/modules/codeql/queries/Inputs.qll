@@ -8,6 +8,7 @@
  */
 
 import javascript
+import semmle.javascript.dependencies.FrameworkLibraries
 import Angular
 
 private newtype TInputState =
@@ -333,11 +334,11 @@ private predicate extractsUrlPart(DataFlow::Node node1, DataFlow::Node node2) {
     call.getArgument(1).getStringValue() = ""
   )
   or
-  // any piece of a split but the first
+  // any piece of a split but the first, read straight off it or from a variable holding the pieces
   exists(DataFlow::MethodCallNode split, DataFlow::PropRead piece |
     split.getMethodName() = "split" and
     node1 = split.getReceiver() and
-    piece.getBase() = split and
+    piece.getBase().getALocalSource() = split and
     node2 = piece and
     not piece.getPropertyName() = "0"
   )
@@ -688,6 +689,98 @@ predicate pageCodeStep(DataFlow::Node node1, DataFlow::Node node2) {
   )
 }
 
+/**
+ * Holds if `fn` passes items of its parameter `collection` to its parameter `callback`, as the callback's parameter
+ * `param`, or as its `this` when `param` is -1, by way of `through`: an iteration helper, like jQuery's $.each or
+ * lodash's forEach. Either it reads each item and calls the callback with it, `callback.call(obj[i], i, obj[i])`, or
+ * it hands the callback to the browser's own iteration, `obj.forEach(callback)`.
+ */
+private predicate passesItem(
+  DataFlow::FunctionNode fn, int collection, int callback, int param, DataFlow::Node through
+) {
+  exists(DataFlow::PropRead item | item = through |
+    item.getBase().getALocalSource() = fn.getParameter(collection) and
+    not exists(item.getPropertyName()) and
+    (
+      exists(DataFlow::CallNode call | call = fn.getParameter(callback).getACall() |
+        item = call.getArgument(param)
+      )
+      or
+      exists(DataFlow::MethodCallNode call, int i |
+        call = fn.getParameter(callback).getAMethodCall("call") and
+        item = call.getArgument(i) and
+        param = i - 1
+      )
+    )
+  )
+  or
+  exists(DataFlow::MethodCallNode iterate |
+    iterate =
+      fn.getParameter(collection)
+          .getAMethodCall([
+              "forEach", "map", "filter", "some", "every", "find", "findIndex", "flatMap"
+            ]) and
+    iterate.getArgument(0).getALocalSource() = fn.getParameter(callback) and
+    through = iterate.getReceiver() and
+    param = 0
+  )
+}
+
+/**
+ * Holds if `node` is in code that unrelated calls share, where following data would carry one call's input on to
+ * every other call: where an iteration helper passes items to its callback (`iterationStep` links each call to its
+ * own callback instead), or anywhere in a library CodeQL recognizes by its banner, like jQuery or lodash, whose API
+ * CodeQL models instead.
+ */
+predicate sharedCode(DataFlow::Node node) {
+  passesItem(_, _, _, _, node)
+  or
+  recognizedLibrary(node.getContainer().getTopLevel())
+}
+
+/**
+ * Holds if `code` is a library CodeQL recognizes, with a banner naming it: a block comment, as libraries ship them
+ * (/*! jQuery v3.7.0 ...), so a page whose own code mentions one in a line comment isn't taken for it.
+ */
+private predicate recognizedLibrary(TopLevel code) {
+  exists(FrameworkLibrary library, BlockComment banner |
+    code.(FrameworkLibraryInstance).info(library, _) and
+    banner.getTopLevel() = code and
+    banner
+        .getText()
+        .toLowerCase()
+        .regexpReplaceAll("[^a-z0-9]", "")
+        .matches("%" + library.toLowerCase().regexpReplaceAll("[^a-z0-9]", "") + "%")
+  )
+}
+
+/** Holds if `node2` is where a call of an iteration helper passes items of the collection at `node1` to its callback. */
+predicate iterationStep(DataFlow::Node node1, DataFlow::Node node2) {
+  exists(
+    DataFlow::FunctionNode helper, int collection, int callback, int param,
+    DataFlow::InvokeNode call, DataFlow::FunctionNode fn
+  |
+    passesItem(helper, collection, callback, param, _) and
+    call.getACallee() = helper.getFunction() and
+    node1 = call.getArgument(collection) and
+    fn = call.getArgument(callback).getAFunctionValue()
+  |
+    param = -1 and node2 = fn.getReceiver()
+    or
+    node2 = fn.getParameter(param)
+  )
+  or
+  // jQuery's $.each, when the page doesn't carry jQuery's code to follow
+  exists(DataFlow::CallNode call, DataFlow::FunctionNode fn |
+    call = JQuery::dollar().getAMemberCall("each") and
+    not exists(call.getACallee()) and
+    node1 = call.getArgument(0) and
+    fn = call.getArgument(1).getAFunctionValue()
+  |
+    node2 = fn.getReceiver() or node2 = fn.getParameter([0, 1])
+  )
+}
+
 /** Gets a few words naming the input at `node`, for a finding's message. */
 string inputName(DataFlow::Node node) {
   attackerInput(node, _) and
@@ -714,7 +807,9 @@ module InputFlow<sinkSig/2 sink, barrierSig/1 barrier> {
 
     predicate isSink(DataFlow::Node node, FlowState state) { sink(node, state) }
 
-    predicate isBarrier(DataFlow::Node node) { barrier(node) or originPart(node) }
+    predicate isBarrier(DataFlow::Node node) {
+      barrier(node) or originPart(node) or sharedCode(node)
+    }
 
     predicate isAdditionalFlowStep(
       DataFlow::Node node1, FlowState state1, DataFlow::Node node2, FlowState state2
@@ -723,7 +818,7 @@ module InputFlow<sinkSig/2 sink, barrierSig/1 barrier> {
     }
 
     predicate isAdditionalFlowStep(DataFlow::Node node1, DataFlow::Node node2) {
-      secondOrderStep(node1, node2) or pageCodeStep(node1, node2)
+      secondOrderStep(node1, node2) or pageCodeStep(node1, node2) or iterationStep(node1, node2)
     }
   }
 

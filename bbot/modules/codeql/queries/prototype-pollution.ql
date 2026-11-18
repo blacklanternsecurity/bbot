@@ -21,9 +21,12 @@ class DynamicPropRef extends FinalPropRef {
   DynamicPropRef() { not exists(this.getPropertyName()) }
 }
 
-/** "__proto__" needs no encoding, so a key can come from input in any state. */
+/**
+ * "__proto__" needs no encoding, so a key can come from input that's still encoded, but not from a whole URL, which
+ * starts with its scheme, or a ? or #, and so is never "__proto__" or "constructor".
+ */
 predicate key(DataFlow::Node node, InputState state) {
-  node = any(DynamicPropRef ref).getPropertyNameExpr().flow() and exists(state)
+  node = any(DynamicPropRef ref).getPropertyNameExpr().flow() and state.controlsStart()
 }
 
 predicate noBarrier(DataFlow::Node node) { none() }
