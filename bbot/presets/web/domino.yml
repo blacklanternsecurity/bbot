@@ -22,6 +22,7 @@ config:
         - xss-interaction
         - xss-postmessage
         - xss-js
+        - client-side-path-traversal
         - template-injection
         - get-parameter-discovery
         - prototype-pollution

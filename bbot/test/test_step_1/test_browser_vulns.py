@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 from ..bbot_fixtures import *  # noqa: F401
 
 from bbot.modules.templates.browser_vulns import browser_vulns, js_tokens, normalize_code, script_key
@@ -77,3 +79,28 @@ def test_code_fingerprint(bbot_scanner):
     assert module.code_fingerprint(page.replace("innerHTML", "textContent"), scripts) != adelaide
     assert module.code_fingerprint(page.replace("onclick", "onmouseover"), scripts) != adelaide
     assert module.code_fingerprint(page.replace("<h1>", '<a href="javascript:go()">'), scripts) != adelaide
+
+    # code the page had when the server sent it, but that's gone once it has loaded, counts too
+    rewritten = "<html><body><h1>Loaded</h1></body></html>"
+    assert module.code_fingerprint(rewritten, scripts, served=page) != module.code_fingerprint(rewritten, scripts)
+    # code still on the loaded page isn't counted twice
+    assert module.code_fingerprint(page, scripts, served=page) == adelaide
+
+
+SELF_WRITING_PAGE = """<html><body><script>
+document.open(); document.write(location.hash); document.close();
+</script></body></html>"""
+
+
+def test_served_page(bbot_scanner):
+    """The page as the server sent it is kept for analysis only if it had code the loaded page lost."""
+    module = browser_vulns(bbot_scanner())
+
+    def visit(served, dom):
+        return SimpleNamespace(response=SimpleNamespace(text=served), dom=dom)
+
+    loaded = "<html><body><h1>Loaded</h1></body></html>"
+    assert module.served_page(visit(SELF_WRITING_PAGE, loaded)) == SELF_WRITING_PAGE
+    assert module.served_page(visit(SELF_WRITING_PAGE, SELF_WRITING_PAGE)) is None
+    # a page whose scripts added content but kept their own code
+    assert module.served_page(visit(PAGE, PAGE.replace("<h1>", "<p>added</p><h1>"))) is None
