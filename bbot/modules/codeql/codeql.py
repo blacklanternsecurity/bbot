@@ -3,7 +3,7 @@ import os
 import re
 import tempfile
 from pathlib import Path
-from urllib.parse import parse_qsl
+from subprocess import CompletedProcess
 from typing import Literal
 
 from bbot.core.config.models import BaseModuleConfig, Field
@@ -136,8 +136,7 @@ class codeql(browser_vulns):
         self.codeql_cache = self.helpers.cache_dir / "codeql"
         self.queries = sorted(str(q) for q in QUERIES_DIR.glob("*.ql"))
         # like browser_dom, only when a module in the scan tests parameters
-        tests_parameters = any("WEB_PARAMETER" in m.watched_events for m in self.scan.modules.values())
-        if self.config.get("parameters", True) and tests_parameters:
+        if self.config.get("parameters", True) and self.wants_parameters():
             self.queries.append(str(PARAMETERS_QUERY))
         self.reported = set()
         # compiled once, so pages don't each wait on it, and a broken install fails here
@@ -159,7 +158,7 @@ class codeql(browser_vulns):
             self.debug(f"Already analyzed a page with the same code as {url}")
         else:
             # once for each page code, since every page running it reads its parameters the same way
-            await self.emit_parameters(event, parameters)
+            await self.emit_page_parameters(event, parameters, "CodeQL")
 
         for finding in findings:
             if self.suppress_duplicates:
@@ -190,28 +189,6 @@ class codeql(browser_vulns):
         """Whether `url` is on one of `skip_hosts`, or a subdomain of one."""
         host = self.helpers.urlparse(url).hostname or ""
         return any(parent in self.skip_hosts for parent in self.helpers.domain_parents(host, include_self=True))
-
-    async def emit_parameters(self, event, names):
-        """A WEB_PARAMETER for each URL parameter the page's code passes to a sink, with the page's others beside it."""
-        parsed = self.helpers.urlparse(event.url)
-        query = dict(parse_qsl(parsed.query, keep_blank_values=True))
-        for name in names:
-            if self.helpers.web.parameter_blacklisted(name):
-                continue
-            await self.emit_event(
-                {
-                    "host": str(event.host),
-                    "type": "GETPARAM",
-                    "name": name,
-                    "original_value": query.get(name, ""),
-                    "url": parsed._replace(query="", fragment="").geturl(),
-                    "description": f"HTTP Extracted Parameter [{name}] (CodeQL)",
-                    "additional_params": {other: value for other, value in query.items() if other != name},
-                },
-                "WEB_PARAMETER",
-                parent=event,
-                context=f"{{module}} analyzed {event.url} with CodeQL, whose code passes URL parameter [{name}] to a sink",
-            )
 
     async def analyze_page(self, dom, scripts, served=None):
         """
@@ -252,6 +229,8 @@ class codeql(browser_vulns):
             database,
             "--language=javascript",
             f"--source-root={source_root}",
+            # every core: a site's bundle can take CodeQL minutes on one
+            "--threads=0",
             # the extractor otherwise skips any file that looks minified, which is most of what sites serve
             env=dict(os.environ, CODEQL_EXTRACTOR_JAVASCRIPT_ALLOW_MINIFIED_FILES="true"),
         )
@@ -274,6 +253,7 @@ class codeql(browser_vulns):
             *(queries or self.queries),
             "--format=csv",
             f"--output={output}",
+            "--threads=0",
         )
         if result.returncode != 0:
             self.warning(f"CodeQL couldn't query the database (exit {result.returncode}): {result.stderr[-500:]}")
@@ -284,7 +264,12 @@ class codeql(browser_vulns):
 
     async def codeql(self, *args, **kwargs):
         command = [self.codeql_bin, *args, f"--common-caches={self.codeql_cache}"]
-        return await self.run_process(command, idle_timeout=CODEQL_TIMEOUT, _log_stderr=False, **kwargs)
+        try:
+            return await self.run_process(command, idle_timeout=CODEQL_TIMEOUT, _log_stderr=False, **kwargs)
+        except TimeoutError:
+            # a failed step like any other, so a page's analysis comes to nothing rather than raising, and pages with
+            # the same code don't each spend CODEQL_TIMEOUT on it again
+            return CompletedProcess(command, -1, "", f"CodeQL ran out of time after {CODEQL_TIMEOUT}s")
 
     def to_finding(self, result, source_root, origins):
         sink_file = result["file"].lstrip("/")

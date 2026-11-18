@@ -217,6 +217,37 @@ class TestCodeQLParameters(ModuleTestBase):
         assert "DOM-based cross-site scripting" in findings
 
 
+class TestCodeQLTimeout(ModuleTestBase):
+    """A page CodeQL runs out of time on comes to nothing, rather than an error, and pages with its code don't rerun it"""
+
+    pytestmark = pytest.mark.browser
+    module_name = "codeql"
+    targets = [f"{HTTPSERVER_URL}/", f"{HTTPSERVER_URL}/other"]
+    modules_overrides = ["http", "codeql"]
+    config_overrides = {"web": {"enable_browser": True}}
+
+    async def setup_after_prep(self, module_test):
+        # two pages with the same code
+        for uri, text in (("/", "Welcome"), ("/other", "Another page")):
+            page = f"<html><body><p>{text}</p><script>document.title = location.hash;</script></body></html>"
+            module_test.set_expect_requests({"uri": uri}, {"response_data": page, "content_type": "text/html"})
+        module_test.codeql_runs = []
+
+        async def run_process(command, **kwargs):
+            module_test.codeql_runs.append(command[1:3])
+            raise TimeoutError
+
+        module_test.monkeypatch.setattr(module_test.module, "run_process", run_process)
+
+    def check(self, module_test, events):
+        module = module_test.module
+        assert module.pages_seen == 2
+        # the first page's database ran out of time; the second page has the same code, so it reused that result
+        assert module_test.codeql_runs == [["database", "create"]]
+        # a result is kept only if the analysis returned rather than raised
+        assert list(module.analyzed.values()) == [([], [])]
+
+
 class TestCodeQLThirdPartyHosts(ModuleTestBase):
     """Analyzing every script leaves out those from listed third-party hosts, unless they're in scope."""
 

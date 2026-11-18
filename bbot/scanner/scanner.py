@@ -774,6 +774,7 @@ class Scanner:
 
     def kill_module(self, module_name, message=None):
         from signal import SIGINT
+        from bbot.core.helpers.command import signal_process_tree
 
         module = self.modules[module_name]
         if module._intercept:
@@ -781,8 +782,7 @@ class Scanner:
             return
         module.set_error_state(message=message, clear_outgoing_queue=True, log_level="info")
         for proc in module._proc_tracker:
-            with contextlib.suppress(Exception):
-                proc.send_signal(SIGINT)
+            signal_process_tree(proc, SIGINT)
         self.helpers.cancel_tasks_sync(module._tasks)
 
     @property
