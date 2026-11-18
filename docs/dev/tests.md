@@ -234,3 +234,5 @@ class TestMyModule(ModuleTestBase):
 If you have questions about tests or need to write a more advanced test, come talk to us on [GitHub](https://github.com/blacklanternsecurity/bbot/discussions) or [Discord](https://discord.com/invite/PZqkgxu5SA).
 
 It's also a good idea to look through our [existing tests](https://github.com/blacklanternsecurity/bbot/tree/dev/bbot/test/test_step_2/module_tests). BBOT has over 300 of them, so you might find one that's similar to what you're trying to do.
+
+<!-- Scratch change to run the docs job from #3582 on a Markdown-only pull request. Not for merge. -->
