@@ -22,7 +22,7 @@ log = logging.getLogger("bbot.test.fixtures")
 
 
 # Per-xdist-worker so parallel workers don't share caches, scan output, or the
-# sessionfinish cleanup. Serial runs still get /tmp/.bbot_test.
+# sessionfinish cleanup. Serial runs get their run's base dir.
 bbot_test_dir = BBOT_TEST_DIR
 mkdir(bbot_test_dir)
 
