@@ -258,9 +258,9 @@ predicate scriptUrlSink(DataFlow::Node node) {
 
 /** Holds if `node` becomes the location the page navigates to. */
 predicate navigationSink(DataFlow::Node node) {
-  // location = url
+  // location = url, on the window, the document, another window, or AngularJS's $window
   node =
-    [DOM::documentRef(), otherWindow(), DataFlow::globalObjectRef()]
+    [DOM::documentRef(), otherWindow(), DataFlow::globalObjectRef(), injected("$window")]
         .getAPropertyWrite("location")
         .getRhs()
   or
@@ -286,6 +286,16 @@ predicate navigationSink(DataFlow::Node node) {
     clicked(element) and
     attributeWrite(element, "href", node)
   )
+}
+
+/**
+ * Holds if `node` becomes the whole URL the page goes to, where a javascript: URL runs as code. The Navigation API
+ * refuses a javascript: URL, and a location's host or protocol alone can't make one.
+ */
+predicate scriptNavigationSink(DataFlow::Node node) {
+  navigationSink(node) and
+  not node = DataFlow::globalVarRef("navigation").getAMethodCall("navigate").getArgument(0) and
+  not node = locationObject().getAPropertyWrite(["host", "hostname", "protocol"]).getRhs()
 }
 
 /**

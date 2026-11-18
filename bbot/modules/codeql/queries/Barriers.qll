@@ -397,6 +397,44 @@ private class ProtocolValidation extends DataFlow::CallNode {
   }
 }
 
+/** A check that a URL starts with text a javascript: URL can't: url.startsWith("/"), url.indexOf("https:") === 0. */
+private class SafeStartCheck extends DataFlow::Node instanceof StringOps::StartsWith {
+  SafeStartCheck() { startsUrl(knownValue(super.getSubstring())) }
+
+  predicate blocksExpr(boolean outcome, Expr e) {
+    outcome = super.getPolarity() and e = checkedBy(super.getBaseString().asExpr())
+  }
+}
+
+/** Holds if every match of capture group `n` of `re` starts with text a javascript: URL can't: (https?:\/\/.+). */
+private predicate captureStartsUrl(RegExpLiteral re, int n) {
+  exists(RegExpGroup group, RegExpTerm first |
+    group.getLiteral() = re and
+    group.getNumber() = n and
+    (
+      if group.getChild(0) instanceof RegExpSequence
+      then first = group.getChild(0).getChild(0)
+      else first = group.getChild(0)
+    ) and
+    startsUrl(first.(RegExpConstant).getValue())
+  )
+}
+
+/** Holds if `read` takes such a group from a match: /url=(https?:\/\/.+)/.exec(location)[1]. */
+private predicate safeCapture(DataFlow::PropRead read) {
+  exists(RegExpLiteral re, DataFlow::SourceNode literal, DataFlow::MethodCallNode match, int n |
+    captureStartsUrl(re, n) and
+    literal.asExpr() = re and
+    read.getPropertyName() = n.toString() and
+    match.flowsTo(read.getBase()) and
+    (
+      match.getMethodName() = "exec" and literal.flowsTo(match.getReceiver())
+      or
+      match.getMethodName() = "match" and literal.flowsTo(match.getArgument(0))
+    )
+  )
+}
+
 /** Holds if `node` can't be a javascript: URL: something else starts the URL, or it was checked for one. */
 predicate notJavascriptUrl(DataFlow::Node node) {
   afterUrlStart(node)
@@ -404,6 +442,10 @@ predicate notJavascriptUrl(DataFlow::Node node) {
   node = DataFlow::MakeBarrierGuard<JavascriptSchemeCheck>::getABarrierNode()
   or
   node = DataFlow::MakeBarrierGuard<ProtocolCheck>::getABarrierNode()
+  or
+  node = DataFlow::MakeBarrierGuard<SafeStartCheck>::getABarrierNode()
+  or
+  safeCapture(node)
   or
   node = DataFlow::MakeBarrierGuard<ProtocolValidation>::getABarrierNode()
   or

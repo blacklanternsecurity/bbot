@@ -22,4 +22,4 @@ location.replace(here.search + here.hash);
 
 // one past the "#" is the attacker's own text
 var url = location.href;
-location.href = url.substr(url.indexOf("#") + 1); // $ open-redirect
+location.href = url.substr(url.indexOf("#") + 1); // $ dom-xss
