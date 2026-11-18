@@ -24,23 +24,25 @@ BBOT offers multiple methods of installation, including **pipx** and **Docker**.
 pipx install bbot
 
 # bleeding edge (dev branch)
-pipx install --pip-args '\--pre' bbot
+pipx install git+https://github.com/blacklanternsecurity/bbot@dev
 
 # execute bbot command
 bbot --help
 ```
 
+Installing `dev` from git can build dependencies from source, which may need a [Rust toolchain](https://rustup.rs).
+
 ### Docker
 
-[Docker images](https://hub.docker.com/r/blacklanternsecurity/bbot) are provided, along with helper script `bbot-docker.sh` to persist your scan data. Images come in four flavors: `dev`, `dev-full`, `stable`, and `stable-full`. `dev` is the latest bleeding edge version. `-full` images are larger and have all of BBOT's module dependencies preinstalled (wordlists, pip packages, etc.).
+Docker images are provided on [Docker Hub](https://hub.docker.com/r/blacklanternsecurity/bbot) and [GHCR](https://github.com/blacklanternsecurity/bbot/pkgs/container/bbot), along with helper script `bbot-docker.sh` to persist your scan data. Releases are on Docker Hub as `stable` and `stable-full`. The bleeding edge `dev` and `dev-full` images are built from every push to `dev` and published to GHCR at `ghcr.io/blacklanternsecurity/bbot`. `-full` images are larger and have all of BBOT's module dependencies preinstalled (wordlists, pip packages, etc.). Docker Hub's `dev` tags and the `--pre` PyPI builds are no longer updated.
 
 Scans are output to `~/.bbot/scans` (the usual place for BBOT scan data).
 
 ```bash
 # dev (bleeding edge)
-docker run -it blacklanternsecurity/bbot --help
+docker run -it ghcr.io/blacklanternsecurity/bbot:dev --help
 # dev (bleeding edge - full)
-docker run -it blacklanternsecurity/bbot:dev-full --help
+docker run -it ghcr.io/blacklanternsecurity/bbot:dev-full --help
 
 # stable
 docker run -it blacklanternsecurity/bbot:stable --help
