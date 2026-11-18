@@ -63,7 +63,7 @@ jobs:
           delim=$(openssl rand -hex 16)
           {
             echo "latest_version=$latest"
-            echo "current_version=$(grep -m 1 -oP '(?<=Field\(")[^"]*' "bbot/modules/$MODULE.py")"
+            echo "current_version=$(grep -m 1 -oP '^\s+version: VersionStr = Field\("\K[^"]*' "bbot/modules/$MODULE.py")"
             echo "release_notes<<$delim"
             gh api "repos/$REPO/releases/latest" --jq '.body'
             echo "$delim"
@@ -71,7 +71,8 @@ jobs:
       - name: Update version
         id: update-version
         if: env.latest_version != env.current_version
-        run: sed -i "0,/Field(\"[^\"]*\",/ s/Field(\"[^\"]*\",/Field(\"$latest_version\",/" "bbot/modules/$MODULE.py"
+        run: |
+          sed -i -E "0,/^(\s+version: VersionStr = Field\(\")[^\"]*\",/ s//\1$latest_version\",/" "bbot/modules/$MODULE.py"
       - name: Create pull request to update the version
         if: steps.update-version.outcome == 'success'
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
