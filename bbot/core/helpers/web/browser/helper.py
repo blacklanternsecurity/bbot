@@ -123,18 +123,22 @@ class RedirectHold:
 
     async def _route(self, route):
         request = route.request
-        # the page's own first load, subresources and iframes go through as normal
-        if self.document is None or request.frame != self.page.main_frame or not request.is_navigation_request():
-            await route.fallback()
-            return
-        current = await self.helper._to_response(self.document, self.document.url)
-        if current.conclusion[0] == "needs_browser":
-            await route.fallback()
-            return
-        if self.target is None:
-            self.target = (request.method, request.url)
-        self.caught.set()
-        await route.abort("aborted")
+        # Playwright throws a route's error at the scan's next browser call, wherever it is
+        try:
+            # the page's own first load, subresources and iframes go through as normal
+            if self.document is None or request.frame != self.page.main_frame or not request.is_navigation_request():
+                await route.fallback()
+                return
+            current = await self.helper._to_response(self.document, self.document.url)
+            if current.conclusion[0] == "needs_browser":
+                await route.fallback()
+                return
+            if self.target is None:
+                self.target = (request.method, request.url)
+            self.caught.set()
+            await route.abort("aborted")
+        except self.helper.engine.errors as e:
+            log.debug(f"Couldn't hold {request.url}: {e}")
 
 
 @dataclass
@@ -659,14 +663,18 @@ class BrowserHelper:
 
     async def _route(self, route):
         request = route.request
-        if self.parent_helper.preset.blacklisted(request.url):
-            await route.abort("blockedbyclient")
-            return
-        headers = self._scan_headers(request.url, request.headers)
-        if headers is not None:
-            await route.continue_(headers=headers)
-            return
-        await route.continue_()
+        # Playwright throws a route's error at the scan's next browser call, wherever it is
+        try:
+            if self.parent_helper.preset.blacklisted(request.url):
+                await route.abort("blockedbyclient")
+                return
+            headers = self._scan_headers(request.url, request.headers)
+            if headers is not None:
+                await route.continue_(headers=headers)
+                return
+            await route.continue_()
+        except self.engine.errors as e:
+            log.debug(f"Couldn't route {request.url}: {e}")
 
     def _scan_headers(self, url, headers):
         """
