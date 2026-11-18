@@ -78,6 +78,9 @@ class Interactsh:
         ```
     """
 
+    # grace period for in-flight interactions to reach the server before a final poll
+    SETTLE_INTERVAL = 5
+
     def __init__(self, parent_helper, poll_interval=10):
         self.parent_helper = parent_helper
         self.server = None
@@ -86,6 +89,14 @@ class Interactsh:
         self.token = self.parent_helper.config.get("interactsh_token", None)
         self.poll_interval = poll_interval
         self._poll_task = None
+
+    async def settle(self):
+        """Wait for interactions triggered just before the scan ended to reach the server.
+
+        Round-trip latency is a property of the transport, so mocks override this to zero
+        rather than every caller hardcoding a sleep.
+        """
+        await asyncio.sleep(self.SETTLE_INTERVAL)
 
     async def register(self, callback=None):
         """

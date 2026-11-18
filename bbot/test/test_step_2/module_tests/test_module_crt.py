@@ -6,7 +6,7 @@ class TestCRT(ModuleTestBase):
         module_test.module.abort_if = lambda e: False
         for t in self.targets:
             module_test.blasthttp_mock.add_response(
-                url="https://crt.sh?q=%25.blacklanternsecurity.com&output=json",
+                url="https://crt.sh/?q=%25.blacklanternsecurity.com&output=json",
                 json=[{"id": 1, "name_value": "asdf.blacklanternsecurity.com\nzzzz.blacklanternsecurity.com"}],
             )
 

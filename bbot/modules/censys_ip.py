@@ -152,10 +152,14 @@ class censys_ip(censys):
 
             # Extract software/technologies
             for software in service.get("software", []):
-                product = software.get("uniform_resource_identifier", software.get("product", ""))
-                if product:
+                cpe = software.get("uniform_resource_identifier", "")
+                technology = (self.helpers.cpe_product(cpe) if cpe else None) or software.get("product", "")
+                if technology:
+                    tech = {"technology": technology, "host": str(event.host)}
+                    if cpe:
+                        tech["cpe"] = cpe
                     await self.emit_event(
-                        {"technology": product, "host": str(event.host)},
+                        tech,
                         "TECHNOLOGY",
                         parent=event,
                         context="{module} found {event.type}: {event.data[technology]} on {event.parent.data}",

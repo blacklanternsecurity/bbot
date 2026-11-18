@@ -343,68 +343,73 @@ async def test_huge_target_list(bbot_scanner, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_exclude_cdn(bbot_scanner, monkeypatch, clean_default_config):
-    # test that CDN exclusion works
-
+async def test_cdn_port_filter(bbot_scanner, monkeypatch, clean_default_config):
     from bbot.scanner import Preset
+    from bbot.modules.base import BaseModule
 
     dns_mock = {
         "evilcorp.com": {"A": ["127.0.0.1"]},
         "www.evilcorp.com": {"A": ["127.0.0.1"]},
+        "origin.evilcorp.com": {"A": ["127.0.0.1"]},
     }
 
-    # first, run a scan with no CDN exclusion
-    scan = bbot_scanner("evilcorp.com")
-    await scan._prep()
-    await scan.helpers._mock_dns(dns_mock)
-
-    from bbot.modules.base import BaseModule
-
     class DummyModule(BaseModule):
-        watched_events = ["DNS_NAME"]
+        watched_events = ["DNS_NAME", "OPEN_TCP_PORT"]
+        accept_seeds = True
 
         async def handle_event(self, event):
             if event.type == "DNS_NAME" and event.data == "evilcorp.com":
-                await self.emit_event("www.evilcorp.com", "DNS_NAME", parent=event, tags=["cloudflare", "cdn"])
-            if event.type == "DNS_NAME" and event.data == "www.evilcorp.com":
-                await self.emit_event("www.evilcorp.com:80", "OPEN_TCP_PORT", parent=event, tags=["cloudflare", "cdn"])
-                await self.emit_event(
-                    "www.evilcorp.com:443", "OPEN_TCP_PORT", parent=event, tags=["cloudflare", "cdn"]
-                )
-                await self.emit_event(
-                    "www.evilcorp.com:8080", "OPEN_TCP_PORT", parent=event, tags=["cloudflare", "cdn"]
-                )
+                for port in (80, 443, 8080):
+                    await self.emit_event(f"www.evilcorp.com:{port}", "OPEN_TCP_PORT", parent=event, tags=["cdn"])
+                await self.emit_event("http://www.evilcorp.com:8443/", "URL_UNVERIFIED", parent=event, tags=["waf"])
+                # not a CDN host, so any port is fine
+                await self.emit_event("origin.evilcorp.com:8080", "OPEN_TCP_PORT", parent=event)
+            # an explicitly targeted CDN port is kept, along with anything found on it
+            if event.type == "OPEN_TCP_PORT" and event.data == "www.evilcorp.com:2083":
+                await self.emit_event("https://www.evilcorp.com:2083/", "URL_UNVERIFIED", parent=event, tags=["cdn"])
+                await self.emit_event("https://www.evilcorp.com:2087/", "URL_UNVERIFIED", parent=event, tags=["cdn"])
 
-    dummy = DummyModule(scan=scan)
-    scan.modules["dummy"] = dummy
-    events = [e async for e in scan.async_start() if e.type in ("DNS_NAME", "OPEN_TCP_PORT")]
-    assert set(e.data for e in events) == {
-        "evilcorp.com",
-        "www.evilcorp.com",
+    async def run(preset=None):
+        scan = bbot_scanner("evilcorp.com", "www.evilcorp.com:2083", preset=preset, config={"omit_event_types": []})
+        await scan._prep()
+        await scan.helpers._mock_dns(dns_mock)
+        scan.modules["dummy"] = DummyModule(scan=scan)
+        return {
+            e.pretty_string
+            for e in [e async for e in scan.async_start()]
+            if e.type in ("OPEN_TCP_PORT", "URL_UNVERIFIED")
+        }
+
+    # by default, only the allowed ports survive on CDN/WAF hosts
+    assert await run() == {
+        "www.evilcorp.com:80",
+        "www.evilcorp.com:443",
+        "origin.evilcorp.com:8080",
+        "www.evilcorp.com:2083",
+        "https://www.evilcorp.com:2083/",
+    }
+
+    # --allow-cdn-ports restores the unfiltered behavior
+    monkeypatch.setattr("sys.argv", ["bbot", "-t", "evilcorp.com", "www.evilcorp.com:2083", "--allow-cdn-ports"])
+    preset = Preset("evilcorp.com", "www.evilcorp.com:2083")
+    preset.parse_args()
+    assert preset.validate().bake().config["cdn_port_filter"]["enabled"] is False
+    assert await run(preset=preset) == {
         "www.evilcorp.com:80",
         "www.evilcorp.com:443",
         "www.evilcorp.com:8080",
+        "http://www.evilcorp.com:8443/",
+        "origin.evilcorp.com:8080",
+        "www.evilcorp.com:2083",
+        "https://www.evilcorp.com:2083/",
+        "https://www.evilcorp.com:2087/",
     }
 
-    monkeypatch.setattr("sys.argv", ["bbot", "-t", "evilcorp.com", "--exclude-cdn"])
-
-    # then run a scan with --exclude-cdn enabled
+    # --exclude-cdn is a deprecated no-op that leaves the filter on
+    monkeypatch.setattr("sys.argv", ["bbot", "-t", "evilcorp.com", "-ec"])
     preset = Preset("evilcorp.com")
     preset.parse_args()
-    baked_preset = preset.validate().bake()
-    assert baked_preset.to_yaml() == "modules:\n- portfilter\n"
-    scan = bbot_scanner("evilcorp.com", preset=preset)
-    await scan._prep()
-    await scan.helpers._mock_dns(dns_mock)
-    dummy = DummyModule(scan=scan)
-    scan.modules["dummy"] = dummy
-    events = [e async for e in scan.async_start() if e.type in ("DNS_NAME", "OPEN_TCP_PORT")]
-    assert set(e.data for e in events) == {
-        "evilcorp.com",
-        "www.evilcorp.com",
-        "www.evilcorp.com:80",
-        "www.evilcorp.com:443",
-    }
+    assert preset.validate().bake().config["cdn_port_filter"]["enabled"] is True
 
 
 @pytest.mark.asyncio
@@ -424,6 +429,22 @@ async def test_scan_event_started_at_type(bbot_scanner):
         assert isinstance(started_at, float), (
             f"SCAN event (status={status}) started_at should be float, got {type(started_at).__name__}: {started_at!r}"
         )
+
+
+@pytest.mark.asyncio
+async def test_scan_log_version(bbot_scanner):
+    import bbot
+
+    scan = bbot_scanner("127.0.0.1")
+    # run at the default log level, since the test suite otherwise logs at DEBUG
+    old_log_level = scan.core.logger.log_level
+    scan.core.logger.log_level = logging.INFO
+    try:
+        await scan.async_start_without_generator()
+    finally:
+        scan.core.logger.log_level = old_log_level
+    scan_log = open(scan.home / "scan.log").read()
+    assert f"BBOT version: {bbot.__full_version__}" in scan_log
 
 
 async def test_scan_name(bbot_scanner):
@@ -520,3 +541,47 @@ async def test_memory_backpressure_drain_mode_bypass(bbot_scanner, monkeypatch):
         assert m.num_incoming_events == 0
     scan.modules_status(_log=False)
     assert scan._ingress_delay == 0.0, "throttle must clear in drain mode (no producers, ingress is the drain)"
+
+
+@pytest.mark.asyncio
+async def test_url_max_path_param_repeats():
+    """Servers that append a session id on every redirect, and spider traps, generate an
+    unbounded supply of URLs whose path repeats one key. Ingress drops them."""
+    from bbot.scanner import Scanner
+
+    def jsessionid_url(n):
+        return "http://evilcorp.com/" + "".join(f";JSESSIONID={i:08x}-2ab9-49eb" for i in range(n))
+
+    scan = Scanner("evilcorp.com", config={"url_max_path_param_repeats": 10})
+    await scan._prep()
+    ingress = scan.ingress_module
+
+    # handle_event returns None when it accepts, and (False, reason) when it rejects
+
+    # below the limit the URL is scanned normally
+    shallow = scan.make_event(jsessionid_url(9), "URL_UNVERIFIED", parent=scan.root_event)
+    assert await ingress.handle_event(shallow) is None
+    assert "blacklisted" not in shallow.tags
+
+    # at the limit it is rejected before reaching any module's queue
+    degenerate = scan.make_event(jsessionid_url(10), "URL_UNVERIFIED", parent=scan.root_event)
+    assert await ingress.handle_event(degenerate) == (False, "event is blacklisted")
+    assert "blacklisted" in degenerate.tags
+
+    # ordinary URLs are untouched, however deep or repetitive the path
+    for url in (
+        "http://evilcorp.com/api/v1/users/1",
+        "http://evilcorp.com/" + "/".join(["blacklanternsecurity"] * 20) + ".txt",
+    ):
+        normal = scan.make_event(url, "URL_UNVERIFIED", parent=scan.root_event)
+        assert await ingress.handle_event(normal) is None
+        assert "blacklisted" not in normal.tags
+    await scan._cleanup()
+
+    # the guard can be disabled outright
+    scan = Scanner("evilcorp.com", config={"url_max_path_param_repeats": 0})
+    await scan._prep()
+    off = scan.make_event(jsessionid_url(50), "URL_UNVERIFIED", parent=scan.root_event)
+    await scan.ingress_module.handle_event(off)
+    assert "blacklisted" not in off.tags
+    await scan._cleanup()

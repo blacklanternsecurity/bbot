@@ -87,6 +87,11 @@ class unarchive(BaseInternalModule):
             command = [s.format(filename=path, extract_dir=output_dir) for s in cmd_list]
             try:
                 await self.run_process(command, check=True)
+                # the listing check above depends on 7-Zip's output format, so verify what was actually written
+                if any(p.is_symlink() for p in output_dir.rglob("*")):
+                    self.helpers.rm_rf(output_dir)
+                    self.warning(f"Archive {path} extracted a symlink, removing {output_dir}")
+                    return False
                 extracted_size = sum(f.stat().st_size for f in output_dir.rglob("*") if f.is_file())
                 budget[0] -= extracted_size
                 if budget[0] < 0:

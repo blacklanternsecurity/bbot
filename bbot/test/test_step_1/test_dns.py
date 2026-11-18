@@ -825,6 +825,62 @@ async def test_wildcard_deduplication(bbot_scanner):
     assert sorted(e.data for e in dns_name_events) == ["_wildcard.evilcorp.com", "evilcorp.com"]
 
 
+# *.evilcorp.com and *.nested.evilcorp.com are both wildcards, but serve different pools.
+# The regexes don't overlap: wildcard probes are 10 random lowercase letters.
+NESTED_WILDCARD_DNS = {
+    "evilcorp.com": {"A": ["127.0.0.1"]},
+    r"regex:^[a-z]{10}\.evilcorp\.com$": {"A": ["127.0.0.2"]},
+    r"regex:.*\.nested\.evilcorp\.com$": {"A": ["127.0.0.3", "127.0.0.4"]},
+    "real.evilcorp.com": {"A": ["127.0.0.5"]},
+}
+
+
+@pytest.mark.asyncio
+async def test_nested_wildcards(bbot_scanner):
+    """A wildcard nested under a wildcard with a different pool is detected as the nested zone."""
+    scan = bbot_scanner("evilcorp.com", config={"dns": {"wildcard_ignore": []}})
+    await scan._prep()
+    await scan.helpers.dns._mock_dns(NESTED_WILDCARD_DNS)
+
+    # every depth under the nested zone must report the same parent, so the names dedupe
+    for query in ("a.nested.evilcorp.com", "a.b.nested.evilcorp.com", "a.b.c.d.e.nested.evilcorp.com"):
+        wildcard_rdtypes = await scan.helpers.dns.is_wildcard(query, ["A"])
+        assert wildcard_rdtypes.get("A") == (True, "nested.evilcorp.com"), query
+
+    # a name under a wildcard that matches no wildcard pool may be real
+    wildcard_rdtypes = await scan.helpers.dns.is_wildcard("real.evilcorp.com", ["A"])
+    assert wildcard_rdtypes.get("A") == ("POSSIBLE", "evilcorp.com")
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_nested_wildcard_deduplication(bbot_scanner):
+    """Names at any depth under a nested wildcard collapse into one _wildcard.* event."""
+    from bbot.modules.base import BaseModule
+
+    class DummyModule(BaseModule):
+        watched_events = ["DNS_NAME"]
+        per_domain_only = True
+
+        async def handle_event(self, event):
+            for host in ("a.nested.evilcorp.com", "a.b.nested.evilcorp.com", "a.b.c.d.e.nested.evilcorp.com"):
+                await self.emit_event(host, "DNS_NAME", parent=event)
+
+    scan = bbot_scanner(
+        "evilcorp.com",
+        config={"dns": {"minimal": False, "wildcard_ignore": []}, "omit_event_types": []},
+    )
+    await scan._prep()
+    await scan.helpers.dns._mock_dns(NESTED_WILDCARD_DNS)
+    dummy_module = DummyModule(scan)
+    scan.modules["dummy_module"] = dummy_module
+    events = [e async for e in scan.async_start()]
+
+    dns_names = sorted(e.data for e in events if e.type == "DNS_NAME")
+    assert dns_names == ["_wildcard.nested.evilcorp.com", "evilcorp.com"]
+
+
 @pytest.mark.asyncio
 async def test_dns_graph_structure(bbot_scanner):
     scan = bbot_scanner("https://evilcorp.com", config={"dns": {"search_distance": 1, "minimal": False}})
@@ -902,11 +958,459 @@ async def test_dns_helpers(bbot_scanner):
     # all_rdtypes is the canonical list -- make sure it's not empty and contains the basics
     assert "A" in all_rdtypes and "AAAA" in all_rdtypes and "CNAME" in all_rdtypes
 
-    # make sure system nameservers are excluded from use by DNS brute force
+    # make sure the resolvers used for normal resolution are excluded from brute-forcing
     brute_nameservers = tempwordlist(["1.2.3.4", "8.8.4.4", "4.3.2.1", "8.8.8.8"])
     scan = bbot_scanner(config={"dns": {"brute_nameservers": brute_nameservers}})
     await scan._prep()
-    scan.helpers.dns.system_resolvers = ["8.8.8.8", "8.8.4.4"]
+    scan.helpers.dns.resolvers = ["8.8.8.8", "8.8.4.4"]
     resolver_file = await scan.helpers.dns.brute.resolver_file()
     resolvers = set(scan.helpers.read_file(resolver_file))
     assert resolvers == {"1.2.3.4", "4.3.2.1"}
+
+    # custom nameservers replace the system ones, and are likewise kept out of
+    # the brute-force pool so brute traffic can't rate-limit our own queries
+    scan = bbot_scanner(
+        config={"dns": {"nameservers": ["8.8.8.8", "8.8.4.4"], "brute_nameservers": brute_nameservers}}
+    )
+    await scan._prep()
+    assert scan.helpers.dns.resolvers == ["8.8.8.8", "8.8.4.4"]
+    assert scan.helpers.dns.blastdns.resolvers == ["8.8.8.8:53", "8.8.4.4:53"]
+    # resolver_file is what external tools (e.g. nuclei) are pointed at
+    assert set(scan.helpers.read_file(scan.helpers.dns.resolver_file)) == {"8.8.8.8", "8.8.4.4"}
+    resolver_file = await scan.helpers.dns.brute.resolver_file()
+    assert set(scan.helpers.read_file(resolver_file)) == {"1.2.3.4", "4.3.2.1"}
+
+    # custom nameservers given with a port are matched by host against the bare-IP brute list
+    brute_nameservers = tempwordlist(["1.2.3.4", "8.8.4.4", "4.3.2.1", "8.8.8.8", "2001:4860:4860::8888"])
+    scan = bbot_scanner(
+        config={
+            "dns": {
+                "nameservers": ["8.8.8.8:53", "8.8.4.4:5353", "[2001:4860:4860::8888]:53"],
+                "brute_nameservers": brute_nameservers,
+            }
+        }
+    )
+    await scan._prep()
+    resolver_file = await scan.helpers.dns.brute.resolver_file()
+    assert set(scan.helpers.read_file(resolver_file)) == {"1.2.3.4", "4.3.2.1"}
+
+    # with no custom nameservers, the system ones are used
+    scan = bbot_scanner()
+    await scan._prep()
+    assert scan.helpers.dns.resolvers == list(scan.helpers.dns.system_resolvers)
+
+
+@pytest.mark.asyncio
+async def test_dns_brute_draws_resolvers_per_scan(bbot_scanner, monkeypatch):
+    """A scan draws dns.brute_max_resolvers resolvers at random, once, and every run shares them."""
+    from bbot.core.helpers.dns import brute as brute_module
+
+    drawn = []
+
+    class FakeClient:
+        def __init__(self, resolvers, config):
+            drawn.append(resolvers)
+
+    monkeypatch.setattr(brute_module, "Client", FakeClient)
+
+    pool = [f"10.0.{i // 256}.{i % 256}" for i in range(1000)]
+    scan = bbot_scanner(config={"dns": {"brute_nameservers": tempwordlist(pool), "brute_max_resolvers": 50}})
+    await scan._prep()
+    client = await scan.helpers.dns.brute.client()
+    assert await scan.helpers.dns.brute.client() is client
+    assert [len(d) for d in drawn] == [50]
+    assert set(drawn[0]) <= set(pool)
+
+    # another scan makes its own draw
+    scan = bbot_scanner(config={"dns": {"brute_nameservers": tempwordlist(pool), "brute_max_resolvers": 50}})
+    await scan._prep()
+    await scan.helpers.dns.brute.client()
+    assert len(drawn[-1]) == 50
+    assert set(drawn[-1]) != set(drawn[0])
+
+    # the shipped default draws 600
+    scan = bbot_scanner(config={"dns": {"brute_nameservers": tempwordlist(pool)}})
+    await scan._prep()
+    await scan.helpers.dns.brute.client()
+    assert len(drawn[-1]) == 600
+
+    # 0 means the whole list
+    scan = bbot_scanner(config={"dns": {"brute_nameservers": tempwordlist(pool), "brute_max_resolvers": 0}})
+    await scan._prep()
+    await scan.helpers.dns.brute.client()
+    assert sorted(drawn[-1]) == sorted(pool)
+
+
+@pytest.mark.asyncio
+async def test_dns_brute_client_config(bbot_scanner, monkeypatch):
+    """Every dns.brute_* option has to reach the blastdns client.
+
+    blastdns rejects unknown ClientConfig keys, but a value BBOT never passes
+    fails silently as a default, which is invisible in scan output.
+    """
+    from bbot.core.helpers.dns import brute as brute_module
+
+    captured = {}
+
+    class FakeClient:
+        def __init__(self, resolvers, config):
+            captured["resolvers"] = resolvers
+            captured["config"] = config
+
+    monkeypatch.setattr(brute_module, "Client", FakeClient)
+
+    brute_nameservers = tempwordlist(["1.2.3.4", "4.3.2.1"])
+    scan = bbot_scanner(
+        config={
+            "dns": {
+                "brute_nameservers": brute_nameservers,
+                "brute_threads": 123,
+                "brute_inflight_per_resolver": 7,
+                "brute_rate_limit": 456,
+                "brute_retries": 9,
+                "brute_timeout": 0.25,
+                "brute_persistent_socket": True,
+            }
+        }
+    )
+    await scan._prep()
+    await scan.helpers.dns.brute.client()
+
+    config = captured["config"]
+    assert config.max_concurrency == 123
+    assert config.max_inflight_per_resolver == 7
+    assert config.rate_limit == 456
+    assert config.max_retries == 9
+    assert config.request_timeout_ms == 250
+    assert config.persistent_socket is True
+    # brute-force names are unique by construction, so a cache is pure overhead
+    assert config.cache_capacity == 0
+
+    # a rate limit of 0 means unlimited, which blastdns spells as None
+    scan = bbot_scanner(config={"dns": {"brute_nameservers": brute_nameservers, "brute_rate_limit": 0}})
+    await scan._prep()
+    await scan.helpers.dns.brute.client()
+    assert captured["config"].rate_limit is None
+    # the shipped default must not silently drift back to a slow tail
+    assert captured["config"].request_timeout_ms == 500
+    # one socket per resolver keeps NAT state bounded by the resolver count instead
+    # of growing with query volume, so it has to stay on by default
+    assert captured["config"].persistent_socket is True
+
+    # and it stays overridable, for anywhere the extra sockets are the tighter bound
+    scan = bbot_scanner(config={"dns": {"brute_nameservers": brute_nameservers, "brute_persistent_socket": False}})
+    await scan._prep()
+    await scan.helpers.dns.brute.client()
+    assert captured["config"].persistent_socket is False
+
+    # An unusable nameserver fails loudly instead of being silently ignored.
+    # Validation is blastdns's, so it happens when the client is built.
+    scan = bbot_scanner(config={"dns": {"nameservers": ["not-an-ip"]}})
+    with pytest.raises(ValidationError, match="dns.nameservers"):
+        _ = scan.helpers.dns.resolvers
+
+    # _prep() builds the client up front, so a bad nameserver aborts the scan there
+    # instead of surfacing once per event inside dnsresolve
+    scan = bbot_scanner(config={"dns": {"nameservers": ["not-an-ip"]}})
+    with pytest.raises(ValidationError, match="dns.nameservers"):
+        await scan._prep()
+
+    # a DNS-disabled scan never resolves, so it must not be blocked by that check
+    scan = bbot_scanner(config={"dns": {"nameservers": ["not-an-ip"], "disable": True}})
+    await scan._prep()
+
+
+def test_dns_client_config(bbot_scanner, monkeypatch):
+    """dns.threads and dns.max_concurrency reach the main blastdns client, and the total is capped."""
+    from bbot.core.helpers.dns import dns as dns_module
+
+    captured = {}
+
+    class FakeClient:
+        def __init__(self, resolvers, config):
+            captured["config"] = config
+
+    monkeypatch.setattr(dns_module, "Client", FakeClient)
+    nameservers = ["1.1.1.1", "8.8.8.8"]
+
+    scan = bbot_scanner(config={"dns": {"nameservers": nameservers, "threads": 7, "max_concurrency": 123}})
+    dns = scan.helpers.dns
+    assert captured["config"].max_inflight_per_resolver == 7
+    assert captured["config"].max_concurrency == 123
+    assert dns.concurrency == 14
+
+    # the total never exceeds dns.max_concurrency, however many resolvers there are
+    scan = bbot_scanner(config={"dns": {"nameservers": nameservers, "threads": 100, "max_concurrency": 150}})
+    assert scan.helpers.dns.concurrency == 150
+
+    # shipped defaults: 50 in flight per resolver, 256 in total
+    scan = bbot_scanner(config={"dns": {"nameservers": nameservers}})
+    dns = scan.helpers.dns
+    assert captured["config"].max_inflight_per_resolver == 50
+    assert captured["config"].max_concurrency == 256
+    assert dns.concurrency == 100
+
+
+@pytest.mark.asyncio
+async def test_dnsresolve_module_threads(bbot_scanner):
+    """dnsresolve runs half as many workers as the DNS client has slots (at least 10), unless overridden."""
+    nameservers = ["1.1.1.1", "8.8.8.8"]
+
+    scan = bbot_scanner("evilcorp.com", config={"dns": {"nameservers": nameservers, "threads": 50}})
+    await scan._prep()
+    assert scan.modules["dnsresolve"].module_threads == 50
+
+    scan = bbot_scanner(
+        "evilcorp.com", config={"dns": {"nameservers": nameservers, "threads": 50, "max_concurrency": 60}}
+    )
+    await scan._prep()
+    assert scan.modules["dnsresolve"].module_threads == 30
+
+    scan = bbot_scanner("evilcorp.com", config={"dns": {"nameservers": nameservers, "threads": 3}})
+    await scan._prep()
+    assert scan.modules["dnsresolve"].module_threads == 10
+
+    scan = bbot_scanner(
+        "evilcorp.com",
+        config={"dns": {"nameservers": nameservers, "threads": 3}, "modules": {"dnsresolve": {"module_threads": 7}}},
+    )
+    await scan._prep()
+    assert scan.modules["dnsresolve"].module_threads == 7
+
+
+@pytest.mark.asyncio
+async def test_dnsresolve_incoming_lanes(bbot_scanner):
+    from bbot.core.helpers.async_helpers import LaneQueue
+
+    scan = bbot_scanner("evilcorp.com")
+    await scan._prep()
+    dnsresolve = scan.modules["dnsresolve"]
+
+    dns_name = scan.make_event("www.evilcorp.com", "DNS_NAME", parent=scan.root_event)
+    open_port = scan.make_event("www.evilcorp.com:443", "OPEN_TCP_PORT", parent=dns_name)
+    new_host_url = scan.make_event("http://new.evilcorp.com/", "URL_UNVERIFIED", parent=dns_name)
+    finished = scan.make_event("FINISHED", "FINISHED", dummy=True)
+
+    # hosts that still need resolving wait; hosts already resolved upstream (and hostless events) don't
+    assert dnsresolve.incoming_lane(dns_name) == 1
+    assert dnsresolve.incoming_lane(new_host_url) == 1
+    assert dnsresolve.incoming_lane(open_port) == 0
+    assert dnsresolve.incoming_lane(finished) == 0
+
+    # the queue feeding dnsresolve is divided by those lanes
+    queue = dnsresolve.incoming_event_queue
+    assert isinstance(queue, LaneQueue)
+    for event in (dns_name, new_host_url, open_port):
+        queue.put_nowait((event, {}))
+    assert [queue.get_nowait()[0] for _ in range(3)] == [open_port, dns_name, new_host_url]
+
+
+# a host and a child on that host, emitted together by one module (as urlscan and asset_inventory do)
+parent_child_mock_data = {
+    "evilcorp.com": {"A": ["127.0.0.1"]},
+    "ok.evilcorp.com": {"A": ["127.0.0.3"]},
+    # resolves to a blacklisted IP
+    "bad.evilcorp.com": {"A": ["127.0.0.99"]},
+    # in scope only because it resolves to a target IP
+    "viaip.othercorp.net": {"A": ["127.0.1.5"]},
+    # doesn't resolve
+    "dead.evilcorp.com": {},
+    # inside a wildcard zone
+    r"regex:.*\.wild\.evilcorp\.com$": {"A": ["127.0.0.4"]},
+}
+parent_child_hosts = (
+    "ok.evilcorp.com",
+    "bad.evilcorp.com",
+    "viaip.othercorp.net",
+    "dead.evilcorp.com",
+    "foo.wild.evilcorp.com",
+)
+
+
+async def run_parent_child_scan(bbot_scanner, order):
+    """
+    Scan where a module emits each host in `parent_child_hosts` as a DNS_NAME plus an OPEN_TCP_PORT child of it.
+
+    `order` controls the order dnsresolve handles them in:
+    - "parent_first" / "child_first": one dnsresolve worker, FIFO queues, the given event emitted first
+    - "lanes": one dnsresolve worker with its real lanes, held until every host and child is queued
+    """
+    import asyncio
+    from bbot.modules.base import BaseModule
+
+    class DummyModule(BaseModule):
+        watched_events = ["DNS_NAME"]
+        target_only = True
+
+        async def handle_event(self, event):
+            for host in parent_child_hosts:
+                host_event = self.make_event(host, "DNS_NAME", parent=event)
+                port_event = self.make_event(f"{host}:443", "OPEN_TCP_PORT", parent=host_event)
+                pair = (port_event, host_event) if order == "child_first" else (host_event, port_event)
+                for e in pair:
+                    await self.emit_event(e)
+
+    scan = bbot_scanner(
+        "evilcorp.com",
+        "127.0.1.0/24",
+        blacklist=["127.0.0.99"],
+        config={"modules": {"dnsresolve": {"module_threads": 1}}, "dns": {"wildcard_ignore": []}},
+    )
+    await scan._prep()
+    await scan.helpers.dns._mock_dns(parent_child_mock_data)
+    dummy_module = DummyModule(scan)
+    scan.modules["dummy_module"] = dummy_module
+    dnsresolve = scan.modules["dnsresolve"]
+
+    queue_filled = None
+    if order == "lanes":
+        # hold dnsresolve's only worker on the first of these events until the rest are queued behind it
+        handle_event = dnsresolve.handle_event
+
+        async def gated_handle_event(event, **kwargs):
+            nonlocal queue_filled
+            if queue_filled is None and event.host in parent_child_hosts:
+                queue_filled = False
+                for _ in range(100):
+                    if dnsresolve.incoming_event_queue.qsize() >= 2 * len(parent_child_hosts) - 1:
+                        queue_filled = True
+                        break
+                    await asyncio.sleep(0.05)
+            return await handle_event(event, **kwargs)
+
+        dnsresolve.handle_event = gated_handle_event
+    else:
+        # keep emission order all the way into dnsresolve
+        dummy_module._outgoing_event_queue = asyncio.Queue()
+        dnsresolve.incoming_lane = lambda event: 0
+
+    events = [e async for e in scan.async_start()]
+    if order == "lanes":
+        assert queue_filled, "hosts and their children never queued up together"
+    return events
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("order", ["parent_first", "child_first", "lanes"])
+async def test_dnsresolve_parent_child_order(bbot_scanner, order):
+    """A host and its child come out of dnsresolve the same way no matter which is handled first."""
+    events = await run_parent_child_scan(bbot_scanner, order)
+
+    def find(event_type, data):
+        return [e for e in events if e.type == event_type and e.data == data]
+
+    # the parent is resolved, not demoted to DNS_NAME_UNRESOLVED by its child's pass
+    assert [e.type for e in events if e.host == "ok.evilcorp.com" and e.type.startswith("DNS_NAME")] == ["DNS_NAME"]
+    # the child gets the parent's IPs and scope
+    port = find("OPEN_TCP_PORT", "ok.evilcorp.com:443")
+    assert len(port) == 1
+    assert port[0].resolved_hosts == {"127.0.0.3"}
+    assert port[0].scope_distance == 0
+
+    # nothing on a host that resolves to a blacklisted IP gets into the scan
+    assert not [e for e in events if e.host == "bad.evilcorp.com"]
+
+    # a host that's in scope only through its IP brings its child into scope with it
+    viaip = find("DNS_NAME", "viaip.othercorp.net")
+    assert len(viaip) == 1
+    assert viaip[0].scope_distance == 0
+    port = find("OPEN_TCP_PORT", "viaip.othercorp.net:443")
+    assert len(port) == 1
+    assert port[0].scope_distance == 0
+    assert port[0].resolved_hosts == {"127.0.1.5"}
+
+    # a host that really doesn't resolve is still DNS_NAME_UNRESOLVED
+    assert [e.type for e in events if e.host == "dead.evilcorp.com" and e.type.startswith("DNS_NAME")] == [
+        "DNS_NAME_UNRESOLVED"
+    ]
+    port = find("OPEN_TCP_PORT", "dead.evilcorp.com:443")
+    assert len(port) == 1
+    assert not port[0].resolved_hosts
+
+    # a wildcard host collapses (once per emitting module), and its child keeps its own host
+    wild = [e.data for e in events if e.type.startswith("DNS_NAME") and e.data.endswith(".wild.evilcorp.com")]
+    assert wild and set(wild) == {"_wildcard.wild.evilcorp.com"}
+    port = find("OPEN_TCP_PORT", "foo.wild.evilcorp.com:443")
+    assert len(port) == 1
+    assert port[0].resolved_hosts == {"127.0.0.4"}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("release", ["first_arrived_first", "last_arrived_first", "together"])
+async def test_dnsresolve_parent_child_interleaved(bbot_scanner, release):
+    """A host's DNS_NAME and its child give the same result when their lookups of that host overlap, in any order."""
+    import asyncio
+    from bbot.modules.base import BaseModule
+
+    hosts = ("ok.evilcorp.com", "bad.evilcorp.com")
+
+    class DummyModule(BaseModule):
+        watched_events = ["DNS_NAME"]
+        target_only = True
+
+        async def handle_event(self, event):
+            for host in hosts:
+                host_event = self.make_event(host, "DNS_NAME", parent=event)
+                await self.emit_event(host_event)
+                await self.emit_event(f"{host}:443", "OPEN_TCP_PORT", parent=host_event)
+
+    scan = bbot_scanner("evilcorp.com", blacklist=["127.0.0.99"])
+    await scan._prep()
+    await scan.helpers.dns._mock_dns(parent_child_mock_data)
+    scan.modules["dummy_module"] = DummyModule(scan)
+
+    # hold every A lookup of these hosts until both the DNS_NAME's pass and the child's pass are waiting on it
+    dns = scan.helpers.dns
+    resolve_multi_full = dns.resolve_multi_full
+    waiting = {host: [] for host in hosts}
+    all_waiting = {host: asyncio.Event() for host in hosts}
+
+    async def held_resolve_multi_full(query, rdtypes):
+        if query in waiting and "A" in rdtypes and len(waiting[query]) < 2:
+            gate, done = asyncio.Event(), asyncio.Event()
+            waiting[query].append((gate, done))
+            if len(waiting[query]) == 2:
+                all_waiting[query].set()
+            await gate.wait()
+            try:
+                return await resolve_multi_full(query, rdtypes)
+            finally:
+                # set before returning, so the released pass applies its results before the next one is released
+                done.set()
+        return await resolve_multi_full(query, rdtypes)
+
+    dns.resolve_multi_full = held_resolve_multi_full
+
+    async def release_lookups(host):
+        try:
+            await asyncio.wait_for(all_waiting[host].wait(), timeout=10)
+        except asyncio.TimeoutError:
+            # only one pass looked the host up; let the scan finish so the assertions below report it
+            for gate, _ in waiting[host]:
+                gate.set()
+            return
+        lookups = list(waiting[host])
+        if release == "last_arrived_first":
+            lookups.reverse()
+        if release == "together":
+            for gate, _ in lookups:
+                gate.set()
+        else:
+            for gate, done in lookups:
+                gate.set()
+                await done.wait()
+                # let the released pass apply its results
+                await asyncio.sleep(0.1)
+
+    releasers = [asyncio.create_task(release_lookups(host)) for host in hosts]
+    events = [e async for e in scan.async_start()]
+    # both passes looked the host up themselves, and their lookups overlapped
+    for task in releasers:
+        await task
+    assert all(len(lookups) == 2 for lookups in waiting.values())
+
+    assert [e.type for e in events if e.host == "ok.evilcorp.com" and e.type.startswith("DNS_NAME")] == ["DNS_NAME"]
+    port = [e for e in events if e.type == "OPEN_TCP_PORT" and e.data == "ok.evilcorp.com:443"]
+    assert len(port) == 1
+    assert port[0].resolved_hosts == {"127.0.0.3"}
+    assert not [e for e in events if e.host == "bad.evilcorp.com"]

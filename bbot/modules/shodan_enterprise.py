@@ -63,40 +63,21 @@ class shodan_enterprise(BaseModule):
 
         for data in host["data"]:
             # TECHNOLOGY Extraction
-            ## TECHNOLOGY CPE Formats
-            for technology in data.get("cpe", []):
-                tech = {"technology": technology, "host": data.get("ip_str"), "port": data.get("port")}
+            # name technologies by their CPE product, falling back to Shodan's product name when there's no CPE
+            technologies = []
+            for cpe in data.get("cpe23") or data.get("cpe") or []:
+                technology = self.helpers.cpe_product(cpe)
+                if technology is not None:
+                    technologies.append({"technology": technology, "cpe": cpe})
+            if not technologies and "product" in data:
+                technologies.append({"technology": data["product"]})
+            for tech in technologies:
                 await self.emit_event(
-                    tech,
+                    {**tech, "host": data.get("ip_str")},
                     "TECHNOLOGY",
                     parent=event,
                     tags=data.get("tags") or [],
-                    context=f"{{module}} queried Shodan API for {ip} and found TECHNOLOGY: {technology}",
-                )
-
-            for technology in data.get("cpe23", []):
-                tech = {"technology": technology, "host": data.get("ip_str"), "port": data.get("port")}
-                await self.emit_event(
-                    tech,
-                    "TECHNOLOGY",
-                    parent=event,
-                    tags=data.get("tags") or [],
-                    context=f"{{module}} queried Shodan API for {ip} and found TECHNOLOGY: {technology}",
-                )
-
-            # TECHNOLOGY Additional Formats
-            if "product" in data:
-                tech = {
-                    "technology": data.get("product"),
-                    "host": data.get("ip_str"),
-                    "port": data.get("port"),
-                }
-                await self.emit_event(
-                    tech,
-                    "TECHNOLOGY",
-                    parent=event,
-                    tags=data.get("tags") or [],
-                    context=f"{{module}} queried Shodan API for {ip} and found TECHNOLOGY: {data['product']}",
+                    context=f"{{module}} queried Shodan API for {ip} and found TECHNOLOGY: {tech['technology']}",
                 )
 
             if "http" in data:

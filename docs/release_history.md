@@ -1,3 +1,112 @@
+### 3.1.0 - Nov 10, 2026
+- [https://github.com/blacklanternsecurity/bbot/pull/3584](https://github.com/blacklanternsecurity/bbot/pull/3584)
+
+!!! warning "Check your setup before upgrading"
+
+    3.1 includes changes that can affect existing presets, configs, custom modules, and anything that consumes scan output. Read the [3.0 to 3.1 migration guide](./migration/3.1_breaking_changes.md) before upgrading. The changes most likely to bite:
+
+    - Python 3.11 or newer is required. On 3.10, `pip install --upgrade bbot` stays on 3.0.
+    - The `portfilter` module is gone. CDN/WAF port filtering is built in and on by default; remove `portfilter` from presets, and pass `--allow-cdn-ports` to turn the filter off.
+    - `module_dirs` only works as a top-level preset key, and BBOT asks before loading each custom module folder. Runs without a terminal need `-y`, and `-S` no longer implies it.
+    - Preset `conditions` are read-only: they can warn or abort, but can't modify the preset.
+    - dnsdumpster requires an API key, and waf_bypass only tests scan targets by default.
+    - lightfuzz now probes WAF-tagged hosts with nowafpls instead of skipping them, and fuzzes one only if the probe gets past the WAF. For the old behavior, set `modules.lightfuzz.avoid_wafs: always` and pass `-em nowafpls`.
+
+#### Highlights
+
+- **DNS brute-forcing moves to BlastDNS:** massdns is gone, and brute-forcing runs through blastdns 2.0 with adaptive rate control. With higher default DNS concurrency, a typical `subdomain-enum` scan finishes in about 40% less time than on 3.0.2, with the same subdomains found ([#3457](https://github.com/blacklanternsecurity/bbot/pull/3457), [#3606](https://github.com/blacklanternsecurity/bbot/pull/3606), [#3612](https://github.com/blacklanternsecurity/bbot/pull/3612))
+- **New `--custom-nameservers` flag** for choosing the resolvers BBOT uses for normal resolution ([#3457](https://github.com/blacklanternsecurity/bbot/pull/3457))
+- **baddns 2.5.0**, with a new `DELEGATION` submodule that is on by default ([#3457](https://github.com/blacklanternsecurity/bbot/pull/3457))
+- **CDN/WAF port filtering in core, on by default** ([#3534](https://github.com/blacklanternsecurity/bbot/pull/3534))
+- **Smarter API rate limiting:** `Retry-After` is honored, API keys rotate on a 429, and rate limits no longer count as failures ([#3461](https://github.com/blacklanternsecurity/bbot/pull/3461))
+- **Hardened custom module and preset loading** ([#3593](https://github.com/blacklanternsecurity/bbot/pull/3593))
+- **New modules:** favicon, js_unpacker, nowafpls, otilabs, scanmalware
+- **Python 3.15 supported, Python 3.10 dropped** ([#3474](https://github.com/blacklanternsecurity/bbot/pull/3474))
+
+#### Core & Packaging
+
+- Supported Python is now 3.11 - 3.15 ([#3474](https://github.com/blacklanternsecurity/bbot/pull/3474)).
+- CDN/WAF port filtering moved from the `portfilter` module into core and is on by default. Open ports other than 80 and 443 are dropped on hosts tagged `cdn` or `waf`; `--allow-cdn-ports` turns it off ([#3534](https://github.com/blacklanternsecurity/bbot/pull/3534)).
+- `api_request` rate limiting overhauled, plus config deprecation support via `Field(deprecated=True)`. Calls made through `api_request` now send a `BBOT/<version>` User-Agent instead of the scan's user agent ([#3461](https://github.com/blacklanternsecurity/bbot/pull/3461)).
+- CPE-derived technologies are named by product, with the CPE kept in a new `cpe` field ([#3535](https://github.com/blacklanternsecurity/bbot/pull/3535)).
+- In-scope events are no longer tagged `affiliate` ([#3524](https://github.com/blacklanternsecurity/bbot/pull/3524)).
+- FINDING text output shows the host when it isn't otherwise present.
+- FINDING has an optional `port` for findings that aren't on a URL, such as a TLS or TCP service. It's part of the event's identity and shown as `host:port` in text output, and legba and medusa findings now keep their port ([#3629](https://github.com/blacklanternsecurity/bbot/pull/3629)).
+- `HTTP_RESPONSE` events carry `url_extension` ([#3406](https://github.com/blacklanternsecurity/bbot/pull/3406)).
+- `ClosestHostEvent` keeps its inherited port, and the port is restored from JSON ([#3462](https://github.com/blacklanternsecurity/bbot/pull/3462)).
+- `download()` respects `cache_hrs` in its freshness check ([#3563](https://github.com/blacklanternsecurity/bbot/pull/3563)).
+- Fix hostless sort sentinel type mismatch in `Target.add()` ([#3391](https://github.com/blacklanternsecurity/bbot/pull/3391)).
+- Version output includes the git commit hash for git checkouts ([#3530](https://github.com/blacklanternsecurity/bbot/pull/3530)).
+- `helpers.response_to_json()` removed in favor of `response_to_event_dict()` ([#3473](https://github.com/blacklanternsecurity/bbot/pull/3473)).
+
+#### DNS
+
+- massdns removed. DNS brute-forcing runs through blastdns 2.0, with its own retry budget, a short per-query timeout, and one persistent socket per resolver ([#3457](https://github.com/blacklanternsecurity/bbot/pull/3457)).
+- New `dns.brute_max_resolvers` (default 600, `0` for the whole list). Each scan draws that many brute-force resolvers at random, drops the dead ones at startup, and shares the rest across every brute-force run in the scan ([#3612](https://github.com/blacklanternsecurity/bbot/pull/3612)).
+- Ordinary DNS concurrency raised and made explicit: `dns.threads` 10 to 50, and a new `dns.max_concurrency` (256) ([#3606](https://github.com/blacklanternsecurity/bbot/pull/3606)).
+- New `--custom-nameservers` flag (`dns.nameservers`). An invalid value aborts the scan during prep instead of producing a "completed" scan with zero results ([#3457](https://github.com/blacklanternsecurity/bbot/pull/3457)).
+- Resolver diagnostics are reported when brute-force delivery drops ([#3457](https://github.com/blacklanternsecurity/bbot/pull/3457)).
+- Already-resolved events skip ahead in dnsresolve's queue ([#3533](https://github.com/blacklanternsecurity/bbot/pull/3533)).
+- Fix nested wildcard detection in `is_wildcard` ([#3536](https://github.com/blacklanternsecurity/bbot/pull/3536)).
+
+#### BadDNS
+
+- baddns 2.5.0 ([#3457](https://github.com/blacklanternsecurity/bbot/pull/3457)).
+- New `DELEGATION` submodule, enabled by default and in the `baddns` / `baddns-heavy` presets. Checks `_acme-challenge`, `_dmarc` and common DKIM selectors for dangling delegations.
+- `NS` gained a lame-delegation finding.
+- On-demand TLS platform detection, S3/GCS bucket references in HTML (`references` submodule, in `baddns-heavy`), and a fix for S3 bucket takeover detection.
+- Signature refresh: 37 stale signatures removed, 78 updated, and 5 added, plus 14 that suppress NS false positives on registrar and parking nameservers.
+- Word matching runs every signature in a single YARA pass per response.
+
+#### Modules
+
+**New:**
+
+- `favicon` - technology detection from favicon hashes ([#3532](https://github.com/blacklanternsecurity/bbot/pull/3532)).
+- `js_unpacker` - unpacks source maps, webpack, obfuscator.io, Next.js and Dean Edwards packer JavaScript, and feeds the results back into the scan; in the `js-audit` preset ([#3335](https://github.com/blacklanternsecurity/bbot/pull/3335)).
+- `nowafpls` - WAF bypass detection via body padding. lightfuzz, ajaxpro and generic_ssrf pad their payloads on hosts where the bypass is confirmed ([#3336](https://github.com/blacklanternsecurity/bbot/pull/3336)).
+- `otilabs` - subdomain enumeration via the OTI Labs Domain Intelligence API ([#3496](https://github.com/blacklanternsecurity/bbot/pull/3496)).
+- `scanmalware` - subdomains from ScanMalware's public scan archive. Keyless and opt-in (`-m scanmalware`) ([#3528](https://github.com/blacklanternsecurity/bbot/pull/3528)).
+
+**Removed:** portfilter (replaced by core CDN/WAF port filtering).
+
+**Notable improvements:**
+
+- telerik overhaul: native RAU and DialogHandler crypto, and exploitable RAU detected without uploading a file ([#3333](https://github.com/blacklanternsecurity/bbot/pull/3333)).
+- nuclei: nine new template-selection options, new `nuclei-recommended` and `nuclei-new` presets, budget mode fixed (a budget of 10 now means about 15 requests per host, down from 134), and budget mode's template index cached ([#3479](https://github.com/blacklanternsecurity/bbot/pull/3479)). Results are parented to the URL, or the host and port, that nuclei actually scanned, so findings on sibling subdomains or on several ports of one host are no longer merged or mislabeled ([#3629](https://github.com/blacklanternsecurity/bbot/pull/3629)).
+- excavate: long redirect detection ([#3481](https://github.com/blacklanternsecurity/bbot/pull/3481)), relative URLs resolved against `<base href>` ([#3522](https://github.com/blacklanternsecurity/bbot/pull/3522)), and hostnames no longer extracted from partway through a hyphenated label ([#3590](https://github.com/blacklanternsecurity/bbot/pull/3590)).
+- lightfuzz: positive confirmation required for code-change findings ([#3357](https://github.com/blacklanternsecurity/bbot/pull/3357)), tighter serial error resolution ([#3427](https://github.com/blacklanternsecurity/bbot/pull/3427)), unbounded queue growth from parameter re-discovery fixed ([#3405](https://github.com/blacklanternsecurity/bbot/pull/3405)), baseline URLs counted against spider distance ([#3523](https://github.com/blacklanternsecurity/bbot/pull/3523)), raw Cookie header read in the sqli cookie test ([#3498](https://github.com/blacklanternsecurity/bbot/pull/3498)), and WAF gating comments corrected ([#3608](https://github.com/blacklanternsecurity/bbot/pull/3608)).
+- dnsdumpster converted to the authenticated API ([#3458](https://github.com/blacklanternsecurity/bbot/pull/3458)).
+- wayback verifies hosts are alive before emitting URLs ([#3359](https://github.com/blacklanternsecurity/bbot/pull/3359)).
+- waf_bypass only attempts bypasses against scan targets by default ([#3460](https://github.com/blacklanternsecurity/bbot/pull/3460)).
+- crt requests an explicit `/` path, which crt.sh requires ([#3428](https://github.com/blacklanternsecurity/bbot/pull/3428)).
+- SQL output modules request sqlalchemy's asyncio extra ([#3505](https://github.com/blacklanternsecurity/bbot/pull/3505)).
+
+#### Performance
+
+- DeepDiff selectively replaced ([#3340](https://github.com/blacklanternsecurity/bbot/pull/3340)), then removed entirely ([#3604](https://github.com/blacklanternsecurity/bbot/pull/3604)).
+- Faster `compute_simhash`, with corrected executor placements ([#3331](https://github.com/blacklanternsecurity/bbot/pull/3331)).
+
+#### Security
+
+- Custom module loading hardened: BBOT asks before loading each custom module folder, refuses world-writable folders and files, and refuses custom modules that reuse an existing module name. `config.module_dirs` is deprecated and ignored ([#3593](https://github.com/blacklanternsecurity/bbot/pull/3593)).
+- Preset `conditions` are read-only, and module `version` and the global `home` option are validated before they reach an install command ([#3593](https://github.com/blacklanternsecurity/bbot/pull/3593)).
+- Symlinks in unarchive output are rejected after extraction ([#3560](https://github.com/blacklanternsecurity/bbot/pull/3560)).
+- gitdumper: origin check and depth limit on directory listing ([#3466](https://github.com/blacklanternsecurity/bbot/pull/3466)).
+- `dnspython` removed. Nothing imported it, and its old pin held installs below 2.9.0, the fix for GHSA-45c3-73f7-pv4m ([#3610](https://github.com/blacklanternsecurity/bbot/pull/3610)).
+- Security dependency updates ([#3557](https://github.com/blacklanternsecurity/bbot/pull/3557)).
+
+#### Dependencies
+
+- blastdns 2.0.4 ([#3612](https://github.com/blacklanternsecurity/bbot/pull/3612), [#3631](https://github.com/blacklanternsecurity/bbot/pull/3631)), blasthttp 0.10.1, baddns 2.5.0, badsecrets 1.3.0 ([#3526](https://github.com/blacklanternsecurity/bbot/pull/3526)), cloudcheck 11.2.0 ([#3559](https://github.com/blacklanternsecurity/bbot/pull/3559)), radixtarget 4.3.1 ([#3558](https://github.com/blacklanternsecurity/bbot/pull/3558), [#3617](https://github.com/blacklanternsecurity/bbot/pull/3617)), pycryptodome 4.3.0 ([#3542](https://github.com/blacklanternsecurity/bbot/pull/3542), [#3597](https://github.com/blacklanternsecurity/bbot/pull/3597), [#3620](https://github.com/blacklanternsecurity/bbot/pull/3620)).
+- `deepdiff`, `cachebox` and `orderly-set` removed ([#3604](https://github.com/blacklanternsecurity/bbot/pull/3604)).
+- `pyjwt`, `lxml` and `socksio` removed, and `xmltojson` replaced by `xmltodict` ([#3627](https://github.com/blacklanternsecurity/bbot/pull/3627)).
+- trufflehog 3.97.0 to 3.99.8 ([#3605](https://github.com/blacklanternsecurity/bbot/pull/3605)).
+
+#### Documentation
+
+- New [3.0 to 3.1 migration guide](./migration/3.1_breaking_changes.md) ([#3594](https://github.com/blacklanternsecurity/bbot/pull/3594)), and docs updated for 3.1 ([#3613](https://github.com/blacklanternsecurity/bbot/pull/3613)).
+
 ### 3.0.2 - Aug 24, 2026
 - [https://github.com/blacklanternsecurity/bbot/pull/3332](https://github.com/blacklanternsecurity/bbot/pull/3332)
 

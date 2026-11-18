@@ -49,7 +49,8 @@ async def test_python_api(clean_default_config):
     bbot_home = str(worker_dir("/tmp/.bbot_python_api_test"))
     scan4 = Scanner("127.0.0.1", config={"home": bbot_home})
     await scan4._prep()
-    assert os.environ["BBOT_TOOLS"] == str(Path(bbot_home) / "tools")
+    assert scan4.helpers.scans_dir == Path(bbot_home) / "scans"
+    assert os.environ["BBOT_TOOLS"] == str(scan4.helpers.tools_dir)
 
     # output modules are additive
     scan5 = Scanner()
@@ -93,7 +94,8 @@ async def test_python_api_sync(clean_default_config):
     bbot_home = str(worker_dir("/tmp/.bbot_python_api_test"))
     scan3 = Scanner("127.0.0.1", config={"home": bbot_home})
     await scan3._prep()
-    assert os.environ["BBOT_TOOLS"] == str(Path(bbot_home) / "tools")
+    assert scan3.helpers.scans_dir == Path(bbot_home) / "scans"
+    assert os.environ["BBOT_TOOLS"] == str(scan3.helpers.tools_dir)
 
 
 def test_python_api_sync_no_pending_tasks():

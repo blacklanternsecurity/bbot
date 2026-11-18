@@ -10,6 +10,7 @@ from blastdns import Client, ClientConfig, DNSError, DNSResult, MockClient, get_
 from blastdns.exceptions import BlastDNSError
 
 from bbot.core.helpers.async_helpers import NamedLock, async_cachedmethod
+from bbot.errors import ValidationError
 from .helpers import all_rdtypes, extract_targets, record_to_text
 from ..misc import clean_dns_record, domain_parents, is_dns_name, is_domain, is_ip, parent_domain, rand_string
 
@@ -44,28 +45,45 @@ class DNSHelper:
         # config
         self.timeout = self.dns_config.get("timeout", 5)
         self.retries = self.dns_config.get("retries", 5)
-        self.threads = self.dns_config.get("threads", 5)
+        self.threads = self.dns_config.get("threads", 50)
+        self.max_concurrency = self.dns_config.get("max_concurrency", 256)
         self.cache_size = self.dns_config.get("cache_size", 10000)
         self.abort_threshold = self.dns_config.get("abort_threshold", 50)
         # how many consecutive DNS resolution hops we allow before tagging an event as runaway
         self.runaway_limit = self.dns_config.get("runaway_limit", 5)
 
-        # blastdns client
+        # resolvers: operator-supplied nameservers replace the OS ones entirely.
+        # system_resolvers keeps meaning "what the OS reported"; self.resolvers is
+        # what we actually query.
         self.system_resolvers = get_system_resolvers()
+        custom_nameservers = self.dns_config.get("nameservers", None) or []
+        if custom_nameservers:
+            self.resolvers = list(custom_nameservers)
+            self.log.info(f"Using {len(self.resolvers):,} custom nameserver(s) instead of system resolvers")
+        else:
+            self.resolvers = list(self.system_resolvers)
+
         self.log.debug(
-            f"Starting BlastDNS client with {self.threads} threads per resolver, "
+            f"Starting BlastDNS client with {self.threads} queries in flight per resolver "
+            f"({self.concurrency:,} total), "
             f"{self.retries} retries, {self.cache_size} cache size, "
             f"and {self.timeout} second timeout"
         )
-        self.blastdns = Client(
-            self.system_resolvers,
-            ClientConfig(
-                request_timeout_ms=self.timeout * 1000,
-                max_retries=self.retries,
-                threads_per_resolver=self.threads,
-                cache_capacity=self.cache_size,
-            ),
-        )
+        try:
+            self.blastdns = Client(
+                self.resolvers,
+                ClientConfig(
+                    request_timeout_ms=self.timeout * 1000,
+                    max_retries=self.retries,
+                    max_inflight_per_resolver=self.threads,
+                    max_concurrency=self.max_concurrency,
+                    cache_capacity=self.cache_size,
+                ),
+            )
+        except BlastDNSError as e:
+            # blastdns validates resolver addresses; surface which setting is at fault
+            source = "dns.nameservers" if custom_nameservers else "system resolvers"
+            raise ValidationError(f"Error in {source}: {e}") from e
 
         # parse dns.omit_queries (e.g. "A:internal.bad.com") into {rdtype: {host, ...}}
         self.dns_omit_queries = {}
@@ -91,8 +109,8 @@ class DNSHelper:
         self._last_dns_success = None
         self._last_connectivity_warning = time.time()
 
-        # copy the system's current resolvers to a text file for tool use
-        self.resolver_file = self.parent_helper.tempfile(self.system_resolvers, pipe=False)
+        # copy the resolvers we're using to a text file for tool use
+        self.resolver_file = self.parent_helper.tempfile(self.resolvers, pipe=False)
 
         # brute force helper
         self._brute = None
@@ -100,6 +118,11 @@ class DNSHelper:
         # method-level dedup caches for is_wildcard / is_wildcard_domain
         self._is_wildcard_cache = LFUCache(maxsize=1000)
         self._is_wildcard_domain_cache = LFUCache(maxsize=1000)
+
+    @property
+    def concurrency(self):
+        """How many queries the client can have in flight at once, across all resolvers."""
+        return min(self.threads * len(self.resolvers), self.max_concurrency)
 
     # ------------------------------------------------------------------
     # Resolution -- thin pass-throughs to blastdns. Anything more complex
@@ -229,34 +252,26 @@ class DNSHelper:
         if not raw_dns_records:
             return result
 
-        rdtypes_to_check = set(raw_dns_records)
-
-        # walk parent domains shortest-first, comparing baseline against any wildcard pool
-        parents = list(domain_parents(query))
-        for parent in parents[::-1]:
-            wildcard_results = await self.is_wildcard_domain(parent, rdtypes_to_check)
-
-            for rdtype in list(baseline_raw):
-                if rdtype in result:
+        # walk parent domains shortest-first, stopping at the first wildcard pool that contains the baseline.
+        # a non-matching pool may belong to an outer zone with a nested wildcard below it, so keep descending.
+        possible = {}
+        for parent in list(domain_parents(query))[::-1]:
+            rdtypes_to_check = [rdtype for rdtype in baseline_raw if rdtype not in result]
+            if not rdtypes_to_check:
+                break
+            zones = await asyncio.gather(*[self._is_wildcard_zone(parent, rdtype) for rdtype in rdtypes_to_check])
+            for rdtype, (wildcards, wildcard_raw) in zip(rdtypes_to_check, zones):
+                if not wildcard_raw:
                     continue
+                is_wc = any(r in wildcards for r in baseline.get(rdtype, set()))
+                is_wc_raw = any(r in wildcard_raw for r in baseline_raw[rdtype])
+                if is_wc or is_wc_raw:
+                    result[rdtype] = (True, parent)
+                else:
+                    possible.setdefault(rdtype, ("POSSIBLE", parent))
 
-                _baseline = baseline.get(rdtype, set())
-                _baseline_raw = baseline_raw.get(rdtype, set())
-
-                wildcard_rdtypes = wildcard_results.get(parent, {})
-                wildcards = wildcard_rdtypes.get(rdtype)
-                if wildcards is None:
-                    continue
-                wildcards, wildcard_raw = wildcards
-
-                if wildcard_raw:
-                    rdtypes_to_check.discard(rdtype)
-                    is_wc = any(r in wildcards for r in _baseline)
-                    is_wc_raw = any(r in wildcard_raw for r in _baseline_raw)
-                    if is_wc or is_wc_raw:
-                        result[rdtype] = (True, parent)
-                    else:
-                        result[rdtype] = ("POSSIBLE", parent)
+        for rdtype, verdict in possible.items():
+            result.setdefault(rdtype, verdict)
 
         for rdtype, answers in baseline_raw.items():
             if answers and rdtype not in result:
@@ -269,7 +284,7 @@ class DNSHelper:
         key=lambda domain, rdtypes: (domain, tuple(sorted(rdtypes))),
     )
     async def is_wildcard_domain(self, domain, rdtypes):
-        """For each parent of ``domain``, return the wildcard pool per rdtype.
+        """For each rdtype, return the wildcard pool of the shallowest wildcard parent of ``domain``.
 
         Returns ``{parent: {rdtype: (hosts_set, raw_text_set)}}``.
         """
@@ -430,10 +445,18 @@ class DNSHelper:
         return self._brute
 
     async def _mock_dns(self, mock_data):
-        """Swap the underlying client for a ``MockClient`` configured with ``mock_data``."""
+        """Swap the underlying clients for ``MockClient``s configured with ``mock_data``.
+
+        The brute-force helper has its own client, so it has to be mocked too or
+        brute-forcing modules would reach the network during tests.
+        """
         mock_client = MockClient()
         mock_client.mock_dns(mock_data)
         self.blastdns = mock_client
+
+        brute_mock = MockClient()
+        brute_mock.mock_dns(mock_data)
+        self.brute._client = brute_mock
 
     @staticmethod
     def _empty_result(host=""):

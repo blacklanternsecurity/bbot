@@ -6,6 +6,6 @@ modules:
 config:
   modules:
     baddns:
-      enabled_submodules: [CNAME, MX, TXT]
+      enabled_submodules: [CNAME, MX, TXT, DELEGATION]
       min_severity: LOW
       min_confidence: MEDIUM

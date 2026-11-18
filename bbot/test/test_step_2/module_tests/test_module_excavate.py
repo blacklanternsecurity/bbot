@@ -6,9 +6,44 @@ from bbot.errors import ExcavateError
 from bbot.modules.internal.excavate import ExcavateRule, split_yara_rules
 
 from pathlib import Path
+import threading
 import time
 import yara
 from bbot.test.worker import HTTPSERVER_PORT, HTTPSERVER_URL, LOCALHOST_URL
+
+
+class TestExcavateHyphenatedHostnames(ModuleTestBase):
+    targets = [f"{HTTPSERVER_URL}/", "test.notreal"]
+    modules_overrides = ["excavate", "http"]
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"},
+            respond_args={"response_data": "<p>dev-api.test.notreal and my-app-test.test.notreal</p>"},
+        )
+
+    async def setup_after_prep(self, module_test):
+        # every name resolves, so a made-up one would survive to the output
+        await module_test.mock_dns(
+            {
+                h: {"A": ["127.0.0.1"]}
+                for h in (
+                    "test.notreal",
+                    "dev-api.test.notreal",
+                    "api.test.notreal",
+                    "my-app-test.test.notreal",
+                    "app-test.test.notreal",
+                    "test.test.notreal",
+                )
+            }
+        )
+
+    def check(self, module_test, events):
+        hostnames = {e.data for e in events if e.type == "DNS_NAME" and str(e.module) == "excavate"}
+        assert {"dev-api.test.notreal", "my-app-test.test.notreal"} <= hostnames
+        for fragment in ("api.test.notreal", "app-test.test.notreal", "test.test.notreal"):
+            assert fragment not in hostnames, f"excavate made up {fragment} from part of a hyphenated name"
+        assert not any("DNS_NAME -" in e.discovery_context for e in events)
 
 
 class TestExcavate(ModuleTestBase):
@@ -930,6 +965,130 @@ class TestExcavateParameterExtraction_relativeurl(ModuleTestBase):
 
         assert traversed_to_root, "Failed to follow the relative traversal to /root.html"
         assert parameter_extraction_found, "Excavate failed to extract parameter after traversal"
+
+
+class TestExcavateBaseHref(ModuleTestBase):
+    """Relative references resolve against <base href>, not the page URL; a form with no action still uses the page URL."""
+
+    targets = [f"{HTTPSERVER_URL}/app/sub/"]
+    modules_overrides = ["http", "excavate", "hunt"]
+
+    base_href_html = """
+<html>
+<head>
+    <base href="/">
+    <link href="app/theme/getui?ver=1" rel="stylesheet" />
+</head>
+<body>
+    <a href="app/page.html">page</a>
+    <form action="app/search" method="get"><input type="text" name="q" value="1"></form>
+    <form method="post"><input type="text" name="token" value="abc"></form>
+</body>
+</html>
+"""
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpserver.expect_request("/app/sub/").respond_with_data(
+            self.base_href_html, headers={"Content-Type": "text/html"}
+        )
+
+    def check(self, module_test, events):
+        urls = {e.url for e in events if e.type == "URL_UNVERIFIED"}
+        assert f"{HTTPSERVER_URL}/app/page.html" in urls
+        assert not any("/app/sub/app/" in u for u in urls), f"Resolved against page URL instead of <base>: {urls}"
+
+        params = {e.data["name"]: e.data["url"] for e in events if e.type == "WEB_PARAMETER"}
+        assert params.get("ver") == f"{HTTPSERVER_URL}/app/theme/getui", params
+        assert params.get("q") == f"{HTTPSERVER_URL}/app/search", params
+        assert params.get("token") == f"{HTTPSERVER_URL}/app/sub/", params
+
+
+class TestExcavateFormActionRelative(ModuleTestBase):
+    """Form actions on a nested page resolve against the page's directory, the same way a browser submits them."""
+
+    targets = [f"{HTTPSERVER_URL}/app/sub/page"]
+    modules_overrides = ["http", "excavate", "hunt"]
+
+    base_tag = ""
+    expected = {
+        "dot_post": "/app/sub/dotpost",
+        "dot_get": "/app/sub/dotget",
+        "up_post": "/app/uppost",
+        "bare_post": "/app/sub/barepost",
+        "root_post": "/rootpost",
+    }
+
+    async def setup_after_prep(self, module_test):
+        html = f"""
+<html>
+<head>{self.base_tag}</head>
+<body>
+    <form action="./dotpost" method="post"><input type="text" name="dot_post" value="1"></form>
+    <form action="./dotget" method="get"><input type="text" name="dot_get" value="1"></form>
+    <form action="../uppost" method="post"><input type="text" name="up_post" value="1"></form>
+    <form action="barepost" method="post"><input type="text" name="bare_post" value="1"></form>
+    <form action="/rootpost" method="post"><input type="text" name="root_post" value="1"></form>
+</body>
+</html>
+"""
+        module_test.httpserver.expect_request("/app/sub/page").respond_with_data(
+            html, headers={"Content-Type": "text/html"}
+        )
+
+    def check(self, module_test, events):
+        params = {e.data["name"]: e.data["url"] for e in events if e.type == "WEB_PARAMETER"}
+        for name, path in self.expected.items():
+            assert params.get(name) == f"{HTTPSERVER_URL}{path}", f"{name}: {params}"
+
+
+class TestExcavateFormActionRelativeBaseHref(TestExcavateFormActionRelative):
+    """With <base href>, form actions resolve against the base instead of the page."""
+
+    base_tag = '<base href="/other/dir/">'
+    expected = {
+        "dot_post": "/other/dir/dotpost",
+        "dot_get": "/other/dir/dotget",
+        "up_post": "/other/uppost",
+        "bare_post": "/other/dir/barepost",
+        "root_post": "/rootpost",
+    }
+
+
+class TestExcavateFormActionRelativeNonHttpBaseHref(TestExcavateFormActionRelative):
+    """A non-http <base href> is ignored, so form actions resolve against the page."""
+
+    base_tag = '<base href="javascript:void(0)">'
+
+
+class TestExcavateParameterExtractionRawText(ModuleTestBase):
+    """RAW_TEXT has no URL: absolute endpoints are still extracted, relative ones are skipped, and the rest of the event is still processed."""
+
+    class DummyModule(BaseModule):
+        watched_events = ["URL"]
+        _name = "dummy_module"
+
+        async def handle_event(self, event):
+            raw_text = (
+                f'<a href="{HTTPSERVER_URL}/absolute?abs_param=1">a</a>\n'
+                '<a href="relative?rel_param=1">r</a>\n'
+                f"{HTTPSERVER_URL}/fromtext"
+            )
+            await self.emit_event(raw_text, "RAW_TEXT", parent=event)
+
+    targets = [f"{HTTPSERVER_URL}/"]
+    modules_overrides = ["http", "excavate", "hunt"]
+
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["dummy_module"] = self.DummyModule(module_test.scan)
+        module_test.httpserver.expect_request("/").respond_with_data("hi")
+
+    def check(self, module_test, events):
+        raw_text_children = [e for e in events if getattr(e.parent, "type", "") == "RAW_TEXT"]
+        params = {e.data["name"]: e.data["url"] for e in raw_text_children if e.type == "WEB_PARAMETER"}
+        assert params.get("abs_param") == f"{HTTPSERVER_URL}/absolute", params
+        assert "rel_param" not in params, params
+        urls = {e.url for e in raw_text_children if e.type == "URL_UNVERIFIED"}
+        assert f"{HTTPSERVER_URL}/fromtext" in urls, urls
 
 
 class TestExcavateParameterExtraction_getparam_novalue(TestExcavateParameterExtraction_getparam):
@@ -2186,3 +2345,168 @@ class TestContentDedupWithURLEvents(ModuleTestBase):
             "Both duplicate-content URLs were processed — content dedup failed for URL events"
         )
         assert len(consumer._content_dup_tracker) > 0, "Content dedup tracker should have entries"
+
+
+@pytest.mark.asyncio
+async def test_excavate_find_subclasses_does_not_touch_descriptors():
+    """excavate.setup() introspects sibling modules while their own setup() is
+    still assigning attributes. Reading through getattr fires BaseModule's
+    memory_usage property, which walks __dict__ and raises "dictionary changed
+    size during iteration" when it loses that race."""
+    from bbot.core.helpers.misc import get_size
+    from bbot.modules.internal.excavate import find_subclasses
+
+    class Sibling:
+        class SomeRule(ExcavateRule):
+            pass
+
+        def __init__(self):
+            for i in range(50):
+                setattr(self, f"attr{i}", i)
+
+        @property
+        def memory_usage(self):
+            return get_size(self, max_depth=3, seen=set())
+
+    sibling = Sibling()
+    assert [c.__name__ for c in find_subclasses(sibling, ExcavateRule)] == ["SomeRule"]
+
+    stop = []
+    errors = []
+
+    def concurrent_setup():
+        i = 0
+        while not stop:
+            setattr(sibling, f"cfg{i}", i)
+            delattr(sibling, f"cfg{i}")
+            i += 1
+
+    churn = threading.Thread(target=concurrent_setup, daemon=True)
+    churn.start()
+    try:
+        for _ in range(3000):
+            try:
+                assert find_subclasses(sibling, ExcavateRule) == [Sibling.SomeRule]
+            except RuntimeError as e:
+                errors.append(e)
+    finally:
+        stop.append(True)
+        churn.join(timeout=5)
+
+    assert not errors, f"find_subclasses raced against a concurrent setup(): {errors[0]}"
+
+
+class TestExcavateLongRedirect(ModuleTestBase):
+    """A redirect is reported only when its body keeps going after the document ends.
+
+    Browsers discard a 3xx body, so content delivered there is never displayed.
+    A server that writes a redirect document and then keeps writing has run the
+    handler the redirect was meant to skip.
+    """
+
+    targets = [
+        f"{HTTPSERVER_URL}/longredirect",
+        f"{HTTPSERVER_URL}/shortredirect",
+        f"{HTTPSERVER_URL}/singledoc",
+        f"{HTTPSERVER_URL}/nodoc",
+        f"{HTTPSERVER_URL}/bigpage",
+    ]
+    modules_overrides = ["excavate", "http"]
+    config_overrides = {"web": {"spider_distance": 0, "spider_depth": 0}, "omit_event_types": []}
+
+    # Each body must be distinct: excavate's _avoid_duplicate_content drops a
+    # response whose body hash it has already seen, whatever its status code.
+    redirect_stub = (
+        "<html><head><title>Object moved</title></head>"
+        "<body><h2>Object moved to <a href='/destination'>here</a>.</h2></body></html>"
+    )
+    # what the handler rendered after the redirect document had already been written
+    trailing_page = "<!doctype html><html><body>" + ("A" * 4096) + "</body></html>"
+
+    long_body = redirect_stub + trailing_page
+    short_body = redirect_stub + "<p>tiny</p>"
+    single_doc_body = "<!doctype html><html><body>" + ("B" * 4096) + "</body></html>"
+    no_doc_body = "<!doctype html><html><body>" + ("C" * 4096)
+    non_redirect_body = redirect_stub + "<!doctype html><html><body>" + ("D" * 4096) + "</body></html>"
+
+    async def setup_before_prep(self, module_test):
+        def redirect(uri, body):
+            module_test.set_expect_requests(
+                expect_args={"method": "GET", "uri": uri},
+                respond_args={"response_data": body, "status": 302, "headers": {"Location": "/destination"}},
+            )
+
+        # the handler kept running past the redirect document: should be reported
+        redirect("/longredirect", self.long_body)
+        # trailing content below the threshold: should not be reported
+        redirect("/shortredirect", self.short_body)
+        # one complete document and nothing after it: should not be reported
+        redirect("/singledoc", self.single_doc_body)
+        # no document terminator to measure from: should not be reported
+        redirect("/nodoc", self.no_doc_body)
+        # trailing content, but not a redirect: should not be reported
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/bigpage"},
+            respond_args={"response_data": self.non_redirect_body, "status": 200},
+        )
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING" and "Long Redirection Response" in str(e.data)]
+        reported = {e.data.get("url", "") for e in findings}
+
+        # without this the negative cases below would pass for a response that was never fetched
+        fetched = {e.data.get("url", "") for e in events if e.type == "HTTP_RESPONSE"}
+        for path in ("/longredirect", "/shortredirect", "/singledoc", "/nodoc", "/bigpage"):
+            assert any(path in u for u in fetched), f"{path} was never fetched"
+
+        assert any("/longredirect" in u for u in reported), (
+            f"content past the end of the document was not reported, findings: {[f.data for f in findings]}"
+        )
+        assert not any("/shortredirect" in u for u in reported), (
+            "trailing content below the threshold should not be reported"
+        )
+        assert not any("/singledoc" in u for u in reported), (
+            "a redirect body that is one complete document should not be reported"
+        )
+        assert not any("/nodoc" in u for u in reported), (
+            "a redirect body with no document terminator should not be reported"
+        )
+        assert not any("/bigpage" in u for u in reported), "a 200 response should never be reported"
+
+        finding = next(f for f in findings if "/longredirect" in f.data.get("url", ""))
+        assert finding.data["severity"] == "LOW"
+        assert finding.data["confidence"] == "HIGH"
+        assert f"Trailing bytes: [{len(self.trailing_page)}]" in finding.data["description"], (
+            f"description should carry the trailing byte count: {finding.data['description']}"
+        )
+
+
+class TestExcavateLongRedirectDisabled(ModuleTestBase):
+    """A threshold of 0 turns the check off."""
+
+    targets = [f"{HTTPSERVER_URL}/longredirect"]
+    modules_overrides = ["excavate", "http"]
+    config_overrides = {
+        "web": {"spider_distance": 0, "spider_depth": 0},
+        "omit_event_types": [],
+        "modules": {"excavate": {"long_redirect_threshold": 0}},
+    }
+
+    async def setup_before_prep(self, module_test):
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/longredirect"},
+            respond_args={
+                "response_data": (
+                    "<html><body><h2>Object moved to <a href='/destination'>here</a>.</h2></body></html>"
+                    + "<!doctype html><html><body>"
+                    + ("E" * 4096)
+                    + "</body></html>"
+                ),
+                "status": 302,
+                "headers": {"Location": "/destination"},
+            },
+        )
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING" and "Long Redirection Response" in str(e.data)]
+        assert not findings, f"check should be disabled at threshold 0, got: {[f.data for f in findings]}"

@@ -34,11 +34,38 @@ def find_subclasses(obj, base_class):
     >>> find_subclasses(locals(), A)
     [<class '__main__.B'>, <class '__main__.C'>]
     """
-    subclasses = []
-    for name, member in inspect.getmembers(obj):
-        if inspect.isclass(member) and issubclass(member, base_class) and member is not base_class:
-            subclasses.append(member)
-    return subclasses
+    subclasses = {}
+    for namespace in _member_namespaces(obj):
+        for name, member in namespace.items():
+            if inspect.isclass(member) and issubclass(member, base_class) and member is not base_class:
+                subclasses.setdefault(name, member)
+    return [subclasses[name] for name in sorted(subclasses)]
+
+
+def _snapshot(mapping):
+    # a live module's setup() may be assigning attributes while we read it
+    while True:
+        try:
+            return dict(mapping)
+        except RuntimeError:
+            continue
+
+
+def _member_namespaces(obj):
+    """Yield the namespaces of ``obj`` without invoking attribute descriptors.
+
+    ``inspect.getmembers`` getattrs every name, which fires properties such as
+    ``BaseModule.memory_usage``. That walks the module's ``__dict__`` and blows
+    up with "dictionary changed size during iteration" when the module it is
+    reading is concurrently running its own ``setup()``.
+    """
+    if not isinstance(obj, type):
+        instance_dict = getattr(obj, "__dict__", None)
+        if isinstance(instance_dict, dict):
+            yield _snapshot(instance_dict)
+    classes = obj.__mro__ if isinstance(obj, type) else type(obj).__mro__
+    for cls in classes:
+        yield _snapshot(vars(cls))
 
 
 def _pick_select_value(options_html):
@@ -140,6 +167,8 @@ def extract_params_location(location_header_value, original_parsed_url):
 
 _yara_identifier_regex = re.compile(r"[A-Za-z_]\w*")
 _yara_rule_modifiers = ("private", "global")
+
+_html_end_regex = re.compile(r"</html\s*>", re.I)
 
 
 def _skip_yara_noncode(source, i):
@@ -356,10 +385,14 @@ class ExcavateRule:
         yara_rule_settings = YaraRuleSettings(description, tags, emit_match, severity, confidence)
         yara_results = {}
         for h in r.strings:
-            yara_results[h.identifier.lstrip("$")] = sorted(
-                {i.matched_data.decode("utf-8", errors="ignore") for i in h.instances}
-            )
+            yara_results[h.identifier.lstrip("$")] = sorted(self.match_strings(h))
         await self.process(yara_results, event, yara_rule_settings, discovery_context)
+
+    def match_strings(self, string):
+        """
+        The distinct text a yara string matched. Override when some matches shouldn't count.
+        """
+        return {i.matched_data.decode("utf-8", errors="ignore") for i in string.instances}
 
     async def process(self, yara_results, event, yara_rule_settings, discovery_context):
         """
@@ -513,7 +546,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     """
 
     watched_events = ["HTTP_RESPONSE", "RAW_TEXT"]
-    produced_events = ["URL_UNVERIFIED", "WEB_PARAMETER"]
+    produced_events = ["URL_UNVERIFIED", "WEB_PARAMETER", "FINDING"]
     _avoid_duplicate_content = True
     flags = ["safe", "passive"]
     meta = {
@@ -534,11 +567,57 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             262144,
             description="Maximum byte slice of the response body searched for a single <form> body. YARA only locates form openings; the bounded slice is what the Python re-based extractor scans for fields. Caps worst-case extraction work per form match.",
         )
+        long_redirect_threshold: int = Field(
+            2048,
+            description="Minimum number of bytes following the end of the HTML document for a 3xx response to be reported as a long redirection response. Set to 0 to disable the check.",
+        )
 
     scope_distance_modifier = None
     accept_dupes = False
 
     _module_threads = 6
+
+    async def check_long_redirect(self, event, body):
+        """Report a redirect whose body keeps going after the document ends.
+
+        Browsers discard the body of a 3xx, so content delivered here is never
+        displayed. A server that emits a redirect document and then keeps writing
+        has run the handler the redirect was meant to skip (CWE-698, Execution
+        After Redirect).
+
+        Body size on its own is not the signal: analytics payloads and notice
+        pages clear any byte threshold. Trailing content is measured on the
+        decoded body, since ``content_length`` reports the compressed size and
+        is absent from most of these responses.
+        """
+        threshold = self.long_redirect_threshold
+        status_code = event.http_status
+        location = event.data.get("location", "")
+        if not (threshold and location and 300 <= status_code < 400):
+            return
+        document_end = _html_end_regex.search(body)
+        if not document_end:
+            return
+        trailing = len(body) - document_end.end()
+        if trailing < threshold:
+            return
+
+        await self.emit_event(
+            {
+                "host": str(event.host),
+                "url": event.data.get("url", ""),
+                "name": "Long Redirection Response",
+                "description": (
+                    "Redirect kept writing after the document ended, delivering content no browser displays. "
+                    f"Status: [{status_code}] Location: [{location}] Trailing bytes: [{trailing}]"
+                ),
+                "severity": "LOW",
+                "confidence": "HIGH",
+            },
+            "FINDING",
+            event,
+            context="{module} found content past the end of the document on a {event.type} redirect, which browsers never display",
+        )
 
     def in_bl(self, value):
         # Check if the value is in the blacklist or starts with a blacklisted prefix.
@@ -591,6 +670,15 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                 host = f"{host}:{port}"
         path = event.data.get("path", event.parsed_url.path)
         return urlparse(f"{scheme}://{host}{path}")
+
+    async def _document_base_url(self, event, document_url):
+        """The URL relative references in the body resolve against: the page's <base href> if it has one, else document_url."""
+        m = await self.helpers.re.search(bbot_regexes.base_href_regex, getattr(event, "body", "") or "")
+        if m:
+            base_url = urljoin(document_url, html.unescape(m.group(1)))
+            if urlparse(base_url).scheme in ("http", "https"):
+                return base_url
+        return document_url
 
     def url_unparse(self, param_type, parsed_url):
         # Reconstructs a URL, optionally omitting the query string based on remove_querystring configuration value.
@@ -780,9 +868,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                     if not form_action or form_action == "#":
                         form_action = None
 
-                    elif form_action.startswith("./"):
-                        form_action = form_action.lstrip(".")
-
                     form_parameters = {}
                     for form_content_regex_name, form_content_regex in self.form_content_regexes.items():
                         input_tags = await self.excavate.helpers.re.findall(form_content_regex, form_content)
@@ -894,6 +979,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             # Use event.body (property) so we hit the body-spill store; event.data["body"] is
             # popped at spill time and would be empty here.
             response_body = getattr(event, "body", "") or ""
+            # resolved on the first relative endpoint; RAW_TEXT events have no URL to resolve against
+            document_url = base_url = None
             for identifier, results in yara_results.items():
                 if identifier not in self.parameterExtractorCallbackDict.keys():
                     raise ExcavateError("ParameterExtractor YaraRule identified reference non-existent submodule")
@@ -929,14 +1016,23 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                         if endpoint and endpoint.startswith(("http://", "https://")):
                             url = endpoint
 
-                        # The endpoint is usually a form action - we should use it if we have it. If not, default to URL.
+                        elif not hasattr(event, "parsed_url"):
+                            self.excavate.debug(
+                                f"Skipping parameter [{parameter_name}] with relative endpoint: {event.type} has no URL"
+                            )
+                            continue
+
+                        # The endpoint is usually a form action - we should use it if we have it.
+                        # A form with no action submits to the document URL, not <base href>.
                         else:
-                            # Use the effective base URL (which may differ from parsed_url for archived content)
-                            event_base = self.excavate._event_base_url(event)
-                            base_url = f"{event_base.scheme}://{event_base.netloc}{event_base.path}"
-                            if not self.excavate.remove_querystring and len(event.parsed_url.query) > 0:
-                                base_url += f"?{event.parsed_url.query}"
-                            url = urljoin(base_url, endpoint)
+                            if document_url is None:
+                                # Use the effective base URL (which may differ from parsed_url for archived content)
+                                event_base = self.excavate._event_base_url(event)
+                                document_url = f"{event_base.scheme}://{event_base.netloc}{event_base.path}"
+                                if not self.excavate.remove_querystring and len(event.parsed_url.query) > 0:
+                                    document_url += f"?{event.parsed_url.query}"
+                                base_url = await self.excavate._document_base_url(event, document_url)
+                            url = urljoin(base_url, endpoint) if endpoint else document_url
 
                         try:
                             # Validate the URL before using it
@@ -1206,6 +1302,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         tag_attribute_regex = bbot_regexes.tag_attribute_regex
 
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
+            source_url = None
             for identifier, results in yara_results.items():
                 urls_found = 0
                 final_url = ""
@@ -1228,7 +1325,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                 )
                                 continue
                             unescaped_url = html.unescape(m.group(1))
-                            source_url = event.parsed_url.geturl()
+                            if source_url is None:
+                                source_url = await self.excavate._document_base_url(event, event.parsed_url.geturl())
                             final_url = urldefrag(urljoin(source_url, unescaped_url)).url
                             if not await self.helpers.re.search(self.full_url_regex_strict, final_url):
                                 self.excavate.debug(
@@ -1277,6 +1375,9 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         def __init__(self, excavate):
             super().__init__(excavate)
             self.yara_rules.update(excavate.scan.dns_yara_rules_uncompiled)
+
+        def match_strings(self, string):
+            return self.excavate.scan.yara_hostnames(string.instances)
 
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):
             for identifier in yara_results.keys():
@@ -1372,11 +1473,11 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         self.yara_preprocess_dict = {}
         self.custom_yara_imports = []
 
-        modules_WEB_PARAMETER = [
-            module_name
-            for module_name, module in self.scan.modules.items()
-            if "WEB_PARAMETER" in module.watched_events
-        ]
+        # snapshot: setup_modules() pops failed modules from scan.modules while
+        # these setups run concurrently, so iterating the live dict can raise
+        scan_modules = list(self.scan.modules.values())
+
+        modules_WEB_PARAMETER = [module.name for module in scan_modules if "WEB_PARAMETER" in module.watched_events]
 
         self.parameter_extraction = bool(modules_WEB_PARAMETER)
         self.speculate_params = self.config.get("speculate_params", False)
@@ -1384,8 +1485,9 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         # Bounded slice of the response body searched for a form's body, anchored
         # at each YARA form-opening match. Caps worst-case Python re work per form.
         self.max_form_bytes = int(self.config.get("max_form_bytes", 262144))
+        self.long_redirect_threshold = int(self.config.get("long_redirect_threshold", 2048))
 
-        for module in self.scan.modules.values():
+        for module in scan_modules:
             if not str(module).startswith("_"):
                 ExcavateRules = find_subclasses(module, ExcavateRule)
                 for e in ExcavateRules:
@@ -1555,6 +1657,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             headers = event.data.get("header-dict", {})
             if body == "" and headers == {}:
                 return
+
+            await self.check_long_redirect(event, body)
 
             self.assigned_cookies = {}
             content_type = None

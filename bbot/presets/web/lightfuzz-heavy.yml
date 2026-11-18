@@ -1,4 +1,4 @@
-description: "Aggressive fuzzing: everything in lightfuzz, plus paramminer brute-force parameter discovery (headers, GET params, cookies), POST request fuzzing enabled, try_get_as_post enabled (GET params retested as POST), and robots.txt parsing. Still skips confirmed WAFs."
+description: "Aggressive fuzzing: everything in lightfuzz, plus paramminer brute-force parameter discovery (headers, GET params, cookies), POST request fuzzing enabled, try_get_as_post enabled (GET params retested as POST), and robots.txt parsing. On WAF-tagged hosts, only request-body parameters are fuzzed, and only if the WAF doesn't block them or nowafpls body padding gets them past it."
 
 include:
   - lightfuzz

@@ -1,4 +1,6 @@
 import re
+import time
+from types import SimpleNamespace
 
 from blasthttp import HTTPStatusError
 
@@ -150,21 +152,21 @@ async def test_web_request_rejects_conflicting_body_kwargs(bbot_scanner):
 
 @pytest.mark.asyncio
 async def test_web_helpers(bbot_scanner, bbot_httpserver, blasthttp_mock):
-    # json conversion
+    # response-to-event-dict conversion
+    from bbot.core.helpers.web.response_event import response_to_event_dict
+
     scan = bbot_scanner("evilcorp.com")
     await scan._prep()
     url = "http://www.evilcorp.com/json_test?a=b"
     blasthttp_mock.add_response(url=url, text="hello\nworld")
     response = await scan.helpers.web.request(url)
-    j = scan.helpers.response_to_json(response)
+    j = response_to_event_dict(response, url)
     assert j["status_code"] == 200
     assert j["host"] == "www.evilcorp.com"
-    assert j["scheme"] == "http"
     assert j["method"] == "GET"
-    assert j["port"] == 80
     assert j["path"] == "/json_test"
     assert j["body"] == "hello\nworld"
-    assert j["content_type"] == "text/plain"
+    assert j["content_type"].startswith("text/plain")
     assert j["url"] == "http://www.evilcorp.com/json_test?a=b"
 
     await scan._cleanup()
@@ -213,6 +215,24 @@ async def test_web_helpers(bbot_scanner, bbot_httpserver, blasthttp_mock):
     assert filename2.is_file()
     with open(filename2) as f:
         assert f.read() == download_content
+
+    # download respects cache_hrs when checking freshness
+    cached_file = scan1.helpers.cache_filename(url)
+    cached_file.write_text("stale")
+    two_days_ago = time.time() - 48 * 3600
+    os.utime(cached_file, (two_days_ago, two_days_ago))
+    filename = await scan1.helpers.download(url, cache_hrs=72)
+    assert Path(filename).read_text() == "stale"
+    filename = await scan1.helpers.download(url, cache_hrs=24)
+    assert Path(filename).read_text() == download_content
+
+    # with a custom filename, freshness is checked on that file, not the url's cache entry
+    assert scan1.helpers.is_cached(url, cache_hrs=24)
+    custom_file = BBOT_TEST_DIR / "bbot_download_cache_hrs_test_file"
+    custom_file.unlink(missing_ok=True)
+    filename = await scan1.helpers.download(url, filename=custom_file, cache_hrs=24)
+    assert filename == custom_file
+    assert custom_file.read_text() == download_content
 
     # beautifulsoup
     download_content = """
@@ -342,7 +362,12 @@ async def test_web_interactsh(bbot_scanner, bbot_httpserver):
     assert response2.status_code == 200
     assert any(interactsh_domain2.endswith(f"{s}") for s in server_list)
 
-    await asyncio.sleep(10)
+    # poll until every asserted condition holds, capped at the old fixed budget
+    deadline = time.time() + 10
+    while time.time() < deadline:
+        if sync_correct_url and async_correct_url:
+            break
+        await asyncio.sleep(0.1)
 
     data_list = await interactsh_client.poll()
     data_list2 = await interactsh_client2.poll()
@@ -668,10 +693,8 @@ async def test_web_decode_error(bbot_scanner, bbot_httpserver):
     assert r1.status_code == 200
     assert r1.decode_error
 
-    # both HTTP_RESPONSE dict builders carry that reason forward
     j1 = response_to_event_dict(r1, HTTPSERVER_HOSTPORT)
     assert j1["decode_error"] == r1.decode_error
-    assert scan.helpers.response_to_json(r1)["decode_error"] == r1.decode_error
 
     # those bytes are not content, so they are not offered as a body or a title
     assert j1["body"] == ""
@@ -686,7 +709,6 @@ async def test_web_decode_error(bbot_scanner, bbot_httpserver):
     assert r2.decode_error is None
     j2 = response_to_event_dict(r2, HTTPSERVER_HOSTPORT)
     assert "decode_error" not in j2
-    assert "decode_error" not in scan.helpers.response_to_json(r2)
     event2 = scan.make_event(j2, "HTTP_RESPONSE", parent=scan.root_event)
     assert event2.data["title"] == "real body"
 
@@ -800,5 +822,120 @@ async def test_is_http_wildcard_host(bbot_scanner):
     # cached as None
     result2 = await web.is_http_wildcard_host("https", "down.example.com", 443)
     assert result2 is None
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_base_module_is_http_wildcard_host_per_url(bbot_scanner):
+    """Base module wrapper does a per-URL compare against the wildcard baseline
+    so real endpoints on a catchall host aren't wrongly rejected. WEB_PARAMETER
+    GETPARAM events are probed with the parameter baked into the URL."""
+    from bbot.errors import HttpCompareError
+    from bbot.modules.base import BaseModule
+
+    scan = bbot_scanner("wildcardhost.test")
+    await scan._prep()
+
+    # baseline HttpCompare stub: records the URL passed to compare()
+    class FakeCompare:
+        def __init__(self):
+            self.calls = []
+            self.behaviour = "match"  # override per test
+
+        async def compare(self, url, **kwargs):
+            self.calls.append(url)
+            if self.behaviour == "raise":
+                raise HttpCompareError("boom")
+            if self.behaviour == "dead":
+                # compare() only hands back a None response when the request itself failed
+                return (False, ["request_failed"], False, None)
+            match = self.behaviour == "match"
+            return (match, [], False, SimpleNamespace(status_code=200))
+
+    fake_compare = FakeCompare()
+
+    async def wildcard_returns_compare(scheme, host, port):
+        return fake_compare
+
+    scan.helpers.web.is_http_wildcard_host = wildcard_returns_compare
+
+    module = BaseModule(scan)
+
+    def make_url_event(url):
+        return scan.make_event(url, "URL", parent=scan.root_event, tags=["status-200"])
+
+    def make_web_param_event(url, name, value, ptype="GETPARAM"):
+        data = {"host": "wildcardhost.test", "type": ptype, "name": name, "original_value": value, "url": url}
+        return scan.make_event(data, "WEB_PARAMETER", parent=scan.root_event)
+
+    # 1) URL that matches the wildcard baseline: skip (True)
+    fake_compare.behaviour = "match"
+    fake_compare.calls.clear()
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/index.php"))
+    assert result is True
+    assert fake_compare.calls == ["https://wildcardhost.test/index.php"]
+
+    # 2) URL that diverges from the baseline: real endpoint (False)
+    fake_compare.behaviour = "differ"
+    fake_compare.calls.clear()
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/params.php"))
+    assert result is False
+    assert fake_compare.calls == ["https://wildcardhost.test/params.php"]
+
+    # 3) WEB_PARAMETER GETPARAM: probe URL with the parameter baked in, not the bare URL
+    fake_compare.behaviour = "differ"
+    fake_compare.calls.clear()
+    result = await module._is_http_wildcard_host(
+        make_web_param_event("https://wildcardhost.test/index.php", "manager", "foo")
+    )
+    assert result is False
+    assert len(fake_compare.calls) == 1
+    assert fake_compare.calls[0].startswith("https://wildcardhost.test/index.php?")
+    assert "manager=foo" in fake_compare.calls[0]
+
+    # 4) WEB_PARAMETER POSTPARAM: probe uses the bare URL (POST body isn't reflected in a GET probe)
+    fake_compare.behaviour = "differ"
+    fake_compare.calls.clear()
+    result = await module._is_http_wildcard_host(
+        make_web_param_event("https://wildcardhost.test/index.php", "manager", "foo", ptype="POSTPARAM")
+    )
+    assert result is False
+    assert fake_compare.calls == ["https://wildcardhost.test/index.php"]
+
+    # 5) probe request died: unknown, not a wildcard verdict
+    fake_compare.behaviour = "dead"
+    fake_compare.calls.clear()
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/dead.php"))
+    assert result is None
+
+    # 6) HttpCompareError from the compare -> None
+    fake_compare.behaviour = "raise"
+    fake_compare.calls.clear()
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/broken.php"))
+    assert result is None
+
+    # 7) Scalar True from a test mock (no .compare attribute) -> True (backward-compat)
+    async def wildcard_returns_true(scheme, host, port):
+        return True
+
+    scan.helpers.web.is_http_wildcard_host = wildcard_returns_true
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/whatever"))
+    assert result is True
+
+    # 8) False / None from the helper pass through unchanged
+    async def wildcard_returns_false(scheme, host, port):
+        return False
+
+    scan.helpers.web.is_http_wildcard_host = wildcard_returns_false
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/anything"))
+    assert result is False
+
+    async def wildcard_returns_none(scheme, host, port):
+        return None
+
+    scan.helpers.web.is_http_wildcard_host = wildcard_returns_none
+    result = await module._is_http_wildcard_host(make_url_event("https://wildcardhost.test/anything"))
+    assert result is None
 
     await scan._cleanup()

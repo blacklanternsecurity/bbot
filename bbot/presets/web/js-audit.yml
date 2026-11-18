@@ -8,6 +8,7 @@ modules:
   - retirejs
   - robots
   - wayback
+  - js_unpacker
 
 config:
   modules:
