@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   cla:
-    uses: blacklanternsecurity/release-workflows/.github/workflows/cla-reusable.yml@3fe35ff9c43f61c98bd8c93182686b6be97d2759 # v1.3.0
+    uses: blacklanternsecurity/release-workflows/.github/workflows/cla-reusable.yml@4f32510b1cdfe7305aa27daa3f6fd72e4c03c21b # v1.5.0
     secrets:
       APP_ID: ${{ secrets.APP_ID }}
       APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}

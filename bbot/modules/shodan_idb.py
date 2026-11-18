@@ -51,6 +51,10 @@ class shodan_idb(BaseModule):
     }
 
     class Config(BaseModuleConfig):
+        max_ports: int = Field(
+            100,
+            description="An IP listed with more open ports than this answers on every port, so only the scan's cdn_port_filter.allowed_ports are kept for it",
+        )
         retries: Optional[int] = Field(None, deprecated=True, description="No longer used")
 
     # since there are rate limits, we set a lower qsize
@@ -72,6 +76,7 @@ class shodan_idb(BaseModule):
         await super().setup()
         self.last_request_time = 0
         self._cve_cache = {}
+        self.max_ports = self.config.get("max_ports", 100)
         return True
 
     def _incoming_dedup_hash(self, event):
@@ -139,7 +144,15 @@ class shodan_idb(BaseModule):
                 parent=event,
                 context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found {{event.type}}: {{event.pretty_string}}',
             )
-        for port in data.get("ports", []):
+        ports = data.get("ports", [])
+        if len(ports) > self.max_ports:
+            # a front end or tarpit that accepts connections on any port; its port list says nothing about services
+            allowed = self.scan.cdn_allowed_ports
+            self.verbose(
+                f"InternetDB lists {len(ports):,} open ports for {query_host}, so it answers on every port: keeping only {sorted(allowed)}"
+            )
+            ports = [port for port in ports if port in allowed]
+        for port in ports:
             await self.emit_event(
                 self.helpers.make_netloc(event.data, port),
                 "OPEN_TCP_PORT",
