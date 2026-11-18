@@ -2552,3 +2552,65 @@ class TestExcavateLongRedirectDisabled(ModuleTestBase):
     def check(self, module_test, events):
         findings = [e for e in events if e.type == "FINDING" and "Long Redirection Response" in str(e.data)]
         assert not findings, f"check should be disabled at threshold 0, got: {[f.data for f in findings]}"
+
+
+class TestExcavateLightfuzzEchoes(ModuleTestBase):
+    """
+    A parameter lightfuzz's own probe sent, echoed back in its response's links or redirect, isn't a new parameter;
+    the same echo in any other response still is
+    """
+
+    targets = [f"{HTTPSERVER_URL}/"]
+    # hunt consumes WEB_PARAMETER, which is what turns on parameter extraction
+    modules_overrides = ["excavate", "http", "hunt"]
+
+    async def setup_before_prep(self, module_test):
+        pages = {
+            "/": "<html><body>home</body></html>",
+            "/echo": '<html><body><a href="/other?junk=1&new=3">next</a></body></html>',
+            "/plain": '<html><body><a href="/other2?junk=1">next</a></body></html>',
+        }
+        for uri, body in pages.items():
+            module_test.set_expect_requests({"uri": uri}, {"response_data": body})
+        module_test.set_expect_requests(
+            {"uri": "/redirect"},
+            {"response_data": "", "status": 302, "headers": {"Location": "/moved?junk=1&fresh=4"}},
+        )
+
+    async def setup_after_prep(self, module_test):
+        from bbot.core.helpers.web.response_event import response_to_event_dict
+
+        class FakeLightfuzz(BaseModule):
+            """Requests pages with a parameter of its own, the way lightfuzz probes, and emits what came back."""
+
+            watched_events = ["URL"]
+            produced_events = ["HTTP_RESPONSE"]
+            _name = "fake_lightfuzz"
+
+            async def handle_event(self, event):
+                if event.parsed_url.path != "/":
+                    return
+                for path, tags in (("/echo", ["from-lightfuzz"]), ("/redirect", ["from-lightfuzz"]), ("/plain", [])):
+                    response = await self.helpers.request(f"{HTTPSERVER_URL}{path}?junk=1", follow_redirects=False)
+                    data = response_to_event_dict(response, HTTPSERVER_URL.split("//")[1])
+                    if tags:
+                        # as lightfuzz says what its probe sent
+                        data["sent_parameters"] = ["junk"]
+                    await self.emit_event(data, "HTTP_RESPONSE", event, tags=tags)
+
+        module_test.scan.modules["fake_lightfuzz"] = FakeLightfuzz(module_test.scan)
+
+    def check(self, module_test, events):
+        found = {
+            (e.data["url"].split(HTTPSERVER_URL)[-1], e.data["name"])
+            for e in events
+            if e.type == "WEB_PARAMETER" and str(e.module) == "excavate"
+        }
+        # what the page added is found, from the link and from the redirect
+        assert ("/other", "new") in found, found
+        assert ("/moved", "fresh") in found, found
+        # what the probe sent, echoed back, isn't
+        assert ("/other", "junk") not in found, found
+        assert ("/moved", "junk") not in found, found
+        # but the same echo in a response that isn't lightfuzz's still is
+        assert ("/other2", "junk") in found, found
