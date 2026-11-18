@@ -271,6 +271,41 @@ async def test_browser_redirect_to_nowhere(bbot_scanner, bbot_httpserver):
     await scan._cleanup()
 
 
+# a request every few milliseconds, so some are always being routed
+BUSY_PAGE = """<html><body><script>
+let n = 0;
+setInterval(() => fetch("/beat?n=" + n++).catch(() => {}), 5);
+</script></body></html>"""
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
+async def test_browser_route_already_handled(bbot_scanner, bbot_httpserver):
+    """A request handled before the scan's route gets to it doesn't break the next browser call made."""
+    bbot_httpserver.expect_request("/").respond_with_data(BUSY_PAGE, content_type="text/html")
+    bbot_httpserver.expect_request(re.compile("/beat.*")).respond_with_data("ok")
+    scan = await browser_scan(bbot_scanner)
+    url = bbot_httpserver.url_for("/")
+    _, host = await scan.helpers.browser._host(url)
+    page = await host.context.new_page()
+    await page.goto(url)
+
+    # removing a page's last route while it's handling requests sends them on before the scan's route continues them
+    async def slow_fallback(route):
+        await asyncio.sleep(0.05)
+        await route.fallback()
+
+    await page.route("**/*", slow_fallback)
+    await asyncio.sleep(0.5)
+    await page.unroute("**/*", slow_fallback)
+    await asyncio.sleep(0.5)
+
+    # Playwright throws an error from a route at whatever call comes next
+    assert await page.evaluate("1 + 1") == 2
+    await page.close()
+    await scan._cleanup()
+
+
 @pytest.mark.browser
 @pytest.mark.asyncio
 async def test_browser_stalled_font(bbot_scanner, bbot_httpserver, monkeypatch):
