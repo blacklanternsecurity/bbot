@@ -192,6 +192,49 @@ class TestDominoOutOfTime(ModuleTestBase):
         assert self.runs == [None, ["next"]], self.runs
 
 
+# two pages running the same code, each linked with the same parameter
+LINKS_PAGE = (
+    """<html><head><title>links</title></head><body><a href="/a?q=1">a</a><a href="/b?q=1">b</a></body></html>"""
+)
+SAME_CODE_PAGE = """<html><head><title>same code</title></head><body><script>
+document.title = new URLSearchParams(location.search).get("q");
+</script></body></html>"""
+
+
+class TestDominoParameterOncePerCode(ModuleTestBase):
+    """A parameter is tested once on a host for each page code, not once for every page running that code"""
+
+    pytestmark = pytest.mark.browser
+    targets = [f"{HTTPSERVER_URL}/"]
+    modules_overrides = ["http", "domino"]
+    config_overrides = {
+        "excavate": True,
+        "web": {"enable_browser": True},
+        "modules": {"domino": {"rules": ["xss-onclick-getparam"], "web_parameters": True}},
+    }
+    # the parameters each DOMino run was given
+    runs = []
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests({"uri": "/"}, {"response_data": LINKS_PAGE, "content_type": "text/html"})
+        for uri in ("/a", "/b"):
+            module_test.set_expect_requests(
+                {"uri": uri}, {"response_data": SAME_CODE_PAGE, "content_type": "text/html"}
+            )
+
+        async def run_domino(url, parameters=None):
+            self.runs.append(parameters)
+            return [], True
+
+        module_test.monkeypatch.setattr(module_test.scan.modules["domino"], "run_domino", run_domino)
+
+    def check(self, module_test, events):
+        parameters = [e.data["url"] for e in events if e.type == "WEB_PARAMETER" and e.data["name"] == "q"]
+        # both pages were handed q, but it was tested once
+        assert {f"{HTTPSERVER_URL}/a", f"{HTTPSERVER_URL}/b"} <= set(parameters), parameters
+        assert [run for run in self.runs if run] == [["q"]], self.runs
+
+
 # a search whose results page fetches the results and evals them, which the server writes with " escaped but not \\
 SEARCH_JS = """function search(path) {
     var xhr = new XMLHttpRequest();
@@ -340,6 +383,6 @@ class TestDominoBrowserParameters(ModuleTestBase):
     def check(self, module_test, events):
         captured = {e.data["name"] for e in events if e.type == "WEB_PARAMETER" and str(e.module) == "browser_dom"}
         assert {"q", "search"} <= captured
-        tested = {name for _, name in module_test.scan.modules["domino"].tested_parameters}
+        tested = {name for _, _, name in module_test.scan.modules["domino"].tested_parameters}
         assert "search" in tested
         assert "q" not in tested, "DOMino loaded a JSON API's parameter as a page"

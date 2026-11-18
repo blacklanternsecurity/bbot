@@ -55,7 +55,7 @@ class domino(browser_vulns):
         self.rules = self.config.get("rules")
         self.suppress_parameter_discovery_reports = self.config.get("suppress_parameter_discovery_reports", True)
         self.time_budget = self.config.get("time_budget", 300)
-        # (page, name) of each GET parameter DOMino has tested, whether it found it or was given it
+        # (host, page code fingerprint, name) of each GET parameter DOMino has tested, whether it found it or was given it
         self.tested_parameters = set()
         # load the rules once, which also checks the configured ones exist
         try:
@@ -104,17 +104,21 @@ class domino(browser_vulns):
         """
         url = event.data["url"]
         name = event.data["name"]
-        parameter = (page_url(url), name)
-        if parameter in self.tested_parameters:
-            self.debug(f"Skipping {name} on {url}: DOMino already tested it there")
-            return
-        self.tested_parameters.add(parameter)
         params = dict(event.data.get("additional_params") or {})
         if event.data.get("original_value") is not None:
             params[name] = event.data["original_value"]
         if params:
             url = self.helpers.add_get_params(url, params).geturl()
         try:
+            page = await self.url_code(url)
+            if page is None:
+                return
+            # once on each host for each page code: pages running the same code read the parameter the same way
+            tested = (str(event.host), page[2], name)
+            if tested in self.tested_parameters:
+                self.debug(f"Skipping {name} on {url}: DOMino already tested it on a page with the same code")
+                return
+            self.tested_parameters.add(tested)
             results, _ = await self.run_domino(url, parameters=[name])
         except (BrowserError, *self.helpers.browser.engine.errors) as e:
             self.verbose(f"Browser error while testing {name} on {url}: {e}")
@@ -146,7 +150,7 @@ class domino(browser_vulns):
         await self.emit_results(event, url, results)
         if finished:
             # DOMino tested what it discovered, so a WEB_PARAMETER for one of those isn't tested again
-            self.tested_parameters.update((page_url(url), name) for name in discovered)
+            self.tested_parameters.update((str(event.host), fingerprint, name) for name in discovered)
         elif discovered and self.wants_parameters():
             # it ran out of time before testing what it discovered, so each is handed on to be tested on its own
             await self.emit_page_parameters(event, discovered, "DOMino")
