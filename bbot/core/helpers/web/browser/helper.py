@@ -575,8 +575,14 @@ class BrowserHelper:
                     name, _, value = pair.strip().partition("=")
                     if name:
                         cookies[name] = value
+                body = request.post_data_buffer
+                try:
+                    body = body.decode() if body is not None else None
+                except UnicodeDecodeError:
+                    # a body that isn't text, like a compressed beacon, has no parameters to read
+                    body = None
                 entry["sent"] = {
-                    "body": request.post_data,
+                    "body": body,
                     "content_type": headers.get("content-type", ""),
                     "cookies": cookies,
                     "headers": {
