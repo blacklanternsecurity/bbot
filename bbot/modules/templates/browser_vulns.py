@@ -198,15 +198,21 @@ class browser_vulns(BaseModule):
         Load `event`'s page in the browser, and return (visit, scripts, fingerprint): the `BrowserVisit`, its
         `page_scripts()` and its `code_fingerprint()`. None if there's no page to analyze.
         """
-        visit = await self.browser_visit(event)
+        return self._code_of(await self.browser_visit(event), event.url)
+
+    async def url_code(self, url):
+        """Like `page_code()`, for a URL that isn't an event's own: a parameter's page with its other parameters."""
+        return self._code_of(await self.helpers.browser.visit(url, consumer=self.name), url)
+
+    def _code_of(self, visit, url):
         if visit is None or not visit.dom:
             return None
         if visit.response.conclusion[0] == "needs_browser":
-            self.debug(f"Skipping {event.url}: the browser couldn't get past its challenge")
+            self.debug(f"Skipping {url}: the browser couldn't get past its challenge")
             return None
         scripts = self.page_scripts(visit)
         fingerprint = self.code_fingerprint(visit.dom, scripts, served=visit.response.text)
-        self.debug(f"Code fingerprint of {event.url}: {fingerprint}")
+        self.debug(f"Code fingerprint of {url}: {fingerprint}")
         return visit, scripts, fingerprint
 
     def served_page(self, visit):
