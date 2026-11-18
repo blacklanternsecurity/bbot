@@ -17,6 +17,8 @@ SEVERITIES = {"note": "INFO", "recommendation": "LOW", "warning": "MEDIUM", "err
 MESSAGE_LOCATION = re.compile(r'\[\["([^"]*)"\|"relative:///([^:"]+):(\d+):(\d+):\d+:(\d+)"\]\]')
 # the page's DOM, in the source root CodeQL builds its database from
 PAGE_FILE = "page.html"
+# the page as the server sent it, beside its DOM when it had code the loaded page lost
+SERVED_FILE = "page_served.html"
 # longest code snippet shown in a finding
 SNIPPET_MAX = 150
 
@@ -138,7 +140,9 @@ class codeql(browser_vulns):
         if page is None:
             return
         visit, scripts, fingerprint = page
-        findings, first = await self.analyze_once(fingerprint, lambda: self.analyze_page(visit.dom, scripts))
+        findings, first = await self.analyze_once(
+            fingerprint, lambda: self.analyze_page(visit.dom, scripts, self.served_page(visit))
+        )
         if not first:
             self.debug(f"Already analyzed a page with the same code as {url}")
 
@@ -172,14 +176,20 @@ class codeql(browser_vulns):
         host = self.helpers.urlparse(url).hostname or ""
         return any(parent in self.skip_hosts for parent in self.helpers.domain_parents(host, include_self=True))
 
-    async def analyze_page(self, dom, scripts):
-        """CodeQL's findings for a page, each as (name, severity, source, sink, message)."""
+    async def analyze_page(self, dom, scripts, served=None):
+        """
+        CodeQL's findings for a page, each as (name, severity, source, sink, message). `served` is the page as the
+        server sent it, if it had code the loaded page lost (see `served_page()`).
+        """
         with tempfile.TemporaryDirectory(dir=self.scan.temp_dir) as temp_dir:
             source_root = Path(temp_dir) / "src"
             source_root.mkdir()
             # where each file came from; None for the page itself
             origins = {PAGE_FILE: None}
             (source_root / PAGE_FILE).write_text(dom)
+            if served is not None:
+                origins[SERVED_FILE] = None
+                (source_root / SERVED_FILE).write_text(served)
             for i, (script_url, script) in enumerate(scripts.items()):
                 file_name = f"script_{i}.js"
                 (source_root / file_name).write_text(script)

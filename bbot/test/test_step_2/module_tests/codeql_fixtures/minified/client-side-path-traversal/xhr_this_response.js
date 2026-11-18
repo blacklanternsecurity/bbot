@@ -1,0 +1,1 @@
+var request=new XMLHttpRequest;request.onload=function(){document.getElementById("help").innerHTML=this.responseText},request.open("GET","/help/"+new URLSearchParams(location.search).get("topic")),request.send();

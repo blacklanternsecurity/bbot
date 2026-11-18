@@ -1,0 +1,1 @@
+fetch("/partials/"+location.hash.slice(1)).then((t=>t.text())).then((t=>{document.getElementById("content").innerHTML=t}));

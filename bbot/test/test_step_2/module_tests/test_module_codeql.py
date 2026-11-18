@@ -124,6 +124,48 @@ class TestCodeQL(ModuleTestBase):
         assert sorted(bool(findings) for findings in module.analyzed.values()) == [False, True]
 
 
+# a page that replaces itself with what it fetches from a path the fragment picks; once loaded, its script is gone
+SELF_WRITING_PAGE = """<html><head><title>codeql test</title></head><body><script>
+var xhr = new XMLHttpRequest();
+xhr.open("GET", "/pages/" + location.hash.slice(1));
+xhr.onload = function () {
+  document.open();
+  document.write(xhr.responseText);
+  document.close();
+};
+xhr.send();
+</script></body></html>"""
+
+
+class TestCodeQLServedPage(ModuleTestBase):
+    """Code a page had as the server sent it is analyzed, even when the loaded page no longer has it."""
+
+    pytestmark = pytest.mark.browser
+    targets = [f"{HTTPSERVER_URL}/"]
+    modules_overrides = ["http", "codeql"]
+    config_overrides = {"web": {"enable_browser": True}, "modules": {"codeql": {"min_severity": "warning"}}}
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests(
+            {"uri": "/"}, {"response_data": SELF_WRITING_PAGE, "content_type": "text/html"}
+        )
+        module_test.set_expect_requests(
+            {"uri": "/pages/"}, {"response_data": "<html><body>Welcome</body></html>", "content_type": "text/html"}
+        )
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING" and e.data["url"] == f"{HTTPSERVER_URL}/"]
+        assert [f.data["name"] for f in findings] == ["Client-side path traversal to XSS"], [f.data for f in findings]
+        assert findings[0].data["severity"] == "MEDIUM"
+        assert (
+            findings[0]
+            .data["description"]
+            .startswith(
+                "Text from the page's URL picks the path of a request whose response is written into the page as HTML."
+            )
+        )
+
+
 class TestCodeQLThirdPartyHosts(ModuleTestBase):
     """Analyzing every script leaves out those from listed third-party hosts, unless they're in scope."""
 

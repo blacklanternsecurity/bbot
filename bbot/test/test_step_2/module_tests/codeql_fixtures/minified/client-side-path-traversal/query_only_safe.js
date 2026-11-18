@@ -1,0 +1,1 @@
+fetch("/search?q="+location.hash.slice(1)).then((e=>e.text())).then((e=>{document.getElementById("results").innerHTML=e}));
