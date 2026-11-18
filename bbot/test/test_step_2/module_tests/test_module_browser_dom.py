@@ -115,6 +115,12 @@ form.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
 form.send("title=draft&tags=a%2Cb");
 // the same call again, with other values
 fetch("/api/items?category=films&page=3", {headers: token});
+// a compressed beacon, whose body isn't text
+fetch("/api/beacon", {
+    method: "POST",
+    headers: {"Content-Type": "application/x-www-form-urlencoded"},
+    body: new Uint8Array([0x1f, 0x8b, 0x08, 0x00, 0xff, 0xfe]),
+});
 </script></body></html>"""
 
 
@@ -127,12 +133,14 @@ class TestBrowserDomParameters(ModuleTestBase):
 
     async def setup_after_prep(self, module_test):
         module_test.set_expect_requests({"uri": "/"}, {"response_data": PARAMETERS_PAGE, "content_type": "text/html"})
-        for uri in ("/api/items", "/api/search", "/api/save"):
+        for uri in ("/api/items", "/api/search", "/api/save", "/api/beacon"):
             module_test.set_expect_requests(
                 {"uri": uri}, {"response_data": '{"ok": true}', "content_type": "application/json"}
             )
 
     def check(self, module_test, events):
+        # a request whose body isn't text doesn't cost the page its visit
+        assert any(e.type == "HTTP_RESPONSE" and "browser-dom" in e.tags for e in events)
         parameters = {}
         for e in events:
             if e.type == "WEB_PARAMETER" and str(e.module) == "browser_dom":
@@ -152,6 +160,7 @@ class TestBrowserDomParameters(ModuleTestBase):
         assert items["content_type"].startswith("application/json")
         assert ("GETPARAM", "page") in parameters
         assert ("GETPARAM", "_ga") not in parameters, "a blacklisted parameter was emitted"
+        assert not [data for data in parameters.values() if data["url"].endswith("/api/beacon")]
 
         search = parameters[("BODYJSON", "q")]
         # a POST's query stays on its URL, and isn't a parameter of its own
