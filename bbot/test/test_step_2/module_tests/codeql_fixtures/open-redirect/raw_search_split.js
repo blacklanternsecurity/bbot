@@ -2,6 +2,6 @@
 (function () {
   var next = location.search.split("next=")[1];
   if (next) {
-    window.location.href = next; // $ open-redirect
+    window.location.href = next; // $ dom-xss
   }
 })();

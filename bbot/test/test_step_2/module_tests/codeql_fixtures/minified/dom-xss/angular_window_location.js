@@ -1,0 +1,1 @@
+angular.module("app").run(["$location","$window",function(n,a){var o=n.search().next;o&&(a.location=o)}]);

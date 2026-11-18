@@ -1,0 +1,1 @@
+location.href="https://"+new URLSearchParams(location.search).get("host")+"/welcome";
