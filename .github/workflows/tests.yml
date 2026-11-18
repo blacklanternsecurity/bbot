@@ -52,14 +52,30 @@ jobs:
       github-token: true
       artifacts: pytest_debug.log
 
+  # A Markdown-only PR skips the suite, but test_docs reads every .md file for BBOT module
+  # markers, so a docs PR with a bad marker would break every later push. Run it on its own.
+  docs:
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'false' && github.event.pull_request.changed_files < 3000 }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+      - run: uv sync --group dev
+      - run: uv run --no-sync pytest -q bbot/test/test_step_1/test_docs.py
+
   test_matrix:
     name: test matrix passed
     if: always()
-    needs: [changes, test]
+    needs: [changes, test, docs]
     runs-on: ubuntu-24.04
     steps:
       - name: Fail unless every dependency succeeded
         uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0
         with:
-          allowed-skips: changes, test
+          allowed-skips: changes, test, docs
           jobs: ${{ toJSON(needs) }}
