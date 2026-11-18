@@ -414,6 +414,37 @@ private predicate readsSearchParams(DataFlow::Node node1, DataFlow::Node node2) 
   )
 }
 
+/** Holds if `node` is the page's URL, or text a function in the same place made from it: location.search.slice(1). */
+private predicate fromPageUrl(DataFlow::Node node) {
+  urlInput(node, _)
+  or
+  exists(DataFlow::Node previous | fromPageUrl(previous) |
+    DataFlow::localFlowStep(previous, node) or
+    node.(DataFlow::MethodCallNode).getReceiver() = previous
+  )
+}
+
+/**
+ * Holds if `node` reads the page's URL parameter `name` by its name: params.get("next") from URLSearchParams over the
+ * page's URL, or $location.search().next in AngularJS. A module that tests parameters in the browser can put a payload
+ * in it.
+ */
+predicate namedParameter(DataFlow::Node node, string name) {
+  exists(DataFlow::Node input, DataFlow::MethodCallNode get |
+    get = searchParams(input).getAMethodCall(["get", "getAll"]) and
+    fromPageUrl(input) and
+    get.getArgument(0).mayHaveStringValue(name) and
+    node = get
+  )
+  or
+  // the query as an object, read by name; with arguments, search() sets it
+  exists(DataFlow::MethodCallNode search |
+    search = injected("$location").getAMethodCall("search") and
+    search.getNumArgument() = 0 and
+    node = search.getAPropertyRead(name)
+  )
+}
+
 /**
  * Holds if text in `state1` at `node1` becomes text in `state2` at `node2`: a part taken out of a URL, a decoded URL,
  * or a URLSearchParams value.

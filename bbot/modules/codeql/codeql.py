@@ -3,12 +3,16 @@ import os
 import re
 import tempfile
 from pathlib import Path
+from urllib.parse import parse_qsl
 from typing import Literal
 
 from bbot.core.config.models import BaseModuleConfig, Field
 from bbot.modules.templates.browser_vulns import browser_vulns
 
 QUERIES_DIR = Path(__file__).parent / "queries"
+# the URL parameters a page's code reads by name and passes to a sink, for the modules that test parameters: not findings
+PARAMETERS_QUERY = QUERIES_DIR / "parameters" / "url-parameters.ql"
+PARAMETERS_QUERY_NAME = "URL parameter reaching a sink"
 # the longest one CodeQL step (building a page's database, or querying it) may take
 CODEQL_TIMEOUT = 600
 # CodeQL's severities, lowest first, and the FINDING severity each one becomes
@@ -25,7 +29,7 @@ SNIPPET_MAX = 150
 
 class codeql(browser_vulns):
     watched_events = ["URL"]
-    produced_events = ["FINDING"]
+    produced_events = ["FINDING", "WEB_PARAMETER"]
     flags = ["active", "safe", "slow"]
     meta = {
         "description": "Find client-side web vulnerabilities (DOM XSS, prototype pollution, and more) by analyzing pages' JavaScript with CodeQL",
@@ -116,6 +120,10 @@ class codeql(browser_vulns):
             ],
             description="Out-of-scope hosts (and their subdomains) whose scripts aren't analyzed in 'all' mode: tag managers, analytics, ads and widgets, which are slow to analyze and never the target's own code",
         )
+        parameters: bool = Field(
+            True,
+            description="Emit the URL parameters a page's code reads by name and passes somewhere a payload could act, for modules that test parameters, like domino, to confirm in the browser",
+        )
 
     async def setup(self):
         await super().setup()
@@ -127,6 +135,10 @@ class codeql(browser_vulns):
         # where CodeQL keeps its compiled queries
         self.codeql_cache = self.helpers.cache_dir / "codeql"
         self.queries = sorted(str(q) for q in QUERIES_DIR.glob("*.ql"))
+        # like browser_dom, only when a module in the scan tests parameters
+        tests_parameters = any("WEB_PARAMETER" in m.watched_events for m in self.scan.modules.values())
+        if self.config.get("parameters", True) and tests_parameters:
+            self.queries.append(str(PARAMETERS_QUERY))
         self.reported = set()
         # compiled once, so pages don't each wait on it, and a broken install fails here
         result = await self.codeql("query", "compile", *self.queries)
@@ -140,11 +152,14 @@ class codeql(browser_vulns):
         if page is None:
             return
         visit, scripts, fingerprint = page
-        findings, first = await self.analyze_once(
+        (findings, parameters), first = await self.analyze_once(
             fingerprint, lambda: self.analyze_page(visit.dom, scripts, self.served_page(visit))
         )
         if not first:
             self.debug(f"Already analyzed a page with the same code as {url}")
+        else:
+            # once for each page code, since every page running it reads its parameters the same way
+            await self.emit_parameters(event, parameters)
 
         for finding in findings:
             if self.suppress_duplicates:
@@ -176,10 +191,33 @@ class codeql(browser_vulns):
         host = self.helpers.urlparse(url).hostname or ""
         return any(parent in self.skip_hosts for parent in self.helpers.domain_parents(host, include_self=True))
 
+    async def emit_parameters(self, event, names):
+        """A WEB_PARAMETER for each URL parameter the page's code passes to a sink, with the page's others beside it."""
+        parsed = self.helpers.urlparse(event.url)
+        query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+        for name in names:
+            if self.helpers.web.parameter_blacklisted(name):
+                continue
+            await self.emit_event(
+                {
+                    "host": str(event.host),
+                    "type": "GETPARAM",
+                    "name": name,
+                    "original_value": query.get(name, ""),
+                    "url": parsed._replace(query="", fragment="").geturl(),
+                    "description": f"HTTP Extracted Parameter [{name}] (CodeQL)",
+                    "additional_params": {other: value for other, value in query.items() if other != name},
+                },
+                "WEB_PARAMETER",
+                parent=event,
+                context=f"{{module}} analyzed {event.url} with CodeQL, whose code passes URL parameter [{name}] to a sink",
+            )
+
     async def analyze_page(self, dom, scripts, served=None):
         """
-        CodeQL's findings for a page, each as (name, severity, source, sink, message). `served` is the page as the
-        server sent it, if it had code the loaded page lost (see `served_page()`).
+        CodeQL's findings for a page, each as (name, severity, source, sink, message), and the URL parameters its code
+        passes to a sink, as (findings, parameter names). `served` is the page as the server sent it, if it had code the
+        loaded page lost (see `served_page()`).
         """
         with tempfile.TemporaryDirectory(dir=self.scan.temp_dir) as temp_dir:
             source_root = Path(temp_dir) / "src"
@@ -196,12 +234,15 @@ class codeql(browser_vulns):
                 origins[file_name] = script_url
             database = Path(temp_dir) / "db"
             if not await self.create_database(source_root, database):
-                return []
+                return [], []
             findings = []
+            parameters = set()
             for result in await self.run_queries(database):
-                if list(SEVERITIES).index(result["severity"]) >= self.min_severity:
+                if result["name"] == PARAMETERS_QUERY_NAME:
+                    parameters.add(result["message"].strip())
+                elif list(SEVERITIES).index(result["severity"]) >= self.min_severity:
                     findings.append(self.to_finding(result, source_root, origins))
-            return list(dict.fromkeys(findings))
+            return list(dict.fromkeys(findings)), sorted(parameters)
 
     async def create_database(self, source_root, database):
         """Build a CodeQL database from the code in `source_root`. Returns whether it worked."""

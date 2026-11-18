@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from .base import ModuleTestBase
-from bbot.modules.codeql.codeql import QUERIES_DIR
+from bbot.modules.codeql.codeql import PARAMETERS_QUERY, QUERIES_DIR
 from bbot.test.worker import HTTPSERVER_URL
 
 FIXTURES_DIR = Path(__file__).parent / "codeql_fixtures"
@@ -121,7 +121,7 @@ class TestCodeQL(ModuleTestBase):
         # pages running the same code are analyzed once, so only the vulnerable and the clean code were
         module = module_test.scan.modules["codeql"]
         assert len(module.analyzed) == 2
-        assert sorted(bool(findings) for findings in module.analyzed.values()) == [False, True]
+        assert sorted(bool(findings) for findings, _ in module.analyzed.values()) == [False, True]
 
 
 # a page that replaces itself with what it fetches from a path the fragment picks; once loaded, its script is gone
@@ -164,6 +164,57 @@ class TestCodeQLServedPage(ModuleTestBase):
                 "Text from the page's URL picks the path of a request whose response is written into the page as HTML."
             )
         )
+
+
+PARAMETER_FIXTURES_DIR = Path(__file__).parent / "codeql_parameter_fixtures"
+
+
+class TestCodeQLParameterQuery(ModuleTestBase):
+    """The parameters query finds the URL parameters code reads by name and passes to a sink, and only those."""
+
+    pytestmark = pytest.mark.browser
+    module_name = "codeql"
+    targets = [f"{HTTPSERVER_URL}/"]
+    config_overrides = {"web": {"enable_browser": True}}
+
+    async def check(self, module_test, events):
+        module = module_test.module
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database = Path(temp_dir) / "db"
+            assert await module.create_database(PARAMETER_FIXTURES_DIR, database)
+            results = await module.run_queries(database, [str(PARAMETERS_QUERY)])
+        assert {result["message"] for result in results} == {"next", "name", "returnUrl"}
+
+
+# a page sending the browser where its `next` parameter says
+REDIRECTING_PAGE = """<html><head><title>codeql test</title></head><body><script>
+location.href = new URLSearchParams(location.search).get("next");
+</script></body></html>"""
+
+
+class TestCodeQLParameters(ModuleTestBase):
+    """A URL parameter a page's code passes to a sink is handed on to modules that test parameters, once per code."""
+
+    pytestmark = pytest.mark.browser
+    targets = [f"{HTTPSERVER_URL}/a", f"{HTTPSERVER_URL}/b"]
+    # hunt tests parameters, which is what has codeql emit them
+    modules_overrides = ["http", "codeql", "hunt"]
+    config_overrides = {"web": {"enable_browser": True}, "modules": {"codeql": {"min_severity": "warning"}}}
+
+    async def setup_after_prep(self, module_test):
+        for uri in ("/a", "/b"):
+            module_test.set_expect_requests(
+                {"uri": uri}, {"response_data": REDIRECTING_PAGE, "content_type": "text/html"}
+            )
+
+    def check(self, module_test, events):
+        parameters = [e.data for e in events if e.type == "WEB_PARAMETER" and str(e.module) == "codeql"]
+        # both pages run the same code, so the parameter is handed on once
+        assert [p["name"] for p in parameters] == ["next"], parameters
+        assert parameters[0]["type"] == "GETPARAM"
+        assert parameters[0]["url"] in (f"{HTTPSERVER_URL}/a", f"{HTTPSERVER_URL}/b")
+        findings = [e.data["name"] for e in events if e.type == "FINDING" and str(e.module) == "codeql"]
+        assert "DOM-based cross-site scripting" in findings
 
 
 class TestCodeQLThirdPartyHosts(ModuleTestBase):
