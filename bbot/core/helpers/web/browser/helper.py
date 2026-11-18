@@ -292,7 +292,8 @@ class BrowserHelper:
 
         Its requests follow the same rules as every other browser request: the scan's blacklist, and its custom
         headers and cookies for in-scope URLs. A route the module adds runs ahead of those rules, so it should hand
-        requests on with `route.fallback()` rather than answer them itself.
+        requests on with `route.fallback()` rather than answer them itself. It should also stay until its page closes:
+        removing a page's last route makes Playwright send the requests it's still handling past those rules.
 
         It holds one of the browser's page slots (`web.browser_max_pages`) until it's closed.
         """
