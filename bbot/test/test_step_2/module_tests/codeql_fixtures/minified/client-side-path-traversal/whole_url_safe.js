@@ -1,0 +1,1 @@
+var xhr=new XMLHttpRequest;xhr.open("GET","/render/"+location.href),xhr.onload=function(){document.getElementById("preview").innerHTML=xhr.responseText},xhr.send();

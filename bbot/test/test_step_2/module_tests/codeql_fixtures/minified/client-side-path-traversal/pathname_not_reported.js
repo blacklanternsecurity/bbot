@@ -1,0 +1,1 @@
+fetch(location.pathname+"?partial=1").then((t=>t.text())).then((t=>{document.getElementById("main").innerHTML=t}));

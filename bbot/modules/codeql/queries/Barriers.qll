@@ -159,6 +159,14 @@ private predicate precedes(StringOps::ConcatenationLeaf before, StringOps::Conca
   )
 }
 
+/** Holds if `node` is concatenated after a ? or #, into a URL's query or fragment, where it can't change the path. */
+predicate afterPath(DataFlow::Node node) {
+  exists(StringOps::ConcatenationLeaf before |
+    precedes(before, node) and
+    before.getStringValue().regexpMatch("(?s).*[?#].*")
+  )
+}
+
 /** Holds if `node` is concatenated after text that already fixes the URL's host. */
 predicate afterFixedHost(DataFlow::Node node) {
   exists(StringOps::ConcatenationLeaf before |

@@ -1,0 +1,1 @@
+fetch("/locales/"+new URLSearchParams(location.search).get("lang")+".js").then((e=>e.text())).then((code=>{eval(code)}));

@@ -1,0 +1,1 @@
+function makeRequest(){return new XMLHttpRequest}function showPage(){var e=document.URL.split("#")[1],t=makeRequest();t.open("GET","https://content.example.com/pages/"+e,!0),t.send(),t.onreadystatechange=function(){4===t.readyState&&200===t.status&&(document.open(),document.write(t.responseText),document.close())}}

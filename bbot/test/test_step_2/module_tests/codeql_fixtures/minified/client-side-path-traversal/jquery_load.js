@@ -1,0 +1,1 @@
+$("#main").load("/views/"+new URLSearchParams(location.search).get("view"));
