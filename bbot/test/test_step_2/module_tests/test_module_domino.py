@@ -235,6 +235,68 @@ class TestDominoParameterOncePerCode(ModuleTestBase):
         assert [run for run in self.runs if run] == [["q"]], self.runs
 
 
+# links to one page with three parameters
+PARAMETERS_PAGE = """<html><head><title>links</title></head><body><a href="/page?a=1&b=2&c=3">page</a></body></html>"""
+
+
+class TestDominoParameterBatch(ModuleTestBase):
+    """A page's GET parameters are tested in one DOMino run, its page loaded at most once to find its code, and each
+    finding goes under the parameter it's about"""
+
+    pytestmark = pytest.mark.browser
+    targets = [f"{HTTPSERVER_URL}/"]
+    modules_overrides = ["http", "domino"]
+    config_overrides = {
+        "excavate": True,
+        "web": {"enable_browser": True},
+        "modules": {"domino": {"rules": ["xss-onclick-getparam"], "web_parameters": True}},
+    }
+    # (url, parameters) of each DOMino run given parameters, and each URL loaded to find a parameter's page code
+    runs = []
+    loaded = []
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests({"uri": "/"}, {"response_data": PARAMETERS_PAGE, "content_type": "text/html"})
+        module_test.set_expect_requests(
+            {"uri": "/page"}, {"response_data": SAME_CODE_PAGE, "content_type": "text/html"}
+        )
+        module = module_test.scan.modules["domino"]
+
+        async def run_domino(url, parameters=None):
+            if not parameters:
+                # a page's run takes a while, so the parameters it links to queue up behind it, into one batch
+                await asyncio.sleep(2)
+                return [], True
+            self.runs.append((url, parameters))
+            # a finding for b, as DOMino reports one: at the URL tested, with b's value changed
+            return [
+                {
+                    "rule_name": "Dom-Based XSS Via Click() Events from GET parameter",
+                    "description": "Detects XSS",
+                    "severity": "high",
+                    "detection_url": url.replace("b=2", "b=PAYLOAD"),
+                }
+            ], True
+
+        url_code = module.url_code
+
+        async def counting_url_code(url):
+            self.loaded.append(url)
+            return await url_code(url)
+
+        module_test.monkeypatch.setattr(module, "run_domino", run_domino)
+        module_test.monkeypatch.setattr(module, "url_code", counting_url_code)
+
+    def check(self, module_test, events):
+        assert [parameters for _, parameters in self.runs] == [["a", "b", "c"]], self.runs
+        url = self.runs[0][0]
+        assert "/page?" in url and all(f"{name}={value}" in url for name, value in (("a", 1), ("b", 2), ("c", 3)))
+        assert len([u for u in self.loaded if "/page" in u]) <= 1, self.loaded
+        findings = [e for e in events if e.type == "FINDING"]
+        assert len(findings) == 1, findings
+        assert findings[0].parent.type == "WEB_PARAMETER" and findings[0].parent.data["name"] == "b"
+
+
 # a search whose results page fetches the results and evals them, which the server writes with " escaped but not \\
 SEARCH_JS = """function search(path) {
     var xhr = new XMLHttpRequest();
