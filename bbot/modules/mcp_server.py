@@ -1,6 +1,4 @@
-import csv
 import json
-import re
 from typing import Union
 
 from bbot import __version__
@@ -27,17 +25,9 @@ class mcp_server(BaseModule):
             ["/mcp", "/sse", "/messages", "/api/mcp", "/v1/mcp", "/mcp/sse"],
             description="Paths to probe for an MCP endpoint. Accepts a list, or a wordlist file path / URL (one path per line)",
         )
-        signatures: Union[str, list[str]] = Field(
-            "",
-            description="REST tool-backend signature file path or URL (CSV, see docs/modules/mcp_server.md). Empty = bundled default. Accepts a list of paths/URLs to merge",
-        )
         enumerate_tools: bool = Field(
             True,
             description="After a successful handshake, list the server's tools (read-only)",
-        )
-        detect_rest_backends: bool = Field(
-            True,
-            description="Also fingerprint REST-style MCP tool backends that don't speak the protocol",
         )
         detect_legacy_sse: bool = Field(
             True,
@@ -45,16 +35,12 @@ class mcp_server(BaseModule):
         )
 
     protocol_version = "2025-03-26"
-    default_signatures = "mcp_server_signatures.txt"
     sse_probe_max_bytes = 64
     max_tools_listed = 15
-    signature_columns = ("name", "label", "path", "body_regex", "severity", "confidence", "impact", "cves")
 
     async def setup_deps(self):
         paths = self.config.get("mcp_endpoint_paths")
         self.paths_file = await self.helpers.wordlist(paths) if isinstance(paths, str) else None
-        signatures = self.config.get("signatures") or f"{self.helpers.wordlist_dir}/{self.default_signatures}"
-        self.signatures_file = await self.helpers.wordlist(signatures)
         return True
 
     async def setup(self):
@@ -63,38 +49,13 @@ class mcp_server(BaseModule):
         else:
             self.paths = [line.strip() for line in self.helpers.read_file(self.paths_file) if self._is_row(line)]
         self.enumerate_tools = self.config.get("enumerate_tools")
-        self.detect_rest_backends = self.config.get("detect_rest_backends")
         self.detect_legacy_sse = self.config.get("detect_legacy_sse")
-        self.signatures = self._load_signatures(self.signatures_file)
         return True
 
     @staticmethod
     def _is_row(line):
         line = line.strip()
         return bool(line) and not line.startswith("#")
-
-    def _load_signatures(self, filename):
-        rows = [line for line in self.helpers.read_file(filename) if self._is_row(line)]
-        signatures = []
-        for fields in csv.reader(rows):
-            if len(fields) != len(self.signature_columns):
-                self.warning(
-                    f"Skipping signature row with {len(fields)} columns (expected {len(self.signature_columns)}): {fields}"
-                )
-                continue
-            sig = dict(zip(self.signature_columns, (f.strip() for f in fields)))
-            try:
-                sig["body_regex"] = re.compile(sig["body_regex"], re.I)
-            except re.error as e:
-                self.warning(f"Skipping signature {sig['name']}: invalid regex ({e})")
-                continue
-            sig["severity"] = sig["severity"].upper()
-            sig["confidence"] = sig["confidence"].upper()
-            sig["cves"] = [c.strip() for c in sig["cves"].split(";") if c.strip()]
-            signatures.append(sig)
-        if rows and not signatures:
-            self.warning(f"No valid signatures loaded from {filename}")
-        return signatures
 
     def _rpc(self, method, params=None, msg_id=1, notification=False):
         payload = {"jsonrpc": "2.0", "method": method}
@@ -179,10 +140,8 @@ class mcp_server(BaseModule):
             await self._report(event, url, name, version, negotiated, tools)
             return
 
-        if self.detect_legacy_sse and await self._check_legacy_sse(base_url, event):
-            return
-        if self.detect_rest_backends:
-            await self._check_rest_backends(base_url, event)
+        if self.detect_legacy_sse:
+            await self._check_legacy_sse(base_url, event)
 
     async def _check_legacy_sse(self, base_url, event):
         for path in self.paths:
@@ -212,53 +171,18 @@ class mcp_server(BaseModule):
                 {
                     "host": str(event.host),
                     "url": url,
-                    "name": "Exposed MCP server (legacy HTTP+SSE)",
+                    "name": "MCP server (legacy HTTP+SSE)",
                     "description": (
-                        f"Exposed MCP server on the deprecated HTTP+SSE transport at {url} -- "
-                        f"unauthenticated GET returned the MCP 'endpoint' handshake event. "
+                        f"MCP server on the deprecated HTTP+SSE transport at {url} -- "
+                        f"a GET returned the MCP 'endpoint' handshake event. "
                         f"Detected via the SSE handshake event (bounded read)."
                     ),
-                    "severity": "HIGH",
+                    "severity": "INFO",
                     "confidence": "CONFIRMED",
                 },
                 "FINDING",
                 event,
                 context=f"{{module}} found {{event.type}}: legacy HTTP+SSE MCP server at {url}",
-            )
-            return True
-        return False
-
-    async def _check_rest_backends(self, base_url, event):
-        for sig in self.signatures:
-            url = f"{base_url}{sig['path']}"
-            response = await self.helpers.request(url=url, method="GET", timeout=self.http_timeout)
-            if response is None:
-                continue
-            body = getattr(response, "text", "") or ""
-            if not sig["body_regex"].search(body):
-                continue
-            label = sig["label"]
-            await self.emit_event(
-                {"host": str(event.host), "technology": sig["name"], "url": url},
-                "TECHNOLOGY",
-                event,
-                context=f"{{module}} identified {{event.type}}: {label} at {url}",
-            )
-            data = {
-                "host": str(event.host),
-                "url": url,
-                "name": f"Exposed MCP tool backend: {label}",
-                "description": f"Exposed {label} REST tool backend at {url} ({sig['impact']}). Fingerprinted from its identity endpoint.",
-                "severity": sig["severity"],
-                "confidence": sig["confidence"],
-            }
-            if sig["cves"]:
-                data["cves"] = sig["cves"]
-            await self.emit_event(
-                data,
-                "FINDING",
-                event,
-                context=f"{{module}} found {{event.type}}: exposed {label} at {url}",
             )
             return
 
@@ -296,13 +220,13 @@ class mcp_server(BaseModule):
             context=f"{{module}} identified {{event.type}}: MCP server ({label}) at {url}",
         )
 
-        issues = ["remote", "unauthenticated"]
+        notes = ["without credentials"]
         if url.lower().startswith("http://"):
-            issues.append("no TLS")
+            notes.append("over plaintext HTTP")
 
         description = (
-            f"Exposed MCP server ({label}, protocol {negotiated}) at {url} -- "
-            f"initialize handshake completed {', '.join(issues)}."
+            f"MCP server ({label}, protocol {negotiated}) at {url} -- "
+            f"initialize handshake completed {', '.join(notes)}."
         )
         if tools:
             shown = ", ".join(tools[: self.max_tools_listed])
@@ -314,12 +238,12 @@ class mcp_server(BaseModule):
             {
                 "host": str(event.host),
                 "url": url,
-                "name": "Exposed MCP server",
+                "name": "MCP server",
                 "description": description,
-                "severity": "HIGH",
+                "severity": "INFO",
                 "confidence": "CONFIRMED",
             },
             "FINDING",
             event,
-            context=f"{{module}} found {{event.type}}: unauthenticated MCP server at {url}",
+            context=f"{{module}} found {{event.type}}: MCP server at {url}",
         )
