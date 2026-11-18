@@ -3,8 +3,8 @@
  * @description Text the page reads from the document, such as a field's value, is written back into the page as
  *              HTML, so markup that was inert as text runs.
  * @kind problem
- * @problem.severity warning
- * @security-severity 6.1
+ * @problem.severity recommendation
+ * @security-severity 3.5
  * @precision medium
  * @id bbot/dom-text-xss
  * @tags security
@@ -32,7 +32,18 @@ module DomTextConfig implements DataFlow::ConfigSig {
 
   predicate isSink(DataFlow::Node node) { htmlSink(node) }
 
-  predicate isBarrier(DataFlow::Node node) { htmlBarrier(node) }
+  predicate isBarrier(DataFlow::Node node) {
+    htmlBarrier(node)
+    or
+    // text from the document is a string, or a list of them, whose length is a number
+    node.(DataFlow::PropRead).getPropertyName() = "length"
+    or
+    sharedCode(node)
+  }
+
+  predicate isAdditionalFlowStep(DataFlow::Node node1, DataFlow::Node node2) {
+    iterationStep(node1, node2)
+  }
 }
 
 module DomTextFlow = TaintTracking::Global<DomTextConfig>;

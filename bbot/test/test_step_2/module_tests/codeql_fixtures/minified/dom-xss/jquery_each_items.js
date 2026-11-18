@@ -1,0 +1,1 @@
+$.each(decodeURIComponent(location.hash.slice(1)).split(","),(function(e,n){document.getElementById("tags").innerHTML=n}));

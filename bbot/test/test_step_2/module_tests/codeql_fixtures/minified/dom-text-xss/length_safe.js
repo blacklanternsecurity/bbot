@@ -1,0 +1,1 @@
+!function(){var e=$("#approvers");$("#count").html(e.val().length+" approvers");var t=document.getElementById("comment").value;document.getElementById("chars").innerHTML=t.length+" characters"}();
