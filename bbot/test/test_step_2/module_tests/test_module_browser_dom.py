@@ -182,6 +182,39 @@ class TestBrowserDomParameters(ModuleTestBase):
         assert not [r for r, _ in module_test.httpserver.log if r.path == "/api/save" and r.method == "GET"]
 
 
+# a sign-in page whose script sends the visitor to an authorize endpoint
+SIGNIN_PAGE = """<html><head><title>sign in</title></head><body><script>
+location.href = "/authorize?client=c1&next=%2Faccount";
+</script></body></html>"""
+
+
+class TestBrowserDomRedirectParameters(ModuleTestBase):
+    """The parameters of a request the page sends itself to are emitted, like those of the requests it makes"""
+
+    pytestmark = pytest.mark.browser
+    targets = [f"{HTTPSERVER_URL}/signin"]
+    # hunt tests parameters, which is what has browser_dom emit them
+    modules_overrides = ["http", "browser_dom", "hunt"]
+    config_overrides = {"web": {"enable_browser": True}, "excavate": True}
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests(
+            {"uri": "/signin"}, {"response_data": SIGNIN_PAGE, "content_type": "text/html"}
+        )
+
+    def check(self, module_test, events):
+        parameters = {
+            e.data["name"]: e.data for e in events if e.type == "WEB_PARAMETER" and str(e.module) == "browser_dom"
+        }
+        client = parameters["client"]
+        assert client["type"] == "GETPARAM"
+        assert client["url"] == f"{HTTPSERVER_URL}/authorize"
+        assert client["original_value"] == "c1"
+        assert client["additional_params"] == {"next": "/account"}
+        assert client["host_url"] == f"{HTTPSERVER_URL}/signin"
+        assert parameters["next"]["additional_params"] == {"client": "c1"}
+
+
 # a search the page's script runs, which only answers a request carrying the page's header, cookie and other parameter
 GATED_PAGE = """<html><head><title>gated</title></head><body><script>
 document.cookie = "session=abc123; path=/";
