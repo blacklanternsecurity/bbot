@@ -4938,6 +4938,10 @@ class Test_Lightfuzz_baseline_to_excavate_chain(ModuleTestBase):
         assert all("from-lightfuzz" in e.tags for e in lightfuzz_responses), (
             "lightfuzz-emitted HTTP_RESPONSE events missing 'from-lightfuzz' tag"
         )
+        # and say what the probe sent, so excavate doesn't take a page echoing it back for new parameters
+        assert all(e.data.get("sent_parameters") for e in lightfuzz_responses), (
+            "lightfuzz-emitted HTTP_RESPONSE events missing sent_parameters"
+        )
 
         # `from-lightfuzz` should propagate down the parent chain (parallel to
         # `from-wayback` / `affiliate`). The URL_UNVERIFIED that excavate mined out

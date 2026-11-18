@@ -640,6 +640,15 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         """True if this event's host is an HTTP wildcard responder."""
         return await self._is_http_wildcard_host(event) is True
 
+    def echoed(self, event, parameter_name):
+        """
+        Whether `parameter_name` is only an echo: the request that got `event` sent it, as a lightfuzz probe's response
+        says. A page that writes its own URL into its links or a redirect would otherwise hand the probe's parameters
+        back as new ones on every page it points to, each probed again in turn.
+        """
+        # RAW_TEXT, from a document, is plain text, with nothing it was sent
+        return isinstance(event.data, dict) and parameter_name in event.data.get("sent_parameters", ())
+
     def _event_host(self, event):
         """Get the effective host from an event.
 
@@ -1046,6 +1055,14 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             continue
                         if self.excavate.in_bl(parameter_name) is not False:
                             self.excavate.debug(f"blocked parameter [{parameter_name}] due to BL match")
+                            continue
+                        # a form's fields are what lightfuzz mines its responses for, so only links and scripts
+                        if (
+                            parameter_type == "GETPARAM"
+                            and "Form" not in submodule_name
+                            and self.excavate.echoed(event, parameter_name)
+                        ):
+                            self.excavate.debug(f"Skipping parameter [{parameter_name}]: lightfuzz's own, echoed")
                             continue
 
                         emit_url = self.excavate.url_unparse(parameter_type, parsed_url)
@@ -1731,7 +1748,9 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                         regex_name,
                                         additional_params,
                                     ) in extract_params_location(header_value, self._event_base_url(event)):
-                                        if self.in_bl(parameter_name) is False:
+                                        if self.in_bl(parameter_name) is False and not self.echoed(
+                                            event, parameter_name
+                                        ):
                                             await self.emit_web_parameter(
                                                 host=self._event_host(event),
                                                 param_type="GETPARAM",
