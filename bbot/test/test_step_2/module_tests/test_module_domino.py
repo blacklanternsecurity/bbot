@@ -120,7 +120,7 @@ class TestDominoOneLine(ModuleTestBase):
                     "interactions": ['Clicked element: <form id="f">\n    <input name="q">\n</form>'],
                     "detection_url": f"{HTTPSERVER_URL}/?q=x",
                 }
-            ]
+            ], True
 
         module_test.monkeypatch.setattr(module_test.scan.modules["domino"], "run_domino", multi_line_results)
 
@@ -147,13 +147,49 @@ class TestDominoConfidence(TestDominoOneLine):
                     "severity": "medium",
                     "confidence": "medium",
                 },
-            ]
+            ], True
 
         module_test.monkeypatch.setattr(module_test.scan.modules["domino"], "run_domino", results)
 
     def check(self, module_test, events):
         confidence = {e.data["name"]: e.data["confidence"] for e in events if e.type == "FINDING"}
         assert confidence == {"Dom-Based XSS": "CONFIRMED", "Client-Side Path Traversal to XSS": "MEDIUM"}
+
+
+class TestDominoOutOfTime(ModuleTestBase):
+    """A parameter DOMino discovered but ran out of time to test is handed on, and tested in a run of its own"""
+
+    pytestmark = pytest.mark.browser
+    targets = [f"{HTTPSERVER_URL}/"]
+    modules_overrides = ["http", "domino"]
+    config_overrides = {
+        "web": {"enable_browser": True},
+        "modules": {"domino": {"rules": ["get-parameter-discovery", "xss-onclick-getparam"], "web_parameters": True}},
+    }
+    # the parameters each DOMino run was given
+    runs = []
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests({"uri": "/"}, {"response_data": VULNERABLE_PAGE, "content_type": "text/html"})
+
+        async def run_domino(url, parameters=None):
+            self.runs.append(parameters)
+            if parameters:
+                return [], True
+            discovery = {
+                "rule_name": "GET Parameter Access",
+                "description": "Detects attempts to access GET parameters",
+                "severity": "info",
+                "value_found": "next",
+            }
+            return [discovery], False
+
+        module_test.monkeypatch.setattr(module_test.scan.modules["domino"], "run_domino", run_domino)
+
+    def check(self, module_test, events):
+        parameters = [e.data for e in events if e.type == "WEB_PARAMETER" and str(e.module) == "domino"]
+        assert [p["name"] for p in parameters] == ["next"], parameters
+        assert self.runs == [None, ["next"]], self.runs
 
 
 # a search whose results page fetches the results and evals them, which the server writes with " escaped but not \\
