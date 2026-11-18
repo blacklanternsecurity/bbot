@@ -529,6 +529,8 @@ class BrowserHelper:
 
     async def _navigate(self, page, url, hold):
         goto = asyncio.ensure_future(page.goto(url, wait_until="load", timeout=self.page_timeout * 1000))
+        # a load that fails as this is cancelled has its error read here, or asyncio reports it as never retrieved
+        goto.add_done_callback(lambda task: task.cancelled() or task.exception())
         if hold is None:
             await goto
             return
@@ -537,13 +539,13 @@ class BrowserHelper:
             await asyncio.wait({goto, caught}, return_when=asyncio.FIRST_COMPLETED)
         finally:
             caught.cancel()
+            # cancelled, this stops the load too, rather than leave it running until the page closes under it
+            goto.cancel()
         if goto.done():
             goto.result()
             return
         # a redirect caught before the page finished loading means it never will: its document is already complete
-        goto.cancel()
-        with suppress(BaseException):
-            await goto
+        await asyncio.wait({goto})
 
     async def _latest_document(self, documents, url):
         response = None
