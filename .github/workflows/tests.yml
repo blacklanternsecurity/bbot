@@ -39,7 +39,7 @@ jobs:
   test:
     needs: changes
     if: ${{ !cancelled() && (needs.changes.outputs.code != 'false' || github.event.pull_request.changed_files >= 3000) }}
-    uses: blacklanternsecurity/release-workflows/.github/workflows/python-tests.yml@3fe35ff9c43f61c98bd8c93182686b6be97d2759 # v1.3.0
+    uses: blacklanternsecurity/release-workflows/.github/workflows/python-tests.yml@53d87b0728e5fd024a2655e69849b39000228e4e # release-workflows#22 (github-token input), moves to v1.4.0
     secrets:
       BBOT_IO_API_KEY: ${{ secrets.BBOT_IO_API_KEY }}
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -49,6 +49,7 @@ jobs:
       pytest-args: -vv --dist loadgroup --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=INFO --cov-config=bbot/test/coverage.cfg --cov-report xml:cov.xml --cov=bbot .
       secret-env: '["BBOT_IO_API_KEY"]'
       coverage: true
+      github-token: true
       artifacts: pytest_debug.log
 
   test_matrix:

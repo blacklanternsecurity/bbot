@@ -8,6 +8,9 @@ import yara
 
 from bbot.modules.base import BaseModule
 
+# the longest one regex may run on a page's code, so a pattern that backtracks badly on it can't hold up the scan
+REGEX_TIMEOUT = 5
+
 
 class BaseUnpacker:
     name = "base"
@@ -63,7 +66,7 @@ rule source_map
 
     async def unpack(self, event, match):
         body = event.body
-        m = await self.helpers.re.search(self._url_regex, body)
+        m = await self.helpers.re.search(self._url_regex, body, timeout=REGEX_TIMEOUT)
         if not m:
             return
         map_ref = m.group(1)
@@ -152,7 +155,7 @@ rule dean_edwards_packer
     @classmethod
     def _decode(cls, body):
         """Reverse the packer's base-N keyword substitution. CPU-bound; runs off the event loop."""
-        m = cls._extract_regex.search(body)
+        m = cls._extract_regex.search(body, timeout=REGEX_TIMEOUT)
         if not m:
             return ""
 
@@ -176,7 +179,7 @@ rule dean_edwards_packer
             word = m.group(0)
             return lookup.get(word, word)
 
-        result = re.sub(r"\b\w+\b", replacer, payload)
+        result = re.sub(r"\b\w+\b", replacer, payload, timeout=REGEX_TIMEOUT)
         result = result.encode("utf-8").decode("unicode_escape", errors="replace")
         return result if result.strip() else ""
 
@@ -193,6 +196,8 @@ rule obfuscator_io
 }
 """
     _array_regex = re.compile(r"var\s+(_0x[a-f0-9]+)\s*=\s*\[(.*?)\];", re.DOTALL)
+    # the rotation function, which pushes and shifts the array, and is then called on it with the amount
+    _rotation_function_regex = re.compile(r"\(function\s*\(\s*\w+\s*,\s*\w+\s*\)\s*\{")
 
     async def unpack(self, event, match):
         result = await self.helpers.run_in_executor_cpu(self._deobfuscate, event.body)
@@ -202,20 +207,26 @@ rule obfuscator_io
     @classmethod
     def _deobfuscate(cls, body):
         """Inline the string-array lookups back into the source. CPU-bound; runs off the event loop."""
-        arr_match = cls._array_regex.search(body)
+        arr_match = cls._array_regex.search(body, timeout=REGEX_TIMEOUT)
         if not arr_match:
             return ""
 
         arr_name = arr_match.group(1)
-        string_array = re.findall(r"'([^']*)'", arr_match.group(2))
+        string_array = re.findall(r"'([^']*)'", arr_match.group(2), timeout=REGEX_TIMEOUT)
 
-        # find and apply rotation
-        rot_pattern = (
-            r"\(function\s*\(\s*\w+\s*,\s*\w+\s*\)\s*\{.*?push.*?shift.*?\}\s*\(\s*"
-            + re.escape(arr_name)
-            + r"\s*,\s*(0x[a-f0-9]+|\d+)\s*\)"
-        )
-        rot_match = re.search(rot_pattern, body, re.DOTALL)
+        # find and apply rotation, one part after another: a single pattern spanning the function, its push
+        # and shift, and the call backtracks without end on a big script that has no such call
+        rot_match = None
+        function_match = cls._rotation_function_regex.search(body, timeout=REGEX_TIMEOUT)
+        push = body.find("push", function_match.end()) if function_match else -1
+        shift = body.find("shift", push + len("push")) if push != -1 else -1
+        if shift != -1:
+            rot_match = re.search(
+                r"\}\s*\(\s*" + re.escape(arr_name) + r"\s*,\s*(0x[a-f0-9]+|\d+)\s*\)",
+                body,
+                pos=shift + len("shift"),
+                timeout=REGEX_TIMEOUT,
+            )
         if rot_match:
             amount_str = rot_match.group(1)
             amount = int(amount_str, 16) if amount_str.startswith("0x") else int(amount_str)
@@ -229,7 +240,7 @@ rule obfuscator_io
             r"var\s+(_0x[a-f0-9]+)\s*=\s*function\s*\(\s*\w+\s*,\s*\w+\s*\)\s*\{"
             r"[^}]*" + re.escape(arr_name) + r"\s*\["
         )
-        accessor_match = re.search(accessor_pattern, body)
+        accessor_match = re.search(accessor_pattern, body, timeout=REGEX_TIMEOUT)
         if not accessor_match:
             return ""
 
@@ -246,6 +257,7 @@ rule obfuscator_io
             re.escape(accessor_name) + r"\(\s*'(0x[a-f0-9]+|\d+)'\s*\)",
             replace_accessor,
             body,
+            timeout=REGEX_TIMEOUT,
         )
         return result if result != body else ""
 
@@ -271,7 +283,7 @@ rule nextjs_manifest
         base_url = event.data.get("url", "")
 
         # __NEXT_DATA__ in HTML: extract buildId, emit _buildManifest.js URL
-        nd_match = await self.helpers.re.search(self._nextdata_regex, body)
+        nd_match = await self.helpers.re.search(self._nextdata_regex, body, timeout=REGEX_TIMEOUT)
         if nd_match:
             try:
                 next_data = json.loads(nd_match.group(1))
@@ -294,8 +306,8 @@ rule nextjs_manifest
         if "self.__BUILD_MANIFEST" not in body:
             return
 
-        routes = set(await self.helpers.re.findall(self._route_regex, body))
-        chunks = set(await self.helpers.re.findall(self._chunk_regex, body))
+        routes = set(await self.helpers.re.findall(self._route_regex, body, timeout=REGEX_TIMEOUT))
+        chunks = set(await self.helpers.re.findall(self._chunk_regex, body, timeout=REGEX_TIMEOUT))
 
         for route in routes:
             if route.startswith("/_") or route == "/":
@@ -345,7 +357,7 @@ rule webpack_bundle
     def _extract_strings(cls, body):
         """Flatten the bundle's string literals. CPU-bound; runs off the event loop."""
         strings = []
-        for m in cls._string_regex.finditer(body):
+        for m in cls._string_regex.finditer(body, timeout=REGEX_TIMEOUT):
             s = m.group(1) or m.group(2)
             if s and s not in cls._noise and not s.startswith("__"):
                 strings.append(s)
