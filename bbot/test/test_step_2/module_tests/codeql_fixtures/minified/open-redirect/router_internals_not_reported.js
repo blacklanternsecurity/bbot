@@ -1,0 +1,1 @@
+function stripBasename(n,o){return"/"===o?n:n.slice(o.length)||"/"}function followLink(n,o,t){var a=n.location,e=new URL(o,a.protocol+"//"+a.host),i=stripBasename(e.pathname,t);e.host!==a.host?window.location.href=o:window.location.href=i+e.search}function reloadCurrent(n,o){window.location.assign(stripBasename(n.location.pathname,o))}

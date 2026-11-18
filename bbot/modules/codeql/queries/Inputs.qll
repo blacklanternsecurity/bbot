@@ -129,6 +129,11 @@ private DataFlow::SourceNode domElement(DataFlow::TypeTracker t) {
 /** Gets a reference to an element: one the page looks up, creates, or finds from another. */
 DataFlow::SourceNode domElement() { result = domElement(DataFlow::TypeTracker::end()) }
 
+/** Holds if `node` reads a part of a location's origin: the page's own, which is no attacker's to choose. */
+predicate originPart(DataFlow::Node node) {
+  node = locationObject().getAPropertyRead(["protocol", "host", "hostname", "port", "origin"])
+}
+
 /** Holds if `node` reads the page's path. */
 predicate pathInput(DataFlow::Node node) { node = pageLocation().getAPropertyRead("pathname") }
 
@@ -136,8 +141,11 @@ predicate pathInput(DataFlow::Node node) { node = pageLocation().getAPropertyRea
 predicate urlInput(DataFlow::Node node, InputState state) {
   state = TUrl() and
   (
-    // the Location object becomes its href when used as a string
-    node = locationObject()
+    // a window's Location object becomes its href when used as a string; a router's copy of one is an object of its
+    // parts, which routing code passes between its own functions as objects and as paths
+    node = pageLocation()
+    or
+    node = otherWindow().getAPropertyRead("location")
     or
     node = locationObject().getAPropertyRead(["href", "search", "hash"])
     or
@@ -675,7 +683,7 @@ module InputFlow<sinkSig/2 sink, barrierSig/1 barrier> {
 
     predicate isSink(DataFlow::Node node, FlowState state) { sink(node, state) }
 
-    predicate isBarrier(DataFlow::Node node) { barrier(node) }
+    predicate isBarrier(DataFlow::Node node) { barrier(node) or originPart(node) }
 
     predicate isAdditionalFlowStep(
       DataFlow::Node node1, FlowState state1, DataFlow::Node node2, FlowState state2
