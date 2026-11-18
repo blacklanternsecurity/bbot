@@ -32,8 +32,7 @@ class browser_dom(BaseModule):
 
     async def setup(self):
         # like excavate, only when a module in the scan tests parameters
-        tests_parameters = any("WEB_PARAMETER" in m.watched_events for m in self.scan.modules.values())
-        self.parameters = self.config.get("parameters", True) and tests_parameters
+        self.parameters = self.config.get("parameters", True) and self.wants_parameters()
         # each parameter is emitted once, however many pages send it
         self.seen_parameters = set()
         return True

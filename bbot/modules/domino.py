@@ -20,7 +20,7 @@ def page_url(url):
 class domino(browser_vulns):
     # WEB_PARAMETER only with the web_parameters option: see get_watched_events()
     watched_events = ["URL", "WEB_PARAMETER"]
-    produced_events = ["FINDING"]
+    produced_events = ["FINDING", "WEB_PARAMETER"]
     flags = ["active", "safe"]
     meta = {
         "description": "Find client-side web vulnerabilities (DOM XSS, prototype pollution, and more) with DOMino",
@@ -55,7 +55,7 @@ class domino(browser_vulns):
         self.rules = self.config.get("rules")
         self.suppress_parameter_discovery_reports = self.config.get("suppress_parameter_discovery_reports", True)
         self.time_budget = self.config.get("time_budget", 300)
-        # (page, name) of each GET parameter DOMino has tested, whether it found it or was given it
+        # (host, page code fingerprint, name) of each GET parameter DOMino has tested, whether it found it or was given it
         self.tested_parameters = set()
         # load the rules once, which also checks the configured ones exist
         try:
@@ -104,18 +104,22 @@ class domino(browser_vulns):
         """
         url = event.data["url"]
         name = event.data["name"]
-        parameter = (page_url(url), name)
-        if parameter in self.tested_parameters:
-            self.debug(f"Skipping {name} on {url}: DOMino already tested it there")
-            return
-        self.tested_parameters.add(parameter)
         params = dict(event.data.get("additional_params") or {})
         if event.data.get("original_value") is not None:
             params[name] = event.data["original_value"]
         if params:
             url = self.helpers.add_get_params(url, params).geturl()
         try:
-            results = await self.run_domino(url, parameters=[name])
+            page = await self.url_code(url)
+            if page is None:
+                return
+            # once on each host for each page code: pages running the same code read the parameter the same way
+            tested = (str(event.host), page[2], name)
+            if tested in self.tested_parameters:
+                self.debug(f"Skipping {name} on {url}: DOMino already tested it on a page with the same code")
+                return
+            self.tested_parameters.add(tested)
+            results, _ = await self.run_domino(url, parameters=[name])
         except (BrowserError, *self.helpers.browser.engine.errors) as e:
             self.verbose(f"Browser error while testing {name} on {url}: {e}")
             return
@@ -129,17 +133,27 @@ class domino(browser_vulns):
         fingerprint = page[2]
         # what DOMino finds depends on the server as well as the code, so pages are only skipped within one host
         try:
-            results, first = await self.analyze_once((str(event.host), fingerprint), lambda: self.run_domino(url))
+            (results, finished), first = await self.analyze_once(
+                (str(event.host), fingerprint), lambda: self.run_domino(url)
+            )
         except (BrowserError, *self.helpers.browser.engine.errors) as e:
             self.verbose(f"Browser error while scanning {url}: {e}")
             return
         if not first:
             self.debug(f"Skipping {url}: DOMino already ran on a page on {event.host} with the same code")
             return
-        for result in results:
-            if "GET Parameter Access" in result["rule_name"] and result.get("value_found"):
-                self.tested_parameters.add((page_url(url), result["value_found"]))
+        discovered = [
+            result["value_found"]
+            for result in results
+            if "GET Parameter Access" in result["rule_name"] and result.get("value_found")
+        ]
         await self.emit_results(event, url, results)
+        if finished:
+            # DOMino tested what it discovered, so a WEB_PARAMETER for one of those isn't tested again
+            self.tested_parameters.update((str(event.host), fingerprint, name) for name in discovered)
+        elif discovered and self.wants_parameters():
+            # it ran out of time before testing what it discovered, so each is handed on to be tested on its own
+            await self.emit_page_parameters(event, discovered, "DOMino")
 
     async def emit_results(self, event, url, results):
         for result in results:
@@ -168,8 +182,8 @@ class domino(browser_vulns):
 
     async def run_domino(self, url, parameters=None):
         """
-        DOMino's results for `url`, which are the ones it made in time if it ran out, or none if it didn't stop. With
-        `parameters`, it tests only those GET parameters.
+        DOMino's results for `url`, which are the ones it made in time if it ran out, or none if it didn't stop, and
+        whether it finished. With `parameters`, it tests only those GET parameters.
         """
         domino = Domino(
             url,
@@ -192,5 +206,5 @@ class domino(browser_vulns):
         except TimeoutError:
             # an empty result, so pages with the same code are skipped rather than timing out too
             self.warning(f"DOMino didn't stop within {STOP_GRACE}s of its {self.time_budget}s on {url}")
-            return []
-        return results
+            return [], False
+        return results, not domino.ran_out_of_time

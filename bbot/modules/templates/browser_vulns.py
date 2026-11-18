@@ -198,15 +198,21 @@ class browser_vulns(BaseModule):
         Load `event`'s page in the browser, and return (visit, scripts, fingerprint): the `BrowserVisit`, its
         `page_scripts()` and its `code_fingerprint()`. None if there's no page to analyze.
         """
-        visit = await self.browser_visit(event)
+        return self._code_of(await self.browser_visit(event), event.url)
+
+    async def url_code(self, url):
+        """Like `page_code()`, for a URL that isn't an event's own: a parameter's page with its other parameters."""
+        return self._code_of(await self.helpers.browser.visit(url, consumer=self.name), url)
+
+    def _code_of(self, visit, url):
         if visit is None or not visit.dom:
             return None
         if visit.response.conclusion[0] == "needs_browser":
-            self.debug(f"Skipping {event.url}: the browser couldn't get past its challenge")
+            self.debug(f"Skipping {url}: the browser couldn't get past its challenge")
             return None
         scripts = self.page_scripts(visit)
         fingerprint = self.code_fingerprint(visit.dom, scripts, served=visit.response.text)
-        self.debug(f"Code fingerprint of {event.url}: {fingerprint}")
+        self.debug(f"Code fingerprint of {url}: {fingerprint}")
         return visit, scripts, fingerprint
 
     def served_page(self, visit):
@@ -281,6 +287,31 @@ class browser_vulns(BaseModule):
     async def report(self):
         if self.pages_seen:
             self.info(f"Analyzed {len(self.analyzed):,} distinct sets of page code across {self.pages_seen:,} pages")
+
+    async def emit_page_parameters(self, event, names, found_by):
+        """
+        A WEB_PARAMETER for each of `names`, GET parameters of `event`'s page, with the page's other parameters beside
+        it, for the modules that test parameters. `found_by` names what found them, in the description.
+        """
+        parsed = self.helpers.urlparse(event.url)
+        query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+        for name in names:
+            if self.helpers.web.parameter_blacklisted(name):
+                continue
+            await self.emit_event(
+                {
+                    "host": str(event.host),
+                    "type": "GETPARAM",
+                    "name": name,
+                    "original_value": query.get(name, ""),
+                    "url": parsed._replace(query="", fragment="").geturl(),
+                    "description": f"HTTP Extracted Parameter [{name}] ({found_by})",
+                    "additional_params": {other: value for other, value in query.items() if other != name},
+                },
+                "WEB_PARAMETER",
+                parent=event,
+                context=f"{{module}} found that {event.url} reads URL parameter [{name}]",
+            )
 
     async def emit_finding(self, event, url, name, description, severity, confidence, context):
         await self.emit_event(
