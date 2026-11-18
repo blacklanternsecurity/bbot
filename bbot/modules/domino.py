@@ -98,7 +98,10 @@ class domino(browser_vulns):
             await self.handle_url(event)
 
     async def handle_parameter(self, event):
-        """Test one GET parameter on its page, with only the rules that take a parameter's name"""
+        """
+        Test one GET parameter on its page, with only the rules that take a parameter's name, in the request it was
+        found in: an endpoint can need the parameters that came with it, like an authorize endpoint its client's
+        """
         url = event.data["url"]
         name = event.data["name"]
         parameter = (page_url(url), name)
@@ -106,6 +109,11 @@ class domino(browser_vulns):
             self.debug(f"Skipping {name} on {url}: DOMino already tested it there")
             return
         self.tested_parameters.add(parameter)
+        params = dict(event.data.get("additional_params") or {})
+        if event.data.get("original_value") is not None:
+            params[name] = event.data["original_value"]
+        if params:
+            url = self.helpers.add_get_params(url, params).geturl()
         try:
             results = await self.run_domino(url, parameters=[name])
         except (BrowserError, *self.helpers.browser.engine.errors) as e:

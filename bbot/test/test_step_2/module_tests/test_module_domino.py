@@ -1,5 +1,7 @@
 import asyncio
+import html
 import re
+import secrets
 from urllib.parse import parse_qs
 
 import pytest
@@ -223,6 +225,53 @@ class TestDominoWebParametersOff(TestDominoWebParameters):
     def check(self, module_test, events):
         assert not module_test.scan.modules["excavate"].parameter_extraction
         assert not [e for e in events if e.type in ("FINDING", "WEB_PARAMETER")]
+
+
+# what /connect kept of each request, by the state it redirected with
+CONNECT_STATES = {}
+
+
+def connect_handler(request):
+    """
+    /start sends the browser to /connect with a client and an include URL; /connect, which answers only its client,
+    keeps the include URL under a new state and sends the browser to /page, which loads a script from it
+    """
+    query = {name: values[0] for name, values in parse_qs(request.query_string.decode()).items()}
+    if request.path == "/start":
+        return Response("", status=302, headers={"Location": f"/connect?client=c1ient&include={HTTPSERVER_URL}"})
+    if request.path == "/connect":
+        if query.get("client") != "c1ient":
+            return Response("<html><body>unknown client</body></html>", status=400, content_type="text/html")
+        state = secrets.token_hex(8)
+        CONNECT_STATES[state] = query.get("include", "")
+        return Response("", status=302, headers={"Location": f"/page?state={state}"})
+    include = CONNECT_STATES.get(query.get("state"))
+    script = f'<script src="{html.escape(include, quote=True)}/app.js"></script>' if include else ""
+    return Response(f"<html><head><title>sign in</title>{script}</head><body></body></html>", content_type="text/html")
+
+
+class TestDominoParameterSiblings(ModuleTestBase):
+    """A GET parameter is tested in the request it was found in, with the parameters that came with it"""
+
+    pytestmark = pytest.mark.browser
+    targets = [f"{HTTPSERVER_URL}/start"]
+    modules_overrides = ["http", "domino"]
+    config_overrides = {
+        "excavate": True,
+        "web": {"enable_browser": True},
+        "modules": {"domino": {"rules": ["remote-include-get-parameters"], "web_parameters": True}},
+    }
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests_handler(expect_args=re.compile("/.*"), request_handler=connect_handler)
+
+    def check(self, module_test, events):
+        findings = [e.data for e in events if e.type == "FINDING"]
+        assert [f["name"] for f in findings] == ["Remote Javascript Include (Discovered GET Parameters)"], findings
+        # reported at the request that reproduces it, not the page it redirected to
+        assert "Detection URL: [http://127.0.0.1" in findings[0]["description"]
+        assert "/connect?" in findings[0]["description"]
+        assert "client=c1ient" in findings[0]["description"]
 
 
 # a page whose script calls a JSON API and a results page, each with a parameter
