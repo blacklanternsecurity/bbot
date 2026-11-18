@@ -1,3 +1,4 @@
+import gc
 import os
 import re
 import ssl
@@ -303,6 +304,41 @@ async def test_browser_route_already_handled(bbot_scanner, bbot_httpserver):
     # Playwright throws an error from a route at whatever call comes next
     assert await page.evaluate("1 + 1") == 2
     await page.close()
+    await scan._cleanup()
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
+async def test_browser_cancelled_load(bbot_scanner, bbot_httpserver):
+    """A browser call cancelled while its page loads leaves no load behind to fail with no one to read the error."""
+    requested, release = threading.Event(), threading.Event()
+
+    # an image that never arrives, so the page never finishes loading
+    def handler(request):
+        if request.path == "/stalled.png":
+            requested.set()
+            release.wait(60)
+            return Response("", status=404)
+        return Response('<html><body><img src="/stalled.png"></body></html>', content_type="text/html")
+
+    bbot_httpserver.expect_request(re.compile(".*")).respond_with_handler(handler)
+    scan = await browser_scan(bbot_scanner)
+    loop = asyncio.get_running_loop()
+    unread = []
+    loop.set_exception_handler(lambda loop, context: unread.append(context))
+    try:
+        fetch = asyncio.create_task(scan.helpers.browser.fetch(bbot_httpserver.url_for("/")))
+        assert await asyncio.to_thread(requested.wait, 30)
+        fetch.cancel()
+        with suppress(asyncio.CancelledError):
+            await fetch
+        # closing the page fails a load still going on it; asyncio reports an unread error once its task is collected
+        await asyncio.sleep(1)
+        gc.collect()
+        assert not [context for context in unread if "never retrieved" in context.get("message", "")], unread
+    finally:
+        loop.set_exception_handler(None)
+        release.set()
     await scan._cleanup()
 
 
