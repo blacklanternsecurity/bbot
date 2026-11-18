@@ -153,7 +153,8 @@ class domino(browser_vulns):
                 # one line, whatever the page put into DOMino's details or interactions
                 description=" ".join(description.split()),
                 severity=result.get("severity", "medium").upper(),
-                confidence="CONFIRMED",
+                # DOMino says when a finding isn't confirmed, like one where what ran was its own stand-in response
+                confidence=result.get("confidence", "confirmed").upper(),
                 context=f"{{module}} ran DOMino on {url} and found {{event.type}}: {rule_name}",
             )
 

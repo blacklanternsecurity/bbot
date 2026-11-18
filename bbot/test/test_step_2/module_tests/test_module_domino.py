@@ -130,6 +130,30 @@ class TestDominoOneLine(ModuleTestBase):
         assert 'Interactions: [Clicked element: <form id="f"> <input name="q"> </form>]' in description
 
 
+class TestDominoConfidence(TestDominoOneLine):
+    """A finding's confidence is DOMino's, and confirmed when DOMino doesn't give one"""
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests({"uri": "/"}, {"response_data": VULNERABLE_PAGE, "content_type": "text/html"})
+
+        async def results(url, parameters=None):
+            return [
+                {"rule_name": "Dom-Based XSS", "description": "Detects confirmed execution", "severity": "high"},
+                {
+                    "rule_name": "Client-Side Path Traversal to XSS",
+                    "description": "Detects input that picks the path of a request",
+                    "severity": "medium",
+                    "confidence": "medium",
+                },
+            ]
+
+        module_test.monkeypatch.setattr(module_test.scan.modules["domino"], "run_domino", results)
+
+    def check(self, module_test, events):
+        confidence = {e.data["name"]: e.data["confidence"] for e in events if e.type == "FINDING"}
+        assert confidence == {"Dom-Based XSS": "CONFIRMED", "Client-Side Path Traversal to XSS": "MEDIUM"}
+
+
 # a search whose results page fetches the results and evals them, which the server writes with " escaped but not \\
 SEARCH_JS = """function search(path) {
     var xhr = new XMLHttpRequest();
