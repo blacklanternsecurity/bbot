@@ -184,6 +184,14 @@ predicate htmlSink(DataFlow::Node node) {
     not (write.getPropertyName() = "innerHTML" and rawText(write.getBase().getALocalSource()))
   )
   or
+  // el.innerHTML += html: what's added is parsed along with what was there
+  exists(AssignAddExpr assign, PropAccess target |
+    target = assign.getTarget() and
+    target.getPropertyName() = ["innerHTML", "outerHTML", "srcdoc"] and
+    node = assign.getRhs().flow() and
+    not (target.getPropertyName() = "innerHTML" and rawText(target.getBase().flow().getALocalSource()))
+  )
+  or
   exists(DataFlow::MethodCallNode call |
     call.getMethodName() = "insertAdjacentHTML" and node = call.getArgument(1)
     or

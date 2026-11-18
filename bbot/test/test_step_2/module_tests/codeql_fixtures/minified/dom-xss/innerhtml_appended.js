@@ -1,0 +1,1 @@
+!function(){var e=decodeURIComponent(location.hash.slice(1));document.getElementById("log").innerHTML+="<li>"+e+"</li>",document.getElementById("code").textContent+=e}();
