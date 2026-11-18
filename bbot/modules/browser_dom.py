@@ -79,6 +79,12 @@ class browser_dom(BaseModule):
                 rendered_event.reemit_source = "browser_dom"
                 await self.emit_event(rendered_event)
 
+        # a page that sends itself elsewhere sends that request's parameters too, like a sign-in page sending its
+        # visitor to an identity provider's authorize endpoint
+        if self.parameters and visit.redirect is not None and visit.redirect[0] == "GET":
+            redirect = {"url": visit.redirect[1], "method": "GET", "sent": {}, "content_type": None}
+            await self.emit_parameters(event, url, redirect)
+
         for request in visit.network:
             requested_url = request["url"]
             if not requested_url.startswith(("http://", "https://")):
@@ -152,8 +158,9 @@ class browser_dom(BaseModule):
                 "description": f"HTTP Extracted Parameter [{name}] (Browser Request)",
                 # the rest of the request as the page sent it, so a test changes only this one value
                 "additional_params": {other: v for other, v in values.items() if other != name},
-                "assigned_cookies": sent["cookies"],
-                "assigned_headers": sent["headers"],
+                # a navigation the page made carries the browser's own cookies and no headers of the page's
+                "assigned_cookies": sent.get("cookies", {}),
+                "assigned_headers": sent.get("headers", {}),
                 "host_url": page_url,
                 "content_type": request["content_type"],
             }
