@@ -1396,6 +1396,10 @@ class BaseModule:
             kwargs["headers"]["Authorization"] = f"Bearer {self.api_key}"
         return url, kwargs
 
+    def wants_parameters(self):
+        """Whether a module in the scan tests parameters, which is what a WEB_PARAMETER is for."""
+        return any("WEB_PARAMETER" in m.get_watched_events() for m in self.scan.modules.values())
+
     async def browser_visit(self, event):
         """
         Load `event`'s URL in the browser and return the `BrowserVisit`, or None if the page couldn't be loaded.

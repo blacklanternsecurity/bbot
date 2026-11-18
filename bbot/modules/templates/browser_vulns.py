@@ -282,6 +282,31 @@ class browser_vulns(BaseModule):
         if self.pages_seen:
             self.info(f"Analyzed {len(self.analyzed):,} distinct sets of page code across {self.pages_seen:,} pages")
 
+    async def emit_page_parameters(self, event, names, found_by):
+        """
+        A WEB_PARAMETER for each of `names`, GET parameters of `event`'s page, with the page's other parameters beside
+        it, for the modules that test parameters. `found_by` names what found them, in the description.
+        """
+        parsed = self.helpers.urlparse(event.url)
+        query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+        for name in names:
+            if self.helpers.web.parameter_blacklisted(name):
+                continue
+            await self.emit_event(
+                {
+                    "host": str(event.host),
+                    "type": "GETPARAM",
+                    "name": name,
+                    "original_value": query.get(name, ""),
+                    "url": parsed._replace(query="", fragment="").geturl(),
+                    "description": f"HTTP Extracted Parameter [{name}] ({found_by})",
+                    "additional_params": {other: value for other, value in query.items() if other != name},
+                },
+                "WEB_PARAMETER",
+                parent=event,
+                context=f"{{module}} found that {event.url} reads URL parameter [{name}]",
+            )
+
     async def emit_finding(self, event, url, name, description, severity, confidence, context):
         await self.emit_event(
             {
