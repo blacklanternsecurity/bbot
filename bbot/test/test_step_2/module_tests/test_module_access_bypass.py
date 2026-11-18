@@ -1,5 +1,6 @@
 import re
 import json
+import itertools
 
 from werkzeug.wrappers import Response
 
@@ -168,6 +169,56 @@ class TestAccessBypass_block_lifts(ModuleTestBase):
 
     def check(self, module_test, events):
         assert not [e for e in events if e.type == "FINDING"]
+
+
+class TestAccessBypass_block_changes(TestAccessBypass_block_lifts):
+    """A block that gives way to another answer partway through, like a rate limit to the site's own error, wasn't the
+    site's answer, so what got through then isn't a bypass"""
+
+    async def setup_after_prep(self, module_test):
+        changed = []
+
+        def bypass(request):
+            changed.append(True)
+            return Response("alive")
+
+        def page(request):
+            if changed and request.environ.get("REQUEST_URI") == "/test":
+                return Response("unprocessable", status=422)
+            return Response("blocked", status=403)
+
+        module_test.set_expect_requests_handler(expect_args="/test..;/", request_handler=bypass)
+        module_test.set_expect_requests_handler(expect_args="/test", request_handler=page)
+        module_test.httpserver.no_handler_status_code = 403
+
+
+class TestAccessBypass_unstable_control(ModuleTestBase):
+    """A probe whose control paths aren't answered alike can't be told from a catch-all, so it isn't reported"""
+
+    targets = [f"{HTTPSERVER_URL}/test"]
+    modules_overrides = ["access_bypass", "http"]
+    module_name = "access_bypass"
+    config_overrides = {"modules": {"access_bypass": {"enabled_submodules": ["path"]}}}
+
+    async def setup_after_prep(self, module_test):
+        # the made-up control paths get a page and a not-found in turn, so the control's two samples disagree
+        control_answers = itertools.cycle([200, 404])
+
+        def handler(request):
+            uri = request.environ.get("REQUEST_URI")
+            if uri == "/test..;/":
+                return Response("alive")
+            # every other mutation of /test, case-swapped too, so only the control's two requests take turns below
+            if "test" in uri.lower():
+                return Response("blocked", status=403)
+            status = next(control_answers)
+            return Response("a page" if status == 200 else "not found", status=status)
+
+        module_test.httpserver.expect_request(re.compile(r"/.*")).respond_with_handler(handler)
+
+    def check(self, module_test, events):
+        findings = [e.data["description"] for e in events if e.type == "FINDING"]
+        assert not findings, findings
 
 
 class TestAccessBypass_xff(ModuleTestBase):
