@@ -15,6 +15,10 @@ PARAMETERS_QUERY = QUERIES_DIR / "parameters" / "url-parameters.ql"
 PARAMETERS_QUERY_NAME = "URL parameter reaching a sink"
 # the longest one CodeQL step (building a page's database, or querying it) may take
 CODEQL_TIMEOUT = 600
+# what each CodeQL step may use: its share of the machine, with two pages analyzed at once alongside the rest of the
+# scan. Left to itself, CodeQL takes every core and sizes its memory to the whole machine
+CODEQL_THREADS = 4
+CODEQL_RAM_MB = 4096
 # CodeQL's severities, lowest first, and the FINDING severity each one becomes
 SEVERITIES = {"note": "INFO", "recommendation": "LOW", "warning": "MEDIUM", "error": "HIGH"}
 # a code location in a CodeQL message: [["label"|"relative:///page.html:3:15:3:27"]]
@@ -229,8 +233,8 @@ class codeql(browser_vulns):
             database,
             "--language=javascript",
             f"--source-root={source_root}",
-            # every core: a site's bundle can take CodeQL minutes on one
-            "--threads=0",
+            f"--threads={CODEQL_THREADS}",
+            f"--ram={CODEQL_RAM_MB}",
             # the extractor otherwise skips any file that looks minified, which is most of what sites serve
             env=dict(os.environ, CODEQL_EXTRACTOR_JAVASCRIPT_ALLOW_MINIFIED_FILES="true"),
         )
@@ -253,7 +257,8 @@ class codeql(browser_vulns):
             *(queries or self.queries),
             "--format=csv",
             f"--output={output}",
-            "--threads=0",
+            f"--threads={CODEQL_THREADS}",
+            f"--ram={CODEQL_RAM_MB}",
         )
         if result.returncode != 0:
             self.warning(f"CodeQL couldn't query the database (exit {result.returncode}): {result.stderr[-500:]}")
