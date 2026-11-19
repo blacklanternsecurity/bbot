@@ -1455,7 +1455,7 @@ class BaseModule:
         """
         url = args[0] if args else kwargs.pop("url", "")
         retry_on_http_429 = kwargs.pop("retry_on_http_429", True)
-        # we do all the retrying here; blasthttp's own retries would ignore Retry-After
+        # we do all the retrying here, so a rate limit is shared by every event handler and each retry can cycle the key
         kwargs["retries"] = 0
         # API calls identify themselves honestly instead of using the scan's (browser) user agent
         kwargs["headers"] = dict(kwargs.get("headers") or {})
