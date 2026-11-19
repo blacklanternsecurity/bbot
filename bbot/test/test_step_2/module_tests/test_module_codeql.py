@@ -1,6 +1,8 @@
 import collections
+import json
 import re
 import tempfile
+import urllib.parse
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -184,6 +186,40 @@ class TestCodeQLParameterQuery(ModuleTestBase):
             assert await module.create_database(PARAMETER_FIXTURES_DIR, database)
             results = await module.run_queries(database, [str(PARAMETERS_QUERY)])
         assert {result["message"] for result in results} == {"next", "name", "returnUrl"}
+
+
+def long_constant_page():
+    """
+    A page's own settings, URL-encoded JSON with a % in every few characters, start a link that the page's URL ends:
+    no javascript: URL. The page writes its decoded fragment into itself further on, which is DOM XSS.
+    """
+    settings = {f"item{i}": {"label": f"Item {i}", "tags": ["a", "b"]} for i in range(4000)}
+    encoded = urllib.parse.quote(json.dumps(settings), safe="")
+    return (
+        f"var settings = {json.dumps(encoded)};\n"
+        "document.getElementById('more').href = settings + location.hash.slice(1);\n"
+        "document.body.innerHTML = decodeURIComponent(location.hash.slice(1));\n"
+    )
+
+
+class TestCodeQLLongConstants(ModuleTestBase):
+    """Code with a long constant full of % signs, like URL-encoded JSON, is analyzed whole."""
+
+    pytestmark = pytest.mark.browser
+    module_name = "codeql"
+    targets = [f"{HTTPSERVER_URL}/"]
+    config_overrides = {"web": {"enable_browser": True}}
+
+    async def check(self, module_test, events):
+        module = module_test.module
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source = Path(temp_dir) / "src"
+            source.mkdir()
+            (source / "page.js").write_text(long_constant_page())
+            database = Path(temp_dir) / "db"
+            assert await module.create_database(source, database)
+            results = await module.run_queries(database)
+        assert [(result["name"], int(result["line"])) for result in results] == [(DOM_XSS, 3)], results
 
 
 # a page sending the browser where its `next` parameter says
