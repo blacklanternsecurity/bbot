@@ -414,7 +414,7 @@ wheels = [
 [[package]]
 name = "blasthttp"
 version = "1.0.0"
-source = { git = "https://github.com/blacklanternsecurity/blasthttp?branch=1.0-connection-profiles#1a6a1bd740e3c82035a98b52a5579e3407a78daa" }
+source = { git = "https://github.com/blacklanternsecurity/blasthttp?branch=1.0-connection-profiles#2aa12a3b9f43bb10ba2abf7fccf644692e220b2d" }
 
 [[package]]
 name = "cachetools"
