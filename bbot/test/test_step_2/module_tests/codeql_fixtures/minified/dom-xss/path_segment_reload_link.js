@@ -1,0 +1,1 @@
+!function(){var e,n,t,o,a,r=document.getElementById("errorReload");r&&(r.href=(e=location.href,n="?nocache="+encodeURIComponent(e),t=e.indexOf("#"),o=e.indexOf("?"),(a=t>-1&&o>-1?Math.min(t,o):Math.max(t,o))>-1&&(e=e.substring(0,a)),e.substring(e.lastIndexOf("/")+1)+n))}();

@@ -230,7 +230,9 @@ private predicate startsUrl(string value) {
   exists(string start | start = value.regexpReplaceAll("[\\s\\x00-\\x1f]", "").toLowerCase() |
     start != "" and
     not start.matches("javascript:%") and
-    not "javascript:".matches(start + "%")
+    // a prefix test, not a pattern made of the page's text: each % or _ in that is a wildcard, and a long one, like a
+    // URL-encoded JSON constant, overflows the stack compiling it
+    not "javascript:".indexOf(start) = 0
   )
 }
 

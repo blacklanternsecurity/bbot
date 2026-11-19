@@ -1,7 +1,10 @@
 import collections
+import json
 import re
 import tempfile
+import urllib.parse
 from pathlib import Path
+from subprocess import CompletedProcess
 from types import SimpleNamespace
 
 import pytest
@@ -186,6 +189,40 @@ class TestCodeQLParameterQuery(ModuleTestBase):
         assert {result["message"] for result in results} == {"next", "name", "returnUrl"}
 
 
+def long_constant_page():
+    """
+    A page's own settings, URL-encoded JSON with a % in every few characters, start a link that the page's URL ends:
+    no javascript: URL. The page writes its decoded fragment into itself further on, which is DOM XSS.
+    """
+    settings = {f"item{i}": {"label": f"Item {i}", "tags": ["a", "b"]} for i in range(4000)}
+    encoded = urllib.parse.quote(json.dumps(settings), safe="")
+    return (
+        f"var settings = {json.dumps(encoded)};\n"
+        "document.getElementById('more').href = settings + location.hash.slice(1);\n"
+        "document.body.innerHTML = decodeURIComponent(location.hash.slice(1));\n"
+    )
+
+
+class TestCodeQLLongConstants(ModuleTestBase):
+    """Code with a long constant full of % signs, like URL-encoded JSON, is analyzed whole."""
+
+    pytestmark = pytest.mark.browser
+    module_name = "codeql"
+    targets = [f"{HTTPSERVER_URL}/"]
+    config_overrides = {"web": {"enable_browser": True}}
+
+    async def check(self, module_test, events):
+        module = module_test.module
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source = Path(temp_dir) / "src"
+            source.mkdir()
+            (source / "page.js").write_text(long_constant_page())
+            database = Path(temp_dir) / "db"
+            assert await module.create_database(source, database)
+            results = await module.run_queries(database)
+        assert [(result["name"], int(result["line"])) for result in results] == [(DOM_XSS, 3)], results
+
+
 # a page sending the browser where its `next` parameter says
 REDIRECTING_PAGE = """<html><head><title>codeql test</title></head><body><script>
 location.href = new URLSearchParams(location.search).get("next");
@@ -246,6 +283,59 @@ class TestCodeQLTimeout(ModuleTestBase):
         assert module_test.codeql_runs == [["database", "create"]]
         # a result is kept only if the analysis returned rather than raised
         assert list(module.analyzed.values()) == [([], [])]
+
+
+OUT_OF_MEMORY = "CodeQL is out of memory. Try increasing the memory available to CodeQL using the --ram option."
+
+
+class TestCodeQLOutOfMemory(ModuleTestBase):
+    """
+    A page CodeQL runs out of memory on comes to nothing, and so does one loading its scripts with at least as much
+    code, without CodeQL trying it. Any other failure is tried again.
+    """
+
+    pytestmark = pytest.mark.browser
+    module_name = "codeql"
+    targets = [f"{HTTPSERVER_URL}/"]
+    config_overrides = {"web": {"enable_browser": True}}
+
+    async def setup_after_prep(self, module_test):
+        module_test.codeql_runs = []
+        module_test.codeql_error = OUT_OF_MEMORY
+
+        async def run_process(command, **kwargs):
+            module_test.codeql_runs.append(command[1:3])
+            return CompletedProcess(command, 2, "", module_test.codeql_error)
+
+        module_test.monkeypatch.setattr(module_test.module, "run_process", run_process)
+
+    async def check(self, module_test, events):
+        module = module_test.module
+        module_test.codeql_runs.clear()
+        # analyzing a page works in the scan's temp dir, which the scan removes once it ends
+        module.helpers.mkdir(module.scan.temp_dir)
+        app = {"https://example.com/app.js": "var app = 1;\n" * 1000}
+        other = {"https://example.com/other.js": "var app = 1;\n" * 1000}
+
+        def page(size):
+            return f"<html><body>{'a' * size}</body></html>"
+
+        # out of memory
+        assert await module.analyze_page(page(500), app) == ([], [])
+        assert len(module_test.codeql_runs) == 1
+        # its scripts, and more code: skipped
+        assert await module.analyze_page(page(600), app) == ([], [])
+        assert len(module_test.codeql_runs) == 1
+        # its scripts, and less code, or other scripts: tried
+        assert await module.analyze_page(page(400), app) == ([], [])
+        assert await module.analyze_page(page(600), other) == ([], [])
+        assert len(module_test.codeql_runs) == 3
+        # a failure that isn't memory says nothing of the next page's
+        module_test.codeql_error = "A fatal error occurred: the extractor stopped."
+        empty = {"https://example.com/empty.js": ""}
+        assert await module.analyze_page(page(500), empty) == ([], [])
+        assert await module.analyze_page(page(600), empty) == ([], [])
+        assert module_test.codeql_runs == [["database", "create"]] * 5
 
 
 class TestCodeQLThirdPartyHosts(ModuleTestBase):

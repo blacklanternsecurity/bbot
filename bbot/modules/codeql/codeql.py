@@ -31,6 +31,10 @@ SERVED_FILE = "page_served.html"
 SNIPPET_MAX = 150
 
 
+class TooMuchCode(Exception):
+    """CodeQL ran out of memory building a database of a page's code."""
+
+
 class codeql(browser_vulns):
     watched_events = ["URL"]
     produced_events = ["FINDING", "WEB_PARAMETER"]
@@ -143,6 +147,8 @@ class codeql(browser_vulns):
         if self.config.get("parameters", True) and self.wants_parameters():
             self.queries.append(str(PARAMETERS_QUERY))
         self.reported = set()
+        # the scripts of pages whose code CodeQL ran out of memory on: {script URLs: the least code that did}
+        self.too_big = {}
         # compiled once, so pages don't each wait on it, and a broken install fails here
         result = await self.codeql("query", "compile", *self.queries)
         if result.returncode != 0:
@@ -200,6 +206,13 @@ class codeql(browser_vulns):
         passes to a sink, as (findings, parameter names). `served` is the page as the server sent it, if it had code the
         loaded page lost (see `served_page()`).
         """
+        # a database grows with the code in it: a page loading the same scripts as one CodeQL ran out of memory on, with
+        # at least as much code in all, would too
+        script_urls = tuple(sorted(scripts))
+        size = len(dom) + len(served or "") + sum(len(script) for script in scripts.values())
+        if size >= self.too_big.get(script_urls, float("inf")):
+            self.debug(f"Skipping {size:,} characters of code: CodeQL ran out of memory on as little with its scripts")
+            return [], []
         with tempfile.TemporaryDirectory(dir=self.scan.temp_dir) as temp_dir:
             source_root = Path(temp_dir) / "src"
             source_root.mkdir()
@@ -214,7 +227,13 @@ class codeql(browser_vulns):
                 (source_root / file_name).write_text(script)
                 origins[file_name] = script_url
             database = Path(temp_dir) / "db"
-            if not await self.create_database(source_root, database):
+            try:
+                built = await self.create_database(source_root, database)
+            except TooMuchCode as e:
+                self.warning(str(e))
+                self.too_big[script_urls] = min(size, self.too_big.get(script_urls, size))
+                return [], []
+            if not built:
                 return [], []
             findings = []
             parameters = set()
@@ -226,7 +245,10 @@ class codeql(browser_vulns):
             return list(dict.fromkeys(findings)), sorted(parameters)
 
     async def create_database(self, source_root, database):
-        """Build a CodeQL database from the code in `source_root`. Returns whether it worked."""
+        """
+        Build a CodeQL database from the code in `source_root`. Returns whether it worked, and raises TooMuchCode when
+        CodeQL runs out of memory.
+        """
         result = await self.codeql(
             "database",
             "create",
@@ -243,6 +265,11 @@ class codeql(browser_vulns):
         # empty pages leave CodeQL nothing to extract
         if "did not detect any code" in result.stderr or "could not process any of it" in result.stderr:
             self.debug("CodeQL found no code to analyze")
+        elif "out of memory" in result.stderr.lower():
+            raise TooMuchCode(
+                f"CodeQL ran out of memory building a database of a page's code ({CODEQL_RAM_MB} MB): "
+                f"{result.stderr[-500:]}"
+            )
         else:
             self.warning(f"CodeQL couldn't build a database (exit {result.returncode}): {result.stderr[-500:]}")
         return False
