@@ -106,13 +106,12 @@ class domino(browser_vulns):
 
     async def handle_parameters(self, events):
         """
-        Test GET parameters with only the rules that take a parameter's name. Those on pages with the same code on one
-        host are tested in one DOMino run, since that code reads each of them the same way on any of its pages: on the
-        first page's request, with the parameters that came with it, since an endpoint can need them, like an
-        authorize endpoint its client's.
+        Test GET parameters with only the rules that take a parameter's name, each in the request it was found in,
+        with exactly the parameters that came with it: an endpoint can need them, like an authorize endpoint its
+        client's. Parameters found in the same request are tested together, in one DOMino run of that request.
         """
-        # (host, fingerprint): [(event, page, the parameters its request had)]
-        codes = {}
+        # (host, fingerprint, page, the request's parameters): [event]
+        requests = {}
         for event in events:
             name = event.data["name"]
             page = page_url(event.data["url"])
@@ -122,29 +121,27 @@ class domino(browser_vulns):
             fingerprint = await self.page_fingerprint(event.host, page, params)
             if fingerprint is None:
                 continue
-            if (str(event.host), fingerprint, name) in self.tested_parameters:
-                self.debug(f"Skipping {name} on {page}: DOMino already tested it on a page with the same code")
+            requests.setdefault((str(event.host), fingerprint, page, tuple(sorted(params.items()))), []).append(event)
+        for (host, fingerprint, page, params), found in requests.items():
+            url = self.helpers.add_get_params(page, dict(params)).geturl() if params else page
+            # once on each host for each page code: pages running the same code read a parameter the same way
+            names = []
+            for name in sorted({event.data["name"] for event in found}):
+                if (host, fingerprint, name) in self.tested_parameters:
+                    self.debug(f"Skipping {name} on {url}: DOMino already tested it on a page with the same code")
+                else:
+                    names.append(name)
+            if not names:
                 continue
-            codes.setdefault((str(event.host), fingerprint), []).append((event, page, params))
-        for (host, fingerprint), found in codes.items():
-            page = found[0][1]
-            # the parameters of every request to that page, the first value of each
-            params = {}
-            for _, request_page, request_params in found:
-                if request_page == page:
-                    for param, value in request_params.items():
-                        params.setdefault(param, value)
-            url = self.helpers.add_get_params(page, params).geturl() if params else page
-            names = sorted({event.data["name"] for event, _, _ in found})
             self.tested_parameters.update((host, fingerprint, name) for name in names)
             try:
                 results, _ = await self.run_domino(url, parameters=names)
             except (BrowserError, *self.helpers.browser.engine.errors) as e:
                 self.verbose(f"Browser error while testing {', '.join(names)} on {url}: {e}")
                 continue
-            parameter_events = [event for event, _, _ in found]
+            tested = [event for event in found if event.data["name"] in names]
             for result in results:
-                await self.emit_results(self.parameter_tested(result, url, parameter_events), url, [result])
+                await self.emit_results(self.parameter_tested(result, url, tested), url, [result])
 
     async def page_fingerprint(self, host, page, params):
         """The code fingerprint of `page`, loading it with `params` if no page module has yet, or None if it isn't a page."""
