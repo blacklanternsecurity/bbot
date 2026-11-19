@@ -2,7 +2,7 @@ import re
 from hashlib import sha256
 from urllib.parse import parse_qsl, urlsplit
 
-from bbot.modules.base import BaseModule
+from bbot.modules.base import BROWSER_PAGE_TYPES, BaseModule
 from bbot.core.helpers.async_helpers import NamedLock
 
 # <script> types the browser runs; any other type holds data
@@ -188,7 +188,7 @@ class browser_vulns(BaseModule):
             return hash((event.host, body_hash)), f"body_sha256={body_hash}"
         return hash(event), ""
 
-    async def filter_event(self, event):
+    def precheck_event(self, event):
         if "status-200" not in event.tags:
             return False, "it isn't a 200"
         return True
@@ -204,14 +204,35 @@ class browser_vulns(BaseModule):
         """Like `page_code()`, for a URL that isn't an event's own: a parameter's page with its other parameters."""
         return self._code_of(await self.helpers.browser.visit(url, consumer=self.name), url)
 
+    async def fingerprint_of(self, event):
+        """
+        The fingerprint of all the code on `event`'s page, as a module that loaded it worked it out, or by loading it.
+        None if there's no page to analyze.
+        """
+        fingerprint = self.helpers.browser.code_fingerprints.get(event.url)
+        if fingerprint is None:
+            await self.page_code(event)
+            fingerprint = self.helpers.browser.code_fingerprints.get(event.url)
+        return fingerprint
+
     def _code_of(self, visit, url):
         if visit is None or not visit.dom:
             return None
         if visit.response.conclusion[0] == "needs_browser":
             self.debug(f"Skipping {url}: the browser couldn't get past its challenge")
             return None
+        # an image or a script the browser shows as a page of its own isn't one
+        content_type = visit.response.headers.get("content-type", "").split(";")[0].strip().lower()
+        if content_type and content_type not in BROWSER_PAGE_TYPES:
+            self.debug(f"Skipping {url}: it isn't a web page ({content_type})")
+            return None
         scripts = self.page_scripts(visit)
-        fingerprint = self.code_fingerprint(visit.dom, scripts, served=visit.response.text)
+        inline = self.page_inline_code(visit.dom, served=visit.response.text)
+        fingerprint = self.fingerprint(inline, scripts)
+        # the page's whole code, every script counted however this module chooses its own, for any module to reuse
+        all_scripts = browser_vulns.page_scripts(self, visit)
+        shared = fingerprint if all_scripts.keys() == scripts.keys() else self.fingerprint(inline, all_scripts)
+        self.helpers.browser.code_fingerprints[url] = shared
         self.debug(f"Code fingerprint of {url}: {fingerprint}")
         return visit, scripts, fingerprint
 
@@ -263,11 +284,20 @@ class browser_vulns(BaseModule):
         and the URLs of its scripts, through `script_key()`. Pages built from the same template share one, however
         their content differs.
         """
+        return self.fingerprint(self.page_inline_code(dom, served), script_urls)
+
+    def page_inline_code(self, dom, served=None):
+        """The page's `inline_code()`, with any from the page as served (`served`) that's gone once it has loaded."""
         code = self.inline_code(dom)
         if served and served != dom:
             loaded = set(code)
             code += [c for c in self.inline_code(served) if c not in loaded]
-        code += sorted({script_key(url) for url in script_urls})
+        return code
+
+    @staticmethod
+    def fingerprint(inline, script_urls):
+        """`code_fingerprint()`, from a page's `page_inline_code()` and the URLs of its scripts."""
+        code = inline + sorted({script_key(url) for url in script_urls})
         return sha256("\0".join(code).encode()).hexdigest()
 
     async def analyze_once(self, key, analyze):

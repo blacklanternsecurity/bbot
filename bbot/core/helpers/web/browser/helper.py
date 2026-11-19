@@ -229,6 +229,9 @@ class BrowserHelper:
         self._consumers = None
         self._visits = {}
         self._inflight = {}
+        # the fingerprint of the code on each URL a module analyzed, so another module needn't load the page again to
+        # learn it: see browser_vulns.fingerprint_of()
+        self.code_fingerprints = {}
 
     @property
     def usable(self):

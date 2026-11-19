@@ -125,6 +125,12 @@ def _exclude_key(original_dict, key_to_exclude):
     return {key: value for key, value in original_dict.items() if key != key_to_exclude}
 
 
+# a whole URL as excavate takes one from a tag's attribute, the URL extractor's and the parameter extractor's alike
+FULL_URL_REGEX_STRICT = re.compile(
+    r"^(https?):\/\/(\[[0-9a-fA-F:]+\]|[\w.-]+)(?::\d{1,5})?(\/[\w\/\.-]*)?(\?[^\s]+)?$"
+)
+
+
 def extract_params_url(parsed_url):
     """
     Yields query parameters from a parsed URL.
@@ -704,6 +710,10 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
         class ParameterExtractorRule:
             name = ""
+            # whether the endpoint comes from text that's a URL only if it looks like one, like a tag's attribute, which
+            # the URL extractor only takes when it matches FULL_URL_REGEX_STRICT; a parameter from one that doesn't
+            # match isn't one either
+            strict_endpoint = False
 
             async def extract(self):
                 pass
@@ -770,6 +780,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
 
         class HtmlTags(ParameterExtractorRule):
             name = "HTML Tags"
+            strict_endpoint = True
             discovery_regex = r'/<[^>]+(href|src|action)=["\']?[^"\'>\s]*["\']?[^>]*>/ nocase'
             extraction_regex = bbot_regexes.tag_attribute_regex
             output_type = "GETPARAM"
@@ -1033,6 +1044,14 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                     document_url += f"?{event.parsed_url.query}"
                                 base_url = await self.excavate._document_base_url(event, document_url)
                             url = urljoin(base_url, endpoint) if endpoint else document_url
+
+                        if parameterExtractorSubModule.strict_endpoint and not FULL_URL_REGEX_STRICT.search(
+                            html.unescape(urldefrag(url).url)
+                        ):
+                            self.excavate.debug(
+                                f"Skipping parameter [{parameter_name}]: its endpoint [{url}] isn't a URL the URL extractor would take"
+                            )
+                            continue
 
                         try:
                             # Validate the URL before using it
@@ -1309,9 +1328,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         full_url_regex = re.compile(
             r"(https?)://((?:\[[0-9a-fA-F:]+\]|\w(?:[\w-]+\.?)+)(?::\d{1,5})?(?:/[-\w\.\(\)]*[-\w\.]+)*/?)"
         )
-        full_url_regex_strict = re.compile(
-            r"^(https?):\/\/(\[[0-9a-fA-F:]+\]|[\w.-]+)(?::\d{1,5})?(\/[\w\/\.-]*)?(\?[^\s]+)?$"
-        )
+        full_url_regex_strict = FULL_URL_REGEX_STRICT
         tag_attribute_regex = bbot_regexes.tag_attribute_regex
 
         async def process(self, yara_results, event, yara_rule_settings, discovery_context):

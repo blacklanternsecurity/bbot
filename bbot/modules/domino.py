@@ -85,7 +85,7 @@ class domino(browser_vulns):
             return hash(parameter), f"parameter={parameter}"
         return super()._incoming_dedup_hash(event)
 
-    async def filter_event(self, event):
+    def precheck_event(self, event):
         if event.type == "WEB_PARAMETER":
             if event.data.get("type") != "GETPARAM":
                 return False, "DOMino only tests GET parameters"
@@ -94,8 +94,12 @@ class domino(browser_vulns):
             content_type = event.data.get("content_type")
             if content_type and content_type.split(";")[0].strip().lower() not in BROWSER_PAGE_TYPES:
                 return False, f"its endpoint answers with {content_type}, not a page"
+            # paramminer finds a name by how the server's response changes, which says nothing of whether the page's
+            # code reads it. One the server echoes into the page may reach that code; the rest are lightfuzz's to test
+            if str(event.module) == "paramminer_getparams" and "http-reflection" not in event.tags:
+                return False, "paramminer found it in the server's response, which doesn't echo it"
             return True
-        return await super().filter_event(event)
+        return super().precheck_event(event)
 
     async def handle_batch(self, *events):
         # pages first, whose runs test the parameters they discover, and whose fingerprints the parameters reuse
@@ -144,10 +148,19 @@ class domino(browser_vulns):
                 await self.emit_results(self.parameter_tested(result, url, tested), url, [result])
 
     async def page_fingerprint(self, host, page, params):
-        """The code fingerprint of `page`, loading it with `params` if no page module has yet, or None if it isn't a page."""
+        """
+        The code fingerprint of `page`, as a page module worked it out, or by loading it with `params`; None if it isn't
+        a page.
+        """
         key = (str(host), page)
+        url = self.helpers.add_get_params(page, params).geturl() if params else page
         if key not in self.page_fingerprints:
-            url = self.helpers.add_get_params(page, params).geturl() if params else page
+            shared = self.helpers.browser.code_fingerprints.get(url) or self.helpers.browser.code_fingerprints.get(
+                page
+            )
+            if shared is not None:
+                self.page_fingerprints[key] = shared
+        if key not in self.page_fingerprints:
             try:
                 code = await self.url_code(url)
             except (BrowserError, *self.helpers.browser.engine.errors) as e:
@@ -169,10 +182,10 @@ class domino(browser_vulns):
 
     async def handle_url(self, event):
         url = event.url
-        page = await self.page_code(event)
-        if page is None:
+        # DOMino loads the page itself, so it needs only the page's fingerprint, often from a module that loaded it
+        fingerprint = await self.fingerprint_of(event)
+        if fingerprint is None:
             return
-        fingerprint = page[2]
         self.page_fingerprints[(str(event.host), page_url(url))] = fingerprint
         # what DOMino finds depends on the server as well as the code, so pages are only skipped within one host
         try:
