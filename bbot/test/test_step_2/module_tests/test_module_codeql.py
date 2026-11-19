@@ -4,6 +4,7 @@ import re
 import tempfile
 import urllib.parse
 from pathlib import Path
+from subprocess import CompletedProcess
 from types import SimpleNamespace
 
 import pytest
@@ -282,6 +283,59 @@ class TestCodeQLTimeout(ModuleTestBase):
         assert module_test.codeql_runs == [["database", "create"]]
         # a result is kept only if the analysis returned rather than raised
         assert list(module.analyzed.values()) == [([], [])]
+
+
+OUT_OF_MEMORY = "CodeQL is out of memory. Try increasing the memory available to CodeQL using the --ram option."
+
+
+class TestCodeQLOutOfMemory(ModuleTestBase):
+    """
+    A page CodeQL runs out of memory on comes to nothing, and so does one loading its scripts with at least as much
+    code, without CodeQL trying it. Any other failure is tried again.
+    """
+
+    pytestmark = pytest.mark.browser
+    module_name = "codeql"
+    targets = [f"{HTTPSERVER_URL}/"]
+    config_overrides = {"web": {"enable_browser": True}}
+
+    async def setup_after_prep(self, module_test):
+        module_test.codeql_runs = []
+        module_test.codeql_error = OUT_OF_MEMORY
+
+        async def run_process(command, **kwargs):
+            module_test.codeql_runs.append(command[1:3])
+            return CompletedProcess(command, 2, "", module_test.codeql_error)
+
+        module_test.monkeypatch.setattr(module_test.module, "run_process", run_process)
+
+    async def check(self, module_test, events):
+        module = module_test.module
+        module_test.codeql_runs.clear()
+        # analyzing a page works in the scan's temp dir, which the scan removes once it ends
+        module.helpers.mkdir(module.scan.temp_dir)
+        app = {"https://example.com/app.js": "var app = 1;\n" * 1000}
+        other = {"https://example.com/other.js": "var app = 1;\n" * 1000}
+
+        def page(size):
+            return f"<html><body>{'a' * size}</body></html>"
+
+        # out of memory
+        assert await module.analyze_page(page(500), app) == ([], [])
+        assert len(module_test.codeql_runs) == 1
+        # its scripts, and more code: skipped
+        assert await module.analyze_page(page(600), app) == ([], [])
+        assert len(module_test.codeql_runs) == 1
+        # its scripts, and less code, or other scripts: tried
+        assert await module.analyze_page(page(400), app) == ([], [])
+        assert await module.analyze_page(page(600), other) == ([], [])
+        assert len(module_test.codeql_runs) == 3
+        # a failure that isn't memory says nothing of the next page's
+        module_test.codeql_error = "A fatal error occurred: the extractor stopped."
+        empty = {"https://example.com/empty.js": ""}
+        assert await module.analyze_page(page(500), empty) == ([], [])
+        assert await module.analyze_page(page(600), empty) == ([], [])
+        assert module_test.codeql_runs == [["database", "create"]] * 5
 
 
 class TestCodeQLThirdPartyHosts(ModuleTestBase):
