@@ -15,6 +15,7 @@ from werkzeug.wrappers import Response
 
 from ..bbot_fixtures import *
 from bbot.errors import BrowserError
+from bbot.core.helpers.web.browser import helper as browser_helper
 from bbot.core.helpers.web.browser.engines import camoufox
 from pytest_httpserver import HTTPServer
 from cryptography import x509
@@ -176,6 +177,53 @@ async def test_browser_visit(bbot_scanner, bbot_httpserver):
 
     await scan._cleanup()
     assert await no_browser_processes()
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
+async def test_browser_slot_wait_is_not_a_timeout(bbot_scanner, bbot_httpserver, monkeypatch):
+    """A page that waits longer than a page may take for a free page slot still loads once it has one"""
+    serve(bbot_httpserver)
+    scan = await browser_scan(bbot_scanner, browser_max_pages=1)
+    browser = scan.helpers.browser
+    url = bbot_httpserver.url_for("/")
+    # started first, so starting it doesn't count against the short time limit below
+    assert await browser.visit(url) is not None
+
+    monkeypatch.setattr(browser_helper, "OPERATION_TIMEOUT", 3)
+    # another page holds the only slot for longer than a page may take
+    await browser._page_slots.acquire()
+    asyncio.get_running_loop().call_later(5, browser._page_slots.release)
+    started = time.monotonic()
+    visit = await browser.visit(url)
+    assert time.monotonic() - started >= 5
+    assert visit is not None and visit.title == "js page"
+
+    await scan._cleanup()
+    assert await no_browser_processes()
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
+async def test_browser_failed_visit_is_shared(bbot_scanner, monkeypatch):
+    """A page that couldn't be loaded is handed to every module that wants it, rather than loaded again for each"""
+    scan = await browser_scan(bbot_scanner)
+    browser = scan.helpers.browser
+    loads = []
+
+    async def failed_visit(url):
+        loads.append(url)
+        return None
+
+    monkeypatch.setattr(browser, "_visit", failed_visit)
+    url = "http://127.0.0.1:8888/slow"
+    assert await browser.visit(url, consumer="screenshot") is None
+    assert await browser.visit(url, consumer="browser_dom") is None
+    assert loads == [url]
+    # once every interested module has collected it, it's no longer held
+    assert url not in browser._visits
+
+    await scan._cleanup()
 
 
 @pytest.mark.browser
