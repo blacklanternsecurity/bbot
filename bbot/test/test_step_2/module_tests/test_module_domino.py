@@ -8,6 +8,7 @@ import pytest
 from werkzeug.wrappers import Response
 
 from .base import ModuleTestBase
+from bbot.modules.base import BaseModule
 from bbot.test.worker import HTTPSERVER_URL
 
 # writes the URL fragment into the page as HTML
@@ -190,6 +191,90 @@ class TestDominoOutOfTime(ModuleTestBase):
         parameters = [e.data for e in events if e.type == "WEB_PARAMETER" and str(e.module) == "domino"]
         assert [p["name"] for p in parameters] == ["next"], parameters
         assert self.runs == [None, ["next"]], self.runs
+
+
+class TestDominoPrecheck(ModuleTestBase):
+    """Parameters DOMino can't use are turned away before they're queued: POST parameters, endpoints that aren't
+    pages, and names paramminer found only by how the server answered, without echoing them"""
+
+    pytestmark = pytest.mark.browser
+    targets = [f"{HTTPSERVER_URL}/"]
+    modules_overrides = ["domino"]
+    config_overrides = {"web": {"enable_browser": True}, "modules": {"domino": {"web_parameters": True}}}
+
+    async def setup_after_prep(self, module_test):
+        class paramminer_getparams(BaseModule):
+            _name = "paramminer_getparams"
+
+        scan = module_test.scan
+        paramminer = paramminer_getparams(scan)
+
+        def parameter(name, type="GETPARAM", module=None, tags=None, **data):
+            return scan.make_event(
+                {
+                    "host": "127.0.0.1",
+                    "url": f"{HTTPSERVER_URL}/",
+                    "type": type,
+                    "name": name,
+                    "description": "",
+                    **data,
+                },
+                "WEB_PARAMETER",
+                parent=scan.root_event,
+                module=module,
+                tags=tags,
+            )
+
+        self.verdicts = {
+            name: module_test.scan.modules["domino"]._event_precheck(event)[0]
+            for name, event in (
+                ("found in a link", parameter("q")),
+                ("posted", parameter("p", type="POSTPARAM")),
+                ("json endpoint", parameter("j", content_type="application/json")),
+                ("guessed", parameter("debug", module=paramminer)),
+                ("guessed and echoed", parameter("next", module=paramminer, tags=["http_reflection"])),
+            )
+        }
+
+    def check(self, module_test, events):
+        assert self.verdicts == {
+            "found in a link": True,
+            "posted": False,
+            "json endpoint": False,
+            "guessed": False,
+            "guessed and echoed": True,
+        }
+
+
+class TestDominoSharedFingerprint(ModuleTestBase):
+    """A page whose code fingerprint another module already worked out isn't loaded again just to learn it"""
+
+    pytestmark = pytest.mark.browser
+    targets = [f"{HTTPSERVER_URL}/"]
+    modules_overrides = ["http", "domino"]
+    config_overrides = {"web": {"enable_browser": True}, "modules": {"domino": {"rules": ["xss-basic"]}}}
+    runs = []
+    loads = []
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests({"uri": "/"}, {"response_data": VULNERABLE_PAGE, "content_type": "text/html"})
+        module = module_test.scan.modules["domino"]
+        # as codeql leaves it for a page it analyzed
+        module_test.scan.helpers.browser.code_fingerprints[f"{HTTPSERVER_URL}/"] = "fingerprint from another module"
+
+        async def page_code(event):
+            self.loads.append(event.url)
+
+        async def run_domino(url, parameters=None):
+            self.runs.append(url)
+            return [], True
+
+        module_test.monkeypatch.setattr(module, "page_code", page_code)
+        module_test.monkeypatch.setattr(module, "run_domino", run_domino)
+
+    def check(self, module_test, events):
+        assert self.runs == [f"{HTTPSERVER_URL}/"], self.runs
+        assert self.loads == [], self.loads
 
 
 # two pages running the same code, each linked with the same parameter
