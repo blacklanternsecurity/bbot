@@ -37,7 +37,7 @@ if __name__ == "__main__":
 ```text
 usage: bbot [-h] [-t TARGET [TARGET ...]] [-s SEEDS [SEEDS ...]]
                [-b BLACKLIST [BLACKLIST ...]] [--strict-scope]
-               [-p [PRESET ...]] [-c [CONFIG ...]] [-lp]
+               [--allow-loopback] [-p [PRESET ...]] [-c [CONFIG ...]] [-lp]
                [-m MODULE [MODULE ...]] [-l] [-lmo] [-em MODULE [MODULE ...]]
                [-f FLAG [FLAG ...]] [-lf] [-rf FLAG [FLAG ...]]
                [-ef FLAG [FLAG ...]] [-n SCAN_NAME] [-v] [-d] [-S] [--force]
@@ -69,6 +69,7 @@ Target:
   -b, --blacklist BLACKLIST [BLACKLIST ...]
                         Don't touch these things
   --strict-scope        Don't consider subdomains of target to be in-scope - exact matches only
+  --allow-loopback      Scan hosts that resolve to loopback, i.e. this machine (by default only targeted loopback addresses are scanned)
 
 Presets:
   -p, --preset [PRESET ...]
@@ -79,7 +80,7 @@ Presets:
 
 Modules:
   -m, --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: affiliates,ajaxpro,anubisdb,apkpure,asn,aspnet_bin_exposure,azure_tenant,baddns,baddns_direct,baddns_zone,badsecrets,bevigil,bucket_amazon,bucket_digitalocean,bucket_file_enum,bucket_firebase,bucket_google,bucket_hetzner,bucket_microsoft,bufferoverrun,builtwith,bypass403,c99,censys_dns,censys_ip,certspotter,chaos,code_repository,credshed,crt,crt_db,dehashed,dnsbimi,dnsbrute,dnsbrute_mutations,dnscaa,dnscommonsrv,dnsdumpster,dnstlsrpt,docker_pull,dockerhub,dotnetnuke,emailformat,favicon,filedownload,fingerprintx,fullhunt,generic_ssrf,git,git_clone,gitdumper,github_codesearch,github_org,github_usersearch,github_workflows,gitlab_com,gitlab_onprem,google_playstore,gowitness,graphql_introspection,hackertarget,host_header,http,hunt,hunterio,iis_shortnames,ip2location,ipneighbor,ipstack,jadx,js_unpacker,kreuzberg,leakix,legba,lightfuzz,medusa,myssl,newsletters,nowafpls,ntlm,nuclei,oauth,otilabs,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,pgp,portscan,postman,postman_download,rapiddns,reflected_parameters,retirejs,robots,scanmalware,securitytrails,securitytxt,shodan_dns,shodan_enterprise,shodan_idb,skymem,social,sslcert,subdomaincenter,subdomainradar,telerik,trajan,trickest,trufflehog,url_manipulation,urlscan,viewdns,virtualhost,virustotal,waf_bypass,wafw00f,wayback,webbrute,webbrute_shortnames
+                        Modules to enable. Choices: affiliates,ajaxpro,anubisdb,apkpure,asn,aspnet_bin_exposure,azure_tenant,baddns,baddns_direct,baddns_zone,badsecrets,bevigil,browser_dom,bucket_amazon,bucket_digitalocean,bucket_file_enum,bucket_firebase,bucket_google,bucket_hetzner,bucket_microsoft,bufferoverrun,builtwith,bypass403,c99,censys_dns,censys_ip,certspotter,chaos,code_repository,credshed,crt,crt_db,dehashed,dnsbimi,dnsbrute,dnsbrute_mutations,dnscaa,dnscommonsrv,dnsdumpster,dnstlsrpt,docker_pull,dockerhub,dotnetnuke,emailformat,favicon,filedownload,fingerprintx,fullhunt,generic_ssrf,git,git_clone,gitdumper,github_codesearch,github_org,github_usersearch,github_workflows,gitlab_com,gitlab_onprem,google_playstore,graphql_introspection,hackertarget,host_header,http,hunt,hunterio,iis_shortnames,ip2location,ipneighbor,ipstack,jadx,js_unpacker,kreuzberg,leakix,legba,lightfuzz,medusa,myssl,newsletters,nowafpls,ntlm,nuclei,oauth,otilabs,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,pgp,portscan,postman,postman_download,rapiddns,reflected_parameters,retirejs,robots,scanmalware,screenshot,securitytrails,securitytxt,shodan_dns,shodan_enterprise,shodan_idb,skymem,social,sslcert,subdomaincenter,subdomainradar,telerik,trajan,trickest,trufflehog,url_manipulation,urlscan,viewdns,virtualhost,virustotal,waf_bypass,wafw00f,wayback,webbrute,webbrute_shortnames
   -l, --list-modules    List available modules.
   -lmo, --list-module-options
                         Show all module config options
@@ -111,7 +112,7 @@ Scan:
 Output:
   -o, --output-dir DIR  Directory to output scan results
   -om, --output-modules MODULE [MODULE ...]
-                        Add output module(s). Choices: asset_inventory,csv,discord,elastic,emails,json,kafka,mongo,mysql,nats,neo4j,nmap_xml,postgres,rabbitmq,slack,splunk,sqlite,stdout,subdomains,teams,txt,web_parameters,web_report,webhook,websocket,zeromq
+                        Add output module(s). Choices: asset_inventory,csv,discord,elastic,emails,gallery,json,kafka,mongo,mysql,nats,neo4j,nmap_xml,postgres,rabbitmq,slack,splunk,sqlite,stdout,subdomains,teams,txt,web_parameters,web_report,webhook,websocket,zeromq
   -eom, --exclude-output-modules MODULE [MODULE ...]
                         Exclude output module(s)
   -lo, --list-output-modules
@@ -161,7 +162,7 @@ EXAMPLES
         bbot -t evilcorp.com -p subdomain-enum -rf passive
 
     Subdomains + port scan + web screenshots:
-        bbot -t evilcorp.com -p subdomain-enum -m portscan gowitness -n my_scan -o .
+        bbot -t evilcorp.com -p subdomain-enum web-screenshots -m portscan -n my_scan -o .
 
     Subdomains + basic web scan:
         bbot -t evilcorp.com -p subdomain-enum web

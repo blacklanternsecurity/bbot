@@ -869,7 +869,7 @@ include:
 
 config:
   modules:
-    gowitness:
+    paramminer_headers:
       module_timeout: 3
 """
         )
@@ -903,7 +903,7 @@ config:
     preset = Preset(include=[str(custom_preset_dir_1 / "preset1")])
     assert preset.config["modules"]["nuclei"]["module_timeout"] == 1
     assert preset.config["modules"]["sslcert"]["module_timeout"] == 2
-    assert preset.config["modules"]["gowitness"]["module_timeout"] == 3
+    assert preset.config["modules"]["paramminer_headers"]["module_timeout"] == 3
     assert preset.config["modules"]["robots"]["module_timeout"] == 4
     assert preset.config["modules"]["wayback"]["module_timeout"] == 5
 
@@ -911,7 +911,7 @@ config:
     preset = Preset(presets=[str(custom_preset_dir_1 / "preset1")])
     assert preset.config["modules"]["nuclei"]["module_timeout"] == 1
     assert preset.config["modules"]["sslcert"]["module_timeout"] == 2
-    assert preset.config["modules"]["gowitness"]["module_timeout"] == 3
+    assert preset.config["modules"]["paramminer_headers"]["module_timeout"] == 3
     assert preset.config["modules"]["robots"]["module_timeout"] == 4
     assert preset.config["modules"]["wayback"]["module_timeout"] == 5
 
@@ -1339,6 +1339,63 @@ def test_preset_dnsresolve_required_by_dns_name_consumers():
 
     # disabling dnsresolve with no DNS_NAME consumers enabled is allowed
     Preset(exclude_modules=["dnsresolve"]).validate().bake()
+
+
+def test_preset_browser_modules_require_enable_browser():
+    """A scan that asks for a module needing the browser (one with browser_artifacts) won't start unless it's on."""
+    with pytest.raises(
+        ValidationError,
+        match=r"Module screenshot requires the browser, but `web.enable_browser` is false\. "
+        r"Set `web.enable_browser=true` or remove the module\.",
+    ):
+        Scanner(modules=["screenshot"])
+
+    with pytest.raises(ValidationError, match=r"Modules browser_dom, screenshot require the browser"):
+        Scanner(modules=["screenshot", "browser_dom"])
+
+    # with the browser enabled, they're fine
+    scan = Scanner(modules=["screenshot"], config={"web": {"enable_browser": True}})
+    assert "screenshot" in scan.preset.scan_modules
+
+    # a flag that happens to cover them isn't asking for the browser: they're left out, and the scan runs
+    scan = Scanner(flags=["web-screenshots"])
+    assert "screenshot" not in scan.preset.scan_modules
+
+    # listing modules (bbot -l, --module-help) isn't a scan, so they're listed either way
+    baked = Preset(modules=["screenshot", "browser_dom"]).validate().bake()
+    assert {"screenshot", "browser_dom"} <= set(baked.scan_modules)
+
+
+def test_preset_companion_modules():
+    """A module that serves others (companion_of) comes along with them, and can't run without them."""
+    browser = {"web": {"enable_browser": True}}
+
+    # the gallery comes with screenshots, without displacing the default output modules
+    scan = Scanner(modules=["screenshot"], config=browser)
+    assert "gallery" in scan.preset.output_modules
+    assert {"json", "txt"} <= set(scan.preset.output_modules)
+
+    # unless it's turned off, or excluded
+    scan = Scanner(modules=["screenshot"], config={**browser, "modules": {"gallery": {"auto_enable": False}}})
+    assert "gallery" not in scan.preset.output_modules
+    scan = Scanner(modules=["screenshot"], exclude_modules=["gallery"], config=browser)
+    assert "gallery" not in scan.preset.output_modules
+
+    # no screenshots, no gallery
+    scan = Scanner(modules=["robots"])
+    assert "gallery" not in scan.preset.output_modules
+
+    # asking for it without them won't start a scan
+    with pytest.raises(
+        ValidationError,
+        match=r"Module gallery only works alongside screenshot, which is not enabled\. "
+        r"Enable it or remove gallery\.",
+    ):
+        Scanner(output_modules=["gallery"])
+
+    # listing modules isn't a scan
+    baked = Preset(output_modules=["gallery"]).validate().bake()
+    assert "gallery" in baked.output_modules
 
 
 def test_preset_path_no_clobber_default(tmp_path):

@@ -89,7 +89,7 @@ class securitytxt(BaseModule):
         tags = ["securitytxt-policy"]
         url = f"https://{event.host}/.well-known/security.txt"
 
-        r = await self.helpers.request(url, method="GET")
+        r = await self.helpers.request(url, method="GET", browser_fallback=True)
 
         if r is None or r.status_code != 200:
             # it doesn't look like we got a valid response...

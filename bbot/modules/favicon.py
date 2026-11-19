@@ -89,7 +89,7 @@ class favicon(BaseModule):
 
     async def handle_event(self, event):
         for icon_url in self.icon_urls(event):
-            r = await self.helpers.request(icon_url, follow_redirects=True)
+            r = await self.helpers.request(icon_url, follow_redirects=True, browser_fallback=True)
             if r is None or r.status_code != 200 or not r.content:
                 continue
             if "html" in r.headers.get("content-type", "").lower():

@@ -13,8 +13,10 @@ If you are using uv, you can add BBOT to your python environment like this:
 uv add bbot
 
 # bleeding-edge (dev branch)
-uv add bbot --prerelease=allow
+uv add git+https://github.com/blacklanternsecurity/bbot@dev
 ```
+
+Installing `dev` from git can build dependencies from source, which may need a [Rust toolchain](https://rustup.rs).
 
 ## Running a BBOT Scan from Python
 

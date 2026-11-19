@@ -24,6 +24,9 @@ warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 
 log = logging.getLogger("bbot.core.helpers.web")
 
+# how many times the browser may pass a host's challenge for blasthttp (more than once, since clearances expire)
+MAX_CLEARANCES_PER_HOST = 3
+
 
 async def iter_batch_results(stream):
     """
@@ -88,8 +91,37 @@ class WebHelper:
         self._user_agent = f"{ua} {ua_suffix}".strip()
         self._custom_headers = self.web_config.get("http_headers", {})
         self._custom_cookies = self.web_config.get("http_cookies", {})
+        # parameter names, and prefixes of them, that are trackers and framework noise rather than input worth testing
+        self.parameter_blacklist = {p.lower() for p in self.config.get("parameter_blacklist", None) or []}
+        self.parameter_blacklist_prefixes = tuple(
+            p.lower() for p in self.config.get("parameter_blacklist_prefixes", None) or []
+        )
         self._wildcard_cache = LRUCache(maxsize=50000)
         self._wildcard_locks = NamedLock(max_size=50000)
+        # host -> "reached" or "browser_only", from blasthttp's verdict on each response
+        self._host_states = {}
+        # browser fallback: pass JavaScript challenges with the browser, then hand its cookies to blasthttp
+        self.browser_fallback = bool(self.web_config.get("enable_browser", False)) and self.web_config.get(
+            "browser_fallback", True
+        )
+        # URLs left behind a challenge because the browser fallback is off, for the hint at the end of the scan
+        self.unopened_urls = set()
+        # host -> Clearance (the browser's cookies and User-Agent), sent with every request to that host
+        self._clearances = {}
+        self._clearance_counts = {}
+        self._challenge_locks = NamedLock(max_size=10000)
+
+    def parameter_blacklisted(self, name):
+        """
+        Whether `name` is a parameter the scan leaves alone: in `parameter_blacklist`, or starting with one of
+        `parameter_blacklist_prefixes`.
+
+        Examples:
+            >>> self.helpers.web.parameter_blacklisted("utm_source")
+            True
+        """
+        name = name.lower()
+        return name in self.parameter_blacklist or name.startswith(self.parameter_blacklist_prefixes)
 
     @property
     def client(self):
@@ -197,6 +229,9 @@ class WebHelper:
             cookie_str = "; ".join(f"{ck}={cv}" for ck, cv in cookies.items())
             header_list.append(("Cookie", cookie_str))
 
+        if not ignore_bbot_global_settings:
+            header_list = self.apply_clearance(url, header_list)
+
         # -- Basic auth --
         if auth:
             import base64
@@ -270,6 +305,9 @@ class WebHelper:
             request_target (str, optional): Override the HTTP request-line target.
             resolve_ip (str, optional): Connect TCP to this IP instead of DNS resolution.
             ignore_bbot_global_settings (bool, optional): Skip User-Agent/header/cookie merging.
+            browser_fallback (bool, optional): If the URL is behind a JavaScript challenge, get past it with the
+                browser (see `get_past_challenge()`). Only has an effect when `web.enable_browser` is on. For target
+                URLs whose content matters, never for third-party APIs. Defaults to False.
 
         Raises:
             WebError: If raise_error is True and the request fails.
@@ -286,6 +324,7 @@ class WebHelper:
             If the web request fails, it will return None unless `raise_error` is `True`.
         """
         raise_error = kwargs.pop("raise_error", False)
+        browser_fallback = kwargs.pop("browser_fallback", False)
         kwargs.pop("cache_for", None)
         kwargs.pop("client", None)
         kwargs.pop("stream", None)
@@ -312,6 +351,7 @@ class WebHelper:
             kwargs["method"] = "GET"
 
         # Translate kwargs to blasthttp format
+        request_url = url
         url, method, blast_kwargs = self._build_blasthttp_kwargs(url, **kwargs)
 
         try:
@@ -326,6 +366,9 @@ class WebHelper:
                     f"blasthttp response from {url}: {response.status_code} "
                     f"(Length: {len(response.content)}) headers: {response.headers}"
                 )
+            self.record_conclusion(response)
+            if browser_fallback and response.conclusion[0] == "needs_browser":
+                response = await self.get_past_challenge(request_url, response, kwargs)
             return response
 
         except RuntimeError as e:
@@ -348,7 +391,7 @@ class WebHelper:
                 log.trace(traceback.format_exc())
             raise
 
-    async def request_batch_stream(self, urls, threads=10, **kwargs):
+    async def request_batch_stream(self, urls, threads=10, browser_fallback=False, **kwargs):
         """
         Request multiple URLs in parallel via blasthttp's native Rust batch engine,
         yielding each response as soon as it completes (completion order, not input
@@ -415,18 +458,22 @@ class WebHelper:
         from collections import deque
 
         configs = []
-        trackers_by_url = {}
+        entries_by_url = {}
         for url, req_kwargs, tracker in entries:
-            url, method, blast_kwargs = self._build_blasthttp_kwargs(url, **req_kwargs)
-            config = blasthttp.BatchConfig(url, **blast_kwargs)
+            built_url, method, blast_kwargs = self._build_blasthttp_kwargs(url, **req_kwargs)
+            config = blasthttp.BatchConfig(built_url, **blast_kwargs)
             configs.append(config)
-            trackers_by_url.setdefault(config.url, deque()).append(tracker)
+            entries_by_url.setdefault(config.url, deque()).append((url, req_kwargs, tracker))
 
         async for br in iter_batch_results(self.client.request_batch_stream(configs, concurrency=threads)):
             response = br.response  # blasthttp.Response or None
+            queue = entries_by_url.get(br.url)
+            url, req_kwargs, tracker = queue.popleft() if queue else (br.url, kwargs, None)
+            if response is not None:
+                self.record_conclusion(response)
+                if browser_fallback and response.conclusion[0] == "needs_browser":
+                    response = await self.get_past_challenge(url, response, req_kwargs)
             if has_tracker:
-                queue = trackers_by_url.get(br.url)
-                tracker = queue.popleft() if queue else None
                 yield br.url, response, tracker
             else:
                 yield br.url, response
@@ -672,6 +719,142 @@ class WebHelper:
         except Exception as e:
             log.debug(f"Error parsing beautifulsoup: {e}")
             return False
+
+    def apply_clearance(self, url, header_list):
+        """
+        Add the browser's challenge clearance for this URL's host, if there is one: its cookies, and its User-Agent
+        in place of BBOT's default. A caller's own User-Agent and cookies take precedence.
+        """
+        clearance = self._clearances.get(urlparse(url).hostname)
+        if clearance is None:
+            return header_list
+        new_headers = []
+        cookie_sent = False
+        for name, value in header_list:
+            lower = name.lower()
+            if lower == "user-agent" and value == self._user_agent:
+                value = clearance.user_agent
+            elif lower == "cookie":
+                sent = {c.split("=", 1)[0].strip() for c in value.split(";")}
+                extra = [f"{k}={v}" for k, v in clearance.cookies.items() if k not in sent]
+                value = "; ".join([value] + extra) if extra else value
+                cookie_sent = True
+            new_headers.append((name, value))
+        if not cookie_sent and clearance.cookies:
+            new_headers.append(("Cookie", "; ".join(f"{k}={v}" for k, v in clearance.cookies.items())))
+        return new_headers
+
+    async def get_past_challenge(self, url, response, request_kwargs=None):
+        """
+        Handle a response blasthttp concluded needs a browser (a JavaScript challenge).
+
+        The browser passes the challenge, and its cookies and User-Agent are handed to blasthttp, which retries the
+        request (`request_kwargs` are the original request's). From then on every request to that host carries them.
+        If that doesn't get through (or there's nothing to hand off) and the request is a plain GET, the browser's own
+        response is used: the one it got passing the challenge, or a fetch of the URL if it passed it earlier.
+
+        Returns the response that got through, or `response` if nothing did.
+        """
+        browser = self.parent_helper.browser
+        if not self.browser_fallback or not browser.usable:
+            if not self.browser_fallback:
+                self.unopened_urls.add(url)
+            return response
+        request_kwargs = dict(request_kwargs or {})
+        # the browser can only stand in for a plain GET
+        plain_get = request_kwargs.get("method", "GET").upper() == "GET" and not any(
+            request_kwargs.get(k) is not None for k in ("body", "data", "json", "files")
+        )
+        host = urlparse(url).hostname
+        if self.is_unpassable(host):
+            log.debug(f"Not asking the browser about {url}: it couldn't get past {host} before")
+            return response
+        sent_with = self._clearances.get(host)
+        # what the browser got loading this URL, if it got past the challenge
+        browser_response = None
+        async with self._challenge_locks.lock(host):
+            clearance = self._clearances.get(host)
+            # unless another request already got a fresh clearance while this one was out, get one
+            if clearance is sent_with and self._clearance_counts.get(host, 0) < MAX_CLEARANCES_PER_HOST:
+                self._clearance_counts[host] = self._clearance_counts.get(host, 0) + 1
+                clearance = await browser.clearance(url)
+                if clearance is not None:
+                    browser_response = clearance.response
+                if clearance is None or not clearance.cookies:
+                    # nothing to hand off (e.g. past the challenge, the site itself is down)
+                    clearance = None
+                    self._clearances.pop(host, None)
+                else:
+                    self._clearances[host] = clearance
+            if clearance is not None and clearance is not sent_with:
+                retried = await self.request(url, **request_kwargs)
+                if retried is not None and retried.conclusion[0] != "needs_browser":
+                    log.verbose(f"The browser's cookies got blasthttp past the challenge at {host}")
+                    return retried
+                # the cookies alone don't get blasthttp through; don't keep sending them
+                if self._clearances.get(host) is clearance:
+                    self._clearances.pop(host)
+        if not plain_get:
+            return response
+        elif browser_response is not None and browser_response.conclusion[0] != "needs_browser":
+            # the browser already loaded this URL while getting past the challenge; no need to load it again
+            return browser_response
+        elif self.is_unpassable(host):
+            # the clearance just loaded this host in the browser and got the same challenge
+            log.debug(f"Not fetching {url} in the browser: it couldn't get past {host}")
+        else:
+            fetched = await browser.fetch(url)
+            if fetched is not None and fetched.conclusion[0] != "needs_browser":
+                return fetched
+        return response
+
+    def record_conclusion(self, response, by_browser=False):
+        """
+        Track whether a response's host can only be loaded by a real browser, or not even by one.
+
+        A host is "browser_only" once blasthttp concludes ``needs_browser`` for it (a JavaScript
+        challenge no HTTP client can pass), and "unpassable" once a page the browser itself loaded
+        (``by_browser``) still concludes that. A host that has ever been reached stays "reached", so
+        a host that only challenges some of its paths is not written off. A redirect doesn't count as
+        reaching a host: the protection in front of it often sends one itself (e.g. http to https).
+        """
+        verdict, vendor = response.conclusion
+        if verdict not in ("reached", "needs_browser"):
+            return
+        if verdict == "reached" and 300 <= response.status_code < 400:
+            return
+        host = urlparse(response.url).hostname
+        if not host:
+            return
+        if verdict == "reached":
+            self._host_states[host] = "reached"
+        elif by_browser and self._host_states.get(host) != "reached":
+            if self._host_states.get(host) != "unpassable":
+                log.verbose(f"The browser can't get past {host} either ({vendor} challenge)")
+            self._host_states[host] = "unpassable"
+        elif host not in self._host_states:
+            self._host_states[host] = "browser_only"
+            log.verbose(f"{host} can only be loaded by a browser ({vendor} challenge)")
+
+    def browser_hint(self):
+        """A suggestion to turn the browser on, if it would have opened URLs the scan couldn't."""
+        # with the browser on, the fallback was turned off on purpose
+        if not self.unopened_urls or self.web_config.get("enable_browser", False):
+            return None
+        count = len(self.unopened_urls)
+        urls_were = "URL was" if count == 1 else "URLs were"
+        return (
+            f"{count:,} {urls_were} skipped as they were deemed unopenable without a browser "
+            f"(WAF challenges). Consider re-running with -c web.enable_browser=true"
+        )
+
+    def is_browser_only(self, host):
+        """Whether this host has answered with a challenge only a browser can pass, and has never been reached."""
+        return self._host_states.get(str(host)) in ("browser_only", "unpassable")
+
+    def is_unpassable(self, host):
+        """Whether this host has turned away the browser too, and has never been reached."""
+        return self._host_states.get(str(host)) == "unpassable"
 
     async def is_http_wildcard_host(self, scheme, host, port):
         """Detect whether a host returns the same response regardless of URL path.

@@ -559,6 +559,9 @@ class Scanner:
                     )
             self.debug(f"Awaited {len(tasks):,} tasks")
             await self._report()
+            browser_hint = self.helpers.web.browser_hint()
+            if browser_hint:
+                self.hugeinfo(browser_hint)
             await self._cleanup()
             # report on final scan status
             await self.dispatcher.on_finish(self)
@@ -711,7 +714,7 @@ class Scanner:
             # install module dependencies
             succeeded, failed = await self.helpers.depsinstaller.install(*self.preset.modules)
             if failed:
-                msg = f"Failed to install dependencies for {len(failed):,} modules: {','.join(failed)}"
+                msg = f"Failed to install dependencies for: {','.join(failed)}"
                 self._fail_setup(msg)
             modules = sorted([m for m in self.preset.scan_modules if m in succeeded])
             output_modules = sorted([m for m in self.preset.output_modules if m in succeeded])
@@ -1069,6 +1072,8 @@ class Scanner:
             # clean up dns engine
             if self.helpers._dns is not None:
                 await self.helpers.dns.shutdown()
+            if self.helpers._browser is not None:
+                await self.helpers.browser.shutdown()
             # In some test paths, `_prep()` is never called, so `home` and
             # `temp_dir` may not exist. Treat those as best-effort cleanups.
             home = getattr(self, "home", None)

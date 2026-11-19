@@ -13,6 +13,7 @@ class url_manipulation(BaseModule):
         "author": "@liquidsec",
     }
     in_scope_only = True
+    skip_browser_only_hosts = True
 
     class Config(BaseModuleConfig):
         allow_redirects: bool = Field(

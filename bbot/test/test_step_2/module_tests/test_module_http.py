@@ -1,3 +1,4 @@
+import pytest
 import asyncio
 import threading
 import time
@@ -563,3 +564,55 @@ class TestHTTP_429_pause_capped(HTTP429Base):
     def check(self, module_test, events):
         assert len(self.requests) == 2
         assert 0.8 <= self.requests[1] - self.requests[0] < 5, f"paused {self.requests[1] - self.requests[0]:.2f}s"
+
+
+class TestHTTP_BrowserOnlyHost(ModuleTestBase):
+    """The http module records a host as browser-only when it only answers with a browser challenge."""
+
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http"]
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            "<html>Just a moment...</html>",
+            status=403,
+            headers={"Server": "cloudflare", "cf-mitigated": "challenge"},
+        )
+
+    def check(self, module_test, events):
+        assert module_test.scan.helpers.web.is_browser_only("127.0.0.1")
+
+
+class TestHTTP_BrowserFallback(ModuleTestBase):
+    """With the browser enabled, a page behind a JavaScript challenge comes back as the real page."""
+
+    pytestmark = pytest.mark.browser
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http"]
+    config_overrides = {"web": {"enable_browser": True}}
+
+    async def setup_after_prep(self, module_test):
+        def handler(request):
+            if request.cookies.get("cleared") != "1":
+                challenge = (
+                    "<html><head><title>Just a moment...</title></head><body><script>"
+                    'document.cookie = "cleared=1; path=/"; setTimeout(() => location.reload(), 200);'
+                    "</script></body></html>"
+                )
+                return Response(
+                    challenge,
+                    status=403,
+                    headers={"Server": "cloudflare", "cf-mitigated": "challenge"},
+                    content_type="text/html",
+                )
+            return Response(
+                "<html><head><title>real</title></head>past the challenge</html>", content_type="text/html"
+            )
+
+        module_test.httpserver.expect_request("/").respond_with_handler(handler)
+
+    def check(self, module_test, events):
+        responses = [e for e in events if e.type == "HTTP_RESPONSE"]
+        assert any(e.data["status_code"] == 200 and "past the challenge" in e.body for e in responses)
+        assert not any(e.data["status_code"] == 403 for e in responses)
+        assert not module_test.scan.helpers.web.is_browser_only("127.0.0.1")

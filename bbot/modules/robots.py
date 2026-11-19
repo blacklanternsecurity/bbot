@@ -23,7 +23,7 @@ class robots(BaseModule):
         host = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/"
         result = None
         url = f"{host}robots.txt"
-        result = await self.helpers.request(url)
+        result = await self.helpers.request(url, browser_fallback=True)
         if result:
             body = result.text
 

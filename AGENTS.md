@@ -44,7 +44,12 @@ uv run pytest bbot/test/test_step_2/module_tests/test_module_robots.py
 # the full suite, or a comma-separated subset
 ./bbot/test/run_tests.sh
 ./bbot/test/run_tests.sh robots,sslcert
+
+# the tests that drive a real browser (skipped by default)
+BBOT_TEST_BROWSER=1 uv run pytest -m browser
 ```
+
+Tests marked `browser` need a real browser, a >1GB download, so they're skipped unless `BBOT_TEST_BROWSER` is set. The first run installs the browser into `~/.cache/bbot/test-browser` (override with `BBOT_TEST_BROWSER_DIR`), where later runs reuse it.
 
 Every module has at least one test of its own in `bbot/test/test_step_2/module_tests/`, named `test_module_<name>.py`. [docs/dev/tests.md](docs/dev/tests.md) covers how one is structured and how to mock HTTP and DNS.
 
@@ -64,7 +69,7 @@ class TestMyModule(ModuleTestBase):
     targets = [HTTPSERVER_URL]
 ```
 
-`/tmp/.bbot_test` has the same problem, since the first worker to finish deletes it. `BBOT_TEST_DIR` is the per-worker equivalent.
+A fixed BBOT home like `/tmp/.bbot_test` has the same problem, since the first worker to finish deletes it, and so would another test run going at the same time. `BBOT_TEST_DIR` is this worker's own home, inside a directory unique to the test run.
 
 | Constant | What it is |
 |---|---|

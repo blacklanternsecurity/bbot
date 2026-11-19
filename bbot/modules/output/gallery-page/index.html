@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BBOT Gallery</title>
+<link rel="icon" href="logo.png">
+<link rel="stylesheet" href="gallery.css">
+</head>
+<body>
+<header id="topbar">
+  <div class="brand"><img src="logo.png" alt=""><span id="scan-name">BBOT Gallery</span></div>
+  <input id="search" type="search" placeholder="Search URLs, titles, headers, technologies, certificates, IPs..." autocomplete="off">
+  <div class="views" role="tablist">
+    <button data-view="grid" class="active">Gallery</button>
+    <button data-view="table">Table</button>
+    <button data-view="hosts">Hosts</button>
+  </div>
+  <button id="theme-toggle" title="Switch light/dark">&#9681;</button>
+</header>
+<div id="toolbar">
+  <label>Group by
+    <select id="group-mode">
+      <option value="visual">Looks alike</option>
+      <option value="title">Page title</option>
+      <option value="tech">Technology</option>
+      <option value="cert">TLS certificate</option>
+      <option value="none">Nothing</option>
+    </select>
+  </label>
+  <label id="level-control">Similarity
+    <input id="level" type="range" min="0" max="3" step="1" value="1">
+    <span id="level-label"></span>
+  </label>
+  <label>Order
+    <select id="sort">
+      <option value="rarest">Rarest first</option>
+      <option value="largest">Largest first</option>
+      <option value="host">Host</option>
+      <option value="severity">Worst finding</option>
+    </select>
+  </label>
+  <label class="check"><input id="starred-only" type="checkbox"> Starred only</label>
+  <label class="check"><input id="show-hidden" type="checkbox"> Show hidden</label>
+  <div class="spacer"></div>
+  <button id="compare-button" disabled>Compare (0/2)</button>
+  <div class="menu">
+    <button id="export-button">Export &#9662;</button>
+    <div id="export-menu" class="popup" hidden>
+      <button data-export="copy">Copy URLs</button>
+      <button data-export="txt">Download URLs (.txt)</button>
+      <button data-export="csv">Download CSV</button>
+    </div>
+  </div>
+</div>
+<div id="chips"></div>
+<div id="layout">
+  <aside id="facets"></aside>
+  <main id="main">
+    <div id="spacer"></div>
+    <div id="empty" hidden></div>
+  </main>
+</div>
+<footer id="statusbar"><span id="live-dot"></span><span id="status-text">Waiting for the scan...</span></footer>
+
+<div id="detail" class="overlay" hidden>
+  <div class="overlay-panel detail-panel">
+    <div class="detail-image"><a id="detail-full" target="_blank" rel="noopener"><img id="detail-img" alt=""></a></div>
+    <div class="detail-info">
+      <div class="detail-actions">
+        <button id="detail-prev" title="Previous (Left arrow)">&#8592;</button>
+        <button id="detail-next" title="Next (Right arrow)">&#8594;</button>
+        <button id="detail-star">Star</button>
+        <button id="detail-hide">Hide</button>
+        <button id="detail-compare">Compare</button>
+        <div class="spacer"></div>
+        <button id="detail-close" title="Close (Esc)">&#10005;</button>
+      </div>
+      <div id="detail-body"></div>
+    </div>
+  </div>
+</div>
+
+<div id="lightbox" hidden>
+  <div id="lightbox-stage"><img id="lightbox-img" alt="" title="Click to switch between fit and actual size"></div>
+  <div id="lightbox-bar">
+    <div id="lightbox-caption"></div>
+    <div class="spacer"></div>
+    <button id="lightbox-prev" title="Previous (Left arrow)">&#8592;</button>
+    <button id="lightbox-next" title="Next (Right arrow)">&#8594;</button>
+    <button id="lightbox-details" title="Details (i)">Details</button>
+    <a id="lightbox-full" target="_blank" rel="noopener"><button tabindex="-1">Open image</button></a>
+    <button id="lightbox-close" title="Close (Esc)">&#10005;</button>
+  </div>
+</div>
+
+<div id="compare" class="overlay" hidden>
+  <div class="overlay-panel compare-panel">
+    <div class="detail-actions">
+      <strong>Compare</strong><span id="compare-distance"></span>
+      <div class="spacer"></div>
+      <button id="compare-clear">Clear</button>
+      <button id="compare-close" title="Close (Esc)">&#10005;</button>
+    </div>
+    <div id="compare-body"></div>
+  </div>
+</div>
+
+<script src="gallery.js"></script>
+</body>
+</html>

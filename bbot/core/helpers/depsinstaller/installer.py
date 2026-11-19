@@ -14,6 +14,7 @@ from time import sleep
 from pathlib import Path
 from threading import Lock
 from itertools import chain
+from copy import deepcopy
 from contextlib import suppress
 from secrets import token_bytes
 from ansible_runner.interface import run
@@ -22,7 +23,8 @@ from importlib.metadata import PackageNotFoundError, version as installed_versio
 from packaging.requirements import InvalidRequirement, Requirement
 
 from bbot import __version__
-from ..misc import can_sudo_without_password, os_platform, rm_at_exit, get_python_constraints
+from ..misc import can_sudo_without_password, os_platform, rm_at_exit, get_python_constraints, search_format_dict
+from ..web.browser import BrowserHelper
 
 log = logging.getLogger("bbot.core.helpers.depsinstaller")
 
@@ -117,6 +119,9 @@ class DepsInstaller:
         ],
     }
 
+    # core features whose dependencies are installed only when their config switch is on
+    OPTIONAL_CORE_FEATURES = {"browser": BrowserHelper}
+
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
         self.preset = self.parent_helper.preset
@@ -161,7 +166,7 @@ class DepsInstaller:
 
         self.ensure_root_lock = Lock()
 
-        # pip specs covered by the current batch pass; install_module() skips these
+        # pip specs covered by the current batch pass; install_deps() skips these
         self._batch_installed = set()
 
     async def install(self, *modules):
@@ -208,6 +213,19 @@ class DepsInstaller:
             return None
         if not self._core_deps_cached():
             return None
+        # an enabled core feature (the browser) has deps of its own, which no module lists
+        if self.deps_behavior != "disable":
+            for feature in self.OPTIONAL_CORE_FEATURES.values():
+                if not self._feature_enabled(feature):
+                    continue
+                deps = self._feature_deps(feature)
+                if not list(chain(*deps.values())):
+                    continue
+                if self.setup_status.get(self._deps_hash(deps), None) is not True:
+                    return None
+                satisfied, _ = self._pip_deps_satisfied(deps.get("pip", []))
+                if not satisfied:
+                    return None
         succeeded = []
         for m in modules:
             if self.deps_behavior == "disable":
@@ -233,8 +251,12 @@ class DepsInstaller:
         return (self.parent_helper.cache_dir / core_deps_hash).exists()
 
     def _module_hash(self, preloaded):
+        return self._deps_hash(preloaded["deps"])
+
+    def _deps_hash(self, deps):
+        # take into consideration whether the venv or the deps directory changes
         return self.parent_helper.sha1(
-            json.dumps(preloaded["deps"], sort_keys=True)
+            json.dumps(deps, sort_keys=True)
             + self.venv
             + str(self.parent_helper.deps_home)
             + os.uname()[1]
@@ -281,70 +303,26 @@ class DepsInstaller:
         succeeded = []
         failed = []
         await self._batch_pip_install(modules)
+        self._notified = False
         try:
-            notified = False
-            for m in self._install_order(modules):
-                # assume success if we're ignoring dependencies
-                if self.deps_behavior == "disable":
-                    succeeded.append(m)
+            for name, feature in self.OPTIONAL_CORE_FEATURES.items():
+                if not self._feature_enabled(feature):
                     continue
+                deps = self._feature_deps(feature)
+                if not await self._install_deps(name, deps, kind="core feature"):
+                    failed.append(name)
+            for m in self._install_order(modules):
                 # abort if module name is unknown
-                if m not in self.all_modules_preloaded:
+                if m not in self.all_modules_preloaded and self.deps_behavior != "disable":
                     log.verbose(f'Module "{m}" not found')
                     failed.append(m)
                     continue
-                preloaded = self.all_modules_preloaded[m]
-                log.debug(f"Installing {m} - Preloaded Deps {preloaded['deps']}")
-                # make a hash of the dependencies and check if it's already been handled
-                # take into consideration whether the venv or the deps directory changes
-                module_hash = self._module_hash(preloaded)
-                success = self.setup_status.get(module_hash, None)
-                dependencies = list(chain(*preloaded["deps"].values()))
-                if len(dependencies) <= 0:
-                    log.debug(f'No dependency work to do for module "{m}"')
-                    succeeded.append(m)
-                    continue
-                # don't trust the cache if the packages it claims to have installed are gone
-                # (e.g. the virtualenv was rebuilt by "uv sync")
-                if success is True:
-                    satisfied, reason = self._pip_deps_satisfied(preloaded["deps"]["pip"])
-                    if not satisfied:
-                        log.verbose(f'Dependencies for module "{m}" need reinstalling ({reason})')
-                        success = None
-                if (
-                    success is None
-                    or (success is False and self.deps_behavior == "retry_failed")
-                    or self.deps_behavior == "force_install"
-                ):
-                    if not notified:
-                        log.hugeinfo("Installing module dependencies. Please be patient, this may take a while.")
-                        notified = True
-                    log.verbose(f'Installing dependencies for module "{m}"')
-                    # get sudo access if we need it
-                    if preloaded.get("sudo", False) is True:
-                        self.ensure_root(f'Module "{m}" needs root privileges to install its dependencies.')
-                    success = await self.install_module(m)
-                    self.setup_status[module_hash] = success
-                    # waiters poll this file to learn their own deps have landed, so
-                    # publish per module instead of once the whole chain is done
-                    self.write_setup_status()
-                    if success or self.deps_behavior == "ignore_failed":
-                        log.debug(f'Setup succeeded for module "{m}"')
-                        succeeded.append(m)
-                    else:
-                        log.error(f'Setup failed for module "{m}"')
-                        failed.append(m)
-                elif success or self.deps_behavior == "ignore_failed":
-                    log.debug(
-                        f'Skipping dependency install for module "{m}" because it\'s already done (--force-deps to re-run)'
-                    )
+                preloaded = self.all_modules_preloaded.get(m, {})
+                log.debug(f"Installing {m} - Preloaded Deps {preloaded.get('deps')}")
+                if await self._install_deps(m, preloaded.get("deps", {}), sudo=preloaded.get("sudo", False)):
                     succeeded.append(m)
                 else:
-                    log.error(
-                        f'Skipping dependency install for module "{m}" because it failed previously (--retry-deps to retry or --ignore-failed-deps to ignore)'
-                    )
                     failed.append(m)
-
         finally:
             self.write_setup_status()
 
@@ -352,50 +330,111 @@ class DepsInstaller:
         failed.sort()
         return succeeded, failed
 
-    async def install_module(self, module):
+    def _feature_enabled(self, feature):
+        value = self.parent_helper.config
+        for key in feature.config_switch:
+            value = value.get(key, {})
+        return value is True
+
+    def _feature_deps(self, feature):
+        return search_format_dict(deepcopy(feature.deps), **os.environ)
+
+    async def _install_deps(self, name, deps, kind="module", sudo=False):
+        """
+        Install one set of dependencies (in the same shape as a module's preloaded deps), honoring
+        the deps cache and `deps.behavior`. Returns whether they're usable.
+        """
+        label = f'{kind} "{name}"'
+        # assume success if we're ignoring dependencies
+        if self.deps_behavior == "disable":
+            return True
+        # make a hash of the dependencies and check if it's already been handled
+        deps_hash = self._deps_hash(deps)
+        success = self.setup_status.get(deps_hash, None)
+        dependencies = list(chain(*deps.values()))
+        if len(dependencies) <= 0:
+            log.debug(f"No dependency work to do for {label}")
+            return True
+        # don't trust the cache if the packages it claims to have installed are gone
+        # (e.g. the virtualenv was rebuilt by "uv sync")
+        if success is True:
+            satisfied, reason = self._pip_deps_satisfied(deps.get("pip", []))
+            if not satisfied:
+                log.verbose(f"Dependencies for {label} need reinstalling ({reason})")
+                success = None
+        if (
+            success is None
+            or (success is False and self.deps_behavior == "retry_failed")
+            or self.deps_behavior == "force_install"
+        ):
+            if not self._notified:
+                log.hugeinfo("Installing dependencies. Please be patient, this may take a while.")
+                self._notified = True
+            log.verbose(f"Installing dependencies for {label}")
+            # get sudo access if we need it
+            if sudo is True:
+                self.ensure_root(f"{label[0].upper()}{label[1:]} needs root privileges to install its dependencies.")
+            success = await self.install_deps(name, deps)
+            self.setup_status[deps_hash] = success
+            # waiters poll this file to learn their own deps have landed, so
+            # publish per module instead of once the whole chain is done
+            self.write_setup_status()
+            if success or self.deps_behavior == "ignore_failed":
+                log.debug(f"Setup succeeded for {label}")
+                return True
+            log.error(f"Setup failed for {label}")
+            return False
+        elif success or self.deps_behavior == "ignore_failed":
+            log.debug(f"Skipping dependency install for {label} because it's already done (--force-deps to re-run)")
+            return True
+        log.error(
+            f"Skipping dependency install for {label} because it failed previously (--retry-deps to retry or --ignore-failed-deps to ignore)"
+        )
+        return False
+
+    async def install_deps(self, name, deps):
         success = True
-        preloaded = self.all_modules_preloaded[module]
 
         # apt
-        deps_apt = preloaded["deps"]["apt"]
+        deps_apt = deps.get("apt", [])
         if deps_apt:
             self.apt_install(deps_apt)
 
         # shell
-        deps_shell = preloaded["deps"]["shell"]
+        deps_shell = deps.get("shell", [])
         if deps_shell:
-            success &= self.shell(module, deps_shell)
+            success &= self.shell(name, deps_shell)
 
         # pip
-        deps_pip = preloaded["deps"]["pip"]
-        deps_pip_constraints = preloaded["deps"]["pip_constraints"]
+        deps_pip = deps.get("pip", [])
+        deps_pip_constraints = deps.get("pip_constraints", [])
         if deps_pip:
             # _batch_pip_install() just installed these in one resolver pass, so repeating
             # them per module spawns a no-op pip subprocess costing seconds. Only skip specs
             # the batch actually covered, so --upgrade still runs for everything else.
             if all(dep in self._batch_installed for dep in deps_pip):
-                log.debug(f'Pip dependencies for module "{module}" were installed in the batch pass')
+                log.debug(f'Pip dependencies for "{name}" were installed in the batch pass')
             else:
                 success &= await self.pip_install(deps_pip, constraints=deps_pip_constraints)
 
         # shared/common
-        deps_common = preloaded["deps"]["common"]
+        deps_common = deps.get("common", [])
         if deps_common:
             for dep_common in deps_common:
                 if self.setup_status.get(dep_common, False) is True and self.deps_behavior != "force_install":
                     log.debug(
-                        f'Skipping installation of dependency "{dep_common}" for module "{module}" since it is already installed'
+                        f'Skipping installation of dependency "{dep_common}" for "{name}" since it is already installed'
                     )
                     continue
                 ansible_tasks = self.preset.module_loader._shared_deps[dep_common]
-                result = self.tasks(module, ansible_tasks)
+                result = self.tasks(name, ansible_tasks)
                 self.setup_status[dep_common] = result
                 success &= result
 
         # ansible tasks
-        ansible_tasks = preloaded["deps"]["ansible"]
+        ansible_tasks = deps.get("ansible", [])
         if ansible_tasks:
-            success &= self.tasks(module, ansible_tasks)
+            success &= self.tasks(name, ansible_tasks)
 
         return success
 
@@ -634,7 +673,7 @@ class DepsInstaller:
     async def _batch_pip_install(self, modules):
         """Pre-install every module's pip deps in one resolver pass.
 
-        install_module() still runs per module afterward, but skips any spec this pass
+        install_deps() still runs per module afterward, but skips any spec this pass
         covered. Already-satisfied specs are batched rather than dropped so that
         --upgrade still runs for them, in one resolver pass instead of one subprocess
         per module. Only modules using the default constraints are batched, since
@@ -675,7 +714,7 @@ class DepsInstaller:
             self._batch_installed.update(set(packages) - constrained)
 
     def _needs_install(self, preloaded):
-        """Whether _install() will actually reach install_module() for this module.
+        """Whether _install() will actually reach install_deps() for this module.
 
         Batching deps for a module that is already recorded done would install
         packages the locked path would never have touched.

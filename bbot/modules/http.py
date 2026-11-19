@@ -9,6 +9,30 @@ from bbot.core.helpers.web.response_event import response_to_event_dict
 from bbot.modules.base import BaseModule
 from bbot.core.config.models import BaseModuleConfig, Field
 
+# how a browser recognizes HTML served without a Content-Type: the body opens with one of these (WHATWG MIME sniffing)
+HTML_SNIFF_PREFIXES = tuple(
+    f"<{tag}"
+    for tag in (
+        "!doctype html",
+        "html",
+        "head",
+        "script",
+        "iframe",
+        "h1",
+        "div",
+        "font",
+        "table",
+        "a",
+        "style",
+        "title",
+        "b",
+        "body",
+        "br",
+        "p",
+        "!--",
+    )
+)
+
 
 class http(BaseModule):
     watched_events = ["OPEN_TCP_PORT", "URL_UNVERIFIED", "URL"]
@@ -172,11 +196,16 @@ class http(BaseModule):
             else:
                 self.debug(f"HTTP error for {result.url}: {error_str}")
             return False
-
         response = result.response
+        self.helpers.web.record_conclusion(response)
+        if response.conclusion[0] == "needs_browser":
+            response = await self.helpers.web.get_past_challenge(result.url, response, {"follow_redirects": False})
+        return await self._process_response(result.url, response, parent_event)
+
+    async def _process_response(self, request_url, response, parent_event):
         status_code = response.status
         if status_code == 0:
-            self.debug(f'No HTTP status code for "{result.url}"')
+            self.debug(f'No HTTP status code for "{request_url}"')
             return False
 
         url = response.url
@@ -184,8 +213,8 @@ class http(BaseModule):
         # The "input" field represents the original scan target (host:port),
         # not the full URL. Other modules and output consumers use this to
         # correlate responses back to the target that produced them.
-        input_parsed = urlparse(result.url)
-        url_input = input_parsed.netloc or result.url
+        input_parsed = urlparse(request_url)
+        url_input = input_parsed.netloc or request_url
         j = self._response_to_json(url_input, response)
 
         # discard 404s from unverified URLs
@@ -217,6 +246,17 @@ class http(BaseModule):
             location = j.get("location", "")
             if location:
                 url_event.redirect_location = location
+            content_type = j.get("content_type", "")
+            if not content_type:
+                # what a browser would render it as
+                opening = j.get("body", "")[:512].lstrip().lower()
+                if any(
+                    opening.startswith(prefix) and opening[len(prefix) : len(prefix) + 1] in (" ", ">")
+                    for prefix in HTML_SNIFF_PREFIXES
+                ):
+                    content_type = "text/html"
+            if content_type:
+                url_event.content_type = content_type
             response_hash = j.get("hash")
             if response_hash:
                 url_event.data["hash"] = response_hash
@@ -243,6 +283,10 @@ class http(BaseModule):
     async def handle_batch(self, *events):
         stdin = {}
         for event in events:
+            prefetched = getattr(event, "prefetched_response", None)
+            if prefetched is not None:
+                await self._process_response(event.url, prefetched, event)
+                continue
             held = self._held.get(self._netloc(event))
             urls, url_hash = self.make_url_metadata(event)
             for url in urls:
@@ -288,7 +332,7 @@ class http(BaseModule):
         for url in stdin:
             config = blasthttp.BatchConfig(
                 url,
-                headers=headers,
+                headers=self.helpers.web.apply_clearance(url, headers),
                 timeout=int(timeout),
                 retries=int(retries),
                 verify_certs=False,

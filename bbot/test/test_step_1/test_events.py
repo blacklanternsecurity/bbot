@@ -1,5 +1,8 @@
 import random
+import hashlib
 import ipaddress
+
+import blasthttp
 
 from ..bbot_fixtures import *
 from bbot.scanner import Scanner
@@ -1355,6 +1358,9 @@ async def test_event_magic():
     event = scan.make_event({"path": zip_file}, "FILESYSTEM", parent=scan.root_event)
     assert event.data == {
         "path": "/tmp/.bbottestzipasdkfjalsdf.zip",
+        # files are identified by content, so they can be stored and deduplicated wherever they end up
+        "sha256": hashlib.sha256(zip_bytes).hexdigest(),
+        "size": len(zip_bytes),
         "magic_extension": ".zip",
         "magic_mime_type": "application/zip",
         "magic_description": "PKZIP Archive file",
@@ -1362,6 +1368,9 @@ async def test_event_magic():
         "compression": "zip",
     }
     assert event.tags == {"file", "zip-archive", "compressed"}
+    # a hash that's already there (e.g. an event read back from JSON) is kept
+    event = scan.make_event({"path": zip_file, "sha256": "precomputed"}, "FILESYSTEM", parent=scan.root_event)
+    assert event.data["sha256"] == "precomputed"
 
     # test filesystem event - folder
     scan = Scanner()
@@ -1575,6 +1584,26 @@ async def test_web_parameter_minimize_sentinel():
     assert event._module_consumers >= 1, "no module accepted the event"
     # The sentinel must have prevented premature stripping
     assert "original_value" in event.data, "original_value stripped during distribution -- sentinel missing"
+
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
+async def test_prefetched_response_released():
+    """A URL's prefetched response stays until every module is done with the event, then is released."""
+    scan = Scanner("http://example.com")
+    await scan._prep()
+    event = scan.make_event("http://example.com/app.js", "URL_UNVERIFIED", parent=scan.root_event)
+    assert event.prefetched_response is None
+    response = blasthttp.Response("http://example.com/app.js", 200, headers=[], body=b"var a = 1;")
+    event.prefetched_response = response
+
+    # two modules take the event; the first finishing doesn't release it
+    event._module_consumers = 2
+    event._minimize()
+    assert event.prefetched_response is response
+    event._minimize()
+    assert event.prefetched_response is None
 
     await scan._cleanup()
 

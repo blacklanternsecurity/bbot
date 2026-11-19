@@ -80,6 +80,7 @@ class bypass403(BaseModule):
     flags = ["active", "loud", "web-heavy"]
     meta = {"description": "Check 403 pages for common bypasses", "created_date": "2022-07-05", "author": "@liquidsec"}
     in_scope_only = True
+    skip_browser_only_hosts = True
 
     async def setup(self):
         self.waf_yara_rules = self.helpers.yara.compile_strings(get_waf_strings(), nocase=True)

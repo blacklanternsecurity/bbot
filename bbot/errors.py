@@ -66,6 +66,10 @@ class WebError(BBOTError):
     pass
 
 
+class BrowserError(BBOTError):
+    pass
+
+
 class DNSError(BBOTError):
     pass
 

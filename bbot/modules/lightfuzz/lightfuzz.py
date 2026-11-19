@@ -20,6 +20,7 @@ class lightfuzz(BaseModule):
     watched_events = ["URL", "WEB_PARAMETER"]
     produced_events = ["FINDING", "HTTP_RESPONSE"]
     flags = ["active", "loud", "web-heavy", "invasive"]
+    skip_browser_only_hosts = True
 
     class Config(BaseModuleConfig):
         force_common_headers: bool = Field(
@@ -258,6 +259,9 @@ class lightfuzz(BaseModule):
         except Exception as e:
             self.debug(f"Failed to build HTTP_RESPONSE dict from lightfuzz baseline: {e}")
             return
+        # what the probe sent, so excavate doesn't take a page echoing it back for parameters it hadn't seen
+        if event.type == "WEB_PARAMETER":
+            j["sent_parameters"] = sorted({event.data["name"], *(event.data.get("additional_params") or {})})
         await self.emit_event(
             j,
             "HTTP_RESPONSE",

@@ -4938,6 +4938,10 @@ class Test_Lightfuzz_baseline_to_excavate_chain(ModuleTestBase):
         assert all("from-lightfuzz" in e.tags for e in lightfuzz_responses), (
             "lightfuzz-emitted HTTP_RESPONSE events missing 'from-lightfuzz' tag"
         )
+        # and say what the probe sent, so excavate doesn't take a page echoing it back for new parameters
+        assert all(e.data.get("sent_parameters") for e in lightfuzz_responses), (
+            "lightfuzz-emitted HTTP_RESPONSE events missing sent_parameters"
+        )
 
         # `from-lightfuzz` should propagate down the parent chain (parallel to
         # `from-wayback` / `affiliate`). The URL_UNVERIFIED that excavate mined out
@@ -6011,3 +6015,29 @@ class Test_Lightfuzz_baseline_within_spider_limits(Test_Lightfuzz_baseline_respe
     def check(self, module_test, events):
         visited = {e.parsed_url.path for e in events if e.type == "URL"}
         assert "/target" in visited, f"Baseline URL within spider_distance was not visited: {visited}"
+
+
+class Test_Lightfuzz_baseline_same_page(ModuleTestBase):
+    """A baseline of a parameter on a page the scan already has is that page again, so it isn't a new URL."""
+
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http", "lightfuzz", "excavate", "speculate"]
+    config_overrides = {
+        "interactsh_disable": True,
+        # as the lightfuzz presets have it, so a URL keeps its parameters
+        "url_querystring_remove": False,
+        "modules": {"lightfuzz": {"enabled_submodules": ["path"]}},
+    }
+
+    async def setup_after_prep(self, module_test):
+        page = '<html><form action="/" method="GET"><input type="text" name="q"><button type="submit">Go</button></form></html>'
+        module_test.set_expect_requests(
+            expect_args={"method": "GET", "uri": "/"}, respond_args={"response_data": page}
+        )
+
+    def check(self, module_test, events):
+        assert any(e.type == "WEB_PARAMETER" and e.data["name"] == "q" for e in events)
+        assert any(e.type == "HTTP_RESPONSE" and "from-lightfuzz" in e.tags for e in events)
+        urls = [e.data["url"] for e in events if e.type in ("URL", "URL_UNVERIFIED")]
+        probes = [url for url in urls if url.startswith(f"{HTTPSERVER_URL}/?q=")]
+        assert not probes, f"lightfuzz's baseline came back as a new URL: {probes}"

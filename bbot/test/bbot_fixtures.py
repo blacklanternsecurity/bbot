@@ -22,15 +22,26 @@ log = logging.getLogger("bbot.test.fixtures")
 
 
 # Per-xdist-worker so parallel workers don't share caches, scan output, or the
-# sessionfinish cleanup. Serial runs still get /tmp/.bbot_test.
+# sessionfinish cleanup. Serial runs get their run's base dir.
 bbot_test_dir = BBOT_TEST_DIR
 mkdir(bbot_test_dir)
 
 
 DEFAULT_PRESET = Preset()
 
-available_modules = list(DEFAULT_PRESET.module_loader.configs(type="scan"))
-available_output_modules = list(DEFAULT_PRESET.module_loader.configs(type="output"))
+# modules that need the browser can't run in a scan without it, nor can modules that only serve those (companion_of);
+# they have their own tests
+available_modules = [
+    m
+    for m in DEFAULT_PRESET.module_loader.configs(type="scan")
+    if not DEFAULT_PRESET.module_loader.preloaded()[m].get("browser_artifacts", [])
+]
+available_output_modules = [
+    m
+    for m in DEFAULT_PRESET.module_loader.configs(type="output")
+    if not (companions := set(DEFAULT_PRESET.module_loader.preloaded()[m].get("companion_of", [])))
+    or companions & set(available_modules)
+]
 available_internal_modules = list(DEFAULT_PRESET.module_loader.configs(type="internal"))
 
 

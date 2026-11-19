@@ -1,3 +1,5 @@
+import pytest
+
 from .base import ModuleTestBase
 from bbot.test.worker import HTTPSERVER_URL
 
@@ -167,3 +169,38 @@ class TestRetireJSNoExcavate(ModuleTestBase):
         # No retirejs findings should be generated since setup failed
         retirejs_findings = [e for e in events if e.type == "FINDING" and getattr(e, "module", None) == "retirejs"]
         assert len(retirejs_findings) == 0, "retirejs should not generate findings when setup fails"
+
+
+class TestRetireJSBrowser(ModuleTestBase):
+    pytestmark = pytest.mark.browser
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http", "excavate", "retirejs", "browser_dom"]
+    config_overrides = {"web": {"enable_browser": True}}
+
+    # the script is only added once the page runs, so only the browser finds it
+    page = """<html><head><title>browser-loaded script</title></head><body><script>
+const s = document.createElement("script");
+s.src = "/jquery-3.4" + ".1.min.js";
+document.head.appendChild(s);
+</script></body></html>"""
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests({"uri": "/"}, {"response_data": self.page, "content_type": "text/html"})
+        module_test.set_expect_requests(
+            {"uri": "/jquery-3.4.1.min.js"},
+            {"response_data": TestRetireJS.jquery_content, "content_type": "application/javascript"},
+        )
+
+    def check(self, module_test, events):
+        descriptions = [
+            e.data.get("description", "")
+            for e in events
+            if e.type == "FINDING"
+            and "vulnerable javascript library detected:" in e.data.get("description", "").lower()
+        ]
+        assert any("library detected: jquery v3.4.1" in d and "CVE-2020-11022" in d for d in descriptions), (
+            descriptions
+        )
+        # retirejs analyzed the copy the browser loaded, rather than fetching the script again
+        script_requests = [r for r, _ in module_test.httpserver.log if r.path == "/jquery-3.4.1.min.js"]
+        assert len(script_requests) == 1

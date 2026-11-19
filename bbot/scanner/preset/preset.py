@@ -502,19 +502,45 @@ class Preset(metaclass=BasePreset):
             if baked_preset.config.get(internal_module, True) is False:
                 baked_preset.exclude_modules.add(internal_module)
 
+        # modules that need the browser can't run in a scan without it
+        browser_off = scan is not None and not baked_preset.config.get("web", {}).get("enable_browser", False)
+
         # enable modules by flag
+        skipped_browser_modules = set()
         for flag in baked_preset.flags:
             for module, preloaded in baked_preset.module_loader.preloaded().items():
                 module_flags = preloaded.get("flags", [])
                 module_type = preloaded.get("type", "scan")
                 if flag in module_flags:
+                    # a flag that happens to cover a browser module isn't a request for the browser, so leave it out
+                    if browser_off and preloaded.get("browser_artifacts", []):
+                        skipped_browser_modules.add(module)
+                        continue
                     self.log_debug(f'Enabling module "{module}" because it has flag "{flag}"')
                     baked_preset.add_module(module, module_type, raise_error=False)
+        skipped_browser_modules -= set(baked_preset.modules)
+        if skipped_browser_modules:
+            log.warning(
+                f"Not enabling {', '.join(sorted(skipped_browser_modules))}: "
+                "they need the browser, which is off. Set `web.enable_browser=true` to include them."
+            )
 
         # ensure we have output modules (unless the user explicitly excluded them)
         if not baked_preset.output_modules and not baked_preset.exclude_output_modules:
             for output_module in self.default_output_modules:
                 baked_preset.add_module(output_module, module_type="output", raise_error=False)
+
+        # modules that serve others (`companion_of`) come along with them. After the default output modules, so an
+        # output companion doesn't stand in for those
+        excluded = baked_preset.exclude_modules | baked_preset.exclude_output_modules
+        for module, preloaded in baked_preset.module_loader.preloaded().items():
+            companion_of = set(preloaded.get("companion_of", []))
+            if not companion_of or module in baked_preset.modules or module in excluded:
+                continue
+            auto_enable = baked_preset.config.get("modules", {}).get(module, {}).get("auto_enable", True)
+            if auto_enable and companion_of & baked_preset.modules:
+                self.log_verbose(f'Enabling module "{module}" alongside {", ".join(sorted(companion_of))}')
+                baked_preset.add_module(module, preloaded.get("type", "scan"), raise_error=False)
 
         # dnsresolve is the intercept module that resolves every event, tags wildcards/unresolved,
         # and rewrites wildcard hits to `_wildcard.parent`. Modules that watch DNS_NAME depend on
@@ -541,6 +567,30 @@ class Preset(metaclass=BasePreset):
                     "Use `dns.minimal: true` (resolves A/AAAA only, skips MX/NS/SRV expansion) "
                     "if you want to reduce DNS overhead while keeping wildcard and unresolved tagging. "
                     "If you genuinely want no DNS at all, also disable the modules listed above."
+                )
+
+        # a companion on its own has nothing to serve
+        if scan is not None:
+            for module in sorted(baked_preset.modules):
+                companion_of = baked_preset.preloaded_module(module).get("companion_of", [])
+                if companion_of and not set(companion_of) & baked_preset.modules:
+                    raise ValidationError(
+                        f"Module {module} only works alongside {' or '.join(companion_of)}, which "
+                        f"{'is' if len(companion_of) == 1 else 'are'} not enabled. Enable "
+                        f"{'it' if len(companion_of) == 1 else 'one of them'} or remove {module}."
+                    )
+
+        # modules that only work through the browser can't run without it, when explicitly asked for
+        if browser_off:
+            browser_modules = sorted(
+                m for m in baked_preset.modules if baked_preset.preloaded_module(m).get("browser_artifacts", [])
+            )
+            if browser_modules:
+                plural = len(browser_modules) > 1
+                raise ValidationError(
+                    f"{'Modules' if plural else 'Module'} {', '.join(browser_modules)} "
+                    f"{'require' if plural else 'requires'} the browser, but `web.enable_browser` is false. "
+                    f"Set `web.enable_browser=true` or remove {'them' if plural else 'the module'}."
                 )
 
         # create target object

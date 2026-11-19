@@ -13,6 +13,9 @@ from ..core.helpers.async_helpers import LaneQueue, TaskCounter, ShuffleQueue
 from ..core.event import is_event
 from .. import __version__
 
+# content types a module that uses the browser will load
+BROWSER_PAGE_TYPES = {"text/html", "application/xhtml+xml"}
+
 
 class BaseModule:
     """The base class for all BBOT modules.
@@ -63,6 +66,14 @@ class BaseModule:
 
         accept_url_special (bool): Accept "special" URLs not typically distributed to web modules, e.g. JS URLs. Default is False.
 
+        browser_artifacts (List): What this module needs from the browser, e.g. ["screenshot"]. Declaring any makes the module depend on the browser and limits its URL events to web pages, so the scan won't start unless `web.enable_browser` is on. Empty list by default.
+
+        companion_of (List): Modules this module exists to serve, e.g. ["screenshot"]. It's enabled automatically
+            alongside any of them unless its `auto_enable` option is false, and a scan that enables it without any of
+            them won't start. Empty list by default.
+
+        skip_browser_only_hosts (bool): Reject events whose host has only ever answered with a challenge that needs a real browser. For modules that send many crafted requests a browser can't make. Default is False.
+
         options (Dict): Customizable options for the module, e.g., {"api_key": ""}. Empty dict by default.
 
         options_desc (Dict): Descriptions for options, e.g., {"api_key": "API Key"}. Empty dict by default.
@@ -110,6 +121,9 @@ class BaseModule:
     target_only = False
     in_scope_only = False
     accept_url_special = False
+    skip_browser_only_hosts = False
+    browser_artifacts = []
+    companion_of = []
     _avoid_duplicate_content = False
     _module_threads = 1
     _batch_size = 1
@@ -878,6 +892,9 @@ class BaseModule:
             return True, "its type is FINISHED"
         if self.errored:
             return False, "module is in error state"
+        # active modules don't touch the machine BBOT runs on (dnsresolve tags hosts that resolve to it)
+        if "loopback" in event.tags and "active" in self.flags:
+            return False, "its host resolves to loopback (pass --allow-loopback to scan it)"
         # exclude non-watched types
         watched_events = self.get_watched_events()
         event_type_watched = any(t in watched_events for t in ("*", event.type))
@@ -942,6 +959,17 @@ class BaseModule:
         filter_result, reason = self._scope_distance_check(event)
         if not filter_result:
             return filter_result, reason
+
+        if self.skip_browser_only_hosts and event.host and self.helpers.web.is_browser_only(event.host):
+            return False, "its host can only be loaded by a browser"
+
+        # the browser renders pages; an image or a JSON file isn't one
+        if self.browser_artifacts and event.type == "URL":
+            content_type = event.content_type
+            if content_type not in BROWSER_PAGE_TYPES:
+                return False, f"it isn't a web page ({content_type or 'no content type, and not HTML'})"
+        if self.browser_artifacts and event.host and self.helpers.web.is_unpassable(event.host):
+            return False, "the browser couldn't get past its host's protection"
 
         # custom filtering
         async with self.scan._acatch(context=self.filter_event):
@@ -1368,6 +1396,35 @@ class BaseModule:
             kwargs["headers"]["Authorization"] = f"Bearer {self.api_key}"
         return url, kwargs
 
+    def wants_parameters(self):
+        """Whether a module in the scan tests parameters, which is what a WEB_PARAMETER is for."""
+        return any("WEB_PARAMETER" in m.get_watched_events() for m in self.scan.modules.values())
+
+    async def browser_visit(self, event):
+        """
+        Load `event`'s URL in the browser and return the `BrowserVisit`, or None if the page couldn't be loaded.
+
+        If the page tried to send itself elsewhere (a script or meta refresh), the browser kept the original page
+        and the destination is emitted here as a URL_UNVERIFIED, once across every module sharing the visit.
+        """
+        url = event.url or event.data
+        visit = await self.helpers.browser.visit(url, consumer=self.name)
+        if visit is None or visit.redirect is None or visit.redirect_emitted:
+            return visit
+        visit.redirect_emitted = True
+        method, target = visit.redirect
+        # a form posting itself somewhere isn't a page to visit, and reloading the same page isn't a discovery
+        if method == "GET" and target != visit.response.url:
+            # no spider-danger: like an HTTP redirect, following it doesn't count as spidering
+            await self.emit_event(
+                target,
+                "URL_UNVERIFIED",
+                parent=event,
+                tags=["js-redirect"],
+                context=f"{{module}} loaded {url} in a browser, which tried to redirect to {{event.type}}: {target}",
+            )
+        return visit
+
     async def api_request(self, *args, **kwargs):
         """
         Makes an HTTP request while automatically:
@@ -1378,7 +1435,7 @@ class BaseModule:
         """
         url = args[0] if args else kwargs.pop("url", "")
         retry_on_http_429 = kwargs.pop("retry_on_http_429", True)
-        # we do all the retrying here; blasthttp's own retries would ignore Retry-After
+        # we do all the retrying here, so a rate limit is shared by every event handler and each retry can cycle the key
         kwargs["retries"] = 0
         # API calls identify themselves honestly instead of using the scan's (browser) user agent
         kwargs["headers"] = dict(kwargs.get("headers") or {})

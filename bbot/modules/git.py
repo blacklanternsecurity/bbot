@@ -24,7 +24,7 @@ class git(BaseModule):
             self.helpers.urljoin(base_url, ".git/config"),
             self.helpers.urljoin(f"{base_url}/", ".git/config"),
         }
-        async for url, response in self.helpers.request_batch_stream(urls):
+        async for url, response in self.helpers.request_batch_stream(urls, browser_fallback=True):
             text = getattr(response, "text", "")
             if not text:
                 text = ""

@@ -4,6 +4,7 @@ import sys
 import uuid
 import json
 import base64
+import hashlib
 import logging
 import tarfile
 import datetime
@@ -1259,6 +1260,11 @@ class DictPathEvent(DictHostEvent):
                 self._data_path = self.scan.home / self._data_path
             if self._data_path.is_file():
                 self.add_tag("file")
+                # identify the file by its content, so wherever it ends up it can be stored once and deduplicated
+                if "sha256" not in new_data:
+                    with open(self._data_path, "rb") as file:
+                        new_data["sha256"] = hashlib.file_digest(file, "sha256").hexdigest()
+                new_data.setdefault("size", self._data_path.stat().st_size)
                 if file_blobs:
                     with open(self._data_path, "rb") as file:
                         blob = file.read()
@@ -1421,10 +1427,14 @@ class URL_UNVERIFIED(DictHostEvent):
     __slots__ = [
         "web_spider_distance",
         "num_redirects",
+        # a response the emitting module already has (e.g. from a browser), which modules use instead of fetching the
+        # URL again. Released once every module is done with the event
+        "prefetched_response",
     ]
 
     def __init__(self, *args, **kwargs):
         self.web_spider_distance = 0
+        self.prefetched_response = None
         super().__init__(*args, **kwargs)
         self.num_redirects = getattr(self.parent, "num_redirects", 0)
 
@@ -1565,6 +1575,20 @@ class URL_UNVERIFIED(DictHostEvent):
     def redirect_location(self, value):
         self.data["redirect_location"] = value
 
+    def _minimize(self):
+        super()._minimize()
+        if self._module_consumers <= 0:
+            self.prefetched_response = None
+
+    @property
+    def content_type(self):
+        """The response's MIME type, without parameters like charset. Empty if the URL hasn't been visited."""
+        return self.data.get("content_type", "")
+
+    @content_type.setter
+    def content_type(self, value):
+        self.data["content_type"] = value.split(";")[0].strip().lower()
+
 
 class URL(URL_UNVERIFIED):
     def __init__(self, *args, **kwargs):
@@ -1612,6 +1636,7 @@ class WEB_PARAMETER(DictHostEvent):
             self._data.pop("original_value", None)
             self._data.pop("additional_params", None)
             self._data.pop("assigned_cookies", None)
+            self._data.pop("assigned_headers", None)
             self._data.pop("same_param_values", None)
 
     @property

@@ -383,6 +383,12 @@ class WebConfig(BaseModel):
     http_max_redirects: Optional[int] = None
     ssl_verify_target: Optional[bool] = None
     ssl_verify_infrastructure: Optional[bool] = None
+    enable_browser: Optional[bool] = None
+    browser_fallback: Optional[bool] = None
+    browser_max_pages: Optional[int] = None
+    browser_recycle_after: Optional[int] = None
+    browser_idle_timeout: Optional[int] = None
+    browser_ws_endpoint: Optional[str] = None
 
 
 class EngineConfig(BaseModel):
@@ -490,6 +496,9 @@ class BBOTConfig(BaseModel):
 
     # CDN/WAF port filtering
     cdn_port_filter: Optional[CdnPortFilterConfig] = None
+
+    # let active modules scan hosts that resolve to loopback
+    allow_loopback: Optional[bool] = None
 
     # Parameter handling
     parameter_blacklist: Optional[list[str]] = None

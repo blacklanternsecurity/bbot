@@ -5,7 +5,9 @@ import time
 import inspect
 import regex as re
 from pathlib import Path
+from cachetools import LRUCache
 from bbot.errors import ExcavateError, ValidationError
+from bbot.core.helpers.async_helpers import async_cachedmethod
 import bbot.core.helpers.regexes as bbot_regexes
 from bbot.modules.base import BaseInterceptModule
 from bbot.modules.internal.base import BaseInternalModule
@@ -619,26 +621,24 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             context="{module} found content past the end of the document on a {event.type} redirect, which browsers never display",
         )
 
-    def in_bl(self, value):
-        # Check if the value is in the blacklist or starts with a blacklisted prefix.
-        lower_value = value.lower()
-
-        if lower_value in self.parameter_blacklist:
-            return True
-
-        for bl_param_prefix in self.parameter_blacklist_prefixes:
-            if lower_value.startswith(bl_param_prefix):
-                return True
-
-        return False
-
     def _is_archived(self, event):
         """Check if an event represents archived wayback content."""
         return isinstance(event.data, dict) and "archive_url" in event.data
 
+    # one verdict per response, however many URLs it holds
+    @async_cachedmethod(lambda self: self._http_wildcard_cache, key=lambda event: event.id)
     async def _host_is_http_wildcard(self, event):
         """True if this event's host is an HTTP wildcard responder."""
         return await self._is_http_wildcard_host(event) is True
+
+    def echoed(self, event, parameter_name):
+        """
+        Whether `parameter_name` is only an echo: the request that got `event` sent it, as a lightfuzz probe's response
+        says. A page that writes its own URL into its links or a redirect would otherwise hand the probe's parameters
+        back as new ones on every page it points to, each probed again in turn.
+        """
+        # RAW_TEXT, from a document, is plain text, with nothing it was sent
+        return isinstance(event.data, dict) and parameter_name in event.data.get("sent_parameters", ())
 
     def _event_host(self, event):
         """Get the effective host from an event.
@@ -1041,11 +1041,24 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             self.excavate.debug(f"Invalid URL [{url}]: {e}")
                             continue
 
+                        # a link's path never holds these: they come from template placeholders ({{...}}) and escaped links (\/)
+                        if any(c in parsed_url.path for c in "{}\\"):
+                            self.excavate.debug(f"Skipping parameter [{parameter_name}]: [{url}] isn't a link")
+                            continue
+
                         if not self.excavate.helpers.validate_parameter(parameter_name, parameter_type):
                             self.excavate.debug(f"blocked parameter [{parameter_name}] due to validation failure")
                             continue
-                        if self.excavate.in_bl(parameter_name) is not False:
+                        if self.excavate.helpers.web.parameter_blacklisted(parameter_name):
                             self.excavate.debug(f"blocked parameter [{parameter_name}] due to BL match")
+                            continue
+                        # a form's fields are what lightfuzz mines its responses for, so only links and scripts
+                        if (
+                            parameter_type == "GETPARAM"
+                            and "Form" not in submodule_name
+                            and self.excavate.echoed(event, parameter_name)
+                        ):
+                            self.excavate.debug(f"Skipping parameter [{parameter_name}]: lightfuzz's own, echoed")
                             continue
 
                         emit_url = self.excavate.url_unparse(parameter_type, parsed_url)
@@ -1469,6 +1482,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
             )
 
     async def setup(self):
+        self._http_wildcard_cache = LRUCache(maxsize=1000)
         self.yara_rules_dict = {}
         self.yara_preprocess_dict = {}
         self.custom_yara_imports = []
@@ -1505,11 +1519,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                     excavateRule = e(self)
                     for rule_name, rule_content in excavateRule.yara_rules.items():
                         self.add_yara_rule(rule_name, rule_content, excavateRule)
-
-        self.parameter_blacklist = set(p.lower() for p in self.scan.config.get("parameter_blacklist", []))
-        self.parameter_blacklist_prefixes = set(
-            p.lower() for p in self.scan.config.get("parameter_blacklist_prefixes", [])
-        )
 
         self.custom_yara_rules = self.config.get("custom_yara_rules", "")
         if self.custom_yara_rules:
@@ -1639,7 +1648,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                         regex_name,
                         additional_params,
                     ) in extract_params_url(event.parsed_url):
-                        if self.in_bl(parameter_name) is False:
+                        if not self.helpers.web.parameter_blacklisted(parameter_name):
                             await self.emit_web_parameter(
                                 host=self._event_host(event),
                                 param_type="GETPARAM",
@@ -1675,7 +1684,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             cookie_name, _, remainder = header_value.partition("=")
                             cookie_value = remainder.split(";")[0]
 
-                            if self.in_bl(cookie_name) is False:
+                            if not self.helpers.web.parameter_blacklisted(cookie_name):
                                 self.assigned_cookies[cookie_name] = cookie_value
                                 event_base = self._event_base_url(event)
                                 await self.emit_web_parameter(
@@ -1731,7 +1740,9 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                         regex_name,
                                         additional_params,
                                     ) in extract_params_location(header_value, self._event_base_url(event)):
-                                        if self.in_bl(parameter_name) is False:
+                                        if not self.helpers.web.parameter_blacklisted(
+                                            parameter_name
+                                        ) and not self.echoed(event, parameter_name):
                                             await self.emit_web_parameter(
                                                 host=self._event_host(event),
                                                 param_type="GETPARAM",

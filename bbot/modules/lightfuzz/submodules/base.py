@@ -189,6 +189,12 @@ class BaseLightfuzz:
         else:
             return None
 
+        # Headers the page's own code sent with the request the parameter came from, like a CSRF token, go with every
+        # probe; a probe of a header of the same name wins.
+        assigned_headers = self.event.data.get("assigned_headers") if isinstance(self.event.data, dict) else None
+        if assigned_headers:
+            request_params["headers"] = {**assigned_headers, **request_params.get("headers", {})}
+
         # Stamp Referer to the form's host page (when distinct from action) — some apps
         # validate Referer for CSRF-like patterns and reject POSTs without it.
         host_url = self.event.data.get("host_url") if isinstance(self.event.data, dict) else None
