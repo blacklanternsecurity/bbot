@@ -464,6 +464,18 @@ class nuclei(BaseModule):
         env["XDG_CACHE_HOME"] = str(self.nuclei_cache_dir)
         return env
 
+    def _nuclei_update_env(self):
+        # The template update finds the latest nuclei-templates release through
+        # GitHub's API, which allows 60 unauthenticated requests an hour per IP.
+        # Shared CI runners and NAT'd networks run out of that. The update is the
+        # one nuclei call that gets GITHUB_TOKEN, so it can use the authenticated
+        # limit. Scans still never see it: together with GITHUB_TEMPLATE_REPO it
+        # would pull templates from the user's private repos.
+        env = self._nuclei_env()
+        if token := os.environ.get("GITHUB_TOKEN"):
+            env["GITHUB_TOKEN"] = token
+        return env
+
     async def _count_condition_templates(self, condition):
         """Ask nuclei how many templates a -template-condition expression selects.
 
@@ -575,15 +587,19 @@ class nuclei(BaseModule):
 
     async def _run_template_update(self):
         self.info("Updating Nuclei templates")
-        # shield so an outer cancel can't kill the subprocess mid-extract and
-        # corrupt the templates dir
-        update_results = await asyncio.shield(
-            self.run_process(
-                ["nuclei", "-update-template-dir", self.nuclei_templates_dir, "-update-templates"],
-                env=self._nuclei_env(),
-            )
-        )
+        env = self._nuclei_update_env()
+        update_results = await self._update_templates_with(env)
         outcome = self._classify_update_stderr(update_results.stderr)
+        if outcome == "failure" and "GITHUB_TOKEN" in env:
+            # With a bad token nuclei refuses to download at all ("gh auth failed"),
+            # and this is the user's own token, so it may be expired or scoped for
+            # something else. One retry without it is the update bbot ran before it
+            # passed the token, so a stale token can't make things worse than that.
+            self.verbose(
+                f"Nuclei template update failed with GITHUB_TOKEN, retrying without it: {update_results.stderr or '<no stderr>'}"
+            )
+            update_results = await self._update_templates_with(self._nuclei_env())
+            outcome = self._classify_update_stderr(update_results.stderr)
         if outcome == "updated":
             self.success("Successfully updated nuclei templates")
         elif outcome == "up-to-date":
@@ -591,6 +607,16 @@ class nuclei(BaseModule):
         else:
             self.warning(f"Failure while updating nuclei templates: {update_results.stderr or '<no stderr>'}")
         return outcome
+
+    async def _update_templates_with(self, env):
+        # shield so an outer cancel can't kill the subprocess mid-extract and
+        # corrupt the templates dir
+        return await asyncio.shield(
+            self.run_process(
+                ["nuclei", "-update-template-dir", self.nuclei_templates_dir, "-update-templates"],
+                env=env,
+            )
+        )
 
     # nuclei's success messaging has drifted across releases (installed / updated /
     # downloaded). Match any of them so a future rename doesn't silently downgrade
