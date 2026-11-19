@@ -772,6 +772,27 @@ class TestExcavateSelectTagSelection(ModuleTestBase):
         )
 
 
+class TestExcavateParameterExtraction_tag_text_in_code(ModuleTestBase):
+    """A tag's attribute that isn't a URL, like tag-shaped text in a script, gives no parameters, as it gives no URL"""
+
+    modules_overrides = ["excavate", "http", "hunt"]
+    targets = [f"{HTTPSERVER_URL}/"]
+    page = """<html><body>
+    <a href="/page?real=1">link</a>
+    <script>
+    function render(w) { return '<a href="b,this.pathname=w[1],w[2]?t=w[2]">x</a>'; }
+    </script>
+    </body></html>"""
+
+    async def setup_before_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(self.page, content_type="text/html")
+
+    def check(self, module_test, events):
+        names = {e.data["name"] for e in events if e.type == "WEB_PARAMETER"}
+        assert "real" in names, names
+        assert "t" not in names, names
+
+
 class TestExcavateParameterExtraction_postform_noaction(ModuleTestBase):
     targets = [f"{HTTPSERVER_URL}/"]
 
