@@ -2,7 +2,7 @@ import asyncio
 import html
 import re
 import secrets
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from werkzeug.wrappers import Response
@@ -235,13 +235,14 @@ class TestDominoParameterOncePerCode(ModuleTestBase):
         assert [run for run in self.runs if run] == [["q"]], self.runs
 
 
-# links to one page with three parameters
-PARAMETERS_PAGE = """<html><head><title>links</title></head><body><a href="/page?a=1&b=2&c=3">page</a></body></html>"""
+# links to two requests of one page: one with three parameters, one with another
+PARAMETERS_PAGE = """<html><head><title>links</title></head><body>
+<a href="/page?a=1&b=2&c=3">page</a><a href="/page?d=4">other</a></body></html>"""
 
 
 class TestDominoParameterBatch(ModuleTestBase):
-    """A page's GET parameters are tested in one DOMino run, its page loaded at most once to find its code, and each
-    finding goes under the parameter it's about"""
+    """The GET parameters of one request are tested in one DOMino run of that request, never mixed with another
+    request's; the page is loaded at most once to find its code, and each finding goes under the parameter it's about"""
 
     pytestmark = pytest.mark.browser
     targets = [f"{HTTPSERVER_URL}/"]
@@ -268,6 +269,8 @@ class TestDominoParameterBatch(ModuleTestBase):
                 await asyncio.sleep(2)
                 return [], True
             self.runs.append((url, parameters))
+            if "b" not in parameters:
+                return [], True
             # a finding for b, as DOMino reports one: at the URL tested, with b's value changed
             return [
                 {
@@ -288,9 +291,9 @@ class TestDominoParameterBatch(ModuleTestBase):
         module_test.monkeypatch.setattr(module, "url_code", counting_url_code)
 
     def check(self, module_test, events):
-        assert [parameters for _, parameters in self.runs] == [["a", "b", "c"]], self.runs
-        url = self.runs[0][0]
-        assert "/page?" in url and all(f"{name}={value}" in url for name, value in (("a", 1), ("b", 2), ("c", 3)))
+        runs = {tuple(parameters): parse_qs(urlparse(url).query) for url, parameters in self.runs}
+        # each request tested as it was found, the parameters of one never added to the other
+        assert runs == {("a", "b", "c"): {"a": ["1"], "b": ["2"], "c": ["3"]}, ("d",): {"d": ["4"]}}, self.runs
         assert len([u for u in self.loaded if "/page" in u]) <= 1, self.loaded
         findings = [e for e in events if e.type == "FINDING"]
         assert len(findings) == 1, findings
