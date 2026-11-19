@@ -289,6 +289,32 @@ async def test_modules_basic_checks(events, blasthttp_mock):
 
 
 @pytest.mark.asyncio
+async def test_modules_basic_precheck_event(bbot_scanner):
+    """A module's precheck_event() turns events away before they're queued, with its reason or a default one"""
+
+    class picky(BaseModule):
+        _name = "picky"
+        watched_events = ["DNS_NAME"]
+
+        def precheck_event(self, event):
+            if event.data.startswith("skip."):
+                return False, "it's one to skip"
+            return not event.data.startswith("bare.")
+
+    scan = bbot_scanner("evilcorp.com")
+    await scan._prep()
+    module = picky(scan)
+    for name, expected in (
+        ("www.evilcorp.com", (True, "precheck succeeded")),
+        ("skip.evilcorp.com", (False, "it's one to skip")),
+        ("bare.evilcorp.com", (False, "it did not meet the module's precheck")),
+    ):
+        event = scan.make_event(name, parent=scan.root_event)
+        assert module._event_precheck(event) == expected
+    await scan._cleanup()
+
+
+@pytest.mark.asyncio
 async def test_modules_basic_perhostonly(bbot_scanner):
     from bbot.modules.base import BaseModule
 
