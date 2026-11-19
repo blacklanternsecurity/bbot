@@ -37,7 +37,7 @@ if __name__ == "__main__":
 ```text
 usage: bbot [-h] [-t TARGET [TARGET ...]] [-s SEEDS [SEEDS ...]]
                [-b BLACKLIST [BLACKLIST ...]] [--strict-scope]
-               [-p [PRESET ...]] [-c [CONFIG ...]] [-lp]
+               [--allow-loopback] [-p [PRESET ...]] [-c [CONFIG ...]] [-lp]
                [-m MODULE [MODULE ...]] [-l] [-lmo] [-em MODULE [MODULE ...]]
                [-f FLAG [FLAG ...]] [-lf] [-rf FLAG [FLAG ...]]
                [-ef FLAG [FLAG ...]] [-n SCAN_NAME] [-v] [-d] [-S] [--force]
@@ -70,6 +70,7 @@ Target:
   -b BLACKLIST [BLACKLIST ...], --blacklist BLACKLIST [BLACKLIST ...]
                         Don't touch these things
   --strict-scope        Don't consider subdomains of target to be in-scope - exact matches only
+  --allow-loopback      Scan hosts that resolve to loopback, i.e. this machine (by default only targeted loopback addresses are scanned)
 
 Presets:
   -p [PRESET ...], --preset [PRESET ...]

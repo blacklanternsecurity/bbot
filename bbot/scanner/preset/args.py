@@ -179,6 +179,8 @@ class BBOTArgs:
             os.environ["NO_COLOR"] = "1"
         if self.parsed.allow_cdn_ports:
             args_preset.core.merge_custom({"cdn_port_filter": {"enabled": False}})
+        if self.parsed.allow_loopback:
+            args_preset.core.merge_custom({"allow_loopback": True})
         if self.parsed.exclude_cdn:
             log.warning("--exclude-cdn is deprecated and does nothing; CDN/WAF ports are now filtered by default")
 
@@ -268,6 +270,11 @@ class BBOTArgs:
             "--strict-scope",
             action="store_true",
             help="Don't consider subdomains of target to be in-scope - exact matches only",
+        )
+        target.add_argument(
+            "--allow-loopback",
+            action="store_true",
+            help="Scan hosts that resolve to loopback, i.e. this machine (by default only targeted loopback addresses are scanned)",
         )
         presets = p.add_argument_group(title="Presets")
         presets.add_argument(
