@@ -306,6 +306,16 @@ class BaseModule:
         """
         return True
 
+    def precheck_event(self, event):
+        """
+        Decide from `event` alone whether the module wants it, before it's queued: an event turned away here never
+        waits in the module's queue. Only for what needs no awaiting and can't change while the event would wait, like
+        its type or tags; `filter_event()` is for everything else.
+
+        Returns True, or (False, reason).
+        """
+        return True
+
     async def finish(self):
         """Asynchronously performs final tasks as the scan nears completion.
 
@@ -918,6 +928,17 @@ class BaseModule:
                     f"it has a special URL extension ({extension}) but the module does not opt in to receive special URLs",
                 )
 
+        # the browser renders pages; an image or a JSON file isn't one
+        if (self.uses_browser or self.browser_artifacts) and event.type == "URL":
+            content_type = event.content_type
+            if content_type not in BROWSER_PAGE_TYPES:
+                return False, f"it isn't a web page ({content_type or 'no content type, and not HTML'})"
+
+        result = self.precheck_event(event)
+        accepted, reason = result if isinstance(result, tuple) else (result, "it did not meet the module's precheck")
+        if not accepted:
+            return False, reason
+
         return True, "precheck succeeded"
 
     async def _event_postcheck(self, event):
@@ -967,11 +988,6 @@ class BaseModule:
             return False, "its host can only be loaded by a browser"
 
         uses_browser = self.uses_browser or self.browser_artifacts
-        # the browser renders pages; an image or a JSON file isn't one
-        if uses_browser and event.type == "URL":
-            content_type = event.content_type
-            if content_type not in BROWSER_PAGE_TYPES:
-                return False, f"it isn't a web page ({content_type or 'no content type, and not HTML'})"
         if uses_browser and event.host and self.helpers.web.is_unpassable(event.host):
             return False, "the browser couldn't get past its host's protection"
 
