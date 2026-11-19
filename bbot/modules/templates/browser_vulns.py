@@ -2,7 +2,7 @@ import re
 from hashlib import sha256
 from urllib.parse import parse_qsl, urlsplit
 
-from bbot.modules.base import BaseModule
+from bbot.modules.base import BROWSER_PAGE_TYPES, BaseModule
 from bbot.core.helpers.async_helpers import NamedLock
 
 # <script> types the browser runs; any other type holds data
@@ -220,6 +220,11 @@ class browser_vulns(BaseModule):
             return None
         if visit.response.conclusion[0] == "needs_browser":
             self.debug(f"Skipping {url}: the browser couldn't get past its challenge")
+            return None
+        # an image or a script the browser shows as a page of its own isn't one
+        content_type = visit.response.headers.get("content-type", "").split(";")[0].strip().lower()
+        if content_type and content_type not in BROWSER_PAGE_TYPES:
+            self.debug(f"Skipping {url}: it isn't a web page ({content_type})")
             return None
         scripts = self.page_scripts(visit)
         inline = self.page_inline_code(visit.dom, served=visit.response.text)
