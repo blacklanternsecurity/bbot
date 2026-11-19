@@ -243,8 +243,8 @@ class BrowserHelper:
         """
         self._check_enabled()
         if consumer is not None:
-            visit = self._collect(url, consumer)
-            if visit is not None:
+            found, visit = self._collect(url, consumer)
+            if found:
                 return visit
         future = self._inflight.get(url)
         if future is None:
@@ -332,22 +332,27 @@ class BrowserHelper:
         return self._artifacts
 
     def _cache_visit(self, url, visit):
+        # a page that couldn't be loaded is kept too, so each module that wants it doesn't try it again
         self._enabled_artifacts()
-        if visit is None or not self._consumers:
+        if not self._consumers:
             return
         self._visits[url] = [visit, set(self._consumers)]
         while len(self._visits) > VISIT_CACHE_SIZE:
             self._visits.pop(next(iter(self._visits)))
 
     def _collect(self, url, consumer):
+        """
+        Hand `consumer` what's kept for `url`: (True, the visit), or (True, None) for a page that couldn't be loaded,
+        or (False, None) if nothing is kept for it.
+        """
         entry = self._visits.get(url)
         if entry is None or consumer not in entry[1]:
-            return None
+            return False, None
         visit, waiting = entry
         waiting.discard(consumer)
         if not waiting:
             self._visits.pop(url, None)
-        return visit
+        return True, visit
 
     # -- fetches --
 
@@ -372,21 +377,27 @@ class BrowserHelper:
 
     @asynccontextmanager
     async def _page(self, url):
+        """A new page for `url`, closed afterwards. The caller holds a page slot: see `_with_retry()`."""
+        instance, host = await self._host(url)
+        page = await self._new_page(instance, host)
+        host.active += 1
+        instance.active += 1
+        try:
+            yield page
+        finally:
+            host.active -= 1
+            instance.active -= 1
+            self._last_used = time.monotonic()
+            await self._close_page(instance, page)
+            if instance.closing and instance.active == 0:
+                await self._close_instance(instance)
+
+    @asynccontextmanager
+    async def _slot(self):
+        """Hold one of the browser's page slots, once one is free."""
         await self._acquire_slot()
         try:
-            instance, host = await self._host(url)
-            page = await self._new_page(instance, host)
-            host.active += 1
-            instance.active += 1
-            try:
-                yield page
-            finally:
-                host.active -= 1
-                instance.active -= 1
-                self._last_used = time.monotonic()
-                await self._close_page(instance, page)
-                if instance.closing and instance.active == 0:
-                    await self._close_instance(instance)
+            yield
         finally:
             self._page_slots.release()
 
@@ -706,13 +717,17 @@ class BrowserHelper:
                         await self.engine.stop()
 
     async def _with_retry(self, operation, url):
-        """Run a page operation, retrying once on a fresh browser if the browser died during it."""
+        """
+        Run a page operation in a page slot, retrying once on a fresh browser if the browser died during it. Its time
+        limit starts once it has the slot: a page that waited for one hasn't timed out.
+        """
         for attempt in (1, 2):
             if self._crashed_out:
                 return None
             crashes_before = self._crash_count
             try:
-                return await asyncio.wait_for(operation(url), timeout=OPERATION_TIMEOUT)
+                async with self._slot():
+                    return await asyncio.wait_for(operation(url), timeout=OPERATION_TIMEOUT)
             except asyncio.TimeoutError:
                 log.verbose(f"Browser timed out on {url}")
                 # the page may be at fault, or the browser may have stopped answering
