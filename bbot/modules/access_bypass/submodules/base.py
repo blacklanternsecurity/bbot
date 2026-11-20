@@ -21,6 +21,8 @@ class Probe:
     # way (reflected paths, timestamps and all) is filtered out by HttpCompare itself
     sibling_url: str | None = None
     sibling_url_2: str | None = None
+    # the same mutation on two more made-up paths, for a second look at a probe the first two answered differently from
+    sibling_urls_again: tuple[str, str] | None = None
 
 
 def is_allowed_status(status_code):
@@ -161,20 +163,29 @@ class BaseAccessBypass:
         reflected paths, timestamps and other volatile content before deciding whether the real
         target's response matches the junk template. If the two random paths aren't answered alike,
         there's nothing to tell a bypass from, so it may.
+
+        A probe answered differently is compared again with two more random paths: a page that changed between requests,
+        like one caught mid-deploy, differs once, while a bypass differs every time.
         """
         if not probe.sibling_url_2:
             return False
-        try:
-            control = self.helpers.http_compare(
-                probe.sibling_url,
-                baseline_url_2=probe.sibling_url_2,
-                method=probe.method,
-                headers=probe.headers,
-                allow_redirects=self.follow_redirects,
-                include_cache_buster=False,
-            )
-            match, _, _, _ = await control.compare(probe.url, headers=probe.headers, method=probe.method)
-        except HttpCompareError:
-            # the two junk samples disagreed, so a bypass can't be told from a catch-all
-            return True
-        return match is True
+        pairs = [(probe.sibling_url, probe.sibling_url_2)]
+        if probe.sibling_urls_again:
+            pairs.append(probe.sibling_urls_again)
+        for url, url_2 in pairs:
+            try:
+                control = self.helpers.http_compare(
+                    url,
+                    baseline_url_2=url_2,
+                    method=probe.method,
+                    headers=probe.headers,
+                    allow_redirects=self.follow_redirects,
+                    include_cache_buster=False,
+                )
+                match, _, _, _ = await control.compare(probe.url, headers=probe.headers, method=probe.method)
+            except HttpCompareError:
+                # the two junk samples disagreed, so a bypass can't be told from a catch-all
+                return True
+            if match is True:
+                return True
+        return False

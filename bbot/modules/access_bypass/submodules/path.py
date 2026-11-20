@@ -3,6 +3,7 @@ from contextlib import suppress
 
 import puremagic
 
+from bbot.errors import HttpCompareError
 from .base import BaseAccessBypass, Probe
 
 # appended to (suffix) or prepended before (prefix) the path
@@ -52,25 +53,27 @@ traversal_prefixes = ["..%2f", "%2e%2e/", "..%252f", "..%5c"]
 
 class path(BaseAccessBypass):
     friendly_name = "Path Manipulation"
+    # what the URL's path answers without its trailing slash (see reaches_path_without_slash)
+    _without_slash = None
 
     def probes(self):
-        # two random sibling paths, so the catch-all control can baseline against the junk template
-        sibling_mutations_1 = self.mutations(self.sibling_path(self.parsed_url.path))
-        sibling_mutations_2 = self.mutations(self.sibling_path(self.parsed_url.path))
+        # random sibling paths, so the catch-all control can baseline against the junk template: two, and two more for
+        # a second look
+        siblings = [self.mutations(self.sibling_path(self.parsed_url.path)) for _ in range(4)]
         seen = set()
         for key, mutated in self.mutations(self.parsed_url.path).items():
             if mutated in seen:
                 continue
             seen.add(mutated)
             url = f"{self.base_url}{mutated}"
-            sibling_1 = sibling_mutations_1.get(key)
-            sibling_2 = sibling_mutations_2.get(key)
+            sibling_urls = [f"{self.base_url}{s[key]}" if key in s else None for s in siblings]
             yield Probe(
                 key=key,
                 label=f"Modified URL: GET {url}",
                 url=url,
-                sibling_url=f"{self.base_url}{sibling_1}" if sibling_1 else None,
-                sibling_url_2=f"{self.base_url}{sibling_2}" if sibling_2 else None,
+                sibling_url=sibling_urls[0],
+                sibling_url_2=sibling_urls[1],
+                sibling_urls_again=(sibling_urls[2], sibling_urls[3]) if all(sibling_urls[2:]) else None,
             )
 
     def sibling_path(self, path):
@@ -126,7 +129,31 @@ class path(BaseAccessBypass):
             if ext in static_extensions and self.is_real_asset(ext, response):
                 self.access_bypass.debug(f"Rejecting {probe.label}: response is a real {ext} file")
                 return False
+        if await self.reaches_path_without_slash(probe):
+            self.access_bypass.debug(
+                f"Rejecting {probe.label}: it gets what {self.event.url} answers without its trailing slash"
+            )
+            return False
         return True
+
+    async def reaches_path_without_slash(self, probe):
+        """
+        For a URL ending in a slash: whether the probe gets what the same path answers without it. Mutations are built
+        from the path without its slash, which can be a different route than the one blocked, and not blocked at all.
+        """
+        path = self.parsed_url.path
+        if len(path) <= 1 or not path.endswith("/"):
+            return False
+        if self._without_slash is None:
+            self._without_slash = self.helpers.http_compare(
+                f"{self.base_url}{path.rstrip('/')}", allow_redirects=self.follow_redirects, include_cache_buster=False
+            )
+        try:
+            match, _, _, _ = await self._without_slash.compare(probe.url, headers=probe.headers, method=probe.method)
+        except HttpCompareError:
+            # a path that doesn't answer the same way twice tells nothing about the probe
+            return False
+        return match is True
 
     @staticmethod
     def is_real_asset(ext, response):

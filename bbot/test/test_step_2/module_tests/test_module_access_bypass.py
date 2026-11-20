@@ -647,3 +647,93 @@ class TestAccessBypass_nextjs(ModuleTestBase):
     def check(self, module_test, events):
         findings = [e for e in events if e.type == "FINDING"]
         assert any("Next.js" in f.data["description"] for f in findings)
+
+
+# a folder of static files on a CDN, closed to listing, in front of an app that answers any other path with its own page
+STATIC_DENIED = "<Error><Code>AccessDenied</Code></Error>"
+APP_PAGE = "<html><head><title>Home</title></head><body>the app, build {build}</body></html>"
+
+
+def catch_all(changes_once=None, secret_uris=()):
+    """
+    A handler for that site. The page at `changes_once` comes back from another build on its second request only, like a
+    page caught mid-deploy. `secret_uris` get the folder's own content.
+    """
+    requests = {}
+
+    def handler(request):
+        uri = request.environ.get("REQUEST_URI")
+        if uri in secret_uris:
+            return Response("the static folder's index: app.js, config.json")
+        if uri.startswith("/static/"):
+            return Response(STATIC_DENIED, status=403)
+        requests[uri] = requests.get(uri, 0) + 1
+        build = 2 if uri == changes_once and requests[uri] == 2 else 1
+        return Response(APP_PAGE.format(build=build))
+
+    return handler
+
+
+class TestAccessBypass_catch_all_changed_once(ModuleTestBase):
+    """A probe that gets the site's catch-all page isn't a bypass, even if the page changed between it and the control"""
+
+    targets = [f"{HTTPSERVER_URL}/static/app/"]
+    modules_overrides = ["access_bypass", "http"]
+    module_name = "access_bypass"
+    config_overrides = {"modules": {"access_bypass": {"enabled_submodules": ["path"]}}}
+
+    async def setup_after_prep(self, module_test):
+        handler = catch_all(changes_once="/%2e/static/app/")
+        module_test.httpserver.expect_request(re.compile(r"/.*")).respond_with_handler(handler)
+
+    def check(self, module_test, events):
+        findings = [e.data["description"] for e in events if e.type == "FINDING" and e.data["severity"] == "MEDIUM"]
+        assert not findings, findings
+
+
+class TestAccessBypass_catch_all_real_bypass(TestAccessBypass_catch_all_changed_once):
+    """On the same site, a probe that gets the folder's own content is still a bypass"""
+
+    async def setup_after_prep(self, module_test):
+        handler = catch_all(secret_uris={"/static/app..;/"})
+        module_test.httpserver.expect_request(re.compile(r"/.*")).respond_with_handler(handler)
+
+    def check(self, module_test, events):
+        findings = [e.data["description"] for e in events if e.type == "FINDING" and e.data["severity"] == "MEDIUM"]
+        assert len(findings) == 1, findings
+        assert f"{HTTPSERVER_URL}/static/app..;/" in findings[0]
+
+
+class TestAccessBypass_trailing_slash(ModuleTestBase):
+    """
+    Mutations are built from the path without its trailing slash, which can be a different, open route: a probe that
+    only gets what that path answers isn't a bypass
+    """
+
+    targets = [f"{HTTPSERVER_URL}/files/list/"]
+    modules_overrides = ["access_bypass", "http"]
+    module_name = "access_bypass"
+    config_overrides = {"modules": {"access_bypass": {"enabled_submodules": ["path"]}}}
+
+    async def setup_after_prep(self, module_test):
+        def handler(request):
+            uri = request.environ.get("REQUEST_URI")
+            # how a lenient server reads the path: repeated slashes collapse, and a bare ? is dropped
+            path = re.sub(r"/{2,}", "/", uri.split("?")[0])
+            if path == "/files/list/":
+                return Response("authentication required", status=401)
+            if path == "/files/list":
+                return Response('{"files": ["a.pdf", "b.pdf"]}', content_type="application/json")
+            return Response("not found", status=404)
+
+        module_test.httpserver.expect_request(re.compile(r"/.*")).respond_with_handler(handler)
+
+    def check(self, module_test, events):
+        findings = [e.data["description"] for e in events if e.type == "FINDING" and e.data["severity"] == "MEDIUM"]
+        assert not findings, findings
+
+
+class TestAccessBypass_path_trailing_slash(TestAccessBypass_path):
+    """A URL ending in a slash whose path without it is blocked too still has its bypasses found"""
+
+    targets = [f"{HTTPSERVER_URL}/test/"]
