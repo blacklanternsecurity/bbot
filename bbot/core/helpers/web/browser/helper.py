@@ -47,6 +47,9 @@ HEALTH_CHECK_TIMEOUT = 30
 SLOT_CHECK_AFTER = 60
 # a browser that opened a page or context this recently is busy, not frozen, so a failed health check doesn't replace it
 PROGRESS_WINDOW = 60
+# a browser retired this long ago that still has a context out has one a module never closed: it's closed anyway, and
+# the page slot that context holds given back. Far longer than a context is used for, like one DOMino page load
+RETIRED_GRACE = 600
 # finished visits held for modules that haven't collected theirs yet
 VISIT_CACHE_SIZE = 100
 # a page's requests whose bodies are kept, so modules can use them without fetching them again
@@ -173,6 +176,8 @@ class _Instance:
         self.closing = False
         # how to give back each page slot held by a context lent to a module
         self.lent = set()
+        # when it stopped being given out (see RETIRED_GRACE)
+        self.retired_at = None
         # when it last opened a page or context, or launched. Closing doesn't count: a frozen browser can still close
         self.last_progress = time.monotonic()
 
@@ -224,6 +229,8 @@ class BrowserHelper:
         self._crash_count = 0
         self._crashed_out = False
         self._closing_tasks = set()
+        # retired browsers waiting on their open pages and contexts before they close
+        self._retired = set()
 
         self._artifacts = None
         self._consumers = None
@@ -762,22 +769,36 @@ class BrowserHelper:
     def _retire(self, instance):
         """Stop giving out this browser; it's closed once its open pages finish."""
         instance.closing = True
+        if instance.retired_at is None:
+            instance.retired_at = time.monotonic()
         if self._instance is instance:
             self._instance = None
         if instance.active == 0:
             task = asyncio.create_task(self._close_instance(instance))
             self._closing_tasks.add(task)
             task.add_done_callback(self._closing_tasks.discard)
+        else:
+            self._retired.add(instance)
 
     async def _close_instance(self, instance):
         instance.closing = True
         instance.alive = False
+        self._retired.discard(instance)
         with suppress(Exception):
             await asyncio.wait_for(instance.browser.close(), timeout=30)
 
     async def _idle_loop(self):
         while True:
             await asyncio.sleep(min(15, self.idle_timeout))
+            now = time.monotonic()
+            for retired in [i for i in self._retired if now - i.retired_at >= RETIRED_GRACE]:
+                log.warning(
+                    f"A browser retired {int(now - retired.retired_at)}s ago still has {retired.active} pages or "
+                    "contexts open; closing it, and giving back the page slots its contexts hold"
+                )
+                for release in list(retired.lent):
+                    release()
+                await self._close_instance(retired)
             instance = self._instance
             idle_for = time.monotonic() - self._last_used
             if instance is not None and instance.active == 0 and idle_for >= self.idle_timeout:

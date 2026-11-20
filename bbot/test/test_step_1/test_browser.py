@@ -695,6 +695,36 @@ async def test_browser_driver_options(bbot_scanner, bbot_httpserver):
 
 @pytest.mark.browser
 @pytest.mark.asyncio
+async def test_browser_retired_with_leaked_context(bbot_scanner, bbot_httpserver, monkeypatch):
+    """A retired browser still lending a context long after is closed anyway, and that context's page slot given back"""
+    serve(bbot_httpserver)
+    monkeypatch.setattr("bbot.core.helpers.web.browser.helper.RETIRED_GRACE", 2)
+    # the idle loop, which closes it, checks every browser_idle_timeout seconds
+    scan = await browser_scan(bbot_scanner, browser_max_pages=2, browser_idle_timeout=1)
+    browser = scan.helpers.browser
+
+    # a module that never closes a context it borrowed
+    await browser.new_context()
+    first = browser._instance
+    browser._retire(first)
+    # the next one asking gets a new browser, and keeps it busy, so it isn't shut down for being unused meanwhile
+    context = await browser.new_context()
+    assert browser._instance is not first
+    assert browser._page_slots._value == 0
+
+    deadline = time.monotonic() + 30
+    while (first.alive or first.browser.is_connected() or browser._page_slots._value != 1) and (
+        time.monotonic() < deadline
+    ):
+        await asyncio.sleep(0.5)
+    assert not first.alive
+    assert not first.browser.is_connected()
+    assert browser._page_slots._value == 1
+    await context.close()
+    assert browser._page_slots._value == 2
+
+
+@pytest.mark.asyncio
 async def test_browser_recycle_and_idle(bbot_scanner, bbot_httpserver):
     serve(bbot_httpserver)
     scan = await browser_scan(bbot_scanner, browser_recycle_after=2, browser_idle_timeout=1)
