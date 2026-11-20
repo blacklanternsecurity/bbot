@@ -259,6 +259,25 @@ async def test_browser_challenge_and_fetch(bbot_scanner, bbot_httpserver):
     await scan._cleanup()
 
 
+@pytest.mark.browser
+@pytest.mark.asyncio
+async def test_browser_blocked_by(bbot_scanner, bbot_httpserver):
+    """A page a module loads itself is judged by blasthttp's challenge detection: a challenge is named, the site isn't"""
+    serve(bbot_httpserver)
+    scan = await browser_scan(bbot_scanner)
+    browser = scan.helpers.browser
+    context = await browser.new_context()
+    try:
+        page = await context.new_page()
+        response = await page.goto(bbot_httpserver.url_for("/challenge"))
+        assert await browser.blocked_by(response) == "cloudflare's challenge"
+        response = await page.goto(bbot_httpserver.url_for("/"))
+        assert await browser.blocked_by(response) is None
+    finally:
+        await context.close()
+    await scan._cleanup()
+
+
 # pages that send themselves elsewhere, each after building some content with a script
 BUILD_JS = 'document.body.insertAdjacentHTML("beforeend", "<p>built before leaving</p>");'
 REDIRECT_PAGES = {

@@ -345,6 +345,15 @@ class BrowserHelper:
         context.on("close", lambda _: release())
         return context
 
+    async def blocked_by(self, response):
+        """
+        What answered instead of the site, by blasthttp's challenge detection, like "cloudflare's challenge", or None if
+        the site did. `response` is the Playwright response a page's main document came with, like a page in a
+        `new_context()` context got.
+        """
+        verdict, vendor = (await self._to_response(response, response.url)).conclusion
+        return f"{vendor}'s challenge" if verdict == "needs_browser" else None
+
     async def shutdown(self):
         if self._idle_task is not None:
             self._idle_task.cancel()

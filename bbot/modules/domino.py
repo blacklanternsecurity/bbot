@@ -254,6 +254,8 @@ class domino(browser_vulns):
             max_concurrency=max(1, (self.helpers.browser.max_pages - 1) // self.module_threads),
             parameters=parameters,
             parameters_only=bool(parameters),
+            # a page answered by a bot challenge instead of the site isn't tested, judged as blasthttp judges responses
+            blocked_by=self.helpers.browser.blocked_by,
         )
         try:
             results = (
