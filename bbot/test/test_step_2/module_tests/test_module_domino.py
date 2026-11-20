@@ -193,6 +193,49 @@ class TestDominoOutOfTime(ModuleTestBase):
         assert self.runs == [None, ["next"]], self.runs
 
 
+class TestDominoPageShare(ModuleTestBase):
+    """DOMino's runs at once share the browser's pages, less the one left for everything else, rather than each taking them all"""
+
+    pytestmark = pytest.mark.browser
+    module_name = "domino"
+    targets = [f"{HTTPSERVER_URL}/"]
+    config_overrides = {
+        "web": {"enable_browser": True, "browser_max_pages": 8},
+        "modules": {"domino": {"rules": ["xss-basic"], "module_threads": 2}},
+    }
+    # the page concurrency each run is given, for this many pages and runs at once
+    expected = 3
+
+    async def setup_after_prep(self, module_test):
+        module_test.domino_options = []
+
+        class Domino:
+            def __init__(self, url, **options):
+                module_test.domino_options.append(options)
+                self.ran_out_of_time = False
+
+            async def run(self, browser):
+                return []
+
+        module = module_test.scan.modules["domino"]
+        module_test.monkeypatch.setitem(type(module).run_domino.__globals__, "Domino", Domino)
+
+    async def check(self, module_test, events):
+        module_test.domino_options.clear()
+        await module_test.scan.modules["domino"].run_domino(f"{HTTPSERVER_URL}/")
+        assert [options["max_concurrency"] for options in module_test.domino_options] == [self.expected]
+
+
+class TestDominoPageShareOneRun(TestDominoPageShare):
+    """One run at a time takes every page but the one left for everything else, as before"""
+
+    config_overrides = {
+        "web": {"enable_browser": True, "browser_max_pages": 8},
+        "modules": {"domino": {"rules": ["xss-basic"]}},
+    }
+    expected = 7
+
+
 class TestDominoPrecheck(ModuleTestBase):
     """Parameters DOMino can't use are turned away before they're queued: POST parameters, endpoints that aren't
     pages, and names paramminer found only by how the server answered, without echoing them"""
