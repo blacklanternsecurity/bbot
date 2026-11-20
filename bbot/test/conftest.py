@@ -48,9 +48,8 @@ class FastShutdownHTTPServer(HTTPServer):
         empty-body hash from that check, so an empty miss is the only constant that
         does not make every miss URL collide as duplicate content.
 
-        The accumulated assertion is dropped with it. bbot's httpserver fixtures
-        call clear() before check_assertions(), so no-handler assertions were
-        discarded unread and never failed a test.
+        Unmatched requests are normal during brute-force tests, so they must
+        not add assertions. Teardown checks real assertions and handler errors.
         """
         return Response("", self.no_handler_status_code)
 
@@ -155,18 +154,30 @@ def stop_server(server):
         time.sleep(0.005)
 
 
+def check_httpserver_errors(server):
+    """Check HTTP handler failures and explicit assertions before cleanup."""
+    try:
+        server.check()  # check_assertions() and check_handler_errors()
+    finally:
+        server.clear()
+
+
+def serve_and_check(server):
+    """Yield the started server, then stop it and fail on its assertions and handler errors.
+
+    The httpserver fixtures `yield from` this, so test_httpserver_teardown.py tests their real teardown.
+    """
+    yield server
+    if server.is_running():
+        stop_server(server)
+    check_httpserver_errors(server)
+
+
 @pytest.fixture
 def bbot_httpserver():
     server = FastShutdownHTTPServer(host="127.0.0.1", port=HTTPSERVER_PORT, threaded=True)
     server.start()
-
-    yield server
-
-    server.clear()
-    stop_server(server)  # Ensure the server is fully stopped
-
-    server.check_assertions()
-    server.clear()
+    yield from serve_and_check(server)
 
 
 @pytest.fixture
@@ -178,14 +189,7 @@ def bbot_httpserver_ssl():
     context.load_cert_chain(certfile, keyfile)
     server = FastShutdownHTTPServer(host="127.0.0.1", port=HTTPSERVER_SSL_PORT, ssl_context=context, threaded=True)
     server.start()
-
-    yield server
-
-    server.clear()
-    stop_server(server)  # Ensure the server is fully stopped
-
-    server.check_assertions()
-    server.clear()
+    yield from serve_and_check(server)
 
 
 def _should_mock(host):
@@ -285,14 +289,7 @@ def blasthttp_mock():
 def bbot_httpserver_allinterfaces():
     server = FastShutdownHTTPServer(host="0.0.0.0", port=HTTPSERVER_ALLINTERFACES_PORT, threaded=True)
     server.start()
-
-    yield server
-
-    server.clear()
-    if server.is_running():
-        server.stop()
-    server.check_assertions()
-    server.clear()
+    yield from serve_and_check(server)
 
 
 class Interactsh_mock:
