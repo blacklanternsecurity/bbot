@@ -242,7 +242,7 @@ class TestCensys_IP(ModuleTestBase):
 
 
 class TestCensys_IP_CatchAllPorts(ModuleTestBase):
-    """An IP listing more TCP ports than cdn_port_filter.max_ports keeps only the allowed ones, and drops the URLs on the others"""
+    """An IP listing more TCP ports than cdn_port_filter.max_ports keeps only the allowed ones, and drops the URLs and protocols on the others"""
 
     module_name = "censys_ip"
     targets = ["1.2.3.4"]
@@ -266,6 +266,7 @@ class TestCensys_IP_CatchAllPorts(ModuleTestBase):
                 (8443, "https://1.2.3.4:8443/"),
             )
         ]
+        services.append({"port": 2222, "service_name": "SSH", "transport_protocol": "TCP"})
         services.append({"port": 53, "service_name": "DNS", "transport_protocol": "UDP"})
         module_test.blasthttp_mock.add_response(
             url="https://search.censys.io/api/v2/hosts/1.2.3.4",
@@ -280,6 +281,7 @@ class TestCensys_IP_CatchAllPorts(ModuleTestBase):
         assert {e.port for e in from_module("OPEN_TCP_PORT")} == {80, 443}
         assert {e.port for e in from_module("OPEN_UDP_PORT")} == {53}
         assert {e.url for e in from_module("URL_UNVERIFIED")} == {"http://1.2.3.4/", "https://1.2.3.4/"}
+        assert {(e.data["protocol"], e.data.get("port")) for e in from_module("PROTOCOL")} == {("DNS", 53)}
 
 
 class TestCensys_IP_InScopeOnly(ModuleTestBase):

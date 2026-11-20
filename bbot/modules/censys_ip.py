@@ -100,7 +100,7 @@ class censys_ip(censys):
         for service in services:
             port = service.get("port")
             transport = service.get("transport_protocol", "TCP").upper()
-            # a TCP port cut by filter_catch_all_ports, along with its URL
+            # a TCP port cut by filter_catch_all_ports, along with its PROTOCOL and URL
             dropped = bool(port) and transport not in udp_transports and port not in tcp_ports
 
             # Emit OPEN_TCP_PORT or OPEN_UDP_PORT for services with a port
@@ -124,7 +124,7 @@ class censys_ip(censys):
             # If service_name is UNKNOWN but transport_protocol is meaningful, use that
             if service_name.upper() == "UNKNOWN" and transport and transport not in ("TCP", "UDP"):
                 service_name = transport
-            if service_name and service_name.upper() not in ("HTTP", "HTTPS", "UNKNOWN"):
+            if service_name and not dropped and service_name.upper() not in ("HTTP", "HTTPS", "UNKNOWN"):
                 protocol_key = ("protocol", service_name.upper(), port)
                 if protocol_key not in seen:
                     seen.add(protocol_key)
