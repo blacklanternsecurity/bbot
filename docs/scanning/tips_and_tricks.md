@@ -139,6 +139,26 @@ config:
 bbot -t evilcorp.com -p cdn_ports.yml
 ```
 
+### Hosts That Resolve to Loopback
+
+Some domains have DNS records pointing to loopback, e.g. `localhost.evilcorp.com` resolving to `127.0.0.1`. Scanning such a host means scanning the machine BBOT runs on, so by default active modules skip any host that resolves to a loopback address (`127.0.0.0/8`, `::1`, `0.0.0.0`). Passive modules still see it, and it stays in the scan's output, tagged `loopback`.
+
+Each in-scope name like this is also reported as an `INFO` finding. A filter that trusts the target's domain, for example one meant to stop SSRF, would let the name through to the server's own loopback.
+
+Loopback addresses you explicitly target are always scanned, along with any hosts that resolve to them. For example, `-t evilcorp.com 127.0.0.1` scans `localhost.evilcorp.com`.
+
+To scan every host that resolves to loopback:
+
+```bash
+bbot -t evilcorp.com --allow-loopback
+```
+
+To skip these hosts without reporting them:
+
+```bash
+bbot -t evilcorp.com -c modules.dnsresolve.loopback_finding=false
+```
+
 ### Custom HTTP Proxy
 
 Web pentesters may appreciate BBOT's ability to quickly populate Burp Suite site maps for all subdomains in a target. If your scan includes gowitness, this will capture the traffic as if you manually visited each website in your browser -- including auxiliary web resources and javascript API calls. To accomplish this, set the `web.http_proxy` config option like so:
