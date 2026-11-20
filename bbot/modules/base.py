@@ -775,8 +775,10 @@ class BaseModule:
                     if self.batch_size > 1:
                         submitted = await self._handle_batch()
                         if not submitted:
+                            # re-check the queue under the lock: events queued while _handle_batch() was
+                            # running (e.g. in finish()) have already notified, and nobody was waiting
                             async with self.event_received:
-                                await self.event_received.wait()
+                                await self.event_received.wait_for(lambda: self.num_incoming_events > 0)
 
                     else:
                         try:
