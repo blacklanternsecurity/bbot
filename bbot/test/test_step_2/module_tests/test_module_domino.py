@@ -579,3 +579,70 @@ class TestDominoBrowserParameters(ModuleTestBase):
         tested = {name for _, _, name in module_test.scan.modules["domino"].tested_parameters}
         assert "search" in tested
         assert "q" not in tested, "DOMino loaded a JSON API's parameter as a page"
+
+
+# what a challenge answers instead of the site: it writes the whole query into the page, so anything tested on it is found
+CHALLENGE_PAGE = """<html><head><title>Just a moment...</title></head><body><span id="out"></span><script>
+document.getElementById("out").innerHTML = decodeURIComponent(location.search);
+</script></body></html>"""
+
+
+def challenge_handler(request):
+    """The site's page, with a form taking q, answered with a Cloudflare-style challenge whenever q has a value"""
+    query = parse_qs(request.query_string.decode(), keep_blank_values=True)
+    if query.get("q", [""])[0]:
+        return Response(
+            CHALLENGE_PAGE,
+            status=403,
+            headers={"Server": "cloudflare", "cf-mitigated": "challenge"},
+            content_type="text/html",
+        )
+    form = "<form action=/ method=GET><input type=text name=q><button type=submit>Go</button></form>"
+    return Response(VULNERABLE_PAGE.replace("</body>", f"{form}</body>"), content_type="text/html")
+
+
+class TestDominoChallenge(ModuleTestBase):
+    """A page DOMino loads that a bot challenge answers instead of the site isn't tested, while the site's own pages are"""
+
+    pytestmark = pytest.mark.browser
+    targets = [f"{HTTPSERVER_URL}/"]
+    modules_overrides = ["http", "domino"]
+    config_overrides = {
+        "excavate": True,
+        "web": {"enable_browser": True},
+        "modules": {"domino": {"rules": ["xss-basic"], "web_parameters": True}},
+    }
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests_handler(expect_args=re.compile("/.*"), request_handler=challenge_handler)
+
+    @staticmethod
+    def found_on_q(events):
+        return [e for e in events if e.type == "FINDING" and "?q=" in e.data["description"]]
+
+    def check(self, module_test, events):
+        # DOMino loaded q's tests, and the challenge answered them
+        challenged = [
+            request
+            for request, _ in module_test.httpserver.log
+            if parse_qs(request.query_string.decode()).get("q", [""])[0]
+        ]
+        assert challenged
+        assert not self.found_on_q(events), [e.data["description"] for e in self.found_on_q(events)]
+        findings = [e.data for e in events if e.type == "FINDING"]
+        assert any(f["name"] == "Dom-Based XSS" and "#" in f["description"] for f in findings), findings
+
+
+class TestDominoChallengeUnchecked(TestDominoChallenge):
+    """Without the check, the challenge's page is tested like the site's, and what it echoes is reported"""
+
+    async def setup_after_prep(self, module_test):
+        await super().setup_after_prep(module_test)
+
+        async def never_blocked(response):
+            return None
+
+        module_test.scan.helpers.browser.blocked_by = never_blocked
+
+    def check(self, module_test, events):
+        assert self.found_on_q(events)
