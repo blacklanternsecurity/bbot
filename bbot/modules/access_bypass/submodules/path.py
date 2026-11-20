@@ -3,6 +3,7 @@ from contextlib import suppress
 
 import puremagic
 
+from bbot.errors import HttpCompareError
 from .base import BaseAccessBypass, Probe
 
 # appended to (suffix) or prepended before (prefix) the path
@@ -52,6 +53,8 @@ traversal_prefixes = ["..%2f", "%2e%2e/", "..%252f", "..%5c"]
 
 class path(BaseAccessBypass):
     friendly_name = "Path Manipulation"
+    # what the URL's path answers without its trailing slash (see reaches_path_without_slash)
+    _without_slash = None
 
     def probes(self):
         # random sibling paths, so the catch-all control can baseline against the junk template: two, and two more for
@@ -126,7 +129,31 @@ class path(BaseAccessBypass):
             if ext in static_extensions and self.is_real_asset(ext, response):
                 self.access_bypass.debug(f"Rejecting {probe.label}: response is a real {ext} file")
                 return False
+        if await self.reaches_path_without_slash(probe):
+            self.access_bypass.debug(
+                f"Rejecting {probe.label}: it gets what {self.event.url} answers without its trailing slash"
+            )
+            return False
         return True
+
+    async def reaches_path_without_slash(self, probe):
+        """
+        For a URL ending in a slash: whether the probe gets what the same path answers without it. Mutations are built
+        from the path without its slash, which can be a different route than the one blocked, and not blocked at all.
+        """
+        path = self.parsed_url.path
+        if len(path) <= 1 or not path.endswith("/"):
+            return False
+        if self._without_slash is None:
+            self._without_slash = self.helpers.http_compare(
+                f"{self.base_url}{path.rstrip('/')}", allow_redirects=self.follow_redirects, include_cache_buster=False
+            )
+        try:
+            match, _, _, _ = await self._without_slash.compare(probe.url, headers=probe.headers, method=probe.method)
+        except HttpCompareError:
+            # a path that doesn't answer the same way twice tells nothing about the probe
+            return False
+        return match is True
 
     @staticmethod
     def is_real_asset(ext, response):

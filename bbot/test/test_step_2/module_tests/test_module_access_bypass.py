@@ -702,3 +702,38 @@ class TestAccessBypass_catch_all_real_bypass(TestAccessBypass_catch_all_changed_
         findings = [e.data["description"] for e in events if e.type == "FINDING" and e.data["severity"] == "MEDIUM"]
         assert len(findings) == 1, findings
         assert f"{HTTPSERVER_URL}/static/app..;/" in findings[0]
+
+
+class TestAccessBypass_trailing_slash(ModuleTestBase):
+    """
+    Mutations are built from the path without its trailing slash, which can be a different, open route: a probe that
+    only gets what that path answers isn't a bypass
+    """
+
+    targets = [f"{HTTPSERVER_URL}/files/list/"]
+    modules_overrides = ["access_bypass", "http"]
+    module_name = "access_bypass"
+    config_overrides = {"modules": {"access_bypass": {"enabled_submodules": ["path"]}}}
+
+    async def setup_after_prep(self, module_test):
+        def handler(request):
+            uri = request.environ.get("REQUEST_URI")
+            # how a lenient server reads the path: repeated slashes collapse, and a bare ? is dropped
+            path = re.sub(r"/{2,}", "/", uri.split("?")[0])
+            if path == "/files/list/":
+                return Response("authentication required", status=401)
+            if path == "/files/list":
+                return Response('{"files": ["a.pdf", "b.pdf"]}', content_type="application/json")
+            return Response("not found", status=404)
+
+        module_test.httpserver.expect_request(re.compile(r"/.*")).respond_with_handler(handler)
+
+    def check(self, module_test, events):
+        findings = [e.data["description"] for e in events if e.type == "FINDING" and e.data["severity"] == "MEDIUM"]
+        assert not findings, findings
+
+
+class TestAccessBypass_path_trailing_slash(TestAccessBypass_path):
+    """A URL ending in a slash whose path without it is blocked too still has its bypasses found"""
+
+    targets = [f"{HTTPSERVER_URL}/test/"]
