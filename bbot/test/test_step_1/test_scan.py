@@ -413,6 +413,99 @@ async def test_cdn_port_filter(bbot_scanner, monkeypatch, clean_default_config):
 
 
 @pytest.mark.asyncio
+async def test_loopback_filter(bbot_scanner, monkeypatch, clean_default_config):
+    from bbot.scanner import Preset
+    from bbot.modules.base import BaseModule
+    from bbot.modules.internal.dnsresolve import is_loopback
+
+    for host in ("127.0.0.1", "127.8.9.10", "::1", "0.0.0.0", "::", "::ffff:127.0.0.1"):
+        assert is_loopback(host)
+    for host in ("1.2.3.4", "10.0.0.1", "::ffff:1.2.3.4", "localhost", "evilcorp.com"):
+        assert not is_loopback(host)
+
+    dns_mock = {
+        "evilcorp.com": {"A": ["1.2.3.4"]},
+        "www.evilcorp.com": {"A": ["1.2.3.4"]},
+        "localhost.evilcorp.com": {"A": ["127.0.0.1"]},
+        "local6.evilcorp.com": {"AAAA": ["::1"]},
+    }
+    all_hosts = {"evilcorp.com", "www.evilcorp.com", "localhost.evilcorp.com", "local6.evilcorp.com"}
+
+    class Emitter(BaseModule):
+        _name = "emitter"
+        watched_events = ["DNS_NAME"]
+        accept_seeds = True
+
+        async def handle_event(self, event):
+            if event.data == "evilcorp.com":
+                for name in ("www", "localhost", "local6"):
+                    await self.emit_event(f"{name}.evilcorp.com", "DNS_NAME", parent=event)
+                    await self.emit_event(f"http://{name}.evilcorp.com/", "URL_UNVERIFIED", parent=event)
+
+    class Recorder(BaseModule):
+        watched_events = ["DNS_NAME", "URL_UNVERIFIED"]
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.hosts = set()
+
+        async def handle_event(self, event):
+            self.hosts.add(str(event.host))
+
+    class ActiveRecorder(Recorder):
+        _name = "active_recorder"
+        flags = ["active"]
+
+    class PassiveRecorder(Recorder):
+        _name = "passive_recorder"
+        flags = ["passive"]
+
+    async def run(*targets, preset=None, config=None):
+        scan = bbot_scanner(*targets, preset=preset, config={"omit_event_types": [], **(config or {})})
+        await scan._prep()
+        await scan.helpers._mock_dns(dns_mock)
+        for module in (Emitter, ActiveRecorder, PassiveRecorder):
+            scan.modules[module._name] = module(scan=scan)
+        events = [e async for e in scan.async_start()]
+        findings = {e.data["host"]: e.data for e in events if e.type == "FINDING"}
+        tagged = {str(e.host) for e in events if "loopback" in e.tags}
+        return scan.modules["active_recorder"].hosts, scan.modules["passive_recorder"].hosts, findings, tagged
+
+    # by default, active modules skip hosts that resolve to loopback, and each one is reported
+    active, passive, findings, tagged = await run("evilcorp.com")
+    assert active == {"evilcorp.com", "www.evilcorp.com"}
+    assert passive == all_hosts
+    assert tagged == {"localhost.evilcorp.com", "local6.evilcorp.com"}
+    assert set(findings) == {"localhost.evilcorp.com", "local6.evilcorp.com"}
+    assert findings["localhost.evilcorp.com"]["name"] == "Loopback DNS Record"
+    assert findings["localhost.evilcorp.com"]["severity"] == "INFO"
+    assert "(127.0.0.1)" in findings["localhost.evilcorp.com"]["description"]
+    assert "(::1)" in findings["local6.evilcorp.com"]["description"]
+
+    # a loopback address in the target is scanned, along with the hosts that resolve to it
+    active, passive, findings, tagged = await run("evilcorp.com", "127.0.0.1")
+    assert active == {"evilcorp.com", "www.evilcorp.com", "localhost.evilcorp.com"}
+    assert tagged == set(findings) == {"local6.evilcorp.com"}
+
+    # the finding can be turned off, leaving the hosts skipped
+    config = {"modules": {"dnsresolve": {"loopback_finding": False}}}
+    active, passive, findings, tagged = await run("evilcorp.com", config=config)
+    assert active == {"evilcorp.com", "www.evilcorp.com"}
+    assert tagged == {"localhost.evilcorp.com", "local6.evilcorp.com"}
+    assert findings == {}
+
+    # --allow-loopback scans them, with nothing to report
+    monkeypatch.setattr("sys.argv", ["bbot", "-t", "evilcorp.com", "--allow-loopback"])
+    preset = Preset("evilcorp.com")
+    preset.parse_args()
+    assert preset.validate().bake().config["allow_loopback"] is True
+    active, passive, findings, tagged = await run("evilcorp.com", preset=preset)
+    assert active == passive == all_hosts
+    assert findings == {}
+    assert tagged == set()
+
+
+@pytest.mark.asyncio
 async def test_scan_event_started_at_type(bbot_scanner):
     """Regression test: started_at must be a float on both RUNNING and FINISHED SCAN events."""
     scan = bbot_scanner("127.0.0.1")

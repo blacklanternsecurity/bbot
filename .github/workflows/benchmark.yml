@@ -21,17 +21,13 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
+        persist-credentials: false
         fetch-depth: 0  # Need full history for branch comparison
 
-    - name: Set up Python
-      uses: actions/setup-python@v7
-      with:
-        python-version: "3.11"
-
     - name: Install uv
-      uses: astral-sh/setup-uv@v7
+      uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
 
     - name: Install dependencies
       run: uv sync --group dev
@@ -59,7 +55,7 @@ jobs:
     # Upload benchmark results as artifacts
     - name: Upload benchmark results
       if: ${{ !cancelled() }}
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: benchmark-results
         path: |
@@ -75,7 +71,7 @@ jobs:
     # artifact either way.
     - name: Comment benchmark results on PR
       if: ${{ !cancelled() && github.event.pull_request.head.repo.full_name == github.repository }}
-      uses: actions/github-script@v9
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
       with:
         script: |
           const fs = require('fs');

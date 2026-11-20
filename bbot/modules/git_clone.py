@@ -21,8 +21,6 @@ class git_clone(github):
             description="Folder to clone repositories to. If not specified, cloned repositories will be deleted when the scan completes, to minimize disk usage.",
         )
 
-    deps_apt = ["git"]
-
     scope_distance_modifier = 2
 
     async def setup(self):
