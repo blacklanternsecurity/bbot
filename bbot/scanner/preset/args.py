@@ -409,7 +409,7 @@ class BBOTArgs:
         output.add_argument(
             "--allow-cdn-ports",
             action="store_true",
-            help="Don't filter out open ports on CDNs/WAFs or on hosts that list every port (by default only 80,443 are kept)",
+            help="Don't filter out open ports on CDNs/WAFs, or on hosts that passive port sources list with every port open (by default only 80,443 are kept)",
         )
         # deprecated: CDN/WAF port filtering is now the default
         output.add_argument("--exclude-cdn", "-ec", action="store_true", help=argparse.SUPPRESS)

@@ -1091,11 +1091,16 @@ class Scanner:
         return self.preset.blacklisted(*args, **kwargs)
 
     def filter_catch_all_ports(self, host, ports):
-        """Return a host's unique ports, cut to cdn_port_filter.allowed_ports if there are more than max_ports (it accepts connections on any port)"""
+        """Return a host's unique ports, cut to the allowed and targeted ones if there are more than cdn_port_filter.max_ports (it accepts connections on any port)"""
         ports = list(dict.fromkeys(ports))
         if not self.cdn_port_filter or not self.cdn_max_ports or len(ports) <= self.cdn_max_ports:
             return ports
-        kept = [port for port in ports if port in self.cdn_allowed_ports]
+        host = str(host)
+        # like the rest of cdn_port_filter, a port explicitly targeted on this host is never cut
+        targeted = {
+            seed.port for seed in self.seeds.get(host, single=False) or () if seed.port and str(seed.host) == host
+        }
+        kept = [port for port in ports if port in self.cdn_allowed_ports or port in targeted]
         self.verbose(
             f"{host} lists {len(ports):,} open ports, more than cdn_port_filter.max_ports ({self.cdn_max_ports}): keeping only {kept}"
         )

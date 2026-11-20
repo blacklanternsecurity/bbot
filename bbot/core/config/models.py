@@ -337,7 +337,7 @@ class DnsConfig(BaseModel):
 
 
 class CdnPortFilterConfig(BaseModel):
-    """`cdn_port_filter` — drops open ports and URLs on CDN/WAF hosts outside the allowed ports."""
+    """`cdn_port_filter`: drops open ports and URLs outside the allowed ports on CDN/WAF hosts and catch-all hosts."""
 
     model_config = STRICT
 

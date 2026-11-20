@@ -91,7 +91,8 @@ class censys_ip(censys):
                 [
                     service.get("port")
                     for service in services
-                    if service.get("port") and service.get("transport_protocol", "TCP").upper() not in udp_transports
+                    if service.get("port")
+                    and (service.get("transport_protocol") or "TCP").upper() not in udp_transports
                 ],
             )
         )
@@ -99,7 +100,7 @@ class censys_ip(censys):
         # Extract data from services
         for service in services:
             port = service.get("port")
-            transport = service.get("transport_protocol", "TCP").upper()
+            transport = (service.get("transport_protocol") or "TCP").upper()
             # a TCP port cut by filter_catch_all_ports, along with its PROTOCOL and URL
             dropped = bool(port) and transport not in udp_transports and port not in tcp_ports
 

@@ -267,6 +267,8 @@ class TestCensys_IP_CatchAllPorts(ModuleTestBase):
             )
         ]
         services.append({"port": 2222, "service_name": "SSH", "transport_protocol": "TCP"})
+        # a missing transport counts as TCP
+        services.append({"port": 8888, "service_name": "UNKNOWN", "transport_protocol": None})
         services.append({"port": 53, "service_name": "DNS", "transport_protocol": "UDP"})
         module_test.blasthttp_mock.add_response(
             url="https://search.censys.io/api/v2/hosts/1.2.3.4",
@@ -282,6 +284,16 @@ class TestCensys_IP_CatchAllPorts(ModuleTestBase):
         assert {e.port for e in from_module("OPEN_UDP_PORT")} == {53}
         assert {e.url for e in from_module("URL_UNVERIFIED")} == {"http://1.2.3.4/", "https://1.2.3.4/"}
         assert {(e.data["protocol"], e.data.get("port")) for e in from_module("PROTOCOL")} == {("DNS", 53)}
+
+
+class TestCensys_IP_CatchAllTargetedPort(TestCensys_IP_CatchAllPorts):
+    """A port explicitly targeted on a catch-all host keeps its URL"""
+
+    targets = ["1.2.3.4", "1.2.3.4:8443"]
+
+    def check(self, module_test, events):
+        urls = {e.url for e in events if e.type == "URL_UNVERIFIED" and str(e.module) == self.module_name}
+        assert urls == {"http://1.2.3.4/", "https://1.2.3.4/", "https://1.2.3.4:8443/"}
 
 
 class TestCensys_IP_InScopeOnly(ModuleTestBase):

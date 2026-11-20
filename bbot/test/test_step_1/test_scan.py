@@ -524,6 +524,10 @@ async def test_cdn_port_filter_catch_all(bbot_scanner):
     assert filtered({"max_ports": 0}) == unique
     assert filtered({"max_ports": 4, "enabled": False}) == unique
 
+    # a port explicitly targeted on the host is kept too, but not one targeted on another host
+    scan = bbot_scanner("1.2.3.4", "1.2.3.4:8443", "5.6.7.8:8080", config={"cdn_port_filter": {"max_ports": 4}})
+    assert scan.filter_catch_all_ports("1.2.3.4", ports) == [80, 443, 8443]
+
     # the default cap is 100
     scan = bbot_scanner("1.2.3.4")
     hundred = list(range(1, 100)) + [443]

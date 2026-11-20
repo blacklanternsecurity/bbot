@@ -139,7 +139,7 @@ class shodan_idb(BaseModule):
                 parent=event,
                 context=f'{{module}} queried Shodan\'s InternetDB API for "{query_host}" and found {{event.type}}: {{event.pretty_string}}',
             )
-        for port in self.scan.filter_catch_all_ports(query_host, data.get("ports", [])):
+        for port in self.scan.filter_catch_all_ports(event.host, data.get("ports", [])):
             await self.emit_event(
                 self.helpers.make_netloc(event.data, port),
                 "OPEN_TCP_PORT",
