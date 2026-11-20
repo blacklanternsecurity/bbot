@@ -506,6 +506,32 @@ async def test_loopback_filter(bbot_scanner, monkeypatch, clean_default_config):
 
 
 @pytest.mark.asyncio
+async def test_cdn_port_filter_catch_all(bbot_scanner):
+    """A host listing more than cdn_port_filter.max_ports open ports keeps only the allowed ports, unless the filter or the cap is off"""
+    ports = [22, 80, 443, 8080, 8443, 80]
+    unique = [22, 80, 443, 8080, 8443]
+
+    def filtered(cdn_port_filter=None):
+        scan = bbot_scanner("1.2.3.4", config={"cdn_port_filter": cdn_port_filter or {}})
+        return scan.filter_catch_all_ports("1.2.3.4", ports)
+
+    # at the cap, every unique port is kept, in order
+    assert filtered({"max_ports": 5}) == unique
+    # over the cap, only the allowed ports survive
+    assert filtered({"max_ports": 4}) == [80, 443]
+    assert filtered({"max_ports": 4, "allowed_ports": [443, 8443]}) == [443, 8443]
+    # max_ports 0 turns off only this check, and disabling the filter (--allow-cdn-ports) turns it off too
+    assert filtered({"max_ports": 0}) == unique
+    assert filtered({"max_ports": 4, "enabled": False}) == unique
+
+    # the default cap is 100
+    scan = bbot_scanner("1.2.3.4")
+    hundred = list(range(1, 100)) + [443]
+    assert scan.filter_catch_all_ports("1.2.3.4", hundred) == hundred
+    assert scan.filter_catch_all_ports("1.2.3.4", hundred + [8443]) == [80, 443]
+
+
+@pytest.mark.asyncio
 async def test_scan_event_started_at_type(bbot_scanner):
     """Regression test: started_at must be a float on both RUNNING and FINISHED SCAN events."""
     scan = bbot_scanner("127.0.0.1")

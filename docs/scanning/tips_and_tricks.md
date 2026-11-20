@@ -105,6 +105,8 @@ CDNs and WAFs like Cloudflare answer on many ports (e.g. 2052-2096, 8080, 8443) 
 
 Ports you explicitly target are never filtered. For example, `-t www.evilcorp.com:8443` keeps that port and anything discovered on it, even if the host is behind a CDN.
 
+The same filter covers hosts that accept a connection on any port, like some cloud load balancers and tarpits. Port sources such as `shodan_idb`, `shodan_enterprise` and `censys_ip` list nearly every port they probed as open on these hosts, so when one of them lists more than `cdn_port_filter.max_ports` (100 by default) open TCP ports for a host, only the allowed ports are kept. Set `max_ports` to `0` to turn off just this check.
+
 To turn the filter off and keep every port:
 
 ```bash
@@ -133,6 +135,8 @@ config:
       - 80
       - 443
       - 8443
+    # hosts listed with more open ports than this keep only allowed_ports (0 = off)
+    max_ports: 100
 ```
 
 ```bash

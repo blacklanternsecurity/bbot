@@ -344,6 +344,7 @@ class CdnPortFilterConfig(BaseModel):
     enabled: Optional[bool] = None
     tags: Optional[list[str]] = None
     allowed_ports: Optional[list[int]] = None
+    max_ports: Optional[int] = None
 
 
 class BodySpillConfig(BaseModel):

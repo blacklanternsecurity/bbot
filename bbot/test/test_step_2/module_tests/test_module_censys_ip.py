@@ -241,6 +241,47 @@ class TestCensys_IP(ModuleTestBase):
         )
 
 
+class TestCensys_IP_CatchAllPorts(ModuleTestBase):
+    """An IP listing more TCP ports than cdn_port_filter.max_ports keeps only the allowed ones, and drops the URLs on the others"""
+
+    module_name = "censys_ip"
+    targets = ["1.2.3.4"]
+    config_overrides = {
+        "modules": {"censys_ip": {"api_key": "api_id:api_secret"}},
+        "cdn_port_filter": {"max_ports": 3},
+    }
+
+    async def setup_before_prep(self, module_test):
+        module_test.blasthttp_mock.add_response(
+            url="https://search.censys.io/api/v1/account",
+            match_headers={"Authorization": "Basic YXBpX2lkOmFwaV9zZWNyZXQ="},
+            json={"quota": {"used": 26, "allowance": 250, "resets_at": "1919-06-03 16:30:32"}},
+        )
+        services = [
+            {"port": port, "service_name": "HTTP", "transport_protocol": "TCP", "http": {"request": {"uri": uri}}}
+            for port, uri in (
+                (80, "http://1.2.3.4/"),
+                (443, "https://1.2.3.4/"),
+                (8080, "http://1.2.3.4:8080/"),
+                (8443, "https://1.2.3.4:8443/"),
+            )
+        ]
+        services.append({"port": 53, "service_name": "DNS", "transport_protocol": "UDP"})
+        module_test.blasthttp_mock.add_response(
+            url="https://search.censys.io/api/v2/hosts/1.2.3.4",
+            match_headers={"Authorization": "Basic YXBpX2lkOmFwaV9zZWNyZXQ="},
+            json={"code": 200, "status": "OK", "result": {"ip": "1.2.3.4", "services": services}},
+        )
+
+    def check(self, module_test, events):
+        def from_module(event_type):
+            return [e for e in events if e.type == event_type and str(e.module) == self.module_name]
+
+        assert {e.port for e in from_module("OPEN_TCP_PORT")} == {80, 443}
+        assert {e.port for e in from_module("OPEN_UDP_PORT")} == {53}
+        assert {e.url for e in from_module("URL_UNVERIFIED")} == {"http://1.2.3.4/", "https://1.2.3.4/"}
+
+
 class TestCensys_IP_InScopeOnly(ModuleTestBase):
     """Test that in_scope_only=True (default) does NOT query out-of-scope IPs."""
 

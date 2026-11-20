@@ -85,7 +85,7 @@ class TestShodan_IDB(ModuleTestBase):
 
 
 class TestShodan_IDB_CatchAllPorts(ModuleTestBase):
-    """An IP listed with more open ports than max_ports keeps only the allowed ports; one under it keeps them all"""
+    """An IP listed with more open ports than cdn_port_filter.max_ports keeps only the allowed ports; one under it keeps them all"""
 
     module_name = "shodan_idb"
     targets = ["1.2.3.4", "5.6.7.8"]

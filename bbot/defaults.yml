@@ -228,6 +228,8 @@ cdn_port_filter:
   allowed_ports:
     - 80
     - 443
+  # hosts that port sources list with more open ports than this accept connections on any port (e.g. load balancers, tarpits), so only allowed_ports are kept on them (0 = off)
+  max_ports: 100
 
 # Let active modules scan hosts that resolve to loopback (127.0.0.0/8, ::1, 0.0.0.0), i.e. the machine BBOT runs on
 # Loopback addresses in the target are always allowed
