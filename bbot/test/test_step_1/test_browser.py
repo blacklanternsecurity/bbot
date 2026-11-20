@@ -723,6 +723,9 @@ async def test_browser_retired_with_leaked_context(bbot_scanner, bbot_httpserver
     await context.close()
     assert browser._page_slots._value == 2
 
+    await scan._cleanup()
+    assert await no_browser_processes()
+
 
 @pytest.mark.asyncio
 async def test_browser_recycle_and_idle(bbot_scanner, bbot_httpserver):
