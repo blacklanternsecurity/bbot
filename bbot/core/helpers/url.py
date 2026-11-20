@@ -50,14 +50,19 @@ def add_get_params(url, params, encode=True):
     Returns:
         ParseResult: A named 6-tuple containing the components of the modified URL.
 
+    An empty path is normalized to "/", since some HTTP servers reject a
+    request target without a leading slash.
+
     Examples:
         >>> add_get_params('https://www.evilcorp.com?foo=1', {'bar': 2})
-        ParseResult(scheme='https', netloc='www.evilcorp.com', path='', params='', query='foo=1&bar=2', fragment='')
+        ParseResult(scheme='https', netloc='www.evilcorp.com', path='/', params='', query='foo=1&bar=2', fragment='')
 
         >>> add_get_params('https://www.evilcorp.com?foo=1', {'foo': 2})
-        ParseResult(scheme='https', netloc='www.evilcorp.com', path='', params='', query='foo=2', fragment='')
+        ParseResult(scheme='https', netloc='www.evilcorp.com', path='/', params='', query='foo=2', fragment='')
     """
     parsed = urlparse(url)
+    if parsed.netloc and not parsed.path:
+        parsed = parsed._replace(path="/")
     query_params = parsed.query.split("&")
 
     existing_params = {}

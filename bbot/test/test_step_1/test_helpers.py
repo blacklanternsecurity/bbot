@@ -38,6 +38,15 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
         ("q", ["2"]),
     )
 
+    # add_get_params normalizes an empty path to "/" (some servers 400 on a bare "?query" target)
+    assert helpers.add_get_params("https://www.evilcorp.com", {"foo": 1}).geturl() == "https://www.evilcorp.com/?foo=1"
+    assert (
+        helpers.add_get_params("https://www.evilcorp.com?foo=1", {"bar": 2}).geturl()
+        == "https://www.evilcorp.com/?foo=1&bar=2"
+    )
+    # existing paths and relative URLs are left alone
+    assert helpers.add_get_params("http://evilcorp.com/a?p=1", {"r": 3}).geturl() == "http://evilcorp.com/a?p=1&r=3"
+
     assert helpers.validators.clean_url("http://evilcorp.com:80").geturl() == "http://evilcorp.com/"
     assert helpers.validators.clean_url("http://evilcorp.com/asdf?a=asdf#frag").geturl() == "http://evilcorp.com/asdf"
     assert helpers.validators.clean_url("http://evilcorp.com//asdf").geturl() == "http://evilcorp.com/asdf"
