@@ -125,7 +125,7 @@ Output:
   --no-color            Disable colored terminal output
   --event-types EVENT_TYPES [EVENT_TYPES ...]
                         Choose which event types to display
-  --allow-cdn-ports     Don't filter out open ports on CDNs/WAFs (by default only 80,443 are kept)
+  --allow-cdn-ports     Don't filter out open ports on CDNs/WAFs, or on hosts that passive port sources list with every port open (by default only 80,443 are kept)
 
 Module dependencies:
   Control how modules install their dependencies
