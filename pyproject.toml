@@ -4,7 +4,7 @@ version = "3.1.0"
 description = "OSINT automation for hackers."
 readme = "README.md"
 license = "AGPL-3.0"
-requires-python = ">=3.11,<3.16"
+requires-python = ">=3.11.5,<3.16"
 authors = [
     { name = "Black Lantern Security", email = "info@blacklanternsecurity.com" },
 ]
