@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.rrps0ba9.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.44qt2g_l.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1294,7 +1294,7 @@ Is the same as:
 <span style="color: #8B949E; font-style: italic"># Reject URLs whose path repeats the same path parameter this many times (e.g. a session id appended on every redirect)</span>
 <span style="color: #7EE787">url_max_path_param_repeats</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">10</span>
 
-<span style="color: #8B949E; font-style: italic"># Drop open ports and URLs on CDN/WAF hosts unless the port is allowed or was explicitly targeted</span>
+<span style="color: #8B949E; font-style: italic"># Drop open ports and URLs on CDN/WAF hosts and catch-all hosts unless the port is allowed or was explicitly targeted</span>
 <span style="color: #8B949E; font-style: italic"># CDN edges answer on many ports (e.g. Cloudflare's 2052-2096, 8080, 8443) that rarely lead anywhere useful</span>
 <span style="color: #7EE787">cdn_port_filter</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">enabled</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">true</span>
@@ -1302,10 +1302,12 @@ Is the same as:
 <span style="color: #6E7681">  </span><span style="color: #7EE787">tags</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">cdn</span>
 <span style="color: #6E7681">    </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">waf</span>
-<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># ports that are still allowed on CDN/WAF hosts</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># ports that are still allowed on CDN/WAF and catch-all hosts</span>
 <span style="color: #6E7681">  </span><span style="color: #7EE787">allowed_ports</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">80</span>
 <span style="color: #6E7681">    </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">443</span>
+<span style="color: #6E7681">  </span><span style="color: #8B949E; font-style: italic"># a host that a passive port source lists with more open ports than this accepts connections on any port (e.g. a load balancer or tarpit), so it's treated as catch-all (0 = off)</span>
+<span style="color: #6E7681">  </span><span style="color: #7EE787">max_ports</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">100</span>
 
 <span style="color: #8B949E; font-style: italic"># Let active modules scan hosts that resolve to loopback (127.0.0.0/8, ::1, 0.0.0.0), i.e. the machine BBOT runs on</span>
 <span style="color: #8B949E; font-style: italic"># Loopback addresses in the target are always allowed</span>
@@ -2995,7 +2997,7 @@ Is the same as:
 <td>modules.trajan.version</td>
 <td>VersionStr</td>
 <td>Trajan version to download and use</td>
-<td>1.0.0</td>
+<td>1.0.2</td>
 </tr>
 <tr>
 <td>modules.trickest.api_key</td>
@@ -3037,7 +3039,7 @@ Is the same as:
 <td>modules.trufflehog.version</td>
 <td>VersionStr</td>
 <td>trufflehog version</td>
-<td>3.99.9</td>
+<td>3.100.0</td>
 </tr>
 <tr>
 <td>modules.urlscan.urls</td>
