@@ -259,9 +259,6 @@ class lightfuzz(BaseModule):
         except Exception as e:
             self.debug(f"Failed to build HTTP_RESPONSE dict from lightfuzz baseline: {e}")
             return
-        # what the probe sent, so excavate doesn't take a page echoing it back for parameters it hadn't seen
-        if event.type == "WEB_PARAMETER":
-            j["sent_parameters"] = sorted({event.data["name"], *(event.data.get("additional_params") or {})})
         await self.emit_event(
             j,
             "HTTP_RESPONSE",
