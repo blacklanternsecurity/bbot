@@ -52,8 +52,8 @@ class lightfuzz(BaseModule):
             description="Emit canonical baseline responses as HTTP_RESPONSE events so excavate can mine them for new params/URLs.",
         )
         max_baseline_generations: int = Field(
-            10,
-            description="Stop emitting baseline responses once a parameter is this many lightfuzz generations deep, bounding excavate feedback loops.",
+            1,
+            description="Stop emitting baseline responses once a parameter is this many lightfuzz generations deep. The default, 1, mines only responses to parameters found outside lightfuzz's own, so a page echoing a probe's parameters into its links can't feed it more. Raise it to follow multi-step forms further.",
         )
 
         @field_validator("avoid_wafs", mode="before")
@@ -89,7 +89,7 @@ class lightfuzz(BaseModule):
             avoid_wafs = "always" if avoid_wafs else "never"
         self.avoid_wafs = avoid_wafs.strip().lower()
         self.emit_baseline_responses = self.config.get("emit_baseline_responses", True)
-        self.max_baseline_generations = self.config.get("max_baseline_generations", 10)
+        self.max_baseline_generations = self.config.get("max_baseline_generations", 1)
         self._baseline_generation_cap_hit = False
         self.submodules = {}
         # Per-event baseline cache so submodules with identical request signatures share one HttpCompare.
