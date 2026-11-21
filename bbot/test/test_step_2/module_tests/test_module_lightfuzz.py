@@ -4956,6 +4956,174 @@ class Test_Lightfuzz_baseline_to_excavate_chain(ModuleTestBase):
         )
 
 
+def lightfuzz_mined_downstream(events):
+    """URLs of lightfuzz baseline responses to parameters that were themselves found downstream of a lightfuzz response."""
+    mined = []
+    for e in events:
+        if e.type != "HTTP_RESPONSE" or str(e.module) != "lightfuzz":
+            continue
+        ancestor = e.parent
+        while ancestor is not None and ancestor is not ancestor.parent:
+            if str(ancestor.module) == "lightfuzz":
+                mined.append(e.data["url"])
+                break
+            ancestor = ancestor.parent
+    return mined
+
+
+def lang_echo_handler(request):
+    """/pN links to the next two pages, carrying the `lang` it was sent, by form or querystring, into each link."""
+    n = int(request.path[2:])
+    lang = request.form.get("lang") or request.args.get("lang")
+    qs = f"?lang={lang}" if lang else ""
+    links = "".join(f'<a href="/p{m}{qs}">p{m}</a>' for m in (n + 1, n + 2)) if n < 12 else ""
+    return Response(f"<html><body>{links}</body></html>", content_type="text/html")
+
+
+class Test_Lightfuzz_echo_stops(ModuleTestBase):
+    """
+    A page that writes a probe's parameters into its links hands each one back on every page it links to. Those are
+    fuzzed, but their responses aren't mined, so the echo goes one level deep instead of across the site. Here only a
+    POST form has `lang`, and every page writes it into its links.
+    """
+
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
+    config_overrides = {"interactsh_disable": True, "modules": {"lightfuzz": {"enabled_submodules": ["sqli"]}}}
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            '<html><body><form action="/p1" method="post"><input type="text" name="lang" value="en">'
+            '<input type="submit"></form></body></html>',
+            content_type="text/html",
+        )
+        for n in range(1, 15):
+            module_test.httpserver.expect_request(f"/p{n}").respond_with_handler(lang_echo_handler)
+
+    def check(self, module_test, events):
+        lang = {
+            urlparse(e.data["url"]).path
+            for e in events
+            if e.type == "WEB_PARAMETER" and e.data["name"] == "lang" and e.data["type"] == "GETPARAM"
+        }
+        # the POST probe's response links /p2 and /p3, and nothing past them is mined
+        assert lang == {"/p2", "/p3"}, sorted(lang)
+        assert not lightfuzz_mined_downstream(events)
+
+
+class Test_Lightfuzz_echo_stops_spider(Test_Lightfuzz_echo_stops):
+    """
+    With the querystring kept and the spider on, as the lightfuzz presets run, nothing found downstream of a lightfuzz
+    response is mined either. The spider carries the echo only as far as its own distance.
+    """
+
+    config_overrides = {
+        "interactsh_disable": True,
+        "url_querystring_remove": False,
+        "web": {"spider_distance": 2, "spider_depth": 4},
+        "modules": {"lightfuzz": {"enabled_submodules": ["sqli"]}},
+    }
+
+    def check(self, module_test, events):
+        assert not lightfuzz_mined_downstream(events)
+
+
+def redirect_tree_handler(request):
+    """/t/<bits>?q redirects to /t/<bits>/?q, which links its two children, carrying the querystring into each."""
+    qs = request.query_string.decode()
+    path = request.path
+    if not path.endswith("/"):
+        return Response("", status=302, headers={"Location": f"{path}/?{qs}"})
+    bits = path[len("/t/") : -1]
+    links = "".join(f'<a href="/t/{bits}{b}?{qs}">x</a>' for b in "01") if len(bits) < 5 else ""
+    return Response(f"<html><body>{links}</body></html>", content_type="text/html")
+
+
+class Test_Lightfuzz_echo_stops_redirect(ModuleTestBase):
+    """
+    An echo carried through a redirect, which the http module follows whatever the spider distance, stops at the same
+    depth: the redirect target's response is downstream of the lightfuzz response too.
+    """
+
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "url_querystring_remove": False,
+        "modules": {"lightfuzz": {"enabled_submodules": ["sqli"]}},
+    }
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            '<html><body><a href="/t/r?lang=en">t</a></body></html>', content_type="text/html"
+        )
+        module_test.httpserver.expect_request(re.compile(r"^/t/.*")).respond_with_handler(redirect_tree_handler)
+
+    def check(self, module_test, events):
+        assert not lightfuzz_mined_downstream(events)
+
+
+class Test_Lightfuzz_echo_post_field_isnt_dropped(ModuleTestBase):
+    """A GET link on the page a POST form lands on is reported even when it shares a name with the form's field."""
+
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
+    config_overrides = {"interactsh_disable": True, "modules": {"lightfuzz": {"enabled_submodules": ["sqli"]}}}
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            '<html><body><form action="/search" method="post"><input type="text" name="id" value="7">'
+            '<input type="submit"></form></body></html>',
+            content_type="text/html",
+        )
+        module_test.httpserver.expect_request("/search").respond_with_data(
+            '<html><body><a href="/detail?id=42&page=2">result</a></body></html>', content_type="text/html"
+        )
+
+    def check(self, module_test, events):
+        found = {
+            (urlparse(e.data["url"]).path, e.data["name"])
+            for e in events
+            if e.type == "WEB_PARAMETER" and e.data["type"] == "GETPARAM"
+        }
+        assert ("/detail", "id") in found, found
+        assert ("/detail", "page") in found, found
+
+
+class Test_Lightfuzz_echo_redirect_target_isnt_dropped(ModuleTestBase):
+    """A redirect that hands a probed parameter to the endpoint that uses it reports the parameter there."""
+
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
+    config_overrides = {"interactsh_disable": True, "modules": {"lightfuzz": {"enabled_submodules": ["sqli"]}}}
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            '<html><body><form action="/search" method="get"><input type="text" name="q" value="hello">'
+            '<input type="submit"></form></body></html>',
+            content_type="text/html",
+        )
+
+        def search(request):
+            q = request.args.get("q")
+            if q is None:
+                return Response("<html><body>search</body></html>", content_type="text/html")
+            return Response("", status=302, headers={"Location": f"/results?q={q}"})
+
+        module_test.httpserver.expect_request("/search").respond_with_handler(search)
+        module_test.httpserver.expect_request("/results").respond_with_data(
+            "<html><body>results</body></html>", content_type="text/html"
+        )
+
+    def check(self, module_test, events):
+        found = {
+            (urlparse(e.data["url"]).path, e.data["name"])
+            for e in events
+            if e.type == "WEB_PARAMETER" and e.data["type"] == "GETPARAM"
+        }
+        assert ("/results", "q") in found, found
+
+
 # End-to-end test for keystream-reuse detection.
 #
 # Multiple <a href="/sort?SortBy=<hex>"> links carry distinct hex-shaped values
