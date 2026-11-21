@@ -5027,6 +5027,13 @@ class Test_Lightfuzz_echo_stops_spider(Test_Lightfuzz_echo_stops):
     }
 
     def check(self, module_test, events):
+        lang = {
+            urlparse(e.data["url"]).path
+            for e in events
+            if e.type == "WEB_PARAMETER" and e.data["name"] == "lang" and e.data["type"] == "GETPARAM"
+        }
+        # mining alone stops at /p5, and the spider carries the echo on, but never past /p9
+        assert {f"/p{n}" for n in range(2, 8)} <= lang <= {f"/p{n}" for n in range(2, 10)}, sorted(lang)
         assert not lightfuzz_mined_too_deep(events)
 
 
@@ -5043,8 +5050,9 @@ def redirect_tree_handler(request):
 
 class Test_Lightfuzz_echo_stops_redirect(ModuleTestBase):
     """
-    An echo carried through a redirect, which the http module follows whatever the spider distance, stops at the same
-    depth: the redirect target's response is downstream of the lightfuzz response too.
+    An echo carried through a redirect, which the http module follows whatever the spider distance, stops within two
+    levels of the tree: the redirect target's response is downstream of the lightfuzz response too. How far within
+    depends on whether the http module or lightfuzz fetches each redirect target first.
     """
 
     targets = [HTTPSERVER_URL]
@@ -5062,6 +5070,17 @@ class Test_Lightfuzz_echo_stops_redirect(ModuleTestBase):
         module_test.httpserver.expect_request(re.compile(r"^/t/.*")).respond_with_handler(redirect_tree_handler)
 
     def check(self, module_test, events):
+        lang = {
+            urlparse(e.data["url"]).path
+            for e in events
+            if e.type == "WEB_PARAMETER" and e.data["name"] == "lang" and e.data["type"] == "GETPARAM"
+        }
+        assert any(e.type == "HTTP_RESPONSE" and str(e.module) == "lightfuzz" for e in events)
+        # the redirect a lightfuzz response pointed at was followed, and its links mined
+        assert any(e.type == "URL" and e.parsed_url.path == "/t/r/" for e in events)
+        assert {"/t/r", "/t/r/", "/t/r0", "/t/r1"} <= lang, sorted(lang)
+        second_level = {"/t/r0/", "/t/r00", "/t/r01", "/t/r1/", "/t/r10", "/t/r11"}
+        assert lang <= {"/t/r", "/t/r/", "/t/r0", "/t/r1"} | second_level, sorted(lang)
         assert not lightfuzz_mined_too_deep(events)
 
 
