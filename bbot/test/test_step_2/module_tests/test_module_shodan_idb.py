@@ -84,6 +84,32 @@ class TestShodan_IDB(ModuleTestBase):
         assert module_test.cvedb_request_counts == {"CVE-2021-26857": 1, "CVE-2021-26855": 1}
 
 
+class TestShodan_IDB_CatchAllPorts(ModuleTestBase):
+    """An IP listed with more open ports than cdn_port_filter.max_ports keeps only the allowed ports; one under it keeps them all"""
+
+    module_name = "shodan_idb"
+    targets = ["1.2.3.4", "5.6.7.8"]
+    config_overrides = {"dns": {"minimal": False}}
+
+    async def setup_after_prep(self, module_test):
+        for ip, ports in (("1.2.3.4", list(range(1, 2001))), ("5.6.7.8", [22, 80, 443, 8080])):
+            module_test.blasthttp_mock.add_response(
+                url=f"https://internetdb.shodan.io/{ip}",
+                json={"cpes": [], "hostnames": [], "ip": ip, "ports": ports, "tags": [], "vulns": []},
+            )
+
+    def check(self, module_test, events):
+        ports = {(str(e.host), e.port) for e in events if e.type == "OPEN_TCP_PORT" and str(e.module) == "shodan_idb"}
+        assert ports == {
+            ("1.2.3.4", 80),
+            ("1.2.3.4", 443),
+            ("5.6.7.8", 22),
+            ("5.6.7.8", 80),
+            ("5.6.7.8", 443),
+            ("5.6.7.8", 8080),
+        }
+
+
 class TestShodan_IDB_CrossHostCache(ModuleTestBase):
     """Same CVE on two different hosts must be fetched from CVEDB only once."""
 

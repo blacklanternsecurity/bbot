@@ -82,16 +82,32 @@ class censys_ip(censys):
         # Track what we've already emitted to avoid duplicates
         seen = set()
 
+        # QUIC uses UDP as transport, so treat it as UDP
+        udp_transports = ("UDP", "QUIC")
+        services = result.get("services", [])
+        tcp_ports = set(
+            self.scan.filter_catch_all_ports(
+                ip,
+                [
+                    service.get("port")
+                    for service in services
+                    if service.get("port")
+                    and (service.get("transport_protocol") or "TCP").upper() not in udp_transports
+                ],
+            )
+        )
+
         # Extract data from services
-        for service in result.get("services", []):
+        for service in services:
             port = service.get("port")
-            transport = service.get("transport_protocol", "TCP").upper()
+            transport = (service.get("transport_protocol") or "TCP").upper()
+            # a TCP port cut by filter_catch_all_ports, along with its PROTOCOL and URL
+            dropped = bool(port) and transport not in udp_transports and port not in tcp_ports
 
             # Emit OPEN_TCP_PORT or OPEN_UDP_PORT for services with a port
-            # QUIC uses UDP as transport, so treat it as UDP
-            if port and (port, transport) not in seen:
+            if port and not dropped and (port, transport) not in seen:
                 seen.add((port, transport))
-                if transport in ("UDP", "QUIC"):
+                if transport in udp_transports:
                     event_type = "OPEN_UDP_PORT"
                 else:
                     event_type = "OPEN_TCP_PORT"
@@ -109,7 +125,7 @@ class censys_ip(censys):
             # If service_name is UNKNOWN but transport_protocol is meaningful, use that
             if service_name.upper() == "UNKNOWN" and transport and transport not in ("TCP", "UDP"):
                 service_name = transport
-            if service_name and service_name.upper() not in ("HTTP", "HTTPS", "UNKNOWN"):
+            if service_name and not dropped and service_name.upper() not in ("HTTP", "HTTPS", "UNKNOWN"):
                 protocol_key = ("protocol", service_name.upper(), port)
                 if protocol_key not in seen:
                     seen.add(protocol_key)
@@ -127,7 +143,7 @@ class censys_ip(censys):
             http_data = service.get("http", {})
             request = http_data.get("request", {})
             uri = request.get("uri")
-            if uri and uri not in seen:
+            if uri and not dropped and uri not in seen:
                 seen.add(uri)
                 await self.emit_event(
                     uri,
