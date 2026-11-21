@@ -1038,8 +1038,9 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                 base_url = await self.excavate._document_base_url(event, document_url)
                             url = urljoin(base_url, endpoint) if endpoint else document_url
 
+                        # read as a browser reads a link: \ as /, and a space percent-encoded
                         if parameterExtractorSubModule.strict_endpoint and not FULL_URL_REGEX_STRICT.search(
-                            html.unescape(urldefrag(url).url)
+                            html.unescape(urldefrag(url).url).replace("\\", "/").replace(" ", "%20")
                         ):
                             self.excavate.debug(
                                 f"Skipping parameter [{parameter_name}]: its endpoint [{url}] isn't a URL the URL extractor would take"
