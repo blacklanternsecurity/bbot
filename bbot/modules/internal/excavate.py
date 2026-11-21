@@ -707,6 +707,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     class ParameterExtractor(ExcavateRule):
         description = "Extracts web parameters. Enabled if any modules are enabled that emit WEB_PARAMETER events."
         yara_rules = {}
+        # a backslash escaping a slash, quote or HTML entity, as in a link inside a JSON or JS string
+        _escaped_link_regex = re.compile(r"""\\[/"'&]""")
 
         class ParameterExtractorRule:
             name = ""
@@ -1060,8 +1062,9 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             self.excavate.debug(f"Invalid URL [{url}]: {e}")
                             continue
 
-                        # a link's path never holds these: they come from template placeholders ({{...}}) and escaped links (\/)
-                        if any(c in parsed_url.path for c in "{}\\"):
+                        # a link's path never holds braces from a template placeholder ({{...}}) or an escape from a link
+                        # inside a JSON or JS string (\/, \&quot;). A lone \ is fine, since IIS reads it as /
+                        if any(c in parsed_url.path for c in "{}") or self._escaped_link_regex.search(parsed_url.path):
                             self.excavate.debug(f"Skipping parameter [{parameter_name}]: [{url}] isn't a link")
                             continue
 
