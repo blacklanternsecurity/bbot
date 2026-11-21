@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.jh4i2mkk.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.rrps0ba9.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -870,6 +870,15 @@
 <span class="md-ellipsis">
       
         extract_in_scope_hostnames
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#bbot.scanner.Scanner.filter_catch_all_ports">
+<span class="md-ellipsis">
+      
+        filter_catch_all_ports
       
     </span>
 </a>
@@ -2821,7 +2830,24 @@
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1569</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1570</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1571</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1572</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">Scanner</span><span style="color: #E6EDF3">:</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1572</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1573</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1574</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1575</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1576</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1577</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1578</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1579</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1580</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1581</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1582</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1583</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1584</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1585</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1586</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1587</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1588</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1589</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">class</span><span style="color: #6E7681"> </span><span style="color: #F0883E; font-weight: bold">Scanner</span><span style="color: #E6EDF3">:</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""A class representing a single BBOT scan</span>
 
 <span style="color: #A5D6FF">    Examples:</span>
@@ -3075,6 +3101,7 @@
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cdn_port_filter</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">bool(cdn_port_filter_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"enabled"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">True</span><span style="color: #E6EDF3">))</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cdn_tags</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set(cdn_port_filter_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"tags"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">[]))</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cdn_allowed_ports</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set(cdn_port_filter_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"allowed_ports"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">[]))</span>
+        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cdn_max_ports</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">int(cdn_port_filter_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"max_ports"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">100</span><span style="color: #E6EDF3">)</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #A5D6FF">0</span><span style="color: #E6EDF3">)</span>
 
         <span style="color: #8B949E; font-style: italic"># url querystring behavior</span>
         <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">url_querystring_remove</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"url_querystring_remove"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">True</span><span style="color: #E6EDF3">)</span>
@@ -3871,6 +3898,22 @@
 
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">blacklisted</span><span style="color: #E6EDF3">(self,</span> <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs):</span>
         <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">preset</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">blacklisted(</span><span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">args,</span> <span style="color: #FF7B72; font-weight: bold">**</span><span style="color: #E6EDF3">kwargs)</span>
+
+    <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">filter_catch_all_ports</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">host,</span> <span style="color: #E6EDF3">ports):</span>
+<span style="color: #6E7681">        </span><span style="color: #A5D6FF">"""Return a host's unique ports, cut to the allowed and targeted ones if there are more than cdn_port_filter.max_ports (it accepts connections on any port)"""</span>
+        <span style="color: #E6EDF3">ports</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">list(dict</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">fromkeys(ports))</span>
+        <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cdn_port_filter</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cdn_max_ports</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">len(ports)</span> <span style="color: #FF7B72; font-weight: bold">&lt;=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cdn_max_ports:</span>
+            <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">ports</span>
+        <span style="color: #E6EDF3">host</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">str(host)</span>
+        <span style="color: #8B949E; font-style: italic"># like the rest of cdn_port_filter, a port explicitly targeted on this host is never cut</span>
+        <span style="color: #E6EDF3">targeted</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">{</span>
+            <span style="color: #E6EDF3">seed</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">port</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">seed</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">seeds</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(host,</span> <span style="color: #E6EDF3">single</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">)</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">()</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">seed</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">port</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #E6EDF3">str(seed</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">host)</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #E6EDF3">host</span>
+        <span style="color: #E6EDF3">}</span>
+        <span style="color: #E6EDF3">kept</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[port</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">port</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">ports</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">port</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cdn_allowed_ports</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">port</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">targeted]</span>
+        <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">verbose(</span>
+            <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"{</span><span style="color: #E6EDF3">host</span><span style="color: #A5D6FF">} lists {</span><span style="color: #E6EDF3">len(ports)</span><span style="color: #A5D6FF">:,} open ports, more than cdn_port_filter.max_ports ({</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cdn_max_ports</span><span style="color: #A5D6FF">}): keeping only {</span><span style="color: #E6EDF3">kept</span><span style="color: #A5D6FF">}"</span>
+        <span style="color: #E6EDF3">)</span>
+        <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">kept</span>
 
     <span style="color: #D2A8FF; font-weight: bold">@property</span>
     <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">core</span><span style="color: #E6EDF3">(self):</span>
@@ -4759,7 +4802,8 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">333</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">334</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">335</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">336</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">__init__</span><span style="color: #E6EDF3">(</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">336</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">337</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">__init__</span><span style="color: #E6EDF3">(</span>
     <span style="color: #E6EDF3">self,</span>
     <span style="color: #FF7B72; font-weight: bold">*</span><span style="color: #E6EDF3">targets,</span>
     <span style="color: #E6EDF3">name</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">None</span><span style="color: #E6EDF3">,</span>
@@ -4952,6 +4996,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
     <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cdn_port_filter</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">bool(cdn_port_filter_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"enabled"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">True</span><span style="color: #E6EDF3">))</span>
     <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cdn_tags</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set(cdn_port_filter_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"tags"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">[]))</span>
     <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cdn_allowed_ports</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">set(cdn_port_filter_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"allowed_ports"</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">[]))</span>
+    <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cdn_max_ports</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">int(cdn_port_filter_config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"max_ports"</span><span style="color: #E6EDF3">,</span> <span style="color: #A5D6FF">100</span><span style="color: #E6EDF3">)</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #A5D6FF">0</span><span style="color: #E6EDF3">)</span>
 
     <span style="color: #8B949E; font-style: italic"># url querystring behavior</span>
     <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">url_querystring_remove</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">config</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(</span><span style="color: #A5D6FF">"url_querystring_remove"</span><span style="color: #E6EDF3">,</span> <span style="color: #79C0FF">True</span><span style="color: #E6EDF3">)</span>
@@ -5021,8 +5066,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 </ul>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/scanner.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">920</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">921</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">921</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">922</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">923</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">924</span>
@@ -5040,7 +5084,8 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">936</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">937</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">938</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">939</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">async_stop</span><span style="color: #E6EDF3">(self):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">939</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">940</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">async_stop</span><span style="color: #E6EDF3">(self):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""Stops the in-progress scan and performs necessary cleanup.</span>
 
 <span style="color: #A5D6FF">    This method sets the scan's status to "ABORTING," cancels any pending tasks, and drains event queues. It also kills child processes spawned during the scan.</span>
@@ -5081,21 +5126,21 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 </code></pre></div>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/scanner.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1329</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1330</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1331</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1332</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1333</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1334</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1335</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1336</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1337</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1338</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1339</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1340</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1341</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1342</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1343</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">extract_in_scope_hostnames</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">s):</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1346</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1347</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1348</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1349</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1350</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1351</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1352</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1353</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1354</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1355</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1356</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1357</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1358</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1359</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1360</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">extract_in_scope_hostnames</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">s):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Given a string, uses yara to extract hostnames matching scan targets</span>
 
@@ -5110,6 +5155,49 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
             <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">string</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">match</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">strings:</span>
                 <span style="color: #E6EDF3">matches</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">update(self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">yara_hostnames(string</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">instances))</span>
     <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">matches</span>
+</code></pre></div></td></tr></table></div>
+</details>
+</div>
+</div>
+<div class="doc doc-object doc-function">
+<h2 class="doc doc-heading" id="bbot.scanner.Scanner.filter_catch_all_ports">
+<span class="doc doc-object-name doc-function-name">filter_catch_all_ports</span>
+</h2>
+<div class="doc-signature highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6EDF3">filter_catch_all_ports(host,</span> <span style="color: #E6EDF3">ports)</span>
+</code></pre></div>
+<div class="doc doc-contents">
+<p>Return a host's unique ports, cut to the allowed and targeted ones if there are more than cdn_port_filter.max_ports (it accepts connections on any port)</p>
+<details class="mkdocstrings-source">
+<summary>Source code in <code>bbot/scanner/scanner.py</code></summary>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1093</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1094</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1095</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1096</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1097</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1098</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1099</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1100</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1101</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1102</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1103</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1104</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1105</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1106</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1107</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">filter_catch_all_ports</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">host,</span> <span style="color: #E6EDF3">ports):</span>
+<span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""Return a host's unique ports, cut to the allowed and targeted ones if there are more than cdn_port_filter.max_ports (it accepts connections on any port)"""</span>
+    <span style="color: #E6EDF3">ports</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">list(dict</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">fromkeys(ports))</span>
+    <span style="color: #FF7B72">if</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cdn_port_filter</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #FF7B72; font-weight: bold">not</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cdn_max_ports</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">len(ports)</span> <span style="color: #FF7B72; font-weight: bold">&lt;=</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cdn_max_ports:</span>
+        <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">ports</span>
+    <span style="color: #E6EDF3">host</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">str(host)</span>
+    <span style="color: #8B949E; font-style: italic"># like the rest of cdn_port_filter, a port explicitly targeted on this host is never cut</span>
+    <span style="color: #E6EDF3">targeted</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">{</span>
+        <span style="color: #E6EDF3">seed</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">port</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">seed</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">seeds</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">get(host,</span> <span style="color: #E6EDF3">single</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">)</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">()</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">seed</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">port</span> <span style="color: #FF7B72; font-weight: bold">and</span> <span style="color: #E6EDF3">str(seed</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">host)</span> <span style="color: #FF7B72; font-weight: bold">==</span> <span style="color: #E6EDF3">host</span>
+    <span style="color: #E6EDF3">}</span>
+    <span style="color: #E6EDF3">kept</span> <span style="color: #FF7B72; font-weight: bold">=</span> <span style="color: #E6EDF3">[port</span> <span style="color: #FF7B72">for</span> <span style="color: #E6EDF3">port</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">ports</span> <span style="color: #FF7B72">if</span> <span style="color: #E6EDF3">port</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cdn_allowed_ports</span> <span style="color: #FF7B72; font-weight: bold">or</span> <span style="color: #E6EDF3">port</span> <span style="color: #FF7B72; font-weight: bold">in</span> <span style="color: #E6EDF3">targeted]</span>
+    <span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">verbose(</span>
+        <span style="color: #79C0FF">f</span><span style="color: #A5D6FF">"{</span><span style="color: #E6EDF3">host</span><span style="color: #A5D6FF">} lists {</span><span style="color: #E6EDF3">len(ports)</span><span style="color: #A5D6FF">:,} open ports, more than cdn_port_filter.max_ports ({</span><span style="color: #E6EDF3">self</span><span style="color: #FF7B72; font-weight: bold">.</span><span style="color: #E6EDF3">cdn_max_ports</span><span style="color: #A5D6FF">}): keeping only {</span><span style="color: #E6EDF3">kept</span><span style="color: #A5D6FF">}"</span>
+    <span style="color: #E6EDF3">)</span>
+    <span style="color: #FF7B72">return</span> <span style="color: #E6EDF3">kept</span>
 </code></pre></div></td></tr></table></div>
 </details>
 </div>
@@ -5142,8 +5230,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 </details>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/scanner.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">944</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">945</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">945</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">946</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">947</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">948</span>
@@ -5167,7 +5254,8 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">966</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">967</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">968</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">969</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">finish</span><span style="color: #E6EDF3">(self):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">969</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">970</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">finish</span><span style="color: #E6EDF3">(self):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""Finalizes the scan by invoking the `finished()` method on all active modules if new activity is detected.</span>
 
 <span style="color: #A5D6FF">    The method is idempotent and will return False if no new activity has been recorded since the last invocation.</span>
@@ -5269,8 +5357,7 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 </details>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/scanner.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">666</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">667</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">667</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">668</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">669</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">670</span>
@@ -5368,7 +5455,8 @@ Otherwise, <code>Scan</code> accepts the same arguments as <code>Preset</code>, 
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">762</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">763</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">764</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">765</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">load_modules</span><span style="color: #E6EDF3">(self):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">765</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">766</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">load_modules</span><span style="color: #E6EDF3">(self):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""Asynchronously import and instantiate all scan modules, including internal and output modules.</span>
 
 <span style="color: #A5D6FF">    This method is automatically invoked by `setup_modules()`. It performs several key tasks in the following sequence:</span>
@@ -5524,8 +5612,7 @@ Soft-failed modules are not set to an error state but are also removed if <code>
 </details>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/scanner.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">622</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">623</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">623</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">624</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">625</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">626</span>
@@ -5566,7 +5653,8 @@ Soft-failed modules are not set to an error state but are also removed if <code>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">661</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">662</span>
 <span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">663</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">664</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">setup_modules</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">remove_failed</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">deps_only</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">664</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">665</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #FF7B72">async</span> <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">setup_modules</span><span style="color: #E6EDF3">(self,</span> <span style="color: #E6EDF3">remove_failed</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">True</span><span style="color: #E6EDF3">,</span> <span style="color: #E6EDF3">deps_only</span><span style="color: #FF7B72; font-weight: bold">=</span><span style="color: #79C0FF">False</span><span style="color: #E6EDF3">):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""Asynchronously initializes all loaded modules by invoking their `setup()` methods.</span>
 
 <span style="color: #A5D6FF">    Args:</span>
@@ -5629,21 +5717,21 @@ so "dv-api.evilcorp.com" also yields "-api.evilcorp.com" and "api.evilcorp.com".
 character continues a label of a longer match is one of those.</p>
 <details class="mkdocstrings-source">
 <summary>Source code in <code>bbot/scanner/scanner.py</code></summary>
-<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1345</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1346</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1347</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1348</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1349</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1350</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1351</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1352</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1353</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1354</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1355</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1356</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1357</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1358</span>
-<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1359</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@staticmethod</span>
+<div class="highlight" style="background: #0d1117"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1362</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1363</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1364</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1365</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1366</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1367</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1368</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1369</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1370</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1371</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1372</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1373</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1374</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1375</span>
+<span style="color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px;">1376</span></pre></div></td><td class="code"><div><pre style="line-height: 125%;"><span></span><code><span style="color: #D2A8FF; font-weight: bold">@staticmethod</span>
 <span style="color: #FF7B72">def</span><span style="color: #6E7681"> </span><span style="color: #D2A8FF; font-weight: bold">yara_hostnames</span><span style="color: #E6EDF3">(instances):</span>
 <span style="color: #6E7681">    </span><span style="color: #A5D6FF">"""</span>
 <span style="color: #A5D6FF">    Hostnames from one string of the DNS yara rules, without the fragments that start partway through a label.</span>

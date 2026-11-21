@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.jh4i2mkk.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.rrps0ba9.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1259,6 +1259,7 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <h3 id="cdnwaf-port-filtering">CDN/WAF Port Filtering</h3>
 <p>CDNs and WAFs like Cloudflare answer on many ports (e.g. 2052-2096, 8080, 8443) for every host behind them. Port sources like <code>shodan_idb</code> and <code>portscan</code> report these as open, but they rarely lead anywhere useful, and probing them wastes a lot of time. By default, BBOT drops open ports and URLs on hosts tagged <code>cdn</code> or <code>waf</code> unless the port is 80 or 443.</p>
 <p>Ports you explicitly target are never filtered. For example, <code>-t www.evilcorp.com:8443</code> keeps that port and anything discovered on it, even if the host is behind a CDN.</p>
+<p>The same filter covers catch-all hosts, which accept a connection on any port, like some cloud load balancers and tarpits. Passive port sources can list hundreds or thousands of open ports for these, so when <code>shodan_idb</code>, <code>shodan_enterprise</code> or <code>censys_ip</code> lists more than <code>cdn_port_filter.max_ports</code> (100 by default) open TCP ports for a host, only the allowed ports and any ports you explicitly targeted are kept. The cap doesn't apply to <code>portscan</code>. Set <code>max_ports</code> to <code>0</code> to turn off just this check.</p>
 <p>To turn the filter off and keep every port:</p>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>--allow-cdn-ports
 </code></pre></div>
@@ -1279,6 +1280,8 @@ bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>
 <span style="color: #6E7681">      </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">80</span>
 <span style="color: #6E7681">      </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">443</span>
 <span style="color: #6E7681">      </span><span style="color: #E6EDF3">-</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">8443</span>
+<span style="color: #6E7681">    </span><span style="color: #8B949E; font-style: italic"># hosts that passive port sources list with more open ports than this keep only allowed_ports (0 = off)</span>
+<span style="color: #6E7681">    </span><span style="color: #7EE787">max_ports</span><span style="color: #E6EDF3">:</span><span style="color: #6E7681"> </span><span style="color: #A5D6FF">100</span>
 </code></pre></div>
 <div class="highlight" style="background: #0d1117"><pre style="line-height: 125%;"><span></span><code>bbot<span style="color: #6E7681"> </span>-t<span style="color: #6E7681"> </span>evilcorp.com<span style="color: #6E7681"> </span>-p<span style="color: #6E7681"> </span>cdn_ports.yml
 </code></pre></div>
