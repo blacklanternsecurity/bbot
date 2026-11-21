@@ -921,6 +921,39 @@ class TestExcavateParameterExtraction_getparam(ModuleTestBase):
         assert excavate_getparam_extraction, "Excavate failed to extract web parameter"
 
 
+class TestExcavateParameterExtraction_notalink(TestExcavateParameterExtraction_getparam):
+    """A template placeholder or a JSON-escaped link isn't a URL the page links to, so it yields no parameters.
+
+    A backslash path is a real link on IIS, which reads \\ as /, so it keeps its parameter.
+    """
+
+    getparam_extract_html = r"""
+<html>
+<img ng-src="{{c.selected_image}}?t=small">
+<a href=\&quot;https:\/\/www.example.com\/webcast\/register.aspx?conf=1\&quot;>webcast</a>
+<a href=\&quot;https://www.example.com/webcast/register.aspx?conf2=1\&quot;>webcast</a>
+<script>var p = '<a href="\/js\/x.php?jsesc=1">x</a>';</script>
+<script>$.get("\/api\/items", {jqesc: "1"});</script>
+<form action="/orders/{{order.id}}/update" method="post"><input type="text" name="qty" value="1"></form>
+<a href="/real.php?keep=1">real</a>
+<a href="images\view.asp?iis=1">iis</a>
+<a href="\uploads\x64\list.asp?iis2=1">iis</a>
+</html>
+    """
+
+    def check(self, module_test, events):
+        parameters = {e.data["name"]: e.data["url"] for e in events if e.type == "WEB_PARAMETER"}
+        assert "keep" in parameters, "Excavate failed to extract the real link's parameter"
+        assert parameters.get("iis") == f"{HTTPSERVER_URL}/images\\view.asp", parameters
+        assert parameters.get("iis2") == f"{HTTPSERVER_URL}/\\uploads\\x64\\list.asp", parameters
+        for name in ("t", "qty"):
+            assert name not in parameters, (
+                f"Excavate extracted a parameter from a template placeholder: {parameters[name]}"
+            )
+        for name in ("conf", "conf2", "jsesc", "jqesc"):
+            assert name not in parameters, f"Excavate extracted a parameter from an escaped link: {parameters[name]}"
+
+
 class TestExcavateParameterExtraction_relativeurl(ModuleTestBase):
     targets = [f"{HTTPSERVER_URL}/"]
 
