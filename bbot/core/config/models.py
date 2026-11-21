@@ -337,13 +337,14 @@ class DnsConfig(BaseModel):
 
 
 class CdnPortFilterConfig(BaseModel):
-    """`cdn_port_filter` — drops open ports and URLs on CDN/WAF hosts outside the allowed ports."""
+    """`cdn_port_filter`: drops open ports and URLs outside the allowed ports on CDN/WAF hosts and catch-all hosts."""
 
     model_config = STRICT
 
     enabled: Optional[bool] = None
     tags: Optional[list[str]] = None
     allowed_ports: Optional[list[int]] = None
+    max_ports: Optional[int] = None
 
 
 class BodySpillConfig(BaseModel):
@@ -490,6 +491,9 @@ class BBOTConfig(BaseModel):
 
     # CDN/WAF port filtering
     cdn_port_filter: Optional[CdnPortFilterConfig] = None
+
+    # let active modules scan hosts that resolve to loopback
+    allow_loopback: Optional[bool] = None
 
     # Parameter handling
     parameter_blacklist: Optional[list[str]] = None
