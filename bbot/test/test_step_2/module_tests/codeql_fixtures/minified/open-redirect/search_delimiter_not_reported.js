@@ -1,0 +1,1 @@
+function toMarkdownUrl(r){var o=r.search(/[?#]/);return o<0?r+".md":r.slice(0,o)+".md"+r.slice(o)}window.open(toMarkdownUrl(window.location.href),"_blank");var href=location.href;location.href=href.slice(href.search(/[?#]/)+1);

@@ -173,6 +173,10 @@ predicate afterFixedHost(DataFlow::Node node) {
     precedes(before, node) and
     fixesHost(before.getStringValue())
   )
+  or
+  // location.origin + location.pathname: a path starts with "/", so the host stays the page's own
+  pathInput(node) and
+  node.(StringOps::ConcatenationLeaf).getPreviousLeaf() = pageLocation().getAPropertyRead("origin")
 }
 
 /** A check that a URL starts with text that fixes its host. */
