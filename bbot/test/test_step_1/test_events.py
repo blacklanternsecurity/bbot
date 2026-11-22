@@ -148,6 +148,12 @@ async def test_events(events, helpers):
     assert getattr(js_url, "url_extension", "") == "js"
     no_ext_url = scan.make_event("https://evilcorp.com/search", dummy=True)
     assert getattr(no_ext_url, "url_extension", "NOT_SET") == "NOT_SET"
+    # a dot in a path that isn't a file extension, like a payload's, gives no extension or tag
+    payload_url = scan.make_event(
+        "https://evilcorp.com/[[$eval([].join().constructor.fromCharCode(120,61,123,39,121,39,58))]]", dummy=True
+    )
+    assert getattr(payload_url, "url_extension", "NOT_SET") == "NOT_SET"
+    assert not [tag for tag in payload_url.tags if tag.startswith("extension-")]
 
     # url_extension: WEB_PARAMETER events (dict events with URLs)
     wp_css = scan.make_event(
