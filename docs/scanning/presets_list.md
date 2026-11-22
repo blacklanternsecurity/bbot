@@ -124,6 +124,7 @@ Run domino with all but the most benign rules, utilize the spider to find additi
             - xss-js
             - client-side-path-traversal
             - template-injection
+            - template-injection-xss
             - get-parameter-discovery
             - prototype-pollution
             - remote-include
@@ -173,6 +174,7 @@ Run domino with all rules on a target, and use spider and wayback to find as man
             - xss-js
             - client-side-path-traversal
             - template-injection
+            - template-injection-xss
             - get-parameter-discovery
             - get-parameter-reflection
             - transform

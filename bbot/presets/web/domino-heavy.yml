@@ -26,6 +26,7 @@ config:
         - xss-js
         - client-side-path-traversal
         - template-injection
+        - template-injection-xss
         - get-parameter-discovery
         - get-parameter-reflection
         - transform
