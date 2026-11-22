@@ -4938,10 +4938,6 @@ class Test_Lightfuzz_baseline_to_excavate_chain(ModuleTestBase):
         assert all("from-lightfuzz" in e.tags for e in lightfuzz_responses), (
             "lightfuzz-emitted HTTP_RESPONSE events missing 'from-lightfuzz' tag"
         )
-        # and say what the probe sent, so excavate doesn't take a page echoing it back for new parameters
-        assert all(e.data.get("sent_parameters") for e in lightfuzz_responses), (
-            "lightfuzz-emitted HTTP_RESPONSE events missing sent_parameters"
-        )
 
         # `from-lightfuzz` should propagate down the parent chain (parallel to
         # `from-wayback` / `affiliate`). The URL_UNVERIFIED that excavate mined out
@@ -4958,6 +4954,191 @@ class Test_Lightfuzz_baseline_to_excavate_chain(ModuleTestBase):
         assert "from-lightfuzz" in secret_event.tags, (
             f"`from-lightfuzz` tag did not propagate to URL_UNVERIFIED child, got tags: {secret_event.tags}"
         )
+
+
+def lightfuzz_mined_too_deep(events):
+    """URLs of lightfuzz baseline responses to parameters found two or more lightfuzz responses deep."""
+    mined = []
+    for e in events:
+        if e.type != "HTTP_RESPONSE" or str(e.module) != "lightfuzz":
+            continue
+        generations = 0
+        ancestor = e.parent
+        while ancestor is not None and ancestor is not ancestor.parent:
+            if str(ancestor.module) == "lightfuzz":
+                generations += 1
+            ancestor = ancestor.parent
+        if generations >= 2:
+            mined.append(e.data["url"])
+    return mined
+
+
+def lang_echo_handler(request):
+    """/pN links to the next two pages, carrying the `lang` it was sent, by form or querystring, into each link."""
+    n = int(request.path[2:])
+    lang = request.form.get("lang") or request.args.get("lang")
+    qs = f"?lang={lang}" if lang else ""
+    links = "".join(f'<a href="/p{m}{qs}">p{m}</a>' for m in (n + 1, n + 2)) if n < 12 else ""
+    return Response(f"<html><body>{links}</body></html>", content_type="text/html")
+
+
+class Test_Lightfuzz_echo_stops(ModuleTestBase):
+    """
+    A page that writes a probe's parameters into its links hands each one back on every page it links to. Those are
+    all fuzzed, but only two levels of their responses are mined, so the echo stops instead of crossing the site. Here
+    only a POST form has `lang`, and every page writes it into its links.
+    """
+
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
+    config_overrides = {"interactsh_disable": True, "modules": {"lightfuzz": {"enabled_submodules": ["sqli"]}}}
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            '<html><body><form action="/p1" method="post"><input type="text" name="lang" value="en">'
+            '<input type="submit"></form></body></html>',
+            content_type="text/html",
+        )
+        for n in range(1, 15):
+            module_test.httpserver.expect_request(f"/p{n}").respond_with_handler(lang_echo_handler)
+
+    def check(self, module_test, events):
+        lang = {
+            urlparse(e.data["url"]).path
+            for e in events
+            if e.type == "WEB_PARAMETER" and e.data["name"] == "lang" and e.data["type"] == "GETPARAM"
+        }
+        # the POST probe's response links /p2 and /p3, their responses link /p4 and /p5, and nothing past them is mined
+        assert lang == {"/p2", "/p3", "/p4", "/p5"}, sorted(lang)
+        assert not lightfuzz_mined_too_deep(events)
+
+
+class Test_Lightfuzz_echo_stops_spider(Test_Lightfuzz_echo_stops):
+    """
+    With the querystring kept and the spider on, as the lightfuzz presets run, nothing two lightfuzz responses deep is
+    mined either. The spider carries the echo only as far as its own distance.
+    """
+
+    config_overrides = {
+        "interactsh_disable": True,
+        "url_querystring_remove": False,
+        "web": {"spider_distance": 2, "spider_depth": 4},
+        "modules": {"lightfuzz": {"enabled_submodules": ["sqli"]}},
+    }
+
+    def check(self, module_test, events):
+        lang = {
+            urlparse(e.data["url"]).path
+            for e in events
+            if e.type == "WEB_PARAMETER" and e.data["name"] == "lang" and e.data["type"] == "GETPARAM"
+        }
+        # mining alone stops at /p5, and the spider carries the echo on, but never past /p9
+        assert {f"/p{n}" for n in range(2, 8)} <= lang <= {f"/p{n}" for n in range(2, 10)}, sorted(lang)
+        assert not lightfuzz_mined_too_deep(events)
+
+
+def redirect_tree_handler(request):
+    """/t/<bits>?q redirects to /t/<bits>/?q, which links its two children, carrying the querystring into each."""
+    qs = request.query_string.decode()
+    path = request.path
+    if not path.endswith("/"):
+        return Response("", status=302, headers={"Location": f"{path}/?{qs}"})
+    bits = path[len("/t/") : -1]
+    links = "".join(f'<a href="/t/{bits}{b}?{qs}">x</a>' for b in "01") if len(bits) < 5 else ""
+    return Response(f"<html><body>{links}</body></html>", content_type="text/html")
+
+
+class Test_Lightfuzz_echo_stops_redirect(ModuleTestBase):
+    """
+    An echo carried through a redirect, which the http module follows whatever the spider distance, stops within two
+    levels of the tree: the redirect target's response is downstream of the lightfuzz response too. How far within
+    depends on whether the http module or lightfuzz fetches each redirect target first.
+    """
+
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "url_querystring_remove": False,
+        "modules": {"lightfuzz": {"enabled_submodules": ["sqli"]}},
+    }
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            '<html><body><a href="/t/r?lang=en">t</a></body></html>', content_type="text/html"
+        )
+        module_test.httpserver.expect_request(re.compile(r"^/t/.*")).respond_with_handler(redirect_tree_handler)
+
+    def check(self, module_test, events):
+        lang = {
+            urlparse(e.data["url"]).path
+            for e in events
+            if e.type == "WEB_PARAMETER" and e.data["name"] == "lang" and e.data["type"] == "GETPARAM"
+        }
+        assert any(e.type == "HTTP_RESPONSE" and str(e.module) == "lightfuzz" for e in events)
+        # the redirect a lightfuzz response pointed at was followed, and its links mined
+        assert any(e.type == "URL" and e.parsed_url.path == "/t/r/" for e in events)
+        assert {"/t/r", "/t/r/", "/t/r0", "/t/r1"} <= lang, sorted(lang)
+        second_level = {"/t/r0/", "/t/r00", "/t/r01", "/t/r1/", "/t/r10", "/t/r11"}
+        assert lang <= {"/t/r", "/t/r/", "/t/r0", "/t/r1"} | second_level, sorted(lang)
+        assert not lightfuzz_mined_too_deep(events)
+
+
+class Test_Lightfuzz_baseline_race(ModuleTestBase):
+    """
+    A form on a page the spider reached cleanly is still followed when lightfuzz found the same form first. The first
+    copy found keeps its ancestry, so the form counts as one lightfuzz response deep. Here /cat/sub is two spider hops
+    away, and the response to the form on / already carries the same checkout form, whose response links /deep-secret.
+    """
+
+    targets = [HTTPSERVER_URL]
+    modules_overrides = ["http", "lightfuzz", "excavate"]
+    config_overrides = {
+        "interactsh_disable": True,
+        "web": {"spider_distance": 2, "spider_depth": 4},
+        "modules": {"lightfuzz": {"enabled_submodules": ["sqli"]}},
+    }
+
+    async def setup_after_prep(self, module_test):
+        checkout_form = (
+            '<form action="/checkout" method="post"><input type="text" name="qty" value="1">'
+            '<input type="submit"></form>'
+        )
+        # path: (body for GET, body for POST)
+        pages = {
+            "/": (
+                '<form action="/a" method="post"><input type="text" name="f" value="1"><input type="submit"></form>'
+                '<a href="/cat">cat</a>',
+                None,
+            ),
+            "/a": ("a", checkout_form),
+            "/cat": ('<a href="/cat/sub">sub</a>', None),
+            "/cat/sub": ("<h1>sub</h1>" + checkout_form, None),
+        }
+
+        def page(get_body, post_body):
+            def handler(request):
+                body = post_body if request.method == "POST" and post_body is not None else get_body
+                return Response(f"<html><body>{body}</body></html>", content_type="text/html")
+
+            return handler
+
+        for path, (get_body, post_body) in pages.items():
+            module_test.httpserver.expect_request(path).respond_with_handler(page(get_body, post_body))
+
+        def checkout(request):
+            if request.method == "POST" and request.form.get("qty") == "1":
+                return Response('<html><body><a href="/deep-secret">ok</a></body></html>', content_type="text/html")
+            return Response("<html><body>checkout</body></html>", content_type="text/html")
+
+        module_test.httpserver.expect_request("/checkout").respond_with_handler(checkout)
+        module_test.httpserver.expect_request("/deep-secret").respond_with_data(
+            "<html><body>secret</body></html>", content_type="text/html"
+        )
+
+    def check(self, module_test, events):
+        urls = {e.url for e in events if e.type in ("URL_UNVERIFIED", "URL")}
+        assert any(u.endswith("/deep-secret") for u in urls), sorted(urls)
 
 
 # End-to-end test for keystream-reuse detection.

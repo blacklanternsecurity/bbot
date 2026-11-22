@@ -50,7 +50,9 @@ class http(BaseModule):
         max_response_size: int = Field(5242880, description="Max response size in bytes")
         store_responses: bool = Field(False, description="Save raw HTTP responses to scan folder")
         rate_limit_give_up: int = Field(
-            600, description="Drop a host:port's URLs once it has answered nothing but 429 for this many seconds"
+            600,
+            description="Drop a rate-limited host:port's URLs once it has answered nothing but 429, or nothing at all, "
+            "for this many seconds",
         )
 
     scope_distance_modifier = 2
@@ -65,6 +67,8 @@ class http(BaseModule):
         self.max_response_size = self.config.get("max_response_size", 5242880)
         self.store_responses = self.config.get("store_responses", False)
         self.client = self.helpers.blasthttp
+        # one limit for the main batch and every drain, so `threads` caps them all together
+        self._concurrency = blasthttp.ConcurrencyLimit(self.threads)
         self.waf_yara_rule = self.helpers.yara.compile_strings(self.helpers.get_waf_strings(), nocase=True)
         # {host:port: [(url, event)]} held while that host:port answers 429
         self._held = {}
@@ -131,11 +135,35 @@ class http(BaseModule):
     def _netloc(self, event):
         return self.helpers.make_netloc(event.host, event.port)
 
+    def _hold(self, url, event, response):
+        """
+        Hold `url` for its host:port, which answered it with a 429, and start draining the host:port if nothing is yet.
+
+        Returns the pause the 429 asked for, or 0 if the host:port has been given up on.
+        """
+        netloc = self._netloc(event)
+        if netloc in self._gave_up:
+            return 0
+        retry_after = self._get_retry_after(response) or self._429_sleep_interval
+        pause = min(retry_after, self._429_max_sleep_interval)
+        held = self._held.get(netloc)
+        if held is None:
+            held = self._held[netloc] = []
+            drain = self.helpers.create_task(
+                self.run_task(self._drain(netloc, pause), f"{self.name}._drain({netloc})")
+            )
+            # in _tasks, so killing the module or stopping the scan cancels it
+            self._tasks.append(drain)
+            drain.add_done_callback(self._tasks.remove)
+        held.append((url, event))
+        return pause
+
     async def _drain(self, netloc, pause):
         """
         Send the URLs held for `netloc` once it stops answering 429.
 
-        One goes out first, then twice as many each time none get a 429, and half as many after one does.
+        One goes out first, then twice as many each time something answers and nothing gets a 429, and half as many
+        after a 429. A round where nothing answers at all changes neither.
         """
         held = self._held[netloc]
         window = 1
@@ -151,18 +179,18 @@ class http(BaseModule):
                     break
                 urls = dict(held[:window])
                 del held[:window]
-                # blasthttp's own retries would ignore Retry-After
-                pause = await self._request(urls, retries=0)
-                if not pause:
+                pause, answered = await self._request(urls)
+                if pause:
+                    window = max(1, window // 2)
+                elif answered:
                     window *= 2
                     last_ok = time.monotonic()
                     continue
-                window = max(1, window // 2)
                 limited_for = time.monotonic() - last_ok
                 if limited_for >= self._rate_limit_give_up:
                     self.warning(
-                        f"{netloc} has answered nothing but 429 for {int(limited_for):,} seconds, giving up on its "
-                        f"{len(held):,} URLs"
+                        f"{netloc} has answered nothing but 429, or nothing at all, for {int(limited_for):,} seconds, "
+                        f"giving up on its {len(held):,} URLs"
                     )
                     self._gave_up.add(netloc)
                     break
@@ -190,9 +218,8 @@ class http(BaseModule):
         """Emit URL + HTTP_RESPONSE events for one batch result. Returns True if status was usable."""
         if not result.success:
             error_str = str(result.error)
-            retries = self.scan.http_retries
             if "timeout" in error_str.lower():
-                self.verbose(f"HTTP timeout for {result.url} (after {retries + 1} attempt(s))")
+                self.verbose(f"HTTP timeout for {result.url}")
             else:
                 self.debug(f"HTTP error for {result.url}: {error_str}")
             return False
@@ -285,7 +312,13 @@ class http(BaseModule):
         for event in events:
             prefetched = getattr(event, "prefetched_response", None)
             if prefetched is not None:
-                await self._process_response(event.url, prefetched, event)
+                if prefetched.status == 429:
+                    # the browser was rate limited too, so the drain fetches it once the host:port lets up
+                    event.prefetched_response = None
+                    for url in self.make_url_metadata(event)[0]:
+                        self._hold(url, event, prefetched)
+                else:
+                    await self._process_response(event.url, prefetched, event)
                 continue
             held = self._held.get(self._netloc(event))
             urls, url_hash = self.make_url_metadata(event)
@@ -296,13 +329,14 @@ class http(BaseModule):
                     # its host:port is rate limiting, so its drain sends it
                     held.append((url, event))
         if stdin:
-            await self._request(stdin, self.scan.http_retries)
+            await self._request(stdin)
 
-    async def _request(self, stdin, retries):
+    async def _request(self, stdin):
         """
         Visit each URL in `stdin` ({url: event}) and emit what it finds.
 
-        URLs answered with 429 are held for their host:port. Returns the longest pause those 429s asked for, or 0.
+        URLs answered with 429 are held for their host:port. Returns the longest pause those 429s asked for, or 0, and
+        how many URLs got any other answer.
         """
         # Track dual-scheme probes from OPEN_TCP_PORT: {(host, port): {"http": url, "https": url}}
         port_probes = {}
@@ -334,7 +368,9 @@ class http(BaseModule):
                 url,
                 headers=self.helpers.web.apply_clearance(url, headers),
                 timeout=int(timeout),
-                retries=int(retries),
+                retries=int(self.scan.http_retries),
+                # a 429 is held for its host:port, so blasthttp mustn't retry it
+                retry_statuses=[],
                 verify_certs=False,
                 follow_redirects=False,
                 proxy=proxy,
@@ -355,23 +391,14 @@ class http(BaseModule):
             await self._process_result(result, stdin[result.url])
 
         longest = 0
-        async for result in iter_batch_results(self.client.request_batch_stream(configs, concurrency=self.threads)):
+        answered = 0
+        stream = self.client.request_batch_stream(configs, concurrency=self._concurrency)
+        async for result in iter_batch_results(stream):
             if result.success and result.response is not None and result.response.status == 429:
-                event = stdin[result.url]
-                netloc = self._netloc(event)
-                if netloc in self._gave_up:
-                    continue
-                retry_after = self._get_retry_after(result.response) or self._429_sleep_interval
-                pause = min(retry_after, self._429_max_sleep_interval)
-                longest = max(longest, pause)
-                held = self._held.get(netloc)
-                if held is None:
-                    held = self._held[netloc] = []
-                    drain = self.run_task(self._drain(netloc, pause), f"{self.name}._drain({netloc})")
-                    # in _tasks, so killing the module or stopping the scan cancels it
-                    self._tasks.append(self.helpers.create_task(drain))
-                held.append((result.url, event))
+                longest = max(longest, self._hold(result.url, stdin[result.url], result.response))
                 continue
+            if result.success and result.response is not None and result.response.status:
+                answered += 1
 
             _retry_parent = stdin.get(result.url)
             key = paired_probe_urls.get(result.url)
@@ -402,4 +429,4 @@ class http(BaseModule):
         # Stream ended -- any leftover https had no http result, so emit unconditionally
         for key, result in deferred_https.items():
             await self._process_result(result, stdin[result.url])
-        return longest
+        return longest, answered
