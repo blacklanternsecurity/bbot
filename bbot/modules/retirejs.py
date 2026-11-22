@@ -126,6 +126,9 @@ class retirejs(BaseModule):
         )
         if not self.repofile:
             return False, "failed to download retire.js repository file"
+        # (host, library, version, vulnerability) of each finding, so another of a host's scripts with the same library
+        # in it, like a second bundle or a copy on a CDN, doesn't report it again
+        self.reported = set()
         return True
 
     async def handle_event(self, event):
@@ -163,6 +166,23 @@ class retirejs(BaseModule):
                                 identifiers = vuln.get("identifiers", {})
                                 summary = identifiers.get("summary", "Unknown vulnerability")
                                 cves = identifiers.get("CVE", [])
+                                below_version = vuln.get("below", "")
+                                at_or_above = vuln.get("atOrAbove", "")
+                                reported = (
+                                    str(event.parent.host),
+                                    component,
+                                    version,
+                                    summary,
+                                    tuple(cves),
+                                    at_or_above,
+                                    below_version,
+                                )
+                                if reported in self.reported:
+                                    self.debug(
+                                        f"Already reported {component} v{version} ({summary}) on {event.parent.host}"
+                                    )
+                                    continue
+                                self.reported.add(reported)
                                 description_parts = [
                                     f"Vulnerable JavaScript library detected: {component} v{version}",
                                     f"Severity: {severity.upper()}",
@@ -172,8 +192,6 @@ class retirejs(BaseModule):
                                 if cves:
                                     description_parts.append(f"CVE(s): {', '.join(cves)}")
 
-                                below_version = vuln.get("below", "")
-                                at_or_above = vuln.get("atOrAbove", "")
                                 if at_or_above and below_version:
                                     description_parts.append(f"Affected versions: [{at_or_above} to {below_version})")
                                 elif below_version:
