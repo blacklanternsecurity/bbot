@@ -24,6 +24,7 @@ config:
         - xss-js
         - client-side-path-traversal
         - template-injection
+        - template-injection-xss
         - get-parameter-discovery
         - prototype-pollution
         - remote-include
