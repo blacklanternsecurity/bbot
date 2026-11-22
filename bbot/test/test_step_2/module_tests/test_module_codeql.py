@@ -11,7 +11,7 @@ import pytest
 
 from .base import ModuleTestBase
 from bbot.modules.codeql.codeql import PARAMETERS_QUERY, QUERIES_DIR
-from bbot.test.worker import HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_URL, LOCALHOST_URL
 
 FIXTURES_DIR = Path(__file__).parent / "codeql_fixtures"
 # each fixture, minified the way sites ship their code, by minify.sh
@@ -97,15 +97,18 @@ class TestCodeQL(ModuleTestBase):
         findings = [e for e in events if e.type == "FINDING" and e.data["url"] in pages]
         # nothing in the clean page
         assert not [e for e in events if e.type == "FINDING" and e.data["url"] == f"{HTTPSERVER_URL}/clean"]
-        # the inline script, the event handler and the external script, each reported once; the frame's script
-        # runs in the frame's page, not this one
-        assert len(findings) == 3, [f.data for f in findings]
+        # the external script's finding is all in a script the pages load, so it's reported once; the inline script's
+        # and the event handler's are each page's own code, so each page has them; the frame's script runs in the
+        # frame's page, not these
+        assert len(findings) == 5, [f.data for f in findings]
         for finding in findings:
             assert finding.data["name"] == DOM_XSS
             assert finding.data["severity"] == "HIGH"
             assert finding.data["confidence"] == "MEDIUM"
         descriptions = sorted(f.data["description"] for f in findings)
-        page_url = findings[0].data["url"]
+        page_urls = sorted({f.data["url"] for f in findings})
+        # "/same" is "/" again, so it isn't analyzed at all
+        assert page_urls == [f"{HTTPSERVER_URL}/", f"{HTTPSERVER_URL}/other"]
         message = "Text from the page's URL is written into the page as HTML."
         inline = 'document.getElementById("greeting").innerHTML = decodeURIComponent(location.hash.substring(1));'
         handler = (
@@ -115,9 +118,12 @@ class TestCodeQL(ModuleTestBase):
         assert descriptions == sorted(
             [
                 f"{message} Source: [var query = decodeURIComponent(location.search.substring(1));] | "
-                f'Sink: [document.getElementById("search").innerHTML = query;] (Line 2) in {HTTPSERVER_URL}/app.js',
-                f"{message} Source: [{inline}] | Sink: [{inline}] in {page_url}",
-                f"{message} Source: [{handler}] | Sink: [{handler}] in {page_url}",
+                f'Sink: [document.getElementById("search").innerHTML = query;] (Line 2) in {HTTPSERVER_URL}/app.js'
+            ]
+            + [
+                f"{message} Source: [{code}] | Sink: [{code}] in {url}"
+                for url in page_urls
+                for code in (inline, handler)
             ]
         )
 
@@ -125,6 +131,28 @@ class TestCodeQL(ModuleTestBase):
         module = module_test.scan.modules["codeql"]
         assert len(module.analyzed) == 2
         assert sorted(bool(findings) for findings, _ in module.analyzed.values()) == [False, True]
+
+
+class TestCodeQLScriptCopies(ModuleTestBase):
+    """A finding all in a script is reported once per host, however many pages load the script, and whatever URL each
+    loads its copy from; another host has it too"""
+
+    pytestmark = pytest.mark.browser
+    targets = [f"{HTTPSERVER_URL}/one", f"{HTTPSERVER_URL}/two", f"{LOCALHOST_URL}/one"]
+    modules_overrides = ["http", "codeql"]
+    config_overrides = {"web": {"enable_browser": True}}
+
+    async def setup_after_prep(self, module_test):
+        for name in ("one", "two"):
+            page = f'<html><body><div id="search"></div><script src="/{name}/app.js"></script></body></html>'
+            module_test.set_expect_requests({"uri": f"/{name}"}, {"response_data": page, "content_type": "text/html"})
+            module_test.set_expect_requests(
+                {"uri": f"/{name}/app.js"}, {"response_data": APP_JS, "content_type": "application/javascript"}
+            )
+
+    def check(self, module_test, events):
+        hosts = sorted(str(e.host) for e in events if e.type == "FINDING" and str(e.module) == "codeql")
+        assert hosts == ["127.0.0.1", "localhost"], hosts
 
 
 # a page that replaces itself with what it fetches from a path the fragment picks; once loaded, its script is gone
@@ -386,7 +414,9 @@ class TestCodeQLMergedResult(ModuleTestBase):
             Path(root, "app.js").write_text(
                 "var a = location.hash.slice(1), b = location.search.slice(1);\nlocation.href = a || b;\n"
             )
-            _, _, source, sink, message = module.to_finding(result, Path(root), {"app.js": f"{HTTPSERVER_URL}/app.js"})
+            _, _, source, sink, message, _ = module.to_finding(
+                result, Path(root), {"app.js": f"{HTTPSERVER_URL}/app.js"}
+            )
         assert message == "Text from the page's URL becomes the location the page goes to."
         description = module.describe(f"{HTTPSERVER_URL}/", source, sink, message)
         assert description.startswith(f"{message} Source: [")

@@ -2,6 +2,7 @@ import csv
 import os
 import re
 import tempfile
+from hashlib import sha256
 from pathlib import Path
 from subprocess import CompletedProcess
 from typing import Literal
@@ -74,7 +75,9 @@ class codeql(browser_vulns):
             "error", description="The lowest CodeQL severity to report"
         )
         suppress_duplicates: bool = Field(
-            True, description="Report each finding once, rather than on every page with the same code"
+            True,
+            description="Report a finding that's all in the scripts a page loads once per host, rather than on every "
+            "page that loads them. One in the page's own code is the page's either way.",
         )
         # scripts nearly every site loads from someone else: large, slow to analyze, and never the target's own code
         skip_hosts: list[str] = Field(
@@ -171,11 +174,13 @@ class codeql(browser_vulns):
             await self.emit_page_parameters(event, parameters, "CodeQL")
 
         for finding in findings:
-            if self.suppress_duplicates:
-                if finding in self.reported:
+            name, severity, source, sink, message, scripts_code = finding
+            if self.suppress_duplicates and scripts_code:
+                # the code, not where it's served from: copies of a library at other URLs are the same finding
+                reported = (str(event.host), scripts_code, name, severity, source and source[0], sink[0], sink[2])
+                if reported in self.reported:
                     continue
-                self.reported.add(finding)
-            name, severity, source, sink, message = finding
+                self.reported.add(reported)
             await self.emit_finding(
                 event,
                 url=url,
@@ -202,9 +207,9 @@ class codeql(browser_vulns):
 
     async def analyze_page(self, dom, scripts, served=None):
         """
-        CodeQL's findings for a page, each as (name, severity, source, sink, message), and the URL parameters its code
-        passes to a sink, as (findings, parameter names). `served` is the page as the server sent it, if it had code the
-        loaded page lost (see `served_page()`).
+        CodeQL's findings for a page, each as to_finding() makes them, and the URL parameters its code passes to a sink,
+        as (findings, parameter names). `served` is the page as the server sent it, if it had code the loaded page lost
+        (see `served_page()`).
         """
         # a database grows with the code in it: a page loading the same scripts as one CodeQL ran out of memory on, with
         # at least as much code in all, would too
@@ -222,10 +227,13 @@ class codeql(browser_vulns):
             if served is not None:
                 origins[SERVED_FILE] = None
                 (source_root / SERVED_FILE).write_text(served)
+            # each script's code, as a hash
+            code = {}
             for i, (script_url, script) in enumerate(scripts.items()):
                 file_name = f"script_{i}.js"
                 (source_root / file_name).write_text(script)
                 origins[file_name] = script_url
+                code[file_name] = sha256(script.encode()).hexdigest()
             database = Path(temp_dir) / "db"
             try:
                 built = await self.create_database(source_root, database)
@@ -241,7 +249,7 @@ class codeql(browser_vulns):
                 if result["name"] == PARAMETERS_QUERY_NAME:
                     parameters.add(result["message"].strip())
                 elif list(SEVERITIES).index(result["severity"]) >= self.min_severity:
-                    findings.append(self.to_finding(result, source_root, origins))
+                    findings.append(self.to_finding(result, source_root, origins, code))
             return list(dict.fromkeys(findings)), sorted(parameters)
 
     async def create_database(self, source_root, database):
@@ -303,7 +311,12 @@ class codeql(browser_vulns):
             # the same code don't each spend CODEQL_TIMEOUT on it again
             return CompletedProcess(command, -1, "", f"CodeQL ran out of time after {CODEQL_TIMEOUT}s")
 
-    def to_finding(self, result, source_root, origins):
+    def to_finding(self, result, source_root, origins, code=None):
+        """
+        A CodeQL result as (name, severity, source, sink, message, scripts' code): the hashes in `code` of the scripts
+        its source and sink are in, or None when either is in the page's own code.
+        """
+        code = code or {}
         sink_file = result["file"].lstrip("/")
         sink_origin = origins.get(sink_file)
         sink = (
@@ -317,16 +330,19 @@ class codeql(browser_vulns):
         source = None
         # a sink reached from several sources is one result, its message a line for each; the first is reported
         first_message = result["message"].splitlines()[0] if result["message"] else ""
+        files = [sink_file]
         location = MESSAGE_LOCATION.search(first_message)
         if location:
             _, file_name, line, column, end_column = location.groups()
+            files.append(file_name)
             source = (
                 self.snippet(source_root / file_name, int(line), int(column), int(end_column)),
                 origins.get(file_name),
             )
         # each code reference becomes its label: [["the page's URL"|"relative:///..."]] reads "the page's URL"
         message = MESSAGE_LOCATION.sub(lambda m: m.group(1), first_message).strip() or result["description"]
-        return (result["name"], result["severity"], source, sink, message)
+        scripts_code = tuple(sorted({code[f] for f in files})) if all(f in code for f in files) else None
+        return (result["name"], result["severity"], source, sink, message, scripts_code)
 
     def describe(self, page_url, source, sink, message):
         """`<message> Source: [...] | Sink: [...] (Line N) in <script>`, where the sink always names where it is."""
