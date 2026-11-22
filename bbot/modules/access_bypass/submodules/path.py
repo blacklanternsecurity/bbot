@@ -55,6 +55,8 @@ class path(BaseAccessBypass):
     friendly_name = "Path Manipulation"
     # what the URL's path answers without its trailing slash (see reaches_path_without_slash)
     _without_slash = None
+    # what made-up paths inside the URL's path answer (see reaches_catch_all_inside)
+    _inside = None
 
     def probes(self):
         # random sibling paths, so the catch-all control can baseline against the junk template: two, and two more for
@@ -134,7 +136,32 @@ class path(BaseAccessBypass):
                 f"Rejecting {probe.label}: it gets what {self.event.url} answers without its trailing slash"
             )
             return False
+        if await self.reaches_catch_all_inside(probe):
+            self.access_bypass.debug(
+                f"Rejecting {probe.label}: it gets what made-up paths inside {self.event.url} get"
+            )
+            return False
         return True
+
+    async def reaches_catch_all_inside(self, probe):
+        """
+        Whether the probe gets what two made-up paths inside the URL's path get: a catch-all, like the page an
+        application folder answers any path in it with, rather than what's blocked. The sibling controls are made up
+        next to the URL, outside such a folder. Two that aren't answered alike can't tell a catch-all from a bypass.
+        """
+        if self._inside is None:
+            path = self.parsed_url.path.rstrip("/")
+            self._inside = self.helpers.http_compare(
+                f"{self.base_url}{path}/{self.helpers.rand_string(8, digits=False)}",
+                baseline_url_2=f"{self.base_url}{path}/{self.helpers.rand_string(8, digits=False)}",
+                allow_redirects=self.follow_redirects,
+                include_cache_buster=False,
+            )
+        try:
+            match, _, _, _ = await self._inside.compare(probe.url, headers=probe.headers, method=probe.method)
+        except HttpCompareError:
+            return True
+        return match is True
 
     async def reaches_path_without_slash(self, probe):
         """

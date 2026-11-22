@@ -221,6 +221,80 @@ class TestAccessBypass_unstable_control(ModuleTestBase):
         assert not findings, findings
 
 
+class TestAccessBypass_extension_routing_differs_once(TestAccessBypass_extension_routing_page_changes):
+    """A page that differs once, on one extension's probe, changes on its own rather than routing by extension"""
+
+    async def setup_after_prep(self, module_test):
+        rand_string = module_test.scan.modules["access_bypass"].rand_string
+        answered = []
+
+        def handler(request):
+            # only the first .pdf probe, as a page that changes on its own now and then would
+            if request.query_string.decode() == f"{rand_string}=.pdf" and not answered:
+                answered.append(True)
+                return Response(self.body_changed, content_type="text/html")
+            return Response(self.body, content_type="text/html")
+
+        module_test.set_expect_requests_handler(expect_args=re.compile("/.*"), request_handler=handler)
+
+
+class TestAccessBypass_unblocked_before_baseline(ModuleTestBase):
+    """A URL found blocked that answers by the time it's probed, like a rate limit giving way, has no block left to get
+    past, so a header that changes the page isn't a bypass"""
+
+    targets = [f"{HTTPSERVER_URL}/search"]
+    modules_overrides = ["access_bypass", "http"]
+    module_name = "access_bypass"
+    config_overrides = {"modules": {"access_bypass": {"enabled_submodules": ["headers"]}}}
+
+    async def setup_after_prep(self, module_test):
+        requests = []
+
+        def page(request):
+            requests.append(True)
+            if len(requests) == 1:
+                return Response("blocked", status=403)
+            # the page shows where the visitor came from
+            referer = request.headers.get("Referer", "")
+            return Response(
+                f"<html><title>Search</title><body>Back to {referer}</body></html>", content_type="text/html"
+            )
+
+        module_test.set_expect_requests_handler(expect_args="/search", request_handler=page)
+        module_test.httpserver.no_handler_status_code = 404
+
+    def check(self, module_test, events):
+        findings = [e.data["description"] for e in events if e.type == "FINDING"]
+        assert not findings, findings
+
+
+class TestAccessBypass_folder_catchall(ModuleTestBase):
+    """An application that answers any path in its blocked folder with one page: a probe that gets that page reached
+    the catch-all, not what's blocked"""
+
+    targets = [f"{HTTPSERVER_URL}/app/"]
+    modules_overrides = ["access_bypass", "http"]
+    module_name = "access_bypass"
+    config_overrides = {"modules": {"access_bypass": {"enabled_submodules": ["path"]}}}
+
+    async def setup_after_prep(self, module_test):
+        catch_all = "<html><title></title><body>community home</body></html>"
+
+        def handler(request):
+            if request.path == "/app/":
+                return Response("Forbidden: directory listing is denied", status=403)
+            # any path inside the folder, and the folder's name with a semicolon after it, reach the application
+            if re.fullmatch(r"/app(;|/;)/|/app/[a-zA-Z]+", request.path):
+                return Response(catch_all, content_type="text/html")
+            return Response("not found", status=404)
+
+        module_test.httpserver.expect_request(re.compile(r"/.*")).respond_with_handler(handler)
+
+    def check(self, module_test, events):
+        findings = [e.data["description"] for e in events if e.type == "FINDING"]
+        assert not findings, findings
+
+
 class TestAccessBypass_xff(ModuleTestBase):
     """T1.1: an IP-spoofing header turns a 406 into a 200."""
 
