@@ -146,14 +146,18 @@ class BaseAccessBypass:
 
     async def block_changed(self):
         """
-        Whether the URL itself no longer answers with its baseline's status, or can't be asked. A block that lifts or
-        changes partway through, like a rate limit or a bot check giving way, wasn't the site's own answer, and would
-        make every probe after it look like a bypass. Asked once, when a probe first gets through.
+        Whether the URL itself no longer answers as it did: its baseline isn't the status it was found blocked with,
+        or now it doesn't answer with its baseline's status, or can't be asked. A block that lifts or changes, like a
+        rate limit or a bot check giving way, wasn't the site's own answer, and would make every probe after it look
+        like a bypass. Asked once, when a probe first gets through.
         """
         if self._block_changed is None:
             baseline = await self.compare_helper.get_baseline()
-            response = await self.helpers.request(self.event.url, follow_redirects=self.follow_redirects)
-            self._block_changed = response is None or response.status_code != baseline.status_code
+            if baseline.status_code != self.event.http_status:
+                self._block_changed = True
+            else:
+                response = await self.helpers.request(self.event.url, follow_redirects=self.follow_redirects)
+                self._block_changed = response is None or response.status_code != baseline.status_code
         return self._block_changed
 
     async def is_catch_all(self, probe):
