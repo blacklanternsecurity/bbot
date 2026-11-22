@@ -264,6 +264,11 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert helpers.get_file_extension("https://evilcorp.com/evilcorp.com/test/asdf.TXT") == "txt"
     assert helpers.get_file_extension("/etc/conf/test.tar.gz") == "gz"
     assert helpers.get_file_extension("/etc/passwd") == ""
+    # past 16 characters, what follows the last dot is part of the path, not an extension
+    assert helpers.get_file_extension("/app/profile.mobileprovision") == "mobileprovision"
+    assert helpers.get_file_extension("/x/abcdefghijklmnop.abcdefghijklmnop") == "abcdefghijklmnop"
+    assert helpers.get_file_extension("/x/abcdefghijklmnop.abcdefghijklmnopq") == ""
+    assert helpers.get_file_extension("/[[x.fromCharCode(120,61,123,39,121,39)]]") == ""
 
     assert helpers.tagify("HttP  -_Web  Title--  ") == "http-web-title"
     tagged_event = scan.make_event("127.0.0.1", parent=scan.root_event, tags=["HttP  web -__- title  "])
