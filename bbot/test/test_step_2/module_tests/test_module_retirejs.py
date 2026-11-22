@@ -1,7 +1,10 @@
+import re
+from collections import Counter
+
 import pytest
 
 from .base import ModuleTestBase
-from bbot.test.worker import HTTPSERVER_URL
+from bbot.test.worker import HTTPSERVER_URL, LOCALHOST_URL
 
 
 class TestRetireJS(ModuleTestBase):
@@ -143,6 +146,39 @@ return Handlebars;
             assert finding.data["severity"] == "INFO", (
                 f"Finding severity should be INFO, got {finding.data['severity']}"
             )
+
+
+class TestRetireJSOncePerHost(TestRetireJS):
+    """A vulnerable library is reported once per host, however many of the host's scripts have it in them"""
+
+    targets = [HTTPSERVER_URL, LOCALHOST_URL]
+
+    page = """<!doctype html>
+<html>
+<head><title>retire.js test page</title></head>
+<body>
+  <script src="/jquery-3.4.1.min.js"></script>
+  <script src="/vendor/jquery.js"></script>
+</body>
+</html>"""
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests({"uri": "/"}, {"response_data": self.page})
+        for uri in ("/jquery-3.4.1.min.js", "/vendor/jquery.js"):
+            module_test.set_expect_requests({"uri": uri}, {"response_data": self.jquery_content})
+
+    def check(self, module_test, events):
+        findings = [e for e in events if e.type == "FINDING" and "library detected:" in e.data["description"]]
+        # the same vulnerability, whichever script it was found in
+        reported = Counter((str(e.host), re.sub(r" JavaScript URL: \S+", "", e.data["description"])) for e in findings)
+        assert reported, "Expected retirejs to report jQuery 3.4.1"
+        assert set(reported.values()) == {1}, f"A vulnerability was reported more than once on a host: {reported}"
+        # and once on each host
+        by_host = {}
+        for host, description in reported:
+            by_host.setdefault(host, set()).add(description)
+        assert set(by_host) == {"127.0.0.1", "localhost"}
+        assert by_host["127.0.0.1"] == by_host["localhost"]
 
 
 class TestRetireJSNoExcavate(ModuleTestBase):
