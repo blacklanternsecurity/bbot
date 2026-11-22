@@ -257,6 +257,15 @@ private predicate checksSender(DataFlow::FunctionNode handler) {
     read = messageEvent(handler).getAPropertyRead(["origin", "source"]) and
     strictlyCompared(read.getALocalUse())
   )
+  or
+  // or has a function it gives the event to do it: if (!checkOrigin(event)) return
+  exists(DataFlow::CallNode call, int i, DataFlow::PropRead read |
+    messageEvent(handler).flowsTo(call.getArgument(i)) and
+    read =
+      DataFlow::parameterNode(call.getACallee().getParameter(i))
+          .getAPropertyRead(["origin", "source"]) and
+    strictlyCompared(read.getALocalUse())
+  )
 }
 
 /** Holds if `node` is input the attacker controls entirely: window.name, or a message from any window. */
@@ -318,6 +327,10 @@ private predicate keepsDelimiter(DataFlow::Node start) {
   exists(DataFlow::MethodCallNode find | find = start.getALocalSource() |
     find.getMethodName() = ["indexOf", "lastIndexOf"] and
     find.getArgument(0).getStringValue() = ["?", "#"]
+    or
+    // url.search(/[?#]/): a pattern that finds nothing but a "?" or "#"
+    find.getMethodName() = "search" and
+    regexSource(find.getArgument(0)) = ["[?#]", "[#?]", "\\?", "#"]
   )
 }
 
