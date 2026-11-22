@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.44qt2g_l.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style.ltwruz_o.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1898,8 +1898,8 @@ Is the same as:
 <tr>
 <td>modules.lightfuzz.max_baseline_generations</td>
 <td>int</td>
-<td>Stop emitting baseline responses once a parameter is this many lightfuzz generations deep, bounding excavate feedback loops.</td>
-<td>10</td>
+<td>Stop emitting baseline responses once a parameter is this many lightfuzz generations deep. The default, 2, allows for a page lightfuzz fetched before the spider did, while a page echoing a probe's parameters into its links feeds it only two levels. Raise it to follow multi-step forms further.</td>
+<td>2</td>
 </tr>
 <tr>
 <td>modules.lightfuzz.try_get_as_post</td>
