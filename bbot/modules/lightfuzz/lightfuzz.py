@@ -52,8 +52,8 @@ class lightfuzz(BaseModule):
             description="Emit canonical baseline responses as HTTP_RESPONSE events so excavate can mine them for new params/URLs.",
         )
         max_baseline_generations: int = Field(
-            10,
-            description="Stop emitting baseline responses once a parameter is this many lightfuzz generations deep, bounding excavate feedback loops.",
+            2,
+            description="Stop emitting baseline responses once a parameter is this many lightfuzz generations deep. The default, 2, allows for a page lightfuzz fetched before the spider did, while a page echoing a probe's parameters into its links feeds it only two levels. Raise it to follow multi-step forms further.",
         )
 
         @field_validator("avoid_wafs", mode="before")
@@ -89,7 +89,7 @@ class lightfuzz(BaseModule):
             avoid_wafs = "always" if avoid_wafs else "never"
         self.avoid_wafs = avoid_wafs.strip().lower()
         self.emit_baseline_responses = self.config.get("emit_baseline_responses", True)
-        self.max_baseline_generations = self.config.get("max_baseline_generations", 10)
+        self.max_baseline_generations = self.config.get("max_baseline_generations", 2)
         self._baseline_generation_cap_hit = False
         self.submodules = {}
         # Per-event baseline cache so submodules with identical request signatures share one HttpCompare.
@@ -259,9 +259,6 @@ class lightfuzz(BaseModule):
         except Exception as e:
             self.debug(f"Failed to build HTTP_RESPONSE dict from lightfuzz baseline: {e}")
             return
-        # what the probe sent, so excavate doesn't take a page echoing it back for parameters it hadn't seen
-        if event.type == "WEB_PARAMETER":
-            j["sent_parameters"] = sorted({event.data["name"], *(event.data.get("additional_params") or {})})
         await self.emit_event(
             j,
             "HTTP_RESPONSE",

@@ -61,6 +61,12 @@ class shodan_enterprise(BaseModule):
         # NIST cvss score severity mapping
         severity_map = {"NONE": 0.0, "LOW": 0.1, "MEDIUM": 4.0, "HIGH": 7.0, "CRITICAL": 9.0}
 
+        tcp_ports = set(
+            self.scan.filter_catch_all_ports(
+                ip, [data.get("port") for data in host["data"] if data.get("transport") == "tcp" and "port" in data]
+            )
+        )
+
         for data in host["data"]:
             # TECHNOLOGY Extraction
             # name technologies by their CPE product, falling back to Shodan's product name when there's no CPE
@@ -97,13 +103,14 @@ class shodan_enterprise(BaseModule):
             # OPEN_TCP_PORT, OPEN_UDP_PORT Extraction
             if "port" in data and "transport" in data:
                 if data["transport"] == "tcp":
-                    await self.emit_event(
-                        self.helpers.make_netloc(ip, data.get("port")),
-                        "OPEN_TCP_PORT",
-                        parent=event,
-                        tags=data.get("tags") or [],
-                        context=f"{{module}} queried Shodan API for {ip} and found OPEN_TCP_PORT: {data.get('port')}",
-                    )
+                    if data["port"] in tcp_ports:
+                        await self.emit_event(
+                            self.helpers.make_netloc(ip, data.get("port")),
+                            "OPEN_TCP_PORT",
+                            parent=event,
+                            tags=data.get("tags") or [],
+                            context=f"{{module}} queried Shodan API for {ip} and found OPEN_TCP_PORT: {data.get('port')}",
+                        )
                 elif data["transport"] == "udp":
                     await self.emit_event(
                         self.helpers.make_netloc(ip, data.get("port")),

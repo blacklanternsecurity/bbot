@@ -230,7 +230,7 @@ url_querystring_collapse: True
 # Reject URLs whose path repeats the same path parameter this many times (e.g. a session id appended on every redirect)
 url_max_path_param_repeats: 10
 
-# Drop open ports and URLs on CDN/WAF hosts unless the port is allowed or was explicitly targeted
+# Drop open ports and URLs on CDN/WAF hosts and catch-all hosts unless the port is allowed or was explicitly targeted
 # CDN edges answer on many ports (e.g. Cloudflare's 2052-2096, 8080, 8443) that rarely lead anywhere useful
 cdn_port_filter:
   enabled: true
@@ -238,10 +238,12 @@ cdn_port_filter:
   tags:
     - cdn
     - waf
-  # ports that are still allowed on CDN/WAF hosts
+  # ports that are still allowed on CDN/WAF and catch-all hosts
   allowed_ports:
     - 80
     - 443
+  # a host that a passive port source lists with more open ports than this accepts connections on any port (e.g. a load balancer or tarpit), so it's treated as catch-all (0 = off)
+  max_ports: 100
 
 # Let active modules scan hosts that resolve to loopback (127.0.0.0/8, ::1, 0.0.0.0), i.e. the machine BBOT runs on
 # Loopback addresses in the target are always allowed
