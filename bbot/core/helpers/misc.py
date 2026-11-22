@@ -1626,6 +1626,10 @@ def error_and_exit(msg):
     sys.exit(2)
 
 
+# longer than this, what follows the last dot is part of the path, not a file extension
+MAX_FILE_EXTENSION_LENGTH = 16
+
+
 def get_file_extension(s):
     """
     Extracts the file extension from a given string representing a URL or file path.
@@ -1634,7 +1638,8 @@ def get_file_extension(s):
         s (str): The string from which to extract the file extension.
 
     Returns:
-        str: The file extension, or an empty string if no extension is found.
+        str: The file extension, or an empty string if no extension is found or what follows the last dot is longer
+            than MAX_FILE_EXTENSION_LENGTH.
 
     Examples:
         >>> get_file_extension("https://evilcorp.com/api/test.php")
@@ -1643,12 +1648,15 @@ def get_file_extension(s):
         "conf"
         >>> get_file_extension("/etc/passwd")
         ""
+        >>> get_file_extension("/search/x.constructor(1,2,3,4,5,6)")
+        ""
     """
     s = str(s).lower().strip()
     rightmost_section = s.rsplit("/", 1)[-1]
     if "." in rightmost_section:
         extension = rightmost_section.rsplit(".", 1)[-1]
-        return extension
+        if len(extension) <= MAX_FILE_EXTENSION_LENGTH:
+            return extension
     return ""
 
 
