@@ -90,6 +90,43 @@ shodan_response_1_1_1_1 = {
 }
 
 
+class TestShodan_Enterprise_CatchAllPorts(ModuleTestBase):
+    """An IP listing more TCP ports than cdn_port_filter.max_ports keeps only the allowed ones; its UDP ports and findings are kept"""
+
+    module_name = "shodan_enterprise"
+    targets = ["1.2.3.4", "5.6.7.8"]
+    config_overrides = {
+        "modules": {"shodan_enterprise": {"api_key": "deadbeef"}},
+        "cdn_port_filter": {"max_ports": 3},
+    }
+
+    async def setup_before_prep(self, module_test):
+        for ip, tcp_ports in (("1.2.3.4", [22, 80, 443, 8080]), ("5.6.7.8", [22, 80, 443])):
+            data = [{"ip_str": ip, "port": port, "transport": "tcp"} for port in tcp_ports]
+            data.append({"ip_str": ip, "port": 53, "transport": "udp"})
+            data[0]["vulns"] = {"CVE-2021-12345": {"cvss": 7.5}}
+            module_test.blasthttp_mock.add_response(
+                url=f"https://api.shodan.io/shodan/host/{ip}?key=deadbeef", json={"data": data}
+            )
+
+    def check(self, module_test, events):
+        def ports(event_type):
+            return {
+                (str(e.host), e.port) for e in events if e.type == event_type and str(e.module) == self.module_name
+            }
+
+        assert ports("OPEN_TCP_PORT") == {
+            ("1.2.3.4", 80),
+            ("1.2.3.4", 443),
+            ("5.6.7.8", 22),
+            ("5.6.7.8", 80),
+            ("5.6.7.8", 443),
+        }
+        assert ports("OPEN_UDP_PORT") == {("1.2.3.4", 53), ("5.6.7.8", 53)}
+        # the finding on port 22 is still reported where the port itself was dropped
+        assert {e.data["host"] for e in events if e.type == "FINDING"} == {"1.2.3.4", "5.6.7.8"}
+
+
 class TestShodan_Enterprise_InScopeOnly(ModuleTestBase):
     """Test that in_scope_only=True (default) does NOT query out-of-scope IPs."""
 

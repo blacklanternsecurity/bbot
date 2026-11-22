@@ -1,8 +1,10 @@
 import pytest
 import asyncio
+import socket
 import threading
 import time
 
+import blasthttp
 from werkzeug.wrappers import Response
 
 from .base import ModuleTestBase
@@ -194,12 +196,10 @@ class TestHTTP_custom_cookies(ModuleTestBase):
 
 
 class TestHTTP_429_retry(ModuleTestBase):
-    """Test the module's own defer→cooldown→retry→succeed path.
+    """
+    A 429 holds the URL, and the module sends it again once the pause ends.
 
-    http_retries=1 means blasthttp makes up to 2 wire attempts per request.
-    We return 429 for the first 2 requests (exhausting blasthttp's retry),
-    so the module's 429 handler engages and defers with a cooldown. The 3rd
-    request (from the module's retry after cooldown) succeeds.
+    The first two requests get a 429: the batch's, then the drain's first test request. The third gets through.
     """
 
     targets = [HTTPSERVER_URL]
@@ -218,7 +218,7 @@ class TestHTTP_429_retry(ModuleTestBase):
         module_test.httpserver.expect_request("/").respond_with_handler(handler)
 
     def check(self, module_test, events):
-        assert self.request_count >= 3, "Expected at least 3 requests (2 blasthttp attempts + 1 module retry)"
+        assert self.request_count >= 3, "Expected at least 3 requests (the batch's, then two from the drain)"
         assert any(e.type == "URL" and "status-200" in e.tags for e in events), (
             "Expected URL with status-200 after successful retry"
         )
@@ -309,8 +309,8 @@ class TestHTTP_429_test_request(ModuleTestBase):
     targets = [f"{HTTPSERVER_URL}{path}" for path in paths]
     module_name = "http"
     modules_overrides = ["http"]
-    # one request per URL, so each 429 the server sends is one the module saw
-    config_overrides = {"web": {"429_sleep_interval": 1, "429_max_sleep_interval": 1, "http_retries": 0}}
+    # blasthttp leaves a 429 to the module, so each one the server sends is one the module saw
+    config_overrides = {"web": {"429_sleep_interval": 1, "429_max_sleep_interval": 1}}
     # the host rate limits for this long after its first request
     limited_for = 2.5
 
@@ -356,8 +356,8 @@ class HTTP429Base(ModuleTestBase):
 
     module_name = "http"
     modules_overrides = ["http"]
-    # one request per URL, so each 429 the server sends is one the module saw
-    config_overrides = {"web": {"429_sleep_interval": 1, "429_max_sleep_interval": 1, "http_retries": 0}}
+    # blasthttp leaves a 429 to the module, so each one the server sends is one the module saw
+    config_overrides = {"web": {"429_sleep_interval": 1, "429_max_sleep_interval": 1}}
     deadline = 30
 
     async def _execute_scan(self, module_test):
@@ -368,14 +368,23 @@ class HTTP429Base(ModuleTestBase):
             await asyncio.wait({task}, timeout=30)
         assert done, f"scan still running after {self.deadline}s"
 
-    async def wait_until_held(self, module_test, netloc):
-        while netloc not in module_test.module._held:
-            await asyncio.sleep(0.02)
+    async def wait_for(self, condition, timeout=20):
+        """Wait for `condition()`, failing after `timeout` seconds rather than polling for the rest of the run."""
 
-    async def inject(self, module_test, url):
+        async def poll():
+            while not condition():
+                await asyncio.sleep(0.02)
+
+        await asyncio.wait_for(poll(), timeout)
+
+    async def wait_until_held(self, module_test, netloc):
+        await self.wait_for(lambda: netloc in module_test.module._held)
+
+    async def inject(self, module_test, data, event_type="URL_UNVERIFIED", prefetched_response=None):
         scan = module_test.scan
         module = scan._make_dummy_module(name="TEST", _type="TEST")
-        event = scan.make_event(url, "URL_UNVERIFIED", parent=scan.root_event, module=module, context="{event.data}")
+        event = scan.make_event(data, event_type, parent=scan.root_event, module=module, context="{event.data}")
+        event.prefetched_response = prefetched_response
         await scan.ingress_module.queue_event(event, {})
 
 
@@ -407,7 +416,7 @@ class TestHTTP_429_killed(HTTP429Base):
     """Killing the module while it holds URLs doesn't keep the scan from finishing, even mid-pause."""
 
     targets = [f"{HTTPSERVER_URL}/a"]
-    config_overrides = {"web": {"429_sleep_interval": 60, "429_max_sleep_interval": 60, "http_retries": 0}}
+    config_overrides = {"web": {"429_sleep_interval": 60, "429_max_sleep_interval": 60}}
 
     async def setup_after_prep(self, module_test):
         module_test.httpserver.expect_request("/a").respond_with_handler(lambda request: too_many("60"))
@@ -548,7 +557,7 @@ class TestHTTP_429_pause_capped(HTTP429Base):
     """Without a Retry-After, a 429 pauses for 429_sleep_interval, capped at 429_max_sleep_interval."""
 
     targets = [HTTPSERVER_URL]
-    config_overrides = {"web": {"429_sleep_interval": 30, "429_max_sleep_interval": 1, "http_retries": 0}}
+    config_overrides = {"web": {"429_sleep_interval": 30, "429_max_sleep_interval": 1}}
 
     async def setup_after_prep(self, module_test):
         self.requests = []
@@ -564,6 +573,199 @@ class TestHTTP_429_pause_capped(HTTP429Base):
     def check(self, module_test, events):
         assert len(self.requests) == 2
         assert 0.8 <= self.requests[1] - self.requests[0] < 5, f"paused {self.requests[1] - self.requests[0]:.2f}s"
+
+
+class TestHTTP_429_left_to_the_module(HTTP429Base):
+    """
+    Every request asks blasthttp to retry dropped connections as usual but leave a 429 alone, and the batch and the
+    drains share one concurrency limit.
+    """
+
+    targets = [f"{HTTPSERVER_URL}/a"]
+
+    async def setup_after_prep(self, module_test):
+        self.requests = 0
+
+        def handler(request):
+            self.requests += 1
+            return too_many() if self.requests == 1 else Response(OK_PAGE)
+
+        module_test.httpserver.expect_request("/a").respond_with_handler(handler)
+
+        real = module_test.module.client
+        self.configs, self.limits = [], []
+        test = self
+
+        class Recording:
+            def __getattr__(self, name):
+                return getattr(real, name)
+
+            def request_batch_stream(self, configs, **kwargs):
+                test.configs.extend(configs)
+                test.limits.append(kwargs.get("concurrency"))
+                return real.request_batch_stream(configs, **kwargs)
+
+        module_test.module.client = Recording()
+
+    def check(self, module_test, events):
+        module = module_test.module
+        # the batch, then the drain
+        assert len(self.configs) == 2
+        assert all(c.retry_statuses == [] for c in self.configs)
+        assert all(c.retries == module_test.scan.http_retries for c in self.configs)
+        assert all(limit is module._concurrency for limit in self.limits)
+        assert module._concurrency.size == module.threads
+
+
+class TestHTTP_429_no_answer_is_not_a_recovery(HTTP429Base):
+    """
+    A held URL that gets no answer, like https:// on a plain-http port, says nothing about whether the host:port has
+    stopped rate limiting, so the next round goes out no bigger than the last.
+    """
+
+    targets = [f"{HTTPSERVER_URL}/a"]
+    limited_for = 6
+
+    async def setup_after_prep(self, module_test):
+        self.requests = []
+        self.lock = threading.Lock()
+        self.first = None
+
+        def handler(request):
+            with self.lock:
+                now = time.monotonic()
+                self.first = self.first or now
+                status = 429 if now - self.first < self.limited_for else 200
+                self.requests.append((now, request.path, status))
+            return too_many() if status == 429 else Response(OK_PAGE)
+
+        for path in ("/", "/a"):
+            module_test.httpserver.expect_request(path).respond_with_handler(handler)
+
+        async def inject():
+            # an open port found while /a is held, so both its schemes are held behind /a
+            await self.wait_until_held(module_test, HTTPSERVER_HOSTPORT)
+            await self.inject(module_test, HTTPSERVER_HOSTPORT, event_type="OPEN_TCP_PORT")
+
+        self.injector = asyncio.create_task(inject())
+
+    def check(self, module_test, events):
+        got = {e.parsed_url.path for e in events if e.type == "URL" and "status-200" in e.tags}
+        assert got >= {"/", "/a"}, f"got {got}"
+        limited = [t for t, _, status in self.requests if status == 429]
+        gaps = [round(b - a, 2) for a, b in zip(limited, limited[1:])]
+        assert all(g >= 0.8 for g in gaps), f"429s sent back to back while still limited: {gaps}"
+
+
+class TestHTTP_429_held_url_keeps_its_retries(HTTP429Base):
+    """A held URL whose connection drops is retried like any other (web.http_retries)."""
+
+    targets = [f"{HTTPSERVER_URL}/a"]
+
+    async def setup_after_prep(self, module_test):
+        self.requests = 0
+
+        def handler(request):
+            self.requests += 1
+            if self.requests == 1:
+                return too_many()
+            if self.requests == 2:
+                # the drain's request: drop the connection without answering
+                sock = request.environ["werkzeug.socket"]
+                sock.shutdown(socket.SHUT_RDWR)
+                sock.close()
+            return Response(OK_PAGE)
+
+        module_test.httpserver.expect_request("/a").respond_with_handler(handler)
+
+    def check(self, module_test, events):
+        got = {e.parsed_url.path for e in events if e.type == "URL" and "status-200" in e.tags}
+        assert "/a" in got, f"lost after one dropped connection; the server saw {self.requests} requests"
+        assert self.requests == 3
+
+
+CAP_PATHS = [f"/p{i}" for i in range(8)]
+
+
+class TestHTTP_429_threads_cap(HTTP429Base):
+    """`threads` caps the requests in flight across the batch and every drain together."""
+
+    targets = [f"{base}{path}" for base in (HTTPSERVER_URL, LOCALHOST_URL) for path in CAP_PATHS]
+    config_overrides = {
+        "web": {"429_sleep_interval": 1, "429_max_sleep_interval": 1},
+        "modules": {"http": {"threads": 2}},
+    }
+    deadline = 60
+    limited_for = 2.5
+
+    async def setup_after_prep(self, module_test):
+        self.lock = threading.Lock()
+        self.inflight = 0
+        self.most = 0
+        self.first = {}
+
+        def handler(request):
+            with self.lock:
+                now = time.monotonic()
+                # each hostname rate limits for longer than one retry would wait, so each gets a drain
+                if now - self.first.setdefault(request.host, now) < self.limited_for:
+                    return too_many()
+                self.inflight += 1
+                self.most = max(self.most, self.inflight)
+            try:
+                time.sleep(0.4)
+                return Response(OK_PAGE)
+            finally:
+                with self.lock:
+                    self.inflight -= 1
+
+        for path in CAP_PATHS:
+            module_test.httpserver.expect_request(path).respond_with_handler(handler)
+
+    def check(self, module_test, events):
+        got = {(e.parsed_url.netloc, e.parsed_url.path) for e in events if e.type == "URL" and "status-200" in e.tags}
+        assert len(got) == 2 * len(CAP_PATHS), f"got {len(got)}"
+        assert self.most <= 2, f"{self.most} requests in flight with threads=2"
+
+
+class TestHTTP_429_prefetched(HTTP429Base):
+    """
+    A 429 the browser already fetched is held like one the module fetched, and fetched again once the host:port lets
+    up, rather than reported as the page.
+    """
+
+    targets = [HTTPSERVER_URL]
+
+    async def setup_after_prep(self, module_test):
+        self.limited_requests = 0
+        self.root_seen = False
+
+        def limited(request):
+            self.limited_requests += 1
+            return too_many() if self.limited_requests == 1 else Response(OK_PAGE)
+
+        def root(request):
+            self.root_seen = True
+            return Response(OK_PAGE)
+
+        module_test.httpserver.expect_request("/limited").respond_with_handler(limited)
+        module_test.httpserver.expect_request("/").respond_with_handler(root)
+
+        # what the browser would have handed over: the page, answered with a 429
+        self.prefetched = await blasthttp.BlastHTTP().request(f"{HTTPSERVER_URL}/limited", retry_statuses=[])
+        assert self.prefetched.status == 429
+
+        async def inject():
+            await self.wait_for(lambda: self.root_seen)
+            await self.inject(module_test, f"{HTTPSERVER_URL}/limited", prefetched_response=self.prefetched)
+
+        self.injector = asyncio.create_task(inject())
+
+    def check(self, module_test, events):
+        urls = [e for e in events if e.type == "URL" and e.parsed_url.path == "/limited"]
+        assert not any("status-429" in e.tags for e in urls), "the prefetched 429 was reported as the page"
+        assert any("status-200" in e.tags for e in urls), "the held URL was never fetched again"
+        assert self.limited_requests == 2
 
 
 class TestHTTP_BrowserOnlyHost(ModuleTestBase):

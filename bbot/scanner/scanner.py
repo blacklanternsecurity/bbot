@@ -292,6 +292,7 @@ class Scanner:
         self.cdn_port_filter = bool(cdn_port_filter_config.get("enabled", True))
         self.cdn_tags = set(cdn_port_filter_config.get("tags", []))
         self.cdn_allowed_ports = set(cdn_port_filter_config.get("allowed_ports", []))
+        self.cdn_max_ports = int(cdn_port_filter_config.get("max_ports", 100) or 0)
 
         # url querystring behavior
         self.url_querystring_remove = self.config.get("url_querystring_remove", True)
@@ -1093,6 +1094,22 @@ class Scanner:
 
     def blacklisted(self, *args, **kwargs):
         return self.preset.blacklisted(*args, **kwargs)
+
+    def filter_catch_all_ports(self, host, ports):
+        """Return a host's unique ports, cut to the allowed and targeted ones if there are more than cdn_port_filter.max_ports (it accepts connections on any port)"""
+        ports = list(dict.fromkeys(ports))
+        if not self.cdn_port_filter or not self.cdn_max_ports or len(ports) <= self.cdn_max_ports:
+            return ports
+        host = str(host)
+        # like the rest of cdn_port_filter, a port explicitly targeted on this host is never cut
+        targeted = {
+            seed.port for seed in self.seeds.get(host, single=False) or () if seed.port and str(seed.host) == host
+        }
+        kept = [port for port in ports if port in self.cdn_allowed_ports or port in targeted]
+        self.verbose(
+            f"{host} lists {len(ports):,} open ports, more than cdn_port_filter.max_ports ({self.cdn_max_ports}): keeping only {kept}"
+        )
+        return kept
 
     @property
     def core(self):

@@ -637,15 +637,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
         """True if this event's host is an HTTP wildcard responder."""
         return await self._is_http_wildcard_host(event) is True
 
-    def echoed(self, event, parameter_name):
-        """
-        Whether `parameter_name` is only an echo: the request that got `event` sent it, as a lightfuzz probe's response
-        says. A page that writes its own URL into its links or a redirect would otherwise hand the probe's parameters
-        back as new ones on every page it points to, each probed again in turn.
-        """
-        # RAW_TEXT, from a document, is plain text, with nothing it was sent
-        return isinstance(event.data, dict) and parameter_name in event.data.get("sent_parameters", ())
-
     def _event_host(self, event):
         """Get the effective host from an event.
 
@@ -707,6 +698,8 @@ class excavate(BaseInternalModule, BaseInterceptModule):
     class ParameterExtractor(ExcavateRule):
         description = "Extracts web parameters. Enabled if any modules are enabled that emit WEB_PARAMETER events."
         yara_rules = {}
+        # a backslash escaping a slash, quote or HTML entity, as in a link inside a JSON or JS string
+        _escaped_link_regex = re.compile(r"""\\[/"'&]""")
 
         class ParameterExtractorRule:
             name = ""
@@ -1045,8 +1038,9 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                 base_url = await self.excavate._document_base_url(event, document_url)
                             url = urljoin(base_url, endpoint) if endpoint else document_url
 
+                        # read as a browser reads a link: \ as /, and a space percent-encoded
                         if parameterExtractorSubModule.strict_endpoint and not FULL_URL_REGEX_STRICT.search(
-                            html.unescape(urldefrag(url).url)
+                            html.unescape(urldefrag(url).url).replace("\\", "/").replace(" ", "%20")
                         ):
                             self.excavate.debug(
                                 f"Skipping parameter [{parameter_name}]: its endpoint [{url}] isn't a URL the URL extractor would take"
@@ -1060,8 +1054,9 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             self.excavate.debug(f"Invalid URL [{url}]: {e}")
                             continue
 
-                        # a link's path never holds these: they come from template placeholders ({{...}}) and escaped links (\/)
-                        if any(c in parsed_url.path for c in "{}\\"):
+                        # a link's path never holds braces from a template placeholder ({{...}}) or an escape from a link
+                        # inside a JSON or JS string (\/, \&quot;). A lone \ is fine, since IIS reads it as /
+                        if any(c in parsed_url.path for c in "{}") or self._escaped_link_regex.search(parsed_url.path):
                             self.excavate.debug(f"Skipping parameter [{parameter_name}]: [{url}] isn't a link")
                             continue
 
@@ -1070,14 +1065,6 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                             continue
                         if self.excavate.helpers.web.parameter_blacklisted(parameter_name):
                             self.excavate.debug(f"blocked parameter [{parameter_name}] due to BL match")
-                            continue
-                        # a form's fields are what lightfuzz mines its responses for, so only links and scripts
-                        if (
-                            parameter_type == "GETPARAM"
-                            and "Form" not in submodule_name
-                            and self.excavate.echoed(event, parameter_name)
-                        ):
-                            self.excavate.debug(f"Skipping parameter [{parameter_name}]: lightfuzz's own, echoed")
                             continue
 
                         emit_url = self.excavate.url_unparse(parameter_type, parsed_url)
@@ -1759,9 +1746,7 @@ class excavate(BaseInternalModule, BaseInterceptModule):
                                         regex_name,
                                         additional_params,
                                     ) in extract_params_location(header_value, self._event_base_url(event)):
-                                        if not self.helpers.web.parameter_blacklisted(
-                                            parameter_name
-                                        ) and not self.echoed(event, parameter_name):
+                                        if not self.helpers.web.parameter_blacklisted(parameter_name):
                                             await self.emit_web_parameter(
                                                 host=self._event_host(event),
                                                 param_type="GETPARAM",
