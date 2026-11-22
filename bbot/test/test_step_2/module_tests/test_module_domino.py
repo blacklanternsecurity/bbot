@@ -157,6 +157,29 @@ class TestDominoConfidence(TestDominoOneLine):
         assert confidence == {"Dom-Based XSS": "CONFIRMED", "Client-Side Path Traversal to XSS": "MEDIUM"}
 
 
+class TestDominoMinSeverity(TestDominoOneLine):
+    """A finding less severe than min_severity isn't reported"""
+
+    config_overrides = {
+        "web": {"enable_browser": True},
+        "modules": {"domino": {"rules": ["xss-basic"], "min_severity": "low"}},
+    }
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests({"uri": "/"}, {"response_data": VULNERABLE_PAGE, "content_type": "text/html"})
+
+        async def results(url, parameters=None):
+            return [
+                {"rule_name": "Dom-Based XSS", "description": "Detects confirmed execution", "severity": "high"},
+                {"rule_name": "Hash Decoding Detection", "description": "Detects hash decoding", "severity": "info"},
+            ], True
+
+        module_test.monkeypatch.setattr(module_test.scan.modules["domino"], "run_domino", results)
+
+    def check(self, module_test, events):
+        assert [e.data["name"] for e in events if e.type == "FINDING"] == ["Dom-Based XSS"]
+
+
 class TestDominoOutOfTime(ModuleTestBase):
     """A parameter DOMino discovered but ran out of time to test is handed on, and tested in a run of its own"""
 
