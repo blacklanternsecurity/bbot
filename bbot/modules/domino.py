@@ -6,7 +6,8 @@ from domino.lib.errors import DominoError
 from bbot.errors import BrowserError
 from bbot.modules.base import BROWSER_PAGE_TYPES
 from bbot.modules.templates.browser_vulns import browser_vulns
-from bbot.core.config.models import BaseModuleConfig, Field
+from bbot.core.helpers.validators import FINDING_SEVERITY_LEVELS
+from bbot.core.config.models import BaseModuleConfig, Field, SeverityLiteral
 
 # how long DOMino gets past its time budget to close its pages, before it's cut off with nothing
 STOP_GRACE = 30
@@ -52,12 +53,18 @@ class domino(browser_vulns):
             description="Also test the GET parameters other modules find, like form fields and the ones paramminer "
             "brute-forces. Turns on excavate's parameter extraction.",
         )
+        min_severity: SeverityLiteral = Field(
+            "INFO",
+            description="The least severe finding to report. LOW leaves out INFO findings: primitives, like a decoded "
+            "hash, that reached no sink.",
+        )
 
     async def setup(self):
         await super().setup()
         self.rules = self.config.get("rules")
         self.suppress_parameter_discovery_reports = self.config.get("suppress_parameter_discovery_reports", True)
         self.time_budget = self.config.get("time_budget", 300)
+        self.min_severity = FINDING_SEVERITY_LEVELS.index(self.config.get("min_severity", "INFO").upper())
         # (host, page code fingerprint, name) of each GET parameter DOMino has tested, whether it found it or was given it
         self.tested_parameters = set()
         # the code fingerprint of each page loaded, by (host, page URL), so a parameter's page isn't loaded again to
@@ -216,6 +223,10 @@ class domino(browser_vulns):
             rule_name = result["rule_name"]
             if self.suppress_parameter_discovery_reports and "GET Parameter Access" in rule_name:
                 continue
+            # filtered here rather than in DOMino, which would drop the parameters it discovers along with their reports
+            severity = result.get("severity", "medium").upper()
+            if FINDING_SEVERITY_LEVELS.index(severity) < self.min_severity:
+                continue
             details = result.get("details", [])
             details_string = f" Details: [{','.join(details)}]" if details else ""
             interactions = result.get("interactions", [])
@@ -230,7 +241,7 @@ class domino(browser_vulns):
                 name=rule_name,
                 # one line, whatever the page put into DOMino's details or interactions
                 description=" ".join(description.split()),
-                severity=result.get("severity", "medium").upper(),
+                severity=severity,
                 # DOMino says when a finding isn't confirmed, like one where what ran was its own stand-in response
                 confidence=result.get("confidence", "confirmed").upper(),
                 context=f"{{module}} ran DOMino on {url} and found {{event.type}}: {rule_name}",
