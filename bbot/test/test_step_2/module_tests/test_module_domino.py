@@ -669,3 +669,61 @@ class TestDominoChallengeUnchecked(TestDominoChallenge):
 
     def check(self, module_test, events):
         assert self.found_on_q(events)
+
+
+# a site's not-found page that writes the path it was asked for into the page as HTML
+NOT_FOUND_PAGE = """<html><head><title>Not found</title></head><body>
+<p>Nothing at <span id="path"></span></p>
+<script>
+document.getElementById("path").innerHTML = decodeURIComponent(location.pathname);
+</script>
+</body></html>"""
+
+
+def redirecting_site(request):
+    """A site whose root sends the browser to another site, and whose not-found page writes the path into the page"""
+    if request.path == "/":
+        return Response(status=302, headers={"Location": "https://elsewhere.invalid/"})
+    return Response(NOT_FOUND_PAGE, status=404, content_type="text/html")
+
+
+class TestDominoNotFoundPage(ModuleTestBase):
+    """A site's not-found page is tested, even when the site's root redirects to another site"""
+
+    pytestmark = pytest.mark.browser
+    targets = [f"{HTTPSERVER_URL}/"]
+    modules_overrides = ["http", "domino"]
+    config_overrides = {"web": {"enable_browser": True}, "modules": {"domino": {"rules": ["xss-basic"]}}}
+
+    async def setup_after_prep(self, module_test):
+        module_test.set_expect_requests_handler(expect_args=re.compile("/.*"), request_handler=redirecting_site)
+
+    @staticmethod
+    def not_found_xss(events):
+        return [
+            e
+            for e in events
+            if e.type == "FINDING"
+            and e.data["name"] == "Dom-Based XSS"
+            and urlparse(e.data["url"]).path not in ("", "/")
+        ]
+
+    def check(self, module_test, events):
+        # the root is a redirect, so all there is to test on this site is its not-found page
+        root = [e for e in events if e.type == "URL" and e.url.rstrip("/") == HTTPSERVER_URL]
+        assert root and "status-302" in root[0].tags
+        findings = self.not_found_xss(events)
+        assert findings, [e.data for e in events if e.type == "FINDING"]
+        assert all(f.data["url"].startswith(HTTPSERVER_URL) for f in findings)
+
+
+class TestDominoNotFoundPageOff(TestDominoNotFoundPage):
+    """With not_found_pages off, a site whose root redirects elsewhere gives DOMino nothing to test"""
+
+    config_overrides = {
+        "web": {"enable_browser": True},
+        "modules": {"domino": {"rules": ["xss-basic"], "not_found_pages": False}},
+    }
+
+    def check(self, module_test, events):
+        assert not [e for e in events if e.type == "FINDING"]

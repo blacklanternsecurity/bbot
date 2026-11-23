@@ -58,6 +58,11 @@ class domino(browser_vulns):
             description="The least severe finding to report. LOW leaves out INFO findings: primitives, like a decoded "
             "hash, that reached no sink.",
         )
+        not_found_pages: bool = Field(
+            True,
+            description="Also test each site's not-found page, at a made-up path, once per site. It can run code the "
+            "site's other pages don't, and a site whose pages all redirect elsewhere still serves it.",
+        )
 
     async def setup(self):
         await super().setup()
@@ -65,6 +70,9 @@ class domino(browser_vulns):
         self.suppress_parameter_discovery_reports = self.config.get("suppress_parameter_discovery_reports", True)
         self.time_budget = self.config.get("time_budget", 300)
         self.min_severity = FINDING_SEVERITY_LEVELS.index(self.config.get("min_severity", "INFO").upper())
+        self.not_found_pages = self.config.get("not_found_pages", True)
+        # the sites (scheme://host:port) whose not-found page has been tested
+        self.not_found_sites = set()
         # (host, page code fingerprint, name) of each GET parameter DOMino has tested, whether it found it or was given it
         self.tested_parameters = set()
         # the code fingerprint of each page loaded, by (host, page URL), so a parameter's page isn't loaded again to
@@ -106,13 +114,22 @@ class domino(browser_vulns):
             if str(event.module) == "paramminer_getparams" and "http-reflection" not in event.tags:
                 return False, "paramminer found it in the server's response, which doesn't echo it"
             return True
+        # a URL that isn't a page, like a redirect, still names a site whose not-found page is tested
+        if event.type == "URL" and self.not_found_pages and self.site_of(event) not in self.not_found_sites:
+            return True
         return super().precheck_event(event)
+
+    @staticmethod
+    def site_of(event):
+        return f"{event.parsed_url.scheme}://{event.parsed_url.netloc}"
 
     async def handle_batch(self, *events):
         # pages first, whose runs test the parameters they discover, and whose fingerprints the parameters reuse
         for event in events:
             if event.type != "WEB_PARAMETER":
-                await self.handle_url(event)
+                if "status-200" in event.tags:
+                    await self.handle_url(event)
+                await self.handle_not_found(event)
         await self.handle_parameters([event for event in events if event.type == "WEB_PARAMETER"])
 
     async def handle_parameters(self, events):
@@ -217,6 +234,39 @@ class domino(browser_vulns):
         elif discovered and self.wants_parameters():
             # it ran out of time before testing what it discovered, so each is handed on to be tested on its own
             await self.emit_page_parameters(event, discovered, "DOMino")
+
+    async def handle_not_found(self, event):
+        """
+        Test the not-found page of `event`'s site once, at a made-up path, unless it runs the same code as a page
+        DOMino already ran on there, or isn't a page on the site.
+        """
+        site = self.site_of(event)
+        if not self.not_found_pages or site in self.not_found_sites:
+            return
+        self.not_found_sites.add(site)
+        url = f"{site}/{self.helpers.rand_string(12)}"
+        try:
+            code = await self.url_code(url)
+        except (BrowserError, *self.helpers.browser.engine.errors) as e:
+            self.verbose(f"Browser error while loading {url}: {e}")
+            return
+        if code is None:
+            return
+        visit, _, fingerprint = code
+        # a site whose not-found page sends the browser to another site has none of its own
+        landed = urlparse(str(visit.response.url)).netloc
+        if landed != event.parsed_url.netloc:
+            self.debug(f"Skipping the not-found page of {site}: it's on {landed}")
+            return
+        try:
+            (results, _), first = await self.analyze_once((str(event.host), fingerprint), lambda: self.run_domino(url))
+        except (BrowserError, *self.helpers.browser.engine.errors) as e:
+            self.verbose(f"Browser error while scanning {url}: {e}")
+            return
+        if not first:
+            self.debug(f"Skipping {url}: DOMino already ran on a page on {event.host} with the same code")
+            return
+        await self.emit_results(event, url, results)
 
     async def emit_results(self, event, url, results):
         for result in results:
