@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.ltwruz_o.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style._xpl5y6c.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -985,7 +985,7 @@ If you need to modify an existing event, use <code>update_event()</code> instead
 <ul>
 <li class="doc-section-item field-body">
 <b><code>data</code></b>
-              (<code><span title="Union">Union</span>[<span title="str">str</span>, <span title="dict">dict</span>]</code>)
+              (<code>Union[<span title="str">str</span>, <span title="dict">dict</span>]</code>)
           –
           <div class="doc-md-description">
 <p>The primary data for the event.</p>
@@ -1033,7 +1033,7 @@ If you need to modify an existing event, use <code>update_event()</code> instead
 </li>
 <li class="doc-section-item field-body">
 <b><code>scan</code></b>
-              (<code><span title="Scan">Scan</span></code>, default:
+              (<code>Scan</code>, default:
                   <code>None</code>
 )
           –
@@ -1043,7 +1043,7 @@ If you need to modify an existing event, use <code>update_event()</code> instead
 </li>
 <li class="doc-section-item field-body">
 <b><code>scans</code></b>
-              (<code><span title="List">List</span>[<span title="Scan">Scan</span>]</code>)
+              (<code>List[Scan]</code>)
           –
           <div class="doc-md-description">
 <p>Multiple BBOT Scan objects, primarily used for unserialization.</p>
@@ -1051,7 +1051,7 @@ If you need to modify an existing event, use <code>update_event()</code> instead
 </li>
 <li class="doc-section-item field-body">
 <b><code>tags</code></b>
-              (<code><span title="Union">Union</span>[<span title="str">str</span>, <span title="List">List</span>[<span title="str">str</span>]]</code>, default:
+              (<code>Union[<span title="str">str</span>, List[<span title="str">str</span>]]</code>, default:
                   <code>None</code>
 )
           –
@@ -1071,7 +1071,7 @@ If you need to modify an existing event, use <code>update_event()</code> instead
 </li>
 <li class="doc-section-item field-body">
 <b><code>internal</code></b>
-              (<code><span title="Any">Any</span></code>, default:
+              (<code>Any</code>, default:
                   <code>None</code>
 )
           –
@@ -1325,7 +1325,7 @@ based on the input JSON.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>j</code></b>
-              (<code><span title="Dict">Dict</span></code>)
+              (<code>Dict</code>)
           –
           <div class="doc-md-description">
 <p>JSON dictionary containing the event attributes.
@@ -1559,7 +1559,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.uuid">uuid</span></code></b>
-              (<code><span title="UUID">UUID</span></code>)
+              (<code>UUID</code>)
           –
           <div class="doc-md-description">
 <p>A universally unique identifier for the event.</p>
@@ -1655,7 +1655,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.scan">scan</span></code></b>
-              (<code><span title="Scanner">Scanner</span></code>)
+              (<code>Scanner</code>)
           –
           <div class="doc-md-description">
 <p>The scan object that generated the event.</p>
@@ -1711,7 +1711,7 @@ top of the base class.</p>
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.module">module</span></code></b>
-              (<code><span title="BaseModule">BaseModule</span></code>)
+              (<code>BaseModule</code>)
           –
           <div class="doc-md-description">
 <p>The module that discovered the event.</p>
@@ -4015,7 +4015,7 @@ Otherwise, it will use smart_decode to convert the data into a string representa
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.__init__.scan">scan</span></code></b>
-              (<code><span title="Scan">Scan</span></code>)
+              (<code>Scan</code>)
           –
           <div class="doc-md-description">
 <p>BBOT Scan object. Required unless _dummy is True. Defaults to None.</p>
@@ -4047,7 +4047,7 @@ Otherwise, it will use smart_decode to convert the data into a string representa
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.core.event.base.BaseEvent.__init__._internal">_internal</span></code></b>
-              (<code><span title="Any">Any</span></code>)
+              (<code>Any</code>)
           –
           <div class="doc-md-description">
 <p>If specified, makes the event internal. Defaults to None.</p>

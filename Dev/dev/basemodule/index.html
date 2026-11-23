@@ -20,7 +20,7 @@
 <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
 <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
 <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-<link href="../../assets/stylesheets/extra-style.ltwruz_o.min.css" rel="stylesheet"/></head>
+<link href="../../assets/stylesheets/extra-style._xpl5y6c.min.css" rel="stylesheet"/></head>
 <body data-md-color-accent="deep-orange" data-md-color-primary="black" data-md-color-scheme="slate" dir="ltr">
 <input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
 <input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
@@ -1457,7 +1457,7 @@
 <ul>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule.watched_events">watched_events</span></code></b>
-              (<code><span title="List">List</span></code>)
+              (<code>List</code>)
           –
           <div class="doc-md-description">
 <p>Event types to watch.</p>
@@ -1465,7 +1465,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule.produced_events">produced_events</span></code></b>
-              (<code><span title="List">List</span></code>)
+              (<code>List</code>)
           –
           <div class="doc-md-description">
 <p>Event types to produce.</p>
@@ -1473,7 +1473,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule.meta">meta</span></code></b>
-              (<code><span title="Dict">Dict</span></code>)
+              (<code>Dict</code>)
           –
           <div class="doc-md-description">
 <p>Metadata about the module — description, author, created_date, etc.</p>
@@ -1481,7 +1481,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule.flags">flags</span></code></b>
-              (<code><span title="List">List</span></code>)
+              (<code>List</code>)
           –
           <div class="doc-md-description">
 <p>Flags indicating the type of module (must have at least "passive" or "active").</p>
@@ -1489,7 +1489,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule.deps_modules">deps_modules</span></code></b>
-              (<code><span title="List">List</span></code>)
+              (<code>List</code>)
           –
           <div class="doc-md-description">
 <p>Other BBOT modules this module depends on. Empty list by default.</p>
@@ -1497,7 +1497,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule.deps_pip">deps_pip</span></code></b>
-              (<code><span title="List">List</span></code>)
+              (<code>List</code>)
           –
           <div class="doc-md-description">
 <p>Python dependencies to install via pip. Empty list by default.</p>
@@ -1505,7 +1505,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule.deps_apt">deps_apt</span></code></b>
-              (<code><span title="List">List</span></code>)
+              (<code>List</code>)
           –
           <div class="doc-md-description">
 <p>APT package dependencies to install. Empty list by default.</p>
@@ -1513,7 +1513,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule.deps_shell">deps_shell</span></code></b>
-              (<code><span title="List">List</span></code>)
+              (<code>List</code>)
           –
           <div class="doc-md-description">
 <p>Other dependencies installed via shell commands. Uses <a href="https://docs.ansible.com/ansible/latest/collections/ansible/builtin/shell_module.html">ansible.builtin.shell</a>. Empty list by default.</p>
@@ -1521,7 +1521,7 @@
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule.deps_ansible">deps_ansible</span></code></b>
-              (<code><span title="List">List</span></code>)
+              (<code>List</code>)
           –
           <div class="doc-md-description">
 <p>Additional Ansible tasks for complex dependencies. Empty list by default.</p>
@@ -1620,7 +1620,7 @@ Defaults to True for passive modules, False otherwise. Can be explicitly set to 
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule.options">options</span></code></b>
-              (<code><span title="Dict">Dict</span></code>)
+              (<code>Dict</code>)
           –
           <div class="doc-md-description">
 <p>Customizable options for the module, e.g., {"api_key": ""}. Empty dict by default.</p>
@@ -1628,7 +1628,7 @@ Defaults to True for passive modules, False otherwise. Can be explicitly set to 
 </li>
 <li class="doc-section-item field-body">
 <b><code><span title="bbot.modules.base.BaseModule.options_desc">options_desc</span></code></b>
-              (<code><span title="Dict">Dict</span></code>)
+              (<code>Dict</code>)
           –
           <div class="doc-md-description">
 <p>Descriptions for options, e.g., {"api_key": "API Key"}. Empty dict by default.</p>
@@ -6951,7 +6951,7 @@ Then, the event is queued for outgoing distribution using <code>self.queue_outgo
 <ul>
 <li class="doc-section-item field-body">
 <b><code>event</code></b>
-              (<code><span title="Event">Event</span></code>)
+              (<code>Event</code>)
           –
           <div class="doc-md-description">
 <p>The incoming Event object to be filtered.</p>
@@ -7069,7 +7069,7 @@ Then, the event is queued for outgoing distribution using <code>self.queue_outgo
 <ul>
 <li class="doc-section-item field-body">
 <b><code>event</code></b>
-              (<code><span title="Event">Event</span></code>)
+              (<code>Event</code>)
           –
           <div class="doc-md-description">
 <p>The event object containing host, port, or parsed URL information.</p>
@@ -7143,7 +7143,7 @@ Then, the event is queued for outgoing distribution using <code>self.queue_outgo
 <ul>
 <li class="doc-section-item field-body">
 <b><code>event</code></b>
-              (<code><span title="Event">Event</span></code>)
+              (<code>Event</code>)
           –
           <div class="doc-md-description">
 <p>The event object containing host information.</p>
@@ -7216,7 +7216,7 @@ The hash value is used for distinguishing events related to the same host.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>event</code></b>
-              (<code><span title="Event">Event</span></code>)
+              (<code>Event</code>)
           –
           <div class="doc-md-description">
 <p>The event object containing host, port, or parsed URL information.</p>
@@ -7348,7 +7348,7 @@ The hash value is used for distinguishing events related to the same host.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>*events</code></b>
-              (<code><span title="Event">Event</span></code>, default:
+              (<code>Event</code>, default:
                   <code>()</code>
 )
           –
@@ -7421,7 +7421,7 @@ The hash value is used for distinguishing events related to the same host.</p>
 <ul>
 <li class="doc-section-item field-body">
 <b><code>event</code></b>
-              (<code><span title="Event">Event</span></code>)
+              (<code>Event</code>)
           –
           <div class="doc-md-description">
 <p>The event object containing details about the incoming event.</p>
