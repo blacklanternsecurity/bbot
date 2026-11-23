@@ -19,6 +19,8 @@ class access_bypass(BaseModule):
         "author": "@liquidsec",
     }
     in_scope_only = True
+    # each URL waits on the network through dozens of probes, so a few are tested at once
+    _module_threads = 4
 
     class Config(BaseModuleConfig):
         enabled_submodules: list[str] = Field(
