@@ -928,7 +928,8 @@ class BaseModule:
         # the browser renders pages; an image or a JSON file isn't one
         if self.browser_artifacts and event.type == "URL":
             content_type = event.content_type
-            if content_type not in BROWSER_PAGE_TYPES:
+            # a redirect's own content type says nothing of the page it leads to: the module decides whether it wants one
+            if content_type not in BROWSER_PAGE_TYPES and not str(event.http_status).startswith("3"):
                 return False, f"it isn't a web page ({content_type or 'no content type, and not HTML'})"
 
         result = self.precheck_event(event)
