@@ -8,7 +8,29 @@ import re
 from urllib.parse import urlparse
 
 
-_TITLE_REGEX = re.compile(r"<title[^>]*>(.*?)</title>", re.IGNORECASE | re.DOTALL)
+_TITLE_OPEN_REGEX = re.compile(r"<title", re.IGNORECASE)
+_TITLE_CLOSE_REGEX = re.compile(r"</title>", re.IGNORECASE)
+
+
+def _extract_title(body):
+    """Return the text of the first <title> element in body, or "".
+
+    Same result as searching for ``<title[^>]*>(.*?)</title>``, but in linear
+    time. That regex retries from every ``<title`` and scans to the end of the
+    body each time, which is quadratic on many unclosed tags. Only the first
+    ``<title`` can match: if it has no ``>`` and ``</title>`` after it, no
+    later one does either.
+    """
+    open_match = _TITLE_OPEN_REGEX.search(body)
+    if not open_match:
+        return ""
+    open_end = body.find(">", open_match.end())
+    if open_end == -1:
+        return ""
+    close_match = _TITLE_CLOSE_REGEX.search(body, open_end + 1)
+    if not close_match:
+        return ""
+    return body[open_end + 1 : close_match.start()].strip()
 
 
 def response_to_event_dict(response, url_input, method="GET"):
@@ -50,9 +72,7 @@ def response_to_event_dict(response, url_input, method="GET"):
     title = ""
     if not decode_error:
         body = response.body
-        title_match = _TITLE_REGEX.search(body)
-        if title_match:
-            title = title_match.group(1).strip()
+        title = _extract_title(body)
 
     j = {
         "url": response.url,
