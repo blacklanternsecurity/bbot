@@ -413,14 +413,12 @@ class Test_Lightfuzz_ssti_multiply(ModuleTestBase):
     }
 
     def request_handler(self, request):
-        qs = str(request.query_string.decode())
-        if "data=" in qs:
-            value = qs.split("=")[1]
-            if "&" in value:
-                value = value.split("&")[0]
-            nums = value.split("%20")[1].split("*")
-            ints = [int(s) for s in nums]
-            ssti_block = f"<html><div class=data>{str(ints[0] * ints[1])}</div</html>"
+        # Multiply "<x>%20<a>*<b>" like a template engine would; anything else gets a plain page.
+        match = re.search(r"data=[^&]*?%20(\d+)\*(\d+)", request.query_string.decode())
+        if match:
+            ssti_block = f"<html><div class=data>{int(match.group(1)) * int(match.group(2))}</div></html>"
+        else:
+            ssti_block = "<html><div class=data></div></html>"
         return Response(ssti_block, status=200)
 
     async def setup_after_prep(self, module_test):
