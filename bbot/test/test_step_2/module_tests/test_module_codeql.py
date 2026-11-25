@@ -214,7 +214,7 @@ class TestCodeQLParameterQuery(ModuleTestBase):
             database = Path(temp_dir) / "db"
             assert await module.create_database(PARAMETER_FIXTURES_DIR, database)
             results = await module.run_queries(database, [str(PARAMETERS_QUERY)])
-        assert {result["message"] for result in results} == {"next", "name", "returnUrl"}
+        assert {result["message"] for result in results} == {"next", "name", "returnUrl", "returnTo", "note"}
 
 
 def long_constant_page():

@@ -1,0 +1,1 @@
+!function(e){var a=Object.create(null);for(var n in a[Math.random()]=window.name,a)e(n);Object.keys(a).forEach((function(a){e(a)}));var o=Object.create(null);o[location.hash.slice(1)]="/home",location.href=o.home}(jQuery);
