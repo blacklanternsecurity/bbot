@@ -18,7 +18,7 @@ class fingerprintx(BaseModule):
     _priority = 2
 
     class Config(BaseModuleConfig):
-        version: VersionStr = Field("1.1.4", description="fingerprintx version")
+        version: VersionStr = Field("1.1.19", description="fingerprintx version")
         skip_common_web: bool = Field(True, description="Skip common web ports such as 80, 443, 8080, 8443, etc.")
 
     deps_ansible = [
