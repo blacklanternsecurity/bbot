@@ -440,8 +440,8 @@ private predicate fromPageUrl(DataFlow::Node node) {
 
 /**
  * Holds if `node` reads the page's URL parameter `name` by its name: params.get("next") from URLSearchParams over the
- * page's URL, or $location.search().next in AngularJS. A module that tests parameters in the browser can put a payload
- * in it.
+ * page's URL, $location.search().next in AngularJS, or query.next from a dictionary the page parsed its query string
+ * into itself. A module that tests parameters in the browser can put a payload in it.
  */
 predicate namedParameter(DataFlow::Node node, string name) {
   exists(DataFlow::Node input, DataFlow::MethodCallNode get |
@@ -457,7 +457,49 @@ predicate namedParameter(DataFlow::Node node, string name) {
     search.getNumArgument() = 0 and
     node = search.getAPropertyRead(name)
   )
+  or
+  // a dictionary the page parsed its query string into, wherever it's taken, read by name
+  exists(DataFlow::PropRead read |
+    ParsedQueryFlow::flowTo(read.getBase()) and
+    name = read.getPropertyName() and
+    not read = any(DataFlow::InvokeNode call).getCalleeNode() and
+    node = read
+  )
 }
+
+/** Holds if `node` is the page's query string, with what's around it: the text a parser of the page's own splits up. */
+private predicate queryText(DataFlow::Node node) {
+  node = pageLocation().getAPropertyRead(["search", "href"]) or
+  node = DOM::documentRef().getAPropertyRead(["URL", "documentURI"])
+}
+
+/** Text of the page's query string, to where the page stores it in a dictionary under a name it works out. */
+private module QueryTextConfig implements DataFlow::ConfigSig {
+  predicate isSource(DataFlow::Node node) { queryText(node) }
+
+  predicate isSink(DataFlow::Node node) {
+    exists(DataFlow::PropWrite write | dictionaryWrite(_, write) and node = write.getRhs())
+  }
+
+  predicate isAdditionalFlowStep(DataFlow::Node node1, DataFlow::Node node2) {
+    iterationStep(node1, node2)
+  }
+}
+
+private module QueryTextFlow = TaintTracking::Global<QueryTextConfig>;
+
+/** A dictionary the page parses its query string into, to wherever it's taken: returned, wrapped, destructured. */
+private module ParsedQueryConfig implements DataFlow::ConfigSig {
+  predicate isSource(DataFlow::Node node) {
+    exists(DataFlow::PropWrite write |
+      dictionaryWrite(node, write) and QueryTextFlow::flowTo(write.getRhs())
+    )
+  }
+
+  predicate isSink(DataFlow::Node node) { node = any(DataFlow::PropRead read).getBase() }
+}
+
+private module ParsedQueryFlow = DataFlow::Global<ParsedQueryConfig>;
 
 /**
  * Holds if text in `state1` at `node1` becomes text in `state2` at `node2`: a part taken out of a URL, a decoded URL,
@@ -678,12 +720,28 @@ private class UnresolvedCallStep extends DataFlow::AdditionalFlowStep {
   }
 }
 
+/** Holds if `obj` is an object the page made to use as a dictionary: `{}`, or `Object.create(null)`. */
+private predicate pageDictionary(DataFlow::SourceNode obj) {
+  obj instanceof DataFlow::ObjectLiteralNode
+  or
+  obj = DataFlow::globalVarRef("Object").getAMemberCall("create") and
+  obj.(DataFlow::CallNode).getArgument(0).asExpr() instanceof NullLiteral
+}
+
+/** Holds if `write` stores a value in `dictionary` under a name the page works out: dictionary[name] = value. */
+private predicate dictionaryWrite(DataFlow::SourceNode dictionary, DataFlow::PropWrite write) {
+  pageDictionary(dictionary) and
+  write = dictionary.getAPropertyWrite() and
+  not exists(write.getPropertyName()) and
+  not write.getWriteNode() instanceof Property
+}
+
 /** Holds if the page's code carries a value from `node1` to `node2` in a way the library doesn't follow. */
 predicate pageCodeStep(DataFlow::Node node1, DataFlow::Node node2) {
   // an object's keys, unless it's one of the page's own, whose keys the page chose
   exists(ForInStmt loop |
     node1 = loop.getIterationDomain().flow() and
-    not node1.getALocalSource() instanceof DataFlow::ObjectLiteralNode and
+    not pageDictionary(node1.getALocalSource()) and
     node2 = DataFlow::lvalueNode(loop.getLValue().(BindingPattern).getABindingVarRef())
   )
   or
@@ -691,7 +749,7 @@ predicate pageCodeStep(DataFlow::Node node1, DataFlow::Node node2) {
     call =
       DataFlow::globalVarRef("Object").getAMemberCall(["keys", "entries", "getOwnPropertyNames"]) and
     node1 = call.getArgument(0) and
-    not node1.getALocalSource() instanceof DataFlow::ObjectLiteralNode and
+    not pageDictionary(node1.getALocalSource()) and
     node2 = call
   )
   or
@@ -699,6 +757,14 @@ predicate pageCodeStep(DataFlow::Node node1, DataFlow::Node node2) {
     call = DataFlow::globalVarRef("Object").getAMemberCall("fromEntries") and
     node1 = call.getArgument(0) and
     node2 = call
+  )
+  or
+  // o[k] = v puts v in o: CodeQL's ComputedPropWriteTaintStep does that for o = {}, but not for Object.create(null),
+  // which hand-written query string parsers fill the same way
+  exists(DataFlow::PropWrite write |
+    dictionaryWrite(_, write) and
+    node1 = write.getRhs() and
+    node2 = write.getBase().getPostUpdateNode()
   )
 }
 
