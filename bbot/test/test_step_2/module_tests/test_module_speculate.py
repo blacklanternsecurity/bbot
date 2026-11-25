@@ -1,3 +1,5 @@
+import urllib.parse
+
 from .base import ModuleTestBase
 from bbot.test.worker import HTTPSERVER_URL
 
@@ -175,3 +177,58 @@ class TestSpeculate_OpenPorts_Portscanner(TestSpeculate_OpenPorts):
             x in events_data
             for x in ("evilcorp.com:80", "evilcorp.com:443", "asdf.evilcorp.com:80", "asdf.evilcorp.com:443")
         )
+
+
+def quoted(url):
+    return urllib.parse.quote(url, safe="")
+
+
+class TestSpeculate_ParameterUrls(ModuleTestBase):
+    """
+    A URL in the query string of a URL the scan visits, like an OAuth redirect_uri or a login's return URL, is followed
+    like a redirect: without spider-danger, so the spider's limits don't stop it, and through URLs nested in each other's
+    parameters. Pages that differ only in that parameter each get theirs followed, whatever their content
+    """
+
+    callback = f"{HTTPSERVER_URL}/a/b/c/d/callback.html?clientId=app&fromUrl={quoted(HTTPSERVER_URL + '/home')}"
+    targets = [
+        f"{HTTPSERVER_URL}/authorize?client_id=app&redirect_uri={quoted(callback)}&state=xyz"
+        f"&return={quoted('https://outofscope.example/x')}",
+        f"{HTTPSERVER_URL}/login?next={quoted(HTTPSERVER_URL + '/dash')}",
+        f"{HTTPSERVER_URL}/login?next={quoted(HTTPSERVER_URL + '/settings')}",
+    ]
+    modules_overrides = ["http", "speculate"]
+    config_overrides = {"url_querystring_remove": False, "url_querystring_collapse": False}
+
+    async def setup_after_prep(self, module_test):
+        # as an authorization server does, the authorize endpoint sends the browser on to a sign-in page of its own
+        module_test.set_expect_requests(
+            {"uri": "/authorize"},
+            {"response_data": "", "status": 302, "headers": {"Location": "/signin?oauth_state=s"}},
+        )
+        # one page, whatever URL it's at
+        for uri in ("/signin", "/a/b/c/d/callback.html", "/home", "/login", "/dash", "/settings"):
+            module_test.set_expect_requests({"uri": uri}, {"response_data": "<html>the same page</html>"})
+
+    def check(self, module_test, events):
+        urls = {e.url: e for e in events if e.type == "URL"}
+        callbacks = [e for url, e in urls.items() if "/a/b/c/d/callback.html?" in url]
+        assert callbacks, f"the redirect_uri wasn't visited: {sorted(urls)}"
+        assert "spider-danger" not in callbacks[0].tags
+        # the URL in the callback's own query string
+        assert f"{HTTPSERVER_URL}/home" in urls, f"the URL in the callback's parameters wasn't visited: {sorted(urls)}"
+        # both return URLs, though the pages they were found in are the same page
+        assert f"{HTTPSERVER_URL}/dash" in urls and f"{HTTPSERVER_URL}/settings" in urls, sorted(urls)
+        # not the scan's to visit
+        assert not any(urllib.parse.urlparse(url).hostname == "outofscope.example" for url in urls)
+
+
+class TestSpeculate_ParameterUrlsQuerystringRemoved(TestSpeculate_ParameterUrls):
+    """With the query string removed from the URLs the scan visits, there's none to find URLs in"""
+
+    config_overrides = {"url_querystring_remove": True}
+
+    def check(self, module_test, events):
+        urls = {e.url for e in events if e.type == "URL"}
+        followed = [url for url in urls if "callback.html" in url or url.endswith(("/home", "/dash", "/settings"))]
+        assert not followed, sorted(urls)
