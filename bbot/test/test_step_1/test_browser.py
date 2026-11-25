@@ -566,6 +566,48 @@ async def test_browser_busy_kept(bbot_scanner, bbot_httpserver, monkeypatch):
 
 @pytest.mark.browser
 @pytest.mark.asyncio
+async def test_browser_busy_limit(bbot_scanner, bbot_httpserver, monkeypatch):
+    """A browser that fails every health check for BUSY_LIMIT is replaced, even though it keeps opening pages"""
+    serve(bbot_httpserver)
+    monkeypatch.setattr("bbot.core.helpers.web.browser.helper.HEALTH_CHECK_TIMEOUT", 1)
+    scan = await browser_scan(bbot_scanner)
+    browser = scan.helpers.browser
+    assert await browser.visit(bbot_httpserver.url_for("/")) is not None
+    instance = browser._instance
+    new_context = instance.browser.new_context
+
+    async def slow_new_context(**options):
+        await asyncio.sleep(3)
+        return await new_context(**options)
+
+    # a failed check while it's opening pages is kept, and starts a run of failures
+    monkeypatch.setattr(instance.browser, "new_context", slow_new_context)
+    await browser._check_responsive()
+    assert browser._instance is instance and instance.alive and instance.failing_since is not None
+
+    # a check that passes ends the run
+    monkeypatch.setattr(instance.browser, "new_context", new_context)
+    await browser._check_responsive()
+    assert instance.alive and instance.failing_since is None
+
+    # so the next failure starts a new one, and is kept
+    monkeypatch.setattr(instance.browser, "new_context", slow_new_context)
+    await browser._check_responsive()
+    assert browser._instance is instance and instance.alive and not browser._crashes
+
+    # but once every check has failed for longer than BUSY_LIMIT it's frozen, though it just opened a page
+    instance.failing_since -= browser_helper.BUSY_LIMIT + 1
+    instance.last_progress = time.monotonic()
+    await browser._check_responsive()
+    assert not instance.alive and len(browser._crashes) == 1
+    assert await browser.visit(bbot_httpserver.url_for("/again")) is not None
+
+    await scan._cleanup()
+    assert await no_browser_processes()
+
+
+@pytest.mark.browser
+@pytest.mark.asyncio
 async def test_browser_driver_options(bbot_scanner, bbot_httpserver):
     """Playwright's driver treats a promise nothing handles as a warning rather than exiting, taking every page with it"""
     serve(bbot_httpserver)
