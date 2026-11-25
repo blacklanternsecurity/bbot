@@ -1,5 +1,6 @@
 import random
 import ipaddress
+from urllib.parse import parse_qs
 
 from bbot.core.helpers import validators
 from bbot.modules.internal.base import BaseInternalModule
@@ -167,6 +168,20 @@ class speculate(BaseInternalModule):
                     await self.emit_event(
                         url_event, context="speculated web sub-directory {event.type}: {event.pretty_string}"
                     )
+            # a URL in its query string, like an OAuth redirect_uri or a login's return URL, is where the flow sends the
+            # browser next: followed like a redirect, at the same spider distance. Each is shorter than the URL it was
+            # found in, so URLs nested in each other's parameters run out
+            for name, values in parse_qs(event.parsed_url.query).items():
+                for value in values:
+                    if self.helpers.is_uri(value, return_scheme=True) not in ("http", "https"):
+                        continue
+                    url_event = self.make_event(value, "URL_UNVERIFIED", parent=event)
+                    if url_event is not None:
+                        url_event.web_spider_distance = getattr(event, "web_spider_distance", 0)
+                        await self.emit_event(
+                            url_event,
+                            context=f'speculated {{event.type}} from the "{name}" parameter of {event.url}: {{event.pretty_string}}',
+                        )
 
         # speculate URL_UNVERIFIED from URL or any event with "url" attribute
         event_is_url = event.type == "URL"
