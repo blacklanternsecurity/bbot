@@ -663,6 +663,43 @@ async def test_web_redirect_cookies(bbot_scanner, bbot_httpserver):
     await scan._cleanup()
 
 
+@pytest.mark.parametrize(
+    "header_pairs,expected",
+    [
+        ([("Content-Length", "12")], 12),
+        # repeated identical values are valid (RFC 9110, section 8.6)
+        ([("Content-Length", "12"), ("Content-Length", "12")], 12),
+        ([("Content-Length", "12"), ("Content_Length", "12")], 12),
+        # conflicting or malformed values fall back to the length of the 5-byte body
+        ([("Content-Length", "3"), ("Content-Length", "7")], 5),
+        ([("Content-Length", "12"), ("Content-Length", "nope")], 5),
+        ([("Content-Length", "-3")], 5),
+        ([("Content-Length", "")], 5),
+        ([], 5),
+    ],
+)
+def test_response_to_event_dict_content_length(header_pairs, expected):
+    from types import SimpleNamespace
+
+    from bbot.core.helpers.web.response_event import response_to_event_dict
+
+    body = "hello"
+    response = SimpleNamespace(
+        url="http://www.evilcorp.com/",
+        status=200,
+        raw_headers="",
+        headers=SimpleNamespace(items=lambda: header_pairs),
+        body_bytes=body.encode(),
+        body=body,
+        decode_error=None,
+        hash=SimpleNamespace(
+            body_md5="", body_mmh3="", body_sha256="", header_md5="", header_mmh3="", header_sha256=""
+        ),
+        cert_info=None,
+    )
+    assert response_to_event_dict(response, "www.evilcorp.com")["content_length"] == expected
+
+
 @pytest.mark.asyncio
 async def test_web_decode_error(bbot_scanner, bbot_httpserver):
     import gzip
