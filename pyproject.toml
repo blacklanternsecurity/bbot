@@ -132,3 +132,6 @@ lint.ignore = ["E402", "E711", "E713", "E721", "E741", "F403", "F405", "E501"]
 
 [tool.uv]
 constraint-dependencies = ["virtualenv>=21.7.13"]
+# Fixed soupsieve releases need Python 3.11.5+. Lock only for those Pythons so
+# the lock has one fixed copy, without raising requires-python for users.
+environments = ["python_full_version >= '3.11.5'"]
