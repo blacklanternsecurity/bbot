@@ -9,6 +9,21 @@ from urllib.parse import urlparse
 
 
 _TITLE_REGEX = re.compile(r"<title[^>]*>(.*?)</title>", re.IGNORECASE | re.DOTALL)
+_DIGITS_REGEX = re.compile(r"[0-9]+")
+
+
+def _parse_content_length(value, default):
+    """Parse a (possibly repeated) Content-Length header value.
+
+    Repeated identical values are valid (RFC 9110, section 8.6). Anything else that is not a
+    plain number, such as conflicting values, falls back to ``default``.
+    """
+    values = {v.strip() for v in value.split(",")}
+    if len(values) == 1:
+        (only,) = values
+        if _DIGITS_REGEX.fullmatch(only):
+            return int(only)
+    return default
 
 
 def response_to_event_dict(response, url_input, method="GET"):
@@ -40,7 +55,7 @@ def response_to_event_dict(response, url_input, method="GET"):
             header_dict[key] = v
 
     content_type = header_dict.get("content_type", "")
-    content_length = int(header_dict.get("content_length", len(response.body_bytes)))
+    content_length = _parse_content_length(header_dict.get("content_length", ""), len(response.body_bytes))
     location = header_dict.get("location", "")
 
     # A body that didn't decode isn't content, so don't present it as text or
